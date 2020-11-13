@@ -10,7 +10,7 @@
 #include "optimizer/statistics/count_min_sketch.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class TopKElementsTests : public TerrierTest {
   void SetUp() override {
@@ -369,4 +369,4 @@ TEST_F(TopKElementsTests, OutputTest) {
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -1,8 +1,9 @@
 #include "parser/expression/conjunction_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> ConjunctionExpression::Copy() const {
   std::vector<std::unique_ptr<AbstractExpression>> children;
@@ -19,6 +20,10 @@ std::unique_ptr<AbstractExpression> ConjunctionExpression::CopyWithChildren(
   return expr;
 }
 
+void ConjunctionExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(ConjunctionExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

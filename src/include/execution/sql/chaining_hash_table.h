@@ -11,7 +11,7 @@
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -175,7 +175,7 @@ class ChainingHashTableBase {
     // [0, kNumTagBits), so we take the log2(kNumTagBits) most significant bits
     // to determine which bit in the tag to set.
     auto tag_bit_pos = hash >> (sizeof(hash_t) * 8 - 4);
-    TERRIER_ASSERT(tag_bit_pos < NUM_TAG_BITS, "Invalid tag!");
+    NOISEPAGE_ASSERT(tag_bit_pos < NUM_TAG_BITS, "Invalid tag!");
     return 1ull << (tag_bit_pos + NUM_POINTER_BITS);
   }
 
@@ -209,8 +209,8 @@ template <bool Concurrent>
 inline void ChainingHashTableBase::InsertUntagged(HashTableEntry *const entry, const hash_t hash) {
   const uint64_t pos = BucketPosition(hash);
 
-  TERRIER_ASSERT(pos < GetCapacity(), "Computed table position exceeds capacity!");
-  TERRIER_ASSERT(entry->hash_ == hash, "Hash value not set in entry!");
+  NOISEPAGE_ASSERT(pos < GetCapacity(), "Computed table position exceeds capacity!");
+  NOISEPAGE_ASSERT(entry->hash_ == hash, "Hash value not set in entry!");
 
   if constexpr (Concurrent) {
     HashTableEntry *old_entry = entries_[pos];
@@ -227,8 +227,8 @@ template <bool Concurrent>
 inline void ChainingHashTableBase::InsertTagged(HashTableEntry *const entry, const hash_t hash) {
   const uint64_t pos = BucketPosition(hash);
 
-  TERRIER_ASSERT(pos < GetCapacity(), "Computed table position exceeds capacity!");
-  TERRIER_ASSERT(entry->hash_ == hash, "Hash value not set in entry!");
+  NOISEPAGE_ASSERT(pos < GetCapacity(), "Computed table position exceeds capacity!");
+  NOISEPAGE_ASSERT(entry->hash_ == hash, "Hash value not set in entry!");
 
   if constexpr (Concurrent) {  // NOLINT
     HashTableEntry *old_entry = entries_[pos];
@@ -572,4 +572,4 @@ class ChainingHashTableVectorIterator {
   uint32_t entry_vec_end_idx_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

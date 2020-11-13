@@ -11,8 +11,8 @@
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "network/connection_handle_factory.h"
+#include "network/noisepage_server.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
-#include "network/terrier_server.h"
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
@@ -20,7 +20,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /*
  * The network tests does not check whether the result is correct. It only checks if the network layer works.
@@ -401,4 +401,4 @@ TEST_F(NetworkTests, GusThesisSaver) {
   NETWORK_LOG_INFO("[GusThesisSaver] Completed");
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

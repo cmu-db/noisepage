@@ -5,7 +5,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class Decl;
@@ -82,4 +82,4 @@ class Scope {
 };
 
 }  // namespace sema
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

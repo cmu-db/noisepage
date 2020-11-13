@@ -8,7 +8,7 @@
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 // TODO(Tianyu): In this future, there can be situations where varlen fields should not be gathered
 // compressed (e.g, blob). Can add a flag here to handle that.
@@ -177,8 +177,8 @@ class ArrowColumnInfo {
    * @return the indices array
    */
   uint64_t *&Indices() {
-    TERRIER_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
-                   "this array is only meaningful if the column is dicationary compressed");
+    NOISEPAGE_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
+                     "this array is only meaningful if the column is dicationary compressed");
     return indices_;
   }
 
@@ -285,4 +285,4 @@ class ArrowBlockMetadata {
   // null_count[num_cols] (32-bit) | padding up to 8 byte-aligned | arrow_varlen_buffers[num_cols] |
   byte varlen_content_[];
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -6,17 +6,17 @@
 
 #ifdef NOISEPAGE_USE_LOGGING
 
-namespace terrier::common {
+namespace noisepage::common {
 extern std::shared_ptr<spdlog::logger> common_logger;  // NOLINT
 
 void InitCommonLogger();
-}  // namespace terrier::common
+}  // namespace noisepage::common
 
-#define COMMON_LOG_TRACE(...) ::terrier::common::common_logger->trace(__VA_ARGS__)
-#define COMMON_LOG_DEBUG(...) ::terrier::common::common_logger->debug(__VA_ARGS__)
-#define COMMON_LOG_INFO(...) ::terrier::common::common_logger->info(__VA_ARGS__)
-#define COMMON_LOG_WARN(...) ::terrier::common::common_logger->warn(__VA_ARGS__)
-#define COMMON_LOG_ERROR(...) ::terrier::common::common_logger->error(__VA_ARGS__)
+#define COMMON_LOG_TRACE(...) ::noisepage::common::common_logger->trace(__VA_ARGS__)
+#define COMMON_LOG_DEBUG(...) ::noisepage::common::common_logger->debug(__VA_ARGS__)
+#define COMMON_LOG_INFO(...) ::noisepage::common::common_logger->info(__VA_ARGS__)
+#define COMMON_LOG_WARN(...) ::noisepage::common::common_logger->warn(__VA_ARGS__)
+#define COMMON_LOG_ERROR(...) ::noisepage::common::common_logger->error(__VA_ARGS__)
 
 #else
 

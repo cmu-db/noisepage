@@ -6,7 +6,7 @@
 #include "execution/ast/type.h"
 #include "execution/ast/type_visitor.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 namespace {
 
@@ -98,4 +98,4 @@ std::string Type::ToString(const Type *type) {
   return buffer.str();
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

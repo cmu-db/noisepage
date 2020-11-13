@@ -4,7 +4,7 @@
 
 #include "execution/ast/identifier.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class Type;
@@ -135,4 +135,4 @@ class ErrorMessages {
 };
 
 }  // namespace sema
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

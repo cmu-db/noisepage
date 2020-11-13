@@ -6,7 +6,7 @@
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeLabel;
 
@@ -21,7 +21,7 @@ class BytecodeEmitter {
    * @param bytecode The bytecode array to emit bytecode into.
    */
   explicit BytecodeEmitter(std::vector<uint8_t> *bytecode) : bytecode_(bytecode) {
-    TERRIER_ASSERT(bytecode_ != nullptr, "NULL bytecode pointer provided to emitter");
+    NOISEPAGE_ASSERT(bytecode_ != nullptr, "NULL bytecode pointer provided to emitter");
   }
 
   /**
@@ -449,4 +449,4 @@ class BytecodeEmitter {
   std::vector<uint8_t> *bytecode_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

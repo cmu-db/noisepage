@@ -22,7 +22,7 @@
 #include "common/macros.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace {
 
@@ -159,7 +159,7 @@ void CpuInfo::InitCacheInfo() {
   sysctlbyname("hw.cachesize", nullptr, &len, nullptr, 0);
   auto data = std::make_unique<uint64_t[]>(len);
   sysctlbyname("hw.cachesize", data.get(), &len, nullptr, 0);
-  TERRIER_ASSERT(len / sizeof(uint64_t) >= 3, "Expected three levels of cache!");
+  NOISEPAGE_ASSERT(len / sizeof(uint64_t) >= 3, "Expected three levels of cache!");
 
   // Copy data
   for (uint32_t idx = 0; idx < K_NUM_CACHE_LEVELS; idx++) {
@@ -213,4 +213,4 @@ std::string CpuInfo::PrettyPrintInfo() const {
   return ss.str();
 }
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

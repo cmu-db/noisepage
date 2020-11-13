@@ -8,7 +8,7 @@
 #include "brain/operating_unit.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 /**
  * Utility class for OperatingUnits
@@ -198,14 +198,14 @@ class OperatingUnitUtil {
       bool same_translator = translator_id == features[i].GetTranslatorId();
       bool same_feature = type == features[i].GetExecutionOperatingUnitType();
       if (same_translator && same_feature) {
-        TERRIER_ASSERT(!found, "There are multiple features of the same type.");
+        NOISEPAGE_ASSERT(!found, "There are multiple features of the same type.");
         found = true;
         idx = i;
       }
     }
-    TERRIER_ASSERT(found, "The feature was not found.");
+    NOISEPAGE_ASSERT(found, "The feature was not found.");
     return features[idx];
   }
 };
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

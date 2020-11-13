@@ -3,7 +3,7 @@
 #include "execution/parsing/scanner.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::parsing::test {
+namespace noisepage::execution::parsing::test {
 
 class TokenTest : public TplTest {};
 
@@ -24,4 +24,4 @@ TEST_F(TokenTest, ComparisonOpTest) {
   EXPECT_TRUE(Token::IsCompareOp(Token::Type::LESS_EQUAL));
 }
 
-}  // namespace terrier::execution::parsing::test
+}  // namespace noisepage::execution::parsing::test

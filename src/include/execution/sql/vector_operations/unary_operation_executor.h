@@ -7,7 +7,7 @@
 #include "execution/sql/vector_operations/traits.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Static utility class enabling execution of unary functions over vectors. The main API is
@@ -111,4 +111,4 @@ class UnaryOperationExecutor {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

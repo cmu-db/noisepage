@@ -15,7 +15,7 @@
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // Maps from index columns to table columns.
 using IndexTableMap = std::vector<uint16_t>;
@@ -179,12 +179,12 @@ class SchemaReader {
     return cols;
   }
 
-  terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
+  noisepage::parser::ConstantValueExpression DummyCVE() {
+    return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
  private:
   // Supported types
   const std::unordered_map<std::string, type::TypeId> type_names_;
 };
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

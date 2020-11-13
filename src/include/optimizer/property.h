@@ -5,7 +5,7 @@
 #include "common/hash_util.h"
 #include "optimizer/optimizer_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class PropertyVisitor;
 
@@ -77,4 +77,4 @@ class Property {
   }
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

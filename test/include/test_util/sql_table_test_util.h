@@ -13,7 +13,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
@@ -83,7 +83,7 @@ class LargeSqlTableTestConfiguration {
      * @return self-reference for method chaining
      */
     Builder &SetInsertUpdateSelectDeleteRatio(std::vector<double> ratios) {
-      TERRIER_ASSERT(ratios.size() == 4, "Ratio must have four values");
+      NOISEPAGE_ASSERT(ratios.size() == 4, "Ratio must have four values");
       builder_insert_update_select_delete_ratio_ = std::move(ratios);
       return *this;
     }
@@ -278,8 +278,8 @@ class LargeSqlTableTestObject {
 
   const std::vector<storage::TupleSlot> &GetTupleSlotsForTable(catalog::db_oid_t db_oid,
                                                                catalog::table_oid_t table_oid) {
-    TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
-    TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
+    NOISEPAGE_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
+    NOISEPAGE_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
     return tables_[db_oid][table_oid]->inserted_tuples_;
   }
 
@@ -306,4 +306,4 @@ class LargeSqlTableTestObject {
   // Maps database and table oids to struct holding testing metadata for each table
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, SqlTableMetadata *>> tables_;
 };
-}  // namespace terrier
+}  // namespace noisepage

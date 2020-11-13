@@ -9,15 +9,15 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/pipeline.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * An enumeration capturing the mode of code generation when compiling SQL queries to TPL.
@@ -178,4 +178,4 @@ class CompilationContext {
   bool pipeline_metrics_enabled_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

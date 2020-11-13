@@ -10,7 +10,7 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 uint32_t TableReader::ReadTable(const std::string &schema_file, const std::string &data_file) {
   uint32_t val_written = 0;
@@ -190,4 +190,4 @@ void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_o
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -7,7 +7,7 @@
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * CaseExpression represents a SQL WHEN ... THEN ... statement.
  */
@@ -38,12 +38,7 @@ class CaseExpression : public AbstractExpression {
      * Hash the current WhenClause.
      * @return hash of WhenClause
      */
-    common::hash_t Hash() const {
-      common::hash_t hash = condition_->Hash();
-      hash = common::HashUtil::CombineHashes(hash, condition_->Hash());
-      hash = common::HashUtil::CombineHashes(hash, then_->Hash());
-      return hash;
-    }
+    common::hash_t Hash() const;
 
     /**
      * Derived expressions should call this base method
@@ -100,7 +95,7 @@ class CaseExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "CaseExpression should have no children");
+    NOISEPAGE_ASSERT(children.empty(), "CaseExpression should have no children");
     return Copy();
   }
 
@@ -114,7 +109,7 @@ class CaseExpression : public AbstractExpression {
    * @return condition at that index
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseCondition(size_t index) const {
-    TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
+    NOISEPAGE_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return common::ManagedPointer(when_clauses_[index].condition_);
   }
 
@@ -123,14 +118,14 @@ class CaseExpression : public AbstractExpression {
    * @return result at that index
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseResult(size_t index) const {
-    TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
+    NOISEPAGE_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return common::ManagedPointer(when_clauses_[index].then_);
   }
 
   /** @return default clause, if it exists */
   common::ManagedPointer<AbstractExpression> GetDefaultClause() const { return common::ManagedPointer(default_expr_); }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override;
@@ -148,4 +143,4 @@ class CaseExpression : public AbstractExpression {
 DEFINE_JSON_HEADER_DECLARATIONS(CaseExpression::WhenClause);
 DEFINE_JSON_HEADER_DECLARATIONS(CaseExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

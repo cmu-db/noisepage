@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 #undef NIL  // pg_list.h defined this symbol, but TPL uses it as a different symbol so need to undef it
 
@@ -157,4 +157,4 @@ class Token {
   static const uint32_t TOKEN_PRECEDENCES[];
 };
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

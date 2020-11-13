@@ -7,11 +7,11 @@
 #include "execution/sql/data_types.h"
 #include "execution/sql/runtime_types.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 struct Val;
 
@@ -242,4 +242,4 @@ class EXPORT GenericValue {
   std::string str_value_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

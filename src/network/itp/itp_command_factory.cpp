@@ -1,7 +1,7 @@
 #include "network/itp/itp_command_factory.h"
 
 #include <memory>
-namespace terrier::network {
+namespace noisepage::network {
 
 std::unique_ptr<ITPNetworkCommand> ITPCommandFactory::PacketToCommand(
     const common::ManagedPointer<InputPacket> packet) {
@@ -15,4 +15,4 @@ std::unique_ptr<ITPNetworkCommand> ITPCommandFactory::PacketToCommand(
   }
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

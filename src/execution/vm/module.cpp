@@ -12,7 +12,7 @@
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // ---------------------------------------------------------
 // Async Compile Task
@@ -164,7 +164,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     const Xbyak::Reg arg_regs[][6] = {{edi, esi, edx, ecx, r8d, r9d}, {rdi, rsi, rdx, rcx, r8, r9}};
 
     const ast::FunctionType *func_type = func_.GetFuncType();
-    TERRIER_ASSERT(func_type->GetNumParams() < sizeof(arg_regs), "Too many function arguments");
+    NOISEPAGE_ASSERT(func_type->GetNumParams() < sizeof(arg_regs), "Too many function arguments");
 
     uint32_t displacement = 0;
     uint32_t local_idx = 0;
@@ -279,7 +279,7 @@ void Module::CompileToMachineCode() {
     // previous implementation.
     for (const auto &func_info : bytecode_module_->GetFunctionsInfo()) {
       auto *jit_function = jit_module_->GetFunctionPointer(func_info.GetName());
-      TERRIER_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
+      NOISEPAGE_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
       functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
     }
   });
@@ -290,4 +290,4 @@ void Module::CompileToMachineCodeAsync() {
   tbb::task::enqueue(*compile_task);
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

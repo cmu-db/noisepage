@@ -13,7 +13,7 @@
 
 namespace flatbuf = org::apache::arrow::flatbuf;
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * An Arrow Serializer is an auxiliary object bound to a data table so that the in-memory blocks
@@ -60,7 +60,7 @@ class ArrowSerializer {
    * @param col_types since in the data table level, we don't know the type of each column. We need to use this
    *        parameter that is provided to get the types of columns.
    */
-  void ExportTable(const std::string &file_name, std::vector<terrier::type::TypeId> *col_types);
+  void ExportTable(const std::string &file_name, std::vector<noisepage::type::TypeId> *col_types);
 
  private:
   const DataTable &data_table_;
@@ -134,4 +134,4 @@ class ArrowSerializer {
   void WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id, const ArrowVarlenColumn &varlen_col,
                               flatbuffers::FlatBufferBuilder *flatbuf_builder);
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

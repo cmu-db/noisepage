@@ -11,7 +11,7 @@
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Describes a single SET clause of an UPDATE query.
@@ -70,7 +70,7 @@ class UpdatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetIndexedUpdate(bool indexed_update) {
-      indexed_update_ = true;
+      indexed_update_ = indexed_update;
       return *this;
     }
 
@@ -220,4 +220,4 @@ class UpdatePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(UpdatePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

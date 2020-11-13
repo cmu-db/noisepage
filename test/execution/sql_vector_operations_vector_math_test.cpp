@@ -5,7 +5,7 @@
 #include "execution/sql_test.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorArithmeticTest : public TplTest {};
 
@@ -215,4 +215,4 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionFilteredWithNulls) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

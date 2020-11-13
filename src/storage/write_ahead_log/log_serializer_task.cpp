@@ -9,7 +9,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void LogSerializerTask::LogSerializerTaskLoop() {
   auto curr_sleep = serialization_interval_;
@@ -58,7 +58,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   } while (run_task_);
   // To be extra sure we processed everything
   Process();
-  TERRIER_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
+  NOISEPAGE_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
 }
 
 std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
@@ -68,8 +68,8 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
 
   {
     common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
-    TERRIER_ASSERT(serialized_txns_.empty(),
-                   "Aggregated txn timestamps should have been handed off to TimestampManager");
+    NOISEPAGE_ASSERT(serialized_txns_.empty(),
+                     "Aggregated txn timestamps should have been handed off to TimestampManager");
     // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
     // came in during the previous serialization loop
 
@@ -185,7 +185,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
   return {num_bytes, num_records, num_txns};
 }
 
-uint64_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &record) {
+uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord &record) {
   uint64_t num_bytes = 0;
   // First, serialize out fields common across all LogRecordType's.
 
@@ -295,4 +295,4 @@ uint32_t LogSerializerTask::WriteValue(const void *val, const uint32_t size) {
   return size;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

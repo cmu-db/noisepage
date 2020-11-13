@@ -7,7 +7,7 @@
 #include "optimizer/operator_visitor.h"
 #include "optimizer/property_set.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace catalog {
 class CatalogAccessor;
@@ -304,4 +304,4 @@ class ChildPropertyDeriver : public OperatorVisitor {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

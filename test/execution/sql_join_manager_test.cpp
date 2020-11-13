@@ -8,7 +8,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 enum Col : uint8_t { A = 0, B = 1, C = 2, D = 3 };
 
@@ -104,4 +104,4 @@ TEST_F(JoinManagerTest, TwoWayJoin) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

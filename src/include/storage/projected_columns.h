@@ -7,7 +7,7 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 /**
  * ProjectedColumns represents partial images of a collection of tuples, where columns from different
  * tuples are laid out continuously. This can be considered a collection of ProjectedRows, but optimized
@@ -58,7 +58,7 @@ class PACKED ProjectedColumns {
      * @param projection_list_index The 0-indexed element to access in this RowView
      */
     void SetNull(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       underlying_->ColumnNullBitmap(projection_list_index)->Set(row_offset_, false);
     }
 
@@ -67,7 +67,7 @@ class PACKED ProjectedColumns {
      * @param projection_list_index The 0-indexed element to access in this RowView
      */
     void SetNotNull(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       underlying_->ColumnNullBitmap(projection_list_index)->Set(row_offset_, true);
     }
 
@@ -77,7 +77,7 @@ class PACKED ProjectedColumns {
      * @return true if null, false otherwise
      */
     bool IsNull(const uint16_t projection_list_index) const {
-      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       return !underlying_->ColumnNullBitmap(projection_list_index)->Test(row_offset_);
     }
 
@@ -88,7 +88,7 @@ class PACKED ProjectedColumns {
      * nullable and set to null, then return value is nullptr
      */
     byte *AccessWithNullCheck(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) return nullptr;
       return underlying_->ColumnStart(projection_list_index) +
              underlying_->AttrSizeForColumn(projection_list_index) * row_offset_;
@@ -101,7 +101,7 @@ class PACKED ProjectedColumns {
      * nullable and set to null, then return value is nullptr
      */
     const byte *AccessWithNullCheck(const uint16_t projection_list_index) const {
-      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) return nullptr;
       return underlying_->ColumnStart(projection_list_index) +
              underlying_->AttrSizeForColumn(projection_list_index) * row_offset_;
@@ -113,7 +113,7 @@ class PACKED ProjectedColumns {
      * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
      */
     byte *AccessForceNotNull(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < underlying_->NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) SetNotNull(projection_list_index);
       return underlying_->ColumnStart(projection_list_index) +
              underlying_->AttrSizeForColumn(projection_list_index) * row_offset_;
@@ -275,4 +275,4 @@ class ProjectedColumnsInitializer {
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

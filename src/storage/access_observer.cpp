@@ -2,7 +2,7 @@
 
 #include "storage/block_compactor.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 void AccessObserver::ObserveGCInvocation() {
   gc_epoch_++;
   for (auto it = last_touched_.begin(), end = last_touched_.end(); it != end;) {
@@ -22,4 +22,4 @@ void AccessObserver::ObserveWrite(RawBlock *block) {
     last_touched_[block] = gc_epoch_;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -9,7 +9,7 @@
 #include "execution/sql/aggregation_hash_table.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr char GROUP_BY_TERM_ATTR_PREFIX[] = "gb_term_attr";
@@ -26,10 +26,10 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
       key_check_partial_fn_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("KeyCheckPartial"))),
       merge_partitions_fn_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("MergePartitions"))),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
-  TERRIER_ASSERT(!plan.GetGroupByTerms().empty(), "Hash aggregation should have grouping keys");
-  TERRIER_ASSERT(plan.GetAggregateStrategyType() == planner::AggregateStrategyType::HASH,
-                 "Expected hash-based aggregation plan node");
-  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Hash aggregations should only have one child");
+  NOISEPAGE_ASSERT(!plan.GetGroupByTerms().empty(), "Hash aggregation should have grouping keys");
+  NOISEPAGE_ASSERT(plan.GetAggregateStrategyType() == planner::AggregateStrategyType::HASH,
+                   "Expected hash-based aggregation plan node");
+  NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "Hash aggregations should only have one child");
 
   for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
     const auto &agg_term = plan.GetAggregateTerms()[agg_term_idx];
@@ -604,7 +604,7 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     const auto &agg_ht = build_pipeline_.IsParallel() ? local_agg_ht_ : global_agg_ht_;
     UpdateAggregates(context, function, agg_ht.GetPtr(codegen));
   } else {
-    TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
+    NOISEPAGE_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     ast::Expr *agg_ht;
     if (GetPipeline()->IsParallel()) {
       // In parallel-mode, we would've issued a parallel partitioned scan. In
@@ -667,17 +667,17 @@ ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint3
 }
 
 util::RegionVector<ast::FieldDecl *> HashAggregationTranslator::GetWorkerParams() const {
-  TERRIER_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
+  NOISEPAGE_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
   auto *codegen = GetCodeGen();
   return codegen->MakeFieldList({codegen->MakeField(codegen->MakeIdentifier("aggHashTable"),
                                                     codegen->PointerType(ast::BuiltinType::AggregationHashTable))});
 }
 
 void HashAggregationTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const {
-  TERRIER_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
+  NOISEPAGE_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
   auto *codegen = GetCodeGen();
   function->Append(codegen->AggHashTableParallelScan(global_agg_ht_.GetPtr(codegen), GetQueryStatePtr(),
                                                      GetThreadStateContainer(), work_func_name));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

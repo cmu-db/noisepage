@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace terrier::storage {
+namespace noisepage::storage {
 #ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> storage_logger = nullptr;  // NOLINT
 
@@ -13,4 +13,4 @@ void InitStorageLogger() {
   }
 }
 #endif
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

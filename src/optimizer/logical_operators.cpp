@@ -12,7 +12,7 @@
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 BaseOperatorNodeContents *LeafOperator::Copy() const { return new LeafOperator(*this); }
 
@@ -218,7 +218,7 @@ Operator LogicalInsert::Make(
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
   for (const auto &insert_vals : *values) {
-    TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
+    NOISEPAGE_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
 #endif
 
@@ -289,7 +289,7 @@ BaseOperatorNodeContents *LogicalLimit::Copy() const { return new LogicalLimit(*
 Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
                             std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
-  TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
+  NOISEPAGE_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   auto *op = new LogicalLimit();
   op->offset_ = offset;
   op->limit_ = limit;
@@ -797,8 +797,8 @@ Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::na
                                      parser::BaseFunctionParameter::DataType return_type, size_t param_count,
                                      bool replace) {
   auto *op = new LogicalCreateFunction();
-  TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
-                 "Mismatched number of items in vector and number of function parameters");
+  NOISEPAGE_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
+                   "Mismatched number of items in vector and number of function parameters");
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->function_name_ = std::move(function_name);
@@ -1366,4 +1366,4 @@ OpType OperatorNodeContents<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
 template <>
 OpType OperatorNodeContents<LogicalAnalyze>::type = OpType::LOGICALANALYZE;
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

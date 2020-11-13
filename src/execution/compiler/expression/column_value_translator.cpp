@@ -3,7 +3,7 @@
 #include "execution/compiler/work_context.h"
 #include "parser/expression/column_value_expression.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ColumnValueTranslator::ColumnValueTranslator(const parser::ColumnValueExpression &expr,
                                              CompilationContext *compilation_context)
@@ -15,4 +15,4 @@ ast::Expr *ColumnValueTranslator::DeriveValue(UNUSED_ATTRIBUTE WorkContext *ctx,
   return provider->GetTableColumn(col_expr.GetColumnOid());
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

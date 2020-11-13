@@ -1,7 +1,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/region.h"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 class RegionTest : public TplTest {};
 
@@ -24,4 +24,4 @@ TEST_F(RegionTest, Simple) {
   }
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

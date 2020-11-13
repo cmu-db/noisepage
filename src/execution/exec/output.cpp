@@ -4,7 +4,7 @@
 #include "loggers/execution_logger.h"
 #include "network/postgres/postgres_packet_writer.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 
 OutputBuffer::~OutputBuffer() { memory_pool_->Deallocate(tuples_, BATCH_SIZE * tuple_size_); }
 
@@ -102,4 +102,4 @@ void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_
 
   num_rows_ += num_tuples;
 }
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

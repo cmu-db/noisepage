@@ -10,7 +10,7 @@
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 template <class Tag, typename IntType>
 nlohmann::json StrongTypeAlias<Tag, IntType>::ToJson() const {
@@ -31,31 +31,31 @@ void StrongTypeAlias<Tag, IntType>::FromJson(const nlohmann::json &j) {
  *
  */
 
-template class StrongTypeAlias<terrier::optimizer::tags::group_id_t_typedef_tag, int32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::col_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::constraint_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::db_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::index_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::indexkeycol_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::namespace_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::language_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::proc_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::settings_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::table_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::tablespace_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::trigger_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::type_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::catalog::tags::view_oid_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::common::tags::action_id_t_typedef_tag, uint64_t>;
-template class StrongTypeAlias<terrier::execution::tags::feature_id_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::execution::tags::pipeline_id_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::execution::tags::query_id_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::execution::tags::translator_id_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::network::tags::connection_id_t_typedef_tag, uint16_t>;
-template class StrongTypeAlias<terrier::storage::tags::col_id_t_typedef_tag, uint16_t>;
-template class StrongTypeAlias<terrier::storage::tags::layout_version_t_typedef_tag, uint16_t>;
-template class StrongTypeAlias<terrier::transaction::tags::timestamp_t_typedef_tag, uint64_t>;
-template class StrongTypeAlias<terrier::type::tags::date_t_typedef_tag, uint32_t>;
-template class StrongTypeAlias<terrier::type::tags::timestamp_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::optimizer::tags::group_id_t_typedef_tag, int32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::col_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::constraint_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::db_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::index_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::indexkeycol_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::namespace_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::language_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::proc_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::settings_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::table_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::tablespace_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::trigger_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::type_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::catalog::tags::view_oid_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::common::tags::action_id_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::execution::tags::feature_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::execution::tags::pipeline_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::execution::tags::query_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::execution::tags::translator_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::network::tags::connection_id_t_typedef_tag, uint16_t>;
+template class StrongTypeAlias<noisepage::storage::tags::col_id_t_typedef_tag, uint16_t>;
+template class StrongTypeAlias<noisepage::storage::tags::layout_version_t_typedef_tag, uint16_t>;
+template class StrongTypeAlias<noisepage::transaction::tags::timestamp_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::type::tags::date_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::type::tags::timestamp_t_typedef_tag, uint64_t>;
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

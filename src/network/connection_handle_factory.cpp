@@ -3,7 +3,7 @@
 #include "network/connection_handle.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
                                                                std::unique_ptr<ProtocolInterpreter> interpreter,
                                                                common::ManagedPointer<ConnectionHandlerTask> task) {
@@ -17,7 +17,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
     // If no mapping exists for the file descriptor, a new mapping is created.
     if (it == reusable_handles_.end()) {
       auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, task, traffic_cop_, std::move(interpreter));
-      TERRIER_ASSERT(ret.second, "TOCTOU bug in reusable_handles_.");
+      NOISEPAGE_ASSERT(ret.second, "TOCTOU bug in reusable_handles_.");
       return ret.first->second;
     }
   }
@@ -29,4 +29,4 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
   reused_handle.ResetForReuse(connection_id_t(conn_fd), task, std::move(interpreter));
   return reused_handle;
 }
-}  // namespace terrier::network
+}  // namespace noisepage::network

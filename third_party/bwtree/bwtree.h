@@ -308,11 +308,11 @@ class BwTreeBase {
   NO_ASAN void DestroyThreadLocal() {
     INDEX_LOG_TRACE("Destroy %lu thread local slots", thread_num);
 
-    TERRIER_ASSERT(original_p != nullptr, "There must already be metadata allocated");
+    NOISEPAGE_ASSERT(original_p != nullptr, "There must already be metadata allocated");
 
     // Manually call destructor
     for (size_t i = 0; i < thread_num; i++) {
-      TERRIER_ASSERT((gc_metadata_p + i)->data.header.next_p == nullptr, "Next should be nullptr.");
+      NOISEPAGE_ASSERT((gc_metadata_p + i)->data.header.next_p == nullptr, "Next should be nullptr.");
 
       (gc_metadata_p + i)->~PaddedGCMetadata();
     }
@@ -333,17 +333,17 @@ class BwTreeBase {
     // We allocate one more element than requested as the buffer
     // for doing alignment
     original_p = static_cast<unsigned char *>(malloc(CACHE_LINE_SIZE * (thread_num + 1)));
-    TERRIER_ASSERT(original_p != nullptr, "Malloc failed.");
+    NOISEPAGE_ASSERT(original_p != nullptr, "Malloc failed.");
 
     // Align the address to cache line boundary
     gc_metadata_p = reinterpret_cast<PaddedGCMetadata *>((reinterpret_cast<size_t>(original_p) + CACHE_LINE_SIZE - 1) &
                                                          CACHE_LINE_MASK);
 
     // Make sure it is aligned
-    TERRIER_ASSERT(((size_t)gc_metadata_p % CACHE_LINE_SIZE) == 0, "Unaligned malloc.");
+    NOISEPAGE_ASSERT(((size_t)gc_metadata_p % CACHE_LINE_SIZE) == 0, "Unaligned malloc.");
 
     // Make sure we do not overflow the chunk of memory
-    TERRIER_ASSERT(((size_t)gc_metadata_p + thread_num * CACHE_LINE_SIZE) <=
+    NOISEPAGE_ASSERT(((size_t)gc_metadata_p + thread_num * CACHE_LINE_SIZE) <=
                        ((size_t)original_p + (thread_num + 1) * CACHE_LINE_SIZE),
                    "Overflowed chunk memory.");
 
@@ -457,7 +457,7 @@ class BwTreeBase {
    */
   NO_ASAN inline GCMetaData *GetGCMetaData(int thread_id) {
     // The thread ID must be within the range
-    TERRIER_ASSERT(thread_id >= 0 && thread_id < static_cast<int>(thread_num), "thread_id out of range.");
+    NOISEPAGE_ASSERT(thread_id >= 0 && thread_id < static_cast<int>(thread_num), "thread_id out of range.");
 
     return &(gc_metadata_p + thread_id)->data;
   }
@@ -475,7 +475,7 @@ class BwTreeBase {
    * one thread participating into the GC process
    */
   NO_ASAN uint64_t SummarizeGCEpoch() {
-    TERRIER_ASSERT(thread_num >= 1, "thread_num out of range.");
+    NOISEPAGE_ASSERT(thread_num >= 1, "thread_num out of range.");
 
     // Use the first metadata's epoch as min and update it on the fly
     uint64_t min_epoch = GetGCMetaData(0)->last_active_epoch;
@@ -1106,7 +1106,7 @@ class BwTree : public BwTreeBase {
      * since the low key node ID for leaf node is not defined
      */
     NO_ASAN inline NodeID GetLowKeyNodeID() const {
-      TERRIER_ASSERT(!IsOnLeafDeltaChain(), "This should not be called on leaf nodes.");
+      NOISEPAGE_ASSERT(!IsOnLeafDeltaChain(), "This should not be called on leaf nodes.");
 
       return metadata.low_key_p->second;
     }
@@ -1705,13 +1705,13 @@ class BwTree : public BwTreeBase {
           // but since the linked list itself is supposed to be relatively short
           // even under contention, we do not worry about it right now
           meta_p = meta_p->GrowChunk();
-          TERRIER_ASSERT(meta_p != nullptr, "meta_p is nullptr.");
+          NOISEPAGE_ASSERT(meta_p != nullptr, "meta_p is nullptr.");
         } else {
           return p;
         }
       }
 
-      TERRIER_ASSERT(false, "Allocation failed.");
+      NOISEPAGE_ASSERT(false, "Allocation failed.");
       return nullptr;
     }
 
@@ -1886,7 +1886,7 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN inline void PushBack(const ElementType *copy_start_p, const ElementType *copy_end_p) {
       // Make sure the loop will come to an end
-      TERRIER_ASSERT(copy_start_p <= copy_end_p, "Loop will not come to an end.");
+      NOISEPAGE_ASSERT(copy_start_p <= copy_end_p, "Loop will not come to an end.");
 
       while (copy_start_p != copy_end_p) {
         PushBack(*copy_start_p);
@@ -1911,7 +1911,7 @@ class BwTree : public BwTreeBase {
                                            const KeyNodeIDPair &p_low_key, const KeyNodeIDPair &p_high_key) {
       // Currently this is always true - if we want a larger array then
       // just remove this line
-      TERRIER_ASSERT(size == p_item_count, "Remove this if you want a larger array.");
+      NOISEPAGE_ASSERT(size == p_item_count, "Remove this if you want a larger array.");
 
       // Allocte memory for
       //   1. AllocationMeta (chunk)
@@ -1921,7 +1921,7 @@ class BwTree : public BwTreeBase {
       // Note: do not make it constant since it is going to be modified
       // after being returned
       auto *alloc_base = new char[sizeof(ElasticNode) + size * sizeof(ElementType) + AllocationMeta::CHUNK_SIZE()];
-      TERRIER_ASSERT(alloc_base != nullptr, "Allocation failed.");
+      NOISEPAGE_ASSERT(alloc_base != nullptr, "Allocation failed.");
 
       // Initialize the AllocationMeta - tail points to the first byte inside
       // class ElasticNode; limit points to the first byte after class
@@ -1975,13 +1975,13 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN static void *InlineAllocate(const KeyNodeIDPair *low_key_p, size_t size) {
       const ElasticNode *node_p = GetNodeHeader(low_key_p);
-      TERRIER_ASSERT(&node_p->low_key == low_key_p, "low_key is not low_key_p.");
+      NOISEPAGE_ASSERT(&node_p->low_key == low_key_p, "low_key is not low_key_p.");
 
       // Jump over chunk content
       AllocationMeta *meta_p = GetAllocationHeader(node_p);
 
       void *p = meta_p->Allocate(size);
-      TERRIER_ASSERT(p != nullptr, "Allocation failed.");
+      NOISEPAGE_ASSERT(p != nullptr, "Allocation failed.");
 
       return p;
     }
@@ -1991,14 +1991,14 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN inline ElementType &At(const int index) {
       // The index must be inside the valid range
-      TERRIER_ASSERT(index < GetSize(), "Index out of range.");
+      NOISEPAGE_ASSERT(index < GetSize(), "Index out of range.");
 
       return *(Begin() + index);
     }
 
     NO_ASAN inline const ElementType &At(const int index) const {
       // The index must be inside the valid range
-      TERRIER_ASSERT(index < GetSize(), "Index out of range.");
+      NOISEPAGE_ASSERT(index < GetSize(), "Index out of range.");
 
       return *(Begin() + index);
     }
@@ -2038,12 +2038,12 @@ class BwTree : public BwTreeBase {
       int key_num = this->GetSize();
 
       // Inner node size must be > 2 to avoid empty split node
-      TERRIER_ASSERT(key_num >= 2, "Inner node size must be > 2 to avoid empty split node");
+      NOISEPAGE_ASSERT(key_num >= 2, "Inner node size must be > 2 to avoid empty split node");
 
       // Same reason as in leaf node - since we only split inner node
       // without a delta chain on top of it, the sep list size must equal
       // the recorded item count
-      TERRIER_ASSERT(key_num == this->GetItemCount(), "the sep list size must equal the recorded item count");
+      NOISEPAGE_ASSERT(key_num == this->GetItemCount(), "the sep list size must equal the recorded item count");
 
       int split_item_index = key_num / 2;
 
@@ -2062,8 +2062,8 @@ class BwTree : public BwTreeBase {
       inner_node_p->PushBack(copy_start_it, this->End());
 
       // Since we copy exactly that many elements
-      TERRIER_ASSERT(inner_node_p->GetSize() == sibling_size, "Copied number of elements must match.");
-      TERRIER_ASSERT(inner_node_p->GetSize() == inner_node_p->GetItemCount(), "Copied number of elements must match.");
+      NOISEPAGE_ASSERT(inner_node_p->GetSize() == sibling_size, "Copied number of elements must match.");
+      NOISEPAGE_ASSERT(inner_node_p->GetSize() == inner_node_p->GetItemCount(), "Copied number of elements must match.");
 
       return inner_node_p;
     }
@@ -2108,7 +2108,7 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN int FindSplitPoint(const BwTree *t) const {
       int central_index = this->GetSize() / 2;
-      TERRIER_ASSERT(central_index > 1, "Index out of range.");
+      NOISEPAGE_ASSERT(central_index > 1, "Index out of range.");
 
       // This will used as upper_bound and lower_bound key
       const KeyValuePair &central_kvp = this->At(central_index);
@@ -2181,7 +2181,7 @@ class BwTree : public BwTreeBase {
       // When we split a leaf node, it is certain that there is no delta
       // chain on top of it. As a result, the number of items must equal
       // the actual size of the data list
-      TERRIER_ASSERT(this->GetSize() == this->GetItemCount(),
+      NOISEPAGE_ASSERT(this->GetSize() == this->GetItemCount(),
                      "the number of items does not equal the actual size of the data list");
 
       // This is the index of the actual key-value pair in data_list
@@ -2220,8 +2220,8 @@ class BwTree : public BwTreeBase {
       // Copy data item into the new node using PushBack()
       leaf_node_p->PushBack(copy_start_it, copy_end_it);
 
-      TERRIER_ASSERT(leaf_node_p->GetSize() == sibling_size, "Copied number of elements must match.");
-      TERRIER_ASSERT(leaf_node_p->GetSize() == leaf_node_p->GetItemCount(), "Copied number of elements must match.");
+      NOISEPAGE_ASSERT(leaf_node_p->GetSize() == sibling_size, "Copied number of elements must match.");
+      NOISEPAGE_ASSERT(leaf_node_p->GetSize() == leaf_node_p->GetItemCount(), "Copied number of elements must match.");
 
       return leaf_node_p;
     }
@@ -2345,7 +2345,7 @@ class BwTree : public BwTreeBase {
 
       // This will collect all nodes since we have adjusted the current thread
       // GC ID
-      TERRIER_ASSERT(GetGCMetaData(i)->node_count == 0, "Not all nodes collected.");
+      NOISEPAGE_ASSERT(GetGCMetaData(i)->node_count == 0, "Not all nodes collected.");
     }
   }
 
@@ -2449,7 +2449,7 @@ class BwTree : public BwTreeBase {
 
     while (1) {
       node_p = next_node_p;
-      TERRIER_ASSERT(node_p != nullptr, "node_p cannot be a nullptr.");
+      NOISEPAGE_ASSERT(node_p != nullptr, "node_p cannot be a nullptr.");
 
       NodeType type = node_p->GetType();
 
@@ -2563,12 +2563,12 @@ class BwTree : public BwTreeBase {
           // has been finished)
           INDEX_LOG_DEBUG("Unknown node type: %d", (int)type);
 
-          TERRIER_ASSERT(false, "Unknown node type.");
+          NOISEPAGE_ASSERT(false, "Unknown node type.");
           return 0;
       }  // switch
     }    // while 1
 
-    TERRIER_ASSERT(false, "Free node failed.");
+    NOISEPAGE_ASSERT(false, "Free node failed.");
     return 0;
   }
 
@@ -2582,12 +2582,12 @@ class BwTree : public BwTreeBase {
     INDEX_LOG_TRACE("Initializing node layout for root and first page...");
 
     root_id = GetNextNodeID();
-    TERRIER_ASSERT(root_id == 1UL, "Root node does not have correct root_id.");
+    NOISEPAGE_ASSERT(root_id == 1UL, "Root node does not have correct root_id.");
 
     // This is important since in the iterator we will use NodeID = 2
     // as the starting point of the traversal
     first_leaf_id = GetNextNodeID();
-    TERRIER_ASSERT(first_leaf_id == FIRST_LEAF_NODE_ID, "First leaf has incorrect leaf node id.");
+    NOISEPAGE_ASSERT(first_leaf_id == FIRST_LEAF_NODE_ID, "First leaf has incorrect leaf node id.");
 
     // For the first inner node, it needs an empty low key
     // the search procedure will not look at it and only use it
@@ -2676,8 +2676,8 @@ class BwTree : public BwTreeBase {
    */
   NO_ASAN inline bool InstallNodeToReplace(NodeID node_id, const BaseNode *node_p, const BaseNode *prev_p) {
     // Make sure node id is valid and does not exceed maximum
-    TERRIER_ASSERT(node_id != INVALID_NODE_ID, "Node count exceeded maximum.");
-    TERRIER_ASSERT(node_id < MAPPING_TABLE_SIZE, "Node count exceeded maximum.");
+    NOISEPAGE_ASSERT(node_id != INVALID_NODE_ID, "Node count exceeded maximum.");
+    NOISEPAGE_ASSERT(node_id < MAPPING_TABLE_SIZE, "Node count exceeded maximum.");
 
 // If idb is activated, then all operation will be blocked before
 // they could call CAS and change the key
@@ -2721,8 +2721,8 @@ class BwTree : public BwTreeBase {
    * call GetNode() once and stick to that physical pointer
    */
   NO_ASAN inline const BaseNode *GetNode(const NodeID node_id) {
-    TERRIER_ASSERT(node_id != INVALID_NODE_ID, "Node id out of range.");
-    TERRIER_ASSERT(node_id < MAPPING_TABLE_SIZE, "Node id out of range.");
+    NOISEPAGE_ASSERT(node_id != INVALID_NODE_ID, "Node id out of range.");
+    NOISEPAGE_ASSERT(node_id < MAPPING_TABLE_SIZE, "Node id out of range.");
 
     return mapping_table[node_id].load();
   }
@@ -2760,9 +2760,9 @@ class BwTree : public BwTreeBase {
     const KeyValuePair *found_pair_p = nullptr;
 
   retry_traverse:
-    TERRIER_ASSERT(!context_p->abort_flag, "Must retry traverse.");
+    NOISEPAGE_ASSERT(!context_p->abort_flag, "Must retry traverse.");
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level == -1, "Should still be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level == -1, "Should still be default value.");
 #endif
 
     // This is the serialization point for reading/writing root node
@@ -2802,7 +2802,7 @@ class BwTree : public BwTreeBase {
         // as a double check
         // This is the only situation that this function returns
         // INVALID_NODE_ID
-        TERRIER_ASSERT(child_node_id == INVALID_NODE_ID, "NavigateInnerNode aborted without INVALID_NODE_ID.");
+        NOISEPAGE_ASSERT(child_node_id == INVALID_NODE_ID, "NavigateInnerNode aborted without INVALID_NODE_ID.");
 
         goto abort_traverse;
       }
@@ -2831,7 +2831,7 @@ class BwTree : public BwTreeBase {
 
     if (value_p == nullptr) {
       // We are using an iterator just to get a leaf page
-      TERRIER_ASSERT(index_pair_p == nullptr, "We are trying to get to a leaf page.");
+      NOISEPAGE_ASSERT(index_pair_p == nullptr, "We are trying to get to a leaf page.");
 
       // If both are nullptr then we just navigate the sibling chain
       // to find the correct node with the correct range
@@ -2865,7 +2865,7 @@ class BwTree : public BwTreeBase {
   abort_traverse:
 #ifdef BWTREE_DEBUG
 
-    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 
     context_p->current_level = -1;
 
@@ -2880,7 +2880,7 @@ class BwTree : public BwTreeBase {
 
     goto retry_traverse;
 
-    TERRIER_ASSERT(false, "Somehow fell through a goto.");
+    NOISEPAGE_ASSERT(false, "Somehow fell through a goto.");
     return nullptr;
   }
 
@@ -2985,7 +2985,7 @@ class BwTree : public BwTreeBase {
   NO_ASAN inline NodeID LocateSeparatorByKey(const KeyType &search_key, const InnerNode *inner_node_p,
                                              const KeyNodeIDPair *start_p, const KeyNodeIDPair *end_p) {
     // Inner node could not be empty
-    TERRIER_ASSERT(inner_node_p->GetSize() != 0UL, "Inner node is empty.");
+    NOISEPAGE_ASSERT(inner_node_p->GetSize() != 0UL, "Inner node is empty.");
     (void)inner_node_p;
 
     // Hopefully std::upper_bound would use binary search here
@@ -2997,7 +2997,7 @@ class BwTree : public BwTreeBase {
 //                           std::make_pair(search_key, INVALID_NODE_ID),
 //                           key_node_id_pair_cmp_obj) - 1;
 
-// TERRIER_ASSERT(it == it2);
+// NOISEPAGE_ASSERT(it == it2);
 #endif
 
     // Since upper_bound returns the first element > given key
@@ -3017,7 +3017,7 @@ class BwTree : public BwTreeBase {
    * key (remember that the separator key is the low key of ots child node)
    */
   NO_ASAN inline NodeID LocateSeparatorByKeyBI(const KeyType &search_key, const InnerNode *inner_node_p) {
-    TERRIER_ASSERT(inner_node_p->GetSize() != 0UL, "Inner node is empty.");
+    NOISEPAGE_ASSERT(inner_node_p->GetSize() != 0UL, "Inner node is empty.");
     auto it = std::upper_bound(inner_node_p->Begin() + 1, inner_node_p->End(),
                                std::make_pair(search_key, INVALID_NODE_ID), key_node_id_pair_cmp_obj) -
               1;
@@ -3025,7 +3025,7 @@ class BwTree : public BwTreeBase {
     if (KeyCmpEqual(it->first, search_key)) {
       // If search key is the low key then we know we should have already
       // gone left on the parent node
-      TERRIER_ASSERT(it != inner_node_p->Begin(), "Should have already gone left on the parent node.");
+      NOISEPAGE_ASSERT(it != inner_node_p->Begin(), "Should have already gone left on the parent node.");
 
       // Go to the left separator to find the left node with range < search key
       // After decreament it might or might not be the low key
@@ -3085,13 +3085,13 @@ class BwTree : public BwTreeBase {
     const BaseNode *node_p = snapshot_p->node_p;
 
     // Make sure the structure is valid
-    TERRIER_ASSERT(!snapshot_p->IsLeaf(), "Structure not valid.");
-    TERRIER_ASSERT(snapshot_p->node_p != nullptr, "Structure not valid.");
+    NOISEPAGE_ASSERT(!snapshot_p->IsLeaf(), "Structure not valid.");
+    NOISEPAGE_ASSERT(snapshot_p->node_p != nullptr, "Structure not valid.");
 
     // For read only workload this is always true since we do not need
     // to remember the node ID for read - read is always stateless until
     // it has reached a leaf node
-    TERRIER_ASSERT(snapshot_p->node_id != INVALID_NODE_ID, "Invalid node id.");
+    NOISEPAGE_ASSERT(snapshot_p->node_id != INVALID_NODE_ID, "Invalid node id.");
 
     INDEX_LOG_TRACE("Navigating inner node delta chain...");
 
@@ -3214,7 +3214,7 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown node type = %d", static_cast<int>(type));
 
-          TERRIER_ASSERT(false, "Unknown node type.");
+          NOISEPAGE_ASSERT(false, "Unknown node type.");
         }
       }  // switch type
 
@@ -3222,7 +3222,7 @@ class BwTree : public BwTreeBase {
     }  // while 1
 
     // Should not reach here
-    TERRIER_ASSERT(false, "Should not reach here.");
+    NOISEPAGE_ASSERT(false, "Should not reach here.");
     return INVALID_NODE_ID;
   }
 
@@ -3248,8 +3248,8 @@ class BwTree : public BwTreeBase {
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
     const BaseNode *node_p = snapshot_p->node_p;
 
-    TERRIER_ASSERT(!snapshot_p->IsLeaf(), "Invalid node structure.");
-    TERRIER_ASSERT(snapshot_p->node_p != nullptr, "Invalid node structure.");
+    NOISEPAGE_ASSERT(!snapshot_p->IsLeaf(), "Invalid node structure.");
+    NOISEPAGE_ASSERT(snapshot_p->node_p != nullptr, "Invalid node structure.");
     INDEX_LOG_TRACE("Navigating inner node delta chain for BI...");
 
     while (1) {
@@ -3334,13 +3334,13 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown or unsupported node type = %d", static_cast<int>(type));
 
-          TERRIER_ASSERT(false, "Unknown or unsupported node type.");
+          NOISEPAGE_ASSERT(false, "Unknown or unsupported node type.");
         }
       }  // switch type
     }    // while 1
 
     // Should not reach here
-    TERRIER_ASSERT(false, "Should not reach here.");
+    NOISEPAGE_ASSERT(false, "Should not reach here.");
     return INVALID_NODE_ID;
   }
 
@@ -3403,8 +3403,8 @@ class BwTree : public BwTreeBase {
     // Since consolidation would not change item count they must be equal
     // Also allocated space should be used exactly as described in the
     // construction function
-    TERRIER_ASSERT(inner_node_p->GetSize() == node_p->GetItemCount(), "Invalid node structure.");
-    TERRIER_ASSERT(inner_node_p->GetSize() == inner_node_p->GetItemCount(), "Invalid node structure.");
+    NOISEPAGE_ASSERT(inner_node_p->GetSize() == node_p->GetItemCount(), "Invalid node structure.");
+    NOISEPAGE_ASSERT(inner_node_p->GetSize() == inner_node_p->GetItemCount(), "Invalid node structure.");
 
     return inner_node_p;
   }
@@ -3452,7 +3452,7 @@ class BwTree : public BwTreeBase {
           }
 
           // Since we want to access its first element
-          TERRIER_ASSERT(inner_node_p->GetSize() > 0, "Size must be greater than 0.");
+          NOISEPAGE_ASSERT(inner_node_p->GetSize() > 0, "Size must be greater than 0.");
 
           // If the first element in the sep list equals the low key pair's
           // NodeID then we are at the leftmost node of the merge tree
@@ -3578,7 +3578,7 @@ class BwTree : public BwTreeBase {
         case NodeType::InnerRemoveType: {
           INDEX_LOG_ERROR("ERROR: InnerRemoveNode not allowed");
 
-          TERRIER_ASSERT(false, "InnerRemoveNode not allowed.");
+          NOISEPAGE_ASSERT(false, "InnerRemoveNode not allowed.");
           return;
         }  // case InnerRemoveType
         case NodeType::InnerInsertType: {
@@ -3586,7 +3586,7 @@ class BwTree : public BwTreeBase {
 
           // delta nodes must be consistent with the most up-to-date
           // node high key
-          TERRIER_ASSERT(
+          NOISEPAGE_ASSERT(
               (high_key_pair.second == INVALID_NODE_ID) || (KeyCmpLess(insert_node_p->item.first, high_key_pair.first)),
               "delta nodes must be consistent with the most up-to-date node high key.");
 
@@ -3604,7 +3604,7 @@ class BwTree : public BwTreeBase {
           // this must be true
           // i.e. delta nodes must be consistent with the most up-to-date
           // node high key
-          TERRIER_ASSERT(
+          NOISEPAGE_ASSERT(
               (high_key_pair.second == INVALID_NODE_ID) || (KeyCmpLess(delete_node_p->item.first, high_key_pair.first)),
               "delta nodes must be consistent with the most up-to-date node high key.");
 
@@ -3637,14 +3637,14 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown inner node type = %d", static_cast<int>(type));
 
-          TERRIER_ASSERT(false, "Unknown inner node type.");
+          NOISEPAGE_ASSERT(false, "Unknown inner node type.");
           return;
         }
       }  // switch type
     }    // while(1)
 
     // Should not get to here
-    TERRIER_ASSERT(false, "Should not get to here.");
+    NOISEPAGE_ASSERT(false, "Should not get to here.");
   }
 
   /*
@@ -3697,7 +3697,7 @@ class BwTree : public BwTreeBase {
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
     const BaseNode *node_p = snapshot_p->node_p;
 
-    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
+    NOISEPAGE_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     // We only collect values for this key
     const KeyType &search_key = context_p->search_key;
@@ -3809,7 +3809,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafRemoveType: {
           INDEX_LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
 
-          TERRIER_ASSERT(false, "Observed LeafRemoveNode in delta chain.");
+          NOISEPAGE_ASSERT(false, "Observed LeafRemoveNode in delta chain.");
           [[fallthrough]];
         }  // case LeafRemoveType
         case NodeType::LeafMergeType: {
@@ -3846,13 +3846,13 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown leaf delta node type: %d", static_cast<int>(node_p->GetType()));
 
-          TERRIER_ASSERT(false, "Unknown leaf delta node type.");
+          NOISEPAGE_ASSERT(false, "Unknown leaf delta node type.");
         }  // default
       }    // switch
     }      // while
 
     // We cannot reach here
-    TERRIER_ASSERT(false, "We cannot reach here.");
+    NOISEPAGE_ASSERT(false, "We cannot reach here.");
   }
 
   /*
@@ -3892,7 +3892,7 @@ class BwTree : public BwTreeBase {
     // Snapshot pointer, node pointer, and metadata reference all need
     // updating once LoadNodeID() returns with success
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
-    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
+    NOISEPAGE_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     const BaseNode *node_p = snapshot_p->node_p;
 
@@ -3979,7 +3979,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafRemoveType: {
           INDEX_LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
 
-          TERRIER_ASSERT(false, "Observed LeafRemoveNode in delta chain.");
+          NOISEPAGE_ASSERT(false, "Observed LeafRemoveNode in delta chain.");
           [[fallthrough]];
         }  // case LeafRemoveType
         case NodeType::LeafMergeType: {
@@ -4013,13 +4013,13 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown leaf delta node type: %d", static_cast<int>(node_p->GetType()));
 
-          TERRIER_ASSERT(false, "Unknown leaf delta node type.");
+          NOISEPAGE_ASSERT(false, "Unknown leaf delta node type.");
         }  // default
       }    // switch
     }      // while
 
     // We cannot reach here
-    TERRIER_ASSERT(false, "We cannot reach here.");
+    NOISEPAGE_ASSERT(false, "We cannot reach here.");
     return nullptr;
   }
 
@@ -4060,7 +4060,7 @@ class BwTree : public BwTreeBase {
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
     const BaseNode *node_p = snapshot_p->node_p;
 
-    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
+    NOISEPAGE_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     const KeyType &search_key = context_p->search_key;
 
@@ -4163,7 +4163,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafRemoveType: {
           INDEX_LOG_ERROR("ERROR: Observed LeafRemoveNode in delta chain");
 
-          TERRIER_ASSERT(false, "Observed LeafRemoveNode in delta chain.");
+          NOISEPAGE_ASSERT(false, "Observed LeafRemoveNode in delta chain.");
           [[fallthrough]];
         }  // case LeafRemoveType
         case NodeType::LeafMergeType: {
@@ -4195,13 +4195,13 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown leaf delta node type: %d", static_cast<int>(node_p->GetType()));
 
-          TERRIER_ASSERT(false, "Unknown leaf delta node type.");
+          NOISEPAGE_ASSERT(false, "Unknown leaf delta node type.");
         }  // default
       }    // switch
     }      // while
 
     // We cannot reach here
-    TERRIER_ASSERT(false, "We cannot reach here.");
+    NOISEPAGE_ASSERT(false, "We cannot reach here.");
     return nullptr;
   }
 
@@ -4219,7 +4219,7 @@ class BwTree : public BwTreeBase {
    * a valid LeafNode object before calling this function
    */
   NO_ASAN LeafNode *CollectAllValuesOnLeaf(NodeSnapshot *snapshot_p, LeafNode *leaf_node_p = nullptr) {
-    TERRIER_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
+    NOISEPAGE_ASSERT(snapshot_p->IsLeaf(), "Must be a leaf node.");
 
     const BaseNode *node_p = snapshot_p->node_p;
 
@@ -4233,7 +4233,7 @@ class BwTree : public BwTreeBase {
                                          node_p->GetLowKeyPair(), node_p->GetHighKeyPair()));
     }
 
-    TERRIER_ASSERT(leaf_node_p != nullptr, "Leaf node must not be a nullptr.");
+    NOISEPAGE_ASSERT(leaf_node_p != nullptr, "Leaf node must not be a nullptr.");
 
     /////////////////////////////////////////////////////////////////
     // Prepare Delta Set
@@ -4280,7 +4280,7 @@ class BwTree : public BwTreeBase {
       (void)ldn1;
       (void)ldn2;
 
-      TERRIER_ASSERT(false, "This is not used.");
+      NOISEPAGE_ASSERT(false, "This is not used.");
       return false;
     };
 
@@ -4297,7 +4297,7 @@ class BwTree : public BwTreeBase {
     CollectAllValuesOnLeafRecursive(node_p, sss, delta_set, leaf_node_p);
 
     // Item count would not change during consolidation
-    TERRIER_ASSERT(leaf_node_p->GetSize() == node_p->GetItemCount(),
+    NOISEPAGE_ASSERT(leaf_node_p->GetSize() == node_p->GetItemCount(),
                    "Item count would not change during consolidation.");
 
     return leaf_node_p;
@@ -4396,8 +4396,8 @@ class BwTree : public BwTreeBase {
             // we also copy the old item in leaf node
             bool item_overwritten = false;
 
-            TERRIER_ASSERT(copy_start_index <= current_index, "Invalid index.");
-            TERRIER_ASSERT(current_index <= copy_end_index, "Invalid index.");
+            NOISEPAGE_ASSERT(copy_start_index <= current_index, "Invalid index.");
+            NOISEPAGE_ASSERT(current_index <= copy_end_index, "Invalid index.");
 
             // First copy all items before the current index
             new_leaf_node_p->PushBack(leaf_node_p->Begin() + copy_start_index, leaf_node_p->Begin() + current_index);
@@ -4417,7 +4417,7 @@ class BwTree : public BwTreeBase {
                 // We remove the element from sss here
                 new_leaf_node_p->PushBack(sss.PopFront()->item);
               } else {
-                TERRIER_ASSERT(sss.GetFront()->GetType() == NodeType::LeafDeleteType, "Must be a leaf delete type.");
+                NOISEPAGE_ASSERT(sss.GetFront()->GetType() == NodeType::LeafDeleteType, "Must be a leaf delete type.");
 
                 // ... and here
                 sss.PopFront();
@@ -4470,7 +4470,7 @@ class BwTree : public BwTreeBase {
         case NodeType::LeafRemoveType: {
           INDEX_LOG_ERROR("ERROR: LeafRemoveNode not allowed");
 
-          TERRIER_ASSERT(false, "LeafRemoveNode not allowed.");
+          NOISEPAGE_ASSERT(false, "LeafRemoveNode not allowed.");
           [[fallthrough]];
         }  // case LeafRemoveType
         case NodeType::LeafSplitType: {
@@ -4493,7 +4493,7 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown node type: %d", static_cast<int>(type));
 
-          TERRIER_ASSERT(false, "Unknown node type.");
+          NOISEPAGE_ASSERT(false, "Unknown node type.");
         }  // default
       }    // switch
     }      // while(1)
@@ -4514,7 +4514,7 @@ class BwTree : public BwTreeBase {
    */
   NO_ASAN static inline NodeSnapshot *GetLatestNodeSnapshot(Context *context_p) {
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 #endif
 
     return &context_p->current_snapshot;
@@ -4533,7 +4533,7 @@ class BwTree : public BwTreeBase {
   NO_ASAN inline NodeSnapshot *GetLatestParentNodeSnapshot(Context *context_p) {
 #ifdef BWTREE_DEBUG
     // Make sure the current node has a parent
-    TERRIER_ASSERT(context_p->current_level >= 1, "Should still be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level >= 1, "Should still be default value.");
 #endif
     // This is the address of the parent node
     return &context_p->parent_snapshot;
@@ -4551,7 +4551,7 @@ class BwTree : public BwTreeBase {
    */
   NO_ASAN inline bool IsOnLeftMostChild(Context *context_p) {
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level >= 1, "Must not be at root.");
+    NOISEPAGE_ASSERT(context_p->current_level >= 1, "Must not be at root.");
 #endif
 
     return GetLatestParentNodeSnapshot(context_p)->node_p->GetLowKeyNodeID() ==
@@ -4582,7 +4582,7 @@ class BwTree : public BwTreeBase {
     INDEX_LOG_TRACE("Jumping to the left sibling");
 
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->HasParentNode(), "Must have a parent node.");
+    NOISEPAGE_ASSERT(context_p->HasParentNode(), "Must have a parent node.");
 #endif
 
     // Get last record which is the current node's context
@@ -4590,7 +4590,7 @@ class BwTree : public BwTreeBase {
     NodeSnapshot *snapshot_p = GetLatestNodeSnapshot(context_p);
 
     // Check currently we are on a remove node
-    TERRIER_ASSERT(snapshot_p->node_p->IsRemoveNode(), "We must be on a remove node.");
+    NOISEPAGE_ASSERT(snapshot_p->node_p->IsRemoveNode(), "We must be on a remove node.");
 
     // This is not necessarily true. e.g. if the parent node was merged into
     // its left sibling before we take the snapshot of its previou left child
@@ -4616,7 +4616,7 @@ class BwTree : public BwTreeBase {
 
     // Get its parent node
     NodeSnapshot *parent_snapshot_p = GetLatestParentNodeSnapshot(context_p);
-    TERRIER_ASSERT(!parent_snapshot_p->IsLeaf(), "Parent cannot be a leaf node.");
+    NOISEPAGE_ASSERT(!parent_snapshot_p->IsLeaf(), "Parent cannot be a leaf node.");
 
     // If the parent has changed then abort
     // This is to avoid missing InnerInsertNode which is fatal in our case
@@ -4730,10 +4730,10 @@ class BwTree : public BwTreeBase {
 
     // Assume we always use this function to traverse on the same
     // level
-    TERRIER_ASSERT(node_p->IsOnLeafDeltaChain() == snapshot_p->IsLeaf(), "Must be on the same level.");
+    NOISEPAGE_ASSERT(node_p->IsOnLeafDeltaChain() == snapshot_p->IsLeaf(), "Must be on the same level.");
 
     // Make sure we are not switching to itself
-    TERRIER_ASSERT(snapshot_p->node_id != node_id, "Must not be switching to itself.");
+    NOISEPAGE_ASSERT(snapshot_p->node_id != node_id, "Must not be switching to itself.");
 
     snapshot_p->node_id = node_id;
     snapshot_p->node_p = node_p;
@@ -4847,7 +4847,7 @@ class BwTree : public BwTreeBase {
       }
     }  // switch
 
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
   }
 
   /*
@@ -4904,9 +4904,9 @@ class BwTree : public BwTreeBase {
    */
   NO_ASAN void TraverseBI(Context *context_p) {
   retry_traverse:
-    TERRIER_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
+    NOISEPAGE_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level == -1, "Should still be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level == -1, "Should still be default value.");
 #endif
 
     NodeID start_node_id = root_id.load();
@@ -4922,7 +4922,7 @@ class BwTree : public BwTreeBase {
       NodeID child_node_id = NavigateInnerNodeBI(context_p);
       if (context_p->abort_flag) {
         INDEX_LOG_TRACE("Navigate Inner Node abort (BI). ABORT");
-        TERRIER_ASSERT(child_node_id == INVALID_NODE_ID, "Invalid node id.");
+        NOISEPAGE_ASSERT(child_node_id == INVALID_NODE_ID, "Invalid node id.");
         goto abort_traverse;
       }
 
@@ -4951,7 +4951,7 @@ class BwTree : public BwTreeBase {
 
   abort_traverse:
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level >= 0, "Should not be default value.");
     context_p->current_level = -1;
     context_p->abort_counter++;
 #endif
@@ -4961,14 +4961,14 @@ class BwTree : public BwTreeBase {
     context_p->abort_flag = false;
     goto retry_traverse;
 
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
   }
 
   NO_ASAN void TraverseReadOptimized(Context *context_p, std::vector<ValueType> *value_list_p) {
   retry_traverse:
-    TERRIER_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
+    NOISEPAGE_ASSERT(!context_p->abort_flag, "Abort flag should not be set.");
 #ifdef BWTREE_DEBUG
-    TERRIER_ASSERT(context_p->current_level == -1, "Should still be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level == -1, "Should still be default value.");
 #endif
     // This is the serialization point for reading/writing root node
     NodeID child_node_id = root_id.load();
@@ -4995,7 +4995,7 @@ class BwTree : public BwTreeBase {
         // as a double check
         // This is the only situation that this function returns
         // INVALID_NODE_ID
-        TERRIER_ASSERT(child_node_id == INVALID_NODE_ID, "Node id must be invalid on abort.");
+        NOISEPAGE_ASSERT(child_node_id == INVALID_NODE_ID, "Node id must be invalid on abort.");
 
         goto abort_traverse;
       }
@@ -5051,7 +5051,7 @@ class BwTree : public BwTreeBase {
   abort_traverse:
 #ifdef BWTREE_DEBUG
 
-    TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
+    NOISEPAGE_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 
     context_p->current_level = -1;
 
@@ -5065,7 +5065,7 @@ class BwTree : public BwTreeBase {
 
     goto retry_traverse;
 
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
   }
 
   ///////////////////////////////////////////////////////////////////
@@ -5123,7 +5123,7 @@ class BwTree : public BwTreeBase {
     return false;
     // if CAS succeeds/fails
 
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
     return false;
   }
 
@@ -5165,7 +5165,7 @@ class BwTree : public BwTreeBase {
       // The deleted node ID must resolve to a RemoveNode of either
       // Inner or Leaf category
       const BaseNode *garbage_node_p = GetNode(delete_item.second);
-      TERRIER_ASSERT(garbage_node_p->IsRemoveNode(), "Garbage node must be remove node.");
+      NOISEPAGE_ASSERT(garbage_node_p->IsRemoveNode(), "Garbage node must be remove node.");
 
       // Put the remove node into garbage chain
       // This will not remove the child node of the remove node, which
@@ -5202,7 +5202,7 @@ class BwTree : public BwTreeBase {
 
     return false;
 
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
     return false;
   }
 
@@ -5356,7 +5356,7 @@ class BwTree : public BwTreeBase {
         } else {
           INDEX_LOG_ERROR("ERROR: Illegal node type: %d", static_cast<int>(type));
 
-          TERRIER_ASSERT(false, "Cannot reach here.");
+          NOISEPAGE_ASSERT(false, "Cannot reach here.");
         }  // If on type of merge node
 
         const KeyNodeIDPair *location;
@@ -5367,7 +5367,7 @@ class BwTree : public BwTreeBase {
 
         // If the item is found then next we post InnerDeleteNode
         if (found_pair_p != nullptr) {
-          TERRIER_ASSERT(found_pair_p->second == delete_item_p->second,
+          NOISEPAGE_ASSERT(found_pair_p->second == delete_item_p->second,
                          "If the item is found then next we post InnerDeleteNode.");
         } else {
           return;
@@ -5421,7 +5421,7 @@ class BwTree : public BwTreeBase {
         }
 
 #ifdef BWTREE_DEBUG
-        TERRIER_ASSERT(context_p->current_level >= 0, "Should not be default value.");
+        NOISEPAGE_ASSERT(context_p->current_level >= 0, "Should not be default value.");
 #endif
 
         // If the parent snapshot has an invalid node ID then it must be the
@@ -5546,7 +5546,7 @@ class BwTree : public BwTreeBase {
               // InnerInsertNode) we need to abort and restart traversing
               const BaseNode *node_p = GetNode(found_item_p->second);
 
-              TERRIER_ASSERT(
+              NOISEPAGE_ASSERT(
                   node_p->GetType() == NodeType::InnerRemoveType || node_p->GetType() == NodeType::LeafRemoveType,
                   "See comment above.");
 
@@ -5577,7 +5577,7 @@ class BwTree : public BwTreeBase {
       }
     }  // switch
 
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
   }
 
   /*
@@ -5586,7 +5586,7 @@ class BwTree : public BwTreeBase {
    * This function does not check delta chain size
    */
   NO_ASAN inline void ConsolidateLeafNode(NodeSnapshot *snapshot_p) {
-    TERRIER_ASSERT(snapshot_p->node_p->IsOnLeafDeltaChain(), "Leaf node must be on delta chain.");
+    NOISEPAGE_ASSERT(snapshot_p->node_p->IsOnLeafDeltaChain(), "Leaf node must be on delta chain.");
 
     LeafNode *leaf_node_p = CollectAllValuesOnLeaf(snapshot_p);
 
@@ -5607,7 +5607,7 @@ class BwTree : public BwTreeBase {
    * This function does not check for inner delta chain length
    */
   NO_ASAN inline void ConsolidateInnerNode(NodeSnapshot *snapshot_p) {
-    TERRIER_ASSERT(!snapshot_p->node_p->IsOnLeafDeltaChain(), "Inner node cannot be on delta chain.");
+    NOISEPAGE_ASSERT(!snapshot_p->node_p->IsOnLeafDeltaChain(), "Inner node cannot be on delta chain.");
 
     InnerNode *inner_node_p = CollectAllSepsOnInner(snapshot_p);
 
@@ -5674,7 +5674,7 @@ class BwTree : public BwTreeBase {
       // then parent node will have non-0 depth in order to avoid being too
       // large (see FindSplitNextKey() and FindMergePrevNextKey() and
       // JumpToLeftSibling())
-      // TERRIER_ASSERT(node_p->metadata.depth == 0);
+      // NOISEPAGE_ASSERT(node_p->metadata.depth == 0);
 
       return;
     }
@@ -5763,7 +5763,7 @@ class BwTree : public BwTreeBase {
         }
 
         // Since we would like to access its first element to get the low key
-        TERRIER_ASSERT(new_leaf_node_p->GetSize() > 0, "Invalid node size.");
+        NOISEPAGE_ASSERT(new_leaf_node_p->GetSize() > 0, "Invalid node size.");
 
         // The split key must be a valid key
         // Note that the lowkey for leaf node is not defined, so in the
@@ -5890,7 +5890,7 @@ class BwTree : public BwTreeBase {
         const KeyType &split_key = new_inner_node_p->GetLowKey();
 
         // New node has at least one item (this is the basic requirement)
-        TERRIER_ASSERT(new_inner_node_p->GetSize() > 0, "Invalid node size.");
+        NOISEPAGE_ASSERT(new_inner_node_p->GetSize() > 0, "Invalid node size.");
 
         const KeyNodeIDPair &first_item = new_inner_node_p->At(0);
 
@@ -5899,7 +5899,7 @@ class BwTree : public BwTreeBase {
         NodeID split_key_child_node_id = first_item.second;
 
         // This must be the split key
-        TERRIER_ASSERT(KeyCmpEqual(first_item.first, split_key), "This must be the split key.");
+        NOISEPAGE_ASSERT(KeyCmpEqual(first_item.first, split_key), "This must be the split key.");
 
         // NOTE: WE FETCH THE POINTER WITHOUT HELP ALONG SINCE WE ARE
         // NOW ON ITS PARENT
@@ -6052,7 +6052,7 @@ class BwTree : public BwTreeBase {
 
     // This CAS must succeed since nobody except this thread could remove
     // the ABORT delta on parent node
-    TERRIER_ASSERT(ret,
+    NOISEPAGE_ASSERT(ret,
                    "This CAS must succeed since nobody except this thread could remove the ABORT delta on parent node");
     (void)ret;
 
@@ -6149,7 +6149,7 @@ class BwTree : public BwTreeBase {
     const KeyNodeIDPair &low_key_pair = node_p->GetLowKeyPair();
 
     // The caller must make sure this is true
-    TERRIER_ASSERT(node_p->GetNextNodeID() == INVALID_NODE_ID || KeyCmpLess(search_key, node_p->GetHighKey()),
+    NOISEPAGE_ASSERT(node_p->GetNextNodeID() == INVALID_NODE_ID || KeyCmpLess(search_key, node_p->GetHighKey()),
                    "Caller must ensure this.");
 
     while (1) {
@@ -6219,7 +6219,7 @@ class BwTree : public BwTreeBase {
             return it;
           }
 
-          TERRIER_ASSERT(false, "Cannot reach here.");
+          NOISEPAGE_ASSERT(false, "Cannot reach here.");
           return nullptr;
         }  // InnerNode
         case NodeType::InnerSplitType: {
@@ -6247,13 +6247,13 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_DEBUG("Unknown InnerNode type: %d", (int)node_p->GetType());
 
-          TERRIER_ASSERT(false, "Cannot reach here.");
+          NOISEPAGE_ASSERT(false, "Cannot reach here.");
           return nullptr;
         }  // default
       }    // switch
     }      // while(1)
 
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
     return nullptr;
   }
 
@@ -6282,11 +6282,11 @@ class BwTree : public BwTreeBase {
     const BaseNode *node_p = snapshot_p->node_p;
 
     // First check that the node is always in the range of the inner node
-    TERRIER_ASSERT(node_p->GetNextNodeID() == INVALID_NODE_ID || KeyCmpLess(search_key, node_p->GetHighKey()),
+    NOISEPAGE_ASSERT(node_p->GetNextNodeID() == INVALID_NODE_ID || KeyCmpLess(search_key, node_p->GetHighKey()),
                    "First check that the node is always in the range of the inner node.");
 
     // We can only search for left sibling on inner delta chain
-    TERRIER_ASSERT(!node_p->IsOnLeafDeltaChain(), "We can only search for left sibling on inner delta chain.");
+    NOISEPAGE_ASSERT(!node_p->IsOnLeafDeltaChain(), "We can only search for left sibling on inner delta chain.");
 
     const InnerDataNode *data_node_list[node_p->GetDepth()];
 
@@ -6485,13 +6485,13 @@ class BwTree : public BwTreeBase {
         default: {
           INDEX_LOG_ERROR("ERROR: Unknown node type = %d", static_cast<int>(type));
 
-          TERRIER_ASSERT(false, "Cannot reach here.");
+          NOISEPAGE_ASSERT(false, "Cannot reach here.");
         }
       }  // switch type
     }    // while 1
 
     // Should not reach here
-    TERRIER_ASSERT(false, "Cannot reach here.");
+    NOISEPAGE_ASSERT(false, "Cannot reach here.");
     return INVALID_NODE_ID;
   }
 
@@ -7120,7 +7120,7 @@ class BwTree : public BwTreeBase {
         ClearEpoch();
       }
 
-      TERRIER_ASSERT(head_epoch_p == nullptr, "All garbage nodes should be freed.");
+      NOISEPAGE_ASSERT(head_epoch_p == nullptr, "All garbage nodes should be freed.");
       INDEX_LOG_TRACE("Garbage Collector has finished freeing all garbage nodes");
 
 #ifdef BWTREE_DEBUG
@@ -7331,7 +7331,7 @@ class BwTree : public BwTreeBase {
 
       while (1) {
         node_p = next_node_p;
-        TERRIER_ASSERT(node_p != nullptr, "Node cannot equal nullptr.");
+        NOISEPAGE_ASSERT(node_p != nullptr, "Node cannot equal nullptr.");
 
         NodeType type = node_p->GetType();
 
@@ -7487,7 +7487,7 @@ class BwTree : public BwTreeBase {
             // This does not include INNER ABORT node
             INDEX_LOG_ERROR("Unknown node type: %d", (int)type);
 
-            TERRIER_ASSERT(false, "Cannot reach here.");
+            NOISEPAGE_ASSERT(false, "Cannot reach here.");
             return;
         }  // switch
       }    // while 1
@@ -7516,7 +7516,7 @@ class BwTree : public BwTreeBase {
         // Since it could only be acquired and released by worker thread
         // the value must be >= 0
         int active_thread_count = head_epoch_p->active_thread_count.load();
-        TERRIER_ASSERT(active_thread_count >= 0,
+        NOISEPAGE_ASSERT(active_thread_count >= 0,
                        "Since it could only be acquired and released by worker thread the value must be >= 0.");
 
         // If we have seen an epoch whose count is not zero then all
@@ -7728,7 +7728,7 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN inline void IncRef() {
       ref_count++;
-      TERRIER_ASSERT(ref_count != 0UL, "ref_count can't be 0.");
+      NOISEPAGE_ASSERT(ref_count != 0UL, "ref_count can't be 0.");
     }
 
     /*
@@ -7754,7 +7754,7 @@ class BwTree : public BwTreeBase {
     NO_ASAN inline void DecRef() {
       // for unsigned long the only thing we could ensure
       // is that it does not cross 0 boundary
-      TERRIER_ASSERT(ref_count != 0UL, "ref_count cannot equal 0.");
+      NOISEPAGE_ASSERT(ref_count != 0UL, "ref_count cannot equal 0.");
 
       ref_count--;
       if (ref_count == 0UL) {
@@ -7790,7 +7790,7 @@ class BwTree : public BwTreeBase {
       // This is the size of memory we wish to initialize for IteratorContext
       // plus data
       auto *ic_p = reinterpret_cast<IteratorContext *>(new char[size]);
-      TERRIER_ASSERT(ic_p != nullptr, "Cannot be nullptr.");
+      NOISEPAGE_ASSERT(ic_p != nullptr, "Cannot be nullptr.");
 
       // Initialize class IteratorContext part
       new (ic_p) IteratorContext{p_tree_p};
@@ -7802,7 +7802,7 @@ class BwTree : public BwTreeBase {
 
       // So after this function returns the ref count should be exactly 1
       ic_p->IncRef();
-      TERRIER_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count should be exactly 1.");
+      NOISEPAGE_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count should be exactly 1.");
 
       return ic_p;
     }
@@ -7867,14 +7867,14 @@ class BwTree : public BwTreeBase {
 
       // Load the first leaf page
       const BaseNode *node_p = p_tree_p->GetNode(FIRST_LEAF_NODE_ID);
-      TERRIER_ASSERT(node_p != nullptr, "leaf node cannot be nullptr.");
-      TERRIER_ASSERT(node_p->IsOnLeafDeltaChain(), "leaf node must be on the delta chain.");
+      NOISEPAGE_ASSERT(node_p != nullptr, "leaf node cannot be nullptr.");
+      NOISEPAGE_ASSERT(node_p->IsOnLeafDeltaChain(), "leaf node must be on the delta chain.");
 
       // Allocate space for IteratorContext + LeafNode Metadata + LeafNode data
       ic_p = IteratorContext::Get(p_tree_p, node_p);
       // This does not change after CollectAllValuesOnLeaf() is called
       kv_p = ic_p->GetLeafNode()->Begin();
-      TERRIER_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count must be 1.");
+      NOISEPAGE_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count must be 1.");
 
       // Use this to collect all values
       NodeSnapshot snapshot{FIRST_LEAF_NODE_ID, node_p};
@@ -7929,9 +7929,9 @@ class BwTree : public BwTreeBase {
       // If this is an empty iterator then do nothing; otherwise need to
       // release a reference to the current ic_p first
       if (ic_p == nullptr) {
-        TERRIER_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
+        NOISEPAGE_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
       } else {
-        TERRIER_ASSERT(kv_p != nullptr, "Iterator and kv must both not be nullptr.");
+        NOISEPAGE_ASSERT(kv_p != nullptr, "Iterator and kv must both not be nullptr.");
         ic_p->DecRef();
       }
 
@@ -7960,9 +7960,9 @@ class BwTree : public BwTreeBase {
       // For move assignment we do not touch the ref count
       // and just nullify the other object
       if (ic_p == nullptr) {
-        TERRIER_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
+        NOISEPAGE_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
       } else {
-        TERRIER_ASSERT(kv_p != nullptr, "Iterator and kv must both not be nullptr.");
+        NOISEPAGE_ASSERT(kv_p != nullptr, "Iterator and kv must both not be nullptr.");
       }
 
       // Add a reference to the IteratorContext
@@ -7998,7 +7998,7 @@ class BwTree : public BwTreeBase {
     NO_ASAN bool IsEnd() const {
       // Empty iterator is naturally end iterator
       if (ic_p == nullptr) {
-        TERRIER_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
+        NOISEPAGE_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
 
         return true;
       }
@@ -8019,7 +8019,7 @@ class BwTree : public BwTreeBase {
     NO_ASAN bool IsBegin() const {
       // This is both Begin() and End()
       if (ic_p == nullptr) {
-        TERRIER_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
+        NOISEPAGE_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
 
         return true;
       }
@@ -8038,7 +8038,7 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN bool IsREnd() const {
       if (ic_p == nullptr) {
-        TERRIER_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
+        NOISEPAGE_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
 
         return true;
       }
@@ -8136,13 +8136,13 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN ~ForwardIterator() {
       if (ic_p != nullptr) {
-        TERRIER_ASSERT(kv_p != nullptr, "Iterator and kv must both not be nullptr.");
+        NOISEPAGE_ASSERT(kv_p != nullptr, "Iterator and kv must both not be nullptr.");
         // If ic_p is not nullptr we know it is a valid reference and
         // just decrease reference counter for it. This might also call
         // destructor for ic_p instance if we release the last reference
         ic_p->DecRef();
       } else {
-        TERRIER_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
+        NOISEPAGE_ASSERT(kv_p == nullptr, "Iterator and kv must both be nullptr.");
       }
     }
 
@@ -8233,7 +8233,7 @@ class BwTree : public BwTreeBase {
      * instance
      */
     NO_ASAN void LowerBound(BwTree *p_tree_p, const KeyType *start_key_p) {
-      TERRIER_ASSERT(start_key_p != nullptr, "start key must not be nullptr.");
+      NOISEPAGE_ASSERT(start_key_p != nullptr, "start key must not be nullptr.");
       // This is required since start_key_p might be pointing inside the
       // currently buffered IteratorContext which will be destroyed
       // after new IteratorContext is created
@@ -8252,7 +8252,7 @@ class BwTree : public BwTreeBase {
 
         NodeSnapshot *snapshot_p = BwTree::GetLatestNodeSnapshot(&context);
         const BaseNode *node_p = snapshot_p->node_p;
-        TERRIER_ASSERT(node_p->IsOnLeafDeltaChain(), "node must be on the delta chain.");
+        NOISEPAGE_ASSERT(node_p->IsOnLeafDeltaChain(), "node must be on the delta chain.");
 
         // After this point, start_key_p from the last page becomes invalid
 
@@ -8264,7 +8264,7 @@ class BwTree : public BwTreeBase {
 
         // Refresh the IteratorContext object and also refresh kv_p
         ic_p = IteratorContext::Get(p_tree_p, node_p);
-        TERRIER_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count must be 1.");
+        NOISEPAGE_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count must be 1.");
 
         // Consolidate the current node and store all key value pairs
         // to the embedded leaf node
@@ -8316,12 +8316,12 @@ class BwTree : public BwTreeBase {
      *   (2) The current status must not be Begin() status
      */
     NO_ASAN void MoveBackByOne() {
-      TERRIER_ASSERT(kv_p != nullptr, "kv cannot be nullptr.");
-      TERRIER_ASSERT(ic_p != nullptr, "iterator cannot be nullptr.");
-      TERRIER_ASSERT(!IsREnd(), "cannot be at end.");
+      NOISEPAGE_ASSERT(kv_p != nullptr, "kv cannot be nullptr.");
+      NOISEPAGE_ASSERT(ic_p != nullptr, "iterator cannot be nullptr.");
+      NOISEPAGE_ASSERT(!IsREnd(), "cannot be at end.");
 
       // This is an invalid state
-      TERRIER_ASSERT(kv_p != ic_p->GetLeafNode()->REnd(), "Invalid state.");
+      NOISEPAGE_ASSERT(kv_p != ic_p->GetLeafNode()->REnd(), "Invalid state.");
 
       // This will be used to call BwTree functions
       BwTree *tree_p = ic_p->GetTree();
@@ -8356,14 +8356,14 @@ class BwTree : public BwTreeBase {
         // We must have reached a node whose low key is less than the
         // low key we used as the search key
         // Either it has a -Inf low key, or the low key could be compared
-        TERRIER_ASSERT(
+        NOISEPAGE_ASSERT(
             (node_p->GetLowKeyPair().second == INVALID_NODE_ID) || tree_p->KeyCmpLess(node_p->GetLowKey(), low_key),
             "reached an incorrect node.");
 
         // Release the current leaf page, and
         ic_p->DecRef();
         ic_p = IteratorContext::Get(tree_p, node_p);
-        TERRIER_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count must be 1.");
+        NOISEPAGE_ASSERT(ic_p->GetRefCount() == 1UL, "ref_count must be 1.");
         tree_p->CollectAllValuesOnLeaf(snapshot_p, ic_p->GetLeafNode());
 
         // Now we could safely release the reference
@@ -8409,13 +8409,13 @@ class BwTree : public BwTreeBase {
      */
     NO_ASAN inline void MoveAheadByOne() {
       // Could not do this on an empty iterator
-      TERRIER_ASSERT(ic_p != nullptr, "cannot do this with an empty iterator.");
-      TERRIER_ASSERT(kv_p != nullptr, "cannot do this with an empty iterator.");
+      NOISEPAGE_ASSERT(ic_p != nullptr, "cannot do this with an empty iterator.");
+      NOISEPAGE_ASSERT(kv_p != nullptr, "cannot do this with an empty iterator.");
 
       // We could not be on the last page, since before calling this
       // function whether we are on the last page should be
       // checked
-      TERRIER_ASSERT(!IsEnd(), "We could not be on the last page.");
+      NOISEPAGE_ASSERT(!IsEnd(), "We could not be on the last page.");
 
       kv_p++;
 
@@ -8446,7 +8446,7 @@ class BwTree : public BwTreeBase {
    */
   NO_ASAN void AddGarbageNode(const BaseNode *node_p) {
     auto *garbage_node_p = new GarbageNode{GetGlobalEpoch(), (void *)(node_p)};
-    TERRIER_ASSERT(garbage_node_p != nullptr, "Allocation failed.");
+    NOISEPAGE_ASSERT(garbage_node_p != nullptr, "Allocation failed.");
 
     // Link this new node to the end of the linked list
     // and then update last_p
@@ -8498,7 +8498,7 @@ class BwTree : public BwTreeBase {
       epoch_manager.FreeEpochDeltaChain((const BaseNode *)first_p->node_p);
 
       delete first_p;
-      TERRIER_ASSERT(GetGCMetaData(thread_id)->node_count != 0UL, "Node count cannot be 0.");
+      NOISEPAGE_ASSERT(GetGCMetaData(thread_id)->node_count != 0UL, "Node count cannot be 0.");
       GetGCMetaData(thread_id)->node_count--;
 
       first_p = header_p->next_p;

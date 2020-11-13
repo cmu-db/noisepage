@@ -7,7 +7,7 @@
 #include "execution/sql/value.h"
 #include "execution/util/arithmetic_overflow.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Utility class to handle various arithmetic SQL functions.
@@ -256,7 +256,7 @@ class EXPORT ArithmeticFunctions {
       *result = RET_TYPE::Null();                                              \
       return;                                                                  \
     }                                                                          \
-    *result = RET_TYPE(terrier::execution::sql::OP<CppType>{}(v.val_));        \
+    *result = RET_TYPE(noisepage::execution::sql::OP<CppType>{}(v.val_));      \
   }
 
 #define BINARY_MATH_FAST_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                        \
@@ -286,19 +286,19 @@ class EXPORT ArithmeticFunctions {
     *result = RET_TYPE(OP<CppType>{}(a.val_, b.val_));                                                \
   }
 
-BINARY_MATH_FAST_HIDE_NULL(Add, Integer, Integer, Integer, terrier::execution::sql::Add);
-BINARY_MATH_FAST_HIDE_NULL(Add, Real, Real, Real, terrier::execution::sql::Add);
-BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Add, Integer, Integer, Integer, terrier::execution::sql::AddWithOverflow);
-BINARY_MATH_FAST_HIDE_NULL(Sub, Integer, Integer, Integer, terrier::execution::sql::Subtract);
-BINARY_MATH_FAST_HIDE_NULL(Sub, Real, Real, Real, terrier::execution::sql::Subtract);
-BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Sub, Integer, Integer, Integer, terrier::execution::sql::SubtractWithOverflow);
-BINARY_MATH_FAST_HIDE_NULL(Mul, Integer, Integer, Integer, terrier::execution::sql::Multiply);
-BINARY_MATH_FAST_HIDE_NULL(Mul, Real, Real, Real, terrier::execution::sql::Multiply);
-BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Mul, Integer, Integer, Integer, terrier::execution::sql::MultiplyWithOverflow);
-BINARY_MATH_CHECK_ZERO_HIDE_NULL(IntDiv, Integer, Integer, Integer, terrier::execution::sql::Divide);
-BINARY_MATH_CHECK_ZERO_HIDE_NULL(Div, Real, Real, Real, terrier::execution::sql::Divide);
-BINARY_MATH_CHECK_ZERO_HIDE_NULL(IntMod, Integer, Integer, Integer, terrier::execution::sql::Modulo);
-BINARY_MATH_CHECK_ZERO_HIDE_NULL(Mod, Real, Real, Real, terrier::execution::sql::Modulo);
+BINARY_MATH_FAST_HIDE_NULL(Add, Integer, Integer, Integer, noisepage::execution::sql::Add);
+BINARY_MATH_FAST_HIDE_NULL(Add, Real, Real, Real, noisepage::execution::sql::Add);
+BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Add, Integer, Integer, Integer, noisepage::execution::sql::AddWithOverflow);
+BINARY_MATH_FAST_HIDE_NULL(Sub, Integer, Integer, Integer, noisepage::execution::sql::Subtract);
+BINARY_MATH_FAST_HIDE_NULL(Sub, Real, Real, Real, noisepage::execution::sql::Subtract);
+BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Sub, Integer, Integer, Integer, noisepage::execution::sql::SubtractWithOverflow);
+BINARY_MATH_FAST_HIDE_NULL(Mul, Integer, Integer, Integer, noisepage::execution::sql::Multiply);
+BINARY_MATH_FAST_HIDE_NULL(Mul, Real, Real, Real, noisepage::execution::sql::Multiply);
+BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Mul, Integer, Integer, Integer, noisepage::execution::sql::MultiplyWithOverflow);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(IntDiv, Integer, Integer, Integer, noisepage::execution::sql::Divide);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(Div, Real, Real, Real, noisepage::execution::sql::Divide);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(IntMod, Integer, Integer, Integer, noisepage::execution::sql::Modulo);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(Mod, Real, Real, Real, noisepage::execution::sql::Modulo);
 
 inline void ArithmeticFunctions::Pi(Real *result) { *result = Real(M_PI); }
 
@@ -335,7 +335,7 @@ inline void ArithmeticFunctions::Atan2(Real *result, const Real &a, const Real &
     *result = Real::Null();
     return;
   }
-  *result = Real(terrier::execution::sql::Atan2<double>{}(a.val_, b.val_));
+  *result = Real(noisepage::execution::sql::Atan2<double>{}(a.val_, b.val_));
 }
 
 inline void ArithmeticFunctions::Round2(Real *result, const Real &v, const Integer &precision) {
@@ -343,7 +343,7 @@ inline void ArithmeticFunctions::Round2(Real *result, const Real &v, const Integ
     *result = Real::Null();
     return;
   }
-  *result = Real(terrier::execution::sql::RoundUpTo<double, int64_t>{}(v.val_, precision.val_));
+  *result = Real(noisepage::execution::sql::RoundUpTo<double, int64_t>{}(v.val_, precision.val_));
 }
 
 inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real &val) {
@@ -351,7 +351,7 @@ inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real 
     *result = Real::Null();
     return;
   }
-  *result = Real(terrier::execution::sql::Log<double>{}(base.val_, val.val_));
+  *result = Real(noisepage::execution::sql::Log<double>{}(base.val_, val.val_));
 }
 
 inline void ArithmeticFunctions::Pow(Real *result, const Real &base, const Real &val) {
@@ -359,7 +359,7 @@ inline void ArithmeticFunctions::Pow(Real *result, const Real &base, const Real 
     *result = Real::Null();
     return;
   }
-  *result = Real(terrier::execution::sql::Pow<double, double>{}(base.val_, val.val_));
+  *result = Real(noisepage::execution::sql::Pow<double, double>{}(base.val_, val.val_));
 }
 
 #undef BINARY_FN_CHECK_ZERO
@@ -368,4 +368,4 @@ inline void ArithmeticFunctions::Pow(Real *result, const Real &base, const Real 
 #undef BINARY_MATH_FAST_HIDE_NULL
 #undef UNARY_MATH_EXPENSIVE_HIDE_NULL
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

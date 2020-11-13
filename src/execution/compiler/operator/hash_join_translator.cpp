@@ -8,8 +8,9 @@
 #include "execution/compiler/work_context.h"
 #include "execution/sql/join_hash_table.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 const char *row_attr_prefix = "attr";
@@ -27,9 +28,9 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
       probe_row_type_(GetCodeGen()->MakeFreshIdentifier("ProbeRow")),
       join_consumer_(GetCodeGen()->MakeFreshIdentifier("joinConsumer")),
       left_pipeline_(this, Pipeline::Parallelism::Parallel) {
-  TERRIER_ASSERT(!plan.GetLeftHashKeys().empty(), "Hash-join must have join keys from left input");
-  TERRIER_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
-  TERRIER_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
+  NOISEPAGE_ASSERT(!plan.GetLeftHashKeys().empty(), "Hash-join must have join keys from left input");
+  NOISEPAGE_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
+  NOISEPAGE_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
 
   // Probe pipeline begins after build pipeline.
   pipeline->LinkSourcePipeline(&left_pipeline_);
@@ -474,7 +475,7 @@ void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *
   if (IsLeftPipeline(ctx->GetPipeline())) {
     InsertIntoJoinHashTable(ctx, function);
   } else {
-    TERRIER_ASSERT(IsRightPipeline(ctx->GetPipeline()), "Pipeline is unknown to join translator");
+    NOISEPAGE_ASSERT(IsRightPipeline(ctx->GetPipeline()), "Pipeline is unknown to join translator");
     ProbeJoinHashTable(ctx, function);
   }
 }
@@ -537,4 +538,4 @@ ast::Expr *HashJoinTranslator::GetChildOutput(WorkContext *context, uint32_t chi
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

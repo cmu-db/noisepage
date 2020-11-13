@@ -8,7 +8,7 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/storage_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 // This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
 // reference to other fast data structures (indexes) to compare against. We are interested in the TAS' raw
@@ -80,4 +80,4 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
 
 BENCHMARK_REGISTER_F(TupleAccessStrategyBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
 
-}  // namespace terrier
+}  // namespace noisepage

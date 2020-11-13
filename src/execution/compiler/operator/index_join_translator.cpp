@@ -14,7 +14,7 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
@@ -173,7 +173,7 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->MakeStmt(init_call));
 }
 
-void IndexJoinTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexJoinTranslator::DeclareIndexPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var lo_pr = @indexIteratorGetLoPR(&index_iter)
   // var hi_pr = @indexIteratorGetHiPR(&index_iter)
   ast::Expr *lo_pr_call =
@@ -184,14 +184,14 @@ void IndexJoinTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionB
   builder->Append(GetCodeGen()->DeclareVar(hi_index_pr_, nullptr, hi_pr_call));
 }
 
-void IndexJoinTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexJoinTranslator::DeclareTablePR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var table_pr = @indexIteratorGetTablePR(&index_iter)
   ast::Expr *get_pr_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetTablePR, {GetCodeGen()->AddressOf(index_iter_)});
   builder->Append(GetCodeGen()->DeclareVar(table_pr_, nullptr, get_pr_call));
 }
 
-void IndexJoinTranslator::DeclareSlot(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexJoinTranslator::DeclareSlot(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var slot = @indexIteratorGetSlot(&index_iter)
   ast::Expr *get_slot_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSlot, {GetCodeGen()->AddressOf(index_iter_)});
@@ -225,4 +225,4 @@ void IndexJoinTranslator::FreeIterator(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->MakeStmt(free_call));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

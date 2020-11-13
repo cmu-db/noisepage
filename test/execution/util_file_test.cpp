@@ -2,7 +2,7 @@
 #include "execution/util/fast_rand.h"
 #include "execution/util/file.h"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 class FileTest : public TplTest {};
 
@@ -165,4 +165,4 @@ TEST_F(FileTest, Seek) {
 }
 #endif
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

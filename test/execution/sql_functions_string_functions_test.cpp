@@ -12,7 +12,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class StringFunctionsTests : public SqlBasedTest {
  public:
@@ -813,4 +813,4 @@ TEST_F(StringFunctionsTests, InitCap) {
   EXPECT_TRUE(StringVal("-A 3imple   7est  Simple T  Test") == result);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test
