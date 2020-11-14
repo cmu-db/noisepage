@@ -44,6 +44,7 @@ class NoisePageServer:
             LOG.info(f'Server start: {self.build_path} [PID={self.db_process.pid}]')
 
             if not run_check_pids(self.db_process.pid):
+                LOG.info(f'{self.db_process.pid} does not exist. Trying again.')
                 # The DB process does not exist, try starting it again
                 continue
 

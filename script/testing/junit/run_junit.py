@@ -61,8 +61,9 @@ if __name__ == "__main__":
             except KeyboardInterrupt:
                 exit_code = ErrorCode.ERROR
                 raise
-            except:
+            except Exception as err:
                 LOG.error(f'Exception trying to run {test_command_tracefile}')
+                LOG.error(err)
                 LOG.error("================ Python Error Output ==================")
                 traceback.print_exc(file=sys.stdout)
                 exit_code = ErrorCode.ERROR
