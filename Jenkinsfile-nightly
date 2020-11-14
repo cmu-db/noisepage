@@ -17,45 +17,21 @@ pipeline {
 
     stages {
         stage('Artifact Stats') {
-            parallel{
-                stage('ubuntu-20.04/gcc-9.3 (artifact stats)') {
-                    agent {
-                        docker {
-                            image 'noisepage:focal'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh script: 'python3 ./script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', label: 'Artifact Stats'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
                 }
-
-                // stage('macos-10.14/clang-8.0 (artifact stats)') {
-                //     agent { label 'macos' }
-                //     environment {
-                //         LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                //         LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
-                //         CC="${LLVM_DIR}/bin/clang"
-                //         CXX="${LLVM_DIR}/bin/clang++"
-                //     }
-                //     steps {
-                //         sh 'echo $NODE_NAME'
-                //         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-                //         sh script: 'python3 ./script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', lable: 'Artifact Stats'
-                //     }
-                    // post {
-                    //     cleanup {
-                    //         deleteDir()
-                    //     }
-                    // }
-                // }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+                sh script: 'python3 ./script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', label: 'Artifact Stats'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
             }
         }
         stage('Performance') {
