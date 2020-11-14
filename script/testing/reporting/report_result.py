@@ -9,7 +9,13 @@ from util.constants import PERFORMANCE_STORAGE_SERVICE_API
 from util.constants import LOG
 
 
-def report_oltpbench_result(env, server_data, results_dir, username, password, mem_metrics, query_mode='simple'):
+def report_oltpbench_result(env,
+                            server_data,
+                            results_dir,
+                            username,
+                            password,
+                            mem_metrics,
+                            query_mode='simple'):
     """ Parse and format the data from server_data and the results_dir into a
     JSON body and send those results to the performance storage service"""
     LOG.debug("parsing OLTPBench results and assembling request body.")
@@ -31,17 +37,20 @@ def report_oltpbench_result(env, server_data, results_dir, username, password, m
     send_result(env, '/oltpbench/', username, password, result)
 
 
-def report_microbenchmark_result(env, timestamp, config, artifact_processor_comparison):
+def report_microbenchmark_result(env, timestamp, config,
+                                 artifact_processor_comparison):
     """ Parse and format the data from the microbenchmark tests into a JSON
     body and send those to the performance storage service. """
     LOG.debug("parsing OLTPBench results and assembling request body.")
-    metadata, test_suite, test_name, metrics = parse_microbenchmark_data(artifact_processor_comparison)
+    metadata, test_suite, test_name, metrics = parse_microbenchmark_data(
+        artifact_processor_comparison)
     parameters = parse_parameters(config)
     metadata['environment']['wal_device'] = parse_wal_device(config)
 
     result = {
         'metadata': metadata,
-        'timestamp': int(timestamp.timestamp() * 1000),  # convert to milliseconds
+        'timestamp':
+        int(timestamp.timestamp() * 1000),  # convert to milliseconds
         'test_suite': test_suite,
         'test_name': test_name,
         'parameters': parameters,
@@ -51,24 +60,15 @@ def report_microbenchmark_result(env, timestamp, config, artifact_processor_comp
                 config.publish_results_password, result)
 
 
-def report_artifact_stats_result(env, metrics, username, password):
-    """ Parse and format the data from the artifact stats into a JSON body and
-    send those to the performance storage service. """
-    result = {
-        'metadata': parse_standard_metadata(),
-        'timestamp': int(datetime.now().timestamp() * 1000),  # convert to milliseconds
-        'metrics': metrics
-    }
-    send_result(env, '/artifact_stats/', username, password, result)
-
-
 def send_result(env, path, username, password, result):
     """ Send the results to the performance storage service. If the service
     responds with an error code this will raise an error. """
     LOG.debug("Sending request to {PATH}".format(PATH=path))
     base_url = get_base_url(env)
     try:
-        result = requests.post(base_url + path, json=result, auth=(username, password))
+        result = requests.post(base_url + path,
+                               json=result,
+                               auth=(username, password))
         result.raise_for_status()
     except Exception as err:
         LOG.error(err.response.text)
