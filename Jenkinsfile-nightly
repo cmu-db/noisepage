@@ -30,6 +30,11 @@ pipeline {
                         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         sh script: 'python3 ./script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', label: 'Artifact Stats'
                     }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
                 }
 
                 // stage('macos-10.14/clang-8.0 (artifact stats)') {
@@ -45,12 +50,12 @@ pipeline {
                 //         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                 //         sh script: 'python3 ./script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', lable: 'Artifact Stats'
                 //     }
+                    // post {
+                    //     cleanup {
+                    //         deleteDir()
+                    //     }
+                    // }
                 // }
-            }
-            post {
-                cleanup {
-                    deleteDir()
-                }
             }
         }
         stage('Performance') {
