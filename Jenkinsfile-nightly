@@ -4,7 +4,7 @@ pipeline {
     environment{
         //Do not change. 
         //Performance Storage Service(Django) authentication information. The credentials can only be changed on Jenkins webpage
-        PSS_CREATOR= credentials('pss-creator')
+        PSS_CREATOR= credentials('pss-creator-testing')
     }
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
@@ -27,24 +27,24 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh script: 'python3 script/testing/binary_metrics/run_artifact_stats.py', lable: 'Artifact Stats'
+                        sh script: 'python3 script/testing/binary_metrics/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', lable: 'Artifact Stats'
                     }
                 }
 
-                stage('macos-10.14/clang-8.0 (artifact stats)') {
-                    agent { label 'macos' }
-                    environment {
-                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
-                        CC="${LLVM_DIR}/bin/clang"
-                        CXX="${LLVM_DIR}/bin/clang++"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh script: 'python3 script/testing/binary_metrics/run_artifact_stats.py', lable: 'Artifact Stats'
-                    }
-                }
+                // stage('macos-10.14/clang-8.0 (artifact stats)') {
+                //     agent { label 'macos' }
+                //     environment {
+                //         LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
+                //         LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                //         CC="${LLVM_DIR}/bin/clang"
+                //         CXX="${LLVM_DIR}/bin/clang++"
+                //     }
+                //     steps {
+                //         sh 'echo $NODE_NAME'
+                //         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+                //         sh script: 'python3 script/testing/binary_metrics/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', lable: 'Artifact Stats'
+                //     }
+                // }
             }
             post {
                 cleanup {
@@ -53,6 +53,7 @@ pipeline {
             }
         }
         stage('Performance') {
+            when { expression {false}}
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
@@ -93,6 +94,7 @@ pipeline {
         }
 
         stage('Microbenchmark') {
+            when { expression {false}}
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
