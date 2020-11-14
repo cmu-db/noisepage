@@ -842,7 +842,7 @@ class DBMain {
       //  If you set it with the builder, it gets overwritten.
       //  If you set it with the setting manager, it isn't mutable.
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
-          static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
+      connection_thread_count_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
       use_query_cache_ = settings_manager->GetBool(settings::Param::use_query_cache);
 
