@@ -31,6 +31,7 @@ class NoisePageServer:
     def run_db(self):
         """ Start the DB server """
         # Allow ourselves to try to restart the DBMS multiple times
+        attempt_to_start_time = time.perf_counter()
         for attempt in range(DB_START_ATTEMPTS):
             # Kill any other noisepage processes that our listening on our target port
             # early terminate the run_db if kill_server.py encounter any exceptions
@@ -51,11 +52,12 @@ class NoisePageServer:
                 if not raw_db_log_line:
                     break
                 if has_db_started(raw_db_log_line, self.db_port, self.db_process.pid):
-                    LOG.info('DB process is verified as running')
+                    db_start_time = time.perf_counter()
+                    LOG.info(f'DB process is verified as running in {db_start_time - attempt_to_start_time}')
                     return
             time.sleep(2 ** attempt)  # exponential backoff
-
-        raise RuntimeError(f'Failed to start DB after {DB_START_ATTEMPTS} attempts')
+        db_failed_to_start_time = time.perf_counter()
+        raise RuntimeError(f'Failed to start DB after {DB_START_ATTEMPTS} attempts and {db_failed_to_start_time-attempt_to_start_time} sec')
 
     def stop_db(self):
         """ Stop the Db server and print it's log file """

@@ -51,10 +51,8 @@ if __name__ == "__main__":
     for item in os.listdir(noise_trace_dir):
         # Look for all of the .test files in the each directory
         if item.endswith(constants.TESTFILES_PREFIX):
-            os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(
-                noise_trace_dir, item)
-            LOG.info(section_header("TRACEFILE TEST: " +
-                                    os.environ["NOISEPAGE_TRACE_FILE"]))
+            os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(noise_trace_dir, item)
+            LOG.info(section_header("TRACEFILE TEST: " + os.environ["NOISEPAGE_TRACE_FILE"]))
             exit_code = ErrorCode.ERROR
             try:
                 test_case_junit = TestCaseJUnit(
@@ -64,10 +62,8 @@ if __name__ == "__main__":
                 exit_code = ErrorCode.ERROR
                 raise
             except:
-                LOG.error("Exception trying to run '%s'" %
-                          test_command_tracefile)
-                LOG.error(
-                    "================ Python Error Output ==================")
+                LOG.error('Exception trying to run {test_command_tracefile}')
+                LOG.error("================ Python Error Output ==================")
                 traceback.print_exc(file=sys.stdout)
                 exit_code = ErrorCode.ERROR
             finally:

@@ -1,6 +1,4 @@
-import os
 import time
-import subprocess
 
 from artifact_stats.base_artifact_stats_collector import BaseArtifactStatsCollector
 from artifact_stats.common_collector_functions import compile_binary

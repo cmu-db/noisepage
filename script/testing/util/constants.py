@@ -21,7 +21,7 @@ DEFAULT_TEST_OUTPUT_FILE = "/tmp/noisepage_test_{}.log".format(
 DEFAULT_CONTINUE_ON_ERROR = False
 
 # Number of times we will try to start the DBMS and connect to it
-DB_START_ATTEMPTS = 5
+DB_START_ATTEMPTS = 6
 
 # Logging settings
 LOG = logging.getLogger(__name__)
