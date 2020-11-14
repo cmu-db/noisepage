@@ -9,13 +9,7 @@ from util.constants import PERFORMANCE_STORAGE_SERVICE_API
 from util.constants import LOG
 
 
-def report_oltpbench_result(env,
-                            server_data,
-                            results_dir,
-                            username,
-                            password,
-                            mem_metrics,
-                            query_mode='simple'):
+def report_oltpbench_result(env, server_data, results_dir, username, password, mem_metrics, query_mode='simple'):
     """ Parse and format the data from server_data and the results_dir into a
     JSON body and send those results to the performance storage service"""
     LOG.debug("parsing OLTPBench results and assembling request body.")
@@ -58,6 +52,17 @@ def report_microbenchmark_result(env, timestamp, config,
     }
     send_result(env, '/microbenchmark/', config.publish_results_username,
                 config.publish_results_password, result)
+
+
+def report_artifact_stats_result(env, metrics, username, password):
+    """ Parse and format the data from the artifact stats into a JSON body and
+    send those to the performance storage service. """
+    result = {
+        'metadata': parse_standard_metadata(),
+        'timestamp': int(datetime.now().timestamp() * 1000),  # convert to milliseconds
+        'metrics': metrics
+    }
+    send_result(env, '/artifact_stats/', username, password, result)
 
 
 def send_result(env, path, username, password, result):
