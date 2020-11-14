@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -46,8 +47,8 @@ class NewColumnStats {
         num_rows_(num_rows),
         cardinality_(cardinality),
         frac_null_(frac_null) {
-    top_k_ptr = new TopKElements<CppType>(k_value, top_k_width);
-    histogram_ptr = new Histogram<CppType>(histogram_max_bins);
+    top_k_ptr_ = std::make_unique<TopKElements<CppType>>(k_value, top_k_width);
+    histogram_ptr_ = std::make_unique<Histogram<CppType>>(histogram_max_bins);
   }
 
   /**
@@ -89,13 +90,13 @@ class NewColumnStats {
    * Gets the pointer to the histogram for the column.
    * @return Pointer to histogram.
    */
-  common::ManagedPointer<Histogram<CppType>> GetHistogram() const { return histogram_ptr; }
+  common::ManagedPointer<Histogram<CppType>> GetHistogram() const { return common::ManagedPointer(histogram_ptr_); }
 
   /**
    * Gets the Top-K pointer with information on top k values and their frequencies.
    * @return pointer to top k object
    */
-  common::ManagedPointer<TopKElements<CppType>> GetTopK() { return top_k_ptr; }
+  common::ManagedPointer<TopKElements<CppType>> GetTopK() { return common::ManagedPointer(top_k_ptr_); }
 
  private:
   /**
@@ -131,11 +132,11 @@ class NewColumnStats {
   /**
    * Top-K elements based on frequency.
    */
-  common::ManagedPointer<TopKElements<CppType>> top_k_ptr;
+  std::unique_ptr<TopKElements<CppType>> top_k_ptr_;
 
   /**
    * Histogram for the column values.
    */
-  common::ManagedPointer<Histogram<CppType>> histogram_ptr;
+  std::unique_ptr<Histogram<CppType>> histogram_ptr_;
 };
 }  // namespace noisepage::optimizer

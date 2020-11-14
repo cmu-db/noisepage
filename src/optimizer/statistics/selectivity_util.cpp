@@ -31,7 +31,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats
     default:
       OPTIMIZER_LOG_WARN("Expression type {0} not supported for computing selectivity",
                          ExpressionTypeToString(condition.GetType(), false).c_str());
-      return DEFAULT_SELECTIVITY;
+      return DEFAULT_SELECTIVITY_VALUE;
   }
 }
 
@@ -42,7 +42,7 @@ double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<
 
   // Return default selectivity if empty column_stats
   if (column_stats == nullptr) {
-    return DEFAULT_SELECTIVITY;
+    return DEFAULT_SELECTIVITY_VALUE;
   }
 
   // Use histogram to estimate selectivity
@@ -66,7 +66,7 @@ double SelectivityUtil::Equal(common::ManagedPointer<NewColumnStats<T>> column_s
   const auto value = condition.GetPointerToValue()->Peek<decltype(T::val_)>();
   if (column_stats == nullptr) {
     OPTIMIZER_LOG_DEBUG("column_stats pointer passed is null");
-    return DEFAULT_SELECTIVITY;
+    return DEFAULT_SELECTIVITY_VALUE;
   }
 
   size_t numrows = column_stats->GetNumRows();
@@ -104,4 +104,4 @@ template double SelectivityUtil::ComputeSelectivity<execution::sql::Integer>(
     common::ManagedPointer<NewColumnStats<execution::sql::Integer>> column_stats, const ValueCondition &condition);
 template double SelectivityUtil::ComputeSelectivity<execution::sql::BoolVal>(
     common::ManagedPointer<NewColumnStats<execution::sql::BoolVal>> column_stats, const ValueCondition &condition);
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

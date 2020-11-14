@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
 
 #include "common/managed_pointer.h"
 #include "optimizer/statistics/new_column_stats.h"
@@ -9,7 +10,7 @@
 
 namespace noisepage::optimizer {
 
-static constexpr double DEFAULT_SELECTIVITY = 0.5;
+static constexpr double DEFAULT_SELECTIVITY_VALUE = 0.5;
 
 /**
  * A utility class for computing the selectivity (Values satisfying a condition / Total values in column)
@@ -48,7 +49,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double LessThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = LessThanOrEqualTo(column_stats, condition) - Equal(column_stats, condition);
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
@@ -75,7 +76,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double GreaterThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = 1 - LessThanOrEqualTo(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
@@ -93,7 +94,7 @@ class SelectivityUtil {
   template <typename T>
   static double GreaterThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
                                      const ValueCondition &condition) {
-    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = 1.0 - LessThan(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
@@ -119,7 +120,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double NotEqual(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = 1 - Equal(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
@@ -139,7 +140,7 @@ class SelectivityUtil {
   template <typename T>
   static double Like(UNUSED_ATTRIBUTE common::ManagedPointer<NewColumnStats<T>> column_stats,
                      UNUSED_ATTRIBUTE const ValueCondition &condition) {
-    return DEFAULT_SELECTIVITY;
+    return DEFAULT_SELECTIVITY_VALUE;
   }
 
   /**
@@ -150,7 +151,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double NotLike(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-    return DEFAULT_SELECTIVITY;
+    return DEFAULT_SELECTIVITY_VALUE;
   }
 
   /**
@@ -162,7 +163,7 @@ class SelectivityUtil {
   template <typename T>
   static double In(UNUSED_ATTRIBUTE common::ManagedPointer<NewColumnStats<T>> column_stats,
                    UNUSED_ATTRIBUTE const ValueCondition &condition) {
-    return DEFAULT_SELECTIVITY;
+    return DEFAULT_SELECTIVITY_VALUE;
   }
 
   /**
@@ -174,7 +175,7 @@ class SelectivityUtil {
   template <typename T>
   static double DistinctFrom(UNUSED_ATTRIBUTE common::ManagedPointer<NewColumnStats<T>> column_stats,
                              UNUSED_ATTRIBUTE const ValueCondition &condition) {
-    return DEFAULT_SELECTIVITY;
+    return DEFAULT_SELECTIVITY_VALUE;
   }
 };
 }  // namespace noisepage::optimizer

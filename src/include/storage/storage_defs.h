@@ -581,12 +581,10 @@ struct hash<noisepage::storage::TupleSlot> {
 template <>
 struct hash<noisepage::storage::VarlenEntry> {
   /**
-   * Returns the hash of the slot's contents.
-   * @param slot the slot to be hashed.
-   * @return the hash of the slot.
+   * Returns the hash of a VarlenEntry.
+   * @param key VarlenEntry to be hashed.
+   * @return the hash of the VarlenEntry.
    */
-  size_t operator()(const noisepage::storage::VarlenEntry &key) const {
-    return key.Hash();
-  }
+  size_t operator()(const noisepage::storage::VarlenEntry &key) const { return key.Hash(); }
 };
 }  // namespace std

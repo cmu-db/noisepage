@@ -16,8 +16,6 @@ class SelectivityUtilTests : public TerrierTest {
   NewColumnStats<execution::sql::BoolVal> column_stats_obj_5_;
   NewColumnStats<execution::sql::StringVal> column_stats_obj_6_;
 
-  SelectivityUtil selectivity_util;
-
   void SetUp() override {
     // Floating point type column.
     column_stats_obj_1_ = NewColumnStats<execution::sql::Real>(catalog::db_oid_t(1), catalog::table_oid_t(1),
@@ -27,14 +25,14 @@ class SelectivityUtilTests : public TerrierTest {
     std::vector<std::pair<double, int>> vals_1 = {{3, 2}, {4, 2}, {5, 2}, {0, 1}, {1, 1}};
 
     // Construct Top k.
-    for (int i = 0; i < vals_1.size(); ++i) {
-      column_stats_obj_1_.GetTopK()->Increment(vals_1[i].first, vals_1[i].second);
+    for (auto &entry : vals_1) {
+      column_stats_obj_1_.GetTopK()->Increment(entry.first, entry.second);
     }
 
     // Construct histogram
-    for (int i = 0; i < vals_1.size(); ++i) {
-      for (int j = 0; j < vals_1[i].second; ++j) {
-        column_stats_obj_1_.GetHistogram()->Increment(vals_1[i].first);
+    for (auto &entry : vals_1) {
+      for (int j = 0; j < entry.second; ++j) {
+        column_stats_obj_1_.GetHistogram()->Increment(entry.first);
       }
     }
 
@@ -46,14 +44,14 @@ class SelectivityUtilTests : public TerrierTest {
     std::vector<std::pair<int64_t, int>> vals_2 = {{3, 2}, {4, 2}, {5, 2}, {0, 1}, {7, 1}};
 
     // Construct Top K.
-    for (int i = 0; i < vals_2.size(); ++i) {
-      column_stats_obj_2_.GetTopK()->Increment(vals_2[i].first, vals_2[i].second);
+    for (auto &entry : vals_2) {
+      column_stats_obj_2_.GetTopK()->Increment(entry.first, entry.second);
     }
 
     // Construct histogram.
-    for (int i = 0; i < vals_2.size(); ++i) {
-      for (int j = 0; j < vals_2[i].second; ++j) {
-        column_stats_obj_2_.GetHistogram()->Increment(vals_2[i].first);
+    for (auto &entry : vals_2) {
+      for (int j = 0; j < entry.second; ++j) {
+        column_stats_obj_2_.GetHistogram()->Increment(entry.first);
       }
     }
 
@@ -66,14 +64,14 @@ class SelectivityUtilTests : public TerrierTest {
                                                   {6.0, 5},   {7.0, 5},   {8.0, 5},   {9.0, 2},  {10.0, 2},
                                                   {11.0, 2},  {12.0, 2},  {13.0, 2}};
     // Construct Top k variable.
-    for (int i = 0; i < vals_3.size(); ++i) {
-      column_stats_obj_3_.GetTopK()->Increment(vals_3[i].first, vals_3[i].second);
+    for (auto &entry : vals_3) {
+      column_stats_obj_3_.GetTopK()->Increment(entry.first, entry.second);
     }
 
     // Construct histogram.
-    for (int i = 0; i < vals_3.size(); ++i) {
-      for (int j = 0; j < vals_3[i].second; ++j) {
-        column_stats_obj_3_.GetHistogram()->Increment(vals_3[i].first);
+    for (auto &entry : vals_3) {
+      for (int j = 0; j < entry.second; ++j) {
+        column_stats_obj_3_.GetHistogram()->Increment(entry.first);
       }
     }
 
@@ -132,7 +130,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
                                  std::move(const_value_expr_ptr));
 
   // Compute selectivity for col < 6.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   ASSERT_DOUBLE_EQ(res, 0.8);
@@ -146,7 +144,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
       ValueCondition(catalog::col_oid_t(1), parser::ExpressionType::COMPARE_LESS_THAN, std::move(const_value_expr_ptr));
 
   // Compute selectivity for col < 3.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   // True value is 0.2 but some error is tolerated.
@@ -161,7 +159,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
       ValueCondition(catalog::col_oid_t(1), parser::ExpressionType::COMPARE_LESS_THAN, std::move(const_value_expr_ptr));
 
   // Compute selectivity for col < 0.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.f, res);
@@ -176,7 +174,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThan) {
   ValueCondition value_condition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col < 6.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
   // True value is 0.7 but some error is tolerated.
   ASSERT_DOUBLE_EQ(0.6875, res);
@@ -191,7 +189,7 @@ TEST_F(SelectivityUtilTests, TestTinyIntLessThan) {
   ValueCondition value_condition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col < 6.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
   // True value is 0.7 but some error is tolerated.
   ASSERT_DOUBLE_EQ(0.6875, res);
@@ -207,7 +205,7 @@ TEST_F(SelectivityUtilTests, TestTinyIntegerEqual) {
                                  std::move(const_value_expr_ptr));
 
   // Compute selectivity for col = 4.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
   // The value 4 occurs in top k variable and has a frequency of 2.
   ASSERT_DOUBLE_EQ(0.2, res);
@@ -221,7 +219,7 @@ TEST_F(SelectivityUtilTests, TestTinyIntegerEqual) {
       ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
 
   // Compute selectivity for col = 0.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.1, res);
@@ -237,7 +235,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   ValueCondition value_condition(catalog::col_oid_t(2), parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col = 1.0.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_3_), value_condition);
   // The value 1.0 occurs in topk and has a frequency of 500.
   ASSERT_DOUBLE_EQ(0.5, res);
@@ -250,7 +248,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   value_condition =
       ValueCondition(catalog::col_oid_t(2), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
   // Compute selectivity for col = 5.0.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_3_), value_condition);
   // The value 5.0 does not occur in top-k and has a frequency of 5.
   ASSERT_DOUBLE_EQ(0.005, res);
@@ -263,7 +261,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
     // Create a value condition to pass to SelectivityUtil.
     value_condition =
         ValueCondition(catalog::col_oid_t(4), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
-    res = selectivity_util.ComputeSelectivity(
+    res = SelectivityUtil::ComputeSelectivity(
         common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_4_), value_condition);
 
     // Count min sketch can over-estimate the number of matching columns.
@@ -283,7 +281,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
   ValueCondition value_condition(catalog::col_oid_t(1), parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col >= 6.0.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   // The value 6 goes past the last bucket in the histogram and so selectivity must be predicted to be 0.
@@ -298,7 +296,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
                                    std::move(const_value_expr_ptr));
 
   // Compute selectivity for col >= 3.0.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.7, res);
@@ -312,7 +310,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
                                    std::move(const_value_expr_ptr));
 
   // Compute selectivity for col >= 0.0.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.8, res);
@@ -330,7 +328,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
   ValueCondition value_condition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col <= 6.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.6875, res);
@@ -343,7 +341,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
   value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
                                    std::move(const_value_expr_ptr));
   // Compute selectivity for col <= 3.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   // True value should be 0.3. TODO(arvindsaik) Can make '<=' better here.
@@ -357,7 +355,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
   value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
                                    std::move(const_value_expr_ptr));
 
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.1, res);
@@ -375,7 +373,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
   ValueCondition value_condition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col > 6.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   // True value is 0.1. Acceptable error.
@@ -389,7 +387,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
   value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN,
                                    std::move(const_value_expr_ptr));
   // Compute selectivity for col > 3.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   // True value is 0.5. TODO(arvindsk) Making '<=' better will fix this.
@@ -403,7 +401,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
   value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN,
                                    std::move(const_value_expr_ptr));
   // Compute selectivity for col > 0.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   ASSERT_FLOAT_EQ(0.7, res);
@@ -418,7 +416,7 @@ TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
   ValueCondition value_condition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_NOT_EQUAL,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col != 4.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.6, res);
@@ -432,7 +430,7 @@ TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
       ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_NOT_EQUAL, std::move(const_value_expr_ptr));
 
   // Compute selectivity for col != 0.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.7, res);
@@ -449,7 +447,7 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
                                  std::move(const_value_expr_ptr));
 
   // Compute selectivity for col = true.
-  double res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::BoolVal>>(&column_stats_obj_5_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.6, res);
@@ -463,7 +461,7 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
       ValueCondition(catalog::col_oid_t(5), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
 
   // Compute selectivity for col = true.
-  res = selectivity_util.ComputeSelectivity(
+  res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::BoolVal>>(&column_stats_obj_5_), value_condition);
 
   ASSERT_DOUBLE_EQ(0.2, res);
@@ -479,38 +477,39 @@ TEST_F(SelectivityUtilTests, TestNullColStats) {
   ValueCondition value_condition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_NOT_EQUAL,
                                  std::move(const_value_expr_ptr));
   // Compute selectivity for col != 4.
-  double res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr), value_condition);
-  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
-
-  // Create a constant value expression to pass to ValueCondition.
-  const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
-  // Create a value condition to pass to SelectivityUtil.
-  value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_EQUAL,
-                                 std::move(const_value_expr_ptr));
-  res = selectivity_util.ComputeSelectivity(
+  double res = SelectivityUtil::ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr), value_condition);
-  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY_VALUE, res);
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
       std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
-      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN, std::move(const_value_expr_ptr));
-  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
+  res = SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
                                             value_condition);
-  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY_VALUE, res);
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
       std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
   // Create a value condition to pass to SelectivityUtil.
-  value_condition =
-      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO, std::move(const_value_expr_ptr));
-  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+  value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN,
+                                   std::move(const_value_expr_ptr));
+  res = SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
                                             value_condition);
-  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY_VALUE, res);
+
+  // Create a constant value expression to pass to ValueCondition.
+  const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+  // Create a value condition to pass to SelectivityUtil.
+  value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
+                                   std::move(const_value_expr_ptr));
+  res = SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+                                            value_condition);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY_VALUE, res);
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
@@ -518,18 +517,18 @@ TEST_F(SelectivityUtilTests, TestNullColStats) {
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
       ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN, std::move(const_value_expr_ptr));
-  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+  res = SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
                                             value_condition);
-  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY_VALUE, res);
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
       std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
   // Create a value condition to pass to SelectivityUtil.
-  value_condition =
-      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO, std::move(const_value_expr_ptr));
-  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+  value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+                                   std::move(const_value_expr_ptr));
+  res = SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
                                             value_condition);
-  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY_VALUE, res);
 }
 }  // namespace noisepage::optimizer
