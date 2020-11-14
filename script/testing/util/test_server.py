@@ -35,13 +35,8 @@ class TestServer:
         # memory info collection
         self.collect_mem_info = args.get("collect_mem_info", False)
 
-        # memory info collection
-        self.collect_mem_info = self.args.get("collect_mem_info", False)
-
         # incremental metrics
-        self.incremental_metric_freq = self.args.get(
-            "incremental_metric_freq", constants.INCREMENTAL_METRIC_FREQ)
-
+        self.incremental_metric_freq = args.get("incremental_metric_freq", constants.INCREMENTAL_METRIC_FREQ)
         return
 
     def run_pre_suite(self):
