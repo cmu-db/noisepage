@@ -62,7 +62,7 @@ if __name__ == "__main__":
                 exit_code = ErrorCode.ERROR
                 raise
             except:
-                LOG.error('Exception trying to run {test_command_tracefile}')
+                LOG.error(f'Exception trying to run {test_command_tracefile}')
                 LOG.error("================ Python Error Output ==================")
                 traceback.print_exc(file=sys.stdout)
                 exit_code = ErrorCode.ERROR

@@ -53,11 +53,11 @@ class NoisePageServer:
                     break
                 if has_db_started(raw_db_log_line, self.db_port, self.db_process.pid):
                     db_start_time = time.perf_counter()
-                    LOG.info(f'DB process is verified as running in {db_start_time - attempt_to_start_time}')
+                    LOG.info(f'DB process is verified as running in {round(db_start_time - attempt_to_start_time,2)} sec')
                     return
             time.sleep(2 ** attempt)  # exponential backoff
         db_failed_to_start_time = time.perf_counter()
-        raise RuntimeError(f'Failed to start DB after {DB_START_ATTEMPTS} attempts and {db_failed_to_start_time-attempt_to_start_time} sec')
+        raise RuntimeError(f'Failed to start DB after {DB_START_ATTEMPTS} attempts and {round(db_failed_to_start_time - attempt_to_start_time,2)} sec')
 
     def stop_db(self):
         """ Stop the Db server and print it's log file """
