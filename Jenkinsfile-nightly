@@ -22,12 +22,13 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh script: 'python3 ./script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', label: 'Artifact Stats'
+                        sh script: 'python3 ./script/testing/artifact_stats/run_artifact_stats.py --publish-results=test --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', label: 'Artifact Stats'
                     }
                 }
 

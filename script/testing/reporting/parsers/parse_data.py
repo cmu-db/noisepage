@@ -8,7 +8,7 @@ from decimal import Decimal
 from reporting.parsers.oltpbench.config_parser import parse_config_file
 from reporting.parsers.oltpbench.summary_parser import parse_summary_file
 from reporting.parsers.oltpbench.res_parser import parse_res_file
-from util.constants import DIR_UTIL, LOG
+from util.constants import LOG
 from reporting.constants import UNKNOWN_RESULT
 
 

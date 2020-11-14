@@ -62,7 +62,7 @@ def report_artifact_stats_result(env, metrics, username, password):
         'timestamp': int(datetime.now().timestamp() * 1000),  # convert to milliseconds
         'metrics': metrics
     }
-    send_result(env, '/artifact_stats/', username, password, result)
+    send_result(env, '/artifact-stats/', username, password, result)
 
 
 def send_result(env, path, username, password, result):
