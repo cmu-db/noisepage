@@ -74,6 +74,12 @@ class NoisePageServer:
             LOG.info(msg)
             self.print_db_logs()
             raise RuntimeError(msg)
+        else:
+            # still (correctly) running, terminate it
+            self.db_process.terminate()
+            LOG.info("Stopped DB successfully")
+        self.db_process = None 
+        
 
     def restart_db(self):
         """ Restart the DB """

@@ -87,7 +87,6 @@ class TestServer:
         if not isinstance(test_suite, List):
             test_suite = [test_suite]
 
-        ret_val_test_suite = None
         try:
             self.run_pre_suite()
 
