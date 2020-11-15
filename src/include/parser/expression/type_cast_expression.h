@@ -12,7 +12,7 @@ namespace noisepage::parser {
  *
  * For constants, TypeCastExpression should not exist beyond the optimizer, and the child should be used instead.
  * The role of a TypeCastExpression is to annotate the type of expr from above in the BinderSherpa.
- * For example, Postgres does not allow CAST('1+1' AS BIGINT) nor '1+1'::BIGINT, throwing error 22P02.
+ * For example, Postgres does not allow CAST('1+1' AS BIGINT), throwing error 22P02.
  *
  * However, for non-constant expressions such as the following trace,
  *   CREATE TABLE foo (a INTEGER);
