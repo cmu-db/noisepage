@@ -521,8 +521,7 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
-# TODO(Joe) fast_float doesn't have any git tags so I'm using the most recent version. It's probably worth monitoring the repo in case they create a tag for some official release so we can update this
-add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git f3b7466)
+add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git v0.1.0)
 
 # Handle other dependencies.
 
@@ -978,7 +977,7 @@ endfunction()
 # Be careful that your prefixes are really unique, otherwise a test will be run multiple times.
 
 add_jumbotest("test/binder" "")
-add_jumbotest("test/catalog" "")
+add_jumbotest("test/catalog" "catalog_sql_test;")
 add_jumbotest("test/common" "bitmap_test;concurrent_bitmap_test;rusage_monitor_test;")
 add_jumbotest("test/execution" "ast;compiler_test;index_create_test;index_iterator_test;sql;storage_interface_test;util;vm;")
 add_jumbotest("test/integration" "")
@@ -997,6 +996,7 @@ add_jumbotest("test/type" "")
 # Read up on CTest resource groups: https://cmake.org/cmake/help/latest/manual/ctest.1.html#resource-allocation
 # All tests that try to launch the server on port 15721 must declare that here.
 set_tests_properties(
+        catalog_sql_test jumbotest_catalog_catalog_sql_test
         metrics_test jumbotest_metrics_metrics_test
         network_test jumbotest_network_network_test
         traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
