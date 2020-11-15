@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 constexpr int32_t FLATBUF_CONTINUZATION = -1;
 constexpr uint8_t ARROW_ALIGNMENT = 8;
@@ -73,11 +73,11 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
           type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();
           break;
         case type::TypeId::TINYINT:
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case type::TypeId::SMALLINT:
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case type::TypeId::INTEGER:
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case type::TypeId::BIGINT:
           type = flatbuf::Type_Int;
           type_offset = flatbuf::CreateInt(*flatbuf_builder, 8 * byte_width, true).Union();
@@ -99,7 +99,7 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
           dictionary = flatbuf::CreateDictionaryEncoding(
               *flatbuf_builder, dictionary_id, flatbuf::CreateInt(*flatbuf_builder, 8 * sizeof(uint64_t), true), false);
           dictionary_ids->emplace(col_id, dictionary_id++);
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case ArrowColumnType::GATHERED_VARLEN:
           type = flatbuf::Type_LargeBinary;
           type_offset = flatbuf::CreateLargeBinary(*flatbuf_builder).Union();
@@ -279,4 +279,4 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
   }
   outfile.close();
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

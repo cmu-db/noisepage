@@ -22,7 +22,7 @@
 #include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 void AbstractExpression::SetMutableStateForCopy(const AbstractExpression &copy_expr) {
   SetExpressionName(copy_expr.GetExpressionName());
@@ -263,4 +263,4 @@ void AbstractExpression::DeriveExpressionName() {
 
 DEFINE_JSON_BODY_DECLARATIONS(AbstractExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

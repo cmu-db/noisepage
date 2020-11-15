@@ -2,7 +2,7 @@
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Wrapper around projected rows.
@@ -28,7 +28,7 @@ class EXPORT ProjectedRowWrapper {
   const T *Get(uint16_t col_idx, bool *null) const {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Nullable) {
-      TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+      NOISEPAGE_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
       *null = pr_->IsNull(col_idx);
     }
     return reinterpret_cast<T *>(pr_->AccessWithNullCheck(col_idx));
@@ -62,4 +62,4 @@ class EXPORT ProjectedRowWrapper {
  private:
   storage::ProjectedRow *pr_;
 };
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

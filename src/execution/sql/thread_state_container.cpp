@@ -9,7 +9,7 @@
 #include "common/constants.h"
 #include "common/spin_latch.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -20,7 +20,7 @@ namespace terrier::execution::sql {
 ThreadStateContainer::TLSHandle::TLSHandle() : container_(nullptr), state_(nullptr) {}
 
 ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container) : container_(container) {
-  TERRIER_ASSERT(container_ != nullptr, "Container must be non-null");
+  NOISEPAGE_ASSERT(container_ != nullptr, "Container must be non-null");
   const auto state_size = container_->state_size_;
   state_ =
       static_cast<byte *>(container_->memory_->AllocateAligned(state_size, common::Constants::CACHELINE_SIZE, true));
@@ -125,4 +125,4 @@ void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateCon
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

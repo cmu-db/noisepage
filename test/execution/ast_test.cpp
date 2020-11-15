@@ -3,7 +3,7 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class AstTest : public TplTest {
  public:
@@ -117,4 +117,4 @@ TEST_F(AstTest, HierarchyTest) {
   }
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

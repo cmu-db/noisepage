@@ -4,7 +4,7 @@
 #include "optimizer/property.h"
 #include "optimizer/property_visitor.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Checks whether this is greater than or equal to another property.
@@ -22,8 +22,8 @@ bool PropertySort::operator>=(const Property &r) const {
   // All the sorting orders in r must be satisfied
   size_t l_num_sort_columns = sort_columns_.size();
   size_t r_num_sort_columns = r_sort.sort_columns_.size();
-  TERRIER_ASSERT(r_num_sort_columns == r_sort.sort_ascending_.size(),
-                 "Sort property num_sort_columns not match sort_ascending_.size()");
+  NOISEPAGE_ASSERT(r_num_sort_columns == r_sort.sort_ascending_.size(),
+                   "Sort property num_sort_columns not match sort_ascending_.size()");
 
   // We want to ensure that Sort(a, b, c, d, e) >= Sort(a, b, c)
   if (l_num_sort_columns < r_num_sort_columns) {
@@ -65,4 +65,4 @@ common::hash_t PropertySort::Hash() const {
  */
 void PropertySort::Accept(PropertyVisitor *v) const { v->Visit(this); }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

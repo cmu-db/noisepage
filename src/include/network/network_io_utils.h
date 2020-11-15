@@ -14,7 +14,7 @@
 #include "network/network_defs.h"
 #include "util/portable_endian.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * A plain old buffer with a movable cursor, the meaning of which is dependent
@@ -528,4 +528,4 @@ struct InputPacket {
   }
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

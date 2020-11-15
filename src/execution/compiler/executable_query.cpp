@@ -14,7 +14,7 @@
 #include "loggers/execution_logger.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 //===----------------------------------------------------------------------===//
 //
@@ -136,11 +136,11 @@ ExecutableQuery::~ExecutableQuery() = default;
 
 void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
                             std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units) {
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
       "All query fragments are not compiled!");
-  TERRIER_ASSERT(query_state_size >= sizeof(void *),
-                 "Query state must be large enough to store at least an ExecutionContext pointer.");
+  NOISEPAGE_ASSERT(query_state_size >= sizeof(void *),
+                   "Query state must be large enough to store at least an ExecutionContext pointer.");
 
   fragments_ = std::move(fragments);
   query_state_size_ = query_state_size;
@@ -170,4 +170,4 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   exec_ctx->SetQueryState(nullptr);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

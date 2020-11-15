@@ -12,7 +12,7 @@
 #include "test_util/test_harness.h"
 #include "type/type_id.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 class OutputSchemaTests : public TerrierTest {
  public:
@@ -93,4 +93,4 @@ TEST(OutputSchemaTests, ColumnTest) {
   }
 }
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

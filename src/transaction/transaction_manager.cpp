@@ -7,7 +7,7 @@
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
   timestamp_t start_time;
   TransactionContext *result;
@@ -85,15 +85,16 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // start the operating unit resource tracker
   if (txn_metrics_enabled) common::thread_context.resource_tracker_.Start();
 
-  TERRIER_ASSERT(!txn->must_abort_,
-                 "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
-                 "stack trace for when this flag is getting tripped.");
+  NOISEPAGE_ASSERT(
+      !txn->must_abort_,
+      "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+      "stack trace for when this flag is getting tripped.");
   result = txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
 
   txn->finish_time_.store(result);
 
   while (!txn->commit_actions_.empty()) {
-    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
+    NOISEPAGE_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->commit_actions_.front()(deferred_action_manager_.Get());
     txn->commit_actions_.pop_front();
   }
@@ -133,7 +134,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
   if (log_manager_ != DISABLED && txn->redo_buffer_.HasFlushed()) {
     // If we are logging the AbortRecord, then the transaction must have previously flushed records, so it must have
     // made updates
-    TERRIER_ASSERT(!txn->undo_buffer_.Empty(), "Should not log AbortRecord for read only txn");
+    NOISEPAGE_ASSERT(!txn->undo_buffer_.Empty(), "Should not log AbortRecord for read only txn");
     // Here we will manually add an abort record and flush the buffer to ensure the logger
     // sees this record. Because the txn is aborted and will not be recovered, we can discard all the records that
     // currently exist. Only the abort record is needed.
@@ -155,7 +156,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
-    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
+    NOISEPAGE_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->abort_actions_.front()(deferred_action_manager_.Get());
     txn->abort_actions_.pop_front();
   }
@@ -213,8 +214,8 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   // Last update can potentially contain a varlen that needs to be gc-ed. We now need to check if it
   // was installed or not.
   auto *redo = last_log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
-  TERRIER_ASSERT(redo->GetTupleSlot() == last_undo_record->Slot(),
-                 "Last undo record and redo record must correspond to each other");
+  NOISEPAGE_ASSERT(redo->GetTupleSlot() == last_undo_record->Slot(),
+                   "Last undo record and redo record must correspond to each other");
   if (last_undo_record->Table() != nullptr) return;  // the update was installed and will be handled by the GC
 
   // We need to free any varlen memory in the last update if the code reaches here
@@ -225,7 +226,8 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
       if (varlen != nullptr) {
-        TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
+        NOISEPAGE_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(),
+                         "Fresh updates cannot be compacted or compressed");
         if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
       }
     }
@@ -249,8 +251,8 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   storage::UndoRecord *undo_record = table->AtomicallyReadVersionPtr(slot, accessor);
   // In a loop, we will need to undo all updates belonging to this transaction. Because we do not unlink undo records,
   // otherwise this ends up being a quadratic operation to rollback the first record not yet rolled back in the chain.
-  TERRIER_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load(),
-                 "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
+  NOISEPAGE_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load(),
+                   "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
   while (undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load()) {
     switch (undo_record->Type()) {
       case storage::DeltaRecordType::UPDATE:
@@ -285,7 +287,7 @@ void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn,
   if (layout.IsVarlen(col_id)) {
     auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
     if (varlen != nullptr) {
-      TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
+      NOISEPAGE_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
       if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
     }
   }
@@ -304,4 +306,4 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     }
   }
 }
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

@@ -16,7 +16,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace tpcc {
 class Database;
@@ -84,4 +84,4 @@ class TpccPlanTest : public TerrierTest {
   catalog::index_oid_t pk_new_order_;
 };
 
-}  // namespace terrier
+}  // namespace noisepage

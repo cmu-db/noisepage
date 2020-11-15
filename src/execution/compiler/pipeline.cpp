@@ -17,7 +17,9 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
+
+query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
 
 query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
 
@@ -38,7 +40,8 @@ Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : 
 }
 
 void Pipeline::RegisterStep(OperatorTranslator *op) {
-  TERRIER_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0, "Duplicate registration of operator in pipeline.");
+  NOISEPAGE_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0,
+                   "Duplicate registration of operator in pipeline.");
   auto num_steps = steps_.size();
   if (num_steps > 0) {
     auto last_step = common::ManagedPointer(steps_[num_steps - 1]);
@@ -63,8 +66,8 @@ void Pipeline::UpdateParallelism(Pipeline::Parallelism parallelism) {
 void Pipeline::SetParallelCheck(bool check) { check_parallelism_ = check; }
 
 void Pipeline::RegisterExpression(ExpressionTranslator *expression) {
-  TERRIER_ASSERT(std::find(expressions_.begin(), expressions_.end(), expression) == expressions_.end(),
-                 "Expression already registered in pipeline");
+  NOISEPAGE_ASSERT(std::find(expressions_.begin(), expressions_.end(), expression) == expressions_.end(),
+                   "Expression already registered in pipeline");
   expressions_.push_back(expression);
 }
 
@@ -149,7 +152,7 @@ util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
 }
 
 void Pipeline::LinkSourcePipeline(Pipeline *dependency) {
-  TERRIER_ASSERT(dependency != nullptr, "Source cannot be null");
+  NOISEPAGE_ASSERT(dependency != nullptr, "Source cannot be null");
   dependencies_.push_back(dependency);
 }
 
@@ -368,4 +371,4 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   builder->AddTeardownFn(teardown);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

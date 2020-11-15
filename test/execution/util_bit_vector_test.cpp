@@ -5,7 +5,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/bit_vector.h"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 namespace {
 
@@ -566,4 +566,4 @@ TEST(BitVectorTest, Iterate) {
   }
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

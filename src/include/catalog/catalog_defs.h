@@ -5,7 +5,7 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 constexpr uint32_t NULL_OID = 0;  // error return value
 constexpr uint32_t START_OID = 1001;
@@ -39,6 +39,6 @@ constexpr trigger_oid_t INVALID_TRIGGER_OID = trigger_oid_t(NULL_OID);
 constexpr type_oid_t INVALID_TYPE_OID = type_oid_t(NULL_OID);
 constexpr view_oid_t INVALID_VIEW_OID = view_oid_t(NULL_OID);
 
-constexpr char DEFAULT_DATABASE[] = "terrier";
+constexpr char DEFAULT_DATABASE[] = "noisepage";
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

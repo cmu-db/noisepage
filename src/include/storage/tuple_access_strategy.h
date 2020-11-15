@@ -9,7 +9,7 @@
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 class DataTable;
 
@@ -121,7 +121,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
-    TERRIER_ASSERT((col_id.UnderlyingValue()) < layout_.NumColumns(), "Column out of bounds!");
+    NOISEPAGE_ASSERT((col_id.UnderlyingValue()) < layout_.NumColumns(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(layout_, col_id)->NullBitmap();
   }
 
@@ -131,7 +131,7 @@ class TupleAccessStrategy {
    * @return pointer to the start of the column
    */
   byte *ColumnStart(RawBlock *block, const col_id_t col_id) const {
-    TERRIER_ASSERT((col_id.UnderlyingValue()) < layout_.NumColumns(), "Column out of bounds!");
+    NOISEPAGE_ASSERT((col_id.UnderlyingValue()) < layout_.NumColumns(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(layout_, col_id)->ColumnStart(layout_, col_id);
   }
 
@@ -141,7 +141,7 @@ class TupleAccessStrategy {
    * @return a pointer to the attribute, or nullptr if attribute is null.
    */
   byte *AccessWithNullCheck(const TupleSlot slot, const col_id_t col_id) const {
-    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    NOISEPAGE_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     if (!ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset())) return nullptr;
     return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
   }
@@ -153,7 +153,7 @@ class TupleAccessStrategy {
    * @return a pointer to the attribute
    */
   byte *AccessWithoutNullCheck(const TupleSlot slot, const col_id_t col_id) const {
-    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    NOISEPAGE_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
   }
 
@@ -165,7 +165,7 @@ class TupleAccessStrategy {
    * @return a pointer to the attribute.
    */
   byte *AccessForceNotNull(const TupleSlot slot, const col_id_t col_id) const {
-    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    NOISEPAGE_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     common::RawConcurrentBitmap *bitmap = ColumnNullBitmap(slot.GetBlock(), col_id);
     if (!bitmap->Test(slot.GetOffset())) bitmap->Flip(slot.GetOffset(), false);
     return ColumnStart(slot.GetBlock(), col_id) + layout_.AttrSize(col_id) * slot.GetOffset();
@@ -178,7 +178,7 @@ class TupleAccessStrategy {
    * @return true if null, false otherwise
    */
   bool IsNull(const TupleSlot slot, const col_id_t col_id) const {
-    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    NOISEPAGE_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     return !ColumnNullBitmap(slot.GetBlock(), col_id)->Test(slot.GetOffset());
   }
 
@@ -188,7 +188,7 @@ class TupleAccessStrategy {
    * @param col_id id of the column
    */
   void SetNull(const TupleSlot slot, const col_id_t col_id) const {
-    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    NOISEPAGE_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), true);
   }
 
@@ -198,7 +198,7 @@ class TupleAccessStrategy {
    * @param col_id id of the column
    */
   void SetNotNull(const TupleSlot slot, const col_id_t col_id) const {
-    TERRIER_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
+    NOISEPAGE_ASSERT(slot.GetOffset() < layout_.NumSlots(), "Offset out of bounds!");
     ColumnNullBitmap(slot.GetBlock(), col_id)->Flip(slot.GetOffset(), false);
   }
 
@@ -209,7 +209,7 @@ class TupleAccessStrategy {
    * @param slot the tuple slot to reallocate. Must be currently deallocated.
    */
   void Reallocate(TupleSlot slot) const {
-    TERRIER_ASSERT(!Allocated(slot), "Can only reallocate slots that are deallocated");
+    NOISEPAGE_ASSERT(!Allocated(slot), "Can only reallocate slots that are deallocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), false);
   }
 
@@ -234,7 +234,7 @@ class TupleAccessStrategy {
    * @param slot the slot to free up
    */
   void Deallocate(const TupleSlot slot) const {
-    TERRIER_ASSERT(Allocated(slot), "Can only deallocate slots that are allocated");
+    NOISEPAGE_ASSERT(Allocated(slot), "Can only deallocate slots that are allocated");
     reinterpret_cast<Block *>(slot.GetBlock())->SlotAllocationBitmap(layout_)->Flip(slot.GetOffset(), true);
     // TODO(Tianyu): Make explicit that this operation does not reset the insertion head, and the block
     // is still considered "full" and will not be inserted into.
@@ -263,7 +263,7 @@ class TupleAccessStrategy {
    */
   bool ClearBlockBusyStatus(RawBlock *block) const {
     uint32_t val = block->insert_head_.load();
-    TERRIER_ASSERT(val == SetBit(val), "The busy bit should be set ");
+    NOISEPAGE_ASSERT(val == SetBit(val), "The busy bit should be set ");
     return block->insert_head_.compare_exchange_strong(val, ClearBit(val));
   }
 
@@ -286,4 +286,4 @@ class TupleAccessStrategy {
   // Start of each mini block, in offset to the start of the block
   std::vector<uint32_t> column_offsets_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * Declare all system-level constants that cannot change at runtime here.
  */
@@ -127,4 +127,4 @@ struct Constants {
    */
   static constexpr const bool IS_STATIC_PARTITIONER_ENABLED = false;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

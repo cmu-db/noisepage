@@ -6,7 +6,7 @@
 #include "execution/sql/bloom_filter.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class BloomFilterTest : public TplTest {
  public:
@@ -46,7 +46,7 @@ void GenerateRandom32(std::vector<uint32_t> &vals, uint32_t n) {  // NOLINT
 // Mix in elements from source into the target vector with probability p
 template <typename T>
 void Mix(std::vector<T> &target, const std::vector<T> &source, double p) {  // NOLINT
-  TERRIER_ASSERT(target.size() > source.size(), "Bad sizes!");
+  NOISEPAGE_ASSERT(target.size() > source.size(), "Bad sizes!");
   std::random_device random;
   std::mt19937 g(random());
 
@@ -110,4 +110,4 @@ TEST_F(BloomFilterTest, Comprehensive) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

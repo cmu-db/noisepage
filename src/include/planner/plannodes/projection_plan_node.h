@@ -8,7 +8,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for projection
@@ -31,10 +31,7 @@ class ProjectionPlanNode : public AbstractPlanNode {
      * Build the projection plan node
      * @return plan node
      */
-    std::unique_ptr<ProjectionPlanNode> Build() {
-      return std::unique_ptr<ProjectionPlanNode>(
-          new ProjectionPlanNode(std::move(children_), std::move(output_schema_)));
-    }
+    std::unique_ptr<ProjectionPlanNode> Build();
   };
 
  private:
@@ -43,8 +40,7 @@ class ProjectionPlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    */
   explicit ProjectionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                              std::unique_ptr<OutputSchema> output_schema)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)) {}
+                              std::unique_ptr<OutputSchema> output_schema);
 
  public:
   /**
@@ -74,4 +70,4 @@ class ProjectionPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ProjectionPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -11,7 +11,7 @@
 
 #include "gtest/gtest.h"
 
-namespace terrier {
+namespace noisepage {
 
 // NOLINTNEXTLINE
 TEST(HashUtilTests, HashTest) {
@@ -144,4 +144,4 @@ TEST(HashUtilTests, SumHashesTest) {
   EXPECT_EQ(combined0, combined1);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

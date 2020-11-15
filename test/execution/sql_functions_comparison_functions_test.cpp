@@ -9,7 +9,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class ComparisonFunctionsTests : public TplTest {};
 
@@ -135,4 +135,4 @@ TEST_F(ComparisonFunctionsTests, StringComparison) {
 #undef CHECK
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

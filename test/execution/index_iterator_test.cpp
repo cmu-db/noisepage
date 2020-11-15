@@ -8,7 +8,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class IndexIteratorTest : public SqlBasedTest {
   void SetUp() override {
@@ -211,4 +211,4 @@ TEST_F(IndexIteratorTest, SimpleLimitDescendingScanTest) {
   ASSERT_EQ(num_matches, 5);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

@@ -51,7 +51,9 @@ def get_mini_runner_data(filename, model_results_path, txn_sample_interval, mode
 
 def _default_get_mini_runner_data(filename):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
-    df = pd.read_csv(filename)
+    df = pd.read_csv(filename, skipinitialspace=True)
+    headers = list(df.columns.values)
+    data_info.parse_csv_header(headers, False)
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
     x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values

@@ -4,7 +4,7 @@
 
 #include "main/db_main.h"
 
-namespace terrier::settings {
+namespace noisepage::settings {
 
 void Callbacks::NoOp(void *old_value, void *new_value, DBMain *const db_main,
                      common::ManagedPointer<common::ActionContext> action_context) {
@@ -156,4 +156,4 @@ void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, 
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

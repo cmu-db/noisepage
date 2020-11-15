@@ -10,17 +10,17 @@
 #include "execution/ast/builtins.h"
 #include "execution/vm/bytecode_emitter.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 class Context;
 class FunctionType;
 class Type;
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeModule;
 class LoopBuilder;
@@ -110,6 +110,8 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAtomicArithmeticCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAtomicCompareExchangeCall(ast::CallExpr *call);
 
   // Dispatched from VisitCallExpr() for handling builtins
   void VisitBuiltinCallExpr(ast::CallExpr *call);
@@ -209,4 +211,4 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   ExpressionResultScope *execution_result_{nullptr};
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

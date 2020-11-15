@@ -4,7 +4,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // The list of all builtin functions
 // Args: internal name, function name
@@ -312,6 +312,11 @@ namespace terrier::execution::ast {
   F(OffsetOf, offsetOf)                                                 \
   F(PtrCast, ptrCast)                                                   \
                                                                         \
+  /* Low-level Atomics*/                                                \
+  F(AtomicAnd, atomicAnd)                                               \
+  F(AtomicOr, atomicOr)                                                 \
+  F(AtomicCompareExchange, atomicCompareExchange)                       \
+                                                                        \
   /* Parameter calls */                                                 \
   F(GetParamBool, getParamBool)                                         \
   F(GetParamTinyInt, getParamTinyInt)                                   \
@@ -420,4 +425,4 @@ class Builtins {
   static const char *builtin_function_names[];
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

@@ -9,7 +9,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 bool GenericValue::Equals(const GenericValue &other) const {
   if (type_id_ != other.type_id_) {
@@ -226,4 +226,4 @@ GenericValue GenericValue::CreateFromRuntimeValue(const TypeId type_id, const Va
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

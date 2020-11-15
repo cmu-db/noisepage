@@ -6,7 +6,7 @@
 #include "main/db_main.h"
 #include "test_util/tpch/workload.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 class TPCHRunner : public benchmark::Fixture {
  public:
   const int8_t total_num_threads_ = 4;                // defines the number of terminals (workers threads)
@@ -26,7 +26,7 @@ class TPCHRunner : public benchmark::Fixture {
   tpch::Workload::BenchmarkType type_ = tpch::Workload::BenchmarkType::TPCH;
 
   void SetUp(const benchmark::State &state) final {
-    terrier::execution::ExecutionUtil::InitTPL();
+    noisepage::execution::ExecutionUtil::InitTPL();
     auto db_main_builder = DBMain::Builder()
                                .SetUseGC(true)
                                .SetUseCatalog(true)
@@ -45,7 +45,7 @@ class TPCHRunner : public benchmark::Fixture {
   }
 
   void TearDown(const benchmark::State &state) final {
-    terrier::execution::ExecutionUtil::ShutdownTPL();
+    noisepage::execution::ExecutionUtil::ShutdownTPL();
     // free db main here so we don't need to use the loggers anymore
     db_main_.reset();
   }
@@ -104,4 +104,4 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
 }
 
 BENCHMARK_REGISTER_F(TPCHRunner, Runner)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
-}  // namespace terrier::runner
+}  // namespace noisepage::runner

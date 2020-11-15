@@ -10,10 +10,11 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace parser {
 struct ColumnDefinition;
+class ColumnValueExpression;
 class CreateStatement;
 class TableRef;
 class TableStarExpression;
@@ -216,4 +217,4 @@ class BinderContext {
 };
 
 }  // namespace binder
-}  // namespace terrier
+}  // namespace noisepage

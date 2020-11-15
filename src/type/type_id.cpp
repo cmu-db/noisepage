@@ -2,7 +2,7 @@
 
 #include "common/strong_typedef_body.h"
 
-namespace terrier::type {
+namespace noisepage::type {
 
 /**
  * Julian date.
@@ -18,4 +18,4 @@ STRONG_TYPEDEF_BODY(date_t, uint32_t);
  */
 STRONG_TYPEDEF_BODY(timestamp_t, uint64_t);
 
-}  // namespace terrier::type
+}  // namespace noisepage::type

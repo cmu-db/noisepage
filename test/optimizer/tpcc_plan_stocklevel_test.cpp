@@ -8,7 +8,7 @@
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct TpccPlanStockLevelTests : public TpccPlanTest {};
 
@@ -65,4 +65,4 @@ TEST_F(TpccPlanStockLevelTests, GetJoinStock) {
   OptimizeQuery(query, tbl_stock_, check);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

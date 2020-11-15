@@ -379,7 +379,7 @@ macro(VARS_AFTER)
     endforeach ()
 endmacro()
 
-# Some libraries (cough Google Benchmark cough) just won't shut up, so this redefines the message function.
+# Some libraries just won't shut up, so this redefines the message function.
 set(MESSAGE_QUIET OFF)
 function(message)
     list(GET ARGV 0 MessageType)
@@ -389,13 +389,14 @@ function(message)
             MessageType STREQUAL WARNING OR
             MessageType STREQUAL AUTHOR_WARNING)
         list(GET ARGV 1 Message)
-        if (Message MATCHES ".*but CMAKE_THREAD_LIBS_INIT ended up being empty.*")
-            # SOME LIBRARIES (cough Google Benchmark cough) ...
-            # Official CMake documentation:
-            #   CMAKE_THREAD_LIBS_INIT
-            #       The thread library to use. This may be empty if the thread functions are provided by the system
-            #       libraries and no special flags are needed to use them.
-            # Therefore we're suppressing that specific warning message.
+
+        # Special-casing for messages to ignore.
+        set(IGNORED_MESSAGES
+                ""
+                # Google Benchmark.
+                "CMake's FindThreads.cmake did not fail, but CMAKE_THREAD_LIBS_INIT ended up being empty. This was fixed in https://github.com/Kitware/CMake/commit/d53317130e84898c5328c237186dbd995aaf1c12 Let's guess that -pthread is sufficient."
+                )
+        if (Message IN_LIST IGNORED_MESSAGES)
             return()
         endif ()
 
@@ -498,6 +499,9 @@ set(GFLAGS_BUILD_gflags_nothreads_LIB OFF)          # Disable building the nothr
 set(GFLAGS_BUILD_TESTING OFF)                       # Disable building gflags tests.
 set(GFLAGS_BUILD_PACKAGING OFF)                     # Disable building gflags packaging.
 
+# ZeroMQ build settings.
+set(CPPZMQ_BUILD_TESTS OFF CACHE INTERNAL "Disable building CPPZMQ tests.")
+
 # Include the source of the dependencies as sources that NoisePage can include.
 list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/_deps/src/)
 
@@ -507,6 +511,7 @@ add_noisepage_dep_singlefile(portable_endian https://gist.githubusercontent.com/
 
 # Fetch project dependencies.
 add_noisepage_dep(count https://github.com/pmenon/libcount.git 6eef9d048d4577f144506ffc076c1913f8faf3ef)
+add_noisepage_dep(cppzmq https://github.com/zeromq/cppzmq.git v4.7.1)
 add_noisepage_dep(gflags https://github.com/gflags/gflags.git v2.2.2)
 add_noisepage_dep(googlebenchmark https://github.com/google/benchmark.git v1.5.2)
 add_noisepage_dep(googletest https://github.com/google/googletest.git release-1.10.0)
@@ -516,6 +521,7 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
+add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git v0.1.0)
 
 # Handle other dependencies.
 
@@ -570,7 +576,7 @@ file(GLOB_RECURSE
         ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
         )
 # Remove the main program from NoisePage sources.
-list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/noisepage.cpp)
 
 # Build NoisePage as an OBJECT library first, i.e., a .o file per corresponding .cpp file.
 # The OBJECT library is built first so that the same .o files can be linked into static and shared libraries.
@@ -608,8 +614,16 @@ target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inh
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         ${NOISEPAGE_LINK_OPTIONS}
         )
+
+# Unfortunately, some libraries do not have clean target_link_libraries hygiene.
+# The symptoms are typically weird -Werror warnings because the NoisePage Werror flags get applied to library code.
+# The hacky solution is to manually specify their target_include_directories as SYSTEM.
+target_include_directories(noisepage_objlib SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/_deps/src/fast_float/include/)
+
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
+        cppzmq
+        fast_float
         gflags
         ips4o::ips4o
         madoka::madoka
@@ -640,7 +654,14 @@ target_link_options(noisepage_static PUBLIC         # PUBLIC: all consumers of t
 # debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
 # Due to the different names, the build system (especially make) gets confused.
 # Therefore the dependencies are manually built here.
-add_custom_command(TARGET noisepage_static DEPENDS spdlog)
+# However, make is too stupid and ninja is too smart.
+# make can't understand that TARGET DEPENDS on something.
+# ninja looks for the files in DEPENDS and complains if those can't be found.
+if (${CMAKE_GENERATOR} MATCHES "Unix Makefiles")
+    add_dependencies(noisepage_static spdlog)
+else()
+    add_custom_command(TARGET noisepage_static DEPENDS spdlog)
+endif()
 
 if (${NOISEPAGE_ENABLE_SHARED})
     add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)   # Bundle up these objects into shared lib.
@@ -652,7 +673,7 @@ endif ()
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
 
-add_executable(noisepage src/main/terrier.cpp)
+add_executable(noisepage src/main/noisepage.cpp)
 target_compile_options(noisepage PRIVATE "-Werror" "-Wall")
 target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -877,6 +898,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/common/*.cpp"
         "test/execution/*.cpp"
         "test/integration/*.cpp"
+        "test/messenger/*.cpp"
         "test/metrics/*.cpp"
         "test/network/*.cpp"
         "test/optimizer/*.cpp"
@@ -955,10 +977,11 @@ endfunction()
 # Be careful that your prefixes are really unique, otherwise a test will be run multiple times.
 
 add_jumbotest("test/binder" "")
-add_jumbotest("test/catalog" "")
+add_jumbotest("test/catalog" "catalog_sql_test;")
 add_jumbotest("test/common" "bitmap_test;concurrent_bitmap_test;rusage_monitor_test;")
 add_jumbotest("test/execution" "ast;compiler_test;index_create_test;index_iterator_test;sql;storage_interface_test;util;vm;")
 add_jumbotest("test/integration" "")
+add_jumbotest("test/messenger" "messenger_test;")
 add_jumbotest("test/metrics" "metrics_test;")
 add_jumbotest("test/network" "network_test;")
 add_jumbotest("test/optimizer" "hyperloglog_test;")
@@ -973,10 +996,14 @@ add_jumbotest("test/type" "")
 # Read up on CTest resource groups: https://cmake.org/cmake/help/latest/manual/ctest.1.html#resource-allocation
 # All tests that try to launch the server on port 15721 must declare that here.
 set_tests_properties(
+        catalog_sql_test jumbotest_catalog_catalog_sql_test
         metrics_test jumbotest_metrics_metrics_test
         network_test jumbotest_network_network_test
         traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
         PROPERTIES RESOURCE_GROUPS "port15721:1")
+set_tests_properties(
+        messenger_test jumbotest_messenger_messenger_test
+        PROPERTIES RESOURCE_GROUPS "port15721:1;port15722:1;port15723:1;port9022:1;port9023:1;port9024:1")
 
 #######################################################################################################################
 # HEADER Benchmarks.
@@ -1285,11 +1312,7 @@ else ()
             -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
             USES_TERMINAL
             )
-    if (TERRIER_BUILD_BENCHMARKS)
-        add_dependencies(check-clang-tidy benchmark gtest gflags)             # clang-tidy needs their headers to exist
-    elseif (TERRIER_BUILD_TESTS)
-        add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
-    endif ()
+    add_custom_command(TARGET check-clang-tidy DEPENDS benchmark gflags gtest)
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)

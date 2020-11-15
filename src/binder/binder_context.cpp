@@ -9,13 +9,14 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/table_star_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/table_ref.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                     common::ManagedPointer<parser::TableRef> table_ref, const catalog::db_oid_t db_id) {
@@ -285,4 +286,4 @@ common::ManagedPointer<BinderContext::TableMetadata> BinderContext::GetTableMapp
   return common::ManagedPointer(&regular_table_alias_map_[table_name]);
 }
 
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

@@ -13,7 +13,7 @@
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Statement is a postgres concept (see the Extended Query documentation:
@@ -111,7 +111,7 @@ class Statement {
    */
   void SetDesiredParamTypes(std::vector<type::TypeId> &&desired_param_types) {
     desired_param_types_ = std::move(desired_param_types);
-    TERRIER_ASSERT(desired_param_types_.size() == param_types_.size(), "");
+    NOISEPAGE_ASSERT(desired_param_types_.size() == param_types_.size(), "");
   }
 
   /**
@@ -146,4 +146,4 @@ class Statement {
   std::vector<type::TypeId> desired_param_types_;                                     // generated in the Bind phase
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

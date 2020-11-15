@@ -11,7 +11,7 @@
 
 #define LOG_TEST_LOG_FILE_NAME "benchmark.txt"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 class TransactionLoggingGCRunner : public benchmark::Fixture {
  public:
@@ -199,4 +199,4 @@ BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, LoggingGCRunner)
     ->UseManualTime()
     ->Iterations(1)
     ->Apply(LoggingGCArguments);
-}  // namespace terrier::runner
+}  // namespace noisepage::runner

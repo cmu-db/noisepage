@@ -19,12 +19,12 @@
 #include "parser/update_statement.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
 class UpdateClause;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Operator that represents another group
@@ -1924,4 +1924,4 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
   std::vector<catalog::col_oid_t> columns_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

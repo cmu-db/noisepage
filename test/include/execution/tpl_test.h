@@ -12,9 +12,9 @@
 #include "loggers/execution_logger.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
-class TplTest : public terrier::TerrierTest {
+class TplTest : public noisepage::TerrierTest {
  public:
   TplTest() { CpuInfo::Instance(); }
 
@@ -62,4 +62,4 @@ static void LaunchParallel(uint32_t num_threads, const F &f) {
   }
 }
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

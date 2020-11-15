@@ -6,21 +6,21 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
 template <typename InType, typename OutType, bool IgnoreNull = true>
 void StandardTemplatedCastOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
                                     Vector *target) {
-  UnaryOperationExecutor::Execute<InType, OutType, terrier::execution::sql::Cast<InType, OutType>, IgnoreNull>(
+  UnaryOperationExecutor::Execute<InType, OutType, noisepage::execution::sql::Cast<InType, OutType>, IgnoreNull>(
       exec_settings, source, target);
 }
 
 template <typename InType>
 void CastToStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target) {
-  TERRIER_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
-  terrier::execution::sql::Cast<InType, std::string> cast_op;
+  NOISEPAGE_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
+  noisepage::execution::sql::Cast<InType, std::string> cast_op;
   UnaryOperationExecutor::Execute<InType, storage::VarlenEntry, true>(
       exec_settings, source, target,
       [&](const InType in) { return target->GetMutableStringHeap()->AddVarlen(cast_op(in)); });
@@ -174,4 +174,4 @@ void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector 
   Cast(exec_settings, source, target, src_type, target_type);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

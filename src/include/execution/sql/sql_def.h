@@ -3,7 +3,7 @@
 #include <cstring>
 #include <string>
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 enum class DatePartType : uint32_t {
   INVALID = 0,
@@ -35,4 +35,4 @@ enum class DatePartType : uint32_t {
   YEARS = 21,
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

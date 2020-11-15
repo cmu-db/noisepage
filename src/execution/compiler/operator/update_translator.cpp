@@ -13,7 +13,7 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::UPDATE),
@@ -97,7 +97,7 @@ void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuil
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 
-void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuilder *builder) const {
+void UpdateTranslator::DeclareUpdater(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var col_oids: [num_cols]uint32
   // col_oids[i] = ...
   SetOids(builder);
@@ -111,7 +111,7 @@ void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuil
   builder->Append(GetCodeGen()->MakeStmt(updater_setup));
 }
 
-void UpdateTranslator::GenUpdaterFree(terrier::execution::compiler::FunctionBuilder *builder) const {
+void UpdateTranslator::GenUpdaterFree(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // @storageInterfaceFree(&updater)
   ast::Expr *updater_free =
       GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {GetCodeGen()->AddressOf(updater_)});
@@ -119,7 +119,7 @@ void UpdateTranslator::GenUpdaterFree(terrier::execution::compiler::FunctionBuil
 }
 
 ast::Expr *UpdateTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
-  TERRIER_ASSERT(child_idx == 0, "Update plan can only have one child");
+  NOISEPAGE_ASSERT(child_idx == 0, "Update plan can only have one child");
   const auto &op = GetPlanAs<planner::UpdatePlanNode>();
   const auto &child_translator = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
   return child_translator->GetOutput(context, attr_idx);
@@ -146,13 +146,13 @@ void UpdateTranslator::SetOids(FunctionBuilder *builder) const {
   }
 }
 
-void UpdateTranslator::DeclareUpdatePR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void UpdateTranslator::DeclareUpdatePR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var update_pr : *ProjectedRow
   auto *pr_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
   builder->Append(GetCodeGen()->DeclareVar(update_pr_, GetCodeGen()->PointerType(pr_type), nullptr));
 }
 
-void UpdateTranslator::GetUpdatePR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void UpdateTranslator::GetUpdatePR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var update_pr = @getTablePR(&updater)
   auto *get_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetTablePR, {GetCodeGen()->AddressOf(updater_)});
   builder->Append(GetCodeGen()->Assign(GetCodeGen()->MakeExpr(update_pr_), get_pr_call));
@@ -248,7 +248,7 @@ void UpdateTranslator::GenTableDelete(FunctionBuilder *builder) const {
   // if (!@tableDelete(&deleter, &slot)) { Abort(); }
   const auto &op = GetPlanAs<planner::UpdatePlanNode>();
   const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
-  TERRIER_ASSERT(child != nullptr, "delete should have a child");
+  NOISEPAGE_ASSERT(child != nullptr, "delete should have a child");
   const auto &delete_slot = child->GetSlotAddress();
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(updater_), delete_slot};
   auto *delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, delete_args);
@@ -301,4 +301,4 @@ std::vector<catalog::col_oid_t> UpdateTranslator::CollectOids(const catalog::Sch
   return oids;
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

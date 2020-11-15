@@ -7,7 +7,7 @@
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // This file contains a bunch of templated functors that implement many
 // Postgres mathematical operators and functions. These operate on raw data
@@ -253,4 +253,4 @@ struct Truncate {
   constexpr T operator()(T input) const { return std::trunc(input); }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

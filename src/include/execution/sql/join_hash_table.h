@@ -16,12 +16,12 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
 class ExecutionContext;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 class Vector;
@@ -335,7 +335,7 @@ class JoinHashTableIterator {
    * @return A read-only opaque byte pointer to the row at the current iteration position.
    */
   const byte *GetCurrentRow() const noexcept {
-    TERRIER_ASSERT(HasNext(), "HasNext() indicates no more data!");
+    NOISEPAGE_ASSERT(HasNext(), "HasNext() indicates no more data!");
     const auto entry = reinterpret_cast<const HashTableEntry *>(*entry_iter_);
     return entry->payload_;
   }
@@ -364,4 +364,4 @@ class JoinHashTableIterator {
   EntryIterator entry_iter_, entry_end_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

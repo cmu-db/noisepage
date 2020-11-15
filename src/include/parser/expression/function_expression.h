@@ -9,7 +9,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * FunctionExpression represents a function invocation (except for CAST(), which is a TypeCastExpression).
@@ -56,11 +56,7 @@ class FunctionExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));
-    return hash;
-  }
+  common::hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
@@ -73,7 +69,7 @@ class FunctionExpression : public AbstractExpression {
 
   void DeriveExpressionName() override { SetExpressionName(GetFuncName()); }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override;
@@ -107,4 +103,4 @@ class FunctionExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(FunctionExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

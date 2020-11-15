@@ -6,7 +6,7 @@
 #include "execution/functions/function_context.h"
 #include "parser/expression/function_expression.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 FunctionTranslator::FunctionTranslator(const parser::FunctionExpression &expr, CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
@@ -37,4 +37,4 @@ ast::Expr *FunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
   return codegen->CallBuiltin(func_context->GetBuiltin(), params);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

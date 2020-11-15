@@ -13,7 +13,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
@@ -74,7 +74,7 @@ class RandomDataTableTestObject {
   bool RandomlyUpdateTuple(const transaction::timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
                            storage::RecordBufferSegmentPool *buffer_pool) {
     // tuple must already exist
-    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    NOISEPAGE_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
     // generate a random redo ProjectedRow to Update
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
@@ -115,7 +115,7 @@ class RandomDataTableTestObject {
   // or nullptr of no version of this tuple is visible to the timestamp
   const storage::ProjectedRow *GetReferenceVersionedTuple(const storage::TupleSlot slot,
                                                           const transaction::timestamp_t timestamp) {
-    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    NOISEPAGE_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
     for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--)
@@ -413,4 +413,4 @@ TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
     delete txn;
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

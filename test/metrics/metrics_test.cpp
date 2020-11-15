@@ -17,7 +17,7 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * @brief Test the correctness of database metric
@@ -35,7 +35,7 @@ class MetricsTests : public TerrierTest {
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
-    db_main_ = terrier::DBMain::Builder()
+    db_main_ = noisepage::DBMain::Builder()
                    .SetSettingsParameterMap(std::move(param_map))
                    .SetUseSettingsManager(true)
                    .SetUseGC(true)
@@ -440,4 +440,4 @@ TEST_F(MetricsTests, ToggleSettings) {
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::QUERY_TRACE));
 }
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

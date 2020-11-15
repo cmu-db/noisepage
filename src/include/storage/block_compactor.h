@@ -8,7 +8,7 @@
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Typedef for a standard hash map with varlen entry as the key. The map uses deep equality checks (whether
@@ -97,4 +97,4 @@ class BlockCompactor {
 
   std::queue<RawBlock *> compaction_queue_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

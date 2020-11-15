@@ -4,7 +4,7 @@
 #include "loggers/settings_logger.h"
 #include "runner/mini_runners_settings.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 struct Arg {
   const char *match_;
@@ -51,7 +51,7 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   if (create_index_car_data.found_) create_index_large_cardinality_num_ = create_index_car_data.int_value_;
   if (run_limit.found_) data_rows_limit_ = run_limit.int_value_;
 
-  terrier::LoggersUtil::Initialize();
+  noisepage::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
   SETTINGS_LOG_INFO("Port ({}): {}", port_info.match_, port_);
   SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match_, skip_large_rows_runs_);
@@ -68,4 +68,4 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   SETTINGS_LOG_INFO("Generate Test Data ({}): {}", gen_test_data.match_, gen_test_data.found_);
 }
 
-};  // namespace terrier::runner
+};  // namespace noisepage::runner

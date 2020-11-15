@@ -12,12 +12,12 @@
 #include "planner/plannodes/plan_visitor.h"
 #include "type/type_id.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 class IndexSchema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::execution {
+namespace noisepage::execution {
 namespace ast {
 class Context;
 class StructDecl;
@@ -26,19 +26,19 @@ namespace compiler {
 class OperatorTranslator;
 class Pipeline;
 }  // namespace compiler
-}  // namespace terrier::execution
+}  // namespace noisepage::execution
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
 }
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
 class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 /**
  * OperatingUnitRecorder extracts all relevant ExecutionOperatingUnitFeature
@@ -232,4 +232,4 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   common::ManagedPointer<const std::string> query_text_;
 };
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

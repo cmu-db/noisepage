@@ -9,7 +9,7 @@
 
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 // Interrupt handling logic is inspired by the Chromium project's multi-purpose file.
 
@@ -67,19 +67,19 @@ void File::Initialize(const std::string_view &path, uint32_t flags) {
   }
 
   if (flags & FLAG_CREATE_ALWAYS) {  // NOLINT
-    TERRIER_ASSERT(!open_flags, "CreateAlways is mutually exclusive with other Open/Create flags");
-    TERRIER_ASSERT(flags & FLAG_WRITE, "CreateAlways must include Write flag");
+    NOISEPAGE_ASSERT(!open_flags, "CreateAlways is mutually exclusive with other Open/Create flags");
+    NOISEPAGE_ASSERT(flags & FLAG_WRITE, "CreateAlways must include Write flag");
     open_flags = O_CREAT | O_TRUNC;
   }
 
   if (flags & FLAG_OPEN_TRUNCATED) {  // NOLINT
-    TERRIER_ASSERT(!open_flags, "OpenTruncated is mutually exclusive with other Open/Create flags");
-    TERRIER_ASSERT(flags & FLAG_WRITE, "OpenTruncated must include Write flag");
+    NOISEPAGE_ASSERT(!open_flags, "OpenTruncated is mutually exclusive with other Open/Create flags");
+    NOISEPAGE_ASSERT(flags & FLAG_WRITE, "OpenTruncated must include Write flag");
     open_flags = O_TRUNC;
   }
 
   if (!open_flags && !(flags & FLAG_OPEN) && !(flags & FLAG_OPEN_ALWAYS)) {  // NOLINT
-    TERRIER_ASSERT(false, "Must provide one of Open/Create/OpenAlways/CreateAlways/OpenTruncated");
+    NOISEPAGE_ASSERT(false, "Must provide one of Open/Create/OpenAlways/CreateAlways/OpenTruncated");
     errno = EOPNOTSUPP;
     error_ = Error::FAILED;
     return;
@@ -92,7 +92,7 @@ void File::Initialize(const std::string_view &path, uint32_t flags) {
   } else if (flags & FLAG_READ) {  // NOLINT
     open_flags |= O_RDONLY;
   } else if (!(flags & FLAG_READ) && !(flags & FLAG_APPEND) && !(flags & FLAG_OPEN_ALWAYS)) {  // NOLINT
-    TERRIER_ASSERT(false, "Flags must include one of Read, Append, or OpenAlways");
+    NOISEPAGE_ASSERT(false, "Flags must include one of Read, Append, or OpenAlways");
   }
 
   if (flags & FLAG_APPEND && flags & FLAG_READ) {  // NOLINT
@@ -172,7 +172,7 @@ void File::CreateTemp(bool delete_on_close) {
 }
 
 int32_t File::ReadFull(std::byte *data, size_t len) const {
-  TERRIER_ASSERT(IsOpen(), "File must be open before reading");
+  NOISEPAGE_ASSERT(IsOpen(), "File must be open before reading");
 
   std::size_t bytes_read = 0;
   int32_t ret;
@@ -188,7 +188,7 @@ int32_t File::ReadFull(std::byte *data, size_t len) const {
 }
 
 int32_t File::ReadFullFromPosition(std::size_t offset, std::byte *data, std::size_t len) const {
-  TERRIER_ASSERT(IsOpen(), "File must be open before reading");
+  NOISEPAGE_ASSERT(IsOpen(), "File must be open before reading");
 
   std::size_t bytes_read = 0;
   int32_t ret;
@@ -204,12 +204,12 @@ int32_t File::ReadFullFromPosition(std::size_t offset, std::byte *data, std::siz
 }
 
 int32_t File::Read(std::byte *data, std::size_t len) const {
-  TERRIER_ASSERT(IsOpen(), "File must be open before reading");
+  NOISEPAGE_ASSERT(IsOpen(), "File must be open before reading");
   return HANDLE_EINTR(read(fd_, data, len));
 }
 
 int32_t File::WriteFull(const std::byte *data, size_t len) const {
-  TERRIER_ASSERT(IsOpen(), "File must be open before reading");
+  NOISEPAGE_ASSERT(IsOpen(), "File must be open before reading");
 
   std::size_t bytes_written = 0;
   int32_t ret;
@@ -225,7 +225,7 @@ int32_t File::WriteFull(const std::byte *data, size_t len) const {
 }
 
 int32_t File::WriteFullAtPosition(std::size_t offset, const std::byte *data, std::size_t len) const {
-  TERRIER_ASSERT(IsOpen(), "File must be open before reading");
+  NOISEPAGE_ASSERT(IsOpen(), "File must be open before reading");
 
   std::size_t bytes_written = 0;
   int32_t ret;
@@ -241,7 +241,7 @@ int32_t File::WriteFullAtPosition(std::size_t offset, const std::byte *data, std
 }
 
 int32_t File::Write(const std::byte *data, std::size_t len) const {
-  TERRIER_ASSERT(IsOpen(), "File must be open before reading");
+  NOISEPAGE_ASSERT(IsOpen(), "File must be open before reading");
   return HANDLE_EINTR(write(fd_, data, len));
 }
 
@@ -259,7 +259,7 @@ bool File::Flush() const {
 }
 
 int64_t File::Length() {
-  TERRIER_ASSERT(IsOpen(), "File must be open before reading");
+  NOISEPAGE_ASSERT(IsOpen(), "File must be open before reading");
 
   // Save the current position
   off_t curr_off = lseek(fd_, 0, SEEK_CUR);
@@ -289,7 +289,7 @@ int64_t File::Length() {
 void File::Close() {
   if (IsOpen()) {
     UNUSED_ATTRIBUTE auto ret = IGNORE_EINTR(close(fd_));
-    TERRIER_ASSERT(ret == 0, "Invalid return code from close()");
+    NOISEPAGE_ASSERT(ret == 0, "Invalid return code from close()");
     fd_ = INVALID_DESCRIPTOR;
   }
 }
@@ -350,4 +350,4 @@ File::Error File::OsErrorToFileError(int saved_errno) {
   }
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

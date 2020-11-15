@@ -12,27 +12,28 @@
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 /**
  * Hashable type for database and table oid pair
  */
-using StatsStorageKey = std::pair<terrier::catalog::db_oid_t, terrier::catalog::table_oid_t>;
-}  // namespace terrier::optimizer
+using StatsStorageKey = std::pair<noisepage::catalog::db_oid_t, noisepage::catalog::table_oid_t>;
+}  // namespace noisepage::optimizer
 
 namespace std {  // NOLINT
 /**
  * template for std::hash of StatsStorageKey
  */
 template <>
-struct hash<terrier::optimizer::StatsStorageKey> {
+struct hash<noisepage::optimizer::StatsStorageKey> {
   /**
    * Hashes a StatsStorageKey object.
    * @param stats_storage_key - StatsStorageKey object
    * @return the hash for the StatsStorageKey
    */
-  size_t operator()(const terrier::optimizer::StatsStorageKey &stats_storage_key) const {
-    terrier::common::hash_t hash = terrier::common::HashUtil::Hash(get<0>(stats_storage_key));
-    hash = terrier::common::HashUtil::CombineHashes(hash, terrier::common::HashUtil::Hash(get<1>(stats_storage_key)));
+  size_t operator()(const noisepage::optimizer::StatsStorageKey &stats_storage_key) const {
+    noisepage::common::hash_t hash = noisepage::common::HashUtil::Hash(get<0>(stats_storage_key));
+    hash =
+        noisepage::common::HashUtil::CombineHashes(hash, noisepage::common::HashUtil::Hash(get<1>(stats_storage_key)));
     return hash;
   }
 };
@@ -41,21 +42,21 @@ struct hash<terrier::optimizer::StatsStorageKey> {
  * template for std::equal_to of StatsStorageKey
  */
 template <>
-struct equal_to<terrier::optimizer::StatsStorageKey> {
+struct equal_to<noisepage::optimizer::StatsStorageKey> {
   /**
    * Checks for equality between two StatsStorageKey objects
    * @param lhs - StatsStorageKey on left side of equality
    * @param rhs - StatsStorageKey on right side of equality
    * @return whether the StatsStorageKey objects are equal
    */
-  bool operator()(const terrier::optimizer::StatsStorageKey &lhs,
-                  const terrier::optimizer::StatsStorageKey &rhs) const {
+  bool operator()(const noisepage::optimizer::StatsStorageKey &lhs,
+                  const noisepage::optimizer::StatsStorageKey &rhs) const {
     return get<0>(lhs) == get<0>(rhs) && get<1>(lhs) == get<1>(rhs);
   }
 };
 }  // namespace std
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 /**
  * Manages all the existing table stats objects. Stores them in an
  * unordered map and keeps track of them using their database and table oids. Can
@@ -108,4 +109,4 @@ class StatsStorage {
    */
   std::unordered_map<StatsStorageKey, std::unique_ptr<TableStats>> table_stats_storage_;
 };
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

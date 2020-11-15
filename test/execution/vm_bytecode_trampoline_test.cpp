@@ -12,7 +12,7 @@
 #include "execution/vm/module_compiler.h"
 #include "ips4o/ips4o.hpp"
 
-namespace terrier::execution::vm::test {
+namespace noisepage::execution::vm::test {
 
 //
 // These tests use the trampoline to call into bytecode functions.
@@ -286,4 +286,4 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   EXECUTION_LOG_TRACE("Std: {} ms", std_ms);
 }
 
-}  // namespace terrier::execution::vm::test
+}  // namespace noisepage::execution::vm::test

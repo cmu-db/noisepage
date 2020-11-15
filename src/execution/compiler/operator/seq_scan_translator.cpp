@@ -1,6 +1,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include "catalog/catalog_accessor.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -14,7 +15,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
@@ -375,4 +376,4 @@ std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(const catalog::
   return op.GetColumnOids();
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

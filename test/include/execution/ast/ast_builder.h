@@ -11,7 +11,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class TestAstBuilder {
  public:
@@ -40,7 +40,7 @@ class TestAstBuilder {
 
   template <parsing::Token::Type OP>
   Expr *Cmp(Expr *left, Expr *right) {
-    TERRIER_ASSERT(parsing::Token::IsCompareOp(OP), "Not a comparison");
+    NOISEPAGE_ASSERT(parsing::Token::IsCompareOp(OP), "Not a comparison");
     return GetNodeFactory()->NewComparisonOpExpr(empty_, OP, left, right);
   }
 
@@ -118,4 +118,4 @@ class TestAstBuilder {
   SourcePosition empty_{0, 0};
 };
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

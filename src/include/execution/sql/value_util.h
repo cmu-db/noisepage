@@ -6,7 +6,7 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 struct StringVal;
 
@@ -45,4 +45,4 @@ class ValueUtil {
   static std::pair<StringVal, std::unique_ptr<byte[]>> CreateStringVal(StringVal string);
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -11,7 +11,7 @@
 #include "test_util/catalog_test_util.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 RandomDataTableTransaction::RandomDataTableTransaction(LargeDataTableBenchmarkObject *test_object)
     : test_object_(test_object),
       txn_(test_object->txn_manager_.BeginTransaction()),
@@ -152,7 +152,8 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
   return {abort_count_, elapsed_ms};
 }
 
-void LargeDataTableBenchmarkObject::SimulateOneTransaction(terrier::RandomDataTableTransaction *txn, uint32_t txn_id) {
+void LargeDataTableBenchmarkObject::SimulateOneTransaction(noisepage::RandomDataTableTransaction *txn,
+                                                           uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
   auto insert = [&] { txn->RandomInsert(&thread_generator); };
@@ -176,4 +177,4 @@ void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Ra
   }
   txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
-}  // namespace terrier
+}  // namespace noisepage

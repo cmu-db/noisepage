@@ -12,7 +12,7 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/module.h"
 
-namespace terrier::execution::vm::test {
+namespace noisepage::execution::vm::test {
 
 class ModuleCompiler {
  public:
@@ -54,4 +54,4 @@ class ModuleCompiler {
   ast::Context ctx_;
 };
 
-}  // namespace terrier::execution::vm::test
+}  // namespace noisepage::execution::vm::test

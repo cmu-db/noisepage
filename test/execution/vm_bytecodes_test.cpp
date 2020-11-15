@@ -1,7 +1,7 @@
 #include "execution/tpl_test.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::vm::test {
+namespace noisepage::execution::vm::test {
 
 class BytecodesTest : public TplTest {};
 
@@ -101,4 +101,4 @@ TEST_F(BytecodesTest, OperandTypesTest) {
   EXPECT_EQ(OperandType::Local, Bytecodes::GetNthOperandType(Bytecode::Add_int32_t, 2));
 }
 
-}  // namespace terrier::execution::vm::test
+}  // namespace noisepage::execution::vm::test

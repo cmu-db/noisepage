@@ -19,7 +19,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 Catalog::Catalog(const common::ManagedPointer<transaction::TransactionManager> txn_manager,
                  const common::ManagedPointer<storage::BlockStore> block_store,
@@ -164,11 +164,11 @@ db_oid_t Catalog::GetDatabaseOid(const common::ManagedPointer<transaction::Trans
     delete[] buffer;
     return INVALID_DATABASE_OID;
   }
-  TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
+  NOISEPAGE_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
   pr = get_database_oid_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = databases_->Select(common::ManagedPointer(txn), index_results[0], pr);
-  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+  NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
   const auto db_oid = *(reinterpret_cast<const db_oid_t *const>(pr->AccessForceNotNull(0)));
   delete[] buffer;
   return db_oid;
@@ -190,11 +190,11 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(
     delete[] buffer;
     return common::ManagedPointer<DatabaseCatalog>(nullptr);
   }
-  TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
+  NOISEPAGE_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
   pr = get_database_catalog_pri_.InitializeRow(buffer);
   const auto UNUSED_ATTRIBUTE result = databases_->Select(common::ManagedPointer(txn), index_results[0], pr);
-  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+  NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
   const auto dbc = *(reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(0)));
   delete[] buffer;
@@ -259,7 +259,7 @@ bool Catalog::CreateDatabaseEntry(const common::ManagedPointer<transaction::Tran
   *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
 
   const bool UNUSED_ATTRIBUTE result = databases_oid_index_->InsertUnique(common::ManagedPointer(txn), *pr, tupleslot);
-  TERRIER_ASSERT(result, "Assigned database OID failed to be unique");
+  NOISEPAGE_ASSERT(result, "Assigned database OID failed to be unique");
 
   delete[] buffer;
   return true;
@@ -279,7 +279,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(const common::ManagedPointer<trans
   *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
 
   databases_oid_index_->ScanKey(*txn, *pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that "
       "function was called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't "
@@ -289,7 +289,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(const common::ManagedPointer<trans
   pr = delete_database_entry_pri_.InitializeRow(buffer);
   const auto UNUSED_ATTRIBUTE result = databases_->Select(common::ManagedPointer(txn), index_results[0], pr);
 
-  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+  NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
   txn->StageDelete(INVALID_DATABASE_OID, postgres::DATABASE_TABLE_OID, index_results[0]);
   if (!databases_->Delete(common::ManagedPointer(txn), index_results[0])) {
@@ -334,4 +334,4 @@ common::ManagedPointer<storage::BlockStore> Catalog::GetBlockStore() const {
   return common::ManagedPointer(catalog_block_store_);
 }
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

@@ -6,7 +6,7 @@
 #include "execution/parsing/scanner.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::parsing::test {
+namespace noisepage::execution::parsing::test {
 
 class ScannerTest : public TplTest {};
 
@@ -264,4 +264,4 @@ TEST_F(ScannerTest, CommentTest) {
   RunTests(tests);
 }
 
-}  // namespace terrier::execution::parsing::test
+}  // namespace noisepage::execution::parsing::test
