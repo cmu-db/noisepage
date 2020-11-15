@@ -312,6 +312,11 @@ namespace noisepage::execution::ast {
   F(OffsetOf, offsetOf)                                                 \
   F(PtrCast, ptrCast)                                                   \
                                                                         \
+  /* Low-level Atomics*/                                                \
+  F(AtomicAnd, atomicAnd)                                               \
+  F(AtomicOr, atomicOr)                                                 \
+  F(AtomicCompareExchange, atomicCompareExchange)                       \
+                                                                        \
   /* Parameter calls */                                                 \
   F(GetParamBool, getParamBool)                                         \
   F(GetParamTinyInt, getParamTinyInt)                                   \

@@ -2224,6 +2224,41 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 #undef BINARY_REAL_MATH_OP
 #undef UNARY_REAL_MATH_OP
 
+#define ATOMIC_BINARY_OP(AOP, T)                       \
+  OP(Atomic##AOP) : {                                  \
+    auto *ret = frame->LocalAt<T *>(READ_LOCAL_ID());  \
+    auto *dest = frame->LocalAt<T *>(READ_LOCAL_ID()); \
+    auto val = frame->LocalAt<T>(READ_LOCAL_ID());     \
+    OpAtomic##AOP(ret, dest, val);                     \
+    DISPATCH_NEXT();                                   \
+  }
+
+#define ATOMIC_CMPXCHG_OP(SIZE, T)                               \
+  OP(AtomicCompareExchange##SIZE) : {                            \
+    auto *ret = frame->LocalAt<bool *>(READ_LOCAL_ID());         \
+    auto *dest = frame->LocalAt<T *>(READ_LOCAL_ID());           \
+    auto *expected = frame->LocalAt<T *>(READ_LOCAL_ID());       \
+    auto desired = frame->LocalAt<T>(READ_LOCAL_ID());           \
+    OpAtomicCompareExchange##SIZE(ret, dest, expected, desired); \
+    DISPATCH_NEXT();                                             \
+  }
+
+  ATOMIC_BINARY_OP(And1, uint8_t);
+  ATOMIC_BINARY_OP(And2, uint16_t);
+  ATOMIC_BINARY_OP(And4, uint32_t);
+  ATOMIC_BINARY_OP(And8, uint64_t);
+  ATOMIC_BINARY_OP(Or1, uint8_t);
+  ATOMIC_BINARY_OP(Or2, uint16_t);
+  ATOMIC_BINARY_OP(Or4, uint32_t);
+  ATOMIC_BINARY_OP(Or8, uint64_t);
+  ATOMIC_CMPXCHG_OP(1, uint8_t);
+  ATOMIC_CMPXCHG_OP(2, uint16_t);
+  ATOMIC_CMPXCHG_OP(4, uint32_t);
+  ATOMIC_CMPXCHG_OP(8, uint64_t);
+
+#undef ATOMIC_BINARY_OP
+#undef ATOMIC_CMPXCHG_OP
+
   // -------------------------------------------------------
   // Mini runners functions
   // -------------------------------------------------------
