@@ -27,10 +27,10 @@ def add_overall_mem_metrics(metrics, mem_metrics):
     avg_mem_info = mem_metrics.get_avg()
     metrics['memory_info'] = {
         'rss': {
-            'avg': avg_mem_info.rss,
+            'avg': float("{:.4}".format(avg_mem_info.rss)),
         },
         'vms': {
-            'avg': avg_mem_info.vms,
+            'avg': float("{:.4}".format(avg_mem_info.vms)),
         },
     }
 
