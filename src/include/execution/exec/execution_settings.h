@@ -9,7 +9,6 @@ class SettingsManager;
 }  // namespace noisepage::settings
 
 namespace noisepage::runner {
->>>>>>> upstream/master
 class MiniRunners;
 }  // namespace noisepage::runner
 
@@ -26,27 +25,11 @@ class IdxJoinTest_BarOnlyScan_Test;
 class IdxJoinTest_IndexToIndexJoin_Test;
 }  // namespace noisepage::optimizer
 
-namespace terrier::tpch {
+namespace noisepage::tpch {
 class Workload;
 }  // namespace terrier::tpch
 
-namespace terrier::execution {
-class SqlBasedTest;
-}  // namespace terrier::execution
-
-namespace terrier::optimizer {
-class IdxJoinTest_SimpleIdxJoinTest_Test;
-class IdxJoinTest_MultiPredicateJoin_Test;
-class IdxJoinTest_MultiPredicateJoinWithExtra_Test;
-class IdxJoinTest_FooOnlyScan_Test;
-class IdxJoinTest_BarOnlyScan_Test;
-class IdxJoinTest_IndexToIndexJoin_Test;
-}  // namespace terrier::optimizer
-
-namespace terrier::execution::exec {
-=======
 namespace noisepage::execution::exec {
->>>>>>> upstream/master
 /**
  * ExecutionSettings stores settings that are passed down from the upper layers.
  * TODO(WAN): Hook this up to the settings manager. Since everything is currently hardcoded, it can wait.
