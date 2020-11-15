@@ -15,7 +15,8 @@ ComparisonTranslator::ComparisonTranslator(const parser::ComparisonExpression &e
   // Prepare all expression subtrees for translation.
   NOISEPAGE_ASSERT(expr.GetChildrenSize() == 2 || expr.GetExpressionType() == parser::ExpressionType::COMPARE_IN,
                    "Every ComparisonExpression should have exactly two children, except for COMPARE_IN.");
-  NOISEPAGE_ASSERT(expr.GetChildrenSize() >= 2 || expr.GetExpressionType() == parser::ExpressionType::COMPARE_IN,
+  NOISEPAGE_ASSERT((expr.GetExpressionType() != parser::ExpressionType::COMPARE_IN) ||
+                       (expr.GetChildrenSize() >= 2 && expr.GetExpressionType() == parser::ExpressionType::COMPARE_IN),
                    "Every COMPARE_IN ComparisonExpression should have at least two children.");
   for (const auto &child : expr.GetChildren()) {
     compilation_context->Prepare(*child);
