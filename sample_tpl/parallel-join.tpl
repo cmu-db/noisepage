@@ -113,7 +113,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
 
     // Parallel build the join hash table
     var off: uint32 = 0
-    @joinHTBuildParallel(&state.jht, execCtx, tls, off)
+    @joinHTBuildParallel(&state.jht, tls, off)
 
     // Cleanup
     @tlsClear(tls)
