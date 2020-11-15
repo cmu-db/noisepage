@@ -650,6 +650,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression>
   for (size_t i = 0; i < expr->GetChildrenSize(); ++i) {
     auto child = expr->GetChild(i);
     if (parser::ExpressionType::OPERATOR_CAST == child->GetExpressionType()) {
+      NOISEPAGE_ASSERT(parser::ExpressionType::VALUE_CONSTANT == child->GetChild(0)->GetExpressionType(),
+                       "We can only pull up ConstantValueExpression.");
       expr->SetChild(i, child->GetChild(0));
     }
   }
