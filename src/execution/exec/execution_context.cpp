@@ -46,7 +46,7 @@ void ExecutionContext::CheckTrackersStopped() {
   // exception is thrown during execution between StartPipelineTracker and EndPipelineTracker,
   // then the trackers will keep on running (assuming the ThreadContext stays alive).
   //
-  // If a transaction has aborted through @abortTxn, then it is very probable that EndPipelineTracker
+  // If a transaction has aborted through \@abortTxn, then it is very probable that EndPipelineTracker
   // was not called to stop the resource tracker. This check here terminates the resource trackers
   // if they are still running (with the caveat that no metrics will be recorded).
   if (GetTxn()->MustAbort() && noisepage::common::thread_context.resource_tracker_.IsRunning()) {
@@ -54,7 +54,7 @@ void ExecutionContext::CheckTrackersStopped() {
   }
 
   // Codegen is responsible for guaranteeing that StartPipelineTrackers and EndPipelineTrackers
-  // are properly matched (if a thread calls StartPipelineTracker, it will call EndPipelineTracker
+  // are properly matched (if a thread calls StartPipelineTracker, it must call EndPipelineTracker
   // prior to the ThreadContext getting destroyed). In the case query execution completes normally
   // without any exceptional control flow, the following checks that the trackers are fully stopped.
   if (noisepage::common::thread_context.metrics_store_ != nullptr &&
