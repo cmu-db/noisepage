@@ -22,6 +22,7 @@ def parse_command_line_args():
                          choices=["simple", "extended"],
                          help="Query protocol mode")
     aparser.add_argument("--prepare-threshold",
+                         default = None,
                          type=int,
                          help="Threshold under the 'extended' query mode")
 
