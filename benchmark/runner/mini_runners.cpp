@@ -374,21 +374,21 @@ class MiniRunners : public benchmark::Fixture {
   }
 
   static execution::exec::ExecutionSettings GetExecutionSettings() {
-    execution::exec::ExecutionSettings settings;
-    settings.is_parallel_execution_enabled_ = false;
+    execution::exec::ExecutionSettings exec_settings;
+    exec_settings.is_parallel_execution_enabled_ = false;
     exec_settings.is_counters_enabled_ = false;
-    settings.is_pipeline_metrics_enabled_ = true;
-    return settings;
+    exec_settings.is_pipeline_metrics_enabled_ = true;
+    return exec_settings;
   }
 
   static execution::exec::ExecutionSettings GetParallelExecutionSettings(size_t num_threads, bool counters) {
-    execution::exec::ExecutionSettings settings;
-    settings.is_pipeline_metrics_enabled_ = true;
-    settings.is_parallel_execution_enabled_ = (num_threads != 0);
-    settings.number_of_parallel_execution_threads_ = num_threads;
-    settings.is_counters_enabled_ = counters;
-    settings.is_static_partitioner_enabled_ = true;
-    return settings;
+    execution::exec::ExecutionSettings exec_settings;
+    exec_settings.is_pipeline_metrics_enabled_ = true;
+    exec_settings.is_parallel_execution_enabled_ = (num_threads != 0);
+    exec_settings.number_of_parallel_execution_threads_ = num_threads;
+    exec_settings.is_counters_enabled_ = counters;
+    exec_settings.is_static_partitioner_enabled_ = true;
+    return exec_settings;
   }
 
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>>

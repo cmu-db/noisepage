@@ -51,7 +51,7 @@ fun pipeline1_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *Thr
     @joinHTFree(&state.jht)
 }
 
-fun pipeline1_worker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator, concurrent: uint32) -> nil {
+fun pipeline1_worker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
     var filter = &state.filter_manager
     var jht = &state.jht
     for (@tableIterAdvance(tvi)) {
@@ -77,7 +77,7 @@ fun pipeline2_worker_initThreadState(execCtx: *ExecutionContext, state: *ThreadS
 
 fun pipeline2_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *ThreadState_2) -> nil { }
 
-fun pipeline2_worker(queryState: *State, state: *ThreadState_2, tvi: *TableVectorIterator, concurrent: uint32) -> nil {
+fun pipeline2_worker(queryState: *State, state: *ThreadState_2, tvi: *TableVectorIterator) -> nil {
     var jht = &queryState.jht
     for (@tableIterAdvance(tvi)) {
         var vec = @tableIterGetVPI(tvi)
@@ -109,11 +109,11 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
     var table_oid = @testCatalogLookup(execCtx, "test_1", "")
     var col_oids : [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker, 0, 0)
+    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker)
 
     // Parallel build the join hash table
     var off: uint32 = 0
-    @joinHTBuildParallel(&state.jht, execCtx, 0, tls, off)
+    @joinHTBuildParallel(&state.jht, execCtx, tls, off)
 
     // Cleanup
     @tlsClear(tls)
@@ -127,7 +127,7 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
     var table_oid = @testCatalogLookup(execCtx, "test_1", "")
     var col_oids : [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline2_worker, 0, 0)
+    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline2_worker)
 
     // Collect results
     @tlsIterate(tls, state, pipeline2_finalize)

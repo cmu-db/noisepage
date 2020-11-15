@@ -21,8 +21,6 @@ namespace noisepage::execution::compiler {
 
 query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
 
-query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
-
 Pipeline::Pipeline(CompilationContext *ctx)
     : id_(ctx->RegisterPipeline(this)),
       compilation_context_(ctx),

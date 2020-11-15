@@ -86,6 +86,7 @@ class EXPORT ExecutionSettings {
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::MiniRunners;
+  friend class noisepage::tpch::Workload;
   friend class noisepage::execution::SqlBasedTest;
   friend class noisepage::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
   friend class noisepage::optimizer::IdxJoinTest_MultiPredicateJoin_Test;
