@@ -82,8 +82,8 @@ class MiniRunnersDataConfig {
   /**
    * Parameter controls size of index scan lookups.
    */
-  std::vector<uint32_t> sweep_index_lookup_sizes_ = {1, 10, 20, 30, 40, 50, 75, 100, 1000, 10000, 20000, 30000,
-                                                     40000, 50000};
+  std::vector<uint32_t> sweep_index_lookup_sizes_ = {1,   10,   20,    30,    40,    50,    75,
+                                                     100, 1000, 10000, 20000, 30000, 40000, 50000};
 
   /*
    * Parameter controls # threads to sweep for building index.

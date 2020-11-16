@@ -27,7 +27,7 @@ class IdxJoinTest_IndexToIndexJoin_Test;
 
 namespace noisepage::tpch {
 class Workload;
-}  // namespace terrier::tpch
+}  // namespace noisepage::tpch
 
 namespace noisepage::execution::exec {
 /**

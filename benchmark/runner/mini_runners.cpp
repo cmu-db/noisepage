@@ -1440,24 +1440,24 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto output_num = row;
   brain::ExecutionOperatingUnitType build_ou_type = brain::ExecutionOperatingUnitType::SORT_BUILD;
   if (is_topk == 1) {
-    build_ou_type =  brain::ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    build_ou_type = brain::ExecutionOperatingUnitType::SORT_TOPK_BUILD;
     table_car = row;
     output_num = car;
   }
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
                          num_col, table_car, 1, 0, 0);
-  pipe0_vec.emplace_back(execution::translator_id_t(1), build_ou_type, row, tuple_size,
-                         num_col, car, 1, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), build_ou_type, row, tuple_size, num_col, car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SORT_ITERATE, output_num,
                          tuple_size, num_col, car, 1, 0, 0);
-  pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, output_num, tuple_size,
-                         num_col, 0, 1, 0, 0);
+  pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, output_num,
+                         tuple_size, num_col, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
   auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::DECIMAL, num_integers, num_decimals);
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, table_car);
+  auto tbl_name =
+      ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, table_car);
   query << "SELECT " << (cols) << " FROM " << tbl_name << " ORDER BY " << (cols);
   if (is_topk == 1) query << " LIMIT " << car;
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
@@ -1711,9 +1711,7 @@ void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
                                      PassthroughPlanChecker, nullptr, nullptr, &exec_settings);
   BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &exec_settings);
 
-  {
-    DropIndexByName(idx_name);
-  }
+  { DropIndexByName(idx_name); }
 
   InvokeGC();
   state->SetItemsProcessed(row);

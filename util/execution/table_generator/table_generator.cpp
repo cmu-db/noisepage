@@ -94,7 +94,7 @@ storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *
         *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
             storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
         rotate_counter++;
-        auto varlen_val = reinterpret_cast<storage::VarlenEntry*>(val);
+        auto varlen_val = reinterpret_cast<storage::VarlenEntry *>(val);
         std::shuffle(&varlen_val[0], &varlen_val[num_vals], std::mt19937(std::random_device()()));
       }
       break;
