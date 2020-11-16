@@ -220,7 +220,7 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLMergeHookFunction() const {
     brain::ExecutionOperatingUnitType build_merge_ou_type;
     ast::Expr *cardinality_val;
     if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
-      build_merge_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_TOPK_STEP;
+      build_merge_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
       cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
     } else {
       build_merge_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
