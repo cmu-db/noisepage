@@ -153,6 +153,7 @@ void WorkloadForecast::LoadQueryTrace() {
     colnum = 0;
     parse_succ = true;
     val_vec.assign(num_cols, "");
+    // parse each field separated by , delimiter and store them in val_vec
     while ((pos = line.find(',')) != std::string::npos && colnum < num_cols) {
       if (pos > 0) {
         val_vec[colnum] = line.substr(0, pos);
