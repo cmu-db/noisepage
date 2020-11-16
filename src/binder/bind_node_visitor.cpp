@@ -517,7 +517,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
   if (node->GetSelectOrderBy() != nullptr) {
     UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
-//    bool alias_unified = UnifyAliasNameOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
     node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
 
@@ -838,8 +837,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
       exprs[idx] = select_items[column_id - 1];
-    }
-    else if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::COLUMN_VALUE) {
+    } else if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::COLUMN_VALUE) {
       auto column_value_expression = exprs[idx].CastManagedPointerTo<parser::ColumnValueExpression>();
       std::string column_name = column_value_expression->GetColumnName();
       if (!column_name.empty()) {
