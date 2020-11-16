@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace terrier::common {
+namespace noisepage::common {
 
 // @see https://www.postgresql.org/docs/current/protocol-message-formats.html
 enum class ErrorSeverity : uint8_t {
@@ -61,4 +61,4 @@ enum class ErrorField : unsigned char {
   ROUTINE = 'R'
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

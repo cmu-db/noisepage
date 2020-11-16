@@ -7,15 +7,15 @@
 #include "execution/compiler/pipeline_driver.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class InsertPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * InsertTranslator
@@ -39,8 +39,10 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
 
   /**
    * Initialize the counters.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
-  void InitializeQueryState(FunctionBuilder *function) const override;
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Implement insertion logic where it fills in the insert PR obtained from the StorageInterface struct
@@ -119,4 +121,4 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry num_inserts_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

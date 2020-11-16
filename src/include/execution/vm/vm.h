@@ -2,7 +2,7 @@
 
 #include "execution/vm/bytecode_function_info.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class Module;
 
@@ -38,4 +38,4 @@ class VM {
   const Module *module_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

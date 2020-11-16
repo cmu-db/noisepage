@@ -5,7 +5,7 @@
 #include "common/managed_pointer.h"
 #include "nlohmann/json_fwd.hpp"
 
-namespace terrier::common {
+namespace noisepage::common {
 // TODO(WAN): I think we should be using the adt_serializable, not this hack..
 /**
  * Convenience alias for a JSON object from the nlohmann::json library.
@@ -24,4 +24,4 @@ using json = nlohmann::json;
   void from_json(const nlohmann::json &j, ClassName &c);                /* NOLINT */ \
   void from_json(const nlohmann::json &j, std::unique_ptr<ClassName> c);
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

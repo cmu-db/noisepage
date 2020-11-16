@@ -10,7 +10,7 @@
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /**
  * CopyStatement represents COPY statements.
@@ -80,4 +80,4 @@ class CopyStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

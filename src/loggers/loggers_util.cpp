@@ -8,6 +8,7 @@
 #include "loggers/common_logger.h"
 #include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
+#include "loggers/messenger_logger.h"
 #include "loggers/metrics_logger.h"
 #include "loggers/network_logger.h"
 #include "loggers/optimizer_logger.h"
@@ -16,10 +17,13 @@
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
 
+#ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink = nullptr;  // NOLINT
+#endif
 
-namespace terrier {
+namespace noisepage {
 void LoggersUtil::Initialize() {
+#ifdef NOISEPAGE_USE_LOGGING
   try {
     // create the default, shared sink
     if (default_sink == nullptr) {
@@ -30,6 +34,7 @@ void LoggersUtil::Initialize() {
     catalog::InitCatalogLogger();
     common::InitCommonLogger();
     execution::InitExecutionLogger();
+    messenger::InitMessengerLogger();
     metrics::InitMetricsLogger();
     network::InitNetworkLogger();
     optimizer::InitOptimizerLogger();
@@ -46,12 +51,15 @@ void LoggersUtil::Initialize() {
     std::cerr << "Debug logging initialization failed for " << ex.what() << std::endl;  // NOLINT
     throw ex;
   }
+#endif
 }
 
 void LoggersUtil::ShutDown() {
+#ifdef NOISEPAGE_USE_LOGGING
   if (default_sink != nullptr) {
     spdlog::shutdown();
     default_sink = nullptr;
   }
+#endif
 }
-}  // namespace terrier
+}  // namespace noisepage

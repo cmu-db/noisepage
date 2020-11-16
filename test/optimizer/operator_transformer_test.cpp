@@ -3,7 +3,6 @@
 #include <utility>
 #include <vector>
 
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog.h"
@@ -46,16 +45,12 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
+#include "storage/sql_table.h"
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-using std::make_tuple;
-
-using std::unique_ptr;
-using std::vector;
-
-namespace terrier {
+namespace noisepage {
 
 class OperatorTransformerTest : public TerrierTest {
  protected:
@@ -141,7 +136,7 @@ class OperatorTransformerTest : public TerrierTest {
   }
 
   void SetUp() override {
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
 
@@ -1960,4 +1955,4 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
 }
-}  // namespace terrier
+}  // namespace noisepage

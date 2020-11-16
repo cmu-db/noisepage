@@ -2,7 +2,7 @@
 
 #include <test_util/test_harness.h>
 
-namespace terrier {
+namespace noisepage {
 
 struct NameBuilderTests : public TerrierTest {};
 
@@ -45,4 +45,4 @@ TEST_F(NameBuilderTests, TableNameOnlyTest) {
   EXPECT_EQ("foo", catalog::postgres::NameBuilder::MakeName(table_name, field_name, type));
 }
 
-}  // namespace terrier
+}  // namespace noisepage

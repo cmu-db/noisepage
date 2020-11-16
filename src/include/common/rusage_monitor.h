@@ -5,7 +5,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * Helped class around get_rusage syscall that allows to profile specific sections of code. If Start() and Stop() are
  * called on the same object from separate threads then the results will likely be garbage.
@@ -32,7 +32,7 @@ class RusageMonitor {
    * Start monitoring rusage by capturing current values
    */
   void Start() {
-    TERRIER_ASSERT(!running_, "Start() called while already running.");
+    NOISEPAGE_ASSERT(!running_, "Start() called while already running.");
     Now(&start_);
     running_ = true;
   }
@@ -41,7 +41,7 @@ class RusageMonitor {
    * Stop monitoring rusage by capturing current values
    */
   void Stop() {
-    TERRIER_ASSERT(running_, "Stop() called while not running.");
+    NOISEPAGE_ASSERT(running_, "Stop() called while not running.");
     valid_ = running_;
     Now(&end_);
     running_ = false;
@@ -51,7 +51,7 @@ class RusageMonitor {
    * Return rusage for the profiled period
    */
   rusage Usage() const {
-    TERRIER_ASSERT(!running_, "Usage() called while still running.");
+    NOISEPAGE_ASSERT(!running_, "Usage() called while still running.");
     if (valid_) {
       return SubtractRusage(end_, start_);
     }
@@ -106,7 +106,7 @@ class RusageMonitor {
 #else
     auto ret UNUSED_ATTRIBUTE = getrusage(who_, usage);
 #endif
-    TERRIER_ASSERT(ret == 0, "getrusage failed.");
+    NOISEPAGE_ASSERT(ret == 0, "getrusage failed.");
   }
-};  // namespace terrier::common
-}  // namespace terrier::common
+};  // namespace noisepage::common
+}  // namespace noisepage::common

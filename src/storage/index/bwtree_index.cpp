@@ -6,7 +6,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 template <typename KeyType>
 BwTreeIndex<KeyType>::BwTreeIndex(IndexMetadata metadata)
@@ -49,13 +49,13 @@ size_t BwTreeIndex<KeyType>::EstimateHeapUsage() const {
 template <typename KeyType>
 bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const ProjectedRow &tuple, const TupleSlot location) {
-  TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
-                 "This Insert is designed for secondary indexes with no uniqueness constraints.");
+  NOISEPAGE_ASSERT(!(metadata_.GetSchema().Unique()),
+                   "This Insert is designed for secondary indexes with no uniqueness constraints.");
   KeyType index_key;
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
   const bool result = bwtree_->Insert(index_key, location, false);
 
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       result,
       "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
   // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
@@ -64,7 +64,7 @@ bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Tran
   // Register an abort action with the txn context in case of rollback
   txn->RegisterAbortAction([=]() {
     const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
-    TERRIER_ASSERT(result, "Delete on the index failed.");
+    NOISEPAGE_ASSERT(result, "Delete on the index failed.");
   });
   return result;
 }
@@ -72,7 +72,7 @@ bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Tran
 template <typename KeyType>
 bool BwTreeIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction::TransactionContext> txn,
                                         const ProjectedRow &tuple, const TupleSlot location) {
-  TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
+  NOISEPAGE_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
   KeyType index_key;
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
   bool predicate_satisfied = false;
@@ -87,7 +87,7 @@ bool BwTreeIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction
 
   const bool result = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);
 
-  TERRIER_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
+  NOISEPAGE_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
 
   if (result) {
     // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
@@ -96,7 +96,7 @@ bool BwTreeIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
       const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
-      TERRIER_ASSERT(result, "Delete on the index failed.");
+      NOISEPAGE_ASSERT(result, "Delete on the index failed.");
     });
   } else {
     // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
@@ -114,15 +114,15 @@ void BwTreeIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Tran
   KeyType index_key;
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
-  TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
-                     !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
-                 "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
+  NOISEPAGE_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
+                       !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
+                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
   // Register a deferred action for the GC with txn manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() {
       const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
-      TERRIER_ASSERT(result, "Deferred delete on the index failed.");
+      NOISEPAGE_ASSERT(result, "Deferred delete on the index failed.");
     });
   });
 }
@@ -130,7 +130,7 @@ void BwTreeIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Tran
 template <typename KeyType>
 void BwTreeIndex<KeyType>::ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
                                    std::vector<TupleSlot> *value_list) {
-  TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+  NOISEPAGE_ASSERT(value_list->empty(), "Result set should begin empty.");
 
   std::vector<TupleSlot> results;
 
@@ -149,18 +149,18 @@ void BwTreeIndex<KeyType>::ScanKey(const transaction::TransactionContext &txn, c
     if (IsVisible(txn, result)) value_list->emplace_back(result);
   }
 
-  TERRIER_ASSERT(!(metadata_.GetSchema().Unique()) || (metadata_.GetSchema().Unique() && value_list->size() <= 1),
-                 "Invalid number of results for unique index.");
+  NOISEPAGE_ASSERT(!(metadata_.GetSchema().Unique()) || (metadata_.GetSchema().Unique() && value_list->size() <= 1),
+                   "Invalid number of results for unique index.");
 }
 
 template <typename KeyType>
 void BwTreeIndex<KeyType>::ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type,
                                          uint32_t num_attrs, ProjectedRow *low_key, ProjectedRow *high_key,
                                          uint32_t limit, std::vector<TupleSlot> *value_list) {
-  TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
-  TERRIER_ASSERT(scan_type == ScanType::Closed || scan_type == ScanType::OpenLow || scan_type == ScanType::OpenHigh ||
-                     scan_type == ScanType::OpenBoth,
-                 "Invalid scan_type passed into BwTreeIndex::Scan");
+  NOISEPAGE_ASSERT(value_list->empty(), "Result set should begin empty.");
+  NOISEPAGE_ASSERT(scan_type == ScanType::Closed || scan_type == ScanType::OpenLow || scan_type == ScanType::OpenHigh ||
+                       scan_type == ScanType::OpenBoth,
+                   "Invalid scan_type passed into BwTreeIndex::Scan");
 
   bool low_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenHigh);
   bool high_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenLow);
@@ -186,7 +186,7 @@ template <typename KeyType>
 void BwTreeIndex<KeyType>::BwTreeIndex::ScanDescending(const transaction::TransactionContext &txn,
                                                        const ProjectedRow &low_key, const ProjectedRow &high_key,
                                                        std::vector<TupleSlot> *value_list) {
-  TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+  NOISEPAGE_ASSERT(value_list->empty(), "Result set should begin empty.");
 
   // Build search keys
   KeyType index_low_key, index_high_key;
@@ -213,8 +213,8 @@ template <typename KeyType>
 void BwTreeIndex<KeyType>::ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                                                const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
                                                const uint32_t limit) {
-  TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
-  TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
+  NOISEPAGE_ASSERT(value_list->empty(), "Result set should begin empty.");
+  NOISEPAGE_ASSERT(limit > 0, "Limit must be greater than 0.");
 
   // Build search keys
   KeyType index_low_key, index_high_key;
@@ -249,4 +249,4 @@ template class BwTreeIndex<GenericKey<128>>;
 template class BwTreeIndex<GenericKey<256>>;
 template class BwTreeIndex<GenericKey<512>>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

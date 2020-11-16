@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 #define TEMPLATE_ARGS K, V, Hasher, Equality, Alloc
 /**
  * A thread-safe map implementation. For the time being make sure that the value types are trivially copyable value
@@ -228,7 +228,7 @@ class ConcurrentMap {
  private:
   tbb::concurrent_unordered_map<TEMPLATE_ARGS> map_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common
 
 // TODO(Tianyu): Remove this if we don't end up using tbb
 namespace tbb {
@@ -238,13 +238,13 @@ namespace tbb {
  * @tparam T the underlying type.
  */
 template <class Tag, typename T>
-struct tbb_hash<terrier::common::StrongTypeAlias<Tag, T>> {
+struct tbb_hash<noisepage::common::StrongTypeAlias<Tag, T>> {
   /**
    * Returns the TBB hash of the underlying type's contents.
    * @param alias the aliased type to be hashed.
    * @return the hash of the aliased type.
    */
-  size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const {
+  size_t operator()(const noisepage::common::StrongTypeAlias<Tag, T> &alias) const {
     // This is fine since we know this is reference will be const to
     // the underlying tbb hash
     return tbb_hash<T>()(!alias);

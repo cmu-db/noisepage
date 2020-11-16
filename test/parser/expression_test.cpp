@@ -26,7 +26,7 @@
 #include "parser/postgresparser.h"
 #include "type/type_id.h"
 
-namespace terrier::parser::expression {
+namespace noisepage::parser::expression {
 
 bool CompareExpressionsEqual(const std::vector<common::ManagedPointer<AbstractExpression>> &expr_children,
                              const std::vector<std::unique_ptr<AbstractExpression>> &copy_children) {
@@ -660,11 +660,6 @@ TEST(ExpressionTests, OperatorExpressionTest) {
 
   op_expr_3->DeriveExpressionName();
   EXPECT_EQ(op_expr_3->GetExpressionName(), "");
-  // Make sure that we catch when the deduced expression type suggests that invalid operand types
-  // NOTE: We only do this for debug builds
-#ifndef NDEBUG
-  EXPECT_DEATH(op_expr_3->DeriveReturnValueType(), "Invalid operand type in Operator Expression.");
-#endif
 
   delete op_expr_1;
   delete op_expr_2;
@@ -1185,4 +1180,4 @@ TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
             *subselect->GetSelectTable()->GetJoin()->GetJoinCondition());
 }
 
-}  // namespace terrier::parser::expression
+}  // namespace noisepage::parser::expression

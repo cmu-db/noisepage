@@ -10,7 +10,7 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct DeltaRecordTests : public TerrierTest {
   std::default_random_engine generator_;
@@ -106,4 +106,4 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     delete[] record_buffer;
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

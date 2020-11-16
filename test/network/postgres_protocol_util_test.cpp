@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class PostgresProtocolUtilTests : public TerrierTest {};
 
@@ -36,4 +36,4 @@ TEST_F(PostgresProtocolUtilTests, TypeConversionTest) {
   }
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

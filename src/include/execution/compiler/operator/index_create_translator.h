@@ -7,15 +7,15 @@
 #include "execution/compiler/pipeline_driver.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class CreateIndexPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -63,6 +63,14 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
+   * Define all hook functions
+   * @param pipeline Pipeline that helper functions are being generated for.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                         util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
    * Implement create index logic where it fills in the scanned tuples obtained from the StorageInterface struct
    * @param context The context of the work.
    * @param function The pipeline generating function.
@@ -82,6 +90,12 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
 
   /** Launch work for parallel execution */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override;
+
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /** Generates a EndHook function to be invoked after parallel create index has finished */
+  ast::FunctionDecl *GenerateEndHookFunction() const;
 
  private:
   // Initialization for serial and parallel
@@ -127,5 +141,10 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<catalog::col_oid_t> all_oids_;
 
   catalog::index_oid_t index_oid_;
+
+  // The number of rows that are inserted.
+  StateDescriptor::Entry num_inserts_;
+
+  ast::Identifier parallel_build_post_hook_fn_;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

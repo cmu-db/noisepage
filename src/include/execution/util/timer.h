@@ -2,7 +2,7 @@
 
 #include <chrono>  // NOLINT
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * A simple restartable timer.
@@ -110,4 +110,4 @@ class ScopedTimer {
   double *elapsed_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

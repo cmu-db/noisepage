@@ -4,7 +4,7 @@
 
 // TODO(WAN): csv is broken.
 #if 0
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 class CSVReaderTest : public TplTest {
  protected:
@@ -138,5 +138,5 @@ TEST_F(CSVReaderTest, CheckUnquoted) {
   EXPECT_FALSE(reader.Advance());
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test
 #endif

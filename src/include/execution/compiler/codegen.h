@@ -20,11 +20,11 @@
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * Bundles convenience methods needed by other classes during code generation.
@@ -697,7 +697,7 @@ class CodeGen {
    * @param attr_idx Index of the column being accessed.
    * @return The expression corresponding to the builtin call.
    */
-  [[nodiscard]] ast::Expr *PRGet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
+  [[nodiscard]] ast::Expr *PRGet(ast::Expr *pr, noisepage::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
    * Call \@prSet(pr, attr_idx, val, [own]).
@@ -748,6 +748,30 @@ class CodeGen {
   [[nodiscard]] ast::Expr *FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi, ast::Expr *exec_ctx);
 
   /**
+   * Call \@execCtxRegisterHook(exec_ctx, hook_idx, hook).
+   * @param exec_ctx The execution context to modify.
+   * @param hook_idx Index to install hook at
+   * @param hook Hook function to register
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxRegisterHook(ast::Expr *exec_ctx, uint32_t hook_idx, ast::Identifier hook);
+
+  /**
+   * Call \@execCtxClearHooks(exec_ctx).
+   * @param exec_ctx The execution context to modify.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxClearHooks(ast::Expr *exec_ctx);
+
+  /**
+   * Call \@execCtxInitHooks(exec_ctx, num_hooks).
+   * @param exec_ctx The execution context to modify.
+   * @param num_hooks Number of hooks
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxInitHooks(ast::Expr *exec_ctx, uint32_t num_hooks);
+
+  /**
    * Call \@execCtxAddRowsAffected(exec_ctx, num_rows_affected).
    * @param exec_ctx The execution context to modify.
    * @param num_rows_affected The amount to increment or decrement the number of rows affected.
@@ -757,16 +781,18 @@ class CodeGen {
 
   /**
    * Call \@execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value).
-   * @param exec_ctx The execution context to modify.
+   * @param ouvec OU feature vector to update
    * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
    * @param feature_id The ID of the feature to be recorded.
    * @param feature_attribute The attribute of the feature to record.
+   * @param mode Update mode
    * @param value The value to be recorded.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
-                                                brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                                ast::Expr *value);
+  [[nodiscard]] ast::Expr *ExecOUFeatureVectorRecordFeature(
+      ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
+      brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+      brain::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value);
 
   /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.
@@ -845,11 +871,10 @@ class CodeGen {
    * the build-row structures with the provided name.
    * @param join_hash_table The join hash table.
    * @param exec_ctx The execution context.
-   * @param mem_pool The memory pool.
    * @param build_row_type_name The name of the materialized build-side row in the hash table.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *mem_pool,
+  [[nodiscard]] ast::Expr *JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx,
                                              ast::Identifier build_row_type_name);
 
   /**
@@ -966,12 +991,10 @@ class CodeGen {
    * Call \@aggHTInit(). Initializes an aggregation hash table.
    * @param agg_ht A pointer to the aggregation hash table.
    * @param exec_ctx The execution context.
-   * @param mem_pool A pointer to the memory pool.
    * @param agg_payload_type The name of the struct representing the aggregation payload.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *mem_pool,
-                                            ast::Identifier agg_payload_type);
+  [[nodiscard]] ast::Expr *AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Identifier agg_payload_type);
 
   /**
    * Call \@aggHTLookup(). Performs a single key lookup in an aggregation hash table. The hash value
@@ -1157,12 +1180,12 @@ class CodeGen {
    * Call \@sorterInit(). Initialize the provided sorter instance using a memory pool, comparison
    * function and the struct that will be materialized into the sorter instance.
    * @param sorter The sorter instance.
-   * @param mem_pool The memory pool instance.
+   * @param exec_ctx The execution context that we are running in.
    * @param cmp_func_name The name of the comparison function to use.
    * @param sort_row_type_name The name of the materialized sort-row type.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *SorterInit(ast::Expr *sorter, ast::Expr *mem_pool, ast::Identifier cmp_func_name,
+  [[nodiscard]] ast::Expr *SorterInit(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Identifier cmp_func_name,
                                       ast::Identifier sort_row_type_name);
 
   /**
@@ -1453,4 +1476,4 @@ class CodeGen {
   std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

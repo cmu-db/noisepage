@@ -11,7 +11,7 @@
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ExecutableQueryFragmentBuilder::ExecutableQueryFragmentBuilder(ast::Context *ctx) : ctx_(ctx) {}
 
@@ -71,4 +71,4 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
                                                      std::move(module));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

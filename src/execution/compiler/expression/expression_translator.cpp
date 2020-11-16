@@ -3,7 +3,7 @@
 #include "execution/compiler/compilation_context.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ExpressionTranslator::ExpressionTranslator(const parser::AbstractExpression &expr,
                                            CompilationContext *compilation_context)
@@ -15,4 +15,4 @@ ast::Expr *ExpressionTranslator::GetExecutionContextPtr() const {
   return compilation_context_->GetExecutionContextPtrFromQueryState();
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

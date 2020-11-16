@@ -5,7 +5,7 @@
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Comparison functions for SQL values.
@@ -237,7 +237,7 @@ class EXPORT ComparisonFunctions {
    * @return The appropriate signed value indicating comparison order.
    */
   static int32_t Compare(const StringVal &v1, const StringVal &v2) {
-    TERRIER_ASSERT(!v1.is_null_ && !v2.is_null_, "Both input strings must not be null");
+    NOISEPAGE_ASSERT(!v1.is_null_ && !v2.is_null_, "Both input strings must not be null");
     const auto min_len = std::min(v1.GetLength(), v2.GetLength());
     if (min_len == 0) {
       if (v1.GetLength() == v2.GetLength()) {
@@ -284,14 +284,14 @@ class EXPORT ComparisonFunctions {
   BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TimestampVal, OP) \
   BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, StringVal, OP)
 
-BINARY_COMPARISONS(Eq, terrier::execution::sql::Equal);
-BINARY_COMPARISONS(Ge, terrier::execution::sql::GreaterThanEqual);
-BINARY_COMPARISONS(Gt, terrier::execution::sql::GreaterThan);
-BINARY_COMPARISONS(Le, terrier::execution::sql::LessThanEqual);
-BINARY_COMPARISONS(Lt, terrier::execution::sql::LessThan);
-BINARY_COMPARISONS(Ne, terrier::execution::sql::NotEqual);
+BINARY_COMPARISONS(Eq, noisepage::execution::sql::Equal);
+BINARY_COMPARISONS(Ge, noisepage::execution::sql::GreaterThanEqual);
+BINARY_COMPARISONS(Gt, noisepage::execution::sql::GreaterThan);
+BINARY_COMPARISONS(Le, noisepage::execution::sql::LessThanEqual);
+BINARY_COMPARISONS(Lt, noisepage::execution::sql::LessThan);
+BINARY_COMPARISONS(Ne, noisepage::execution::sql::NotEqual);
 
 #undef BINARY_COMPARISONS
 #undef BINARY_COMPARISON_STRING_FN_HIDE_NULL
 #undef BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

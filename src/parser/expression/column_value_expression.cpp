@@ -1,8 +1,10 @@
 #include "parser/expression/column_value_expression.h"
 
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> ColumnValueExpression::Copy() const {
   auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
@@ -45,6 +47,10 @@ void ColumnValueExpression::DeriveExpressionName() {
     this->SetExpressionName(column_name_);
 }
 
+void ColumnValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 nlohmann::json ColumnValueExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
   j["table_name"] = table_name_;
@@ -69,4 +75,4 @@ std::vector<std::unique_ptr<AbstractExpression>> ColumnValueExpression::FromJson
 
 DEFINE_JSON_BODY_DECLARATIONS(ColumnValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

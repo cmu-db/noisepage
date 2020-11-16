@@ -275,7 +275,11 @@ wal.log
 
 # OLTP output
 **/oltp_output_*
+**/oltp_result
 
 # JUnit intermediate out directory
 **/junit/out/
 out/
+
+# debug scripts, artifacts
+debug

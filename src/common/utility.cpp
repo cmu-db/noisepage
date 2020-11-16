@@ -14,10 +14,10 @@ int close$NOCANCEL(int);  // NOLINT
 };
 #endif
 
-namespace terrier {
+namespace noisepage {
 
 /**
- * Close a file descriptor. On all systems supported by terrier,
+ * Close a file descriptor. On all systems supported by noisepage,
  * the file descriptor is closed and no retry or error recovery is required.
  *
  * WARNING: On some systems such as HPUX, return codes such as EINTR do require
@@ -64,4 +64,4 @@ std::string TerrierErrorMessage() {
   errno = saved_errno;
   return std::string(error_message);
 }
-}  // namespace terrier
+}  // namespace noisepage

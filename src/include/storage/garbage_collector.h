@@ -9,14 +9,14 @@
 #include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TimestampManager;
 class TransactionManager;
 class DeferredActionManager;
 class TransactionContext;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 class AccessObserver;
 class DataTable;
@@ -52,8 +52,8 @@ class GarbageCollector {
                    common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer);
 
   ~GarbageCollector() {
-    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
-    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
+    NOISEPAGE_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
+    NOISEPAGE_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
   }
 
   /**
@@ -132,4 +132,4 @@ class GarbageCollector {
   uint64_t gc_interval_{0};
 };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

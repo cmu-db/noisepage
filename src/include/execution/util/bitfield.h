@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 namespace internal {
 
@@ -106,4 +106,4 @@ class BitField32 : public internal::BitFieldBase<uint32_t, T, position, size> {}
 template <typename T, unsigned position, unsigned size>
 class BitField64 : public internal::BitFieldBase<uint64_t, T, position, size> {};
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

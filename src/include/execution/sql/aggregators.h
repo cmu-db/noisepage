@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /** Counting aggregate. */
 class CountAggregate {
@@ -364,4 +364,4 @@ class AvgAggregate {
   uint64_t count_{0};
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

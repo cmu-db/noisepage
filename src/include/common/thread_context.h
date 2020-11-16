@@ -3,12 +3,12 @@
 #include "common/managed_pointer.h"
 #include "common/resource_tracker.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 class MetricsStore;
 class MetricsManager;
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * thread_local global variables for state needs to be visible to this thread only, and not for sharing state or passing
@@ -34,4 +34,4 @@ struct ThreadContext {
  */
 extern thread_local common::ThreadContext thread_context;
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

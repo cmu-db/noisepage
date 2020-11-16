@@ -4,7 +4,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A cheap and easy shared (reader-writer) latch, currently wraps tbb::reader_writer_lock. From Intel's docs:
@@ -86,4 +86,4 @@ class SharedLatch {
   tbb::reader_writer_lock latch_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

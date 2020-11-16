@@ -9,7 +9,7 @@
 #include "execution/vm/bytecode_iterator.h"
 #include "execution/vm/vm.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * A bytecode module is a container for all the TPL bytecode (TBC) for a TPL source file. Bytecode
@@ -41,7 +41,7 @@ class BytecodeModule {
    */
   const FunctionInfo *GetFuncInfoById(const FunctionId func_id) const {
     // Function IDs are dense, so the given ID must be in the range [0, # functions)
-    TERRIER_ASSERT(func_id < GetFunctionCount(), "Invalid function");
+    NOISEPAGE_ASSERT(func_id < GetFunctionCount(), "Invalid function");
     return &functions_[func_id];
   }
 
@@ -124,7 +124,7 @@ class BytecodeModule {
   // returns a pointer the raw underlying bytecode. It's used by the VM to
   // execute functions.
   const uint8_t *AccessBytecodeForFunctionRaw(const FunctionInfo &func) const {
-    TERRIER_ASSERT(GetFuncInfoById(func.GetId()) == &func, "Function not in module!");
+    NOISEPAGE_ASSERT(GetFuncInfoById(func.GetId()) == &func, "Function not in module!");
     auto [start, _] = func.GetBytecodeRange();
     (void)_;
     return &code_[start];
@@ -134,8 +134,8 @@ class BytecodeModule {
   const uint8_t *AccessStaticLocalDataRaw(const uint32_t offset) const {
 #ifndef NDEBUG
     // In DEBUG mode, make sure the offset we're about to access corresponds to a valid static value
-    TERRIER_ASSERT(offset < data_.size(), "Invalid local offset");
-    TERRIER_ASSERT(
+    NOISEPAGE_ASSERT(offset < data_.size(), "Invalid local offset");
+    NOISEPAGE_ASSERT(
         std::find_if(static_locals_.begin(), static_locals_.end(),
                      [&](const LocalInfo &info) { return info.GetOffset() == offset; }) != static_locals_.end(),
         "No local at given offset");
@@ -161,4 +161,4 @@ class BytecodeModule {
   const std::vector<LocalInfo> static_locals_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

@@ -20,11 +20,11 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct CatalogTests : public TerrierTest {
   void SetUp() override {
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     auto *txn = txn_manager_->BeginTransaction();
@@ -838,4 +838,4 @@ TEST_F(CatalogTests, DDLLockTest) {
   txn_manager_->Commit(txn5, transaction::TransactionUtil::EmptyCallback, nullptr);  // txn5 releases the lock
 }
 
-}  // namespace terrier
+}  // namespace noisepage

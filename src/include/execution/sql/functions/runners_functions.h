@@ -2,7 +2,7 @@
 
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Utility class to handle mini runners functions
@@ -20,15 +20,15 @@ class EXPORT MiniRunnersFunctions {
    * @param num_int_cols Number ints
    * @param num_real_cols Number reals
    */
-  static void EmitTuples(terrier::execution::exec::ExecutionContext *ctx, const Integer &num_tuples,
+  static void EmitTuples(noisepage::execution::exec::ExecutionContext *ctx, const Integer &num_tuples,
                          const Integer &num_cols, const Integer &num_int_cols, const Integer &num_real_cols) {
     if (num_tuples.val_ < 2) return;
 
     // We are already in an output slot
+    auto *output_buffer = ctx->OutputBufferNew();
 
     static_assert(sizeof(Integer) == sizeof(Real));
-    auto output_buffer = ctx->GetOutputBuffer();
-    for (auto row = 0; row < num_tuples.val_ - 2; row++) {
+    for (auto row = 0; row < num_tuples.val_ - 1; row++) {
       auto output_alloc = output_buffer->AllocOutputSlot();
 
       auto j = 0;
@@ -43,9 +43,12 @@ class EXPORT MiniRunnersFunctions {
       }
     }
 
-    // Caller still needs an output slot
-    output_buffer->AllocOutputSlot();
+    // Destroy the OutputBuffer
+    output_buffer->Finalize();
+    auto *pool = output_buffer->GetMemoryPool();
+    output_buffer->~OutputBuffer();
+    pool->Deallocate(output_buffer, sizeof(exec::OutputBuffer));
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

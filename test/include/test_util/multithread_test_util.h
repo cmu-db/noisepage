@@ -8,12 +8,11 @@
 #include <utility>
 #include <vector>
 
-#include "common/container/concurrent_vector.h"
 #include "common/object_pool.h"
 #include "common/worker_pool.h"
 #include "gtest/gtest.h"
 
-namespace terrier {
+namespace noisepage {
 /**
  * Thread pool for use in tests to avoid creating and destroying a ton of threads when running multiple iterations
  */
@@ -51,4 +50,4 @@ struct MultiThreadTestUtil {
   static uint32_t HardwareConcurrency() noexcept { return std::thread::hardware_concurrency(); }
 };
 
-}  // namespace terrier
+}  // namespace noisepage

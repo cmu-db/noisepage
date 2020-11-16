@@ -7,6 +7,7 @@ struct output_struct {
 }
 
 fun main(execCtx: *ExecutionContext) -> int {
+  var output_buffer = @resultBufferNew(execCtx)
   var count = 0
   var out : *output_struct
   var tvi: TableVectorIterator
@@ -19,14 +20,15 @@ fun main(execCtx: *ExecutionContext) -> int {
     var vpi = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
       if (@vpiGetSmallInt(vpi, 0) < 500) {
-        out = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
+        out = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
         out.col1 = @vpiGetSmallInt(vpi, 0)
         out.col2 = @vpiGetInt(vpi, 1)
         count = count + 1
       }
     }
   }
-  @resultBufferFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   @tableIterClose(&tvi)
   return count
 }

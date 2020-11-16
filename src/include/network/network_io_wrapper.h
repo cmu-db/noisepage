@@ -6,7 +6,7 @@
 #include "common/managed_pointer.h"
 #include "network/network_types.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class ReadBuffer;
 class WriteBuffer;
@@ -89,4 +89,4 @@ class NetworkIoWrapper {
 
   void RestartState();
 };
-}  // namespace terrier::network
+}  // namespace noisepage::network

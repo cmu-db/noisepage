@@ -6,6 +6,7 @@ struct output_struct {
 }
 
 fun main(execCtx: *ExecutionContext) -> int {
+  var output_buffer = @resultBufferNew(execCtx)
   var count = 0 // output count
 
   // Initialize the index iterator.
@@ -34,7 +35,7 @@ fun main(execCtx: *ExecutionContext) -> int {
     var table_pr1 = @indexIteratorGetTablePR(&index)
 
     // Read out the matching tuple to the output buffer
-    var out1 = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
+    var out1 = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
     out1.colA = @prGetInt(table_pr1, 0)
     out1.colB = @prGetInt(table_pr1, 1)
     count = count + 1
@@ -46,7 +47,7 @@ fun main(execCtx: *ExecutionContext) -> int {
     var table_pr2 = @indexIteratorGetTablePR(&index)
 
     // Read out the matching tuple to the output buffer
-    var out2 = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
+    var out2 = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
     out2.colA = @prGetInt(table_pr2, 0)
     out2.colB = @prGetInt(table_pr2, 1)
     count = count + 1
@@ -58,7 +59,7 @@ fun main(execCtx: *ExecutionContext) -> int {
     var table_pr3 = @indexIteratorGetTablePR(&index)
 
     // Read out the matching tuple to the output buffer
-    var out3 = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
+    var out3 = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
     out3.colA = @prGetInt(table_pr3, 0)
     out3.colB = @prGetInt(table_pr3, 1)
     count = count + 1
@@ -70,7 +71,7 @@ fun main(execCtx: *ExecutionContext) -> int {
     var table_pr4 = @indexIteratorGetTablePR(&index)
 
     // Read out the matching tuple to the output buffer
-    var out4 = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
+    var out4 = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
     out4.colA = @prGetInt(table_pr4, 0)
     out4.colB = @prGetInt(table_pr4, 1)
     count = count + 1
@@ -78,6 +79,7 @@ fun main(execCtx: *ExecutionContext) -> int {
 
   // Finalize output
   @indexIteratorFree(&index)
-  @resultBufferFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   return count // total is 32
 }

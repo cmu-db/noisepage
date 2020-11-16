@@ -11,12 +11,12 @@
 #include "storage/storage_defs.h"
 #include "test_util/sql_table_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 class RecoveryBenchmark : public benchmark::Fixture {
  public:
-  void SetUp(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
-  void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
+  void SetUp(const benchmark::State &state) final { unlink(noisepage::BenchmarkConfig::logfile_path.data()); }
+  void TearDown(const benchmark::State &state) final { unlink(noisepage::BenchmarkConfig::logfile_path.data()); }
 
   const uint32_t initial_table_size_ = 1000000;
   const uint32_t num_txns_ = 100000;
@@ -32,10 +32,10 @@ class RecoveryBenchmark : public benchmark::Fixture {
     // NOLINTNEXTLINE
     for (auto _ : *state) {
       // Blow away log file after every benchmark iteration
-      unlink(terrier::BenchmarkConfig::logfile_path.data());
+      unlink(noisepage::BenchmarkConfig::logfile_path.data());
       // Initialize table and run workload with logging enabled
-      auto db_main = terrier::DBMain::Builder()
-                         .SetWalFilePath(terrier::BenchmarkConfig::logfile_path.data())
+      auto db_main = noisepage::DBMain::Builder()
+                         .SetWalFilePath(noisepage::BenchmarkConfig::logfile_path.data())
                          .SetUseLogging(true)
                          .SetUseGC(true)
                          .SetUseGCThread(true)
@@ -69,7 +69,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
       auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
 
       // Instantiate recovery manager, and recover the tables.
-      storage::DiskLogProvider log_provider(terrier::BenchmarkConfig::logfile_path.data());
+      storage::DiskLogProvider log_provider(noisepage::BenchmarkConfig::logfile_path.data());
       storage::RecoveryManager recovery_manager(
           common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
           recovery_deferred_action_manager, recovery_thread_registry, recovery_block_store);
@@ -141,10 +141,10 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // Blow away log file after every benchmark iteration
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     // Initialize table and run workload with logging enabled
-    auto db_main = terrier::DBMain::Builder()
-                       .SetWalFilePath(terrier::BenchmarkConfig::logfile_path.data())
+    auto db_main = noisepage::DBMain::Builder()
+                       .SetWalFilePath(noisepage::BenchmarkConfig::logfile_path.data())
                        .SetUseLogging(true)
                        .SetUseGC(true)
                        .SetUseGCThread(true)
@@ -221,7 +221,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
 
     // Instantiate recovery manager, and recover the tables.
-    storage::DiskLogProvider log_provider(terrier::BenchmarkConfig::logfile_path.data());
+    storage::DiskLogProvider log_provider(noisepage::BenchmarkConfig::logfile_path.data());
     storage::RecoveryManager recovery_manager(common::ManagedPointer<storage::AbstractLogProvider>(&log_provider),
                                               recovery_catalog, recovery_txn_manager, recovery_deferred_action_manager,
                                               recovery_thread_registry, recovery_block_store);
@@ -256,4 +256,4 @@ BENCHMARK_REGISTER_F(RecoveryBenchmark, IndexRecovery)
     ->MinTime(4);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

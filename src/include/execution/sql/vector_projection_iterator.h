@@ -12,7 +12,7 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/util/bit_util.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A tuple-at-a-time iterator over VectorProjections. The iterator gives the <i>view</i> of
@@ -260,8 +260,8 @@ class VectorProjectionIterator {
 
  private:
   void Init(VectorProjection *vector_projection, TupleIdList *tid_list) {
-    TERRIER_ASSERT(vector_projection != nullptr, "NULL projection");
-    TERRIER_ASSERT(tid_list != nullptr, "NULL TID list");
+    NOISEPAGE_ASSERT(vector_projection != nullptr, "NULL projection");
+    NOISEPAGE_ASSERT(tid_list != nullptr, "NULL TID list");
 
     vector_projection_ = vector_projection;
 
@@ -332,7 +332,7 @@ inline const T *VectorProjectionIterator::GetValue(uint32_t col_idx, bool *null)
   const sel_t curr_idx = GetPosition();
 
   if constexpr (Nullable) {  // NOLINT
-    TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+    NOISEPAGE_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
     *null = col_vector->null_mask_[curr_idx];
   }
 
@@ -366,7 +366,7 @@ inline sel_t VectorProjectionIterator::GetPosition() const { return sel_vector_[
 
 template <bool Filtered>
 inline void VectorProjectionIterator::SetPosition(uint32_t idx) {
-  TERRIER_ASSERT(idx < GetSelectedTupleCount(), "Out of bounds access");
+  NOISEPAGE_ASSERT(idx < GetSelectedTupleCount(), "Out of bounds access");
   sel_vector_read_idx_ = idx;
 }
 
@@ -420,9 +420,9 @@ inline void VectorProjectionIterator::SynchronizedForEach(std::initializer_list<
   static_assert(std::is_invocable_r_v<void, F>, "Callback must be a no-arg void-return function");
 
   // Either all provided iterators are filtered or non are.
-  TERRIER_ASSERT(std::all_of(iters.begin(), iters.end(), [](auto vpi) { return vpi->IsFiltered(); }) ||
-                     std::none_of(iters.begin(), iters.end(), [](auto vpi) { return vpi->IsFiltered(); }),
-                 "All iterators must have the same filtration status");
+  NOISEPAGE_ASSERT(std::all_of(iters.begin(), iters.end(), [](auto vpi) { return vpi->IsFiltered(); }) ||
+                       std::none_of(iters.begin(), iters.end(), [](auto vpi) { return vpi->IsFiltered(); }),
+                   "All iterators must have the same filtration status");
 
   // No-op if list is empty.
   if (iters.size() == 0) {
@@ -461,4 +461,4 @@ inline void VectorProjectionIterator::RunFilter(P p) {
   ResetFiltered();
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
