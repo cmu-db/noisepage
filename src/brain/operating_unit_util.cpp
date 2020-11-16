@@ -9,6 +9,7 @@ bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f
   switch (feature) {
     case ExecutionOperatingUnitType::HASHJOIN_BUILD:
     case ExecutionOperatingUnitType::SORT_BUILD:
+    case ExecutionOperatingUnitType::SORT_TOPK_BUILD:
     case ExecutionOperatingUnitType::AGGREGATE_BUILD:
     case ExecutionOperatingUnitType::CREATE_INDEX:
       return true;
