@@ -64,6 +64,10 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "PARALLEL_SORT_STEP";
     case ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP:
       return "PARALLEL_SORT_MERGE_STEP";
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP:
+      return "PARALLEL_SORT_TOPK_STEP";
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP:
+      return "PARALLEL_SORT_TOPK_MERGE_STEP";
     case ExecutionOperatingUnitType::CREATE_INDEX:
       return "CREATE_INDEX";
     case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:

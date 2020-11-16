@@ -27,6 +27,9 @@ ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperat
     case ExecutionOperatingUnitType::PARALLEL_SORT_STEP:
     case ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP:
       return ExecutionOperatingUnitType::SORT_BUILD;
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP:
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP:
+      return ExecutionOperatingUnitType::SORT_TOPK_BUILD;
     case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:
       return ExecutionOperatingUnitType::CREATE_INDEX;
     default:
