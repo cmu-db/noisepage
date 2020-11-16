@@ -43,7 +43,7 @@ class EndtoendEstimator:
         resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
                                                                                       self.mini_model_map,
                                                                                       self.model_results_path,
-                                                                                      -10,
+                                                                                      0,
                                                                                       False,
                                                                                       self.ee_sample_interval,
                                                                                       self.txn_sample_interval,
@@ -97,9 +97,6 @@ class EndtoendEstimator:
             # Remove the OU group itself from the total resource data
             self_resource = (mini_model_y_pred[-1] * max(1, d.target_grouped_op_unit_data.concurrency) /
                              len(d.resource_data_list) / global_model_config.INTERVAL_SIZE)
-            #print(mini_model_y_pred[-1])
-            #print(len(d.resource_data_list))
-            #print(global_model_config.INTERVAL_SIZE)
             predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= self_resource
             predicted_resource_util[predicted_resource_util < 0] = 0
             x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us,
@@ -244,11 +241,11 @@ def _generate_mark_list(data_list):
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='End-to-end Estimator')
-    aparser.add_argument('--input_path', default='endtoend_input_tpch_index8',
+    aparser.add_argument('--input_path', default='endtoend_input',
                          help='Input file path for the endtoend estimator')
-    aparser.add_argument('--model_results_path', default='endtoend_estimation_results_tpch_index8',
+    aparser.add_argument('--model_results_path', default='endtoend_estimation_results',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--mini_model_file', default='trained_model_testing/mini_model_map.pickle',
+    aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
                          help='File of the saved mini models')
     aparser.add_argument('--global_resource_model_file',
                          default='trained_model/global_resource_model.pickle',
