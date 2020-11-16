@@ -14,7 +14,7 @@
 namespace noisepage {
 namespace brain {
 class PipelineOperatingUnits;
-class WorkloadForecast;
+class PilotUtil;
 }  // namespace brain
 
 namespace execution {
@@ -198,7 +198,7 @@ class ExecutableQuery {
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::MiniRunners;
   friend class noisepage::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
-  friend class noisepage::brain::WorkloadForecast;
+  friend class noisepage::brain::PilotUtil;
 };
 
 }  // namespace noisepage::execution::compiler

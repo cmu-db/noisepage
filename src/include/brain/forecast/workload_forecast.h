@@ -33,45 +33,30 @@ class WorkloadForecast {
  public:
   /**
    * Constructor for WorkloadForecast
-   * @param query_timestamp_to_id Map from a timestamp to one query qid that has a record of this timestamp
-   * @param num_executions Number of occurrence of this qid in the input
-   * @param query_id_to_string Map from a qid to the query text
-   * @param query_string_to_id Map from a query's text to the qid
-   * @param query_id_to_param Map from qid to a constant number of parameters
-   * @param query_id_to_dboid Map from qid to the database oid
    * @param forecast_interval Interval used to partition the queries into segments
    *
    */
-  WorkloadForecast(const std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> &query_timestamp_to_id,
-                   std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions,
-                   std::unordered_map<execution::query_id_t, std::string> query_id_to_string,
-                   std::unordered_map<std::string, execution::query_id_t> query_string_to_id,
-                   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
-                       query_id_to_param,
-                   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid, uint64_t forecast_interval);
-  /**
-   * Sort queries by their timestamp, then partition by forecast_interval
-   * @param query_timestamp_to_id Map from a timestamp to a query and an index that denotes a specific set of parameter
-   * @param num_executions Number of executions associated with each query and a set of parameter
-   */
-  void CreateSegments(const std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> &query_timestamp_to_id,
-                      std::unordered_map<execution::query_id_t, std::vector<uint64_t>> *num_executions);
-  /**
-   * Execute all queries and the constant number of parameters associated with each
-   * @param db_main Managed pointer to db_main
-   */
-  void ExecuteSegments(common::ManagedPointer<DBMain> db_main);
+  explicit WorkloadForecast(uint64_t forecast_interval);
 
  private:
-  std::vector<parser::ConstantValueExpression> SampleParam(execution::query_id_t qid);
+  friend class PilotUtil;
 
-  std::unordered_map<execution::query_id_t, std::string> query_id_to_string_;
-  std::unordered_map<std::string, execution::query_id_t> query_string_to_id_;
+  void LoadQueryTrace();
+  void LoadQueryText();
+  void CreateSegments();
+
+  std::multimap<uint64_t, execution::query_id_t> query_timestamp_to_id_;
   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
-      query_id_to_param_;
+      query_id_to_params_;
+  std::unordered_map<execution::query_id_t, std::vector<type::TypeId>> query_id_to_param_types_;
+  std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
+  std::unordered_map<std::string, execution::query_id_t> query_text_to_id_;
+  // map id to a vector of execution times
   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
+  uint64_t num_sample_{5};
+
   std::vector<WorkloadForecastSegment> forecast_segments_;
-  uint64_t num_forecast_segment_;
+  uint64_t num_forecast_segment_{0};
   uint64_t forecast_interval_;
   uint64_t optimizer_timeout_{10000000};
 };

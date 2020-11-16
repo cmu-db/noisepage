@@ -21,6 +21,7 @@
 #include "loggers/settings_logger.h"
 #include "parser/expression/constant_value_expression.h"
 #include "settings/settings_param.h"
+#include "type/type_id.h"
 
 namespace noisepage::brain {
 
@@ -39,7 +40,7 @@ class Pilot {
   /**
    * WorkloadForecast object performing the query execution and feature gathering
    */
-  std::unique_ptr<brain::WorkloadForecast> forecastor_;
+  std::unique_ptr<brain::WorkloadForecast> forecast_;
 
   /**
    * Empty Setter Callback for setting bool value for flags
@@ -52,20 +53,9 @@ class Pilot {
   void PerformPlanning();
 
  private:
-  void LoadQueryTrace();
-  void LoadQueryText();
   void ExecuteForecast();
   common::ManagedPointer<DBMain> db_main_;
 
-  std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id_;
-  std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
-      query_id_to_params_;
-  std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
-  std::unordered_map<std::string, execution::query_id_t> query_text_to_id_;
-  // map id to a vector of execution times
-  std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions_;
-  std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
-  uint64_t num_sample_{5};
   uint64_t forecast_interval_{10000000};
 };
 

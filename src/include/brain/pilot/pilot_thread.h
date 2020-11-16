@@ -9,71 +9,71 @@ namespace noisepage::brain {
 
 /**
  * Class for spinning off a thread that runs the pilot to process query predictions.
- * This should be used in most cases to enable/disable PL in the system.
+ * This should be used in most cases to enable/disable Pilot in the system.
  */
 class PilotThread {
  public:
   /**
    * @param pilot Pointer to the pilot object to be run on this thread
-   * @param pl_period Sleep time between PL invocations
+   * @param pilot_period Sleep time between Pilot invocations
    * @param pilot_planning if the pilot is enabled
    */
-  PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::microseconds pl_period, bool pilot_planning);
+  PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::microseconds pilot_period, bool pilot_planning);
 
-  ~PilotThread() { StopPL(); }
+  ~PilotThread() { StopPilot(); }
 
   /**
-   * Kill the PL thread.
+   * Kill the Pilot thread.
    */
-  void StopPL() {
-    NOISEPAGE_ASSERT(run_pl_, "PL should already be running.");
-    run_pl_ = false;
-    pl_paused_ = true;
-    pl_thread_.join();
+  void StopPilot() {
+    NOISEPAGE_ASSERT(run_pilot_, "Pilot should already be running.");
+    run_pilot_ = false;
+    pilot_paused_ = true;
+    pilot_thread_.join();
   }
 
   /**
-   * Spawn the PL thread if it has been previously stopped.
+   * Spawn the Pilot thread if it has been previously stopped.
    */
-  void StartPL() {
-    NOISEPAGE_ASSERT(!run_pl_, "PL should not already be running.");
-    run_pl_ = true;
-    pl_paused_ = true;
-    pl_thread_ = std::thread([this] { PLThreadLoop(); });
+  void StartPilot() {
+    NOISEPAGE_ASSERT(!run_pilot_, "Pilot should not already be running.");
+    run_pilot_ = true;
+    pilot_paused_ = true;
+    pilot_thread_ = std::thread([this] { PilotThreadLoop(); });
   }
 
   /**
-   * Pause the PL from running, typically for use in tests when the state of tables need to be fixed.
+   * Pause the Pilot from running, typically for use in tests when the state of tables need to be fixed.
    */
-  void DisablePL() {
-    NOISEPAGE_ASSERT(!pl_paused_, "PL should not already be paused.");
-    pl_paused_ = true;
+  void DisablePilot() {
+    NOISEPAGE_ASSERT(!pilot_paused_, "Pilot should not already be paused.");
+    pilot_paused_ = true;
   }
 
   /**
-   * Resume PL after being paused.
+   * Resume Pilot after being paused.
    */
-  void EnablePL() {
-    NOISEPAGE_ASSERT(pl_paused_, "PL should already be paused.");
-    pl_paused_ = false;
+  void EnablePilot() {
+    NOISEPAGE_ASSERT(pilot_paused_, "Pilot should already be paused.");
+    pilot_paused_ = false;
   }
 
   /**
-   * @return the underlying PL object, mostly to register indexes currently.
+   * @return the underlying Pilot object, mostly to register indexes currently.
    */
-  common::ManagedPointer<Pilot> GetPilot() { return pl_; }
+  common::ManagedPointer<Pilot> GetPilot() { return pilot_; }
 
  private:
-  const common::ManagedPointer<brain::Pilot> pl_;
-  volatile bool run_pl_;
-  volatile bool pl_paused_;
-  std::chrono::microseconds pl_period_;
-  std::thread pl_thread_;
+  const common::ManagedPointer<brain::Pilot> pilot_;
+  volatile bool run_pilot_;
+  volatile bool pilot_paused_;
+  std::chrono::microseconds pilot_period_;
+  std::thread pilot_thread_;
 
-  void PLThreadLoop() {
-    while (run_pl_) {
-      std::this_thread::sleep_for(pl_period_);
-      if (!pl_paused_) pl_->PerformPlanning();
+  void PilotThreadLoop() {
+    while (run_pilot_) {
+      std::this_thread::sleep_for(pilot_period_);
+      if (!pilot_paused_) pilot_->PerformPlanning();
     }
   }
 };
