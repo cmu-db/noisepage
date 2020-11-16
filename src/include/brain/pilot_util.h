@@ -29,6 +29,7 @@ class PilotUtil {
   /**
    * Executing forecasted queries and collect pipeline features for cost estimation to be used in action selection
    * @param db_main pointer to DBMain to access settings & metrics managers, transaction layer, and catalog layer
+   * @param forecast pointer to object storing result of workload forecast
    */
   static void CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
                                       common::ManagedPointer<brain::WorkloadForecast> forecast);
