@@ -47,7 +47,6 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
         # Train the model
         logging.info("Training the global model with {}".format(method))
         regressor = model.Model(method)
-        # print(x_train)
         regressor.train(x_train, y_train)
 
         # Evaluate on both the training and test set
