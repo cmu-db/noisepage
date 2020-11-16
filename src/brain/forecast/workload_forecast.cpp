@@ -9,12 +9,10 @@
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/compiler/compilation_context.h"
-#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
 #include "main/db_main.h"
 #include "metrics/metrics_store.h"
-#include "optimizer/optimizer.h"
 #include "parser/expression/constant_value_expression.h"
 
 namespace noisepage::brain {
