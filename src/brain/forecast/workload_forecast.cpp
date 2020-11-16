@@ -60,11 +60,13 @@ void WorkloadForecast::LoadQueryText() {
   // Create an input filestream
   std::ifstream query_text_file(metrics::QueryTraceMetricRawData::FILES[0]);
   // Make sure the file is open
-  if (!query_text_file.is_open()) throw std::runtime_error("Could not open file");
+  if (!query_text_file.is_open())
+    throw PILOT_EXCEPTION(fmt::format("Could not open file {}", metrics::QueryTraceMetricRawData::FILES[0]),
+                          common::ErrorCode::ERRCODE_IO_ERROR);
 
   // Helper vars
   std::string line;
-  if (!query_text_file.good()) throw std::runtime_error("File stream is not good");
+  if (!query_text_file.good()) throw PILOT_EXCEPTION("File stream is not good", common::ErrorCode::ERRCODE_IO_ERROR);
 
   // ignore header
   std::getline(query_text_file, line);
@@ -134,11 +136,13 @@ void WorkloadForecast::LoadQueryTrace() {
   // Create an input filestream
   std::ifstream trace_file(metrics::QueryTraceMetricRawData::FILES[1]);
   // Make sure the file is open
-  if (!trace_file.is_open()) throw std::runtime_error("Could not open file");
+  if (!trace_file.is_open())
+    throw PILOT_EXCEPTION(fmt::format("Could not open file {}", metrics::QueryTraceMetricRawData::FILES[1]),
+                          common::ErrorCode::ERRCODE_IO_ERROR);
 
   // Helper vars
   std::string line, param_string;
-  if (!trace_file.good()) throw std::runtime_error("File stream is not good");
+  if (!trace_file.good()) throw PILOT_EXCEPTION("File stream is not good", common::ErrorCode::ERRCODE_IO_ERROR);
 
   // ignore header
   std::getline(trace_file, line);
