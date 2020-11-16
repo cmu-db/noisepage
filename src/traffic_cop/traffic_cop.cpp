@@ -30,6 +30,7 @@
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/drop_statement.h"
+#include "parser/explain_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"

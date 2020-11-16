@@ -23,6 +23,7 @@ class ExplainStatement : public SQLStatement {
   /** @return the SQL statement to be explained */
   common::ManagedPointer<SQLStatement> GetSQLStatement() { return common::ManagedPointer(real_sql_stmt_); }
 
+
  private:
   std::unique_ptr<SQLStatement> real_sql_stmt_;
 };

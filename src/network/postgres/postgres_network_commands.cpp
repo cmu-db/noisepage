@@ -10,6 +10,7 @@
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
+#include "parser/explain_statement.h"
 #include "traffic_cop/traffic_cop.h"
 
 namespace noisepage::network {
@@ -168,6 +169,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   } else {
     // Try to bind the parsed statement
     const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement), nullptr);
+
     if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
       // Binding succeeded, optimize to generate a physical plan and then execute
       auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
