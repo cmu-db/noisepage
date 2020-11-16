@@ -1188,3 +1188,5 @@ INSERT INTO t VALUES (1);
 statement error
 INSERT INTO t VALUES (1);
 
+statement ok
+DROP TABLE t;
