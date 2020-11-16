@@ -261,9 +261,9 @@ if __name__ == '__main__':
                          help='File of the saved global impact model')
     aparser.add_argument('--ee_sample_interval', type=int, default=49,
                          help='Sampling interval for the execution engine OUs')
-    aparser.add_argument('--txn_sample_interval', type=int, default=9,
+    aparser.add_argument('--txn_sample_interval', type=int, default=49,
                          help='Sampling interval for the transaction OUs')
-    aparser.add_argument('--network_sample_interval', type=int, default=9,
+    aparser.add_argument('--network_sample_interval', type=int, default=49,
                          help='Sampling interval for the network OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()

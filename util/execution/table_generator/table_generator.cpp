@@ -204,7 +204,7 @@ std::pair<byte *, uint32_t *> TableGenerator::CloneColumnData(std::pair<byte *, 
 // Fill a given table according to its metadata
 void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,
                                const catalog::Schema &schema, TableInsertMeta *table_meta) {
-  uint32_t batch_size = 20000000;
+  uint32_t batch_size = 10000;
   uint32_t num_batches =
       table_meta->num_rows_ / batch_size + static_cast<uint32_t>(table_meta->num_rows_ % batch_size != 0);
   std::vector<catalog::col_oid_t> table_cols;
