@@ -564,16 +564,6 @@ void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOpti
                                          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                      std::move(derived_children), context->GetOptimizerContext()->GetTxn());
 
-  //  auto new_derived_query_get_contents =
-  //      Operator(common::ManagedPointer<BaseOperatorNodeContents>
-  //          (derived_query_get->Contents()->GetContentsAs<LogicalQueryDerivedGet>()->Copy()))
-  //          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn());
-  //  std::vector<std::unique_ptr<AbstractOptimizerNode>> get_children;
-  //  get_children.push_back(left_node->Copy());
-  //  get_children.push_back(right_node->Copy());
-  //  auto new_derived_query_get = std::make_unique<OperatorNode>(new_derived_query_get_contents,
-  //  std::move(get_children),
-  //                                                              context->GetOptimizerContext()->GetTxn());
   std::vector<std::unique_ptr<AbstractOptimizerNode>> children;
   children.push_back(std::move(new_derived));
   children.push_back(right_node->Copy());

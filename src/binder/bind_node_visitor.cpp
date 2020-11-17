@@ -465,10 +465,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     // Store CTE table name
     cte_table_name_.push_back(ref->GetAlias());
 
-    // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table.
-    bool inductive =
-        (ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE);
-    if (ref->GetSelect() != nullptr) {
+    if (ref->GetSelect() == nullptr) {
+      ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    } else {
+      // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table.
+      bool inductive =
+          (ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE);
       // get schema
       if (!inductive) {
         ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -532,8 +534,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       context.AddCTETable(ref->GetAlias(), sel_cols, ref->GetCteColumnAliases());
 
       // Finally, visit the inductive case
-      ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-    } else {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     }
   }

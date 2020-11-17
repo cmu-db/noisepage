@@ -26,7 +26,7 @@ CteScanIterator::CteScanIterator(noisepage::execution::exec::ExecutionContext *e
   cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema);
   exec_ctx->GetAccessor()->RegisterTempTable(table_oid, common::ManagedPointer(cte_table_));
 
-  auto cte_table_local = cte_table_;
+  storage::SqlTable *cte_table_local = cte_table_;
 
   // We are deferring it in both commit and abort because we need to delete the temp table regardless of transaction
   // outcome. We use deferred actions to guarantee memory safety with the garbage collector.

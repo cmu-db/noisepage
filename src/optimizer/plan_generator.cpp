@@ -299,7 +299,7 @@ void PlanGenerator::Visit(const QueryDerivedScan *op) {
     // We can assert this based on InputColumnDeriver::Visit(const QueryDerivedScan *op)
     auto colve = output.CastManagedPointerTo<parser::ColumnValueExpression>();
 
-    // Get offset into child_expr_ma
+    // Get offset into child_expr_map
     auto expr = alias_expr_map.at(colve->GetAlias().IsSerialNoValid() ? colve->GetAlias()
                                                                       : parser::AliasType(colve->GetColumnName()));
     auto offset = child_expr_map.at(expr);

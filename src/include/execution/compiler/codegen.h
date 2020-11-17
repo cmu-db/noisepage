@@ -589,7 +589,7 @@ class CodeGen {
                                                 ast::Identifier worker_name);
 
   /**
-   * Call tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
+   * Call \@tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
    * @param tvi The identifier of table vector iterator
    * @param cte_scan_iterator_ptr The identifier of cte scan iterator
    * @param col_oids The identifier of the array of column oids to read.
@@ -1374,7 +1374,7 @@ class CodeGen {
                                   bool need_indexes);
 
   /**
-   *
+   * Call \@CteScanInit(csi, exec_ctx_var, table_oid, col_ids, col_types)
    * @param csi The cte scan iterator to initialize
    * @param table_oid temp oid of the cte table
    * @param col_ids temp column oids of all columns in this cte table
@@ -1386,7 +1386,7 @@ class CodeGen {
                                  ast::Identifier col_types, ast::Expr *exec_ctx_var);
 
   /**
-   *
+   * Call \@IndCteScanInit(csi, exec_ctx_var, table_oid, col_ids, col_types, is_recursive)
    * @param csi The inductive cte scan iterator to initialize
    * @param table_oid temp oid of the cte table
    * @param col_ids temp column oids of all columns in this cte table

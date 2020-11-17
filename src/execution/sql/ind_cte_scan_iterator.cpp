@@ -1,4 +1,3 @@
-
 #include "execution/sql/ind_cte_scan_iterator.h"
 
 #include "catalog/catalog_accessor.h"

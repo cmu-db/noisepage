@@ -704,30 +704,35 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     OpCteScanInit(iter, exec_ctx, table_oid, schema_cols_ids, schema_cols_type, num_oids);
     DISPATCH_NEXT();
   }
+
   OP(CteScanGetTable) : {
     auto *table = frame->LocalAt<storage::SqlTable **>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanGetTable(table, iter);
     DISPATCH_NEXT();
   }
+
   OP(CteScanGetTableOid) : {
     auto table_oid = frame->LocalAt<noisepage::catalog::table_oid_t *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanGetTableOid(table_oid, iter);
     DISPATCH_NEXT();
   }
+
   OP(CteScanGetInsertTempTablePR) : {
     auto *pr = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanGetInsertTempTablePR(pr, iter);
     DISPATCH_NEXT();
   }
+
   OP(CteScanTableInsert) : {
     auto tuple_slot = frame->LocalAt<noisepage::storage::TupleSlot *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanTableInsert(tuple_slot, iter);
     DISPATCH_NEXT();
   }
+
   OP(CteScanFree) : {
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanFree(iter);
@@ -756,6 +761,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     OpIndCteScanGetResult(result, iter);
     DISPATCH_NEXT();
   }
+
   OP(IndCteScanGetReadCte) : {
     auto *table = frame->LocalAt<sql::CteScanIterator **>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
@@ -769,30 +775,35 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     OpIndCteScanGetWriteCte(table, iter);
     DISPATCH_NEXT();
   }
+
   OP(IndCteScanGetReadTableOid) : {
     auto table_oid = frame->LocalAt<noisepage::catalog::table_oid_t *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
     OpIndCteScanGetReadTableOid(table_oid, iter);
     DISPATCH_NEXT();
   }
+
   OP(IndCteScanAccumulate) : {
     auto table_oid = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
     OpIndCteScanAccumulate(table_oid, iter);
     DISPATCH_NEXT();
   }
+
   OP(IndCteScanGetInsertTempTablePR) : {
     auto projected_row = frame->LocalAt<noisepage::storage::ProjectedRow **>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
     OpIndCteScanGetInsertTempTablePR(projected_row, iter);
     DISPATCH_NEXT();
   }
+
   OP(IndCteScanTableInsert) : {
     auto tuple_slot = frame->LocalAt<noisepage::storage::TupleSlot *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
     OpIndCteScanTableInsert(tuple_slot, iter);
     DISPATCH_NEXT();
   }
+
   OP(IndCteScanFree) : {
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
     OpIndCteScanFree(iter);

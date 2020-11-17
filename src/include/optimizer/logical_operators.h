@@ -1968,7 +1968,7 @@ class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
 class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
  public:
   /**
-   * @return
+   * @return a CTE scan operator
    */
   static Operator Make();
 

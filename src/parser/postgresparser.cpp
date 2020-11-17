@@ -2041,7 +2041,7 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   return result;
 }
 
-// Postgres.SelectStmt.withClause -> terrier.TableRef
+// Postgres.SelectStmt.withClause -> noisepage.TableRef
 std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
   // Postgres parses 'SELECT;' to nullptr
   std::vector<std::unique_ptr<TableRef>> ctes;
@@ -2049,7 +2049,6 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
     return ctes;
   }
 
-  // TODO(Rohan, Preetansh, Gautam): - HANDLE CASE WHEN LENGTH OF ROOT > 1
   std::unique_ptr<TableRef> result = nullptr;
   ListCell *current = root->ctes_->head;
   while (current != nullptr) {

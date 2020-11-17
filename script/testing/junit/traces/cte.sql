@@ -1,3 +1,5 @@
+# All tests here were written by us, tested against postgres
+
 WITH cte(x) AS (SELECT 1) SELECT x FROM cte;
 WITH cte AS (SELECT 1) SELECT * FROM cte;
 WITH cte AS (SELECT 1 AS "x") SELECT * FROM cte;

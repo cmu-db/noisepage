@@ -1,9 +1,5 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <utility>
-#include <vector>
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
 

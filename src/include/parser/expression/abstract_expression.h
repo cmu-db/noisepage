@@ -28,7 +28,7 @@ class ParseResult;
 
 /**
  * Type to represent aliases. This was added to account for the fact that you can have duplicate aliases
- * in queries that stil need have distinguishable identifiers. For example in SELECT * FROM (SELECT 1 as x, 2 as x) p;
+ * in queries that still need to have distinguishable identifiers. For example in SELECT * FROM (SELECT 1 as x, 2 as x) p;
  * We achieve this by having an additional serial number field. This field allows for two aliases with the same
  * name string but different valid serial numbers to be distinguishable. However, we maintain that an alias with name
  * "xxx" but with an invalid serial number matches with all aliases with name "xxx" regardless of their serial number

@@ -64,8 +64,7 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     // Get the actual expression
     auto alias =
         tv_expr->GetAlias().IsSerialNoValid() ? tv_expr->GetAlias() : parser::AliasType(tv_expr->GetColumnName());
-    NOISEPAGE_ASSERT(alias_expr_map.count(alias) > 0, "Couldn't find alias in alias_to_expr map");
-    auto input_col = alias_expr_map[alias];
+    auto input_col = alias_expr_map.at(alias);
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
     input_cols[entry.second] = input_col;

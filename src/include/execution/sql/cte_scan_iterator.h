@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 #include "execution/exec/execution_context.h"
 #include "execution/sql/table_vector_iterator.h"
@@ -16,34 +15,28 @@ class EXPORT CteScanIterator {
   /**
    * Constructor for the CTEScanIterator
    */
-
   CteScanIterator(execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
                   uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols);
 
   /**
-   * Returns the temporary table that the cte has made
+   * @return Returns the temporary table that the cte has made
    */
   storage::SqlTable *GetTable();
 
   /**
-   * Returns the oid of the temporary table that the cte has made
+   * @return Returns the oid of the temporary table that the cte has made
    */
   catalog::table_oid_t GetTableOid();
 
   /**
-   * Returns a projected row of the table for insertion
+   * @return Returns a projected row of the table for insertion
    */
   storage::ProjectedRow *GetInsertTempTablePR();
 
   /**
-   * Returns the slot which was inserted in the table using the projected row
+   * @return Returns the slot which was inserted in the table using the projected row
    */
-
   storage::TupleSlot TableInsert();
-
-  /**
-   * Return the iterator that will scan the temp table
-   */
 
   /**
    * Destructor

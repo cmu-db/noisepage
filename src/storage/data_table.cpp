@@ -225,9 +225,11 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 void DataTable::Reset() {
   common::SharedLatch::ScopedExclusiveLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
+    // Deallocate the block and re-initialize it from scratch
     StorageUtil::DeallocateVarlens(block, accessor_);
-    for (col_id_t i : accessor_.GetBlockLayout().Varlens())
+    for (col_id_t i : accessor_.GetBlockLayout().Varlens()) {
       accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
+    }
     accessor_.InitializeRawBlock(this, block, block->layout_version_);
   }
   insert_index_.store(0);

@@ -1,14 +1,13 @@
 #pragma once
 
-#include <common/json.h>
-#include <parser/parser_defs.h>
-
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "catalog/schema.h"
+#include "parser/parser_defs.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
@@ -17,6 +16,12 @@ namespace noisepage::planner {
 
 /**
  * Plan node for a ctescan operator
+ *
+ * There are two "kinds" of CteScanPlanNodes: those that are leaders and those that are not
+ * The leader node is the FIRST node to attempt to read from a CTE table; all other nodes
+ * that read from this CTE table are considered not to be the leader. The leader is responsible
+ * for populating the table based on whatever subqueries were used to define the CTE before reading
+ * from the table, while all other nodes simply read from it.
  */
 class CteScanPlanNode : public SeqScanPlanNode {
  public:
@@ -87,7 +92,7 @@ class CteScanPlanNode : public SeqScanPlanNode {
     }
 
     /**
-     * Build the limit plan node
+     * Build the CTE scan plan node
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
@@ -145,23 +150,16 @@ class CteScanPlanNode : public SeqScanPlanNode {
     return is_leader_ ? PlanNodeType::CTESCANLEADER : PlanNodeType::CTESCAN;
   }
 
-  /**
-   * @return the hashed value of this plan node
-   */
-  //  common::hash_t Hash() const override;
-
-  //  bool operator==(const AbstractPlanNode &rhs) const override;
-
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
   /**
-   * @return True is this node is assigned the CTE leader node and will
+   * @return True if this node is assigned the CTE leader node and will
    * populate the temporary table
    */
   bool IsLeader() const { return is_leader_; }
 
   /**
-   * Assign's this node as the leader CTE scan node
+   * Assigns this node as the leader CTE scan node
    */
   void MakeLeader() { is_leader_ = true; }
 
@@ -215,9 +213,6 @@ class CteScanPlanNode : public SeqScanPlanNode {
    * @return The table name of this cte
    */
   const std::string &GetCTETableName() const { return cte_table_name_; }
-
-  //  nlohmann::json ToJson() const override;
-  //  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   //===--------------------------------------------------------------------===//
   // Update schema

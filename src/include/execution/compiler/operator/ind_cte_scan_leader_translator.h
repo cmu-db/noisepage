@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-#include <utility>
 #include <vector>
 #include "execution/compiler/operator/cte_scan_provider.h"
 #include "execution/compiler/operator/operator_translator.h"
@@ -17,7 +15,7 @@ class IndCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
  public:
   /**
    * Constructor
-   * @param plan The ctescanplanndoe this translator is generating code for
+   * @param plan The ctescanplannode this translator is generating code for
    * @param compilation_context The compilation context being used to translate this node
    * @param pipeline The pipeline this is being translated on
    */

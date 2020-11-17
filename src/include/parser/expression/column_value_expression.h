@@ -74,7 +74,7 @@ class ColumnValueExpression : public AbstractExpression {
 
   /**
    * This constructor is used to construct abstract value expressions used by CTEs
-   * for logical derived get below it to reference aliases.
+   * for LogicalQueryDerivedGet's below it to reference aliases.
    * @param table_name Name of the table
    * @param col_name name of the column.
    * @param type Type of the column.

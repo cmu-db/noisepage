@@ -34,7 +34,6 @@ TEST_F(IndCteScanTest, IndCTEEmptyAccumulateTest) {
   uint32_t col_oids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
       catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
@@ -82,7 +81,6 @@ TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
       catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
@@ -156,7 +154,6 @@ TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
-  // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
       catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
@@ -228,7 +225,6 @@ TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
       catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
@@ -307,7 +303,6 @@ TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
       catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),

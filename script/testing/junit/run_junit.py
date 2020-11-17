@@ -30,7 +30,6 @@ if __name__ == "__main__":
     # Step 1: Run the regular JUnit tests.
     LOG.info(section_header("JUNIT TESTS"))
     test_command_regular = constants.JUNIT_TEST_CMD_JUNIT
-    print(test_command_regular)
     try:
         test_case_junit = TestCaseJUnit(
             args, test_command=test_command_regular)

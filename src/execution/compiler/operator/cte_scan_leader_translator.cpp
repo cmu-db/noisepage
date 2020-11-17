@@ -119,7 +119,7 @@ void CteScanLeaderTranslator::DeclareInsertPR(noisepage::execution::compiler::Fu
 }
 
 void CteScanLeaderTranslator::GetInsertPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
-  // var insert_pr = cteScanGetInsertTempTablePR(...)
+  // var insert_pr = @cteScanGetInsertTempTablePR(...)
   auto codegen = GetCodeGen();
   auto get_pr_call = codegen->CallBuiltin(ast::Builtin::CteScanGetInsertTempTablePR, {GetCteScanPtr(codegen)});
   builder->Append(codegen->Assign(codegen->MakeExpr(insert_pr_), get_pr_call));
@@ -149,7 +149,7 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
       col_ind++;
     }
     auto val = GetChildOutput(context, 0, col_ind);
-    // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullablef
+    // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
     // Right now it is only Non Null
     auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), table_col->GetReturnValueType(), false,
                                       table_pm_.find(table_col_oid)->second.col_id_.UnderlyingValue(), val, true);

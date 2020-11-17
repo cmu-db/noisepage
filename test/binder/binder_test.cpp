@@ -129,7 +129,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CTEClauseInvalidTableTest) {
-  // Test regular table name
+  // Test cte table name
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH c AS (SELECT * FROM a) SELECT * FROM d;";
 
@@ -139,7 +139,7 @@ TEST_F(BinderCorrectnessTest, CTEClauseInvalidTableTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CTEClauseInvalidColumnTest) {
-  // Test regular table name
+  // Test cte column name
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a2 FROM c AS t1;";
 
@@ -149,7 +149,7 @@ TEST_F(BinderCorrectnessTest, CTEClauseInvalidColumnTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CTEClauseInvalidAliasTableTest) {
-  // Test regular table name
+  // Test cte alias
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a1 FROM c AS t1, (SELECT * FROM t1) AS t2;";
 
@@ -159,7 +159,7 @@ TEST_F(BinderCorrectnessTest, CTEClauseInvalidAliasTableTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CTEClauseValidTableTest) {
-  // Test regular table name
+  // Test cte table name
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT * FROM c;";
 
@@ -169,7 +169,7 @@ TEST_F(BinderCorrectnessTest, CTEClauseValidTableTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CTEClauseValidTableAliasTest) {
-  // Test regular table name
+  // Test cte alias
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT c1.a1 FROM c As c1;";
 
@@ -179,7 +179,7 @@ TEST_F(BinderCorrectnessTest, CTEClauseValidTableAliasTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CTEClauseValidAliasMultiTableTest) {
-  // Test regular table name
+  // Test multiple cte aliases
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT * FROM c AS c1, c AS c2 WHERE c1.a1=c2.a1;";
 
@@ -189,7 +189,7 @@ TEST_F(BinderCorrectnessTest, CTEClauseValidAliasMultiTableTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
-  // Test regular table name
+  // Test cte with inner join, limit, ordering and aggregation
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string cte_sql =
       "WITH c AS (SELECT a1 as a3 FROM a) "
@@ -203,7 +203,6 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(0, cte_stmt->GetDepth());
 
   // Check with_list
-  BINDER_LOG_DEBUG("Checking with list");
   auto with_stmt = cte_stmt->GetSelectWith()[0]->GetSelect().CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(1, with_stmt->GetDepth());
   auto col_expr = with_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -214,7 +213,6 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(1, col_expr->GetDepth());
 
   // Check select_list
-  BINDER_LOG_DEBUG("Checking select list");
   col_expr = cte_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
@@ -256,7 +254,6 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Where clause
-  BINDER_LOG_DEBUG("Checking where clause");
   col_expr = cte_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
@@ -266,7 +263,6 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   // Check Group By and Having
-  BINDER_LOG_DEBUG("Checking group by");
   col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
@@ -292,7 +288,6 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   // Check Order By
-  BINDER_LOG_DEBUG("Checking order by");
   col_expr =
       cte_stmt->GetSelectOrderBy()->GetOrderByExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3

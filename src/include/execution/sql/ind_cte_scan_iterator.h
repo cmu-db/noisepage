@@ -14,22 +14,21 @@ class EXPORT IndCteScanIterator {
   /**
    * Constructor for the CTEScanIterator
    */
-
   IndCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_ids,
                      uint32_t *schema_cols_type, uint32_t num_schema_cols, bool is_recursive);
 
   /**
-   * Returns the temporary table that the cte has made
+   * @return Returns the temporary table that the cte has made
    */
   CteScanIterator *GetWriteCte();
 
   /**
-   * Returns the temporary table that the cte has made
+   * @return Returns the temporary table that the cte has made
    */
   CteScanIterator *GetReadCte();
 
   /**
-   * Returns the oid of the temporary table that the cte has made
+   * @return Returns the oid of the temporary table that the cte has made
    */
   catalog::table_oid_t GetReadTableOid();
 
@@ -39,14 +38,13 @@ class EXPORT IndCteScanIterator {
   CteScanIterator *GetResultCTE();
 
   /**
-   * Returns a projected row of the table for insertion
+   * @return Returns a projected row of the table for insertion
    */
   storage::ProjectedRow *GetInsertTempTablePR();
 
   /**
-   * Returns the slot which was inserted in the table using the projected row
+   * @return Returns the slot which was inserted in the table using the projected row
    */
-
   storage::TupleSlot TableInsert();
 
   /**
@@ -69,10 +67,17 @@ class EXPORT IndCteScanIterator {
 
  private:
   exec::ExecutionContext *exec_ctx_;
+  // Three CTEScanIterators that we use to store various results
+  // cte_scan_read and cte_scan_write are always pointers to one of these each,
+  // though which iterator they point to is not necessarily constant
   CteScanIterator cte_scan_1_;
   CteScanIterator cte_scan_2_;
   CteScanIterator cte_scan_3_;
+
+  // Read table containing the results of the inductive queries so far
   CteScanIterator *cte_scan_read_;
+  // Write table containing the results of the next inductive iteration
+  // These results are then moved into the read table
   CteScanIterator *cte_scan_write_;
   catalog::table_oid_t table_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;

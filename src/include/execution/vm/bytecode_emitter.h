@@ -362,7 +362,10 @@ class BytecodeEmitter {
   void EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len,
                              LocalVar col_name, uint32_t col_name_len);
 
-  /*Cte Scan Calls*/
+  /** ONLY FOR TESTING! */
+  void EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len);
+
+  /* Cte Scan Calls */
 
   /**
    * Emit code to initialize a CTE scan iterator
@@ -390,11 +393,6 @@ class BytecodeEmitter {
    */
   void EmitIndCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid,
                                   LocalVar col_oids, LocalVar col_types, uint32_t num_oids, bool is_recursive);
-
-  /** ONLY FOR TESTING! */
-  void EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len);
-
-  /*Cte Scan Calls*/
 
   /**
    * Emit code to initialize a CTE scan iterator

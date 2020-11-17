@@ -299,6 +299,9 @@ class DataTable {
 
   /**
    * Clears the contents of this table and reinitializes it
+   * Used in the case of iterative CTEs, which replace the contents of the base case with the inductive case.
+   * After populating the inductive case, the table with the base case is reset and swaps roles with the table
+   * storing the results of the inductive case.
    */
   void Reset();
 

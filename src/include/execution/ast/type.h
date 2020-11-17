@@ -116,7 +116,7 @@ class Context;
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)
 
-// Only consider the primitive builtin typesTableIterAdvance
+// Only consider the primitive builtin types
 #define PRIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(F, IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE)
 
 // Only consider the non-primitive builtin types

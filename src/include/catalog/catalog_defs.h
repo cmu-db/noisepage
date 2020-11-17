@@ -54,10 +54,10 @@ strongtype MakeTempOid(common::get_strongtype_underlying_t<strongtype> value) {
 }
 
 /**
- *
- * @tparam strongtype
- * @param value
- * @return
+ * Checks whether a value represents the a tempoerary id
+ * @tparam strongtype the strongtype whose value we are checking
+ * @param value the id being checked for whether it is temporary
+ * @return true if it is a temporary oid (i.e. was outputted by MakeTempOid)
  */
 template <typename strongtype>
 bool IsTempOid(strongtype value) {

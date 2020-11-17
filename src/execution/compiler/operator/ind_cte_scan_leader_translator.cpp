@@ -7,7 +7,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/work_context.h"
 #include "parser/expression/constant_value_expression.h"
-//
+
 namespace noisepage::execution::compiler {
 
 IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan,

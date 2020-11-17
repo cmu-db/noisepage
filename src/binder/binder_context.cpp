@@ -5,7 +5,6 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -187,6 +186,7 @@ void BinderContext::SetColumnPosTuple(const std::string &col_name,
 
 void BinderContext::SetTableName(common::ManagedPointer<parser::ColumnValueExpression> expr,
                                  common::ManagedPointer<parser::SelectStatement> node) {
+  // In the case of FROM-less queries, we do not need to set table names on expressions
   if (node->GetSelectTable() != nullptr) {
     auto type = node->GetSelectTable()->GetTableReferenceType();
     if (type == parser::TableReferenceType::NAME || type == parser::TableReferenceType::SELECT) {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <parser/parser_defs.h>
-
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -12,6 +10,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "parser/parser_defs.h"
 #include "optimizer/abstract_optimizer_node.h"
 
 namespace noisepage {
