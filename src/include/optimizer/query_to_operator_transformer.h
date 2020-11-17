@@ -8,7 +8,6 @@
 
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
-#include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "parser/parser_defs.h"
 #include "optimizer/abstract_optimizer_node.h"
@@ -23,6 +22,7 @@ class AbstractExpression;
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
 }  // namespace catalog
 
 namespace optimizer {

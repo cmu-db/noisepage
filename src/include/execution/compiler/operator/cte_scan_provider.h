@@ -1,9 +1,11 @@
 #pragma once
 
-#include "execution/compiler/ast_fwd.h"
-#include "execution/compiler/codegen.h"
+namespace noisepage::execution::ast {
+class Expr;
+}  // namespace noisepage::execution::ast
 
 namespace noisepage::execution::compiler {
+class CodeGen;
 
 /**
  * An interface for classes that expose a readable cte scan iterator

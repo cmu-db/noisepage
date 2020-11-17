@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include "execution/compiler/operator/cte_scan_provider.h"

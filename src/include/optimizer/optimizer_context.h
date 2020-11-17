@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/schema.h"
 #include "common/settings.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
@@ -20,6 +19,7 @@ class TransactionContext;
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
 }
 
 namespace planner {

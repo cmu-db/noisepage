@@ -895,17 +895,17 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       table->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // Single table
-    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
-      // table not in catalog, check if table referred is the cte table
-      if (std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName()) != cte_table_name_.end()) {
-        // copy cte table's schema for this alias
-        context_->AddCTETableAlias(node->GetTableName(), node->GetAlias());
-      } else {
+    if (std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName()) != cte_table_name_.end()) {
+      // copy cte table's schema for this alias
+      context_->AddCTETableAlias(node->GetTableName(), node->GetAlias());
+    } else {
+      // not a CTE, check whether it is a regular table
+      if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
         throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()),
                                common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+      } else {
+        context_->AddRegularTable(catalog_accessor_, node, db_oid_);
       }
-    } else {
-      context_->AddRegularTable(catalog_accessor_, node, db_oid_);
     }
   }
 }

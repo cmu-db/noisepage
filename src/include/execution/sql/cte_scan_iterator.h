@@ -2,10 +2,10 @@
 
 #include <vector>
 #include "execution/exec/execution_context.h"
-#include "execution/sql/table_vector_iterator.h"
 #include "storage/sql_table.h"
 
 namespace noisepage::execution::sql {
+class TableVectorIterator;
 
 /**
  * An iterator over a CTE Temp table's data
