@@ -11,10 +11,6 @@
 
 namespace noisepage::execution::compiler {
 
-parser::ConstantValueExpression DummyCVE() {
-  return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
-}
-
 CteScanTranslator::CteScanTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
     : SeqScanTranslator(plan, compilation_context, pipeline) {

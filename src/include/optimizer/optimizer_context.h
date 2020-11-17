@@ -79,7 +79,7 @@ class OptimizerContext {
    * Gets the CTE Schema
    * @returns CTE Schema
    */
-  catalog::Schema &GetCTESchema(const catalog::table_oid_t &cte_oid) { return cte_schemas_.find(cte_oid)->second; }
+  catalog::Schema &GetCTESchema(const catalog::table_oid_t cte_oid) { return cte_schemas_.find(cte_oid)->second; }
 
   /**
    * Gets a vector of all temp oids of cte tables in the current query context

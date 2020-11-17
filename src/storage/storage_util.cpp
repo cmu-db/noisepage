@@ -218,6 +218,7 @@ void StorageUtil::DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &
 
 void StorageUtil::PopulateColumnMap(ColumnMap *col_map, const std::vector<catalog::Schema::Column> &columns,
                                     std::vector<uint16_t> *offsets) {
+  NOISEPAGE_ASSERT((*offsets).size() == 5, "Offsets must have length 5");
   for (const auto &column : columns) {
     switch (column.AttrSize()) {
       case VARLEN_COLUMN:

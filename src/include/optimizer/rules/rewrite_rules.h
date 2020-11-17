@@ -162,7 +162,7 @@ class RewriteEmbedFilterIntoGet : public Rule {
 };
 
 /**
- * Rule embeds a filter into a scan operator. After predicate push-down, we
+ * Rule embeds a filter into a CTE scan operator. After predicate push-down, we
  * eliminate all filters in the operator trees. Predicates should be associated
  * with get or join
  */
@@ -193,7 +193,7 @@ class RewriteEmbedFilterIntoChildlessCteScan : public Rule {
 };
 
 /**
- * Rule embeds a filter into a scan operator. After predicate push-down, we
+ * Rule embeds a filter into a CTE scan operator. After predicate push-down, we
  * eliminate all filters in the operator trees. Predicates should be associated
  * with get or join
  */

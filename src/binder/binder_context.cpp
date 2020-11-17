@@ -99,9 +99,9 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   }
 
   std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey> column_alias_map;
-  size_t i = 0;
   auto cols = col_aliases.size();
-  for (auto &expr : select_list) {
+  for (size_t i = 0; i < select_list.size(); i++) {
+    auto &expr = select_list[i];
     parser::AliasType alias;
     if (i < cols) {
       alias = col_aliases[i];
@@ -111,12 +111,10 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
       auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.Get());
       alias = parser::AliasType(tv_expr->GetColumnName());
     } else {
-      i++;
       continue;
     }
 
     column_alias_map[alias] = expr->GetReturnValueType();
-    i++;
   }
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
