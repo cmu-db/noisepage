@@ -4,13 +4,23 @@
 
 #include "storage/index/bplustree.h"
 #include "storage/storage_defs.h"
+#include "test_util/multithread_test_util.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::storage::index {
 
 unsigned int globalseed = 9;
 
-struct BPlusTreeTests : public TerrierTest {};
+class BPlusTreeTests : public TerrierTest {
+ public:
+  const uint32_t num_threads_ = 4;
+  common::WorkerPool thread_pool_{num_threads_, {}};
+
+ protected:
+  void SetUp() override { thread_pool_.Startup(); }
+
+  void TearDown() override { thread_pool_.Shutdown(); }
+};
 
 void BasicNodeInitializationInsertReadAndFreeTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
@@ -1363,7 +1373,6 @@ void BPlusTreeCompleteDeleteAndReinsertTest() {
 }
 
 // NOLINTNEXTLINE
-
 TEST_F(BPlusTreeTests, InsertTests) {
   BasicBPlusTreeInsertTestNoSplittingOfRoot();
   BasicBPlusTreeInsertTestSplittingOfRootOnce();
@@ -1374,6 +1383,7 @@ TEST_F(BPlusTreeTests, InsertTests) {
   LargeKeyRandomInsertAndRetrievalTest();
 }
 
+// NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, DeleteTests) {
   BasicBPlusTreeDeleteTestNoSplittingOfRoot();
   LargeKeySequentialInsertAndDeleteTest();
@@ -1382,6 +1392,7 @@ TEST_F(BPlusTreeTests, DeleteTests) {
   KeyRandomInsertAndDeleteSiblingSequenceTest();
 }
 
+// NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, StructuralIntegrityTests) {
   StructuralIntegrityTestWithRandomInsert();
   StructuralIntegrityTestWithCornerCase();
@@ -1391,9 +1402,110 @@ TEST_F(BPlusTreeTests, StructuralIntegrityTests) {
   StructuralIntegrityTestWithRandomInsertAndDelete2Reverse();
 }
 
+// NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, LargeTests) {
   LargeStructuralIntegrityVerificationTest();
   BPlusTreeCompleteDeleteAndReinsertTest();
+}
+
+// NOLINTNEXTLINE
+TEST_F(BPlusTreeTests, MultiThreadedInsertTest) {
+  std::function<bool(const int64_t)> predicate = [](const int64_t slot) -> bool { return false; };
+  const int key_num = 1000 * 1000;
+
+  auto *const tree = new BPlusTree<int64_t, int64_t>;
+  std::vector<int64_t> keys;
+  keys.reserve(key_num);
+  int64_t work_per_thread = key_num / num_threads_;
+  for (int64_t i = 0; i < key_num; ++i) {
+    keys.emplace_back(i);
+  }
+  std::shuffle(keys.begin(), keys.end(), std::mt19937{std::random_device{}()});  // NOLINT
+
+  auto workload = [&](uint32_t worker_id) {
+    int64_t start = work_per_thread * worker_id;
+    int64_t end = work_per_thread * (worker_id + 1);
+
+    // Inserts the keys
+    for (int i = start; i < end; i++) {
+      BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+      p1.first = keys[i];
+      p1.second = keys[i];
+      tree->Insert(p1, predicate);
+    }
+  };
+
+  // run the workload
+  for (uint32_t i = 0; i < num_threads_; i++) {
+    thread_pool_.SubmitTask([i, &workload] { workload(i); });
+  }
+  thread_pool_.WaitUntilAllFinished();
+
+  // Ensure all values are present
+  for (int i = 0; i < key_num; i++) {
+    std::vector<int64_t> results;
+    tree->FindValueOfKey(keys[i], &results);
+    EXPECT_EQ(results.size(), 1);
+    EXPECT_EQ(results[0], keys[i]);
+  }
+
+  delete tree;
+}
+
+// NOLINTNEXTLINE
+TEST_F(BPlusTreeTests, MultiThreadedDeleteTest) {
+  auto predicate = [](const int64_t slot) -> bool { return false; };
+  const int key_num = 1000 * 1000;
+
+  auto *const tree = new BPlusTree<int64_t, int64_t>;
+  std::vector<int64_t> keys;
+  keys.reserve(key_num);
+
+  for (int64_t i = 0; i < key_num; ++i) {
+    keys.emplace_back(i);
+  }
+  std::shuffle(keys.begin(), keys.end(), std::mt19937{std::random_device{}()});  // NOLINT
+  for (int i = 0; i < key_num; i++) {
+    BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+    p1.first = keys[i];
+    p1.second = keys[i];
+    tree->Insert(p1, predicate);
+  }
+
+  const int deleted_keys = key_num / 2;
+  int64_t work_per_thread = deleted_keys / num_threads_;
+
+  auto workload = [&](uint32_t worker_id) {
+    int64_t start = work_per_thread * worker_id;
+    int64_t end = work_per_thread * (worker_id + 1);
+
+    // Delete the keys
+    for (int i = start; i < end; i++) {
+      BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+      p1.first = keys[i];
+      p1.second = keys[i];
+      tree->DeleteWithLock(p1);
+    }
+  };
+
+  // run the workload
+  for (uint32_t i = 0; i < num_threads_; i++) {
+    thread_pool_.SubmitTask([i, &workload] { workload(i); });
+  }
+  thread_pool_.WaitUntilAllFinished();
+
+  // Ensure all values are present
+  for (int i = deleted_keys; i < key_num; i++) {
+    std::vector<int64_t> results;
+    tree->FindValueOfKey(keys[i], &results);
+    EXPECT_EQ(results.size(), 1);
+    EXPECT_EQ(results[0], keys[i]);
+  }
+
+  // The root must have split
+  //EXPECT_FALSE(tree->GetRoot()->IsLeaf());
+
+  delete tree;
 }
 
 }  // namespace terrier::storage::index

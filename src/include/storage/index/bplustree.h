@@ -16,55 +16,71 @@
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
+#include "loggers/index_logger.h"
+
 namespace noisepage::storage::index {
 
-// This is the value we use in epoch manager to make sure
-// no thread sneaking in while GC decision is being made
-#define MAX_THREAD_COUNT ((int)0x7FFFFFFF)
 // If node size goes above this then we split it
+// Thresholds for Inner Node
 #define INNER_NODE_SIZE_UPPER_THRESHOLD ((int)128)
-#define INNER_NODE_SIZE_LOWER_THRESHOLD ((int)32)
+#define INNER_NODE_SIZE_LOWER_THRESHOLD ((int)64)
 
+// Thresholds for Leaf Node
 #define LEAF_NODE_SIZE_UPPER_THRESHOLD ((int)128)
-#define LEAF_NODE_SIZE_LOWER_THRESHOLD ((int)32)
+#define LEAF_NODE_SIZE_LOWER_THRESHOLD ((int)64)
+
 /*
  * class BPlusTreeBase - Base class of BPlusTree that stores some common members
  */
+
+/**
+ *  Base class for BPlusTree that stores common data, inherited by the BPlusTree class
+ */
 class BPlusTreeBase {
  public:
-  // This is the presumed size of cache line
-  static constexpr size_t CACHE_LINE_SIZE = 64;
 
-  // This is the mask we used for address alignment (AND with this)
-  static constexpr size_t CACHE_LINE_MASK = ~(CACHE_LINE_SIZE - 1);
-
-  /** @return inner_node_size_upper_threshold */
+  /**
+   * @return inner_node_size_upper_threshold
+   */
   int GetInnerNodeSizeUpperThreshold() const { return inner_node_size_upper_threshold_; }
-  /** @return inner_node_size_lower_threshold */
+  /**
+   * @return inner_node_size_lower_threshold
+   */
   int GetInnerNodeSizeLowerThreshold() const { return inner_node_size_lower_threshold_; }
-  /** @return leaf_node_size_upper_threshold */
+  /**
+   * @return leaf_node_size_upper_threshold
+   */
   int GetLeafNodeSizeUpperThreshold() const { return leaf_node_size_upper_threshold_; }
-  /** @return leaf_node_size_lower_threshold */
+  /**
+   * @return leaf_node_size_lower_threshold
+   */
   int GetLeafNodeSizeLowerThreshold() const { return leaf_node_size_lower_threshold_; }
 
-  // Dont know whether we need to keep Padded Data - so removed that for now.
  public:
-  /** @param inner_node_size_upper_threshold upper size threshold for inner node split to be assigned to this tree */
+  /**
+   * @param inner_node_size_upper_threshold upper size threshold for inner node split to be assigned to this tree
+   */
   void SetInnerNodeSizeUpperThreshold(int inner_node_size_upper_threshold) {
     inner_node_size_upper_threshold_ = inner_node_size_upper_threshold;
   }
 
-  /** @param inner_node_size_upper_threshold lower size threshold for inner node removal to be assigned to this tree */
+  /**
+   * @param inner_node_size_upper_threshold lower size threshold for inner node removal to be assigned to this tree
+   */
   void SetInnerNodeSizeLowerThreshold(int inner_node_size_lower_threshold) {
     inner_node_size_lower_threshold_ = inner_node_size_lower_threshold;
   }
 
-  /** @param leaf_node_size_upper_threshold upper size threshold for leaf node split to be assigned to this tree */
+  /**
+   * @param leaf_node_size_upper_threshold upper size threshold for leaf node split to be assigned to this tree
+   */
   void SetLeafNodeSizeUpperThreshold(int leaf_node_size_upper_threshold) {
     leaf_node_size_upper_threshold_ = leaf_node_size_upper_threshold;
   }
 
-  /** @param inner_node_size_upper_threshold lower size threshold for leaf node removal to be assigned to this tree */
+  /**
+   * @param inner_node_size_upper_threshold lower size threshold for leaf node removal to be assigned to this tree
+   */
   void SetLeafNodeSizeLowerThreshold(int leaf_node_size_lower_threshold) {
     leaf_node_size_lower_threshold_ = leaf_node_size_lower_threshold;
   }
@@ -81,12 +97,12 @@ class BPlusTreeBase {
   int leaf_node_size_lower_threshold_ = LEAF_NODE_SIZE_LOWER_THRESHOLD;
 
  public:
-  /*
+  /**
    * Constructor
    */
   BPlusTreeBase() = default;
 
-  /*
+  /**
    * Destructor
    */
   ~BPlusTreeBase() = default;
@@ -134,6 +150,25 @@ class BPlusTreeBase {
  * be set as the standard operator in C++ (i.e. the operator for primitive types
  * AND/OR overloaded operators for derived types)
  */
+
+/**
+ * Implementation of a B+ Tree index using latch crabbing.
+ *
+ *
+ *
+ *
+ * @tparam KeyType Key type of the map
+ * @tparam ValueType Value type of the map. Note that it is possible that a single key is mapped to multiple values
+ * @tparam KeyComparator "less than" relation comparator for KeyType
+ *                   Returns true if "less than" relation holds
+ * @tparam KeyEqualityChecker Equality checker for KeyType
+ *                        Returns true if two keys are equal
+ * @tparam KeyHashFunc Hashes KeyType into size_t. This is used in unordered_set
+ * @tparam ValueEqualityChecker Equality checker for value type
+ *                          Returns true for ValueTypes that are equal
+ * @tparam ValueHashFunc Hashes ValueType into a size_t
+ *                   This is used in unordered_set
+ */
 template <typename KeyType, typename ValueType, typename KeyComparator = std::less<KeyType>,
     typename KeyEqualityChecker = std::equal_to<KeyType>, typename KeyHashFunc = std::hash<KeyType>,
     typename ValueEqualityChecker = std::equal_to<ValueType>, typename ValueHashFunc = std::hash<ValueType>>
@@ -166,7 +201,7 @@ class BPlusTree : public BPlusTreeBase {
   // Comparator, equality checker and hasher for key-NodeID pair
   ///////////////////////////////////////////////////////////////////
 
-  /*
+  /**
    * class KeyNodePointerPairComparator - Compares key-value pair for < relation
    *
    * Only key values are compares. However, we should use WrappedKeyComparator
@@ -176,18 +211,18 @@ class BPlusTree : public BPlusTreeBase {
    public:
     const KeyComparator *key_cmp_obj_p_;
 
-    /*
+    /**
      * Default constructor - deleted
      */
     KeyNodePointerPairComparator() = delete;
 
-    /*
+    /**
      * Constructor - Initialize a key-NodeID pair comparator using
      *               wrapped key comparator
      */
     explicit KeyNodePointerPairComparator(BPlusTree *p_tree_p) : key_cmp_obj_p_{&p_tree_p->key_cmp_obj_} {}
 
-    /*
+    /**
      * operator() - Compares whether a key NodeID pair is less than another
      *
      * We only compare keys since there should not be duplicated
@@ -199,7 +234,7 @@ class BPlusTree : public BPlusTreeBase {
     }
   };
 
-  /*
+  /**
    * class KeyNodePointerPairEqualityChecker - Checks KeyNodePointerPair equality
    *
    * Only keys are checked since there should not be duplicated keys inside
@@ -210,17 +245,17 @@ class BPlusTree : public BPlusTreeBase {
    public:
     const KeyEqualityChecker *key_eq_obj_p_;
 
-    /*
+    /**
      * Default constructor - deleted
      */
     KeyNodePointerPairEqualityChecker() = delete;
 
-    /*
+    /**
      * Constructor - Initialize a key node pair eq checker
      */
     explicit KeyNodePointerPairEqualityChecker(BPlusTree *p_tree_p) : key_eq_obj_p_{&p_tree_p->key_eq_obj_} {}
 
-    /*
+    /**
      * operator() - Compares key-NodeID pair by comparing keys
      */
     bool operator()(const KeyNodePointerPair &knp1, const KeyNodePointerPair &knp2) const {
@@ -228,24 +263,24 @@ class BPlusTree : public BPlusTreeBase {
     }
   };
 
-  /*
+  /**
    * class KeyNodePointerPairHashFunc - Hashes a key-NodeID pair into size_t
    */
   class KeyNodePointerPairHashFunc {
    public:
     const KeyHashFunc *key_hash_obj_p_;
 
-    /*
+    /**
      * Default constructor - deleted
      */
     KeyNodePointerPairHashFunc() = delete;
 
-    /*
+    /**
      * Constructor - Initialize a key value pair hash function
      */
     explicit KeyNodePointerPairHashFunc(BPlusTree *p_tree_p) : key_hash_obj_p_{&p_tree_p->key_hash_obj_} {}
 
-    /*
+    /**
      * operator() - Hashes a key-value pair by hashing each part and
      *              combine them into one size_t
      *
@@ -259,24 +294,24 @@ class BPlusTree : public BPlusTreeBase {
   // Comparator, equality checker and hasher for key-value pair
   ///////////////////////////////////////////////////////////////////
 
-  /*
+  /**
    * class KeyValuePairComparator - Comparator class for KeyValuePair
    */
   class KeyValuePairComparator {
    public:
     const KeyComparator *key_cmp_obj_p_;
 
-    /*
+    /**
      * Default constructor - deleted
      */
     KeyValuePairComparator() = delete;
 
-    /*
+    /**
      * Constructor
      */
     explicit KeyValuePairComparator(BPlusTree *p_tree_p) : key_cmp_obj_p_{&p_tree_p->key_cmp_obj_} {}
 
-    /*
+    /**
      * operator() - Compares key-value pair by comparing each component
      *              of them
      *
@@ -288,7 +323,7 @@ class BPlusTree : public BPlusTreeBase {
     }
   };
 
-  /*
+  /**
    * class KeyValuePairEqualityChecker - Checks KeyValuePair equality
    */
   class KeyValuePairEqualityChecker {
@@ -296,19 +331,19 @@ class BPlusTree : public BPlusTreeBase {
     const KeyEqualityChecker *key_eq_obj_p_;
     const ValueEqualityChecker *value_eq_obj_p_;
 
-    /*
+    /**
      * Default constructor - deleted
      */
     KeyValuePairEqualityChecker() = delete;
 
-    /*
+    /**
      * Constructor - Initialize a key value pair equality checker with
      *               WrappedKeyEqualityChecker and ValueEqualityChecker
      */
     explicit KeyValuePairEqualityChecker(BPlusTree *p_tree_p)
         : key_eq_obj_p_{&p_tree_p->key_eq_obj_}, value_eq_obj_p_{&p_tree_p->value_eq_obj_} {}
 
-    /*
+    /**
      * operator() - Compares key-value pair by comparing each component
      *              of them
      *
@@ -324,7 +359,7 @@ class BPlusTree : public BPlusTreeBase {
   // Key Comparison Member Functions
   ///////////////////////////////////////////////////////////////////
 
-  /*
+  /**
    * KeyCmpLess() - Compare two keys for "less than" relation
    *
    * If key1 < key2 return true
@@ -337,28 +372,28 @@ class BPlusTree : public BPlusTreeBase {
    */
   bool KeyCmpLess(const KeyType &key1, const KeyType &key2) const { return key_cmp_obj_(key1, key2); }
 
-  /*
+  /**
    * KeyCmpEqual() - Compare a pair of keys for equality
    *
    * This functions compares keys for equality relation
    */
   bool KeyCmpEqual(const KeyType &key1, const KeyType &key2) const { return key_eq_obj_(key1, key2); }
 
-  /*
+  /**
    * KeyCmpGreaterEqual() - Compare a pair of keys for >= relation
    *
    * It negates result of keyCmpLess()
    */
   bool KeyCmpGreaterEqual(const KeyType &key1, const KeyType &key2) const { return !KeyCmpLess(key1, key2); }
 
-  /*
+  /**
    * KeyCmpGreater() - Compare a pair of keys for > relation
    *
    * It flips input for keyCmpLess()
    */
   bool KeyCmpGreater(const KeyType &key1, const KeyType &key2) const { return KeyCmpLess(key2, key1); }
 
-  /*
+  /**
    * KeyCmpLessEqual() - Compare a pair of keys for <= relation
    */
   bool KeyCmpLessEqual(const KeyType &key1, const KeyType &key2) const { return !KeyCmpGreater(key1, key2); }
@@ -367,12 +402,12 @@ class BPlusTree : public BPlusTreeBase {
   // Value Comparison Member
   ///////////////////////////////////////////////////////////////////
 
-  /*
+  /**
    * ValueCmpEqual() - Compares whether two values are equal
    */
   bool ValueCmpEqual(const ValueType &v1, const ValueType &v2) { return value_eq_obj_(v1, v2); }
 
-  /*
+  /**
    * class NodeMetaData - Holds node metadata in an object
    *
    * Node metadata includes a pointer to the range object, the depth
@@ -535,6 +570,8 @@ class BPlusTree : public BPlusTreeBase {
      */
     void ReleaseNodeLatch() { metadata_.node_latch_.unlock(); }
 
+    void ReleaseNodeSharedLatch() { metadata_.node_latch_.unlock_shared(); }
+
     /*
      * GetLatchPointer() - Get the Latch Pointer of current node's latch
      */
@@ -631,12 +668,8 @@ class BPlusTree : public BPlusTreeBase {
       Free elastic node
     */
     void FreeElasticNode() {
-      // for (ElementType *element_p = Begin(); element_p != End(); element_p++) {
-      //   // Manually calls destructor when the node is destroyed
-      //   element_p->~ElementType();
-      // }
-      ElasticNode *beginning_allocation = this;
-      delete[] reinterpret_cast<char *>(beginning_allocation);
+      ElasticNode *allocation_start = this;
+      delete[] reinterpret_cast<char *>(allocation_start);
     }
 
     /*
@@ -996,6 +1029,8 @@ class BPlusTree : public BPlusTreeBase {
  private:
   BaseNode *root_;
   std::shared_mutex root_latch_;
+  std::atomic_uint64_t num_keys_;
+  std::atomic_uint64_t num_values_;
 
  public:
   /*
@@ -1805,24 +1840,27 @@ class BPlusTree : public BPlusTreeBase {
     return got_root_latch;
   }
 
-  /*
-    Insert - adds element in the tree
-    The structure followed in the code is the lowKeyPointerPair's pointer represents
-    the leftmost pointer. While for all other nodes their pointer go to a node on their
-    right, ie containing values with keys greater than them.
-  */
-
+  /**
+   * This function adds an element in the tree
+   * The structure followed in the code is the lowKeyPointerPair's pointer represents
+   * the leftmost pointer. While for all other nodes their pointer go to a node on their
+   * right, ie containing values with keys greater than them.
+   * @param element The element to be inserted
+   * @param predicate The predicate function that should be satisfied while insertion
+   * @return true on successful insertion, false otherwise
+   */
   bool Insert(const KeyElementPair element, std::function<bool(const ValueType)> predicate) {
-    /*
-     ****************************
-      First try optimistic insert
-     ****************************
-    */
-    /* If root is nullptr then we make a Leaf Node.
+
+    /* Try Optimistic Insert
+     * Assuming insert will not cause any overflows, get shared latch for all nodes except the
+     * leaf node. For the leaf node where insert occurs, get exclusive access.
      */
+
+    // Get access to the Tree
     root_latch_.lock();
 
     if (root_ == nullptr) {
+      // If root is nullptr then we make a Leaf Node.
       KeyNodePointerPair p1, p2;
       p1.first = element.first;
       p2.first = element.first;
@@ -1832,43 +1870,31 @@ class BPlusTree : public BPlusTreeBase {
       root_ = ElasticNode<KeyValuePair>::Get(leaf_node_size_upper_threshold_, NodeType::LeafType, 0,
                                              leaf_node_size_upper_threshold_, p1, p2);
     }
-    // beyond this point we'll have exclusive_lock on tree lock
+
+    // NOTE: At this point, exclusive lock to tree (root_latch_) is held.
 
     BaseNode *current_node = root_;
     BaseNode *parent_node = nullptr;
 
-    /*
-      Locking Code
-    */
+    // Locking Code
     current_node->GetNodeSharedLatch();
-    /*
-      Locking Code End
-    */
+    // Locking Code End
 
     // Traversing Down and maintaining a stack of pointers
     while (current_node->GetType() != NodeType::LeafType) {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
 
-      /*
-        Locking Code
-        Release parent's shared lock
-      */
+      // Locking Code
+      // Release parent's shared lock
       if (parent_node != nullptr) {
-        parent_node->ReleaseNodeLatch();
+        parent_node->ReleaseNodeSharedLatch();
       } else {
+        // Release the exclusive lock on the tree
         root_latch_.unlock();
       }
-      // if(node->GetSize() < node->GetItemCount()) {
-      //   got_root_latch = ReleaseAllLocks(node_list, got_root_latch);
-      // }
-      /*
-        Locking Code End
-      */
+      // Locking Code End
 
-      // node_list.push_back(current_node);
-
-      // Note that Find Location returns the location of first element
-      // that compare greater than
+      // NOTE: FindLocation returns the location of first element that compares greater than
       auto index_pointer = node->FindLocation(element.first, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
@@ -1881,34 +1907,26 @@ class BPlusTree : public BPlusTreeBase {
         current_node = node->GetLowKeyPair().second;
       }
 
-      /*
-        Locking Code
-        Get current node's shared lock
-      */
+      // Locking Code
+      // Get current node's shared lock
       current_node->GetNodeSharedLatch();
-      /*
-        Locking Code End
-      */
+      // Locking Code End
     }
 
-    // Now we try insertion into the found leaf node
-    // only if insertion without splitting is possible
+    // Try optimistic insertion into the leaf node, if insertion without splitting is possible.
 
-    /*
-      Locking Code
-      Get current node's exclusive lock and free parent
-    */
-    current_node->ReleaseNodeLatch();
+    // Locking Code
+    // Get current node's exclusive lock and release lock on the parent
+    current_node->ReleaseNodeSharedLatch();
     current_node->GetNodeExclusiveLatch();
     if (parent_node != nullptr) {
-      parent_node->ReleaseNodeLatch();
+      parent_node->ReleaseNodeSharedLatch();
     } else {
       root_latch_.unlock();
     }
-    /*
-      Locking Code End
-      Beyond this we only have exclusive latch on the current_node
-    */
+    // Locking Code End
+
+    // Beyond this we only have exclusive latch on the current_node
 
     bool finished_insertion = false;
     // We maintain the element that we have to recursively insert up.
@@ -2191,6 +2209,7 @@ class BPlusTree : public BPlusTreeBase {
     // If still insertion is not finished we have to split the root node.
     // Remember the root must have been split by now.
     if (!finished_insertion) {
+      NOISEPAGE_ASSERT(got_root_latch, "Root Latch should be held here");
       auto old_root = root_;
       KeyNodePointerPair p1, p2;
       p1.first = inner_node_element.first; /*This is a dummy initialization*/
@@ -2592,7 +2611,7 @@ class BPlusTree : public BPlusTreeBase {
         Release parent's shared lock
       */
       if (parent_node != nullptr) {
-        parent_node->ReleaseNodeLatch();
+        parent_node->ReleaseNodeSharedLatch();
       } else {
         root_latch_.unlock();
       }
@@ -2631,10 +2650,10 @@ class BPlusTree : public BPlusTreeBase {
       Locking Code
       Get current node's exclusive lock and free parent
     */
-    current_node->ReleaseNodeLatch();
+    current_node->ReleaseNodeSharedLatch();
     current_node->GetNodeExclusiveLatch();
     if (parent_node != nullptr) {
-      parent_node->ReleaseNodeLatch();
+      parent_node->ReleaseNodeSharedLatch();
     } else {
       root_latch_.unlock();
     }
@@ -2928,23 +2947,27 @@ class BPlusTree : public BPlusTreeBase {
                      ValueEqualityChecker p_value_eq_obj = ValueEqualityChecker{},
                      ValueHashFunc p_value_hash_obj = ValueHashFunc{})
       : BPlusTreeBase(),
-      // Key comparator, equality checker and hasher
+        // Key comparator, equality checker and hasher
         key_cmp_obj_{p_key_cmp_obj},
         key_eq_obj_{p_key_eq_obj},
         key_hash_obj_{p_key_hash_obj},
 
-      // Value equality checker and hasher
+        // Value equality checker and hasher
         value_eq_obj_{p_value_eq_obj},
         value_hash_obj_{p_value_hash_obj},
 
-      // key-node ID pair cmp, equality checker and hasher
+        // key-node ID pair cmp, equality checker and hasher
         key_node_id_pair_cmp_obj_{this},
         key_node_id_pair_eq_obj_{this},
 
-      // key-value pair cmp, equality checker and hasher
+        // key-value pair cmp, equality checker and hasher
         key_value_pair_cmp_obj_{this},
         key_value_pair_eq_obj_{this},
-        root_(nullptr) {}
+
+        // Root and key/value counters
+        root_(nullptr),
+        num_keys_(0),
+        num_values_(0) {}
 
   /*
    * Destructor - Destroy BplusTree instance
