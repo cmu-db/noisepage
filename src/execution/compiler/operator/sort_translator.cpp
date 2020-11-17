@@ -9,6 +9,7 @@
 #include "execution/compiler/work_context.h"
 #include "execution/sql/sorter.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::execution::compiler {
 

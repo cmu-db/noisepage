@@ -5,8 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
-#include "common/hash_util.h"
+#include "common/hash_defs.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
@@ -21,6 +20,7 @@ class ExpressionNodeContents;
 namespace noisepage::binder {
 class BindNodeVisitor;
 class BinderUtil;
+class SqlNodeVisitor;
 }  // namespace noisepage::binder
 
 namespace noisepage::parser {

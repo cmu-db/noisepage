@@ -8,6 +8,7 @@
 #include "execution/compiler/work_context.h"
 #include "execution/sql/join_hash_table.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::execution::compiler {
 

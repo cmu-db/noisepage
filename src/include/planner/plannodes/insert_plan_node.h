@@ -83,14 +83,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::unique_ptr<InsertPlanNode> Build() {
-      NOISEPAGE_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
-      NOISEPAGE_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
-                       "Must have parameter info for each value");
-      return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, table_oid_, std::move(values_),
-                                                                std::move(parameter_info_)));
-    }
+    std::unique_ptr<InsertPlanNode> Build();
 
    protected:
     /**
@@ -135,12 +128,7 @@ class InsertPlanNode : public AbstractPlanNode {
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                 std::vector<catalog::col_oid_t> &&parameter_info)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        table_oid_(table_oid),
-        values_(std::move(values)),
-        parameter_info_(std::move(parameter_info)) {}
+                 std::vector<catalog::col_oid_t> &&parameter_info);
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)
