@@ -1071,6 +1071,12 @@ void PlanGenerator::Visit(const Analyze *analyze) {
 
 void PlanGenerator::Visit(const CteScan *cte_scan) {
   // CteScan has the same output schema as the child plan!
+  // children_plans_ can have up to 2 children, the cases are as follows:
+  // 0 children: this node is a reader, and does not populate the temp table (not a leader)
+  // 1 child: this node is a leader (writer) for a simple CTE; its child is the query plan
+  // to populate it
+  // 2 children: this node is a leader for an inductive CTE; its children are plans for the
+  // base and inductive cases respectively
   NOISEPAGE_ASSERT(children_plans_.size() <= 2, "CteScan needs at most 2 child plans");
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(cte_scan->GetScanPredicate()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);

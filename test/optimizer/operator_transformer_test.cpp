@@ -1958,7 +1958,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectWithMultipleCteTest) {
-  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql =
       "WITH COMPANY as (SELECT A1,A2 FROM A) SELECT * FROM COMPANY AS C1, COMPANY AS C2 WHERE C1.A1 = C2.A1";
 
@@ -1982,7 +1981,6 @@ TEST_F(OperatorTransformerTest, SelectWithMultipleCteTest) {
 }
 
 TEST_F(OperatorTransformerTest, SelectWithSingleCteTest) {
-  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH COMPANY as (SELECT A1,A2 FROM A) SELECT * FROM COMPANY;";
 
   std::string ref =

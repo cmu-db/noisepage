@@ -76,6 +76,7 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
     col_oids.push_back(cols.first);
   }
   auto pr_init = InitializerForProjectedRow(col_oids);
+  // Allocate on stack since we would otherwise free it immediately and lifecycle is short
   void *buffer = alloca(pr_init.ProjectedRowSize());
   auto *projected_row = pr_init.InitializeRow(buffer);
   while (it != src->end()) {

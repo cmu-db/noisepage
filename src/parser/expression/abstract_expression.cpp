@@ -48,6 +48,8 @@ common::hash_t AbstractExpression::Hash() const {
 
 bool AbstractExpression::operator==(const AbstractExpression &rhs) const {
   if (expression_type_ != rhs.expression_type_) return false;
+  // Since AliasType has an == function but not a != function, we need to
+  // negate the output of the == comparison
   if (!(alias_ == rhs.alias_)) return false;
   if (expression_name_ != rhs.expression_name_) return false;
   if (depth_ != rhs.depth_) return false;
