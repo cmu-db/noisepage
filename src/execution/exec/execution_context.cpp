@@ -41,7 +41,7 @@ void ExecutionContext::RegisterThreadWithMetricsManager() {
   }
 }
 
-void ExecutionContext::CheckTrackersStopped() {
+void ExecutionContext::EnsureTrackersStopped() {
   // Resource trackers are not automatically terminated at the end of query execution. If an
   // exception is thrown during execution between StartPipelineTracker and EndPipelineTracker,
   // then the trackers will keep on running (assuming the ThreadContext stays alive).
