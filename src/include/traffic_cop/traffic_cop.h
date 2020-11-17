@@ -207,10 +207,9 @@ class TrafficCop {
    * @param query_type QUERY_EXPLAIN
    * @return result of the operation
    */
-  TrafficCopResult ExecuteExplain(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+  TrafficCopResult ExecuteExplainStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                   common::ManagedPointer<network::PostgresPacketWriter> out,
-                                  common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                  terrier::network::QueryType query_type) const;
+                                  common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
 
   /**
    * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to

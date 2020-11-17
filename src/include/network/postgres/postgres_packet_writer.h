@@ -48,12 +48,6 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteSimpleQuery(const std::string &query);
 
   /**
-   * Writes physical plan for SQL EXPLAIN
-   * @param serialized physical plan
-   */
-  void WriteExplain(const std::string &phys_plan);
-
-  /**
    * Write an ErrorData object
    * @param error data to return to client
    */

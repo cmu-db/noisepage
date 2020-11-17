@@ -115,7 +115,6 @@ enum class QueryType : uint8_t {
   QUERY_DROP_TRIGGER,
   QUERY_DROP_SCHEMA,
   QUERY_DROP_VIEW,
-  // EXPLAIN
   QUERY_EXPLAIN,
   // Misc (non-transactional)
   QUERY_SET,

@@ -28,6 +28,9 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
   common::ManagedPointer<parser::SQLStatement> query_statement = query->GetStatement(0);
 
+  // If the statement type is EXPLAIN, the statement we should be operating on is not the EXPLAIN
+  // statement; it should be the statement you're "explaining". In order to code this logic, we
+  // have to extract the inside statement from the ExplainStatement interface.
   if (query_statement->GetType() == parser::StatementType::EXPLAIN) {
     const auto exp_st = query_statement.CastManagedPointerTo<parser::ExplainStatement>();
     query_statement = exp_st->GetSQLStatement();

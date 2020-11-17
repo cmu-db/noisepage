@@ -26,10 +26,13 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
   BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query, true).EndPacket();
 }
 
+<<<<<<< HEAD
 void PostgresPacketWriter::WriteExplain(const std::string &phys_plan) {
   // BeginPacket().AppendString(phys_plan, true).EndPacket();
 }
 
+=======
+>>>>>>> c17c4942... other explain fixes
 void PostgresPacketWriter::WriteError(const common::ErrorData &error) {
   if (error.GetSeverity() <= common::ErrorSeverity::PANIC)
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
@@ -75,8 +78,9 @@ void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::Output
     const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
     // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
-    const auto &name =
-        columns[i].GetExpr()->GetAlias().empty() ? columns[i].GetName() : columns[i].GetExpr()->GetAlias();
+    const auto &name = columns[i].GetExpr() == nullptr || columns[i].GetExpr()->GetAlias().empty()
+                       ? columns[i].GetName()
+                       : columns[i].GetExpr()->GetAlias();
     // If a column has no name, then Postgres will return "?column?" as a column name.
 
     if (name.empty())

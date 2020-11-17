@@ -280,6 +280,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
                                                common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
+<<<<<<< HEAD
 TrafficCopResult TrafficCop::ExecuteExplain(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                             const common::ManagedPointer<network::PostgresPacketWriter> out,
                                             const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
@@ -315,6 +316,27 @@ TrafficCopResult TrafficCop::ExecuteExplain(const common::ManagedPointer<network
                                                    common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED)};
     }
   }
+=======
+TrafficCopResult TrafficCop::ExecuteExplainStatement(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<network::PostgresPacketWriter> out,
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
+  // Need a single column to write back to the client
+  std::vector<planner::OutputSchema::Column> output_columns;
+  output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
+  out->WriteRowDescription(output_columns, {network::FieldFormat::text});
+
+  // Dump to JSON string, wrap in StringVal, write the data row to the client
+  const std::string plan_string = physical_plan->ToJson().dump(4);
+  const execution::sql::StringVal plan_string_val =
+      execution::sql::StringVal(plan_string.c_str(), plan_string.length());
+  out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
+                    {network::FieldFormat::text});
+
+  return {ResultType::COMPLETE, 0};
+>>>>>>> c17c4942... other explain fixes
 }
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
