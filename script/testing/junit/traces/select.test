@@ -1175,3 +1175,36 @@ SELECT tb.* FROM t, tt tb;
 40
 50
 50
+
+query T
+SELECT true;
+----
+t
+
+query T
+SELECT '2020-11-07'::date;
+----
+2020-11-07
+
+statement ok
+CREATE TABLE foo (a date);
+
+statement ok
+INSERT INTO foo VALUES ('2020-11-07'::date);
+
+statement ok
+INSERT INTO foo VALUES ('2020-11-08'::date);
+
+query T rowsort
+select * from foo where a > '2020-11-07'::date;
+----
+2020-11-08
+
+query T rowsort
+SELECT * FROM foo WHERE a >= '2020-11-07'::date;
+----
+2020-11-07
+2020-11-08
+
+statement ok
+DROP TABLE foo;
