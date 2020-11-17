@@ -95,7 +95,6 @@ class Schema {
           nullable_(nullable),
           oid_(oid),
           default_value_(default_value.Copy()) {
-      NOISEPAGE_ASSERT(attr_size_ != storage::VARLEN_COLUMN, "This constructor is not meant for VARLEN columns.");
       // TODO(Rohan,Gautam,Preetansh): We need to manually set the max varlen size here
       //  as we cannot get this from Output schema for now
       max_varlen_size_ = 128;
