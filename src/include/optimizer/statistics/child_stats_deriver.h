@@ -70,6 +70,12 @@ class ChildStatsDeriver : public OperatorVisitor {
    */
   void Visit(const LogicalAggregateAndGroupBy *op) override;
 
+  /**
+   * Visit for a LogicalLimit
+   * @param op Visiting LogicalLimit
+   */
+  void Visit(const LogicalLimit *op) override;
+
  private:
   /**
    * Function to pass down all required_cols_ to output list
