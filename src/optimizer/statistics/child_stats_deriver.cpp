@@ -40,10 +40,21 @@ void ChildStatsDeriver::Visit(const LogicalInnerJoin *op) {
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalLeftJoin *op) {}
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalRightJoin *op) {}
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalOuterJoin *op) {}
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalSemiJoin *op) {}
+void ChildStatsDeriver::Visit(const LogicalSemiJoin *op) {
+  PassDownRequiredCols();
+  for (auto &annotated_expr : op->GetJoinPredicates()) {
+    ExprSet expr_set;
+    parser::ExpressionUtil::GetTupleValueExprs(&expr_set, annotated_expr.GetExpr());
+    for (auto &col : expr_set) {
+      PassDownColumn(col);
+    }
+  }
+}
 
 // TODO(boweic): support stats of aggregation
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *op) { PassDownRequiredCols(); }
+void ChildStatsDeriver::Visit(const LogicalAggregateAndGroupBy *op) { PassDownRequiredCols(); }
+
+void ChildStatsDeriver::Visit(const LogicalLimit *op) { PassDownRequiredCols(); }
 
 void ChildStatsDeriver::PassDownRequiredCols() {
   for (auto &col : required_cols_) {
