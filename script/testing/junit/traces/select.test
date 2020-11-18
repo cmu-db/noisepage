@@ -1223,3 +1223,46 @@ INSERT INTO t VALUES (1);
 
 statement ok
 DROP TABLE t;
+
+statement ok
+DROP TABLE tt;
+
+statement ok
+CREATE TABLE t (a INT, b VARCHAR(32));
+
+statement ok
+INSERT INTO t VALUES (1, 'a'), (2, 'nananananabanana'), (3, 'catdogelephantfishgiraffehorse'), (4, 'd');
+
+query I rowsort
+SELECT a FROM t WHERE a IN (1);
+----
+1
+
+query I rowsort
+SELECT a FROM t WHERE a IN (2,3);
+----
+2
+3
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('a','nananananabanana');
+----
+1
+2
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('nananananabanana','catdogelephantfishgiraffehorse');
+----
+2
+3
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('a','nananananabanana','catdogelephantfishgiraffehorse','d');
+----
+1
+2
+3
+4
+
+statement ok
+DROP TABLE t;
