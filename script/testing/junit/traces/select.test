@@ -1208,3 +1208,18 @@ SELECT * FROM foo WHERE a >= '2020-11-07'::date;
 
 statement ok
 DROP TABLE foo;
+
+statement ok
+DROP TABLE IF EXISTS t;
+
+statement ok
+CREATE TABLE t (a INT PRIMARY KEY);
+
+statement ok
+INSERT INTO t VALUES (1);
+
+statement error
+INSERT INTO t VALUES (1);
+
+statement ok
+DROP TABLE t;

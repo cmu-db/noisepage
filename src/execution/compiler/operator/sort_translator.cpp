@@ -60,15 +60,15 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
 
   if (build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
     parallel_starttlsort_hook_fn_ =
-        GetCodeGen()->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("StartTLSortHook"));
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("StartTLSortHook"));
     parallel_starttlmerge_hook_fn_ =
-        GetCodeGen()->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("StartTLMergeHook"));
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("StartTLMergeHook"));
     parallel_endtlsort_hook_fn_ =
-        GetCodeGen()->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("EndTLSortHook"));
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("EndTLSortHook"));
     parallel_endtlmerge_hook_fn_ =
-        GetCodeGen()->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("EndTLMergeHook"));
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("EndTLMergeHook"));
     parallel_endsinglesorter_hook_fn_ =
-        GetCodeGen()->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("EndSingleSorterHook"));
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("EndSingleSorterHook"));
   }
 }
 
