@@ -130,12 +130,14 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto col_index = GetColOidIndex(cve->GetColumnOid());
       auto const_val = translator->DeriveValue(nullptr, nullptr);
-      builder.Append(codegen->VPIFilter(exec_ctx,                        // The execution context
-                                        vector_proj,                     // The vector projection
-                                        predicate->GetExpressionType(),  // Comparison type
-                                        col_index,                       // Column index
-                                        const_val,                       // Constant value
-                                        tid_list));                      // TID list
+      auto cmp_type = predicate->GetExpressionType();
+      cmp_type = cmp_type == parser::ExpressionType::COMPARE_IN ? parser::ExpressionType::COMPARE_EQUAL : cmp_type;
+      builder.Append(codegen->VPIFilter(exec_ctx,     // The execution context
+                                        vector_proj,  // The vector projection
+                                        cmp_type,     // Comparison type
+                                        col_index,    // Column index
+                                        const_val,    // Constant value
+                                        tid_list));   // TID list
     } else if (parser::ExpressionUtil::IsColumnCompareWithParam(*predicate)) {
       // TODO(WAN): temporary hacky implementation, poke Prashanth...
       auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
