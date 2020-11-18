@@ -205,10 +205,10 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLSortHookFunction() const {
     }
 
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, build_ou_type,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
-    FeatureRecord(&builder, build_ou_type,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, cardinality_val);
+    FeatureRecord(&builder, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+                  cardinality_val);
 
     // End Tracker
     pipeline->InjectEndResourceTracker(&builder, true);
