@@ -645,6 +645,16 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression>
   sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
   sherpa_->SetDesiredTypePair(expr->GetChild(0), expr->GetChild(1));
   SqlNodeVisitor::Visit(expr);
+
+  // If any of the operands are typecasts, the typecast children should have been casted by now. Pull the children up.
+  for (size_t i = 0; i < expr->GetChildrenSize(); ++i) {
+    auto child = expr->GetChild(i);
+    if (parser::ExpressionType::OPERATOR_CAST == child->GetExpressionType()) {
+      NOISEPAGE_ASSERT(parser::ExpressionType::VALUE_CONSTANT == child->GetChild(0)->GetExpressionType(),
+                       "We can only pull up ConstantValueExpression.");
+      expr->SetChild(i, child->GetChild(0));
+    }
+  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConjunctionExpression> expr) {
@@ -742,6 +752,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SubqueryExpression> e
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::TypeCastExpression> expr) {
   BINDER_LOG_TRACE("Visiting TypeCastExpression...");
+  NOISEPAGE_ASSERT(1 == expr->GetChildrenSize(), "TypeCastExpression should have exactly 1 child.");
+  sherpa_->SetDesiredType(expr->GetChild(0), expr->GetReturnValueType());
   SqlNodeVisitor::Visit(expr);
 }
 
