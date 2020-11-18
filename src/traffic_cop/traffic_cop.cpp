@@ -129,7 +129,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
   out->WriteCommandComplete(query_type, 0);
 }
 
-std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
+std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<parser::ParseResult> query) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,

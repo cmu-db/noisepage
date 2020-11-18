@@ -12,6 +12,11 @@ class AbstractExpression;
 
 namespace noisepage::planner {
 
+/**
+ * typedef for PlanNodeID
+ */
+STRONG_TYPEDEF_HEADER(plan_node_id_t, int32_t);
+
 //===--------------------------------------------------------------------===//
 // JSON (de)serialization declarations
 //===--------------------------------------------------------------------===//

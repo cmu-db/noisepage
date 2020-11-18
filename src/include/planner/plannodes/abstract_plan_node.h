@@ -103,6 +103,9 @@ class AbstractPlanNode {
    */
   size_t GetChildrenSize() const { return children_.size(); }
 
+  // TODO(Elena): get real id
+  plan_node_id_t GetPlanNodeId() const { return plan_node_id_t(0); }
+
   /**
    * @param child_index index of child
    * @return child at provided index
