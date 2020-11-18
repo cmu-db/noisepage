@@ -898,7 +898,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
 
   switch (builtin) {
     case ast::Builtin::RegisterThreadWithMetricsManager:
-    case ast::Builtin::CheckTrackersStopped:
+    case ast::Builtin::EnsureTrackersStopped:
     case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
@@ -941,7 +941,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
 
   switch (builtin) {
     case ast::Builtin::RegisterThreadWithMetricsManager:
-    case ast::Builtin::CheckTrackersStopped:
+    case ast::Builtin::EnsureTrackersStopped:
     case ast::Builtin::AggregateMetricsThread: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
@@ -3253,7 +3253,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::RegisterThreadWithMetricsManager:
-    case ast::Builtin::CheckTrackersStopped:
+    case ast::Builtin::EnsureTrackersStopped:
     case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextRegisterHook:

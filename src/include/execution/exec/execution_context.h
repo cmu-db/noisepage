@@ -248,9 +248,9 @@ class EXPORT ExecutionContext {
   void AggregateMetricsThread();
 
   /**
-   * Checks that the trackers for the current thread are stopped
+   * Ensures that the trackers for the current thread are stopped
    */
-  void CheckTrackersStopped();
+  void EnsureTrackersStopped();
 
   /**
    * @return metrics manager used by execution context
