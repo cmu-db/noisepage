@@ -88,7 +88,9 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
     }
 
     // TODO(tanujnay112) I don't like how I have to hardcode this
-    auto *redo = txn->StageWrite(catalog::db_oid_t(999), catalog::table_oid_t(999), pr_init);
+    auto *redo = txn->StageWrite(catalog::MakeTempOid<catalog::db_oid_t>(catalog::INVALID_DATABASE_OID.UnderlyingValue()),
+                                 catalog::MakeTempOid<catalog::table_oid_t>(catalog::INVALID_TABLE_OID.UnderlyingValue()),
+                                 pr_init);
     auto *new_pr = redo->Delta();
     auto pr_map = ProjectionMapForOids(col_oids);
     for (auto &cols : table_.column_map_) {

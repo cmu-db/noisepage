@@ -24,7 +24,7 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
       slot_var_(GetCodeGen()->MakeFreshIdentifier("slot")),
       col_oids_(
-          MakeInputOids(GetCodeGen()->GetCatalogAccessor(), GetTableOid(), GetPlanAs<planner::SeqScanPlanNode>())),
+          MakeInputOids(*(GetCodeGen()->GetCatalogAccessor()), GetTableOid(), GetPlanAs<planner::SeqScanPlanNode>())),
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
@@ -385,7 +385,7 @@ uint32_t SeqScanTranslator::GetColOidIndex(catalog::col_oid_t col_oid) const {
                             common::ErrorCode::ERRCODE_INTERNAL_ERROR);
 }
 
-std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(catalog::CatalogAccessor *accessor,
+std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(const catalog::CatalogAccessor &accessor,
                                                                  catalog::table_oid_t table,
                                                                  const planner::SeqScanPlanNode &op) {
   if (op.GetColumnOids().empty()) {
@@ -393,7 +393,7 @@ std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(catalog::Catalo
     if (catalog::IsTempOid(table)) {
       schema = *reinterpret_cast<const planner::CteScanPlanNode *>(&op)->GetTableSchema();
     } else {
-      schema = accessor->GetSchema(table);
+      schema = accessor.GetSchema(table);
     }
     return {schema.GetColumn(0).Oid()};
   }

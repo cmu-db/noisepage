@@ -72,8 +72,11 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   }
 }
 
+// Find the first node that reads from a temp table, and mark it to be a leader, it is responsible for pupulating the
+// table; for all other CTE nodes, set the pointer to the leader
 void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode> plan, catalog::table_oid_t table_oid,
                                common::ManagedPointer<planner::CteScanPlanNode> *leader) {
+  // If the node is a reader from the desired table
   if ((plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) &&
       (plan.CastManagedPointerTo<planner::CteScanPlanNode>()->GetTableOid() == table_oid)) {
     if (plan->GetChildren().empty()) {
@@ -94,6 +97,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
       }
     }
 
+    // Leader has not been set yet, set new leader
     if (*leader == nullptr) {
       auto current_cte = dynamic_cast<planner::CteScanPlanNode *>(plan.Get());
 
@@ -130,6 +134,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
   }
   auto children = plan->GetChildren();
   for (auto &i : children) {
+    // Loop through all children and do the same
     ElectCTELeader(i, table_oid, leader);
   }
 }
@@ -185,6 +190,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group " + std::to_string(id.UnderlyingValue()));
 
   if (op->Contents()->GetOpType() == OpType::CTESCAN && !child_groups.empty()) {
+    // 0 children: Reader; 1 child: Populates simple CTE table; 2 children: populates inductive CTE table
     NOISEPAGE_ASSERT(child_groups.size() <= 2, "CTE should not have more than 2 children.");
     if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
       auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(plan.get());
