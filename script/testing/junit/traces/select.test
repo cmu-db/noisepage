@@ -1225,9 +1225,6 @@ statement ok
 DROP TABLE t;
 
 statement ok
-DROP TABLE t;
-
-statement ok
 DROP TABLE tt;
 
 statement ok
