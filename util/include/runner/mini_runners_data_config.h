@@ -60,9 +60,15 @@ class MiniRunnersDataConfig {
       {15, type::TypeId::INTEGER}, {15, type::TypeId::BIGINT}, {5, type::TypeId::VARCHAR}};
 
   /**
-   * Parameter controls number of columns extracted from base tables.
+   * Parameter controls number of columns extracted from base tables (for integer, decimal, and bigint).
    */
   std::vector<uint32_t> sweep_col_nums_ = {1, 3, 5, 7, 9, 11, 13, 15};
+
+  /**
+   * Parameter controls number of columns extracted from base tables (for varchar).
+   * Note: This is different than other types due to size concerns.
+   */
+  std::vector<uint32_t> sweep_varchar_col_nums_ = {1, 3, 5};
 
   /**
    * Parameter controls distribution of mixed (integer, decimal/bigint) for scans
@@ -75,9 +81,15 @@ class MiniRunnersDataConfig {
   std::vector<std::pair<uint32_t, uint32_t>> sweep_scan_mixed_varchar_dist_ = {{2, 3}, {3, 2}, {4, 1}};
 
   /**
-   * Parameter controls number of keys to be used in mini-runner index lookups.
+   * Parameter controls number of keys to be used in mini-runner index lookups (for integer, decimal, and bigint).
    */
   std::vector<uint32_t> sweep_index_col_nums_ = {1, 2, 4, 8, 15};
+
+  /**
+   * Parameter controls number of keys to be used in mini-runner index lookups (for varchar).
+   * Note: This is different than other types due to size concerns.
+   */
+  std::vector<uint32_t> sweep_varchar_index_col_nums_ = {1, 2, 4};
 
   /**
    * Parameter controls size of index scan lookups.

@@ -51,13 +51,16 @@ void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniR
 
 void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                     const MiniRunnersDataConfig &config) {
-  auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::VARCHAR};
+  const std::vector<uint32_t> *num_cols;
   for (auto type : types) {
-    for (auto col : num_cols) {
-      // Skip more than 5 varchar cols to match the generated tables
-      if (type == type::TypeId::VARCHAR && col > 5) continue;
+    if (type == type::TypeId::VARCHAR)
+      num_cols = &config.sweep_varchar_col_nums_;
+    else
+      num_cols = &config.sweep_col_nums_;
+
+    for (auto col : *num_cols) {
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
@@ -226,15 +229,17 @@ void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const Mini
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
   auto &key_sizes = config.sweep_index_col_nums_;
   auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto &lookup_sizes = config.sweep_index_lookup_sizes_;
+  const std::vector<uint32_t> *lookup_sizes;
   for (auto type : types) {
     for (auto key_size : key_sizes) {
-      // Only handle varchar up to 5 keys for size concerns
-      if (type == type::TypeId::VARCHAR && key_size > 5) continue;
       for (auto idx_size : idx_sizes) {
         b->push_back({static_cast<int64_t>(type), key_size, idx_size, 0, 1});
 
-        for (auto lookup_size : lookup_sizes) {
+        if (type == type::TypeId::VARCHAR)
+          lookup_sizes = &config.sweep_varchar_index_col_nums_;
+        else
+          lookup_sizes = &config.sweep_index_col_nums_;
+        for (auto lookup_size : *lookup_sizes) {
           if (lookup_size <= idx_size) {
             b->push_back({static_cast<int64_t>(type), key_size, idx_size, lookup_size, -1});
           }
@@ -359,6 +364,8 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
         for (auto row : row_nums) {
           int64_t car = 1;
           // Only use one cardinality for now since we can't track any cardinality anyway
+          // TODO(lin): Augment the create index runner with different cardinalities when we're able to
+          //  estimate/track the cardinality.
           if (row > settings.create_index_small_limit_) {
             // For these, we get a memory explosion if the cardinality is too low.
             while (car < row) {

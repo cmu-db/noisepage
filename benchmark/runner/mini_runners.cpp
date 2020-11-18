@@ -30,7 +30,7 @@
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "runner/mini_runners_argument_generator.h"
-#include "runner/mini_runners_config.h"
+#include "runner/mini_runners_data_config.h"
 #include "runner/mini_runners_settings.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -638,8 +638,8 @@ class MiniRunners : public benchmark::Fixture {
       case brain::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t multiply_factor = sizeof(storage::VarlenEntry) / sizeof(uint32_t);
-        auto *val = reinterpret_cast<storage::VarlenEntry *>(new uint32_t[(num_elem * 2) * multiply_factor]);
-        for (size_t i = 0; i <= num_elem; ++i) {
+        auto *val = reinterpret_cast<storage::VarlenEntry *>(new uint32_t[num_elem * multiply_factor * 2]);
+        for (size_t i = 0; i < num_elem * 2; ++i) {
           std::string str_val = std::to_string(i & 0xFF);
           val[i] = storage::VarlenEntry::Create(str_val);
         }

@@ -194,11 +194,21 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLSortHookFunction() const {
     auto *sorter_size = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {local_sorter_.GetPtr(codegen)});
     builder.Append(codegen->DeclareVarWithInit(num_tuples, sorter_size));
 
+    brain::ExecutionOperatingUnitType build_ou_type;
+    ast::Expr *cardinality_val;
+    if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
+      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
+      cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
+    } else {
+      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+      cardinality_val = codegen->MakeExpr(num_tuples);
+    }
+
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP,
+    FeatureRecord(&builder, build_ou_type,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, build_ou_type,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, cardinality_val);
 
     // End Tracker
     pipeline->InjectEndResourceTracker(&builder, true);
@@ -218,20 +228,17 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLMergeHookFunction() const {
   FunctionBuilder builder(codegen, parallel_endtlmerge_hook_fn_, std::move(params), ret_type);
   {
     brain::ExecutionOperatingUnitType build_merge_ou_type;
-    ast::Expr *cardinality_val;
     if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
       build_merge_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
-      cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
     } else {
       build_merge_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
-      cardinality_val = codegen->MakeExpr(override_value);
     }
 
     // FeatureRecord with the overrideValue
     FeatureRecord(&builder, build_merge_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
                   codegen->MakeExpr(override_value));
     FeatureRecord(&builder, build_merge_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
-                  cardinality_val);
+                  codegen->MakeExpr(override_value));
 
     // End Tracker
     pipeline->InjectEndResourceTracker(&builder, true);
