@@ -197,10 +197,10 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLSortHookFunction() const {
     brain::ExecutionOperatingUnitType build_ou_type;
     ast::Expr *cardinality_val;
     if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
-      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
+      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
       cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
     } else {
-      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
       cardinality_val = codegen->MakeExpr(num_tuples);
     }
 
