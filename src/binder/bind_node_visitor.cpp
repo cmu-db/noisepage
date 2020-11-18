@@ -351,8 +351,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ExplainStatement> nod
       break;
     }
     default: {
-      throw BINDER_EXCEPTION("Statement inside explain is invalid.",
-                             common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+      throw BINDER_EXCEPTION("Statement inside explain is invalid.", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
     }
   }
 }

@@ -208,8 +208,8 @@ class TrafficCop {
    * @return result of the operation
    */
   TrafficCopResult ExecuteExplainStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                  common::ManagedPointer<network::PostgresPacketWriter> out,
-                                  common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
+                                           common::ManagedPointer<network::PostgresPacketWriter> out,
+                                           common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
 
   /**
    * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
