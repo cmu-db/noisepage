@@ -288,7 +288,7 @@ VM_OP_WARM void OpThreadStateContainerClear(noisepage::execution::sql::ThreadSta
 
 VM_OP_COLD void OpRegisterThreadWithMetricsManager(noisepage::execution::exec::ExecutionContext *exec_ctx);
 
-VM_OP_COLD void OpCheckTrackersStopped(noisepage::execution::exec::ExecutionContext *exec_ctx);
+VM_OP_COLD void OpEnsureTrackersStopped(noisepage::execution::exec::ExecutionContext *exec_ctx);
 
 VM_OP_COLD void OpAggregateMetricsThread(noisepage::execution::exec::ExecutionContext *exec_ctx);
 
