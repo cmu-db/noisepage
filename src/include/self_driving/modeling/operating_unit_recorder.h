@@ -8,7 +8,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "operating_unit.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "type/type_id.h"
 

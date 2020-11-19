@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include "operating_unit.h"
-#include "operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 #include "parser/expression/abstract_expression.h"
 
 namespace noisepage::selfdriving {

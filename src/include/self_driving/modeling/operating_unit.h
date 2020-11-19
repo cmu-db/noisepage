@@ -8,7 +8,7 @@
 #include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
-#include "operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::runner {
 class MiniRunners;
