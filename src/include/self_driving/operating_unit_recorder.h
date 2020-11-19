@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "brain/operating_unit.h"
+#include "self_driving/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "planner/plannodes/plan_visitor.h"
@@ -230,4 +230,4 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   common::ManagedPointer<execution::compiler::Pipeline> current_pipeline_;
 };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

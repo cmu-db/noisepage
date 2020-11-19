@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
-#include "brain/operating_unit.h"
+#include "self_driving//brain_defs.h"
+#include "self_driving/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
@@ -19,7 +19,7 @@
 
 namespace noisepage::selfdriving {
 class PipelineOperatingUnits;
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::catalog {
 class CatalogAccessor;

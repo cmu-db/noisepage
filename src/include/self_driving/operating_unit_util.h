@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
-#include "brain/operating_unit.h"
+#include "self_driving/brain_defs.h"
+#include "self_driving/operating_unit.h"
 #include "parser/expression/abstract_expression.h"
 
 namespace noisepage::selfdriving {
@@ -45,13 +45,13 @@ class OperatingUnitUtil {
   }
 
   /**
-   * Converts a expression to brain::ExecutionOperatingUnitType
+   * Converts a expression to selfdriving::ExecutionOperatingUnitType
    *
-   * Function returns brain::ExecutionOperatingUnitType::INVALID if the
+   * Function returns selfdriving::ExecutionOperatingUnitType::INVALID if the
    * parser::ExpressionType does not have an equivalent conversion.
    *
    * @param expr Expression
-   * @return converted equivalent brain::ExecutionOperatingUnitType
+   * @return converted equivalent selfdriving::ExecutionOperatingUnitType
    */
   static std::pair<type::TypeId, ExecutionOperatingUnitType> ConvertExpressionType(
       common::ManagedPointer<parser::AbstractExpression> expr) {
@@ -207,4 +207,4 @@ class OperatingUnitUtil {
   }
 };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

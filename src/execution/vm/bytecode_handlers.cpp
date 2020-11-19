@@ -1,6 +1,6 @@
 #include "execution/vm/bytecode_handlers.h"
 
-#include "brain/brain_defs.h"
+#include "self_driving/brain_defs.h"
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/index_iterator.h"

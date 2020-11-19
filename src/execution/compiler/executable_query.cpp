@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "brain/operating_unit.h"
+#include "self_driving/operating_unit.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/ast/ast_dump.h"

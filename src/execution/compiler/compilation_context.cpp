@@ -4,7 +4,7 @@
 #include <atomic>
 #include <sstream>
 
-#include "brain/operating_unit_recorder.h"
+#include "self_driving/operating_unit_recorder.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"

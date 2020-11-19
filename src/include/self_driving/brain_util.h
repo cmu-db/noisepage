@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "brain/brain_defs.h"
+#include "self_driving/brain_defs.h"
 
 namespace noisepage::selfdriving {
 
@@ -18,4 +18,4 @@ class BrainUtil {
   static std::string ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f);
 };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

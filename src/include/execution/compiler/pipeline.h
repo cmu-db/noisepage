@@ -19,7 +19,7 @@ class ExecutionSettings;
 
 namespace noisepage::selfdriving {
 class OperatingUnitRecorder;
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::execution::compiler {
 

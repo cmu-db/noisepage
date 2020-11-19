@@ -1,7 +1,7 @@
 #include <cstdint>
 
-#include "brain/brain_defs.h"
-#include "brain/operating_unit_util.h"
+#include "self_driving/brain_defs.h"
+#include "self_driving/operating_unit_util.h"
 
 namespace noisepage::selfdriving {
 
@@ -37,4 +37,4 @@ ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperat
   }
 }
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

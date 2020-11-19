@@ -3,7 +3,7 @@
 #include <string>
 #include <type_traits>
 
-#include "brain/brain_defs.h"
+#include "self_driving/brain_defs.h"
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/compiler/expression/column_value_provider.h"
@@ -14,7 +14,7 @@
 namespace noisepage::selfdriving {
 class ExecutionOperatingUnitFeature;
 class OperatingUnitRecorder;
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::parser {
 class AbstractExpression;

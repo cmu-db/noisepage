@@ -14,7 +14,7 @@
 namespace noisepage {
 namespace selfdriving {
 class PipelineOperatingUnits;
-}  // namespace brain
+}  // namespace selfdriving
 
 namespace execution {
 namespace exec {

@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
-#include "brain/operating_unit.h"
+#include "self_driving/brain_defs.h"
+#include "self_driving/operating_unit.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/stage_timer.h"

@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "brain/operating_unit.h"
+#include "self_driving/operating_unit.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"

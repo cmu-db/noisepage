@@ -7,7 +7,7 @@
 
 namespace noisepage::selfdriving {
 class OperatingUnitRecorder;
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::parser {
 class AbstractExpression;

@@ -1,9 +1,9 @@
-#include "brain/operating_unit_recorder.h"
+#include "self_driving/operating_unit_recorder.h"
 
 #include <utility>
 
-#include "brain/operating_unit.h"
-#include "brain/operating_unit_util.h"
+#include "self_driving/operating_unit.h"
+#include "self_driving/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/context.h"
@@ -730,4 +730,4 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
   return results;
 }
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

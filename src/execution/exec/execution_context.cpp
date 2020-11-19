@@ -1,7 +1,7 @@
 #include "execution/exec/execution_context.h"
 
-#include "brain/operating_unit.h"
-#include "brain/operating_unit_util.h"
+#include "self_driving/operating_unit.h"
+#include "self_driving/operating_unit_util.h"
 #include "common/thread_context.h"
 #include "execution/sql/value.h"
 #include "metrics/metrics_manager.h"

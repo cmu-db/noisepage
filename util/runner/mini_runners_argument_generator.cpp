@@ -1,7 +1,7 @@
 #include <cmath>
 #include <unordered_set>
 
-#include "brain/brain_defs.h"
+#include "self_driving/brain_defs.h"
 #include "runner/mini_runners_argument_generator.h"
 
 namespace noisepage::runner {

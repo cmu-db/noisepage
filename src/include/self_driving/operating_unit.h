@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
+#include "self_driving/brain_defs.h"
 #include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
@@ -400,4 +400,4 @@ class PipelineOperatingUnits {
   std::unordered_map<execution::pipeline_id_t, ExecutionOperatingUnitFeatureVector> units_{};
 };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

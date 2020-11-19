@@ -1,4 +1,4 @@
-#include "brain/operating_unit.h"
+#include "self_driving/operating_unit.h"
 
 namespace noisepage::selfdriving {
 
@@ -60,4 +60,4 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
   NOISEPAGE_ASSERT(did_find, "No matching feature was found");
 }
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

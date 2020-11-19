@@ -1,4 +1,4 @@
-#include "brain/brain_util.h"
+#include "self_driving/brain_util.h"
 #include "execution/util/execution_common.h"
 
 namespace noisepage::selfdriving {
@@ -78,4 +78,4 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
   }
 }
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

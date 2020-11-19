@@ -142,4 +142,4 @@ enum class ExecutionOperatingUnitFeatureAttribute : uint8_t { NUM_ROWS, CARDINAL
 
 enum class ExecutionOperatingUnitFeatureUpdateMode : uint8_t { SET, ADD, MULT };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
