@@ -1,9 +1,9 @@
-#include "self_driving/operating_unit_util.h"
+#include "self_driving/modeling/operating_unit_util.h"
 
 #include <cstdint>
 
 #include "execution/util/execution_common.h"
-#include "self_driving/operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::selfdriving {
 

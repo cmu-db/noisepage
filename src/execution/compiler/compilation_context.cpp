@@ -4,7 +4,6 @@
 #include <atomic>
 #include <sstream>
 
-#include "self_driving/operating_unit_recorder.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"
@@ -68,6 +67,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "self_driving/modeling/operating_unit_recorder.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace noisepage::execution::compiler {

@@ -10,7 +10,6 @@
 #include <utility>
 #include <vector>
 
-#include "self_driving/operating_unit.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
@@ -19,6 +18,7 @@
 #include "execution/sql/sql.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
+#include "self_driving/modeling/operating_unit.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;

@@ -9,11 +9,11 @@
 #include <utility>
 #include <vector>
 
-#include "self_driving/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "transaction/transaction_defs.h"
 
 namespace noisepage::metrics {

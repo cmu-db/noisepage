@@ -3,7 +3,7 @@
 #include <cmath>
 #include <unordered_set>
 
-#include "self_driving/operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::runner {
 

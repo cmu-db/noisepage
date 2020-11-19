@@ -9,7 +9,7 @@
 #include "execution/compiler/state_descriptor.h"
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
-#include "self_driving/operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::selfdriving {
 class ExecutionOperatingUnitFeature;

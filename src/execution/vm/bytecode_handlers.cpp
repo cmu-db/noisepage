@@ -5,7 +5,7 @@
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/vector_projection_iterator.h"
-#include "self_driving/operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 extern "C" {
 

@@ -14,8 +14,8 @@
 #include "execution/util/stage_timer.h"
 #include "ips4o/ips4o.hpp"
 #include "loggers/execution_logger.h"
-#include "self_driving/operating_unit.h"
-#include "self_driving/operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::execution::sql {
 

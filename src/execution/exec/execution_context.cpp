@@ -1,12 +1,12 @@
 #include "execution/exec/execution_context.h"
 
-#include "self_driving/operating_unit.h"
-#include "self_driving/operating_unit_util.h"
 #include "common/thread_context.h"
 #include "execution/sql/value.h"
 #include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_util.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::exec {

@@ -30,8 +30,8 @@
 #include "runner/mini_runners_argument_generator.h"
 #include "runner/mini_runners_data_config.h"
 #include "runner/mini_runners_settings.h"
-#include "self_driving/operating_unit.h"
-#include "self_driving/operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 

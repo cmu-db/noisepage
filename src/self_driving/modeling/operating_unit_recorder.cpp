@@ -1,9 +1,7 @@
-#include "self_driving/operating_unit_recorder.h"
+#include "self_driving/modeling/operating_unit_recorder.h"
 
 #include <utility>
 
-#include "self_driving/operating_unit.h"
-#include "self_driving/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/context.h"
@@ -48,6 +46,8 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_util.h"
 #include "storage/block_layout.h"
 #include "type/type_id.h"
 

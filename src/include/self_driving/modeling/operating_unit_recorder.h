@@ -6,9 +6,9 @@
 #include <utility>
 #include <vector>
 
-#include "self_driving/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "operating_unit.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "type/type_id.h"
 

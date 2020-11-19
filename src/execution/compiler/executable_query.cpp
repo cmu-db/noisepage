@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "self_driving/operating_unit.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/ast/ast_dump.h"
@@ -12,6 +11,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::compiler {

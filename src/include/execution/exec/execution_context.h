@@ -14,8 +14,8 @@
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
-#include "self_driving//operating_unit_defs.h"
-#include "self_driving/operating_unit.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::selfdriving {
 class PipelineOperatingUnits;
