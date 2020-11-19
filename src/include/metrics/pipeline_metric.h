@@ -9,12 +9,13 @@
 #include <utility>
 #include <vector>
 
-#include "self_driving/brain_util.h"
-#include "self_driving/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
+#include "self_driving/operating_unit_util.h"
+#include "self_driving/brain_util.h"
+#include "self_driving/operating_unit.h"
 #include "transaction/transaction_defs.h"
 
 namespace noisepage::metrics {
@@ -118,7 +119,7 @@ class PipelineMetricRawData : public AbstractRawData {
       std::vector<std::string> types;
       for (auto &feature : features_) {
         types.emplace_back(
-            selfdriving::BrainUtil::ExecutionOperatingUnitTypeToString(feature.GetExecutionOperatingUnitType()));
+            selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(feature.GetExecutionOperatingUnitType()));
       }
       return ConcatVectorToString<std::string>(types);
     }

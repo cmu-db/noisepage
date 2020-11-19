@@ -3,13 +3,13 @@
 #include <string>
 #include <type_traits>
 
-#include "self_driving/brain_defs.h"
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/compiler/expression/column_value_provider.h"
 #include "execution/compiler/state_descriptor.h"
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
+#include "self_driving/operating_unit_defs.h"
 
 namespace noisepage::selfdriving {
 class ExecutionOperatingUnitFeature;

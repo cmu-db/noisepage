@@ -1,12 +1,13 @@
 #pragma once
 
 #include <queue>
+#include <string>
 #include <utility>
 #include <vector>
 
-#include "self_driving/brain_defs.h"
-#include "self_driving/operating_unit.h"
 #include "parser/expression/abstract_expression.h"
+#include "self_driving/operating_unit.h"
+#include "self_driving/operating_unit_defs.h"
 
 namespace noisepage::selfdriving {
 
@@ -205,6 +206,12 @@ class OperatingUnitUtil {
     NOISEPAGE_ASSERT(found, "The feature was not found.");
     return features[idx];
   }
+
+  /**
+   * Converts an ExecutionOperatingUnitType enum to string representation
+   * @param f ExecutionOperatingUnitType to convert
+   */
+  static std::string ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f);
 };
 
 }  // namespace noisepage::selfdriving

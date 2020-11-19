@@ -4,8 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "self_driving//brain_defs.h"
-#include "self_driving/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
@@ -16,6 +14,8 @@
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
+#include "self_driving//operating_unit_defs.h"
+#include "self_driving/operating_unit.h"
 
 namespace noisepage::selfdriving {
 class PipelineOperatingUnits;

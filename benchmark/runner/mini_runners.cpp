@@ -7,8 +7,6 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
 #include "binder/bind_node_visitor.h"
-#include "brain/brain_defs.h"
-#include "brain/operating_unit.h"
 #include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "execution/compiler/compilation_context.h"
@@ -32,6 +30,8 @@
 #include "runner/mini_runners_argument_generator.h"
 #include "runner/mini_runners_data_config.h"
 #include "runner/mini_runners_settings.h"
+#include "self_driving/operating_unit.h"
+#include "self_driving/operating_unit_defs.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
