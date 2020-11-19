@@ -163,9 +163,9 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
   return ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
 }
 
-void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
-                                              const planner::AbstractPlanNode *plan, size_t scaling_factor,
-                                              double mem_factor) {
+void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size,
+                                              size_t num_keys, const planner::AbstractPlanNode *plan,
+                                              size_t scaling_factor, double mem_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   size_t num_rows = 1;
   size_t cardinality = 1;

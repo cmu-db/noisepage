@@ -303,12 +303,11 @@ void OpExecutionContextEndPipelineTracker(noisepage::execution::exec::ExecutionC
   exec_ctx->EndPipelineTracker(query_id, pipeline_id, ouvec);
 }
 
-void OpExecOUFeatureVectorRecordFeature(noisepage::selfdriving::ExecOUFeatureVector *ouvec,
-                                        noisepage::execution::pipeline_id_t pipeline_id,
-                                        noisepage::execution::feature_id_t feature_id,
-                                        noisepage::selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                        noisepage::selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode,
-                                        uint32_t value) {
+void OpExecOUFeatureVectorRecordFeature(
+    noisepage::selfdriving::ExecOUFeatureVector *ouvec, noisepage::execution::pipeline_id_t pipeline_id,
+    noisepage::execution::feature_id_t feature_id,
+    noisepage::selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+    noisepage::selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value) {
   ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
 }
 

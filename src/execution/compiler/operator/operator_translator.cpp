@@ -163,8 +163,8 @@ ast::Expr *OperatorTranslator::CounterVal(StateDescriptor::Entry entry) const {
 }
 
 void OperatorTranslator::FeatureRecord(FunctionBuilder *function, selfdriving::ExecutionOperatingUnitType feature_type,
-                                       selfdriving::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
-                                       ast::Expr *val) const {
+                                       selfdriving::ExecutionOperatingUnitFeatureAttribute attrib,
+                                       const Pipeline &pipeline, ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
   if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
@@ -176,9 +176,8 @@ void OperatorTranslator::FeatureRecord(FunctionBuilder *function, selfdriving::E
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     const auto &feature = selfdriving::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, feature_type);
-    ast::Expr *record =
-        codegen->ExecOUFeatureVectorRecordFeature(pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(),
-                                                  attrib,
+    ast::Expr *record = codegen->ExecOUFeatureVectorRecordFeature(
+        pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib,
         selfdriving::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
     function->Append(record);
   }
@@ -194,7 +193,8 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     for (const auto &feature : features) {
       bool is_same_translator = feature.GetTranslatorId() == translator_id;
-      bool is_arith = feature.GetExecutionOperatingUnitType() > selfdriving::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+      bool is_arith =
+          feature.GetExecutionOperatingUnitType() > selfdriving::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
       if (is_same_translator && is_arith) {
         for (const auto &attrib : {selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
@@ -218,7 +218,8 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     for (const auto &feature : features) {
       bool is_same_translator = feature.GetTranslatorId() == translator_id;
-      bool is_arith = feature.GetExecutionOperatingUnitType() > selfdriving::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+      bool is_arith =
+          feature.GetExecutionOperatingUnitType() > selfdriving::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
       if (is_same_translator && is_arith) {
         for (const auto &attrib : {selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {

@@ -158,8 +158,8 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
     // Therefore translator extraction must happen before pipelines are generated.
     selfdriving::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
-                                          common::ManagedPointer(codegen_.GetAstContext()),
-                                          common::ManagedPointer(pipeline), query_->GetQueryText());
+                                                common::ManagedPointer(codegen_.GetAstContext()),
+                                                common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
 

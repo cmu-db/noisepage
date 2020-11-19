@@ -118,7 +118,7 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
 
     NOISEPAGE_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
     selfdriving::ExecutionOperatingUnitFeatureVector features(ouvec->pipeline_features_->begin(),
-                                                        ouvec->pipeline_features_->end());
+                                                              ouvec->pipeline_features_->end());
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
                                                               std::move(features), resource_metrics);
   }
@@ -138,7 +138,8 @@ void ExecutionContext::InitializeOUFeatureVector(selfdriving::ExecOUFeatureVecto
   }
 }
 
-void ExecutionContext::InitializeParallelOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
+void ExecutionContext::InitializeParallelOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec,
+                                                         pipeline_id_t pipeline_id) {
   auto *vec = new (ouvec) selfdriving::ExecOUFeatureVector();
   vec->pipeline_id_ = pipeline_id;
   vec->pipeline_features_ =
@@ -173,7 +174,8 @@ void ExecutionContext::InitializeParallelOUFeatureVector(selfdriving::ExecOUFeat
       break;
     case selfdriving::ExecutionOperatingUnitType::SORT_TOPK_BUILD:
       vec->pipeline_features_->emplace_back(selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP, feature);
-      vec->pipeline_features_->emplace_back(selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP, feature);
+      vec->pipeline_features_->emplace_back(selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP,
+                                            feature);
       break;
     case selfdriving::ExecutionOperatingUnitType::CREATE_INDEX:
       vec->pipeline_features_->emplace_back(selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);

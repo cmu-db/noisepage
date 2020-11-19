@@ -117,8 +117,8 @@ class PipelineMetricRawData : public AbstractRawData {
     std::string GetFeatureVectorString() {
       std::vector<std::string> types;
       for (auto &feature : features_) {
-        types.emplace_back(
-            selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(feature.GetExecutionOperatingUnitType()));
+        types.emplace_back(selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(
+            feature.GetExecutionOperatingUnitType()));
       }
       return ConcatVectorToString<std::string>(types);
     }

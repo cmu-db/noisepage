@@ -235,10 +235,10 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLMergeHookFunction() const {
     }
 
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
-                  codegen->MakeExpr(override_value));
-    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
-                  codegen->MakeExpr(override_value));
+    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                  *pipeline, codegen->MakeExpr(override_value));
+    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                  *pipeline, codegen->MakeExpr(override_value));
 
     // End Tracker
     pipeline->InjectEndResourceTracker(&builder, true);

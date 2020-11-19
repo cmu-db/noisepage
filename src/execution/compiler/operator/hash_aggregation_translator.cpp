@@ -321,7 +321,8 @@ ast::FunctionDecl *HashAggregationTranslator::GenerateEndHookFunction() const {
 
     // FeatureRecord with the overrideValue
     FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD,
-                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(num_tuples));
     FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD,
                   selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
                   codegen->MakeExpr(override_value));
@@ -403,7 +404,8 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
     }
 
     FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  CounterVal(num_agg_outputs_));
 
     FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,

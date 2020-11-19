@@ -39,7 +39,6 @@ ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperat
   }
 }
 
-
 std::string OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f) {
   // NOTE: Before adding any extra case to this switch statement,
   // please ensure that the output type is actually supported

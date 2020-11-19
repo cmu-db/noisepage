@@ -302,9 +302,11 @@ ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
     builder.Append(codegen->DeclareVarWithInit(num_tuples, idx_size));
 
     FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
-                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(num_tuples));
     FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
-                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, codegen->MakeExpr(num_tuples));
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+                  codegen->MakeExpr(num_tuples));
 
     auto heap = codegen->MakeFreshIdentifier("heap_size");
     auto *heap_size = codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize,

@@ -1711,8 +1711,7 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
   auto feature_vec2 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(3));
-  auto exp_vec0 =
-      std::vector<selfdriving::ExecutionOperatingUnitType>{
+  auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{
       selfdriving::ExecutionOperatingUnitType::SEQ_SCAN,
       selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
@@ -2256,8 +2255,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // NLJOIN left and right are in same pipeline
   // But NLJOIN left/right features do not exist
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  auto exp_vec0 =
-      std::vector<selfdriving::ExecutionOperatingUnitType>{
+  auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{
       selfdriving::ExecutionOperatingUnitType::SEQ_SCAN,
       selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       selfdriving::ExecutionOperatingUnitType::SEQ_SCAN,
@@ -2880,7 +2878,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     EXPECT_EQ(pipeline->units_.size(), 1);
 
     auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-    auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{selfdriving::ExecutionOperatingUnitType::INSERT};
+    auto exp_vec0 =
+        std::vector<selfdriving::ExecutionOperatingUnitType>{selfdriving::ExecutionOperatingUnitType::INSERT};
     EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
@@ -3320,7 +3319,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     EXPECT_EQ(pipeline->units_.size(), 1);
 
     auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-    auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{selfdriving::ExecutionOperatingUnitType::INSERT};
+    auto exp_vec0 =
+        std::vector<selfdriving::ExecutionOperatingUnitType>{selfdriving::ExecutionOperatingUnitType::INSERT};
     EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 

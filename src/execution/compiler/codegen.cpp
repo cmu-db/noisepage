@@ -787,11 +787,10 @@ ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows
   return call;
 }
 
-ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(ast::Expr *ouvec, pipeline_id_t pipeline_id,
-                                                     feature_id_t feature_id,
+ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(
+    ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
     selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-    selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode,
-                                                     ast::Expr *value) {
+    selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value) {
   ast::Expr *call =
       CallBuiltin(ast::Builtin::ExecOUFeatureVectorRecordFeature,
                   {ouvec, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),

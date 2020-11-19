@@ -203,13 +203,15 @@ void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilde
     FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_BUILD,
                   selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
     FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_build_rows_));
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  CounterVal(num_build_rows_));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
   } else {
     FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_PROBE,
                   selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
     FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  CounterVal(num_match_rows_));
     FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
   }
 }
