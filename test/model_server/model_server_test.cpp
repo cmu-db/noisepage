@@ -3,11 +3,11 @@
 
 #include "gtest/gtest.h"
 #include "loggers/messenger_logger.h"
-#include "loggers/model_logger.h"
+#include "loggers/model_server_logger.h"
 #include "main/db_main.h"
 #include "test_util/test_harness.h"
 
-namespace noisepage::model {
+namespace noisepage::modelserver {
 
 class ModelServerTest : public TerrierTest {
  protected:
@@ -34,9 +34,9 @@ class ModelServerTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(ModelServerTest, DISABLED_TerminalTest) {
+TEST_F(ModelServerTest, TerminalTest) {
   messenger::messenger_logger->set_level(spdlog::level::trace);
-  model_logger->set_level(spdlog::level::info);
+  model_server_logger->set_level(spdlog::level::trace);
 
   auto primary = BuildDBMain();
   primary->GetNetworkLayer()->GetServer()->RunServer();
@@ -71,9 +71,9 @@ TEST_F(ModelServerTest, DISABLED_TerminalTest) {
         ms_manager->DoInference(data_file, model_map_path);
         break;
       default:
-        MODEL_LOG_INFO("Unknown command {}", instruction);
+        MODEL_SERVER_LOG_INFO("Unknown command {}", instruction);
     }
   }
 }
 
-}  // namespace noisepage::model
+}  // namespace noisepage::modelserver

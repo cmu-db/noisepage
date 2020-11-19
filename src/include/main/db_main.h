@@ -425,11 +425,11 @@ class DBMain {
         messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
                                                            messenger_identity_);
       }
-      std::unique_ptr<model::ModelServerManager> model_server_manager = DISABLED;
+      std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
       if (model_server_enable_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
         model_server_manager =
-            std::make_unique<model::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+            std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -961,7 +961,7 @@ class DBMain {
   /**
    * @return ManagedPointer to the ModelServerManager, can be nullptr if disabled.
    */
-  common::ManagedPointer<model::ModelServerManager> GetModelServerManager() const {
+  common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() const {
     return common::ManagedPointer(model_server_manager_);
   }
 
@@ -982,7 +982,7 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
-  std::unique_ptr<model::ModelServerManager> model_server_manager_;
+  std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 

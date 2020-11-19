@@ -1,17 +1,16 @@
 #include "model_server/model_server_manager.h"
 
-#include <csignal.h>
 #include <sys/wait.h>
 
 #include <filesystem>
 #include <thread>  // NOLINT
 
 #include "common/json.h"
-#include "loggers/model_logger.h"
+#include "loggers/model_server_logger.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
 
-namespace noisepage::model {
+namespace noisepage::modelserver {
 
 /**
  * This initializes a connection to the model by openning up a zmq connection
@@ -35,14 +34,14 @@ common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
   }
 }
 
-}  // namespace noisepage::model
+}  // namespace noisepage::modelserver
 
-namespace noisepage::model {
+namespace noisepage::modelserver {
 
 void ModelServerManager::ModelServerHandler(common::ManagedPointer<messenger::Messenger> messenger,
                                             std::string_view sender_id, std::string_view message, uint64_t recv_cb_id) {
   // TODO(ricky): Currently just echo the results. No continuation
-  MESSENGER_LOG_TRACE("[PID={},SEND_ID={},RECV_ID={}] Messenger RECV: {}", ::getpid(), message, sender_id, recv_cb_id);
+  MODEL_SERVER_LOG_TRACE("[PID={},SEND_ID={},RECV_ID={}] Messenger RECV: {}", ::getpid(), message, sender_id, recv_cb_id);
   (void)messenger;
 }
 
@@ -59,14 +58,14 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
 void ModelServerManager::StartModelServer(const std::string &model_path) {
   py_pid_ = ::fork();
   if (py_pid_ < 0) {
-    MODEL_LOG_ERROR("Failed to fork to spawn model process");
+    MODEL_SERVER_LOG_ERROR("Failed to fork to spawn model process");
     return;
   }
 
   // Fork success
   if (py_pid_ > 0) {
     // Parent Process Routine
-    MODEL_LOG_INFO("Model Server Process running at : {}", py_pid_);
+    MODEL_SERVER_LOG_INFO("Model Server Process running at : {}", py_pid_);
 
     // Wait for the child to exit
     int status;
@@ -76,24 +75,24 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
     wait_pid = ::waitpid(py_pid_, &status, 0);
 
     if (wait_pid < 0) {
-      MODEL_LOG_ERROR("Failed to wait for the child process...");
+      MODEL_SERVER_LOG_ERROR("Failed to wait for the child process...");
       return;
     }
 
     // TODO(ricky): what other cases the model server manager should give up?
     if (WIFEXITED(status) && WEXITSTATUS(status) == MODEL_ERROR_BINARY) {
-      MODEL_LOG_ERROR("Stop model server");
+      MODEL_SERVER_LOG_ERROR("Stop model server");
       shut_down_ = true;
     }
   } else {
     // Run the script in in a child
     std::string ipc_path = IPCPath();
-    char exec_name[model_path.size()];
-    memcpy(exec_name, model_path.data(), model_path.size());
+    char exec_name[model_path.size()+1];
+    ::strncpy(exec_name, model_path.data(), sizeof(exec_name));
     char *args[] = {exec_name, ipc_path.data(), nullptr};
-    MODEL_LOG_TRACE("Inovking ModelServer at :{}", model_path);
+    MODEL_SERVER_LOG_TRACE("Inovking ModelServer at :{}", std::string(exec_name));
     if (execvp(args[0], args) < 0) {
-      MODEL_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
+      MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
       /* Shutting down */
       ::_exit(MODEL_ERROR_BINARY);
     }
@@ -107,7 +106,7 @@ void ModelServerManager::PrintMessage(const std::string &msg) {
   try {
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
   } catch(std::exception &e) {
-    MESSENGER_LOG_WARN("[PID={}] ModelServerManager failed to PrintMessage {} to the python-ModelServer. Error: {}", ::getpid(), j.dump(), e.what());
+    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to PrintMessage {} to the python-ModelServer. Error: {}", ::getpid(), j.dump(), e.what());
   }
 }
 
@@ -120,7 +119,7 @@ void ModelServerManager::StopModelServer() {
     try {
       messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
     } catch (std::exception &e) {
-      MESSENGER_LOG_WARN("[PID={}] ModelServerManager failed to StopModelServer. Error: {}", ::getpid(), e.what());
+      MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to StopModelServer. Error: {}", ::getpid(), e.what());
     }
   }
   if (thd_.joinable()) thd_.join();
@@ -134,7 +133,7 @@ void ModelServerManager::TrainWith(const std::string &model_name, const std::str
   try{
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
   } catch (std::exception &e) {
-    MESSENGER_LOG_WARN("[PID={}] ModelServerManager failed to invoke TrainWith. Error: {}", ::getpid(), e.what());
+    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to invoke TrainWith. Error: {}", ::getpid(), e.what());
   }
 }
 
@@ -146,8 +145,8 @@ void ModelServerManager::DoInference(const std::string &data_file, const std::st
   try{
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
   } catch (std::exception &e) {
-    MESSENGER_LOG_WARN("[PID={}] ModelServerManager failed to invoke DoInference. Error: {}", ::getpid(), e.what());
+    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to invoke DoInference. Error: {}", ::getpid(), e.what());
   }
 }
 
-}  // namespace noisepage::model
+}  // namespace noisepage::modelserver

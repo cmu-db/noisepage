@@ -2,11 +2,11 @@
 
 #include <filesystem>
 #include <string>
-#include "loggers/messenger_logger.h"
+#include "loggers/model_server_logger.h"
 #include "messenger/messenger.h"
 #include "messenger/messenger_defs.h"
 
-namespace noisepage::model {
+namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
 static constexpr const char *MODEL_TARGET_NAME = "model";
 static constexpr const char *MODEL_IPC_PATH = "/tmp/model-server-ipc";
@@ -124,4 +124,4 @@ class ModelServerManager {
   bool shut_down_ = false;
 };
 
-}  // namespace noisepage::model
+}  // namespace noisepage::modelserver
