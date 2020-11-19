@@ -320,7 +320,7 @@ class EXPORT CatalogAccessor {
   proc_oid_t CreateProcedure(const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                              const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                              const std::vector<type_oid_t> &all_arg_types,
-                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                             const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
   /**

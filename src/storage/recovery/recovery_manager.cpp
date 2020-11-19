@@ -304,7 +304,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                  db_catalog_ptr->languages_name_index_->metadata_.GetSchema());
       break;
     }
-    case (catalog::postgres::PRO_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(db_catalog_ptr->procs_oid_index_,
                                  db_catalog_ptr->procs_oid_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->procs_name_index_,
@@ -420,7 +420,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       return 0;  // No additional logs processed
     }
 
-    case (catalog::postgres::PRO_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
       return ProcessSpecialCasePGProcRecord(txn, buffered_changes, start_idx);
     }
 
@@ -863,7 +863,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
       break;
     }
-    case (catalog::postgres::PRO_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->procs_);
       break;
     }
@@ -973,11 +973,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->languages_name_index_;
     }
 
-    case (catalog::postgres::PRO_OID_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgProc::PRO_OID_INDEX_OID.UnderlyingValue()): {
       return db_catalog->procs_oid_index_;
     }
 
-    case (catalog::postgres::PRO_NAME_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgProc::PRO_NAME_INDEX_OID.UnderlyingValue()): {
       return db_catalog->procs_name_index_;
     }
 
@@ -999,7 +999,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
     } else {
       return 0;
     }
-    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID,
+    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID,
                      "This function must be only called with records modifying pg_proc");
 
     // An insert into pg_proc is a special case because we need the catalog to actually create the necessary
@@ -1009,7 +1009,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->procs_;
     auto pr_map = pg_proc->ProjectionMapForOids(GetOidsForRedoRecord(pg_proc, redo_record));
     catalog::proc_oid_t proc_oid(*(reinterpret_cast<uint32_t *>(
-        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PROOID_COL_OID]))));
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgProc::PROOID_COL_OID]))));
 
     auto result UNUSED_ATTRIBUTE =
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())
