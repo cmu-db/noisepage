@@ -18,6 +18,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "HASHJOIN_PROBE";
     case ExecutionOperatingUnitType::SORT_BUILD:
       return "SORT_BUILD";
+    case ExecutionOperatingUnitType::SORT_TOPK_BUILD:
+      return "SORT_TOPK_BUILD";
     case ExecutionOperatingUnitType::SORT_ITERATE:
       return "SORT_ITERATE";
     case ExecutionOperatingUnitType::SEQ_SCAN:
@@ -48,6 +50,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "OP_DECIMAL_COMPARE";
     case ExecutionOperatingUnitType::OP_BOOL_COMPARE:
       return "OP_BOOL_COMPARE";
+    case ExecutionOperatingUnitType::OP_VARCHAR_COMPARE:
+      return "OP_VARCHAR_COMPARE";
     case ExecutionOperatingUnitType::OUTPUT:
       return "OUTPUT";
     case ExecutionOperatingUnitType::LIMIT:
@@ -60,6 +64,10 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "PARALLEL_SORT_STEP";
     case ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP:
       return "PARALLEL_SORT_MERGE_STEP";
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP:
+      return "PARALLEL_SORT_TOPK_STEP";
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP:
+      return "PARALLEL_SORT_TOPK_MERGE_STEP";
     case ExecutionOperatingUnitType::CREATE_INDEX:
       return "CREATE_INDEX";
     case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:

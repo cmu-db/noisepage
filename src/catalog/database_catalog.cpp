@@ -545,8 +545,9 @@ bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::Tra
       redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTRELID_COL_OID]));
   auto name_entry = reinterpret_cast<storage::VarlenEntry *>(
       redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTNAME_COL_OID]));
-  auto type_entry = reinterpret_cast<type::TypeId *>(
-      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTTYPID_COL_OID]));
+  auto type_entry = reinterpret_cast<uint32_t *>(redo->Delta()->AccessForceNotNull(
+      pg_attribute_all_cols_prm_[postgres::ATTTYPID_COL_OID]));  // TypeId is a uint8_t enum class, but in the schema
+                                                                 // it's INTEGER (32-bit)
   auto len_entry = reinterpret_cast<uint16_t *>(
       redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTLEN_COL_OID]));
   auto notnull_entry = reinterpret_cast<bool *>(
@@ -558,7 +559,7 @@ bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::Tra
   const auto name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
 
   *name_entry = name_varlen;
-  *type_entry = col.Type();
+  *type_entry = static_cast<uint32_t>(col.Type());
   // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
   *len_entry = (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY) ? col.MaxVarlenSize()
                                                                                               : col.AttrSize();
@@ -915,10 +916,30 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
       write_lock_.load() == txn->FinishTime(),
       "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
       "should already have the lock.");
-  // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
-  // before we can safely delete this.
+  // We need to double-defer the deletion because there may be subsequent undo records into this table that need to be
+  // GCed before we can safely delete this.  Specifically, the following ordering results in a use-after-free when the
+  // unlink step dereferences a deleted SqlTable if the delete is only a single deferral:
+  //
+  //            Txn           |          Log Manager           |    GC
+  // ---------------------------------------------------------------------------
+  // CreateDatabase           |                                |
+  // ABORT                    |                                |
+  // Execute abort actions    |                                |
+  //                          |                                | ENTER
+  // Checkout ABORT timestamp |                                |
+  //                          | Remove ABORT from running txns |
+  //                          |                                | Read oldest running timestamp
+  //                          |                                | Unlink (not unlinked because abort is "visible")
+  //                          |                                | Process defers (deletes table)
+  //                          |                                | EXIT
+  //                          |                                | ENTER
+  //                          |                                | Unlink (ASAN crashes process for use-after-free)
+  //
+  // TODO(John,Ling): This needs to become a triple deferral when DAF gets merged in order to maintain
+  // assurances about object lifetimes in a multi-threaded GC situation.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; });
+    deferred_action_manager->RegisterDeferredAction(
+        [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; }); });
   });
   return SetClassPointer(txn, table, table_ptr, postgres::REL_PTR_COL_OID);
 }
@@ -2437,13 +2458,15 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(
 
 template <typename Column, typename ColOid>
 Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map) {
-  auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNUM_COL_OID)));
-  auto col_name =
+  const auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNUM_COL_OID)));
+  const auto col_name =
       reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNAME_COL_OID)));
-  auto col_type = *reinterpret_cast<type::TypeId *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTTYPID_COL_OID)));
-  auto col_len = *reinterpret_cast<uint16_t *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTLEN_COL_OID)));
-  auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNOTNULL_COL_OID))));
-  auto *col_expr = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(postgres::ADSRC_COL_OID)));
+  const auto col_type = static_cast<type::TypeId>(*reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(
+      postgres::ATTTYPID_COL_OID))));  // TypeId is a uint8_t enum class, but in the schema it's INTEGER (32-bit)
+  const auto col_len = *reinterpret_cast<uint16_t *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTLEN_COL_OID)));
+  const auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNOTNULL_COL_OID))));
+  const auto *const col_expr =
+      reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(postgres::ADSRC_COL_OID)));
 
   // TODO(WAN): Why are we deserializing expressions to make a catalog column? This is potentially busted.
   // Our JSON library is also not the most performant.
@@ -2453,7 +2476,7 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   auto expr = std::move(deserialized.result_);
   NOISEPAGE_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
 
-  std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
+  const std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
                    ? Column(name, col_type, col_len, col_null, *expr)
                    : Column(name, col_type, col_null, *expr);

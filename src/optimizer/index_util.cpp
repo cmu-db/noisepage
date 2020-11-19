@@ -224,6 +224,15 @@ bool IndexUtil::CheckPredicates(
     }
   }
 
+  if (schema.Type() == storage::index::IndexType::HASHMAP && scan_type != planner::IndexScanType::Exact) {
+    // This is a range-based scan, but this is a hashmap so it cannot satisfy the predicate.
+    //
+    // TODO(John): Ideally this check should be based off of lookups in the catalog.  However, we do not
+    // support dynamically defined index types nor do we have `pg_op*` catalog tables to store the necessary
+    // data.  For now, this check is sufficient for what the optimizer is doing.
+    return false;
+  }
+
   *idx_scan_type = scan_type;
   return !bounds->empty();
 }
