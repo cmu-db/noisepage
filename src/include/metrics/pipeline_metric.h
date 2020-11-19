@@ -14,7 +14,6 @@
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
 #include "self_driving/operating_unit_util.h"
-#include "self_driving/brain_util.h"
 #include "self_driving/operating_unit.h"
 #include "transaction/transaction_defs.h"
 

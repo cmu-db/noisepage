@@ -3,9 +3,7 @@
 #include <cstdint>
 
 #include "execution/util/execution_common.h"
-#include "self_driving/brain_util.h"
 #include "self_driving/operating_unit_defs.h"
-#include "self_driving/operating_unit_util.h"
 
 namespace noisepage::selfdriving {
 
