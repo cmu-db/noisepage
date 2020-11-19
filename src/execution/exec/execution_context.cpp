@@ -171,6 +171,10 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
       vec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP, feature);
       vec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP, feature);
       break;
+    case brain::ExecutionOperatingUnitType::SORT_TOPK_BUILD:
+      vec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP, feature);
+      vec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP, feature);
+      break;
     case brain::ExecutionOperatingUnitType::CREATE_INDEX:
       vec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
       break;
