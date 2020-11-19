@@ -5,9 +5,9 @@
 #include <utility>
 #include <vector>
 
+#include "parser/expression/abstract_expression.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_defs.h"
-#include "parser/expression/abstract_expression.h"
 
 namespace noisepage::selfdriving {
 
