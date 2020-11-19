@@ -1,36 +1,36 @@
 #!/usr/bin/env python3
 """
-This file contains the python model server implementation.
+This file contains the python ModelServer implementation.
 
 The server should be stateless but with caching of models.
-The message format that the model-server expects should be kept consistent with Messenger class in
+The message format that the ModelServer expects should be kept consistent with Messenger class in
 the noisepage source code.
-The command format should be kept with ModelServerManager in the noisepage souce
+The command format should be kept with ModelServerManager in the noisepage source
 code.
 
 TODO(Ricky):
-- Encapsulate the modelserver in a class
-- Modelserver side of callbacks (once we are more clear on the actions)
+- Encapsulate the ModelServer in a class
+- ModelServer side of callbacks (once we are more clear on the actions)
 - Model invocation could be improved.
 
 """
 
 from __future__ import annotations
-import zmq
 import sys
 import atexit
-import time
 from enum import Enum, auto
 from typing import Dict, Optional, Tuple
 import json
+import logging
 import pprint
 import pickle
 import numpy as np
+import zmq
+
 from data_class import opunit_data
-from sklearn import model_selection
 from mini_trainer import MiniTrainer
+from sklearn import model_selection
 from util import logging_util
-import logging
 
 
 logging_util.init_logging('info')
@@ -85,7 +85,7 @@ class Command(Enum):
 
 class Message:
     """
-    Message struct for communication with the model server.
+    Message struct for communication with the ModelServer.
     The message format has to be ketp consistent with the C++ Messenger.
     A valid message is :
         "send_id-recv_id-payload"
@@ -216,7 +216,7 @@ def send_msg(socket, send_id, recv_id, data) :
 # Loop until quit
 def run_loop():
     """
-    Run in a loop to recv/send message to the model-server manager
+    Run in a loop to recv/send message to the ModelServer manager
     :return:
     """
     while(1):

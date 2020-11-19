@@ -426,7 +426,7 @@ class DBMain {
                                                            messenger_identity_);
       }
       std::unique_ptr<model::ModelServerManager> model_server_manager = DISABLED;
-      if (pilot_enable_) {
+      if (model_server_enable_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
         model_server_manager =
             std::make_unique<model::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
@@ -724,11 +724,11 @@ class DBMain {
 
     /**
      *
-     * @param value with pilot
+     * @param value with ModelServer enable
      * @return  self reference for chaining
      */
-    Builder &SetWithPilot(const bool value) {
-      pilot_enable_ = value;
+    Builder &SetWithModelServer(const bool value) {
+      model_server_enable_ = value;
       return *this;
     }
 
@@ -788,7 +788,7 @@ class DBMain {
     bool use_messenger_ = false;
     uint16_t messenger_port_ = 9022;
     std::string messenger_identity_ = "primary";
-    bool pilot_enable_ = false;
+    bool model_server_enable_ = false;
     std::string model_server_path_ = "model_server.py";
 
     /**
@@ -844,7 +844,7 @@ class DBMain {
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
-      pilot_enable_ = settings_manager->GetBool(settings::Param::pilot_enable);
+      model_server_enable_ = settings_manager->GetBool(settings::Param::model_server_enable);
       model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);
 
       return settings_manager;

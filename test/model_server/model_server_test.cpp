@@ -20,7 +20,7 @@ class ModelServerTest : public TerrierTest {
                        .SetUseSettingsManager(false)
                        .SetUseMessenger(true)
                        .SetUseCatalog(true)
-                       .SetWithPilot(true)
+                       .SetWithModelServer(true)
                        .SetUseNetwork(true)
                        .SetUseGC(true)
                        .SetUseExecution(true)
@@ -36,7 +36,7 @@ class ModelServerTest : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, DISABLED_TerminalTest) {
   messenger::messenger_logger->set_level(spdlog::level::trace);
-  model_server_logger->set_level(spdlog::level::info);
+  model_logger->set_level(spdlog::level::info);
 
   auto primary = BuildDBMain();
   primary->GetNetworkLayer()->GetServer()->RunServer();

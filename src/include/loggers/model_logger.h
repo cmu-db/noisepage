@@ -7,16 +7,16 @@
 #ifdef NOISEPAGE_USE_LOGGING
 
 namespace noisepage::model {
-extern std::shared_ptr<spdlog::logger> model_server_logger;  // NOLINT
+extern std::shared_ptr<spdlog::logger> model_logger;  // NOLINT
 
 void InitModelServerLogger();
 }  // namespace noisepage::model
 
-#define MODEL_LOG_TRACE(...) ::noisepage::model::model_server_logger->trace(__VA_ARGS__);
-#define MODEL_LOG_DEBUG(...) ::noisepage::model::model_server_logger->debug(__VA_ARGS__);
-#define MODEL_LOG_INFO(...) ::noisepage::model::model_server_logger->info(__VA_ARGS__);
-#define MODEL_LOG_WARN(...) ::noisepage::model::model_server_logger->warn(__VA_ARGS__);
-#define MODEL_LOG_ERROR(...) ::noisepage::model::model_server_logger->error(__VA_ARGS__);
+#define MODEL_LOG_TRACE(...) ::noisepage::model::model_logger->trace(__VA_ARGS__);
+#define MODEL_LOG_DEBUG(...) ::noisepage::model::model_logger->debug(__VA_ARGS__);
+#define MODEL_LOG_INFO(...) ::noisepage::model::model_logger->info(__VA_ARGS__);
+#define MODEL_LOG_WARN(...) ::noisepage::model::model_logger->warn(__VA_ARGS__);
+#define MODEL_LOG_ERROR(...) ::noisepage::model::model_logger->error(__VA_ARGS__);
 
 #else
 

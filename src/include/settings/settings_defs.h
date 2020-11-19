@@ -326,8 +326,8 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    pilot_enable,
-    "Whether to enable the pilot (default: false)",
+    model_server_enable,
+    "Whether to enable the ModelServerManager (default: false)",
     false,
     false,
     noisepage::settings::Callbacks::NoOp

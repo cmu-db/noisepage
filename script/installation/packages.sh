@@ -75,7 +75,7 @@ PYTHON_PACKAGES=(\
   "pyzmq" \
   "tqdm" \
   "lightgbm" \
-  "skylearn" \
+  "sklearn" \
   "PTable"
 )
 

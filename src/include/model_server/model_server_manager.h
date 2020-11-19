@@ -21,7 +21,7 @@ static constexpr const int INVALID_PID = 0;
 static constexpr const unsigned char MODEL_ERROR_BINARY = 128;
 
 /**
- * Inteface for pilot related operations
+ * Interface for ModelServerManager related operations
  */
 class ModelServerManager {
  public:
@@ -38,7 +38,7 @@ class ModelServerManager {
   ~ModelServerManager() { StopModelServer(); }
 
   /**
-   * Stop the model-pilot daemon by sending a message to the Python model server
+   * Stop the python-ModelServer daemon by sending a message to the Python model server
    */
   void StopModelServer();
 
@@ -114,7 +114,7 @@ class ModelServerManager {
   /** Connection router **/
   common::ManagedPointer<messenger::ConnectionRouter> router_;
 
-  /** Thread the pilot manager runs in **/
+  /** Thread the ModelServerManager runs in **/
   std::thread thd_;
 
   /** Python model pid **/
