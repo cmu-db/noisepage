@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "catalog/postgres/pg_proc.h"
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
@@ -15,6 +18,7 @@ class FunctionContext;
 }  // namespace noisepage::execution::functions
 
 namespace noisepage::storage {
+class RecoveryManager;
 class SqlTable;
 
 namespace index {
@@ -27,68 +31,138 @@ class TransactionContext;
 }  // namespace noisepage::transaction
 
 namespace noisepage::catalog::postgres {
+class Builder;
 
 /** The NoisePage version of pg_proc. */
 class PgProcImpl {
  public:
-  PgProcImpl(db_oid_t db_oid);
+  /**
+   * Prepare to create pg_proc.
+   * Does NOT create anything until the relevant bootstrap functions are called.
+   *
+   * @param db_oid          The OID of the database that pg_proc should be created in.
+   */
+  explicit PgProcImpl(db_oid_t db_oid);
 
+  /** Bootstrap the projected row initializers for pg_proc. */
   void BootstrapPRIs();
+
+  /**
+   * Bootstrap:
+   *    pg_proc
+   *    pg_proc_oid_index
+   *    pg_proc_name_index
+   *
+   * @param dbc             The catalog object to bootstrap in.
+   * @param txn             The transaction to bootstrap in.
+   */
   void Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
                  common::ManagedPointer<transaction::TransactionContext> txn);
 
+  /**
+   * Get all of the function contexts, used in TearDown.
+   * A buffer is passed in to allow for buffer reuse optimizations.
+   *
+   * @param txn             The transaction to obtain all the function contexts in.
+   * @param buffer          The buffer to use for getting function contexts back out.
+   * @param buffer_len      The length of buffer. Only used in debug mode to assert correctness.
+   * @return All the function contexts.
+   */
   std::vector<execution::functions::FunctionContext *> TearDownGetFuncContexts(
-      common::ManagedPointer<transaction::TransactionContext> txn, byte *buffer, uint64_t buffer_len);
+      common::ManagedPointer<transaction::TransactionContext> txn, byte *buffer, UNUSED_ATTRIBUTE uint64_t buffer_len);
 
-  bool CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
+  /**
+   * Create a procedure for the pg_proc table.
+   *
+   * @param txn             The transaction to use.
+   * @param oid             The OID to assign to the procedure.
+   * @param procname        The name of the procedure.
+   * @param language_oid    The OID for the language that this procedure is written in.
+   * @param procns          The namespace that the procedure should be added to.
+   * @param args            The names of the arguments to this procedure.
+   * @param arg_types       The types of the arguments to this procedure. Must be in the same order as in args.
+   *                        (only for in and inout arguments)
+   * @param all_arg_types   The types of all the arguments.
+   * @param arg_modes       The modes of the arguments. Must be in the same order as in args.
+   * @param rettype         The OID of the type of return value.
+   * @param src             The source code of the procedure.
+   * @param is_aggregate    True iff this is an aggregate procedure.
+   * @return True if the creation succeeded. False otherwise.
+   *
+   * @warning Does not support variadics yet.
+   */
+  bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
                        const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                        const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                        const std::vector<type_oid_t> &all_arg_types,
                        const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
                        const std::string &src, bool is_aggregate);
 
-  bool DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
+  /**
+   * Drop a procedure from the pg_proc table.
+   *
+   * @param txn             The transaction to use.
+   * @param proc            The OID of the procedure to drop.
+   * @return True if the process was successfully found and dropped. False otherwise.
+   */
+  bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
 
-  bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, const proc_oid_t proc_oid,
+  /**
+   * Set the procedure context pointer column of the specified procedure.
+   *
+   * @return False if the proc_oid does not correspond to a valid procedure. True if the set was successful.
+   */
+  bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                      const execution::functions::FunctionContext *func_context);
 
+  /**
+   * Get the procedure context pointer column of the specified procedure.
+   *
+   * @return The procedure context pointer if it exists. nullptr if proc_oid is invalid or no such context exists.
+   */
   common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
+  /**
+   * Get the OID of a procedure from pg_proc.
+   *
+   * @param dbc             The catalog that pg_proc is in. Used for type ID translation.
+   * @param txn             The transaction to use.
+   * @param procns          The namespace of the procedure to look in.
+   * @param procname        The name of the procedure to look for.
+   * @param arg_types       The types of all arguments in this function.
+   * @return The OID of the procedure if found. Else INVALID_PROC_OID.
+   */
   proc_oid_t GetProcOid(common::ManagedPointer<DatabaseCatalog> dbc,
                         common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
 
  private:
-  /**
-   * Bootstraps the built-in procs found in pg_proc
-   * @param txn transaction to insert into catalog with
-   */
+  friend class Builder;
+  friend class storage::RecoveryManager;
+
+  /** Bootstrap all the builtin procedures in pg_proc. */
   void BootstrapProcs(common::ManagedPointer<DatabaseCatalog> dbc,
                       common::ManagedPointer<transaction::TransactionContext> txn);
 
-  /**
-   * Internal helper method to reduce copy-paste code for populating proc contexts. Allocates the FunctionContext and
-   * inserts the pointer.
-   * @param txn transaction to insert into catalog with
-   * @param proc_oid oid to associate with this proc's and its context
-   * @param func_name Name of function
-   * @param func_ret_type Return type of function
-   * @param args_type Vector of argument types
-   * @param builtin Which builtin this context refers to
-   * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
-   */
-  void BootstrapProcContext(const common::ManagedPointer<transaction::TransactionContext> txn,
-                            const proc_oid_t proc_oid, std::string &&func_name, const type::TypeId func_ret_type,
-                            std::vector<type::TypeId> &&args_type, const execution::ast::Builtin builtin,
-                            const bool is_exec_ctx_required);
-  /**
-   * Bootstraps the proc functions contexts in pg_proc
-   * @param txn transaction to insert into catalog with
-   */
-  void BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn);
+  /** Bootstrap all the procedure function contexts in pg_proc. */
+  void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
 
- public:
+  /**
+   * Allocate the FunctionContext and insert the pointer.
+   *
+   * @param txn                     The transaction to insert into the catalog with.
+   * @param proc_oid                The OID of the procedure to to associate with this proc's and its context
+   * @param func_name               The name of the function.
+   * @param func_ret_type           The return type of the function.
+   * @param args_type               The types of the arguments.
+   * @param builtin                 The builtin this context refers to.
+   * @param is_exec_ctx_required    True if this function requires an execution context variable as its first argument.
+   */
+  void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                            std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+                            execution::ast::Builtin builtin, bool is_exec_ctx_required);
+
   const db_oid_t db_oid_;
 
   storage::SqlTable *procs_;

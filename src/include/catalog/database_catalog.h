@@ -56,6 +56,9 @@ class IndexSchema;
  */
 class DatabaseCatalog {
  public:
+  /** The maximum number of tuples to be read out at a time when scanning tables for TearDown(). */
+  static constexpr uint32_t TEARDOWN_MAX_TUPLES = 100;
+
   /**
    * Adds the default/mandatory entries into the catalog that describe itself
    * @param txn for the operation
@@ -298,21 +301,8 @@ class DatabaseCatalog {
   bool DropLanguage(common::ManagedPointer<transaction::TransactionContext> txn, language_oid_t oid);
 
   /**
-   * Creates a procedure for the pg_proc table
-   * @param txn transaction to use
-   * @param procname name of process to add
-   * @param language_oid oid of language this process is written in
-   * @param procns namespace of process to add
-   * @param args names of arguments to this proc
-   * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
-   *        arguments)
-   * @param all_arg_types types of all arguments
-   * @param arg_modes modes of arguments in the same order as in args
-   * @param rettype oid of the type of return value
-   * @param src source code of proc
-   * @param is_aggregate true iff this is an aggregate procedure
-   * @return oid of created proc entry or INVALID_PROC_ENTRY if the creation failed
-   * @warning does not support variadics yet
+   * @see PgProcImpl::CreateProcedure
+   * @return The oid of the created procedure entry on success, or INVALID_PROC_ENTRY if the creation failed.
    */
   proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
                              language_oid_t language_oid, namespace_oid_t procns, const std::vector<std::string> &args,
@@ -320,24 +310,7 @@ class DatabaseCatalog {
                              const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
-  /**
-   * Creates a procedure for the pg_proc table
-   * @param txn transaction to use
-   * @param oid oid of procedure to create
-   * @param procname name of process to add
-   * @param language_oid oid of language this process is written in
-   * @param procns namespace of process to add
-   * @param args names of arguments to this proc
-   * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
-   *        arguments)
-   * @param all_arg_types types of all arguments
-   * @param arg_modes modes of arguments in the same order as in args
-   * @param rettype oid of the type of return value
-   * @param src source code of proc
-   * @param is_aggregate true iff this is an aggregate procedure
-   * @return if the creation was a success
-   * @warning does not support variadics yet
-   */
+  /** @see PgProcImpl::CreateProcedure */
   bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
                        const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                        const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
@@ -345,53 +318,33 @@ class DatabaseCatalog {
                        const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
                        const std::string &src, bool is_aggregate);
 
-  /**
-   * Drops a procedure from the pg_proc table
-   * @param txn transaction to use
-   * @param proc oid of process to drop
-   * @return true iff the process was successfully found and dropped
-   */
+  /** @see PgProcImpl::DropProcedure */
   bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
 
-  /**
-   * Gets the oid of a procedure from pg_proc given a requested name and namespace
-   * @param txn transaction to use
-   * @param procns namespace of the process to lookup
-   * @param procname name of the proc to lookup
-   * @param all_arg_types types of all arguments in this function
-   * @return the oid of the found proc if found else INVALID_PROC_OID
-   */
+  /** @see PgProcImpl::GetProcOid */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
-  /**
-   * Sets the proc context pointer column of proc_oid to func_context
-   * @param txn transaction to use
-   * @param proc_oid The proc_oid whose pointer column we are setting here
-   * @param func_context The context object to set to
-   * @return False if the given proc_oid is invalid, True if else
-   */
+  /** @see PgProcImpl::SetProcCtxPtr */
   bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                      const execution::functions::FunctionContext *func_context);
 
+  /** @see PgProcImpl::GetProcCtxPtr */
+  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
+      common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
+
   /**
-   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
-   * object is reconstructed, put in pg_proc and returned
-   * @param txn the transaction to use
-   * @param proc_oid the proc_oid we are querying here for the context object
-   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
+   * Get a function context object for a given procedure.
+   *
+   * If the function context is currently null for a valid procedure,
+   * then the function context object is reconstructed, inserted into pg_proc, and returned.
+   *
+   * @param txn         The transaction to use.
+   * @param proc_oid    The OID of the procedure being queried.
+   * @return If the proc_oid is invalid, then nullptr. Otherwise, a valid function context object for the proc_oid.
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(
       common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
-
-  /**
-   * Gets the proc context pointer column of proc_oid
-   * @param txn transaction to use
-   * @param proc_oid The proc_oid whose pointer column we are getting here
-   * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
-   */
-  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
-      common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
   /**
    * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid

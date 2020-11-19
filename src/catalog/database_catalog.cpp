@@ -1342,7 +1342,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   const std::vector<col_oid_t> pg_class_oids{postgres::RELKIND_COL_OID, postgres::REL_SCHEMA_COL_OID,
                                              postgres::REL_PTR_COL_OID};
 
-  auto pci = classes_->InitializerForProjectedColumns(pg_class_oids, 100);
+  auto pci = classes_->InitializerForProjectedColumns(pg_class_oids, TEARDOWN_MAX_TUPLES);
   auto pm = classes_->ProjectionMapForOids(pg_class_oids);
 
   uint64_t buffer_len = pci.ProjectedColumnsSize();
@@ -1378,7 +1378,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
 
   // pg_constraint (expressions)
   const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
-  pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, 100);
+  pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, TEARDOWN_MAX_TUPLES);
   pc = pci.Initialize(buffer);
 
   auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));

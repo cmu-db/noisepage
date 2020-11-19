@@ -59,7 +59,8 @@ std::vector<execution::functions::FunctionContext *> PgProcImpl::TearDownGetFunc
   std::vector<execution::functions::FunctionContext *> func_contexts;
 
   const std::vector<col_oid_t> pg_proc_contexts{PgProc::PRO_CTX_PTR_COL_OID};
-  const storage::ProjectedColumnsInitializer pci = procs_->InitializerForProjectedColumns(pg_proc_contexts, 100);
+  const storage::ProjectedColumnsInitializer pci =
+      procs_->InitializerForProjectedColumns(pg_proc_contexts, DatabaseCatalog::TEARDOWN_MAX_TUPLES);
   NOISEPAGE_ASSERT(buffer_len >= pci.ProjectedColumnsSize(), "Buffer too small!");
   auto pc = pci.Initialize(buffer);
 

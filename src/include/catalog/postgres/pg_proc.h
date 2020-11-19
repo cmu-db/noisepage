@@ -8,13 +8,29 @@
 #define HIGHEST_BUILTIN_PROC_ID proc_oid_t(1000)
 #define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
+class Builder;
+class PgProcImpl;
 
 /** The OIDs used by the NoisePage version of pg_proc. */
 class PgProc {
-  // TODO(WAN): eventually private this and friend PgProcImpl
  public:
-  enum class ProArgModes : char { IN = 'i', OUT = 'o', INOUT = 'b', VARIADIC = 'v' };
+  /** The type of the argument to the procedure. */
+  enum class ProArgModes : char {
+    IN = 'i',       ///< Input argument.
+    OUT = 'o',      ///< Output argument.
+    INOUT = 'b',    ///< Both input and output argument.
+    VARIADIC = 'v'  ///< Variadic number of arguments.
+  };
+
+ private:
+  friend class storage::RecoveryManager;
+  friend class Builder;
+  friend class PgProcImpl;
 
   static constexpr table_oid_t PRO_TABLE_OID = table_oid_t(81);
   static constexpr index_oid_t PRO_OID_INDEX_OID = index_oid_t(82);
