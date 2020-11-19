@@ -10,6 +10,7 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_proc_impl.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
@@ -35,6 +36,10 @@ class Index;
 }  // namespace noisepage::storage
 
 namespace noisepage::catalog {
+
+namespace postgres {
+class PgProcImpl;
+}  // namespace postgres
 
 class IndexSchema;
 
@@ -396,6 +401,8 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+  friend class postgres::PgProcImpl;
+
   // TODO(tanujnay112) Add support for other parameters
 
   /**
@@ -521,21 +528,19 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer pg_language_all_cols_pri_;
   storage::ProjectionMap pg_language_all_cols_prm_;
 
-  storage::SqlTable *procs_;
-  storage::index::Index *procs_oid_index_;
-  storage::index::Index *procs_name_index_;
-  storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
-  storage::ProjectionMap pg_proc_all_cols_prm_;
-  storage::ProjectedRowInitializer pg_proc_ptr_pri_;
-
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
+  postgres::PgProcImpl pg_proc_;
+
   DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
-      : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid), garbage_collector_(garbage_collector) {}
+      : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
+        db_oid_(oid),
+        garbage_collector_(garbage_collector),
+        pg_proc_(db_oid_) {}
 
   void TearDown(common::ManagedPointer<transaction::TransactionContext> txn);
   bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
@@ -603,33 +608,6 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapLanguages(common::ManagedPointer<transaction::TransactionContext> txn);
-
-  /**
-   * Bootstraps the built-in procs found in pg_proc
-   * @param txn transaction to insert into catalog with
-   */
-  void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
-
-  /**
-   * Bootstraps the proc functions contexts in pg_proc
-   * @param txn transaction to insert into catalog with
-   */
-  void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
-
-  /**
-   * Internal helper method to reduce copy-paste code for populating proc contexts. Allocates the FunctionContext and
-   * inserts the pointer.
-   * @param txn transaction to insert into catalog with
-   * @param proc_oid oid to associate with this proc's and its context
-   * @param func_name Name of function
-   * @param func_ret_type Return type of function
-   * @param args_type Vector of argument types
-   * @param builtin Which builtin this context refers to
-   * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
-   */
-  void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                            std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
-                            execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

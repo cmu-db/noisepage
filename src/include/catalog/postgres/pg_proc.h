@@ -10,8 +10,9 @@
 
 namespace noisepage::catalog::postgres {
 
-/** The NoisePage version of pg_proc. */
+/** The OIDs used by the NoisePage version of pg_proc. */
 class PgProc {
+  // TODO(WAN): eventually private this and friend PgProcImpl
  public:
   enum class ProArgModes : char { IN = 'i', OUT = 'o', INOUT = 'b', VARIADIC = 'v' };
 

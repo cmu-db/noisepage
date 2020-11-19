@@ -79,7 +79,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
-  dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
+  dbc->pg_proc_.procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
   // Indexes on pg_namespace
   dbc->namespaces_oid_index_ =
@@ -128,8 +128,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), LANGUAGE_NAME_INDEX_OID);
 
   // Indexes on pg_proc
-  dbc->procs_oid_index_ = Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PgProc::PRO_OID_INDEX_OID);
-  dbc->procs_name_index_ = Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PgProc::PRO_NAME_INDEX_OID);
+  dbc->pg_proc_.procs_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PgProc::PRO_OID_INDEX_OID);
+  dbc->pg_proc_.procs_name_index_ =
+      Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PgProc::PRO_NAME_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 

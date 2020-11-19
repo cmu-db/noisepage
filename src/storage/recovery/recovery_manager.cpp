@@ -305,10 +305,10 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       break;
     }
     case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->procs_oid_index_,
-                                 db_catalog_ptr->procs_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->procs_name_index_,
-                                 db_catalog_ptr->procs_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_proc_.procs_oid_index_,
+                                 db_catalog_ptr->pg_proc_.procs_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_proc_.procs_name_index_,
+                                 db_catalog_ptr->pg_proc_.procs_name_index_->metadata_.GetSchema());
       break;
     }
 
@@ -864,7 +864,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       break;
     }
     case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->procs_);
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_proc_.procs_);
       break;
     }
     default:
@@ -974,11 +974,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     }
 
     case (catalog::postgres::PgProc::PRO_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->procs_oid_index_;
+      return db_catalog->pg_proc_.procs_oid_index_;
     }
 
     case (catalog::postgres::PgProc::PRO_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->procs_name_index_;
+      return db_catalog->pg_proc_.procs_name_index_;
     }
 
     default:
@@ -1006,7 +1006,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
     // database catalog objects
     NOISEPAGE_ASSERT(IsInsertRecord(redo_record), "Special case on pg_proc should only be insert");
     storage::SqlTable *pg_proc =
-        catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->procs_;
+        catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->pg_proc_.procs_;
     auto pr_map = pg_proc->ProjectionMapForOids(GetOidsForRedoRecord(pg_proc, redo_record));
     catalog::proc_oid_t proc_oid(*(reinterpret_cast<uint32_t *>(
         redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgProc::PROOID_COL_OID]))));
