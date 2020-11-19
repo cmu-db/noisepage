@@ -17,7 +17,7 @@ namespace noisepage::execution::exec {
 class ExecutionSettings;
 }  // namespace noisepage::execution::exec
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 class OperatingUnitRecorder;
 }  // namespace noisepage::brain
 
@@ -236,7 +236,7 @@ class Pipeline {
  private:
   // Internals which are exposed for minirunners.
   friend class compiler::CompilationContext;
-  friend class brain::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }

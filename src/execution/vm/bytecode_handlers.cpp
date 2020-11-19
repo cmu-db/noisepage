@@ -299,21 +299,21 @@ void OpExecutionContextStartPipelineTracker(noisepage::execution::exec::Executio
 void OpExecutionContextEndPipelineTracker(noisepage::execution::exec::ExecutionContext *const exec_ctx,
                                           noisepage::execution::query_id_t query_id,
                                           noisepage::execution::pipeline_id_t pipeline_id,
-                                          noisepage::brain::ExecOUFeatureVector *const ouvec) {
+                                          noisepage::selfdriving::ExecOUFeatureVector *const ouvec) {
   exec_ctx->EndPipelineTracker(query_id, pipeline_id, ouvec);
 }
 
-void OpExecOUFeatureVectorRecordFeature(noisepage::brain::ExecOUFeatureVector *ouvec,
+void OpExecOUFeatureVectorRecordFeature(noisepage::selfdriving::ExecOUFeatureVector *ouvec,
                                         noisepage::execution::pipeline_id_t pipeline_id,
                                         noisepage::execution::feature_id_t feature_id,
-                                        noisepage::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                        noisepage::brain::ExecutionOperatingUnitFeatureUpdateMode mode,
+                                        noisepage::selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                        noisepage::selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode,
                                         uint32_t value) {
   ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
 }
 
 void OpExecOUFeatureVectorInitialize(noisepage::execution::exec::ExecutionContext *const exec_ctx,
-                                     noisepage::brain::ExecOUFeatureVector *const ouvec,
+                                     noisepage::selfdriving::ExecOUFeatureVector *const ouvec,
                                      noisepage::execution::pipeline_id_t pipeline_id, bool is_parallel) {
   if (is_parallel)
     exec_ctx->InitializeParallelOUFeatureVector(ouvec, pipeline_id);
@@ -321,19 +321,19 @@ void OpExecOUFeatureVectorInitialize(noisepage::execution::exec::ExecutionContex
     exec_ctx->InitializeOUFeatureVector(ouvec, pipeline_id);
 }
 
-void OpExecOUFeatureVectorReset(noisepage::brain::ExecOUFeatureVector *const ouvec) { ouvec->Reset(); }
+void OpExecOUFeatureVectorReset(noisepage::selfdriving::ExecOUFeatureVector *const ouvec) { ouvec->Reset(); }
 
 void OpExecutionContextSetMemoryUseOverride(noisepage::execution::exec::ExecutionContext *const exec_ctx,
                                             uint32_t memory_use) {
   exec_ctx->SetMemoryUseOverride(memory_use);
 }
 
-void OpExecOUFeatureVectorFilter(noisepage::brain::ExecOUFeatureVector *const ouvec,
-                                 noisepage::brain::ExecutionOperatingUnitType filter) {
+void OpExecOUFeatureVectorFilter(noisepage::selfdriving::ExecOUFeatureVector *const ouvec,
+                                 noisepage::selfdriving::ExecutionOperatingUnitType filter) {
   ouvec->pipeline_features_->erase(
       std::remove_if(ouvec->pipeline_features_->begin(), ouvec->pipeline_features_->end(),
                      [filter](const auto &feature) {
-                       return (filter != noisepage::brain::ExecutionOperatingUnitType::INVALID) &&
+                       return (filter != noisepage::selfdriving::ExecutionOperatingUnitType::INVALID) &&
                               (filter != feature.GetExecutionOperatingUnitType());
                      }),
       ouvec->pipeline_features_->end());

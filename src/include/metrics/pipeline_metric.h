@@ -87,14 +87,14 @@ class PipelineMetricRawData : public AbstractRawData {
   struct PipelineData;
 
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                          std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                          std::vector<selfdriving::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     pipeline_data_.emplace_back(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 
   struct PipelineData {
     PipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                 std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                 std::vector<selfdriving::ExecutionOperatingUnitFeature> &&features,
                  const common::ResourceTracker::Metrics &resource_metrics)
         : query_id_(query_id),
           pipeline_id_(pipeline_id),
@@ -118,7 +118,7 @@ class PipelineMetricRawData : public AbstractRawData {
       std::vector<std::string> types;
       for (auto &feature : features_) {
         types.emplace_back(
-            brain::BrainUtil::ExecutionOperatingUnitTypeToString(feature.GetExecutionOperatingUnitType()));
+            selfdriving::BrainUtil::ExecutionOperatingUnitTypeToString(feature.GetExecutionOperatingUnitType()));
       }
       return ConcatVectorToString<std::string>(types);
     }
@@ -182,7 +182,7 @@ class PipelineMetricRawData : public AbstractRawData {
     const execution::query_id_t query_id_;
     const execution::pipeline_id_t pipeline_id_;
     const uint8_t execution_mode_;
-    const std::vector<brain::ExecutionOperatingUnitFeature> features_;
+    const std::vector<selfdriving::ExecutionOperatingUnitFeature> features_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 
@@ -197,7 +197,7 @@ class PipelineMetric : public AbstractMetric<PipelineMetricRawData> {
   friend class MetricsStore;
 
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                          std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                          std::vector<selfdriving::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }

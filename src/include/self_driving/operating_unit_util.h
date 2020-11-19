@@ -8,7 +8,7 @@
 #include "brain/operating_unit.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 /**
  * Utility class for OperatingUnits

@@ -38,7 +38,7 @@ class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
 }  // namespace noisepage::planner
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 /**
  * OperatingUnitRecorder extracts all relevant ExecutionOperatingUnitFeature
@@ -112,7 +112,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param scaling_factor Scaling factor
    * @param mem_factor Memory scaling factor
    */
-  void AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
+  void AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
                          const planner::AbstractPlanNode *plan, size_t scaling_factor, double mem_factor);
 
   /**

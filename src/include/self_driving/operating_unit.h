@@ -56,7 +56,7 @@ namespace noisepage::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
 }  // namespace noisepage::optimizer
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 class ExecOUFeatureVector;
 class OperatingUnitRecorder;

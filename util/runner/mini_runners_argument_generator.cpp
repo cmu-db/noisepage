@@ -8,15 +8,15 @@ namespace noisepage::runner {
 
 void MiniRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                      const MiniRunnersDataConfig &config) {
-  auto operators = {brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-                    brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-                    brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE,
-                    brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-                    brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS,
-                    brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY,
-                    brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE,
-                    brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE,
-                    brain::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE};
+  auto operators = {selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+                    selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+                    selfdriving::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE,
+                    selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS,
+                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY,
+                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE,
+                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE,
+                    selfdriving::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE};
 
   std::vector<size_t> counts;
   for (size_t i = 10000; i < 100000; i += 10000) counts.push_back(i);

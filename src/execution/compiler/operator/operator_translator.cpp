@@ -15,7 +15,7 @@ namespace noisepage::execution::compiler {
 std::atomic<execution::translator_id_t> OperatorTranslator::translator_id_counter{20000};  // arbitrary number
 
 OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
-                                       Pipeline *pipeline, brain::ExecutionOperatingUnitType feature_type)
+                                       Pipeline *pipeline, selfdriving::ExecutionOperatingUnitType feature_type)
     : translator_id_(translator_id_counter++),
       plan_(plan),
       compilation_context_(compilation_context),
@@ -162,23 +162,24 @@ ast::Expr *OperatorTranslator::CounterVal(StateDescriptor::Entry entry) const {
   return nullptr;
 }
 
-void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
-                                       brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
+void OperatorTranslator::FeatureRecord(FunctionBuilder *function, selfdriving::ExecutionOperatingUnitType feature_type,
+                                       selfdriving::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                                        ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
   if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
-    auto non_parallel_type = brain::OperatingUnitUtil::GetNonParallelType(feature_type);
-    bool is_parallel = non_parallel_type != brain::ExecutionOperatingUnitType::INVALID;
+    auto non_parallel_type = selfdriving::OperatingUnitUtil::GetNonParallelType(feature_type);
+    bool is_parallel = non_parallel_type != selfdriving::ExecutionOperatingUnitType::INVALID;
     feature_type = (is_parallel) ? non_parallel_type : feature_type;
 
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-    const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, feature_type);
+    const auto &feature = selfdriving::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, feature_type);
     ast::Expr *record =
         codegen->ExecOUFeatureVectorRecordFeature(pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(),
-                                                  attrib, brain::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
+                                                  attrib,
+        selfdriving::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
     function->Append(record);
   }
 }
@@ -193,13 +194,13 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     for (const auto &feature : features) {
       bool is_same_translator = feature.GetTranslatorId() == translator_id;
-      bool is_arith = feature.GetExecutionOperatingUnitType() > brain::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+      bool is_arith = feature.GetExecutionOperatingUnitType() > selfdriving::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
       if (is_same_translator && is_arith) {
-        for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
+        for (const auto &attrib : {selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                   selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
           ast::Expr *record = codegen->ExecOUFeatureVectorRecordFeature(
               pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib,
-              brain::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
+              selfdriving::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
           function->Append(record);
         }
       }
@@ -217,13 +218,13 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     for (const auto &feature : features) {
       bool is_same_translator = feature.GetTranslatorId() == translator_id;
-      bool is_arith = feature.GetExecutionOperatingUnitType() > brain::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+      bool is_arith = feature.GetExecutionOperatingUnitType() > selfdriving::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
       if (is_same_translator && is_arith) {
-        for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
+        for (const auto &attrib : {selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                   selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
           ast::Expr *record = codegen->ExecOUFeatureVectorRecordFeature(
               pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib,
-              brain::ExecutionOperatingUnitFeatureUpdateMode::MULT, val);
+              selfdriving::ExecutionOperatingUnitFeatureUpdateMode::MULT, val);
           function->Append(record);
         }
       }

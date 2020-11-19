@@ -51,7 +51,7 @@
 #include "storage/block_layout.h"
 #include "type/type_id.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
@@ -163,7 +163,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
   return ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
 }
 
-void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
+void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
                                               const planner::AbstractPlanNode *plan, size_t scaling_factor,
                                               double mem_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
@@ -479,7 +479,7 @@ void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
   // IndexScan output number of rows is the "cumulative scan size"
   size_t num_keys = col_vec.size();
   size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec, &num_keys);
-  AggregateFeatures(brain::ExecutionOperatingUnitType::IDX_SCAN, key_size, num_keys, plan, 1, 1);
+  AggregateFeatures(selfdriving::ExecutionOperatingUnitType::IDX_SCAN, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {

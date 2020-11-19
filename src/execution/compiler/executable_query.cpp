@@ -73,7 +73,7 @@ std::string GetFileName(const std::string &path) {
 
 std::atomic<query_id_t> ExecutableQuery::query_identifier{0};
 
-void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units) {
+void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::PipelineOperatingUnits> &&units) {
   pipeline_operating_units_ = std::move(units);
 }
 
@@ -135,7 +135,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 ExecutableQuery::~ExecutableQuery() = default;
 
 void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
-                            std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units) {
+                            std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units) {
   NOISEPAGE_ASSERT(
       std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
       "All query fragments are not compiled!");

@@ -4,7 +4,7 @@
 
 #include "brain/brain_defs.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 /**
  * Utility class for helper functions

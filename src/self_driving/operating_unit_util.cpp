@@ -3,7 +3,7 @@
 #include "brain/brain_defs.h"
 #include "brain/operating_unit_util.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType feature) {
   switch (feature) {

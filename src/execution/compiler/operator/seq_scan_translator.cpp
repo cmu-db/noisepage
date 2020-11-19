@@ -19,7 +19,7 @@ namespace noisepage::execution::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SEQ_SCAN),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::SEQ_SCAN),
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
@@ -279,10 +279,10 @@ void SeqScanTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBui
 }
 
 void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SEQ_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SEQ_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
 }
 

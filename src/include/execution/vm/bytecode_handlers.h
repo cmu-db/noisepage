@@ -240,22 +240,22 @@ VM_OP_COLD void OpExecutionContextStartPipelineTracker(noisepage::execution::exe
 VM_OP_COLD void OpExecutionContextEndPipelineTracker(noisepage::execution::exec::ExecutionContext *exec_ctx,
                                                      noisepage::execution::query_id_t query_id,
                                                      noisepage::execution::pipeline_id_t pipeline_id,
-                                                     noisepage::brain::ExecOUFeatureVector *ouvec);
+                                                     noisepage::selfdriving::ExecOUFeatureVector *ouvec);
 
 VM_OP_COLD void OpExecOUFeatureVectorRecordFeature(
-    noisepage::brain::ExecOUFeatureVector *ouvec, noisepage::execution::pipeline_id_t pipeline_id,
+    noisepage::selfdriving::ExecOUFeatureVector *ouvec, noisepage::execution::pipeline_id_t pipeline_id,
     noisepage::execution::feature_id_t feature_id,
-    noisepage::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-    noisepage::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value);
+    noisepage::selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+    noisepage::selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value);
 
 VM_OP_COLD void OpExecOUFeatureVectorInitialize(noisepage::execution::exec::ExecutionContext *exec_ctx,
-                                                noisepage::brain::ExecOUFeatureVector *ouvec,
+                                                noisepage::selfdriving::ExecOUFeatureVector *ouvec,
                                                 noisepage::execution::pipeline_id_t pipeline_id, bool is_parallel);
 
-VM_OP_COLD void OpExecOUFeatureVectorFilter(noisepage::brain::ExecOUFeatureVector *ouvec,
-                                            noisepage::brain::ExecutionOperatingUnitType filter);
+VM_OP_COLD void OpExecOUFeatureVectorFilter(noisepage::selfdriving::ExecOUFeatureVector *ouvec,
+                                            noisepage::selfdriving::ExecutionOperatingUnitType filter);
 
-VM_OP_COLD void OpExecOUFeatureVectorReset(noisepage::brain::ExecOUFeatureVector *ouvec);
+VM_OP_COLD void OpExecOUFeatureVectorReset(noisepage::selfdriving::ExecOUFeatureVector *ouvec);
 
 VM_OP_WARM
 void OpExecutionContextGetTLS(noisepage::execution::sql::ThreadStateContainer **const thread_state_container,
