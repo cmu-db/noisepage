@@ -374,7 +374,7 @@ namespace noisepage::execution::ast {
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
                                                                         \
   F(RegisterThreadWithMetricsManager, registerThreadWithMetricsManager) \
-  F(CheckTrackersStopped, checkTrackersStopped)                         \
+  F(EnsureTrackersStopped, ensureTrackersStopped)                       \
   F(AggregateMetricsThread, aggregateMetricsThread)                     \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \

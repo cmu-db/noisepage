@@ -9,7 +9,6 @@
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/shared_latch.h"
-
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -280,11 +279,6 @@ class DataTable {
   }
 
   /**
-   * accessor_ tuple access strategy for DataTable
-   */
-  const TupleAccessStrategy accessor_;
-
-  /**
    * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
@@ -325,6 +319,16 @@ class DataTable {
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
+  // The access observer provides an abstraction layer between the GC and BlockCompactor
+  friend class AccessObserver;
+  // The ArrowSerializer utilizes the accessor directly in order to do fast reads on the underlying
+  // data to minimize copies and increase efficiency.
+  friend class ArrowSerializer;
+
+  /**
+   * accessor_ tuple access strategy for DataTable
+   */
+  const TupleAccessStrategy accessor_;
 
   std::atomic<uint64_t> blocks_size_ = 0;
   std::atomic<uint64_t> insert_index_ = 0;
