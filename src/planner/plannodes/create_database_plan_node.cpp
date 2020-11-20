@@ -11,9 +11,8 @@
 namespace noisepage::planner {
 
 std::unique_ptr<CreateDatabasePlanNode> CreateDatabasePlanNode::Builder::Build() {
-  return std::unique_ptr<CreateDatabasePlanNode>(
-      new CreateDatabasePlanNode(std::move(children_), std::move(output_schema_), std::move(database_name_),
-                                 plan_node_id_));
+  return std::unique_ptr<CreateDatabasePlanNode>(new CreateDatabasePlanNode(
+      std::move(children_), std::move(output_schema_), std::move(database_name_), plan_node_id_));
 }
 
 CreateDatabasePlanNode::CreateDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,

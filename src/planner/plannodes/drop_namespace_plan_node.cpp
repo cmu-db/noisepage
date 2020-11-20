@@ -17,8 +17,7 @@ std::unique_ptr<DropNamespacePlanNode> DropNamespacePlanNode::Builder::Build() {
 
 DropNamespacePlanNode::DropNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                              std::unique_ptr<OutputSchema> output_schema,
-                                             catalog::namespace_oid_t namespace_oid,
-                                             plan_node_id_t plan_node_id)
+                                             catalog::namespace_oid_t namespace_oid, plan_node_id_t plan_node_id)
     : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), namespace_oid_(namespace_oid) {}
 
 common::hash_t DropNamespacePlanNode::Hash() const {

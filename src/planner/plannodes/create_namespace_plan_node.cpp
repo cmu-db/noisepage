@@ -12,9 +12,8 @@
 namespace noisepage::planner {
 
 std::unique_ptr<CreateNamespacePlanNode> CreateNamespacePlanNode::Builder::Build() {
-  return std::unique_ptr<CreateNamespacePlanNode>(
-      new CreateNamespacePlanNode(std::move(children_), std::move(output_schema_), std::move(namespace_name_),
-                                  plan_node_id_));
+  return std::unique_ptr<CreateNamespacePlanNode>(new CreateNamespacePlanNode(
+      std::move(children_), std::move(output_schema_), std::move(namespace_name_), plan_node_id_));
 }
 
 CreateNamespacePlanNode::CreateNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,

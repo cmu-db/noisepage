@@ -6,8 +6,8 @@
 
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
-#include "optimizer/optimizer_context.h"
 #include "optimizer/optimize_result.h"
+#include "optimizer/optimizer_context.h"
 #include "optimizer/property_set.h"
 
 namespace noisepage {
@@ -92,10 +92,8 @@ class Optimizer : public AbstractOptimizer {
    */
   std::unique_ptr<planner::AbstractPlanNode> ChooseBestPlan(
       transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, group_id_t id,
-      PropertySet *required_props,
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
-      common::ManagedPointer<planner::PlanMetaData> plan_meta_data,
-      PlanGenerator &plan_generator);
+      PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+      common::ManagedPointer<planner::PlanMetaData> plan_meta_data, PlanGenerator &plan_generator);
 
   /**
    * Execute elements of given optimization task stack and ensure that we

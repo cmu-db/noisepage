@@ -22,8 +22,8 @@ namespace noisepage::optimizer {
 void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
 std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
-                                                         catalog::CatalogAccessor *accessor,
-                                                         StatsStorage *storage, QueryInfo query_info,
+                                                         catalog::CatalogAccessor *accessor, StatsStorage *storage,
+                                                         QueryInfo query_info,
                                                          std::unique_ptr<AbstractOptimizerNode> op_tree) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);

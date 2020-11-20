@@ -11,10 +11,9 @@
 namespace noisepage::planner {
 
 std::unique_ptr<CreateIndexPlanNode> CreateIndexPlanNode::Builder::Build() {
-  return std::unique_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(std::move(children_), std::move(output_schema_),
-                                                                      namespace_oid_, table_oid_,
-                                                                      std::move(index_name_), std::move(schema_),
-                                                                      plan_node_id_));
+  return std::unique_ptr<CreateIndexPlanNode>(
+      new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, table_oid_,
+                              std::move(index_name_), std::move(schema_), plan_node_id_));
 }
 
 CreateIndexPlanNode::CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,

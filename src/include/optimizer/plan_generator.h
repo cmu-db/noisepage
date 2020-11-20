@@ -371,13 +371,10 @@ class PlanGenerator : public OperatorVisitor {
                           const std::vector<common::ManagedPointer<parser::AbstractExpression>> *groupby_cols,
                           common::ManagedPointer<parser::AbstractExpression> having_predicate);
 
-
   /**
    * @returns the next plan node id and increase the counter
    */
-  planner::plan_node_id_t GetNextPlanNodeID() {
-    return plan_id_counter++;
-  }
+  planner::plan_node_id_t GetNextPlanNodeID() { return plan_id_counter++; }
 
   /**
    * The required output property. Note that we have previously enforced

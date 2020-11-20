@@ -101,8 +101,8 @@ class AbstractOptimizer {
    * @returns OptimizeResult containing both execution plan and plan meta data
    */
   virtual std::unique_ptr<OptimizeResult> BuildPlanTree(transaction::TransactionContext *txn,
-                                                        catalog::CatalogAccessor *accessor,
-                                                        StatsStorage *storage, QueryInfo query_info,
+                                                        catalog::CatalogAccessor *accessor, StatsStorage *storage,
+                                                        QueryInfo query_info,
                                                         std::unique_ptr<AbstractOptimizerNode> op_tree) = 0;
 
   /**

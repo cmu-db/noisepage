@@ -12,9 +12,8 @@ namespace noisepage::planner {
 // TODO(Gus,Wen) Add SetParameters
 
 std::unique_ptr<DeletePlanNode> DeletePlanNode::Builder::Build() {
-  return std::unique_ptr<DeletePlanNode>(
-      new DeletePlanNode(std::move(children_), std::make_unique<OutputSchema>(), database_oid_, table_oid_,
-                         plan_node_id_));
+  return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::make_unique<OutputSchema>(),
+                                                            database_oid_, table_oid_, plan_node_id_));
 }
 
 DeletePlanNode::DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,

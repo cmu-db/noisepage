@@ -44,8 +44,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         common::ManagedPointer<parser::AbstractExpression> predicate,
-                         plan_node_id_t plan_node_id);
+                         common::ManagedPointer<parser::AbstractExpression> predicate, plan_node_id_t plan_node_id);
 
  public:
   /**

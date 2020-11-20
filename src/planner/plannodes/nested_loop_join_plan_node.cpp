@@ -10,9 +10,8 @@
 namespace noisepage::planner {
 
 std::unique_ptr<NestedLoopJoinPlanNode> NestedLoopJoinPlanNode::Builder::Build() {
-  return std::unique_ptr<NestedLoopJoinPlanNode>(
-      new NestedLoopJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_,
-                                 plan_node_id_));
+  return std::unique_ptr<NestedLoopJoinPlanNode>(new NestedLoopJoinPlanNode(
+      std::move(children_), std::move(output_schema_), join_type_, join_predicate_, plan_node_id_));
 }
 
 NestedLoopJoinPlanNode::NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,

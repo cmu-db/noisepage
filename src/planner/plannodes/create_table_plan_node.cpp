@@ -11,10 +11,10 @@
 namespace noisepage::planner {
 
 std::unique_ptr<CreateTablePlanNode> CreateTablePlanNode::Builder::Build() {
-  return std::unique_ptr<CreateTablePlanNode>(
-      new CreateTablePlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, std::move(table_name_),
-                              std::move(table_schema_), block_store_, has_primary_key_, std::move(primary_key_),
-                              std::move(foreign_keys_), std::move(con_uniques_), std::move(con_checks_), plan_node_id_));
+  return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
+      std::move(children_), std::move(output_schema_), namespace_oid_, std::move(table_name_), std::move(table_schema_),
+      block_store_, has_primary_key_, std::move(primary_key_), std::move(foreign_keys_), std::move(con_uniques_),
+      std::move(con_checks_), plan_node_id_));
 }
 
 CreateTablePlanNode::CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
