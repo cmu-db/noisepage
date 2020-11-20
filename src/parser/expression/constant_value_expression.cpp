@@ -13,6 +13,7 @@
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "spdlog/fmt/fmt.h"
+#include "type/type_util.h"
 
 namespace noisepage::parser {
 
@@ -68,7 +69,7 @@ T ConstantValueExpression::Peek() const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
                 std::is_same_v<T, int64_t>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a false positive
-                                               // because of constexpr
+    // because of constexpr
     return static_cast<T>(GetInteger().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
@@ -244,6 +245,37 @@ std::string ConstantValueExpression::ToString() const {
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
       return fmt::format("{}", GetStringVal().val_.StringView());
+    }
+    default:
+      UNREACHABLE("Invalid TypeId.");
+  }
+}
+
+ConstantValueExpression ConstantValueExpression::FromString(const std::string &val, type::TypeId type_id) {
+  if (val.empty()) return ConstantValueExpression(type_id);
+  switch (type_id) {
+    case type::TypeId::BOOLEAN: {
+      return ConstantValueExpression(type_id, execution::sql::BoolVal(std::stoi(val) != 0));
+    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT: {
+      return ConstantValueExpression(type_id, execution::sql::Integer(std::stoll(val)));
+    }
+    case type::TypeId::DECIMAL: {
+      return ConstantValueExpression(type_id, execution::sql::Real(std::stod(val)));
+    }
+    case type::TypeId::TIMESTAMP: {
+      return ConstantValueExpression(type_id, execution::sql::TimestampVal(execution::sql::Timestamp::FromString(val)));
+    }
+    case type::TypeId::DATE: {
+      return ConstantValueExpression(type_id, execution::sql::DateVal(execution::sql::Date::FromString(val)));
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
+      return ConstantValueExpression(type_id, string_val.first, std::move(string_val.second));
     }
     default:
       UNREACHABLE("Invalid TypeId.");
