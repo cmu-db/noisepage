@@ -54,7 +54,7 @@ class AbstractPlanNode {
     }
 
     /**
-     * @param plan node id
+     * @param plan_node_id plan node id
      * @return builder object
      */
     ConcreteType &SetPlanNodeId(planner::plan_node_id_t plan_node_id) {
@@ -126,6 +126,9 @@ class AbstractPlanNode {
    */
   size_t GetChildrenSize() const { return children_.size(); }
 
+  /**
+   * @return next plan node id
+   */
   plan_node_id_t GetPlanNodeId() const { return plan_node_id_; }
 
   /**

@@ -18,8 +18,15 @@ class PlanMetaData {
    public:
     PlanNodeMetaData() = default;
 
+    /**
+     * Construct a PlanNodeMetaData with a cardinality value
+     * @param cardinality output cardinality of the plan node
+     */
     PlanNodeMetaData(int cardinality) : cardinality_(cardinality) {}
 
+    /**
+     * @return the output cardinality
+     */
     int GetCardinality() { return cardinality_; }
 
    private:
@@ -47,6 +54,9 @@ class PlanMetaData {
   }
 
  private:
+  /**
+   * Meta data for all plan nodes
+   */
   std::unordered_map<plan_node_id_t, PlanNodeMetaData> plan_node_meta_data_;
 };
 }  // namespace noisepage::planner
