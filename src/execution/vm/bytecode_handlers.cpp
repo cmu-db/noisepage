@@ -343,8 +343,8 @@ void OpRegisterThreadWithMetricsManager(noisepage::execution::exec::ExecutionCon
   exec_ctx->RegisterThreadWithMetricsManager();
 }
 
-void OpCheckTrackersStopped(noisepage::execution::exec::ExecutionContext *exec_ctx) {
-  exec_ctx->CheckTrackersStopped();
+void OpEnsureTrackersStopped(noisepage::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->EnsureTrackersStopped();
 }
 
 void OpAggregateMetricsThread(noisepage::execution::exec::ExecutionContext *exec_ctx) {

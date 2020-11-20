@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "runner/mini_runners_config.h"
+#include "runner/mini_runners_data_config.h"
 #include "runner/mini_runners_settings.h"
 
 namespace noisepage::runner {
