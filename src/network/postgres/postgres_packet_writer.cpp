@@ -308,6 +308,10 @@ uint32_t PostgresPacketWriter::WriteBinaryAttribute(const execution::sql::Val *c
         WriteBinaryVal<double, execution::sql::Real>(val, type);
         break;
       }
+      case type::TypeId::FIXEDDECIMAL: {
+        WriteBinaryVal<int128_t , execution::sql::DecimalVal>(val, type);
+        break;
+      }
       case type::TypeId::DATE: {
         WriteBinaryValNeedsToNative<uint32_t, execution::sql::DateVal>(val, type);
         break;
@@ -355,6 +359,11 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
       case type::TypeId::DECIMAL: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
         string_value = std::to_string(real_val->val_);
+        break;
+      }
+      case type::TypeId::FIXEDDECIMAL: {
+        auto *decimal_val = reinterpret_cast<const execution::sql::DecimalVal *const>(val);
+        string_value = decimal_val->ToString();
         break;
       }
       case type::TypeId::DATE: {

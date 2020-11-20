@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "execution/sql/runtime_types.h"
 #include "network/postgres/postgres_defs.h"
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
@@ -158,6 +159,15 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
                                        common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
               }
               value->SetValue(type::TypeId::DECIMAL, execution::sql::Real(double_val));
+              break;
+            }
+          }
+
+          case type::TypeId::FIXEDDECIMAL: {
+            {
+              terrier::execution::sql::Decimal128 decimal_val(0);
+              decimal_val.RoundUpAndSet(std::string(str_view), 10);
+              value->SetValue(type::TypeId::FIXEDDECIMAL, execution::sql::DecimalVal(decimal_val));
               break;
             }
           }

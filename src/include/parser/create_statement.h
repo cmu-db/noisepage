@@ -47,6 +47,7 @@ struct ColumnDefinition {
     DATE,
     TIMESTAMP,
     TEXT,
+    FIXEDDECIMAL,
 
     VARCHAR,
     VARBINARY
@@ -121,7 +122,7 @@ struct ColumnDefinition {
     } else if ((strcmp(str, "real") == 0) || (strcmp(str, "float4") == 0)) {
       data_type = ColumnDefinition::DataType::FLOAT;
     } else if (strcmp(str, "numeric") == 0) {
-      data_type = ColumnDefinition::DataType::DECIMAL;
+      data_type = ColumnDefinition::DataType::FIXEDDECIMAL;
     } else if (strcmp(str, "text") == 0) {
       data_type = ColumnDefinition::DataType::TEXT;
     } else if (strcmp(str, "tinyint") == 0) {
@@ -157,8 +158,10 @@ struct ColumnDefinition {
     } else if (strcmp(str, "bool") == 0) {
       value_type = type::TypeId::BOOLEAN;
     } else if ((strcmp(str, "double") == 0) || (strcmp(str, "float8") == 0) || (strcmp(str, "real") == 0) ||
-               (strcmp(str, "float4") == 0) || (strcmp(str, "numeric") == 0)) {
+               (strcmp(str, "float4") == 0)) {
       value_type = type::TypeId::DECIMAL;
+    } else if (strcmp(str, "numeric") == 0) {
+      value_type = type::TypeId::FIXEDDECIMAL;
     } else if (strcmp(str, "tinyint") == 0) {
       value_type = type::TypeId::TINYINT;
     } else if (strcmp(str, "varbinary") == 0) {
@@ -211,6 +214,9 @@ struct ColumnDefinition {
 
       case DataType::DATE:
         return type::TypeId::DATE;
+
+      case DataType::FIXEDDECIMAL:
+        return type::TypeId::FIXEDDECIMAL;
 
       case DataType::INVALID:
       case DataType::PRIMARY:

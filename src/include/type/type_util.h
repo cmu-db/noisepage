@@ -39,6 +39,8 @@ class TypeUtil {
       case TypeId::DECIMAL:
       case TypeId::TIMESTAMP:
         return 8;
+      case TypeId::FIXEDDECIMAL:
+        return 16;
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
         return storage::VARLEN_COLUMN;
@@ -78,6 +80,8 @@ class TypeUtil {
         return "DECIMAL";
       case type::TypeId::TIMESTAMP:
         return "TIMESTAMP";
+      case type::TypeId::FIXEDDECIMAL:
+        return "FIXED DECIMAL";
       case type::TypeId::DATE:
         return "DATE";
       case type::TypeId::VARCHAR:

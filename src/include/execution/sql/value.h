@@ -120,19 +120,19 @@ struct Real : public Val {
  */
 struct DecimalVal : public Val {
   /** The internal decimal representation. */
-  Decimal64 val_;
+  Decimal128 val_;
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The decimal value.
    */
-  explicit DecimalVal(Decimal64 val) noexcept : Val(false), val_(val) {}
+  explicit DecimalVal(Decimal128 val) noexcept : Val(false), val_(val) {}
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The raw decimal value.
    */
-  explicit DecimalVal(Decimal64::NativeType val) noexcept : DecimalVal(Decimal64{val}) {}
+  explicit DecimalVal(Decimal128::NativeType val) noexcept : DecimalVal(Decimal128{val}) {}
 
   /**
    * @return A NULL decimal value.
@@ -141,6 +141,10 @@ struct DecimalVal : public Val {
     DecimalVal val(0);
     val.is_null_ = true;
     return val;
+  }
+
+  std::string ToString() const {
+    return "";
   }
 };
 

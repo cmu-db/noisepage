@@ -26,6 +26,7 @@ enum class TypeId : uint8_t {
   INTEGER,
   BIGINT,
   DECIMAL,
+  FIXEDDECIMAL,
   TIMESTAMP,
   DATE,
   VARCHAR,

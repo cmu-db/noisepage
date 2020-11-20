@@ -133,6 +133,14 @@ class ConstantValueExpression : public AbstractExpression {
   /**
    * @return copy of the underlying Val
    */
+  execution::sql::DecimalVal GetDecimal() const {
+    TERRIER_ASSERT(std::holds_alternative<execution::sql::DecimalVal>(value_), "Invalid variant type for Get.");
+    return std::get<execution::sql::DecimalVal>(value_);
+  }
+
+  /**
+   * @return copy of the underlying Val
+   */
   execution::sql::DateVal GetDateVal() const {
     TERRIER_ASSERT(std::holds_alternative<execution::sql::DateVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::DateVal>(value_);
@@ -201,6 +209,9 @@ class ConstantValueExpression : public AbstractExpression {
       }
       case type::TypeId::DECIMAL: {
         return GetReal().is_null_;
+      }
+      case type::TypeId::FIXEDDECIMAL: {
+        return GetDecimal().is_null_;
       }
       case type::TypeId::TIMESTAMP: {
         return GetTimestampVal().is_null_;

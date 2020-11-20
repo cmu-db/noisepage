@@ -136,31 +136,33 @@ class GenericKey {
       return result;
     }
 
-#define COMPARE_FUNC(OP)                                                                                              \
-  switch (type_id) {                                                                                                  \
-    case type::TypeId::BOOLEAN:                                                                                       \
-    case type::TypeId::TINYINT:                                                                                       \
-      return *reinterpret_cast<const int8_t *const>(lhs_attr) OP * reinterpret_cast<const int8_t *const>(rhs_attr);   \
-    case type::TypeId::SMALLINT:                                                                                      \
-      return *reinterpret_cast<const int16_t *const>(lhs_attr) OP * reinterpret_cast<const int16_t *const>(rhs_attr); \
-    case type::TypeId::INTEGER:                                                                                       \
-      return *reinterpret_cast<const int32_t *const>(lhs_attr) OP * reinterpret_cast<const int32_t *const>(rhs_attr); \
-    case type::TypeId::DATE:                                                                                          \
-      return *reinterpret_cast<const uint32_t *const>(lhs_attr) OP *                                                  \
-             reinterpret_cast<const uint32_t *const>(rhs_attr);                                                       \
-    case type::TypeId::BIGINT:                                                                                        \
-      return *reinterpret_cast<const int64_t *const>(lhs_attr) OP * reinterpret_cast<const int64_t *const>(rhs_attr); \
-    case type::TypeId::DECIMAL:                                                                                       \
-      return *reinterpret_cast<const double *const>(lhs_attr) OP * reinterpret_cast<const double *const>(rhs_attr);   \
-    case type::TypeId::TIMESTAMP:                                                                                     \
-      return *reinterpret_cast<const uint64_t *const>(lhs_attr) OP *                                                  \
-             reinterpret_cast<const uint64_t *const>(rhs_attr);                                                       \
-    case type::TypeId::VARCHAR:                                                                                       \
-    case type::TypeId::VARBINARY: {                                                                                   \
-      return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                 \
-    }                                                                                                                 \
-    default:                                                                                                          \
-      throw std::runtime_error("Unknown TypeId in terrier::storage::index::GenericKey::TypeComparators.");            \
+#define COMPARE_FUNC(OP)                                                                                               \
+  switch (type_id) {                                                                                                   \
+    case type::TypeId::BOOLEAN:                                                                                        \
+    case type::TypeId::TINYINT:                                                                                        \
+      return *reinterpret_cast<const int8_t *const>(lhs_attr) OP * reinterpret_cast<const int8_t *const>(rhs_attr);    \
+    case type::TypeId::SMALLINT:                                                                                       \
+      return *reinterpret_cast<const int16_t *const>(lhs_attr) OP * reinterpret_cast<const int16_t *const>(rhs_attr);  \
+    case type::TypeId::INTEGER:                                                                                        \
+      return *reinterpret_cast<const int32_t *const>(lhs_attr) OP * reinterpret_cast<const int32_t *const>(rhs_attr);  \
+    case type::TypeId::DATE:                                                                                           \
+      return *reinterpret_cast<const uint32_t *const>(lhs_attr) OP *                                                   \
+             reinterpret_cast<const uint32_t *const>(rhs_attr);                                                        \
+    case type::TypeId::BIGINT:                                                                                         \
+      return *reinterpret_cast<const int64_t *const>(lhs_attr) OP * reinterpret_cast<const int64_t *const>(rhs_attr);  \
+    case type::TypeId::DECIMAL:                                                                                        \
+      return *reinterpret_cast<const double *const>(lhs_attr) OP * reinterpret_cast<const double *const>(rhs_attr);    \
+    case type::TypeId::FIXEDDECIMAL:                                                                                   \
+      return *reinterpret_cast<const int128_t *const>(lhs_attr) OP * reinterpret_cast<const int128_t *const>(rhs_attr);\
+    case type::TypeId::TIMESTAMP:                                                                                      \
+      return *reinterpret_cast<const uint64_t *const>(lhs_attr) OP *                                                   \
+             reinterpret_cast<const uint64_t *const>(rhs_attr);                                                        \
+    case type::TypeId::VARCHAR:                                                                                        \
+    case type::TypeId::VARBINARY: {                                                                                    \
+      return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                  \
+    }                                                                                                                  \
+    default:                                                                                                           \
+      throw std::runtime_error("Unknown TypeId in terrier::storage::index::GenericKey::TypeComparators.");             \
   }
 
     /**

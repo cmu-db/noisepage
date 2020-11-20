@@ -40,6 +40,8 @@ void ConstantValueExpression::Validate() const {
                    "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::Real>(value_)) {
     TERRIER_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::DecimalVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::FIXEDDECIMAL, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::DateVal>(value_)) {
     TERRIER_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::TimestampVal>(value_)) {
@@ -169,6 +171,9 @@ common::hash_t ConstantValueExpression::Hash() const {
     case type::TypeId::DECIMAL: {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<double>()));
     }
+    case type::TypeId::FIXEDDECIMAL: {
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<int128_t>()));
+    }
     case type::TypeId::TIMESTAMP: {
       return common::HashUtil::CombineHashes(hash,
                                              common::HashUtil::Hash(Peek<execution::sql::Timestamp>().ToNative()));
@@ -205,6 +210,9 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
     case type::TypeId::DECIMAL: {
       return Peek<double>() == other_cve.Peek<double>();
     }
+    case type::TypeId::FIXEDDECIMAL: {
+      return Peek<int128_t>() == other_cve.Peek<int128_t>();
+    }
     case type::TypeId::TIMESTAMP: {
       return Peek<execution::sql::Timestamp>() == other_cve.Peek<execution::sql::Timestamp>();
     }
@@ -233,6 +241,9 @@ std::string ConstantValueExpression::ToString() const {
     }
     case type::TypeId::DECIMAL: {
       return fmt::format("{}", GetReal().val_);
+    }
+    case type::TypeId::FIXEDDECIMAL: {
+      return fmt::format("{}", GetDecimal().ToString());
     }
     case type::TypeId::TIMESTAMP: {
       return fmt::format("{}", GetTimestampVal().val_.ToString());
@@ -267,6 +278,10 @@ nlohmann::json ConstantValueExpression::ToJson() const {
       }
       case type::TypeId::DECIMAL: {
         j["value"] = Peek<double>();
+        break;
+      }
+      case type::TypeId::FIXEDDECIMAL: {
+        j["value"] = Peek<int128_t>();
         break;
       }
       case type::TypeId::TIMESTAMP: {
@@ -311,6 +326,10 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
       }
       case type::TypeId::DECIMAL: {
         value_ = execution::sql::Real(j.at("value").get<double>());
+        break;
+      }
+      case type::TypeId::FIXEDDECIMAL: {
+        value_ = execution::sql::DecimalVal(j.at("value").get<int128_t>());
         break;
       }
       case type::TypeId::TIMESTAMP: {

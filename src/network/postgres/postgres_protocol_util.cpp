@@ -42,7 +42,7 @@ type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const Po
       return type::TypeId::TIMESTAMP;
 
     case PostgresValueType::DECIMAL:
-      return type::TypeId::DECIMAL;
+      return type::TypeId::FIXEDDECIMAL;
     default: {
       std::ostringstream os;
       os << "No TypeId conversion for PostgresValueType '" << static_cast<int>(type) << "'";
@@ -73,6 +73,9 @@ PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(con
 
     case type::TypeId::DECIMAL:
       return PostgresValueType::DOUBLE;
+
+    case type::TypeId::FIXEDDECIMAL:
+      return PostgresValueType::DECIMAL;
 
     case type::TypeId::TIMESTAMP:
       return PostgresValueType::TIMESTAMPS;

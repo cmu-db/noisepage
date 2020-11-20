@@ -2,8 +2,6 @@
 
 #include <unordered_map>
 
-#include "storage/storage_defs.h"
-
 namespace terrier::execution::sql {
 
 /* Magic array for 256 bit division with powers of 10
