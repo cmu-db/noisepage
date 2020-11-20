@@ -338,7 +338,7 @@ TEST_F(MetricsTests, QueryCSVTest) {
   EXPECT_EQ(aggregated_data->query_trace_.size(), 2);  // 2 data point recorded
   EXPECT_EQ(aggregated_data->query_text_.size(), 2);   // 2 data point recorded
   if (!(aggregated_data->query_text_.empty())) {
-    EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_, "INSERT INTO TableA VALUES (1, 'abc');");
+    EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_, "\"INSERT INTO TableA VALUES (1, 'abc');\"");
     if (!(aggregated_data->query_trace_.empty())) {
       EXPECT_EQ(aggregated_data->query_trace_.begin()->query_id_,
                 aggregated_data->query_text_.begin()->query_id_);  // 2 records: insert, select

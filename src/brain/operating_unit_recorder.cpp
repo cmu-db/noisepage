@@ -85,6 +85,7 @@ void OperatingUnitRecorder::AdjustKeyWithType(type::TypeId type, size_t *key_siz
     // TODO(lin): Some how varchar in execution engine is 24 bytes. I don't really know why, but just special case
     //  here since it's different than the storage size (16 bytes under inline)
     *key_size = *key_size + 24;
+    *num_key = *num_key + 1;
   } else {
     *key_size = *key_size + storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(type));
   }
@@ -171,8 +172,14 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
   if (type == ExecutionOperatingUnitType::OUTPUT) {
-    // Uses the network result consumer
-    cardinality = 1;
+    if (accessor_->GetDatabaseOid("tpch_runner_db") != catalog::INVALID_DATABASE_OID) {
+      // Unfortunately we don't know what kind of output callback that we're going to call at runtime, so we just
+      // special case this when we execute the plans directly from the TPCH runner and use the NoOpResultConsumer
+      cardinality = 0;
+    } else {
+      // Uses the network result consumer
+      cardinality = 1;
+    }
     auto child_translator = current_translator_->GetChildTranslator();
     if (child_translator != nullptr) {
       if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
@@ -228,8 +235,6 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
 
-  if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
-
   // This is a hack.
   // Certain translators don't own their features, but pass them further down the pipeline.
   std::vector<execution::translator_id_t> translator_ids;
@@ -257,69 +262,6 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
                                                cardinality, mem_factor, num_loops, num_concurrent);
   pipeline_features_.emplace(type, std::move(feature));
-}
-
-void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows,
-                                           const size_t *num_keys, size_t *cardinality, size_t *num_loops) {
-  if (*query_text_ ==
-          "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
-          " ORDER BY NO_O_ID ASC  LIMIT 1" &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
-    if (type == brain::ExecutionOperatingUnitType::SORT_BUILD) {
-      *num_rows = 850;
-      *cardinality = 1;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
-      *cardinality = 850;
-    }
-  }
-
-  if (*query_text_ ==
-          "SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT  FROM ORDER_LINE, STOCK WHERE OL_W_ID = $1"
-          " AND OL_D_ID = $2 AND OL_O_ID < $3 AND OL_O_ID >= $4 AND S_W_ID = $5 AND S_I_ID = OL_I_ID"
-          " AND S_QUANTITY < $6" &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
-    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
-      *num_rows = 20;
-      *cardinality = 1;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 2) {
-      *num_loops = 200;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 3) {
-      *cardinality = 200;
-    }
-  }
-
-  if (*query_text_ ==
-          "UPDATE ORDER_LINE   SET OL_DELIVERY_D = $1  WHERE OL_O_ID = $2    AND OL_D_ID = $3    AND "
-          "OL_W_ID = $4 " &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 1) {
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
-      *cardinality = 10;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::UPDATE) {
-      *num_rows = 10;
-      *cardinality = 10;
-    }
-  }
-
-  if (*query_text_ ==
-          "SELECT SUM(OL_AMOUNT) AS OL_TOTAL   FROM ORDER_LINE WHERE OL_O_ID = $1    AND OL_D_ID = $2    "
-          "AND OL_W_ID = $3" &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
-      *cardinality = 10;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
-      *num_rows = 10;
-    }
-  }
 }
 
 void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
@@ -365,6 +307,15 @@ void OperatingUnitRecorder::Visit(const planner::CreateIndexPlanNode *plan) {
   size_t num_keys = schema->GetColumns().size();
   size_t key_size =
       ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema>(schema.Get()), false, keys, &num_keys);
+
+  // TODO(lin): further adjust the key size of VARCHAR keys for CREATE INDEX becuase of some irregularity in the
+  //  training data. Needs further investigation.
+  for (auto &col : schema->GetColumns()) {
+    if (col.Type() == type::TypeId::VARCHAR) {
+      key_size += 8;
+    }
+  }
+
   AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 
@@ -636,7 +587,12 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Sort build sizes/operations are based on the input (from child)
     const auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(ExecutionOperatingUnitType::SORT_BUILD, key_size, num_key, c_plan, 1, scale);
+    ExecutionOperatingUnitType ou_type;
+    if (plan->HasLimit())
+      ou_type = ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    else
+      ou_type = ExecutionOperatingUnitType::SORT_BUILD;
+    AggregateFeatures(ou_type, key_size, num_key, c_plan, 1, scale);
   } else if (translator->IsScanPipeline(*current_pipeline_)) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);

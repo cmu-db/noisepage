@@ -178,6 +178,7 @@ pipeline {
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended --server-args="--pipeline_metrics_enable=True --pipeline_metrics_interval=0 --counters_enable=True --query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
                     }
                     post {
                         always {

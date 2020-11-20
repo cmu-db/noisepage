@@ -10,7 +10,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
-#include "runner/mini_runners_config.h"
+#include "runner/mini_runners_data_config.h"
 #include "runner/mini_runners_settings.h"
 #include "transaction/transaction_context.h"
 
