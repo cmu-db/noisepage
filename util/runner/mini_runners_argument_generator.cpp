@@ -15,7 +15,8 @@ void MiniRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const MiniRu
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS,
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY,
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE,
-                    brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE};
+                    brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE,
+                    brain::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE};
 
   std::vector<size_t> counts;
   for (size_t i = 10000; i < 100000; i += 10000) counts.push_back(i);
@@ -50,13 +51,16 @@ void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniR
 
 void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                     const MiniRunnersDataConfig &config) {
-  auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::VARCHAR};
+  const std::vector<uint32_t> *num_cols;
   for (auto type : types) {
-    for (auto col : num_cols) {
-      // Skip more than 5 varchar cols to match the generated tables
-      if (type == type::TypeId::VARCHAR && col > 5) continue;
+    if (type == type::TypeId::VARCHAR)
+      num_cols = &config.sweep_varchar_col_nums_;
+    else
+      num_cols = &config.sweep_col_nums_;
+
+    for (auto col : *num_cols) {
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
@@ -93,25 +97,28 @@ void MiniRunnersArgumentGenerator::GenScanMixedArguments(OutputArgs *b, const Mi
 
 void MiniRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                     const MiniRunnersDataConfig &config) {
+  auto is_topks = {0, 1};
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER};
-  for (auto type : types) {
-    for (auto col : num_cols) {
-      for (auto row : row_nums) {
-        int64_t car = 1;
-        while (car < row) {
-          if (type == type::TypeId::INTEGER)
-            b->push_back({col, 0, 15, 0, row, car});
-          else if (type == type::TypeId::DECIMAL)
-            b->push_back({0, col, 0, 15, row, car});
-          car *= 2;
-        }
+  for (auto is_topk : is_topks) {
+    for (auto type : types) {
+      for (auto col : num_cols) {
+        for (auto row : row_nums) {
+          int64_t car = 1;
+          while (car < row) {
+            if (type == type::TypeId::INTEGER)
+              b->push_back({col, 0, 15, 0, row, car, is_topk});
+            else if (type == type::TypeId::DECIMAL)
+              b->push_back({0, col, 0, 15, row, car, is_topk});
+            car *= 2;
+          }
 
-        if (type == type::TypeId::INTEGER)
-          b->push_back({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::DECIMAL)
-          b->push_back({0, col, 0, 15, row, row});
+          if (type == type::TypeId::INTEGER)
+            b->push_back({col, 0, 15, 0, row, row, is_topk});
+          else if (type == type::TypeId::DECIMAL)
+            b->push_back({0, col, 0, 15, row, row, is_topk});
+        }
       }
     }
   }
@@ -119,25 +126,30 @@ void MiniRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const MiniRun
 
 void MiniRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                          const MiniRunnersDataConfig &config) {
-  auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER};
+  auto types = {type::TypeId::INTEGER, type::TypeId::VARCHAR};
+  const std::vector<uint32_t> *num_cols;
   for (auto type : types) {
-    for (auto col : num_cols) {
+    if (type == type::TypeId::VARCHAR)
+      num_cols = &config.sweep_varchar_col_nums_;
+    else
+      num_cols = &config.sweep_col_nums_;
+
+    for (auto col : *num_cols) {
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
-          if (type == type::TypeId::INTEGER)
+          if (type != type::TypeId::VARCHAR)
             b->push_back({col, 0, 15, 0, row, car});
-          else if (type == type::TypeId::BIGINT)
-            b->push_back({0, col, 0, 15, row, car});
+          else
+            b->push_back({0, col, 0, 5, row, car});
           car *= 2;
         }
 
-        if (type == type::TypeId::INTEGER)
+        if (type != type::TypeId::VARCHAR)
           b->push_back({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::BIGINT)
-          b->push_back({0, col, 0, 15, row, row});
+        else
+          b->push_back({0, col, 0, 5, row, row});
       }
     }
   }
@@ -218,16 +230,18 @@ void MiniRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, const 
 void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                        const MiniRunnersDataConfig &config) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
-  auto &key_sizes = config.sweep_index_col_nums_;
   auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto &lookup_sizes = config.sweep_index_lookup_sizes_;
+  const std::vector<uint32_t> *key_sizes;
   for (auto type : types) {
-    for (auto key_size : key_sizes) {
-      // Only handle varchar up to 5 keys for size concerns
-      if (type == type::TypeId::VARCHAR && key_size > 5) continue;
+    if (type == type::TypeId::VARCHAR)
+      key_sizes = &config.sweep_varchar_index_col_nums_;
+    else
+      key_sizes = &config.sweep_index_col_nums_;
+
+    for (auto key_size : *key_sizes) {
       for (auto idx_size : idx_sizes) {
         b->push_back({static_cast<int64_t>(type), key_size, idx_size, 0, 1});
-
         for (auto lookup_size : lookup_sizes) {
           if (lookup_size <= idx_size) {
             b->push_back({static_cast<int64_t>(type), key_size, idx_size, lookup_size, -1});
@@ -352,6 +366,9 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
       for (auto col : num_cols) {
         for (auto row : row_nums) {
           int64_t car = 1;
+          // Only use one cardinality for now since we can't track any cardinality anyway
+          // TODO(lin): Augment the create index runner with different cardinalities when we're able to
+          //  estimate/track the cardinality.
           if (row > settings.create_index_small_limit_) {
             // For these, we get a memory explosion if the cardinality is too low.
             while (car < row) {
@@ -360,18 +377,10 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
             car = car / (pow(2, settings.create_index_large_cardinality_num_));
           }
 
-          while (car < row) {
-            if (type == type::TypeId::INTEGER)
-              b->push_back({col, 0, 15, 0, row, car, 0, thread});
-            else if (type == type::TypeId::BIGINT)
-              b->push_back({0, col, 0, 15, row, car, 0, thread});
-            car *= 2;
-          }
-
           if (type == type::TypeId::INTEGER)
-            b->push_back({col, 0, 15, 0, row, row, 0, thread});
+            b->push_back({col, 0, 15, 0, row, car, 0, thread});
           else if (type == type::TypeId::BIGINT)
-            b->push_back({0, col, 0, 15, row, row, 0, thread});
+            b->push_back({0, col, 0, 15, row, car, 0, thread});
         }
       }
     }
@@ -400,7 +409,8 @@ void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, c
 
         // This car is the ceiling
         car = car / (pow(2, settings.create_index_large_cardinality_num_));
-        if (arg_car < car) {
+        // Only use one cardinality for now since we can't track any cardinality anyway
+        if (arg_car != car) {
           continue;
         }
       }

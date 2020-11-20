@@ -477,6 +477,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     node->GetSelectGroupBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
+
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     // If NULL was provided as a select column, in postgres the default type is "text". See #1020.
@@ -645,6 +646,16 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression>
   sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
   sherpa_->SetDesiredTypePair(expr->GetChild(0), expr->GetChild(1));
   SqlNodeVisitor::Visit(expr);
+
+  // If any of the operands are typecasts, the typecast children should have been casted by now. Pull the children up.
+  for (size_t i = 0; i < expr->GetChildrenSize(); ++i) {
+    auto child = expr->GetChild(i);
+    if (parser::ExpressionType::OPERATOR_CAST == child->GetExpressionType()) {
+      NOISEPAGE_ASSERT(parser::ExpressionType::VALUE_CONSTANT == child->GetChild(0)->GetExpressionType(),
+                       "We can only pull up ConstantValueExpression.");
+      expr->SetChild(i, child->GetChild(0));
+    }
+  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConjunctionExpression> expr) {
@@ -742,6 +753,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SubqueryExpression> e
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::TypeCastExpression> expr) {
   BINDER_LOG_TRACE("Visiting TypeCastExpression...");
+  NOISEPAGE_ASSERT(1 == expr->GetChildrenSize(), "TypeCastExpression should have exactly 1 child.");
+  sherpa_->SetDesiredType(expr->GetChild(0), expr->GetReturnValueType());
   SqlNodeVisitor::Visit(expr);
 }
 
@@ -836,6 +849,18 @@ void BindNodeVisitor::UnifyOrderByExpression(
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
       exprs[idx] = select_items[column_id - 1];
+    } else if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::COLUMN_VALUE) {
+      auto column_value_expression = exprs[idx].CastManagedPointerTo<parser::ColumnValueExpression>();
+      std::string column_name = column_value_expression->GetColumnName();
+      if (!column_name.empty()) {
+        for (auto select_expression : select_items) {
+          auto abstract_select_expression = select_expression.CastManagedPointerTo<parser::AbstractExpression>();
+          if (abstract_select_expression->GetExpressionName() == column_name) {
+            exprs[idx] = select_expression;
+            break;
+          }
+        }
+      }
     }
   }
 }

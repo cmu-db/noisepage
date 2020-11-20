@@ -366,8 +366,9 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
   if (query_trace_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueryText(
-        exec_query->GetQueryId(), portal->GetStatement()->GetQueryText(), metrics::MetricsUtil::Now());
+    common::thread_context.metrics_store_->RecordQueryText(connection_ctx->GetDatabaseOid(), exec_query->GetQueryId(),
+                                                           portal->GetStatement()->GetQueryText(), portal->Parameters(),
+                                                           metrics::MetricsUtil::Now());
   }
 
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
@@ -436,7 +437,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
 
   if (query_trace_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now());
+    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now(),
+                                                            portal->Parameters());
   }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {

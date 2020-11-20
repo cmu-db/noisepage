@@ -116,7 +116,7 @@ namespace noisepage::execution::vm {
   F(ExecOUFeatureVectorReset, OperandType::Local)                                                                     \
                                                                                                                       \
   F(RegisterThreadWithMetricsManager, OperandType::Local)                                                             \
-  F(CheckTrackersStopped, OperandType::Local)                                                                         \
+  F(EnsureTrackersStopped, OperandType::Local)                                                                        \
   F(AggregateMetricsThread, OperandType::Local)                                                                       \
   F(ExecutionContextSetMemoryUseOverride, OperandType::Local, OperandType::Local)                                     \
                                                                                                                       \
