@@ -275,7 +275,7 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
     } else {
       RecordCounters(pipeline, function);
     }
-  } else {
+  } else if (!pipeline.IsParallel()) {
     RecordCounters(pipeline, function);
   }
 }
