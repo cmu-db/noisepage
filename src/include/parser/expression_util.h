@@ -424,23 +424,22 @@ class ExpressionUtil {
       // ColumnValueExpression particularly when dealing with InnerIndexJoin.
       OPTIMIZER_LOG_TRACE("EvaluateExpression resulted in an unbound ColumnValueExpression");
     } else if (IsAggregateExpression(expr->GetExpressionType())) {
-      /*
-      TODO(wz2, [ExecutionEngine]): If value_idx is somehow needed during aggregation, reviist this
-      Peloton never seems to read from AggregateExpression's value_idx
-
-      auto c_aggr_expr = dynamic_cast<const AggregateExpression *>(expr);
+      // if aggregate expression exists in the children expression map
+      // make a derived value expression to avoid double computation
+      auto c_aggr_expr = expr.CastManagedPointerTo<AggregateExpression>();
       NOISEPAGE_ASSERT(c_aggr_expr, "expr should be AggregateExpression");
 
-      auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
-
+      int tuple_idx = 0;
       for (auto &expr_map : expr_maps) {
         auto iter = expr_map.find(expr);
         if (iter != expr_map.end()) {
-          aggr_expr->SetValueIdx(iter->second);
+          // Create DerivedValueExpression (iter->second is value_idx)
+          auto type = c_aggr_expr->GetReturnValueType();
+          return std::make_unique<DerivedValueExpression>(type, tuple_idx, iter->second);
         }
+        ++tuple_idx;
       }
 
-      */
     } else if (expr->GetExpressionType() == ExpressionType::FUNCTION) {
       /*
       TODO(wz2): Uncomment and fix this when Functions exist

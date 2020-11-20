@@ -124,8 +124,7 @@ class OperatingUnitUtil {
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
           case type::TypeId::VARCHAR:
           case type::TypeId::VARBINARY:
-            // TODO(wz2): Revisit this since VARCHAR/VARBINARY is more than just integer
-            return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
+            return std::make_pair(type, ExecutionOperatingUnitType::OP_VARCHAR_COMPARE);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
         }
