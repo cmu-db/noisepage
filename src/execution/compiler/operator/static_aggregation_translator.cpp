@@ -15,7 +15,7 @@ constexpr char AGG_ATTR_PREFIX[] = "agg_term_attr";
 
 StaticAggregationTranslator::StaticAggregationTranslator(const planner::AggregatePlanNode &plan,
                                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
       agg_row_var_(GetCodeGen()->MakeFreshIdentifier("aggRow")),
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
@@ -245,16 +245,17 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
 void StaticAggregationTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   if (IsBuildPipeline(pipeline)) {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
   } else {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  CounterVal(num_agg_outputs_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
   }
 }

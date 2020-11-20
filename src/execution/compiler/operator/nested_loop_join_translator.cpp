@@ -10,7 +10,7 @@ namespace noisepage::execution::compiler {
 
 NestedLoopJoinTranslator::NestedLoopJoinTranslator(const planner::NestedLoopJoinPlanNode &plan,
                                                    CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY) {
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY) {
   NOISEPAGE_ASSERT(plan.GetChildrenSize() == 2, "NLJ expected to have only two children.");
 
   // In a nested loop, only the outer most loop determines the parallelism level.

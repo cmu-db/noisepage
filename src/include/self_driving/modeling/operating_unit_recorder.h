@@ -6,10 +6,10 @@
 #include <utility>
 #include <vector>
 
-#include "brain/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "type/type_id.h"
 
 namespace noisepage::catalog {
@@ -38,7 +38,7 @@ class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
 }  // namespace noisepage::planner
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 /**
  * OperatingUnitRecorder extracts all relevant ExecutionOperatingUnitFeature
@@ -112,7 +112,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param scaling_factor Scaling factor
    * @param mem_factor Memory scaling factor
    */
-  void AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
+  void AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
                          const planner::AbstractPlanNode *plan, size_t scaling_factor, double mem_factor);
 
   /**
@@ -230,4 +230,4 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   common::ManagedPointer<execution::compiler::Pipeline> current_pipeline_;
 };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
