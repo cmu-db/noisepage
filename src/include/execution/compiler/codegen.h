@@ -10,7 +10,6 @@
 #include <utility>
 #include <vector>
 
-#include "brain/operating_unit.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
@@ -19,6 +18,7 @@
 #include "execution/sql/sql.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
+#include "self_driving/modeling/operating_unit.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;
@@ -791,8 +791,8 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *ExecOUFeatureVectorRecordFeature(
       ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
-      brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-      brain::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value);
+      selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+      selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value);
 
   /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.
@@ -1438,7 +1438,7 @@ class CodeGen {
   // ---------------------------------------------------------------------------
 
   /** @return PipelineOperatingUnits instance. */
-  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() const {
+  common::ManagedPointer<selfdriving::PipelineOperatingUnits> GetPipelineOperatingUnits() const {
     return common::ManagedPointer(pipeline_operating_units_);
   }
 
@@ -1446,7 +1446,7 @@ class CodeGen {
   common::ManagedPointer<ast::Context> GetAstContext() const { return common::ManagedPointer(context_); }
 
   /** @return Release ownership of the PipelineOperatingUnits instance. */
-  std::unique_ptr<brain::PipelineOperatingUnits> ReleasePipelineOperatingUnits() {
+  std::unique_ptr<selfdriving::PipelineOperatingUnits> ReleasePipelineOperatingUnits() {
     return std::move(pipeline_operating_units_);
   }
 
@@ -1473,7 +1473,7 @@ class CodeGen {
   // The catalog accessor.
   catalog::CatalogAccessor *accessor_;
   // Minirunner-related.
-  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
+  std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units_;
 };
 
 }  // namespace noisepage::execution::compiler

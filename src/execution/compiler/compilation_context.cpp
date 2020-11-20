@@ -4,7 +4,6 @@
 #include <atomic>
 #include <sstream>
 
-#include "brain/operating_unit_recorder.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"
@@ -68,6 +67,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "self_driving/modeling/operating_unit_recorder.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace noisepage::execution::compiler {
@@ -157,9 +157,9 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     // Extract and record the translators.
     // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
     // Therefore translator extraction must happen before pipelines are generated.
-    brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
-                                          common::ManagedPointer(codegen_.GetAstContext()),
-                                          common::ManagedPointer(pipeline), query_->GetQueryText());
+    selfdriving::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
+                                                common::ManagedPointer(codegen_.GetAstContext()),
+                                                common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
 
