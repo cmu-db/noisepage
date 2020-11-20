@@ -934,7 +934,7 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
 
   auto fun_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::FunctionExpression>();
   auto proc_oid = fun_expr->GetProcOid();
-  EXPECT_EQ(proc_oid, catalog::postgres::COT_PRO_OID);
+  EXPECT_EQ(proc_oid, catalog::postgres::PgProc::COT_PRO_OID);
 
   // Make a query with wrong argument types to check correct overloading
   query = "SELECT cot(1.0, 2.0) FROM a;";
