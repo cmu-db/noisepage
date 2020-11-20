@@ -19,15 +19,15 @@ std::unique_ptr<InsertPlanNode> InsertPlanNode::Builder::Build() {
                    "Must have parameter info for each value");
   return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                             database_oid_, table_oid_, std::move(values_),
-                                                            std::move(parameter_info_)));
+                                                            std::move(parameter_info_), plan_node_id_));
 }
 
 InsertPlanNode::InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                                catalog::table_oid_t table_oid,
                                std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                               std::vector<catalog::col_oid_t> &&parameter_info)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                               std::vector<catalog::col_oid_t> &&parameter_info, plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       database_oid_(database_oid),
       table_oid_(table_oid),
       values_(std::move(values)),

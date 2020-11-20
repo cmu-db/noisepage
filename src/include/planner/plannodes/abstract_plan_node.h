@@ -53,6 +53,15 @@ class AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
+    /**
+     * @param plan node id
+     * @return builder object
+     */
+    ConcreteType &SetPlanNodeId(planner::plan_node_id_t plan_node_id) {
+      plan_node_id_ = plan_node_id;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
    protected:
     /**
      * child plans
@@ -62,6 +71,11 @@ class AbstractPlanNode {
      * schema describing output of the node
      */
     std::unique_ptr<OutputSchema> output_schema_{nullptr};
+
+    /**
+     * plan node id
+     */
+    plan_node_id_t plan_node_id_;
   };
 
   /**
@@ -71,6 +85,15 @@ class AbstractPlanNode {
    */
   AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                    std::unique_ptr<OutputSchema> output_schema);
+
+  /**
+ * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
+ * @param children child plan nodes
+ * @param output_schema Schema representing the structure of the output of this plan node
+ * @param plan_node_id Plan node id
+ */
+  AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                   std::unique_ptr<OutputSchema> output_schema, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -103,8 +126,7 @@ class AbstractPlanNode {
    */
   size_t GetChildrenSize() const { return children_.size(); }
 
-  // TODO(Elena): get real id
-  plan_node_id_t GetPlanNodeId() const { return plan_node_id_t(0); }
+  plan_node_id_t GetPlanNodeId() const { return plan_node_id_; }
 
   /**
    * @param child_index index of child
@@ -182,6 +204,7 @@ class AbstractPlanNode {
 
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;
+  plan_node_id_t plan_node_id_ = plan_node_id_t(-1);
 
   void SwapChildren() {
     // Should only be called from the runners!
