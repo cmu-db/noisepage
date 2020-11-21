@@ -35,7 +35,7 @@ pipeline {
 
                 sh script: '''
                 cd build
-                python3 ../script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}', label: 'Artifact Stats'
+                python3 ../script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'Artifact Stats'
             }
             post {
