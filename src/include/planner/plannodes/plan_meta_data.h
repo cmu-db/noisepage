@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "plannodes/plan_node_defs.h"
+#include "planner/plannodes/plan_node_defs.h"
 
 namespace noisepage::planner {
 

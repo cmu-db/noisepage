@@ -52,25 +52,28 @@
 
 namespace noisepage::optimizer {
 
-PlanGenerator::PlanGenerator() : plan_id_counter(0) {}
+PlanGenerator::PlanGenerator(common::ManagedPointer<planner::PlanMetaData> plan_meta_data)
+    : plan_id_counter(0), plan_meta_data_(plan_meta_data) {}
 
 std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpNode(
     transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,
     PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
-    std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
-    std::vector<ExprMap> &&children_expr_map) {
+    std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans, std::vector<ExprMap> &&children_expr_map,
+    const planner::PlanMetaData::PlanNodeMetaData &plan_node_meta_data) {
   required_props_ = required_props;
   required_cols_ = required_cols;
   output_cols_ = output_cols;
   children_plans_ = std::move(children_plans);
   children_expr_map_ = children_expr_map;
   accessor_ = accessor;
+  plan_node_meta_data_ = plan_node_meta_data;
   txn_ = txn;
 
   op->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
 
   CorrectOutputPlanWithProjection();
+  plan_meta_data_->AddPlanNodeMetaData(output_plan_->GetPlanNodeId(), plan_node_meta_data);
   return std::move(output_plan_);
 }
 
@@ -109,6 +112,7 @@ void PlanGenerator::CorrectOutputPlanWithProjection() {
   // We don't actually want shared_ptr but pending another PR
   auto schema = std::make_unique<planner::OutputSchema>(std::move(columns));
 
+  plan_meta_data_->AddPlanNodeMetaData(output_plan_->GetPlanNodeId(), plan_node_meta_data_);
   auto builder = planner::ProjectionPlanNode::Builder();
   builder.SetOutputSchema(std::move(schema));
   builder.SetPlanNodeId(GetNextPlanNodeID());
@@ -370,6 +374,7 @@ void PlanGenerator::Visit(const Limit *op) {
     }
 
     output_plan_ = order_build.Build();
+    plan_meta_data_->AddPlanNodeMetaData(output_plan_->GetPlanNodeId(), plan_node_meta_data_);
   }
 
   // Limit OutputSchema does not add/drop columns. All output columns of Limit
@@ -854,6 +859,7 @@ void PlanGenerator::Visit(const Delete *op) {
   auto output_schema = std::make_unique<planner::OutputSchema>();
 
   output_plan_ = planner::DeletePlanNode::Builder()
+                     .SetPlanNodeId(GetNextPlanNodeID())
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
                      .SetTableOid(op->GetTableOid())
@@ -1053,23 +1059,36 @@ void PlanGenerator::Visit(const CreateView *create_view) {
 }
 
 void PlanGenerator::Visit(const DropDatabase *drop_database) {
-  output_plan_ = planner::DropDatabasePlanNode::Builder().SetDatabaseOid(drop_database->GetDatabaseOID()).Build();
+  output_plan_ = planner::DropDatabasePlanNode::Builder()
+                     .SetDatabaseOid(drop_database->GetDatabaseOID())
+                     .SetPlanNodeId(GetNextPlanNodeID())
+                     .Build();
 }
 
 void PlanGenerator::Visit(const DropTable *drop_table) {
-  output_plan_ = planner::DropTablePlanNode::Builder().SetTableOid(drop_table->GetTableOID()).Build();
+  output_plan_ = planner::DropTablePlanNode::Builder()
+                     .SetTableOid(drop_table->GetTableOID())
+                     .SetPlanNodeId(GetNextPlanNodeID())
+                     .Build();
 }
 
 void PlanGenerator::Visit(const DropIndex *drop_index) {
-  output_plan_ = planner::DropIndexPlanNode::Builder().SetIndexOid(drop_index->GetIndexOID()).Build();
+  output_plan_ = planner::DropIndexPlanNode::Builder()
+                     .SetIndexOid(drop_index->GetIndexOID())
+                     .SetPlanNodeId(GetNextPlanNodeID())
+                     .Build();
 }
 
 void PlanGenerator::Visit(const DropNamespace *drop_namespace) {
-  output_plan_ = planner::DropNamespacePlanNode::Builder().SetNamespaceOid(drop_namespace->GetNamespaceOID()).Build();
+  output_plan_ = planner::DropNamespacePlanNode::Builder()
+                     .SetNamespaceOid(drop_namespace->GetNamespaceOID())
+                     .SetPlanNodeId(GetNextPlanNodeID())
+                     .Build();
 }
 
 void PlanGenerator::Visit(const DropTrigger *drop_trigger) {
   output_plan_ = planner::DropTriggerPlanNode::Builder()
+                     .SetPlanNodeId(GetNextPlanNodeID())
                      .SetDatabaseOid(drop_trigger->GetDatabaseOid())
                      .SetNamespaceOid(drop_trigger->GetNamespaceOid())
                      .SetTriggerOid(drop_trigger->GetTriggerOid())
@@ -1079,6 +1098,7 @@ void PlanGenerator::Visit(const DropTrigger *drop_trigger) {
 
 void PlanGenerator::Visit(const DropView *drop_view) {
   output_plan_ = planner::DropViewPlanNode::Builder()
+                     .SetPlanNodeId(GetNextPlanNodeID())
                      .SetDatabaseOid(drop_view->GetDatabaseOid())
                      .SetViewOid(drop_view->GetViewOid())
                      .SetIfExist(drop_view->IsIfExists())
@@ -1087,6 +1107,7 @@ void PlanGenerator::Visit(const DropView *drop_view) {
 
 void PlanGenerator::Visit(const Analyze *analyze) {
   output_plan_ = planner::AnalyzePlanNode::Builder()
+                     .SetPlanNodeId(GetNextPlanNodeID())
                      .SetDatabaseOid(analyze->GetDatabaseOid())
                      .SetTableOid(analyze->GetTableOid())
                      .SetColumnOIDs(analyze->GetColumns())

@@ -51,7 +51,7 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * Constructor
    */
-  PlanGenerator();
+  explicit PlanGenerator(common::ManagedPointer<planner::PlanMetaData> plan_meta_data);
 
   /**
    * Converts an operator node into a plan node.
@@ -64,6 +64,7 @@ class PlanGenerator : public OperatorVisitor {
    * @param output_cols Columns output by the Operator
    * @param children_plans Children plan nodes
    * @param children_expr_map Vector of children expression -> col offset mapping
+   * @param plan_node_meta_data Metadata for plan node to be generated
    * @returns Output plan node
    */
   std::unique_ptr<planner::AbstractPlanNode> ConvertOpNode(
@@ -71,7 +72,7 @@ class PlanGenerator : public OperatorVisitor {
       PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
-      std::vector<ExprMap> &&children_expr_map);
+      std::vector<ExprMap> &&children_expr_map, const planner::PlanMetaData::PlanNodeMetaData &plan_node_meta_data);
 
   /**
    * Visitor function for a TableFreeScan operator
@@ -423,6 +424,16 @@ class PlanGenerator : public OperatorVisitor {
    * Plan node counter, used to generate plan node ids
    */
   planner::plan_node_id_t plan_id_counter;
+
+  /**
+   * Plan meta data
+   */
+  common::ManagedPointer<planner::PlanMetaData> plan_meta_data_;
+
+  /**
+   * Plan node meta data
+   */
+  planner::PlanMetaData::PlanNodeMetaData plan_node_meta_data_;
 };
 
 }  // namespace optimizer
