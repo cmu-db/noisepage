@@ -21,6 +21,7 @@ class RandomSqlTableTransaction;
 namespace noisepage::execution::sql {
 class TableVectorIterator;
 class VectorProjection;
+class IndCteScanIterator;
 }  // namespace noisepage::execution::sql
 
 namespace noisepage::catalog {
@@ -232,17 +233,6 @@ class SqlTable {
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
 
   /**
-   * Clears the contents of this table and reinitializes it
-   */
-  void Reset();
-
-  /**
-   * Copies all data from src to this table
-   * @param txn The current transaction context
-   * @param src The source table to copy from
-   */
-  void CopyTable(common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<SqlTable> src);
-  /**
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }
@@ -257,6 +247,12 @@ class SqlTable {
   friend class noisepage::RandomSqlTableTransaction;
   friend class noisepage::LargeSqlTableTestObject;
   friend class RecoveryTests;
+
+  /**
+   * Internals are exposed to execution::sql::IndCteScanIterator to be able to call Reset and CopyTable,
+   * which are used when accumulating inductive results for a CTE table.
+   */
+  friend class execution::sql::IndCteScanIterator;
 
   /*
    * Internals are exposed to the execution::sql::VectorProjection class so that we do not need to do a full recompile
@@ -288,5 +284,17 @@ class SqlTable {
    * @return col oid for the provided col id
    */
   catalog::col_oid_t OidForColId(col_id_t col_id) const;
+
+  /**
+   * Clears the contents of this table and reinitializes it
+   */
+  void Reset();
+
+  /**
+   * Copies all data from src to this table
+   * @param txn The current transaction context
+   * @param src The source table to copy from
+   */
+  void CopyTable(common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<SqlTable> src);
 };
 }  // namespace noisepage::storage
