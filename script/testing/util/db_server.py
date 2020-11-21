@@ -131,7 +131,8 @@ def generate_server_args_str(server_args):
     """ Create a server args string to pass to the DBMS """
     server_args_arr = []
     for attribute, value in server_args.items():
-        arg = f'-{attribute}={value}'
+        value = f'={value}' if value else ''
+        arg = f'--{attribute}{value}'
         server_args_arr.append(arg)
 
     return ' '.join(server_args_arr)
