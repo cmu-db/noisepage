@@ -53,7 +53,7 @@
 namespace noisepage::optimizer {
 
 PlanGenerator::PlanGenerator(common::ManagedPointer<planner::PlanMetaData> plan_meta_data)
-    : plan_id_counter(0), plan_meta_data_(plan_meta_data) {}
+    : plan_id_counter_(0), plan_meta_data_(plan_meta_data) {}
 
 std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpNode(
     transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,

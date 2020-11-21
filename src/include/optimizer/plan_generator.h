@@ -7,6 +7,8 @@
 
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
+#include "planner/plannodes/plan_meta_data.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage {
@@ -375,7 +377,7 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * @returns the next plan node id and increase the counter
    */
-  planner::plan_node_id_t GetNextPlanNodeID() { return plan_id_counter++; }
+  planner::plan_node_id_t GetNextPlanNodeID() { return plan_id_counter_++; }
 
   /**
    * The required output property. Note that we have previously enforced
@@ -423,7 +425,7 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * Plan node counter, used to generate plan node ids
    */
-  planner::plan_node_id_t plan_id_counter;
+  planner::plan_node_id_t plan_id_counter_;
 
   /**
    * Plan meta data
