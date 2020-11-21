@@ -37,6 +37,7 @@ def check_labels_impolite(pr_num):
 
 
 if __name__ == '__main__':
+    print(os.environ)
     pr_num = get_pr_num()
     # If we can't find a PR number, allow the build to go on.
     if pr_num is None:
