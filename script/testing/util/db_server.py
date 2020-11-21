@@ -4,13 +4,13 @@ import subprocess
 import time
 import shlex
 from util.constants import (DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN, DIR_REPO,
-                            DB_START_ATTEMPTS)
+                            DB_START_ATTEMPTS, DEFAULT_DB_WAL_FILE)
 from util.constants import LOG
 from util.common import run_check_pids, run_kill_server, print_pipe
 
 
 class NoisePageServer:
-    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args='', db_output_file=DEFAULT_DB_OUTPUT_FILE):
+    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args={}, db_output_file=DEFAULT_DB_OUTPUT_FILE):
         """ 
         This class creates an instance of the DB that can be started, stopped, or restarted. 
 
@@ -21,10 +21,13 @@ class NoisePageServer:
             server_args - A string of server args as you would pass them in the command line
             db_output_file - The file where the DB outputs its logs to
         """
+        default_server_args = {
+            #'wal_file_path': DEFAULT_DB_WAL_FILE
+        }
         self.db_host = host
         self.db_port = port
         self.build_path = get_build_path(build_type)
-        self.server_args = server_args.strip()
+        self.server_args = {**default_server_args, **server_args}
         self.db_output_file = db_output_file
         self.db_process = None
 
@@ -32,13 +35,14 @@ class NoisePageServer:
         """ Start the DB server """
         # Allow ourselves to try to restart the DBMS multiple times
         attempt_to_start_time = time.perf_counter()
+        server_args_str = generate_server_args_str(self.server_args)
         for attempt in range(DB_START_ATTEMPTS):
             # Kill any other noisepage processes that our listening on our target port
             # early terminate the run_db if kill_server.py encounter any exceptions
             run_kill_server(self.db_port)
 
             # use memory buffer to hold db logs
-            db_run_command = f'{self.build_path} {self.server_args}'
+            db_run_command = f'{self.build_path} {server_args_str}'
             self.db_process = subprocess.Popen(shlex.split(db_run_command), stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE)
             LOG.info(f'Server start: {self.build_path} [PID={self.db_process.pid}]')
@@ -86,6 +90,14 @@ class NoisePageServer:
         self.stop_db()
         self.run_db()
 
+    def delete_wal(self):
+        """ Check that the WAL exists and delete if it does """
+        if not self.server_args.get('wal_enable',True):
+            return
+        wal_file_path = self.server_args.get('wal_file_path',DEFAULT_DB_WAL_FILE)
+        if os.path.exists(wal_file_path):
+            os.remove(wal_file_path)
+
     def print_db_logs(self):
         """	Print out the remaining DB logs	"""
         LOG.info("************ DB Logs Start ************")
@@ -114,3 +126,12 @@ def has_db_started(raw_db_log_line, port, pid):
     LOG.debug(log_line)
     check_line = f'[info] Listening on Unix domain socket with port {port} [PID={pid}]'
     return log_line.endswith(check_line)
+
+def generate_server_args_str(server_args):
+    """ Create a server args string to pass to the DBMS """
+    server_args_arr = []
+    for attribute, value in server_args.items():
+        arg = f'-{attribute}={value}'
+        server_args_arr.append(arg)
+
+    return ' '.join(server_args_arr)

@@ -33,19 +33,17 @@ These metrics are non-operational measurements of the DBMS.
 
 `metrics` - The metrics collected during the execution of the collector.
 
-`build_path` - The path to where the build will exist. This is used to create the directory.
-
 ### Methods
 `__init__(is_debug)` - Initialize the class.
 
 > args:
 >> `is_debug`: sets the `is_debug` property for the collector.
 
-`setup()` - This will run any steps that are needed to execute prior to the metric collection. By default it creates the `build_path` directory.
+`setup()` - This will run any steps that are needed to execute prior to the metric collection.
 
 `run_collector()` - This will perform the setps needed to capture the artifact stats for the collector. This returns an exit code for the script. If everything succeeded return `0`.
 
-`teardown()` - This will cleanup anything that was created or run during the `setup` or `run_collector` functions. By default this will delete the `build_path` directory.
+`teardown()` - This will cleanup anything that was created or run during the `setup` or `run_collector` functions.
 
-`get_metrics()` - This will return the metrics dict. This is used by the `run_artifact_stats.py` script to aggregate the metrics from each collector. In most cases this function does not need to be overwritten.
+`get_metrics()` - This will return the metrics dict. This is used by the `run_artifact_stats.py` script to aggregate the metrics from each collector. In most cases this function should not be overwritten.
 

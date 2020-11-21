@@ -25,7 +25,7 @@ class TestServer:
         db_host = args.get("db_host", constants.DEFAULT_DB_HOST)
         db_port = args.get("db_port", constants.DEFAULT_DB_PORT)
         build_type = args.get("build_type", "")
-        server_args = args.get("server_args", "").strip()
+        server_args = args.get("server_args", {})
 
         self.db_instance = NoisePageServer(db_host, db_port, build_type, server_args, db_output_file)
 
@@ -79,6 +79,7 @@ class TestServer:
 
         # run the post test tasks
         test_case.run_post_test()
+        self.db_instance.delete_wal()
 
         return ret_val
 
@@ -149,8 +150,6 @@ class TestServer:
         """
         if test_suite_result is None or test_suite_result != constants.ErrorCode.SUCCESS:
             LOG.error("The test suite failed")
-        if self.continue_on_error:
-            return constants.ErrorCode.SUCCESS
         return test_suite_result
 
     def print_db_logs(self):

@@ -127,6 +127,8 @@ class TestCaseOLTPBench(TestCase):
                 os.path.join(os.getcwd(), "oltp_result",
                              self.filename_suffix), self.publish_username,
                 self.publish_password, self.mem_metrics, self.query_mode)
+        
+        
 
     def create_result_dir(self):
         """

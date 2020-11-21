@@ -17,6 +17,7 @@ DEFAULT_DB_OUTPUT_FILE = "/tmp/db_log.txt"
 DEFAULT_DB_BIN = "noisepage"
 DEFAULT_TEST_OUTPUT_FILE = "/tmp/noisepage_test_{}.log".format(
     datetime.utcnow().isoformat(sep="-", timespec="seconds").replace(":", "-"))
+DEFAULT_DB_WAL_FILE = "wal.log"
 # Whether the database should stop the whole test if one of test cases fail,
 DEFAULT_CONTINUE_ON_ERROR = False
 

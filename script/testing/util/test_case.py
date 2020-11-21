@@ -35,4 +35,5 @@ class TestCase:
         pass
 
     def run_post_test(self):
+        self.db_instance
         pass

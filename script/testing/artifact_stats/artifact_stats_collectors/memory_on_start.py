@@ -14,7 +14,6 @@ class MemoryOnStartCollector(BaseArtifactStatsCollector):
 
     def setup(self):
         super().setup()
-        compile_binary(self.build_path, is_debug=self.is_debug)
         self.db_instance = NoisePageServer(build_type='release')
         self.db_instance.run_db()
 
