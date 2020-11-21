@@ -29,7 +29,7 @@ pipeline {
                 sh script:'''
                 mkdir build
                 cd build
-                /usr/bin/time -o /tmp/compiletime.txt -f %S sh -c "cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
+                /usr/bin/time -o /tmp/compiletime.txt -f %e sh -c "cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja noisepage"''', label: 'Timed Compile & Build'
 
                 sh script: '''
