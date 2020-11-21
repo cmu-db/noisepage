@@ -15,6 +15,10 @@ namespace noisepage::runner {
 class MiniRunners;
 }
 
+namespace noisepage::optimizer {
+class Optimizer;
+}
+
 namespace noisepage::planner {
 
 class OutputSchema;
@@ -97,11 +101,6 @@ class AbstractPlanNode {
     }
     return children;
   }
-
-  /**
-   * Move children nodes to provided vector
-   */
-  void MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> *adoption_list);
 
   /**
    * @return number of children
@@ -190,6 +189,7 @@ class AbstractPlanNode {
 
  private:
   friend class noisepage::runner::MiniRunners;
+  friend class noisepage::optimizer::Optimizer;
 
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;
@@ -200,6 +200,13 @@ class AbstractPlanNode {
     children_[0] = std::move(children_[1]);
     children_[1] = std::move(left);
   }
+
+  /**
+   * Move children nodes to provided vector
+   * Should only be called from Optimizer::ElectCTELeader
+   */
+  void MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> *adoption_list);
+
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(AbstractPlanNode);
