@@ -80,7 +80,9 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
   if (UNLIKELY(catalog::IsTempOid(table))) {
-    return temp_tables_.find(table)->second;
+    auto result = temp_tables_.find(table);
+    NOISEPAGE_ASSERT(result != temp_tables_.end(), "temp_tables_ does not contain desired table");
+    return result->second;
   }
   if (cache_ != DISABLED) {
     auto table_ptr = cache_->GetTable(table);
@@ -221,6 +223,7 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
 }
 
 void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
+  NOISEPAGE_ASSERT(temp_tables_.find(table_oid) == temp_tables_.end(), "Same oid should not be registered twice");
   temp_tables_[table_oid] = table;
 }
 
