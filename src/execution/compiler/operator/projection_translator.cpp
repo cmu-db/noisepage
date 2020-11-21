@@ -12,7 +12,7 @@ namespace noisepage::execution::compiler {
 
 ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlanNode &plan,
                                            CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::PROJECTION) {
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::PROJECTION) {
   switch (plan.GetChildrenSize()) {
     case 0: {
       // This should only happen for SELECT 1; type of situations.

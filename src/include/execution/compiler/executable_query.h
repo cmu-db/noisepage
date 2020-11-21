@@ -12,9 +12,9 @@
 #include "execution/vm/vm_defs.h"
 
 namespace noisepage {
-namespace brain {
+namespace selfdriving {
 class PipelineOperatingUnits;
-}  // namespace brain
+}  // namespace selfdriving
 
 namespace execution {
 namespace exec {
@@ -122,7 +122,7 @@ class ExecutableQuery {
    * @param pipeline_operating_units The pipeline operating units that were generated with the fragments.
    */
   void Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, std::size_t query_state_size,
-             std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units);
+             std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units);
 
   /**
    * Execute the query.
@@ -146,7 +146,7 @@ class ExecutableQuery {
   const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
 
   /** @return The pipeline operating units that were used to generate this query. Setup must have been called! */
-  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() const {
+  common::ManagedPointer<selfdriving::PipelineOperatingUnits> GetPipelineOperatingUnits() const {
     return common::ManagedPointer(pipeline_operating_units_);
   }
 
@@ -176,7 +176,7 @@ class ExecutableQuery {
   std::size_t query_state_size_;
 
   // The pipeline operating units that were generated as part of this query.
-  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
+  std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units_;
 
   // For mini_runners.cpp
 
@@ -187,7 +187,7 @@ class ExecutableQuery {
    * Set Pipeline Operating Units for use by mini_runners
    * @param units Pipeline Operating Units
    */
-  void SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units);
+  void SetPipelineOperatingUnits(std::unique_ptr<selfdriving::PipelineOperatingUnits> &&units);
 
   std::string query_name_;
   query_id_t query_id_;

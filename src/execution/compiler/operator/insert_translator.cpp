@@ -18,7 +18,7 @@
 namespace noisepage::execution::compiler {
 InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::INSERT),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::INSERT),
       inserter_(GetCodeGen()->MakeFreshIdentifier("inserter")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
@@ -73,11 +73,11 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     }
   }
 
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
                 CounterVal(num_inserts_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_inserts_));
   FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_inserts_));
 

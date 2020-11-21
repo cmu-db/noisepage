@@ -1,6 +1,6 @@
 #pragma once
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 enum class ExecutionOperatingUnitType : uint32_t {
   /** INVALID is associated with translators that are INVALID no matter what. */
@@ -142,4 +142,4 @@ enum class ExecutionOperatingUnitFeatureAttribute : uint8_t { NUM_ROWS, CARDINAL
 
 enum class ExecutionOperatingUnitFeatureUpdateMode : uint8_t { SET, ADD, MULT };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
