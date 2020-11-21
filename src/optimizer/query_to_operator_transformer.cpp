@@ -1004,11 +1004,10 @@ void QueryToOperatorTransformer::SplitPredicates(
   }
 }
 
-std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>, parser::AliasType::HashKey>
+std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
 QueryToOperatorTransformer::ConstructSelectElementMap(
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
-  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>, parser::AliasType::HashKey>
-      res;
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> res;
   for (auto &expr : select_list) {
     parser::AliasType alias;
     if (!expr->GetAlias().Empty()) {

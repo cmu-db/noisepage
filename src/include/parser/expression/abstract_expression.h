@@ -95,20 +95,6 @@ class AliasType {
   bool Empty() const { return name_.empty(); }
 
   /**
-   * Hash structure for AliasType. This does not include the serial number as
-   * we wish for parser::AliasType("xxx",1) and parser::AliasType("xxx") to be
-   * considered equal. In other words, if the serial number is invalid, it should
-   * match with all alias types with a matching string regardless of serial number
-   */
-  struct HashKey {
-    /**
-     * @param p Alias we are hashing
-     * @return Hash value of alias, effectively the hash of the name
-     */
-    size_t operator()(const AliasType &p) const { return std::hash<std::string>{}(p.name_); }
-  };
-
-  /**
    * Compare function struct for comparing aliases purely based on their serial number in ascending order
    * SHOUlD NOT BE USED ON ALIASES WHOSE SERIAL NUMBERS ARE INVALID
    */
@@ -434,4 +420,20 @@ struct hash<noisepage::parser::AbstractExpression> {
    */
   size_t operator()(const noisepage::parser::AbstractExpression &expr) const { return expr.Hash(); }
 };
+
+/**
+ * Implements std::hash for AliasTypes. This does not include the serial number as
+ * we wish for parser::AliasType("xxx",1) and parser::AliasType("xxx") to be
+ * considered equal. In other words, if the serial number is invalid, it should
+ * match with all alias types with a matching string regardless of serial number
+ */
+template <>
+struct hash<noisepage::parser::AliasType> {
+  /**
+   * @param p Alias we are hashing
+   * @return Hash value of alias, effectively the hash of the name
+   */
+  size_t operator()(const noisepage::parser::AliasType &p) const { return std::hash<std::string>{}(p.GetName()); }
+};
+
 }  // namespace std

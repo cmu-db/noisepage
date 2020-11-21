@@ -31,7 +31,7 @@ class CTEScanTest : public SqlBasedTest {
 TEST_F(CTEScanTest, CTEInitTest) {
   // Check the mapping of col_oids to the col_ids in the constructed table
 
-  uint32_t cte_table_col_type[4] = {5, 4, 3, 9};  // {BIGINT, INTEGER, SMALLINT, VARCHAR}
+  uint32_t cte_table_col_type[4] = {5, 4, 3, 9};  // Represent TypeIds for {BIGINT, INTEGER, SMALLINT, VARCHAR}
   uint32_t cte_table_col_ids[4] = {exec_ctx_->GetAccessor()->GetNewTempOid(), exec_ctx_->GetAccessor()->GetNewTempOid(),
                                    exec_ctx_->GetAccessor()->GetNewTempOid(),
                                    exec_ctx_->GetAccessor()->GetNewTempOid()};
@@ -86,7 +86,7 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   index_iter1.Init();
 
   // Create cte_table
-  uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_type[1] = {4};  // Represents TypeId for {INTEGER}
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
   auto cte_scan = new noisepage::execution::sql::CteScanIterator(
@@ -155,7 +155,7 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
 
   // Create cte_table
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
-  uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_type[1] = {4};  // Represents TypeId for {INTEGER}
 
   auto cte_scan = new noisepage::execution::sql::CteScanIterator(
       exec_ctx_.get(), catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),

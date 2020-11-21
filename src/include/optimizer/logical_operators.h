@@ -233,8 +233,8 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
    * @return a LogicalQueryDerivedGet operator
    */
   static Operator Make(std::string table_alias,
-                       std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                                          parser::AliasType::HashKey> &&alias_to_expr_map);
+                       std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
+                            &&alias_to_expr_map);
 
   /**
    * Copy
@@ -254,8 +254,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
   /**
    * @return map from table aliases to expressions
    */
-  const std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                           parser::AliasType::HashKey>
+  const std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
       &GetAliasToExprMap() const {
     return alias_to_expr_map_;
   }
@@ -269,7 +268,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
   /**
    * Map from table aliases to expressions
    */
-  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>, parser::AliasType::HashKey>
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
       alias_to_expr_map_;
 };
 

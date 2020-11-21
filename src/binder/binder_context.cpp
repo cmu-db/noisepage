@@ -81,7 +81,7 @@ void BinderContext::AddNewTable(const std::string &new_table_name,
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
-  std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey> column_alias_map;
+  std::unordered_map<parser::AliasType, type::TypeId> column_alias_map;
 
   for (auto &col : new_columns) {
     column_alias_map[parser::AliasType(col->GetColumnName())] = col->GetValueType();
@@ -98,7 +98,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
-  std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey> column_alias_map;
+  std::unordered_map<parser::AliasType, type::TypeId> column_alias_map;
   auto cols = col_aliases.size();
   for (size_t i = 0; i < select_list.size(); i++) {
     auto &expr = select_list[i];
@@ -125,7 +125,7 @@ void BinderContext::AddCTETable(const std::string &table_name,
   if (nested_table_alias_map_.find(table_name) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION("Duplicate cte table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
   }
-  std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey> nested_column_mappings;
+  std::unordered_map<parser::AliasType, type::TypeId> nested_column_mappings;
   for (size_t i = 0; i < col_aliases.size(); i++) {
     NOISEPAGE_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();

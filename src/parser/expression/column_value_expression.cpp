@@ -25,7 +25,7 @@ common::hash_t ColumnValueExpression::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_oid_));
-  hash = common::HashUtil::CombineHashes(hash, parser::AliasType::HashKey()(alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<AliasType>{}(alias_));
   return hash;
 }
 

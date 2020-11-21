@@ -120,8 +120,8 @@ common::hash_t LogicalExternalFileGet::Hash() const {
 BaseOperatorNodeContents *LogicalQueryDerivedGet::Copy() const { return new LogicalQueryDerivedGet(*this); }
 
 Operator LogicalQueryDerivedGet::Make(
-    std::string table_alias, std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                                                parser::AliasType::HashKey> &&alias_to_expr_map) {
+    std::string table_alias, std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
+                                  &&alias_to_expr_map) {
   auto *get = new LogicalQueryDerivedGet();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
@@ -139,7 +139,7 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
-    hash = common::HashUtil::CombineHashes(hash, parser::AliasType::HashKey()(iter.first));
+    hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
   }
   return hash;
