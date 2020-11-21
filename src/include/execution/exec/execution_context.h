@@ -4,8 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
-#include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
@@ -16,10 +14,12 @@
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 class PipelineOperatingUnits;
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::catalog {
 class CatalogAccessor;
@@ -157,21 +157,21 @@ class EXPORT ExecutionContext {
    * @param pipeline_id id of the pipeline
    * @param ouvec OU feature vector for the pipeline
    */
-  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id, brain::ExecOUFeatureVector *ouvec);
+  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id, selfdriving::ExecOUFeatureVector *ouvec);
 
   /**
    * Initializes an OU feature vector for a given pipeline
    * @param ouvec OU Feature Vector to initialize
    * @param pipeline_id Pipeline to initialize with
    */
-  void InitializeOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+  void InitializeOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
    * Initializes an OU feature vector for a given parallel step (i.e hashjoin_build, sort_build, agg_build)
    * @param ouvec OU Feature Vector to initialize
    * @param pipeline_id Pipeline to initialize with
    */
-  void InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+  void InitializeParallelOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
    * @return the db oid
@@ -216,14 +216,14 @@ class EXPORT ExecutionContext {
    * Set the PipelineOperatingUnits
    * @param op PipelineOperatingUnits for executing the given query
    */
-  void SetPipelineOperatingUnits(common::ManagedPointer<brain::PipelineOperatingUnits> op) {
+  void SetPipelineOperatingUnits(common::ManagedPointer<selfdriving::PipelineOperatingUnits> op) {
     pipeline_operating_units_ = op;
   }
 
   /**
    * @return PipelineOperatingUnits
    */
-  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() {
+  common::ManagedPointer<selfdriving::PipelineOperatingUnits> GetPipelineOperatingUnits() {
     return pipeline_operating_units_;
   }
 
@@ -333,7 +333,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::ThreadStateContainer> thread_state_container_;
   // TODO(WAN): EXEC PORT we used to push the memory tracker into the string allocator, do this
   sql::VarlenHeap string_allocator_;
-  common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_{nullptr};
+  common::ManagedPointer<selfdriving::PipelineOperatingUnits> pipeline_operating_units_{nullptr};
 
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;

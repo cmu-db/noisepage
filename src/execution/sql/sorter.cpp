@@ -9,13 +9,13 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
-#include "brain/operating_unit.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/stage_timer.h"
 #include "ips4o/ips4o.hpp"
 #include "loggers/execution_logger.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::execution::sql {
 

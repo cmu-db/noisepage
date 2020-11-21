@@ -12,7 +12,6 @@
 #include <utility>
 #include <vector>
 
-#include "brain/operating_unit.h"
 #include "common/math_util.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
@@ -27,6 +26,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
+#include "self_driving/modeling/operating_unit.h"
 // #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/execution_common.h"
 

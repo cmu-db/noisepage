@@ -136,7 +136,7 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   ast::FunctionDecl *GenerateEndSingleSorterHookFunction() const;
 
  private:
-  friend class brain::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
 
   // Check if the given pipelines are build or scan
   bool IsBuildPipeline(const Pipeline &pipeline) const { return &build_pipeline_ == &pipeline; }
