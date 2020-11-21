@@ -88,7 +88,8 @@ class GlobalTrainer:
     """
 
     def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map,
-                 warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
+                 warmup_period, use_query_predict_cache, add_noise, ee_sample_interval, txn_sample_interval,
+                 network_sample_interval):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
@@ -96,9 +97,11 @@ class GlobalTrainer:
         self.impact_model_ratio = impact_model_ratio
         self.mini_model_map = mini_model_map
         self.warmup_period = warmup_period
-        self.tpcc_hack = tpcc_hack
+        self.use_query_predict_cache = use_query_predict_cache
+        self.add_noise = add_noise
         self.ee_sample_interval = ee_sample_interval
         self.txn_sample_interval = txn_sample_interval
+        self.network_sample_interval = network_sample_interval
 
     def train(self):
         """Train the mini-models
@@ -109,9 +112,11 @@ class GlobalTrainer:
                                                                                       self.mini_model_map,
                                                                                       self.model_results_path,
                                                                                       self.warmup_period,
-                                                                                      self.tpcc_hack,
+                                                                                      self.use_query_predict_cache,
+                                                                                      self.add_noise,
                                                                                       self.ee_sample_interval,
-                                                                                      self.txn_sample_interval)
+                                                                                      self.txn_sample_interval,
+                                                                                      self.network_sample_interval)
 
         return self._train_global_models(resource_data_list, impact_data_list)
 
@@ -163,14 +168,18 @@ class GlobalTrainer:
             predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
-                predicted_resource_util = d.resource_data.y_pred.copy()
+                predicted_resource_util = d.get_y_pred().copy()
             if model_name == "direct":
-                predicted_resource_util = d.resource_data.x.copy()
+                predicted_resource_util = d.x.copy()
             # Remove the OU group itself from the total resource data
-            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= mini_model_y_pred[-1] / global_model_config.INTERVAL_SIZE
-            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util,
+            self_resource = (mini_model_y_pred[-1] * max(1, d.target_grouped_op_unit_data.concurrency) /
+                             len(d.resource_data_list) / global_model_config.INTERVAL_SIZE)
+            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= self_resource
+            predicted_resource_util[predicted_resource_util < 0] = 0
+            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us,
+                                     predicted_resource_util,
                                      d.resource_util_same_core_x)))
-            # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, predicted_resource_util)))
+            # x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util)))
             raw_y.append(d.target_grouped_op_unit_data.y)
             y.append(raw_y[-1] / (mini_model_y_pred[-1] + epsilon))
             # Do not adjust memory consumption since it shouldn't change
@@ -193,7 +202,8 @@ class GlobalTrainer:
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
         original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + epsilon), axis=0)
         ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + epsilon), axis=0)
-        accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + epsilon)
+        accumulated_percentage_error = (np.abs(accumulated_raw_y - accumulated_raw_y_pred) /
+                                        (accumulated_raw_y + epsilon))
         original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
                 accumulated_raw_y + epsilon)
 
@@ -223,11 +233,15 @@ if __name__ == '__main__':
     aparser.add_argument('--impact_model_ratio', type=float, default=0.1,
                          help='Sample ratio to train the global impact model')
     aparser.add_argument('--warmup_period', type=float, default=3, help='OLTPBench warmup period')
-    aparser.add_argument('--tpcc_hack', default=False, help='Should do feature correction for TPCC')
-    aparser.add_argument('--ee_sample_interval', type=int, default=9,
+    aparser.add_argument('--use_query_predict_cache', default=False,
+                         help='Cache the prediction result based on the query to accelerate')
+    aparser.add_argument('--add_noise', default=False, help='Add noise to the cardinality estimations')
+    aparser.add_argument('--ee_sample_interval', type=int, default=49,
                          help='Sampling interval for the execution engine OUs')
-    aparser.add_argument('--txn_sample_interval', type=int, default=0,
+    aparser.add_argument('--txn_sample_interval', type=int, default=49,
                          help='Sampling interval for the transaction OUs')
+    aparser.add_argument('--network_sample_interval', type=int, default=49,
+                         help='Sampling interval for the network OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -238,8 +252,9 @@ if __name__ == '__main__':
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
-                            args.impact_model_ratio, model_map, args.warmup_period, args.tpcc_hack,
-                            args.ee_sample_interval, args.txn_sample_interval)
+                            args.impact_model_ratio, model_map, args.warmup_period, args.use_query_predict_cache,
+                            args.add_noise, args.ee_sample_interval, args.txn_sample_interval,
+                            args.network_sample_interval)
     resource_model, impact_model, direct_model = trainer.train()
     with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
         pickle.dump(resource_model, file)

@@ -189,6 +189,15 @@ class OptimizerContext {
     NOISEPAGE_ASSERT(ret, "Root expr should always be inserted");
   }
 
+  /**
+   * Registers expr to be deleted on txn_ commit/abort
+   * @param expr Expression to register
+   */
+  void RegisterExprWithTxn(parser::AbstractExpression *expr) {
+    txn_->RegisterCommitAction([=]() { delete expr; });
+    txn_->RegisterAbortAction([=]() { delete expr; });
+  }
+
  private:
   Memo memo_;
   RuleSet rule_set_;

@@ -5,9 +5,9 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 class OperatingUnitRecorder;
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::parser {
 class AbstractExpression;
@@ -121,7 +121,7 @@ class HashJoinTranslator : public OperatorTranslator {
   void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
  private:
-  friend class brain::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
 
   // Is the given pipeline this join's left pipeline?
   bool IsLeftPipeline(const Pipeline &pipeline) const { return &left_pipeline_ == &pipeline; }

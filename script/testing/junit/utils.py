@@ -25,6 +25,8 @@ def parse_command_line_args():
                          default = None,
                          type=int,
                          help="Threshold under the 'extended' query mode")
+    aparser.add_argument("--server-args",
+                         help="Server Commandline Args")
 
     args = vars(aparser.parse_args())
 
