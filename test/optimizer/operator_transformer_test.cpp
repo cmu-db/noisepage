@@ -906,10 +906,9 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_DATABASE);
   auto cdpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateDatabasePlanNode>();
   EXPECT_EQ(cdpn->GetDatabaseName(), "c");
@@ -1019,10 +1018,9 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_TABLE);
   auto ctpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateTablePlanNode>();
 
@@ -1153,10 +1151,9 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_INDEX);
   auto cipn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateIndexPlanNode>();
   EXPECT_EQ(cipn->GetIndexName(), "idx_d");
@@ -1241,10 +1238,9 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_FUNC);
   auto cfpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateFunctionPlanNode>();
   EXPECT_EQ(cfpn->GetNamespaceOid(), ns_oid);
@@ -1304,10 +1300,9 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_NAMESPACE);
   auto cnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateNamespacePlanNode>();
   EXPECT_EQ(cnpn->GetNamespaceName(), "e");
@@ -1371,10 +1366,9 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_VIEW);
   auto cvpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateViewPlanNode>();
   EXPECT_EQ(cvpn->GetDatabaseOid(), db_oid_);
@@ -1473,10 +1467,9 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_TRIGGER);
   auto ctpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateTriggerPlanNode>();
   EXPECT_EQ(ctpn->GetTriggerName(), "check_update");
@@ -1542,10 +1535,9 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_DATABASE);
   auto ddpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropDatabasePlanNode>();
   EXPECT_EQ(ddpn->GetDatabaseOid(), db_oid_);
@@ -1595,10 +1587,9 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_TABLE);
   auto dtpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropTablePlanNode>();
   EXPECT_EQ(dtpn->GetTableOid(), table_a_oid_);
@@ -1647,10 +1638,9 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_INDEX);
   auto dipn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropIndexPlanNode>();
   EXPECT_EQ(dipn->GetIndexOid(), a_index_oid_);
@@ -1698,10 +1688,9 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
   auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
   EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
@@ -1749,10 +1738,9 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
   auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
   EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::INVALID_NAMESPACE_OID);
@@ -1800,10 +1788,9 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_VIEW);
   auto dtpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropTriggerPlanNode>();
   EXPECT_EQ(dtpn->GetTriggerOid(), catalog::INVALID_TRIGGER_OID);
@@ -1851,10 +1838,9 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_VIEW);
   auto dvpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropViewPlanNode>();
   EXPECT_EQ(dvpn->GetViewOid(), catalog::INVALID_VIEW_OID);
@@ -1907,10 +1893,9 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 1);
@@ -1962,10 +1947,9 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
   std::vector<optimizer::ExprMap> children_expr_map{};
 
-  auto plan_node =
-      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map),
-                                   planner::PlanMetaData::PlanNodeMetaData());
+  auto plan_node = plan_generator.ConvertOpNode(
+      txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols, output_cols, std::move(children_plans),
+      std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);

@@ -64,8 +64,8 @@ struct IdxJoinTest : public TerrierTest {
                                    common::ManagedPointer(&params));
     NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
 
-    auto plan = tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult())
-                     ->TakePlanNodeOwnership();
+    auto plan =
+        tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult())->TakePlanNodeOwnership();
     if (qtype >= network::QueryType::QUERY_CREATE_TABLE && qtype != network::QueryType::QUERY_CREATE_INDEX) {
       ExecuteCreate(&plan, qtype);
     } else if (qtype == network::QueryType::QUERY_CREATE_INDEX) {
@@ -149,8 +149,9 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)->TakePlanNodeOwnership();
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -270,8 +271,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)->TakePlanNodeOwnership();
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -353,8 +355,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)->TakePlanNodeOwnership();
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -435,8 +438,9 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)->TakePlanNodeOwnership();
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -503,8 +507,9 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)->TakePlanNodeOwnership();
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -571,8 +576,9 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)->TakePlanNodeOwnership();
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
