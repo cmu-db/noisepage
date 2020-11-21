@@ -25,9 +25,20 @@ def parse_command_line_args():
                          default = None,
                          type=int,
                          help="Threshold under the 'extended' query mode")
-    aparser.add_argument("--server-args",
+    aparser.add_argument('-a',"--server-arg",
+                         type=str,
+                         nargs='*',
                          help="Server Commandline Args")
 
     args = vars(aparser.parse_args())
 
+    args['server-args'] = map_server_args(args.get('server_arg',[]))
+    del args['server_arg']
     return args
+
+def map_server_args(server_arg_arr):
+    server_arg_map = {}
+    for server_arg in server_arg_arr:
+        key, value = server_arg.split('=',1)
+        server_arg_map[key] = value
+    return server_arg_map
