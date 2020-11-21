@@ -146,7 +146,8 @@ class PgProcImpl {
                       common::ManagedPointer<transaction::TransactionContext> txn);
 
   /** Bootstrap all the procedure function contexts in pg_proc. */
-  void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapProcContexts(common::ManagedPointer<DatabaseCatalog> dbc,
+                             common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Allocate the FunctionContext and insert the pointer.
@@ -159,7 +160,8 @@ class PgProcImpl {
    * @param builtin                 The builtin this context refers to.
    * @param is_exec_ctx_required    True if this function requires an execution context variable as its first argument.
    */
-  void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+  void BootstrapProcContext(common::ManagedPointer<DatabaseCatalog> dbc,
+                            common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                             std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 

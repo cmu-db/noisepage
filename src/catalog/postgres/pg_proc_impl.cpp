@@ -386,38 +386,42 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<DatabaseCatalog> db
   auto dec_type = dbc->GetTypeOidForType(type::TypeId::DECIMAL);
   auto int_type = dbc->GetTypeOidForType(type::TypeId::INTEGER);
 
-  CreateProcedure(txn, postgres::PgProc::EXP_PRO_OID, "exp", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::EXP_PRO_OID, "exp", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {dec_type}, {dec_type}, {}, dec_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
-                  dec_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type},
+                       {dec_type, dec_type}, {}, dec_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::ABS_REAL_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::ABS_REAL_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {dec_type}, {dec_type}, {}, dec_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::ABS_INT_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {int_type}, {int_type}, {}, int_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::ABS_INT_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {int_type}, {int_type}, {}, int_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::MOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
-                  dec_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::MOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type},
+                       {dec_type, dec_type}, {}, dec_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::INTMOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {int_type, int_type}, {int_type, int_type}, {},
-                  int_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::INTMOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {int_type, int_type},
+                       {int_type, int_type}, {}, int_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, int_type}, {dec_type, int_type}, {},
-                  dec_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, int_type},
+                       {dec_type, int_type}, {}, dec_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::POW_PRO_OID, "pow", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
-                  dec_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::POW_PRO_OID, "pow", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type},
+                       {dec_type, dec_type}, {}, dec_type, "", true);
 
-#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                                 \
-  CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, \
-                  {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                                  \
+  dbc->CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID,                                        \
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", \
+                       true);
 
   BOOTSTRAP_TRIG_FN("acos", postgres::PgProc::ACOS_PRO_OID, execution::ast::Builtin::ACos)
 
@@ -463,155 +467,168 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<DatabaseCatalog> db
   const auto bool_type = dbc->GetTypeOidForType(type::TypeId::BOOLEAN);
   const auto variadic_type = dbc->GetTypeOidForType(type::TypeId::VARIADIC);
 
-  CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint",
-                  postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
-                  {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"}, {int_type, int_type, int_type, int_type},
-                  {int_type, int_type, int_type, int_type},
-                  {postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN,
-                   postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN},
-                  int_type, "", false);
+  dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint",
+                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                       {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
+                       {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
+                       {postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN,
+                        postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN},
+                       int_type, "", false);
 
-  CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "nprunnersemitreal",
-                  postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
-                  {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"}, {int_type, int_type, int_type, int_type},
-                  {int_type, int_type, int_type, int_type},
-                  {postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN,
-                   postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN},
-                  real_type, "", false);
+  dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "nprunnersemitreal",
+                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                       {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
+                       {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
+                       {postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN,
+                        postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN},
+                       real_type, "", false);
 
-  CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "nprunnersdummyint",
-                  postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, int_type,
-                  "", false);
+  dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "nprunnersdummyint",
+                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {},
+                       int_type, "", false);
 
-  CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_DUMMY_REAL_PRO_OID, "nprunnersdummyreal",
-                  postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, real_type,
-                  "", false);
+  dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_DUMMY_REAL_PRO_OID, "nprunnersdummyreal",
+                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {},
+                       real_type, "", false);
 
-  CreateProcedure(txn, postgres::PgProc::ASCII_PRO_OID, "ascii", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::ASCII_PRO_OID, "ascii", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::CHR_PRO_OID, "chr", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {int_type}, {int_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::CHR_PRO_OID, "chr", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {int_type}, {int_type}, {}, str_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::INITCAP_PRO_OID, "initcap", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::INITCAP_PRO_OID, "initcap", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
+  dbc->CreateProcedure(txn, postgres::PgProc::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
 
-  CreateProcedure(txn, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "delim", "field"}, {str_type, str_type, int_type},
-                  {str_type, str_type, int_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "delim", "field"},
+                       {str_type, str_type, int_type}, {str_type, str_type, int_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "start"}, {str_type, str_type},
-                  {str_type, str_type}, {}, bool_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "start"}, {str_type, str_type},
+                       {str_type, str_type}, {}, bool_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::SUBSTR_PRO_OID, "substr", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "pos", "len"}, {str_type, int_type, int_type},
-                  {str_type, int_type, int_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::SUBSTR_PRO_OID, "substr", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "pos", "len"}, {str_type, int_type, int_type},
+                       {str_type, int_type, int_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::REVERSE_PRO_OID, "reverse", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::REVERSE_PRO_OID, "reverse", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::LEFT_PRO_OID, "left", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
-                  {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::LEFT_PRO_OID, "left", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type},
+                       {str_type, int_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::RIGHT_PRO_OID, "right", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
-                  {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::RIGHT_PRO_OID, "right", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type},
+                       {str_type, int_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::REPEAT_PRO_OID, "repeat", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
-                  {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::REPEAT_PRO_OID, "repeat", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type},
+                       {str_type, int_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::TRIM_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::TRIM_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::TRIM2_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "str"}, {str_type, str_type}, {str_type, str_type},
-                  {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::TRIM2_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "str"}, {str_type, str_type},
+                       {str_type, str_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::CONCAT_PRO_OID, "concat", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {variadic_type}, {variadic_type}, {}, str_type,
-                  "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::CONCAT_PRO_OID, "concat", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {variadic_type}, {variadic_type}, {},
+                       str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
-                  {date_type, int_type}, {}, int_type, "", false);
+  dbc->CreateProcedure(txn, postgres::PgProc::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
+                       {date_type, int_type}, {}, int_type, "", false);
 
-  CreateProcedure(txn, postgres::PgProc::POSITION_PRO_OID, "position", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str1", "str2"}, {str_type, str_type},
-                  {str_type, str_type}, {}, int_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::POSITION_PRO_OID, "position", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str1", "str2"}, {str_type, str_type},
+                       {str_type, str_type}, {}, int_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::LPAD_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
-                  {str_type, int_type, str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::LPAD_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
+                       {str_type, int_type, str_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::LPAD2_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type}, {str_type, int_type},
-                  {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::LPAD2_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type},
+                       {str_type, int_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
-                  {str_type, str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
+                       {str_type, str_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
+                       true);
 
-  CreateProcedure(txn, postgres::PgProc::RPAD_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
-                  {str_type, int_type, str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::RPAD_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
+                       {str_type, int_type, str_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::RPAD2_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type}, {str_type, int_type},
-                  {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::RPAD2_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type},
+                       {str_type, int_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
-                  {str_type, str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
+                       {str_type, str_type}, {}, str_type, "", true);
 
-  CreateProcedure(txn, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
+                       true);
 
-  BootstrapProcContexts(txn);
+  BootstrapProcContexts(dbc, txn);
 }
 
-void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::TransactionContext> txn,
+void PgProcImpl::BootstrapProcContext(common::ManagedPointer<DatabaseCatalog> dbc,
+                                      const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const proc_oid_t proc_oid, std::string &&func_name,
                                       const type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
                                       const execution::ast::Builtin builtin, const bool is_exec_ctx_required) {
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(args_type), builtin, is_exec_ctx_required);
-  const auto retval UNUSED_ATTRIBUTE = SetProcCtxPtr(txn, proc_oid, func_context);
+  const auto retval UNUSED_ATTRIBUTE = dbc->SetProcCtxPtr(txn, proc_oid, func_context);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
-void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
-  BootstrapProcContext(txn, postgres::PgProc::ATAN2_PRO_OID, "atan2", type::TypeId::DECIMAL,
+void PgProcImpl::BootstrapProcContexts(common::ManagedPointer<DatabaseCatalog> dbc,
+                                       const common::ManagedPointer<transaction::TransactionContext> txn) {
+  BootstrapProcContext(dbc, txn, postgres::PgProc::ATAN2_PRO_OID, "atan2", type::TypeId::DECIMAL,
                        {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::ATan2, false);
 
-  BootstrapProcContext(txn, postgres::PgProc::ABS_REAL_PRO_OID, "abs", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                       execution::ast::Builtin::Abs, false);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::ABS_REAL_PRO_OID, "abs", type::TypeId::DECIMAL,
+                       {type::TypeId::DECIMAL}, execution::ast::Builtin::Abs, false);
 
-  BootstrapProcContext(txn, postgres::PgProc::ABS_INT_PRO_OID, "abs", type::TypeId::INTEGER, {type::TypeId::INTEGER},
-                       execution::ast::Builtin::Abs, false);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::ABS_INT_PRO_OID, "abs", type::TypeId::INTEGER,
+                       {type::TypeId::INTEGER}, execution::ast::Builtin::Abs, false);
 
 #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin) \
-  BootstrapProcContext(txn, pro_oid, str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin, false);
+  BootstrapProcContext(dbc, txn, pro_oid, str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin, false);
 
   BOOTSTRAP_TRIG_FN("acos", postgres::PgProc::ACOS_PRO_OID, execution::ast::Builtin::ACos)
 
@@ -651,121 +668,123 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
 
 #undef BOOTSTRAP_TRIG_FN
 
-  BootstrapProcContext(txn, postgres::PgProc::ROUND2_PRO_OID, "round", type::TypeId::DECIMAL,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::ROUND2_PRO_OID, "round", type::TypeId::DECIMAL,
                        {type::TypeId::DECIMAL, type::TypeId::INTEGER}, execution::ast::Builtin::Round2, false);
 
-  BootstrapProcContext(txn, postgres::PgProc::EXP_PRO_OID, "exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+  BootstrapProcContext(dbc, txn, postgres::PgProc::EXP_PRO_OID, "exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                        execution::ast::Builtin::Exp, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::ASCII_PRO_OID, "ascii", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
-                       execution::ast::Builtin::ASCII, true);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::ASCII_PRO_OID, "ascii", type::TypeId::INTEGER,
+                       {type::TypeId::VARCHAR}, execution::ast::Builtin::ASCII, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::LOWER_PRO_OID, "lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                       execution::ast::Builtin::Lower, true);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::LOWER_PRO_OID, "lower", type::TypeId::VARCHAR,
+                       {type::TypeId::VARCHAR}, execution::ast::Builtin::Lower, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::INITCAP_PRO_OID, "initcap", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::INITCAP_PRO_OID, "initcap", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::InitCap, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::POW_PRO_OID, "pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+  BootstrapProcContext(dbc, txn, postgres::PgProc::POW_PRO_OID, "pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                        execution::ast::Builtin::Pow, false);
 
-  BootstrapProcContext(txn, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR, type::TypeId::INTEGER},
                        execution::ast::Builtin::SplitPart, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::CHR_PRO_OID, "chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
+  BootstrapProcContext(dbc, txn, postgres::PgProc::CHR_PRO_OID, "chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
                        execution::ast::Builtin::Chr, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length", type::TypeId::INTEGER,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length", type::TypeId::INTEGER,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::CharLength, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::POSITION_PRO_OID, "position", type::TypeId::INTEGER,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::POSITION_PRO_OID, "position", type::TypeId::INTEGER,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Position, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::LENGTH_PRO_OID, "length", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
-                       execution::ast::Builtin::Length, true);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::LENGTH_PRO_OID, "length", type::TypeId::INTEGER,
+                       {type::TypeId::VARCHAR}, execution::ast::Builtin::Length, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::UPPER_PRO_OID, "upper", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                       execution::ast::Builtin::Upper, true);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::UPPER_PRO_OID, "upper", type::TypeId::VARCHAR,
+                       {type::TypeId::VARCHAR}, execution::ast::Builtin::Upper, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::VERSION_PRO_OID, "version", type::TypeId::VARCHAR, {},
+  BootstrapProcContext(dbc, txn, postgres::PgProc::VERSION_PRO_OID, "version", type::TypeId::VARCHAR, {},
                        execution::ast::Builtin::Version, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with", type::TypeId::BOOLEAN,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with", type::TypeId::BOOLEAN,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::StartsWith, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::SUBSTR_PRO_OID, "substr", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::SUBSTR_PRO_OID, "substr", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::INTEGER},
                        execution::ast::Builtin::Substring, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::REVERSE_PRO_OID, "reverse", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::REVERSE_PRO_OID, "reverse", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Reverse, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::LEFT_PRO_OID, "left", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::LEFT_PRO_OID, "left", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Left, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::RIGHT_PRO_OID, "right", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::RIGHT_PRO_OID, "right", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Right, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::REPEAT_PRO_OID, "repeat", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::REPEAT_PRO_OID, "repeat", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Repeat, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::TRIM_PRO_OID, "btrim", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                       execution::ast::Builtin::Trim, true);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::TRIM_PRO_OID, "btrim", type::TypeId::VARCHAR,
+                       {type::TypeId::VARCHAR}, execution::ast::Builtin::Trim, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::TRIM2_PRO_OID, "btrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::TRIM2_PRO_OID, "btrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Trim2, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::CONCAT_PRO_OID, "concat", type::TypeId::VARCHAR, {type::TypeId::VARIADIC},
-                       execution::ast::Builtin::Concat, true);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::CONCAT_PRO_OID, "concat", type::TypeId::VARCHAR,
+                       {type::TypeId::VARIADIC}, execution::ast::Builtin::Concat, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::LPAD_PRO_OID, "lpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::LPAD_PRO_OID, "lpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
                        execution::ast::Builtin::Lpad, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::LPAD2_PRO_OID, "lpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::LPAD2_PRO_OID, "lpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Lpad, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Ltrim, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Ltrim, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::RPAD_PRO_OID, "rpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::RPAD_PRO_OID, "rpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
                        execution::ast::Builtin::Rpad, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::RPAD2_PRO_OID, "rpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::RPAD2_PRO_OID, "rpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Rpad, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Rtrim, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Rtrim, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::MOD_PRO_OID, "mod", type::TypeId::DECIMAL,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::MOD_PRO_OID, "mod", type::TypeId::DECIMAL,
                        {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::Mod, false);
 
-  BootstrapProcContext(txn, postgres::PgProc::INTMOD_PRO_OID, "mod", type::TypeId::INTEGER,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::INTMOD_PRO_OID, "mod", type::TypeId::INTEGER,
                        {type::TypeId::INTEGER, type::TypeId::INTEGER}, execution::ast::Builtin::Mod, false);
 
-  BootstrapProcContext(txn, postgres::PgProc::NP_RUNNERS_EMIT_INT_PRO_OID, "NpRunnersEmitInt", type::TypeId::INTEGER,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_EMIT_INT_PRO_OID, "NpRunnersEmitInt",
+                       type::TypeId::INTEGER,
                        {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
                        execution::ast::Builtin::NpRunnersEmitInt, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "NpRunnersEmitReal", type::TypeId::DECIMAL,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "NpRunnersEmitReal",
+                       type::TypeId::DECIMAL,
                        {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
                        execution::ast::Builtin::NpRunnersEmitReal, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "NpRunnersDummyInt", type::TypeId::INTEGER,
-                       {}, execution::ast::Builtin::NpRunnersDummyInt, true);
+  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "NpRunnersDummyInt",
+                       type::TypeId::INTEGER, {}, execution::ast::Builtin::NpRunnersDummyInt, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::NP_RUNNERS_DUMMY_REAL_PRO_OID, "NpRunnersDummyReal",
+  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_DUMMY_REAL_PRO_OID, "NpRunnersDummyReal",
                        type::TypeId::DECIMAL, {}, execution::ast::Builtin::NpRunnersDummyReal, true);
 
-  BootstrapProcContext(txn, postgres::PgProc::DATE_PART_PRO_OID, "date_part", type::TypeId::INTEGER,
+  BootstrapProcContext(dbc, txn, postgres::PgProc::DATE_PART_PRO_OID, "date_part", type::TypeId::INTEGER,
                        {type::TypeId::DATE, type::TypeId::INTEGER}, execution::ast::Builtin::DatePart, false);
 }
 
