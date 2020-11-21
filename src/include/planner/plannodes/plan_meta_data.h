@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "plan_node_defs.h"
+#include "plannodes/plan_node_defs.h"
 
 namespace noisepage::planner {
 
@@ -22,7 +22,7 @@ class PlanMetaData {
      * Construct a PlanNodeMetaData with a cardinality value
      * @param cardinality output cardinality of the plan node
      */
-    PlanNodeMetaData(int cardinality) : cardinality_(cardinality) {}
+    explicit PlanNodeMetaData(int cardinality) : cardinality_(cardinality) {}
 
     /**
      * @return the output cardinality

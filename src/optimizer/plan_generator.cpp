@@ -52,7 +52,7 @@
 
 namespace noisepage::optimizer {
 
-PlanGenerator::PlanGenerator() : plan_id_counter(0){};
+PlanGenerator::PlanGenerator() : plan_id_counter(0) {}
 
 std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpNode(
     transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,

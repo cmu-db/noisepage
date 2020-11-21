@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
 #include "common/managed_pointer.h"
 #include "planner/plannodes/abstract_plan_node.h"
