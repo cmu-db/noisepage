@@ -297,7 +297,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       break;
     }
 
-    case (catalog::postgres::LANGUAGE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgLanguage::LANGUAGE_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(db_catalog_ptr->languages_oid_index_,
                                  db_catalog_ptr->languages_oid_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->languages_name_index_,
@@ -859,7 +859,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
       break;
     }
-    case (catalog::postgres::LANGUAGE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgLanguage::LANGUAGE_TABLE_OID.UnderlyingValue()): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
       break;
     }
@@ -965,11 +965,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->constraints_foreigntable_index_;
     }
 
-    case (catalog::postgres::LANGUAGE_OID_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgLanguage::LANGUAGE_OID_INDEX_OID.UnderlyingValue()): {
       return db_catalog->languages_oid_index_;
     }
 
-    case (catalog::postgres::LANGUAGE_NAME_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgLanguage::LANGUAGE_NAME_INDEX_OID.UnderlyingValue()): {
       return db_catalog->languages_name_index_;
     }
 

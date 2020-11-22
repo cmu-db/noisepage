@@ -123,9 +123,9 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 
   // Indexes on pg_language
   dbc->languages_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), LANGUAGE_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), PgLanguage::LANGUAGE_OID_INDEX_OID);
   dbc->languages_name_index_ =
-      Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), LANGUAGE_NAME_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), PgLanguage::LANGUAGE_NAME_INDEX_OID);
 
   // Indexes on pg_proc
   dbc->pg_proc_.procs_oid_index_ =
@@ -341,30 +341,30 @@ Schema Builder::GetLanguageTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("lanoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(LANOID_COL_OID);
+  columns.back().SetOid(PgLanguage::LANOID_COL_OID);
 
   columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(LANNAME_COL_OID);
+  columns.back().SetOid(PgLanguage::LANNAME_COL_OID);
 
   columns.emplace_back("lanispl", type::TypeId::BOOLEAN, false, parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(LANISPL_COL_OID);
+  columns.back().SetOid(PgLanguage::LANISPL_COL_OID);
 
   columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(LANPLTRUSTED_COL_OID);
+  columns.back().SetOid(PgLanguage::LANPLTRUSTED_COL_OID);
 
   columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, true,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(LANPLCALLFOID_COL_OID);
+  columns.back().SetOid(PgLanguage::LANPLCALLFOID_COL_OID);
 
   columns.emplace_back("laninline", type::TypeId::INTEGER, true,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(LANINLINE_COL_OID);
+  columns.back().SetOid(PgLanguage::LANINLINE_COL_OID);
 
   columns.emplace_back("lanvalidator", type::TypeId::INTEGER, true,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(LANVALIDATOR_COL_OID);
+  columns.back().SetOid(PgLanguage::LANVALIDATOR_COL_OID);
 
   return Schema(columns);
 }
@@ -627,7 +627,7 @@ IndexSchema Builder::GetLanguageOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("lanoid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANOID_COL_OID));
+                       parser::ColumnValueExpression(db, PgLanguage::LANGUAGE_TABLE_OID, PgLanguage::LANOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -640,7 +640,7 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANNAME_COL_OID));
+                       parser::ColumnValueExpression(db, PgLanguage::LANGUAGE_TABLE_OID, PgLanguage::LANNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
