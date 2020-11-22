@@ -4,11 +4,24 @@
 
 #include "catalog/catalog_defs.h"
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
+class Builder;
+class PgLanguageImpl;
+class PgProcImpl;
 
 /** The OIDs used by the NoisePage version of pg_language. */
 class PgLanguage {
- public:
+ private:
+  friend class storage::RecoveryManager;
+
+  friend class Builder;
+  friend class PgLanguageImpl;
+  friend class PgProcImpl;
+
   static constexpr table_oid_t LANGUAGE_TABLE_OID = table_oid_t(71);
   static constexpr index_oid_t LANGUAGE_OID_INDEX_OID = index_oid_t(72);
   static constexpr index_oid_t LANGUAGE_NAME_INDEX_OID = index_oid_t(73);
