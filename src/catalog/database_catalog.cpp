@@ -12,7 +12,6 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_index.h"
-#include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
