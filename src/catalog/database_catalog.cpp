@@ -166,52 +166,60 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_constraint and associated indexes
-  retval = CreateTableEntry(txn, postgres::CONSTRAINT_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
-                            "pg_constraint", postgres::Builder::GetConstraintTableSchema());
+  retval =
+      CreateTableEntry(txn, postgres::PgConstraint::CONSTRAINT_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
+                       "pg_constraint", postgres::Builder::GetConstraintTableSchema());
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetTablePointer(txn, postgres::CONSTRAINT_TABLE_OID, constraints_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
-                            postgres::CONSTRAINT_OID_INDEX_OID, "pg_constraint_oid_index",
-                            postgres::Builder::GetConstraintOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::CONSTRAINT_OID_INDEX_OID, constraints_oid_index_);
+  retval = SetTablePointer(txn, postgres::PgConstraint::CONSTRAINT_TABLE_OID, constraints_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
-                            postgres::CONSTRAINT_NAME_INDEX_OID, "pg_constraint_name_index",
-                            postgres::Builder::GetConstraintNameIndexSchema(db_oid_));
+  retval =
+      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
+                       postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID, "pg_constraint_oid_index",
+                       postgres::Builder::GetConstraintOidIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::CONSTRAINT_NAME_INDEX_OID, constraints_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
-                            postgres::CONSTRAINT_NAMESPACE_INDEX_OID, "pg_constraint_namespace_index",
-                            postgres::Builder::GetConstraintNamespaceIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::CONSTRAINT_NAMESPACE_INDEX_OID, constraints_namespace_index_);
+  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID, constraints_oid_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
-                            postgres::CONSTRAINT_TABLE_INDEX_OID, "pg_constraint_table_index",
-                            postgres::Builder::GetConstraintTableIndexSchema(db_oid_));
+  retval =
+      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
+                       postgres::PgConstraint::CONSTRAINT_NAME_INDEX_OID, "pg_constraint_name_index",
+                       postgres::Builder::GetConstraintNameIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::CONSTRAINT_TABLE_INDEX_OID, constraints_table_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
-                            postgres::CONSTRAINT_INDEX_INDEX_OID, "pg_constraint_index_index",
-                            postgres::Builder::GetConstraintIndexIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::CONSTRAINT_INDEX_INDEX_OID, constraints_index_index_);
+  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_NAME_INDEX_OID, constraints_name_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
-                            postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, "pg_constraint_foreigntable_index",
-                            postgres::Builder::GetConstraintForeignTableIndexSchema(db_oid_));
+  retval =
+      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
+                       postgres::PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID, "pg_constraint_namespace_index",
+                       postgres::Builder::GetConstraintNamespaceIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
+  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID, constraints_namespace_index_);
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval =
+      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
+                       postgres::PgConstraint::CONSTRAINT_TABLE_INDEX_OID, "pg_constraint_table_index",
+                       postgres::Builder::GetConstraintTableIndexSchema(db_oid_));
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_TABLE_INDEX_OID, constraints_table_index_);
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval =
+      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
+                       postgres::PgConstraint::CONSTRAINT_INDEX_INDEX_OID, "pg_constraint_index_index",
+                       postgres::Builder::GetConstraintIndexIndexSchema(db_oid_));
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_INDEX_INDEX_OID, constraints_index_index_);
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval =
+      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
+                       postgres::PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID, "pg_constraint_foreigntable_index",
+                       postgres::Builder::GetConstraintForeignTableIndexSchema(db_oid_));
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  retval =
+      SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   pg_language_.Bootstrap(common::ManagedPointer(this), txn);
@@ -1348,7 +1356,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   }
 
   // pg_constraint (expressions)
-  const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
+  const std::vector<col_oid_t> pg_constraint_oids{postgres::PgConstraint::CONBIN_COL_OID};
   pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, TEARDOWN_MAX_TUPLES);
   pc = pci.Initialize(buffer);
 

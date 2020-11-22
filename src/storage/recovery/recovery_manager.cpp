@@ -265,7 +265,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       break;
     }
 
-    case (catalog::postgres::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(db_catalog_ptr->constraints_oid_index_,
                                  db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->constraints_name_index_,
@@ -847,7 +847,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->columns_);
       break;
     }
-    case (catalog::postgres::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->constraints_);
       break;
     }
@@ -941,27 +941,27 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->types_namespace_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_OID_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID.UnderlyingValue()): {
       return db_catalog->constraints_oid_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_NAME_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_NAME_INDEX_OID.UnderlyingValue()): {
       return db_catalog->constraints_name_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_NAMESPACE_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID.UnderlyingValue()): {
       return db_catalog->constraints_namespace_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_TABLE_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_INDEX_OID.UnderlyingValue()): {
       return db_catalog->constraints_table_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_INDEX_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_INDEX_INDEX_OID.UnderlyingValue()): {
       return db_catalog->constraints_index_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID.UnderlyingValue()): {
       return db_catalog->constraints_foreigntable_index_;
     }
 

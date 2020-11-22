@@ -109,17 +109,17 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 
   // Indexes on pg_constraint
   dbc->constraints_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(oid), CONSTRAINT_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(oid), PgConstraint::CONSTRAINT_OID_INDEX_OID);
   dbc->constraints_name_index_ =
-      Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(oid), CONSTRAINT_NAME_INDEX_OID);
-  dbc->constraints_namespace_index_ =
-      Builder::BuildLookupIndex(Builder::GetConstraintNamespaceIndexSchema(oid), CONSTRAINT_NAMESPACE_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(oid), PgConstraint::CONSTRAINT_NAME_INDEX_OID);
+  dbc->constraints_namespace_index_ = Builder::BuildLookupIndex(Builder::GetConstraintNamespaceIndexSchema(oid),
+                                                                PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID);
   dbc->constraints_table_index_ =
-      Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(oid), CONSTRAINT_TABLE_INDEX_OID);
+      Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(oid), PgConstraint::CONSTRAINT_TABLE_INDEX_OID);
   dbc->constraints_index_index_ =
-      Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), CONSTRAINT_INDEX_INDEX_OID);
-  dbc->constraints_foreigntable_index_ =
-      Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
+      Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), PgConstraint::CONSTRAINT_INDEX_INDEX_OID);
+  dbc->constraints_foreigntable_index_ = Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid),
+                                                                   PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID);
 
   // Indexes on pg_language
   dbc->pg_language_.languages_oid_index_ =
@@ -205,48 +205,48 @@ Schema Builder::GetConstraintTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("conoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(CONOID_COL_OID);
+  columns.back().SetOid(PgConstraint::CONOID_COL_OID);
 
   columns.emplace_back("conname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(CONNAME_COL_OID);
+  columns.back().SetOid(PgConstraint::CONNAME_COL_OID);
 
   columns.emplace_back("connamespace", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(CONNAMESPACE_COL_OID);
+  columns.back().SetOid(PgConstraint::CONNAMESPACE_COL_OID);
 
   columns.emplace_back("contype", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
-  columns.back().SetOid(CONTYPE_COL_OID);
+  columns.back().SetOid(PgConstraint::CONTYPE_COL_OID);
 
   columns.emplace_back("condeferrable", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(CONDEFERRABLE_COL_OID);
+  columns.back().SetOid(PgConstraint::CONDEFERRABLE_COL_OID);
 
   columns.emplace_back("condeferred", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(CONDEFERRED_COL_OID);
+  columns.back().SetOid(PgConstraint::CONDEFERRED_COL_OID);
 
   columns.emplace_back("convalidated", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(CONVALIDATED_COL_OID);
+  columns.back().SetOid(PgConstraint::CONVALIDATED_COL_OID);
 
   columns.emplace_back("conrelid", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(CONRELID_COL_OID);
+  columns.back().SetOid(PgConstraint::CONRELID_COL_OID);
 
   columns.emplace_back("conindid", type::TypeId::INTEGER, true, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(CONINDID_COL_OID);
+  columns.back().SetOid(PgConstraint::CONINDID_COL_OID);
 
   columns.emplace_back("confrelid", type::TypeId::INTEGER, true,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(CONFRELID_COL_OID);
+  columns.back().SetOid(PgConstraint::CONFRELID_COL_OID);
 
   columns.emplace_back("conbin", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
-  columns.back().SetOid(CONBIN_COL_OID);
+  columns.back().SetOid(PgConstraint::CONBIN_COL_OID);
 
   columns.emplace_back("consrc", type::TypeId::VARCHAR, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(CONSRC_COL_OID);
+  columns.back().SetOid(PgConstraint::CONSRC_COL_OID);
 
   return Schema(columns);
 }
@@ -544,8 +544,9 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("conoid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONOID_COL_OID));
+  columns.emplace_back(
+      "conoid", type::TypeId::INTEGER, false,
+      parser::ColumnValueExpression(db, PgConstraint::CONSTRAINT_TABLE_OID, PgConstraint::CONOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -557,12 +558,14 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("connamespace", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
+  columns.emplace_back(
+      "connamespace", type::TypeId::INTEGER, false,
+      parser::ColumnValueExpression(db, PgConstraint::CONSTRAINT_TABLE_OID, PgConstraint::CONNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  columns.emplace_back("conname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAME_COL_OID));
+  columns.emplace_back(
+      "conname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+      parser::ColumnValueExpression(db, PgConstraint::CONSTRAINT_TABLE_OID, PgConstraint::CONNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -574,8 +577,9 @@ IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("connamespace", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
+  columns.emplace_back(
+      "connamespace", type::TypeId::INTEGER, false,
+      parser::ColumnValueExpression(db, PgConstraint::CONSTRAINT_TABLE_OID, PgConstraint::CONNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
@@ -587,8 +591,9 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("conrelid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONRELID_COL_OID));
+  columns.emplace_back(
+      "conrelid", type::TypeId::INTEGER, false,
+      parser::ColumnValueExpression(db, PgConstraint::CONSTRAINT_TABLE_OID, PgConstraint::CONRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
@@ -600,8 +605,9 @@ IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("conindid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONINDID_COL_OID));
+  columns.emplace_back(
+      "conindid", type::TypeId::INTEGER, false,
+      parser::ColumnValueExpression(db, PgConstraint::CONSTRAINT_TABLE_OID, PgConstraint::CONINDID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
@@ -613,8 +619,9 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("confrelid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
+  columns.emplace_back(
+      "confrelid", type::TypeId::INTEGER, false,
+      parser::ColumnValueExpression(db, PgConstraint::CONSTRAINT_TABLE_OID, PgConstraint::CONFRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
