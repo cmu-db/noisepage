@@ -570,7 +570,7 @@ class EXPORT Decimal {
    * the higher precision value.*/
   void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
 
-  /** Signed version of MultiplyAndSet with a constant
+  /** Signed version of MultiplyAndSet with a coFromNativenstant
    * @param input the constant to be multiplied with. */
   void SignedMultiplyWithConstant(int64_t input);
 

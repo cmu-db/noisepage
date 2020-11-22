@@ -1740,6 +1740,10 @@ void DatabaseCatalog::BootstrapTypes(const common::ManagedPointer<transaction::T
 
   InsertType(txn, postgres::VAR_ARRAY_OID, "var_array", postgres::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false,
              postgres::Type::COMPOSITE);
+
+  InsertType(txn, type::TypeId::FIXEDDECIMAL, "fixeddecimal", postgres::NAMESPACE_CATALOG_NAMESPACE_OID, sizeof(int128_t), true,
+             postgres::Type::BASE);
+
 }
 
 void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn) {

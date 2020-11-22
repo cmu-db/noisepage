@@ -67,6 +67,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     case type::TypeId::DECIMAL:
       return {type, execution::sql::Real(std::stod(string))};
     case type::TypeId::FIXEDDECIMAL:
+      // TODO(Rohan): Find out how to fix this
       return {type, execution::sql::DecimalVal(std::stoi(string))};
     case type::TypeId::VARCHAR: {
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
@@ -133,6 +134,7 @@ parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
       return {type, execution::sql::Real(read_buffer->ReadValue<double>())};
     }
     case type::TypeId::FIXEDDECIMAL: {
+      // TODO(Rohan): Find out what is the right way here
       TERRIER_ASSERT(size == 16, "Unexpected size for this type.");
       return {type, execution::sql::DecimalVal(read_buffer->ReadValue<int128_t>())};
     }

@@ -309,6 +309,7 @@ uint32_t PostgresPacketWriter::WriteBinaryAttribute(const execution::sql::Val *c
         break;
       }
       case type::TypeId::FIXEDDECIMAL: {
+        // TODO(Rohan): Find the best way to write this
         WriteBinaryVal<int128_t , execution::sql::DecimalVal>(val, type);
         break;
       }
@@ -362,6 +363,7 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         break;
       }
       case type::TypeId::FIXEDDECIMAL: {
+        // TODO(Rohan): Find the best way to write this
         auto *decimal_val = reinterpret_cast<const execution::sql::DecimalVal *const>(val);
         string_value = decimal_val->ToString();
         break;

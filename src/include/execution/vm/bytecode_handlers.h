@@ -1819,6 +1819,27 @@ VM_OP_HOT void OpPRGetDateValNull(terrier::execution::sql::DateVal *out, terrier
   out->val_ = null ? terrier::execution::sql::Date() : terrier::execution::sql::Date::FromNative(*ptr);
 }
 
+VM_OP_HOT void OpPRGetFixedDecimalVal(terrier::execution::sql::DecimalVal *out, terrier::storage::ProjectedRow *pr,
+                              uint16_t col_idx) {
+  // Read
+  auto *ptr = pr->Get<int128_t , false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+  // Set
+  out->is_null_ = false;
+  out->val_ = terrier::execution::sql::Decimal128(*ptr);
+}
+
+VM_OP_HOT void OpPRGetFixedDecimalValNull(terrier::execution::sql::DecimalVal *out, terrier::storage::ProjectedRow *pr,
+                                  uint16_t col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = pr->Get<int128_t , true>(col_idx, &null);
+
+  // Set
+  out->is_null_ = null;
+  out->val_ = null ? terrier::execution::sql::Decimal128(0) : terrier::execution::sql::Decimal128(*ptr);
+}
+
 VM_OP_HOT void OpPRGetTimestampVal(terrier::execution::sql::TimestampVal *out, terrier::storage::ProjectedRow *pr,
                                    uint16_t col_idx) {
   // Read

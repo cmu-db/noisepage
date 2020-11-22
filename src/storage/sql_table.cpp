@@ -35,17 +35,20 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
       case VARLEN_COLUMN:
         col_map[column.Oid()] = {col_id_t(offsets[0]++), column.Type()};
         break;
-      case 8:
+      case 16:
         col_map[column.Oid()] = {col_id_t(offsets[1]++), column.Type()};
         break;
-      case 4:
+      case 8:
         col_map[column.Oid()] = {col_id_t(offsets[2]++), column.Type()};
         break;
-      case 2:
+      case 4:
         col_map[column.Oid()] = {col_id_t(offsets[3]++), column.Type()};
         break;
-      case 1:
+      case 2:
         col_map[column.Oid()] = {col_id_t(offsets[4]++), column.Type()};
+        break;
+      case 1:
+        col_map[column.Oid()] = {col_id_t(offsets[5]++), column.Type()};
         break;
       default:
         throw std::runtime_error("unexpected switch case value");

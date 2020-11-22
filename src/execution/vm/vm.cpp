@@ -1865,6 +1865,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_PR_ACCESS(Real, sql::Real)
   GEN_PR_ACCESS(Double, sql::Real)
   GEN_PR_ACCESS(DateVal, sql::DateVal)
+  GEN_PR_ACCESS(FixedDecimalVal, sql::DecimalVal)
   GEN_PR_ACCESS(TimestampVal, sql::TimestampVal)
   GEN_PR_ACCESS(Varlen, sql::StringVal)
 #undef GEN_PR_ACCESS

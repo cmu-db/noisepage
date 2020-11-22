@@ -507,6 +507,7 @@ namespace terrier::execution::vm {
   F(PRGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
   F(PRGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
   F(PRGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PRGetFixedDecimalVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                 \
   F(PRGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
   F(PRGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
   F(PRGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
@@ -517,6 +518,7 @@ namespace terrier::execution::vm {
   F(PRGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PRGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
   F(PRGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(PRGetFixedDecimalValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
   F(PRGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                \
   F(PRGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
   F(PRSetBool, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \

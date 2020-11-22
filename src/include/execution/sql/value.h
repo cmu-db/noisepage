@@ -121,18 +121,19 @@ struct Real : public Val {
 struct DecimalVal : public Val {
   /** The internal decimal representation. */
   Decimal128 val_;
+  int precision_;
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The decimal value.
    */
-  explicit DecimalVal(Decimal128 val) noexcept : Val(false), val_(val) {}
+  explicit DecimalVal(Decimal128 val, int precision = 0) noexcept : Val(false), val_(val), precision_(precision) {}
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The raw decimal value.
    */
-  explicit DecimalVal(Decimal128::NativeType val) noexcept : DecimalVal(Decimal128{val}) {}
+  explicit DecimalVal(Decimal128::NativeType val, int precision = 0) noexcept : DecimalVal(Decimal128{val}, precision) {}
 
   /**
    * @return A NULL decimal value.
@@ -347,7 +348,8 @@ struct ValUtil {
         return static_cast<uint32_t>(sizeof(TimestampVal));
       case type::TypeId::DECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
-        // TODO(WAN): switching to DecimalVal, but we don't have a Real type?
+        // TODO(WAN):
+        //  to DecimalVal, but we don't have a Real type?
         return static_cast<uint32_t>(sizeof(DecimalVal));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:

@@ -196,6 +196,8 @@ ast::Expr *CodeGen::TplType(sql::TypeId type) {
     case sql::TypeId::Varchar:
     case sql::TypeId::Varbinary:
       return BuiltinType(ast::BuiltinType::StringVal);
+    case sql::TypeId::FixedDecimal:
+      return BuiltinType(ast::BuiltinType::FixedDecimal);
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
   }
@@ -464,6 +466,9 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
       break;
+    case type::TypeId::FIXEDDECIMAL:
+      builtin = nullable ? ast::Builtin::PRGetFixedDecimalNull : ast::Builtin::PRGetFixedDecimal;
+      break;
     case type::TypeId::TIMESTAMP:
       builtin = nullable ? ast::Builtin::PRGetTimestampNull : ast::Builtin::PRGetTimestamp;
       break;
@@ -503,6 +508,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
       break;
+//    case type::TypeId::FIXEDDECIMAL:
+//      builtin = nullable ? ast::Builtin::PRSetFixedDecimalNull : ast::Builtin::PRSetFixedDecimal;
+//      break;
     case type::TypeId::TIMESTAMP:
       builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
       break;

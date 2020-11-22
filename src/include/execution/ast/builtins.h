@@ -232,6 +232,7 @@ namespace terrier::execution::ast {
   F(PRGetReal, prGetReal)                                               \
   F(PRGetDouble, prGetDouble)                                           \
   F(PRGetDate, prGetDate)                                               \
+  F(PRGetFixedDecimal, prGetFixedDecimal)                               \
   F(PRGetTimestamp, prGetTimestamp)                                     \
   F(PRGetVarlen, prGetVarlen)                                           \
   F(PRGetBoolNull, prGetBoolNull)                                       \
@@ -242,6 +243,7 @@ namespace terrier::execution::ast {
   F(PRGetRealNull, prGetRealNull)                                       \
   F(PRGetDoubleNull, prGetDoubleNull)                                   \
   F(PRGetDateNull, prGetDateNull)                                       \
+  F(PRGetFixedDecimalNull, prGetFixedDecimalNull)                       \
   F(PRGetTimestampNull, prGetTimestampNull)                             \
   F(PRGetVarlenNull, prGetVarlenNull)                                   \
   /* CSV */                                                             \

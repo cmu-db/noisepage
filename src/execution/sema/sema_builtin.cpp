@@ -2323,6 +2323,11 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Date;
       break;
     }
+    case ast::Builtin::PRGetFixedDecimal:
+    case ast::Builtin::PRGetFixedDecimalNull: {
+      sql_type = ast::BuiltinType::FixedDecimal;
+      break;
+    }
     case ast::Builtin::PRGetTimestamp:
     case ast::Builtin::PRGetTimestampNull: {
       sql_type = ast::BuiltinType::Timestamp;
@@ -3309,6 +3314,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetReal:
     case ast::Builtin::PRGetDouble:
     case ast::Builtin::PRGetDate:
+    case ast::Builtin::PRGetFixedDecimal:
     case ast::Builtin::PRGetTimestamp:
     case ast::Builtin::PRGetVarlen:
     case ast::Builtin::PRGetBoolNull:
@@ -3319,6 +3325,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetRealNull:
     case ast::Builtin::PRGetDoubleNull:
     case ast::Builtin::PRGetDateNull:
+    case ast::Builtin::PRGetFixedDecimalNull:
     case ast::Builtin::PRGetTimestampNull:
     case ast::Builtin::PRGetVarlenNull: {
       CheckBuiltinPRCall(call, builtin);

@@ -102,6 +102,7 @@ class Context;
   SQL(Decimal, terrier::execution::sql::DecimalVal)                                             \
   SQL(StringVal, terrier::execution::sql::StringVal)                                            \
   SQL(Date, terrier::execution::sql::DateVal)                                                   \
+  SQL(FixedDecimal, terrier::execution::sql::DecimalVal)                                        \
   SQL(Timestamp, terrier::execution::sql::TimestampVal)
 
 // Ignore a builtin

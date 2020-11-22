@@ -26,7 +26,8 @@ enum class TypeId : uint8_t {
   Date,       // Date objects
   Timestamp,  // Timestamp objects
   Varchar,    // char*, representing a null-terminated UTF-8 string
-  Varbinary   // blobs representing arbitrary bytes
+  Varbinary,  // blobs representing arbitrary bytes
+  FixedDecimal  // blobs representing fixed decimals
 };
 
 /**
@@ -40,7 +41,7 @@ enum class SqlTypeId : uint8_t {
   BigInt,     // 8-byte integer
   Real,       // 4-byte float
   Double,     // 8-byte float
-  Decimal,    // Arbitrary-precision numeric
+  Decimal,    // Fixed-precision numeric
   Date,       // Dates
   Timestamp,  // Timestamps
   Char,       // Fixed-length string
@@ -100,6 +101,8 @@ constexpr inline TypeId GetTypeId() {
     return TypeId::Date;
   } else if constexpr (std::is_same<std::remove_const_t<T>, Timestamp>()) {  // NOLINT
     return TypeId::Timestamp;
+  } else if constexpr (std::is_same<std::remove_const_t<T>, Decimal128>()) {  // NOLINT
+    return TypeId::FixedDecimal;
   } else if constexpr (std::is_same<std::remove_const_t<T>, char *>() ||  // NOLINT
                        std::is_same<std::remove_const_t<T>, const char *>() ||
                        std::is_same<std::remove_const_t<T>, std::string>() ||

@@ -166,6 +166,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
           case type::TypeId::FIXEDDECIMAL: {
             {
               terrier::execution::sql::Decimal128 decimal_val(0);
+              // TODO(Rohan): Fix the precision argument
               decimal_val.RoundUpAndSet(std::string(str_view), 10);
               value->SetValue(type::TypeId::FIXEDDECIMAL, execution::sql::DecimalVal(decimal_val));
               break;

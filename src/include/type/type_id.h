@@ -26,13 +26,13 @@ enum class TypeId : uint8_t {
   INTEGER,
   BIGINT,
   DECIMAL,
-  FIXEDDECIMAL,
   TIMESTAMP,
   DATE,
   VARCHAR,
   VARBINARY,
   PARAMETER_OFFSET,
   VARIADIC,
+  FIXEDDECIMAL,
 };
 
 }  // namespace terrier::type

@@ -2042,6 +2042,12 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       GetEmitter()->EmitPRGet(Bytecode::PRGetDateVal, val, pr, col_idx);
       break;
     }
+    case ast::Builtin::PRGetFixedDecimal: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::FixedDecimal));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetFixedDecimalVal, val, pr, col_idx);
+      break;
+    }
     case ast::Builtin::PRGetTimestamp: {
       LocalVar val =
           GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
@@ -2107,6 +2113,12 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       GetEmitter()->EmitPRGet(Bytecode::PRGetDateValNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetFixedDecimalNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::FixedDecimal));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetFixedDecimalValNull, val, pr, col_idx);
       break;
     }
     case ast::Builtin::PRGetTimestampNull: {
@@ -2743,6 +2755,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PRGetReal:
     case ast::Builtin::PRGetDouble:
     case ast::Builtin::PRGetDate:
+    case ast::Builtin::PRGetFixedDecimal:
     case ast::Builtin::PRGetTimestamp:
     case ast::Builtin::PRGetVarlen:
     case ast::Builtin::PRGetBoolNull:
@@ -2753,6 +2766,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PRGetRealNull:
     case ast::Builtin::PRGetDoubleNull:
     case ast::Builtin::PRGetDateNull:
+    case ast::Builtin::PRGetFixedDecimalNull:
     case ast::Builtin::PRGetTimestampNull:
     case ast::Builtin::PRGetVarlenNull: {
       VisitBuiltinPRCall(call, builtin);

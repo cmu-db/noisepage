@@ -114,8 +114,8 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
   // First compute {count_varlen, count_8, count_4, count_2, count_1}
   // Then {offset_varlen, offset_8, offset_4, offset_2, offset_1} is the inclusive scan of the counts
   std::vector<uint16_t> offsets;
-  offsets.reserve(5);
-  for (uint8_t i = 0; i < 5; i++) {
+  offsets.reserve(6);
+  for (uint8_t i = 0; i < 6; i++) {
     offsets.emplace_back(0);
   }
 
@@ -124,14 +124,17 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
       case VARLEN_COLUMN:
         offsets[1]++;
         break;
-      case 8:
+      case 16:
         offsets[2]++;
         break;
-      case 4:
+      case 8:
         offsets[3]++;
         break;
-      case 2:
+      case 4:
         offsets[4]++;
+        break;
+      case 2:
+        offsets[5]++;
         break;
       case 1:
         break;
@@ -143,10 +146,10 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
   // reserved columns appear first
   offsets[0] = static_cast<uint16_t>(offsets[0] + num_reserved_columns);
   // reserved columns are size 8
-  offsets[2] = static_cast<uint16_t>(offsets[2] - num_reserved_columns);
+  offsets[3] = static_cast<uint16_t>(offsets[3] - num_reserved_columns);
 
   // compute the offsets with an inclusive scan
-  for (uint8_t i = 1; i < 5; i++) {
+  for (uint8_t i = 1; i < 6; i++) {
     offsets[i] = static_cast<uint16_t>(offsets[i] + offsets[i - 1]);
   }
   return offsets;

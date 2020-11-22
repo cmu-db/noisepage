@@ -51,7 +51,6 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
 
     ParserException exception(std::string(result.error->message), __FILE__, __LINE__, result.error->cursorpos);
-
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
     throw exception;
@@ -721,8 +720,10 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
         result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
-                                                           execution::sql::Real(std::stod(val.val_.str_)));
+        const auto string = std::string_view{val.val_.str_};
+        auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
+                                                           std::move(string_val.second));
       }
       break;
     }
