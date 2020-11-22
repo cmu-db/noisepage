@@ -12,6 +12,7 @@ class Catalog;
 class DatabaseCatalog;
 
 namespace postgres {
+class PgLanguageImpl;
 class PgProcImpl;
 }  // namespace postgres
 }  // namespace noisepage::catalog
@@ -268,10 +269,11 @@ class ProjectedRowInitializer {
   static ProjectedRowInitializer Create(std::vector<uint16_t> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
  private:
-  friend class catalog::Catalog;                  // access to the PRI default constructor
-  friend class catalog::DatabaseCatalog;          // access to the PRI default constructor
-  friend class catalog::postgres::PgProcImpl;     // access to the PRI default constructor
-  friend class execution::sql::StorageInterface;  // access to the PRI default constructor
+  friend class catalog::Catalog;                   // access to the PRI default constructor
+  friend class catalog::DatabaseCatalog;           // access to the PRI default constructor
+  friend class catalog::postgres::PgLanguageImpl;  // access to the PRI default constructor
+  friend class catalog::postgres::PgProcImpl;      // access to the PRI default constructor
+  friend class execution::sql::StorageInterface;   // access to the PRI default constructor
   friend class WriteAheadLoggingTests;
   friend class AbstractLogProvider;
 

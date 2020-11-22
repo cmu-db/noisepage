@@ -78,7 +78,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
-  dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
+  dbc->pg_language_.languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->pg_proc_.procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
   // Indexes on pg_namespace
@@ -122,9 +122,9 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
 
   // Indexes on pg_language
-  dbc->languages_oid_index_ =
+  dbc->pg_language_.languages_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), PgLanguage::LANGUAGE_OID_INDEX_OID);
-  dbc->languages_name_index_ =
+  dbc->pg_language_.languages_name_index_ =
       Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), PgLanguage::LANGUAGE_NAME_INDEX_OID);
 
   // Indexes on pg_proc

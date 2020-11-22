@@ -8,8 +8,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_class.h"
-#include "catalog/postgres/pg_language.h"
-#include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_language_impl.h"
 #include "catalog/postgres/pg_proc_impl.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
@@ -38,6 +37,7 @@ class Index;
 namespace noisepage::catalog {
 
 namespace postgres {
+class PgLanguageImpl;
 class PgProcImpl;
 }  // namespace postgres
 
@@ -283,21 +283,11 @@ class DatabaseCatalog {
   language_oid_t CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
 
-  /**
-   * Looks up a language entry in the pg_language table
-   * @param txn transaction to use
-   * @param lanname name of language to look up
-   * @return oid of requested entry if found else INVALID_LANGUAGE_OID if not found
-   */
+  /** @see PgLanguageImpl::GetLanguageOid */
   language_oid_t GetLanguageOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
 
-  /**
-   * Deletes a language entry from the pg_language table
-   * @param txn transaction to use
-   * @param oid oid of entry
-   * @return true if deletion is successful
-   */
+  /** @see PgLanguageImpl::CreateProcedure */
   bool DropLanguage(common::ManagedPointer<transaction::TransactionContext> txn, language_oid_t oid);
 
   /**
@@ -354,17 +344,12 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+  friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
 
   // TODO(tanujnay112) Add support for other parameters
 
-  /**
-   * Creates a language entry into the pg_language table
-   * @param txn transaction to use
-   * @param lanname name of language to insert
-   * @param oid oid of entry
-   * @return true if insertion is successful
-   */
+  /** @see PgLanguageImpl::CreateLanguage */
   bool CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
                       language_oid_t oid);
 
@@ -475,24 +460,20 @@ class DatabaseCatalog {
   storage::index::Index *constraints_index_index_;
   storage::index::Index *constraints_foreigntable_index_;
 
-  storage::SqlTable *languages_;
-  storage::index::Index *languages_oid_index_;
-  storage::index::Index *languages_name_index_;  // indexed on language name and namespace
-  storage::ProjectedRowInitializer pg_language_all_cols_pri_;
-  storage::ProjectionMap pg_language_all_cols_prm_;
-
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
+  postgres::PgLanguageImpl pg_language_;
   postgres::PgProcImpl pg_proc_;
 
   DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
         db_oid_(oid),
         garbage_collector_(garbage_collector),
+        pg_language_(db_oid_),
         pg_proc_(db_oid_) {}
 
   void TearDown(common::ManagedPointer<transaction::TransactionContext> txn);
@@ -555,12 +536,6 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapTypes(common::ManagedPointer<transaction::TransactionContext> txn);
-
-  /**
-   * Bootstraps the built-in languages found in pg_languages
-   * @param txn transaction to insert into catalog with
-   */
-  void BootstrapLanguages(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

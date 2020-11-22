@@ -298,10 +298,10 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     }
 
     case (catalog::postgres::PgLanguage::LANGUAGE_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->languages_oid_index_,
-                                 db_catalog_ptr->languages_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->languages_name_index_,
-                                 db_catalog_ptr->languages_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_language_.languages_oid_index_,
+                                 db_catalog_ptr->pg_language_.languages_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_language_.languages_name_index_,
+                                 db_catalog_ptr->pg_language_.languages_name_index_->metadata_.GetSchema());
       break;
     }
     case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
@@ -860,7 +860,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       break;
     }
     case (catalog::postgres::PgLanguage::LANGUAGE_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_language_.languages_);
       break;
     }
     case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
@@ -966,11 +966,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     }
 
     case (catalog::postgres::PgLanguage::LANGUAGE_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->languages_oid_index_;
+      return db_catalog->pg_language_.languages_oid_index_;
     }
 
     case (catalog::postgres::PgLanguage::LANGUAGE_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->languages_name_index_;
+      return db_catalog->pg_language_.languages_name_index_;
     }
 
     case (catalog::postgres::PgProc::PRO_OID_INDEX_OID.UnderlyingValue()): {
