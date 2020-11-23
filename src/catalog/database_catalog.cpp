@@ -114,7 +114,6 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::INDEX_TABLE_INDEX_OID, indexes_table_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  // pg_attribute and associated indexes
   pg_attribute_.Bootstrap(common::ManagedPointer(this), txn);
   pg_type_.Bootstrap(common::ManagedPointer(this), txn);
   pg_constraint_.Bootstrap(common::ManagedPointer(this), txn);
