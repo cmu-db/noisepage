@@ -39,6 +39,7 @@ LOG.setLevel(logging.INFO)
 # The default is none, which means that the testing result won't be uploaded to any server
 PERFORMANCE_STORAGE_SERVICE_API = {
     "none": "",
+    "local": "http://host.docker.internal:8000/performance-results",
     "test": "https://incrudibles-testing.db.pdl.cmu.edu/performance-results",
     "staging":
     "https://incrudibles-staging.db.pdl.cmu.edu/performance-results",

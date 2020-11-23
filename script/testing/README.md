@@ -6,7 +6,7 @@ All tests are compatible with python3
 - `junit`: entry script to fire a junit test (and many other supporting configs)
 - `micro_bench`: entry script to run the microbenchmark tests
 - `oltpbench`: entry script to fire an oltp bench test
-- `atrifact_stats`: entry script to collect the artifact stats
+- `artifact_stats`: entry script to collect the artifact stats
 
 ## Util
 `util` folder contains a list of common Python scripts

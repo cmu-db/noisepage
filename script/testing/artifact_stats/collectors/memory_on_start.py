@@ -5,7 +5,6 @@ import psutil
 
 from artifact_stats.base_artifact_stats_collector import BaseArtifactStatsCollector
 from util.db_server import NoisePageServer
-from artifact_stats.common_collector_functions import compile_binary
 
 
 class MemoryOnStartCollector(BaseArtifactStatsCollector):

@@ -8,7 +8,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
 from artifact_stats.base_artifact_stats_collector import BaseArtifactStatsCollector
-from artifact_stats.artifact_stats_collectors import *
+from artifact_stats.collectors import *
 from reporting.report_result import report_artifact_stats_result
 from util.constants import PERFORMANCE_STORAGE_SERVICE_API, LOG
 

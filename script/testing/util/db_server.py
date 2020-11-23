@@ -22,7 +22,7 @@ class NoisePageServer:
             db_output_file - The file where the DB outputs its logs to
         """
         default_server_args = {
-            #'wal_file_path': DEFAULT_DB_WAL_FILE
+            'wal_file_path': DEFAULT_DB_WAL_FILE
         }
         self.db_host = host
         self.db_port = port
