@@ -4,11 +4,21 @@
 
 #include "catalog/catalog_defs.h"
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
+class Builder;
+class PgAttributeImpl;
 
 /** The OIDs used by the NoisePage version of pg_attribute. */
 class PgAttribute {
- public:
+ private:
+  friend class storage::RecoveryManager;
+  friend class Builder;
+  friend class PgAttributeImpl;
+
   static constexpr table_oid_t COLUMN_TABLE_OID = table_oid_t(41);
   static constexpr index_oid_t COLUMN_OID_INDEX_OID = index_oid_t(42);
   static constexpr index_oid_t COLUMN_NAME_INDEX_OID = index_oid_t(43);

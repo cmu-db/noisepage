@@ -258,10 +258,10 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     }
 
     case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->columns_oid_index_,
-                                 db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->columns_name_index_,
-                                 db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_attribute_.columns_oid_index_,
+                                 db_catalog_ptr->pg_attribute_.columns_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_attribute_.columns_name_index_,
+                                 db_catalog_ptr->pg_attribute_.columns_name_index_->metadata_.GetSchema());
       break;
     }
 
@@ -844,7 +844,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       break;
     }
     case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->columns_);
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_attribute_.columns_);
       break;
     }
     case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
@@ -922,11 +922,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     }
 
     case (catalog::postgres::PgAttribute::COLUMN_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->columns_oid_index_;
+      return db_catalog->pg_attribute_.columns_oid_index_;
     }
 
     case (catalog::postgres::PgAttribute::COLUMN_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->columns_name_index_;
+      return db_catalog->pg_attribute_.columns_name_index_;
     }
 
     case (catalog::postgres::PgType::TYPE_OID_INDEX_OID.UnderlyingValue()): {

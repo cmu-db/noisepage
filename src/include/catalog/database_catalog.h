@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/postgres/pg_attribute_impl.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint_impl.h"
 #include "catalog/postgres/pg_language_impl.h"
@@ -37,14 +38,6 @@ class Index;
 }  // namespace noisepage::storage
 
 namespace noisepage::catalog {
-
-namespace postgres {
-class PgConstraintImpl;
-class PgLanguageImpl;
-class PgProcImpl;
-class PgTypeImpl;
-}  // namespace postgres
-
 class IndexSchema;
 
 /**
@@ -348,6 +341,7 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+  friend class postgres::PgAttributeImpl;
   friend class postgres::PgConstraintImpl;
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
@@ -370,28 +364,6 @@ class DatabaseCatalog {
                        namespace_oid_t ns_oid);
 
   /**
-   * Add entry to pg_attribute
-   * @tparam Column type of column (IndexSchema::Column or Schema::Column)
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @param col column to insert
-   * @param default_val default value
-   * @return whether insertion is successful
-   */
-  template <typename Column, typename ClassOid, typename ColOid>
-  bool CreateColumn(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid, ColOid col_oid,
-                    const Column &col);
-  /**
-   * Get entries from pg_attribute
-   * @tparam Column type of columns
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @return the column from pg_attribute
-   */
-  template <typename Column, typename ClassOid, typename ColOid>
-  std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
-
-  /**
    * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
    * as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
    * @param txn for the operation
@@ -401,12 +373,16 @@ class DatabaseCatalog {
   std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceClassOids(
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
 
-  /**
-   * Delete entries from pg_attribute
-   * @tparam Column type of columns
-   * @param txn txn to use
-   * @return the column from pg_attribute
-   */
+  /** @see PgAttributeImpl::CreateColumn */
+  template <typename Column, typename ClassOid, typename ColOid>
+  bool CreateColumn(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid, ColOid col_oid,
+                    const Column &col);
+
+  /** @see PgAttributeImpl::GetColumns */
+  template <typename Column, typename ClassOid, typename ColOid>
+  std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
+
+  /** @see PgAttributeImpl::DeleteColumns */
   template <typename Column, typename ClassOid>
   bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 
@@ -441,22 +417,13 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer pg_index_all_cols_pri_;
   storage::ProjectionMap pg_index_all_cols_prm_;
 
-  storage::SqlTable *columns_;
-  storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
-  storage::index::Index *columns_name_index_;  // indexed on class OID and column name
-  storage::ProjectedRowInitializer pg_attribute_all_cols_pri_;
-  storage::ProjectionMap pg_attribute_all_cols_prm_;
-  storage::ProjectedRowInitializer get_columns_pri_;
-  storage::ProjectionMap get_columns_prm_;
-  storage::ProjectedRowInitializer delete_columns_pri_;
-  storage::ProjectionMap delete_columns_prm_;
-
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
+  postgres::PgAttributeImpl pg_attribute_;
   postgres::PgTypeImpl pg_type_;
   postgres::PgConstraintImpl pg_constraint_;
   postgres::PgLanguageImpl pg_language_;
@@ -466,6 +433,7 @@ class DatabaseCatalog {
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
         db_oid_(oid),
         garbage_collector_(garbage_collector),
+        pg_attribute_(db_oid_),
         pg_type_(db_oid_),
         pg_constraint_(db_oid_),
         pg_language_(db_oid_),
@@ -605,14 +573,5 @@ class DatabaseCatalog {
   template <typename ClassOid, typename Ptr>
   bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid, const Ptr *pointer,
                        col_oid_t class_col);
-
-  /**
-   * @tparam Column column type (either index or table)
-   * @param pr ProjectedRow to populate
-   * @param table_pm ProjectionMap for the ProjectedRow
-   * @return heap-allocated column managed by unique_ptr
-   */
-  template <typename Column, typename ColOid>
-  static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 };
 }  // namespace noisepage::catalog

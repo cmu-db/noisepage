@@ -23,18 +23,19 @@ class TpccPlanTest;
 
 namespace noisepage::storage {
 class RecoveryManager;
-}
+}  // namespace noisepage::storage
 
 namespace noisepage::tpcc {
 class Schemas;
-}
+}  // namespace noisepage::tpcc
 
 namespace noisepage::catalog {
 class DatabaseCatalog;
 
 namespace postgres {
 class Builder;
-}
+class PgAttributeImpl;
+}  // namespace postgres
 
 /**
  * A schema for an index.  It contains the definitions for the columns in the
@@ -225,6 +226,7 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
+    friend class postgres::PgAttributeImpl;
     friend class tpcc::Schemas;
     friend class noisepage::StorageTestUtil;
   };
