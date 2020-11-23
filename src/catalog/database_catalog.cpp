@@ -115,24 +115,24 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_attribute and associated indexes
-  retval = CreateTableEntry(txn, postgres::COLUMN_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_attribute",
-                            postgres::Builder::GetColumnTableSchema());
+  retval = CreateTableEntry(txn, postgres::PgAttribute::COLUMN_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
+                            "pg_attribute", postgres::Builder::GetColumnTableSchema());
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetTablePointer(txn, postgres::COLUMN_TABLE_OID, columns_);
+  retval = SetTablePointer(txn, postgres::PgAttribute::COLUMN_TABLE_OID, columns_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::COLUMN_TABLE_OID,
-                            postgres::COLUMN_OID_INDEX_OID, "pg_attribute_oid_index",
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgAttribute::COLUMN_TABLE_OID,
+                            postgres::PgAttribute::COLUMN_OID_INDEX_OID, "pg_attribute_oid_index",
                             postgres::Builder::GetColumnOidIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::COLUMN_OID_INDEX_OID, columns_oid_index_);
+  retval = SetIndexPointer(txn, postgres::PgAttribute::COLUMN_OID_INDEX_OID, columns_oid_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::COLUMN_TABLE_OID,
-                            postgres::COLUMN_NAME_INDEX_OID, "pg_attribute_name_index",
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgAttribute::COLUMN_TABLE_OID,
+                            postgres::PgAttribute::COLUMN_NAME_INDEX_OID, "pg_attribute_name_index",
                             postgres::Builder::GetColumnNameIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::COLUMN_NAME_INDEX_OID, columns_name_index_);
+  retval = SetIndexPointer(txn, postgres::PgAttribute::COLUMN_NAME_INDEX_OID, columns_name_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   pg_type_.Bootstrap(common::ManagedPointer(this), txn);
@@ -158,18 +158,20 @@ void DatabaseCatalog::BootstrapPRIs() {
   get_namespace_pri_ = namespaces_->InitializerForProjectedRow(get_namespace_oids);
 
   // pg_attribute
-  const std::vector<col_oid_t> pg_attribute_all_oids{postgres::PG_ATTRIBUTE_ALL_COL_OIDS.cbegin(),
-                                                     postgres::PG_ATTRIBUTE_ALL_COL_OIDS.end()};
+  const std::vector<col_oid_t> pg_attribute_all_oids{postgres::PgAttribute::PG_ATTRIBUTE_ALL_COL_OIDS.cbegin(),
+                                                     postgres::PgAttribute::PG_ATTRIBUTE_ALL_COL_OIDS.end()};
   pg_attribute_all_cols_pri_ = columns_->InitializerForProjectedRow(pg_attribute_all_oids);
   pg_attribute_all_cols_prm_ = columns_->ProjectionMapForOids(pg_attribute_all_oids);
 
-  const std::vector<col_oid_t> get_columns_oids{postgres::ATTNUM_COL_OID,     postgres::ATTNAME_COL_OID,
-                                                postgres::ATTTYPID_COL_OID,   postgres::ATTLEN_COL_OID,
-                                                postgres::ATTNOTNULL_COL_OID, postgres::ADSRC_COL_OID};
+  const std::vector<col_oid_t> get_columns_oids{
+      postgres::PgAttribute::ATTNUM_COL_OID,     postgres::PgAttribute::ATTNAME_COL_OID,
+      postgres::PgAttribute::ATTTYPID_COL_OID,   postgres::PgAttribute::ATTLEN_COL_OID,
+      postgres::PgAttribute::ATTNOTNULL_COL_OID, postgres::PgAttribute::ADSRC_COL_OID};
   get_columns_pri_ = columns_->InitializerForProjectedRow(get_columns_oids);
   get_columns_prm_ = columns_->ProjectionMapForOids(get_columns_oids);
 
-  const std::vector<col_oid_t> delete_columns_oids{postgres::ATTNUM_COL_OID, postgres::ATTNAME_COL_OID};
+  const std::vector<col_oid_t> delete_columns_oids{postgres::PgAttribute::ATTNUM_COL_OID,
+                                                   postgres::PgAttribute::ATTNAME_COL_OID};
   delete_columns_pri_ = columns_->InitializerForProjectedRow(delete_columns_oids);
   delete_columns_prm_ = columns_->ProjectionMapForOids(delete_columns_oids);
 
@@ -399,23 +401,23 @@ template <typename Column, typename ClassOid, typename ColOid>
 bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::TransactionContext> txn,
                                    const ClassOid class_oid, const ColOid col_oid, const Column &col) {
   // Step 1: Insert into the table
-  auto *const redo = txn->StageWrite(db_oid_, postgres::COLUMN_TABLE_OID, pg_attribute_all_cols_pri_);
+  auto *const redo = txn->StageWrite(db_oid_, postgres::PgAttribute::COLUMN_TABLE_OID, pg_attribute_all_cols_pri_);
   // Write the attributes in the Redo Record
   auto oid_entry = reinterpret_cast<ColOid *>(
-      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTNUM_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::PgAttribute::ATTNUM_COL_OID]));
   auto relid_entry = reinterpret_cast<ClassOid *>(
-      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTRELID_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::PgAttribute::ATTRELID_COL_OID]));
   auto name_entry = reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTNAME_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::PgAttribute::ATTNAME_COL_OID]));
   auto type_entry = reinterpret_cast<uint32_t *>(redo->Delta()->AccessForceNotNull(
-      pg_attribute_all_cols_prm_[postgres::ATTTYPID_COL_OID]));  // TypeId is a uint8_t enum class, but in the schema
-                                                                 // it's INTEGER (32-bit)
+      pg_attribute_all_cols_prm_[postgres::PgAttribute::ATTTYPID_COL_OID]));  // TypeId is a uint8_t enum class, but in
+                                                                              // the schema it's INTEGER (32-bit)
   auto len_entry = reinterpret_cast<uint16_t *>(
-      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTLEN_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::PgAttribute::ATTLEN_COL_OID]));
   auto notnull_entry = reinterpret_cast<bool *>(
-      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTNOTNULL_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::PgAttribute::ATTNOTNULL_COL_OID]));
   auto dsrc_entry = reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ADSRC_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::PgAttribute::ADSRC_COL_OID]));
   *oid_entry = col_oid;
   *relid_entry = class_oid;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
@@ -563,14 +565,14 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
     auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
     NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     const auto *const col_name = reinterpret_cast<const storage::VarlenEntry *const>(
-        pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNAME_COL_OID]));
+        pr->AccessWithNullCheck(delete_columns_prm_[postgres::PgAttribute::ATTNAME_COL_OID]));
     NOISEPAGE_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
-    const auto *const col_oid =
-        reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNUM_COL_OID]));
+    const auto *const col_oid = reinterpret_cast<const uint32_t *const>(
+        pr->AccessWithNullCheck(delete_columns_prm_[postgres::PgAttribute::ATTNUM_COL_OID]));
     NOISEPAGE_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table
-    txn->StageDelete(db_oid_, postgres::COLUMN_TABLE_OID, slot);
+    txn->StageDelete(db_oid_, postgres::PgAttribute::COLUMN_TABLE_OID, slot);
     result = columns_->Delete(txn, slot);
     if (!result) {
       // Failed to delete one of the columns, clean up and return false to indicate failure
@@ -1727,15 +1729,19 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(
 
 template <typename Column, typename ColOid>
 Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map) {
-  const auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNUM_COL_OID)));
-  const auto col_name =
-      reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNAME_COL_OID)));
-  const auto col_type = static_cast<type::TypeId>(*reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(
-      postgres::ATTTYPID_COL_OID))));  // TypeId is a uint8_t enum class, but in the schema it's INTEGER (32-bit)
-  const auto col_len = *reinterpret_cast<uint16_t *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTLEN_COL_OID)));
-  const auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNOTNULL_COL_OID))));
+  const auto col_oid =
+      *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(postgres::PgAttribute::ATTNUM_COL_OID)));
+  const auto col_name = reinterpret_cast<storage::VarlenEntry *>(
+      pr->AccessForceNotNull(pr_map.at(postgres::PgAttribute::ATTNAME_COL_OID)));
+  const auto col_type = static_cast<type::TypeId>(*reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(
+      pr_map.at(postgres::PgAttribute::ATTTYPID_COL_OID))));  // TypeId is a uint8_t enum class, but in the schema it's
+                                                              // INTEGER (32-bit)
+  const auto col_len =
+      *reinterpret_cast<uint16_t *>(pr->AccessForceNotNull(pr_map.at(postgres::PgAttribute::ATTLEN_COL_OID)));
+  const auto col_null =
+      !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(postgres::PgAttribute::ATTNOTNULL_COL_OID))));
   const auto *const col_expr =
-      reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(postgres::ADSRC_COL_OID)));
+      reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(postgres::PgAttribute::ADSRC_COL_OID)));
 
   // TODO(WAN): Why are we deserializing expressions to make a catalog column? This is potentially busted.
   // Our JSON library is also not the most performant.

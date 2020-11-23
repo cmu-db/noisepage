@@ -257,7 +257,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       break;
     }
 
-    case (catalog::postgres::COLUMN_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(db_catalog_ptr->columns_oid_index_,
                                  db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->columns_name_index_,
@@ -401,7 +401,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       return ProcessSpecialCasePGClassRecord(txn, buffered_changes, start_idx);
     }
 
-    case (catalog::postgres::COLUMN_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
       NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
                        "Special case pg_attribute record must be a delete");
       // A delete into pg_attribute means we are deleting a column. There are two cases:
@@ -843,7 +843,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->namespaces_);
       break;
     }
-    case (catalog::postgres::COLUMN_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->columns_);
       break;
     }
@@ -921,11 +921,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->indexes_table_index_;
     }
 
-    case (catalog::postgres::COLUMN_OID_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgAttribute::COLUMN_OID_INDEX_OID.UnderlyingValue()): {
       return db_catalog->columns_oid_index_;
     }
 
-    case (catalog::postgres::COLUMN_NAME_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgAttribute::COLUMN_NAME_INDEX_OID.UnderlyingValue()): {
       return db_catalog->columns_name_index_;
     }
 

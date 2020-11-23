@@ -98,8 +98,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->indexes_table_index_ = Builder::BuildLookupIndex(Builder::GetIndexTableIndexSchema(oid), INDEX_TABLE_INDEX_OID);
 
   // Indexes on pg_attribute
-  dbc->columns_oid_index_ = Builder::BuildUniqueIndex(Builder::GetColumnOidIndexSchema(oid), COLUMN_OID_INDEX_OID);
-  dbc->columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(oid), COLUMN_NAME_INDEX_OID);
+  dbc->columns_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetColumnOidIndexSchema(oid), PgAttribute::COLUMN_OID_INDEX_OID);
+  dbc->columns_name_index_ =
+      Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(oid), PgAttribute::COLUMN_NAME_INDEX_OID);
 
   // Indexes on pg_type
   dbc->pg_type_.types_oid_index_ =
@@ -144,31 +146,31 @@ Schema Builder::GetColumnTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("attnum", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(ATTNUM_COL_OID);
+  columns.back().SetOid(PgAttribute::ATTNUM_COL_OID);
 
   columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(ATTRELID_COL_OID);
+  columns.back().SetOid(PgAttribute::ATTRELID_COL_OID);
 
   columns.emplace_back("attname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(ATTNAME_COL_OID);
+  columns.back().SetOid(PgAttribute::ATTNAME_COL_OID);
 
   columns.emplace_back("atttypid", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(ATTTYPID_COL_OID);
+  columns.back().SetOid(PgAttribute::ATTTYPID_COL_OID);
 
   columns.emplace_back("attlen", type::TypeId::SMALLINT, false,
                        parser::ConstantValueExpression(type::TypeId::SMALLINT));
-  columns.back().SetOid(ATTLEN_COL_OID);
+  columns.back().SetOid(PgAttribute::ATTLEN_COL_OID);
 
   columns.emplace_back("attnotnull", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(ATTNOTNULL_COL_OID);
+  columns.back().SetOid(PgAttribute::ATTNOTNULL_COL_OID);
 
   columns.emplace_back("adsrc", type::TypeId::VARCHAR, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(ADSRC_COL_OID);
+  columns.back().SetOid(PgAttribute::ADSRC_COL_OID);
 
   return Schema(columns);
 }
@@ -470,11 +472,11 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
+                       parser::ColumnValueExpression(db, PgAttribute::COLUMN_TABLE_OID, PgAttribute::ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   columns.emplace_back("attnum", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNUM_COL_OID));
+                       parser::ColumnValueExpression(db, PgAttribute::COLUMN_TABLE_OID, PgAttribute::ATTNUM_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary, must be a BWTREE due to ScanAscending usage
@@ -487,11 +489,11 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
+                       parser::ColumnValueExpression(db, PgAttribute::COLUMN_TABLE_OID, PgAttribute::ATTRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   columns.emplace_back("attname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNAME_COL_OID));
+                       parser::ColumnValueExpression(db, PgAttribute::COLUMN_TABLE_OID, PgAttribute::ATTNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
