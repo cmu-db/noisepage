@@ -189,8 +189,13 @@ class Messenger : public common::DedicatedThreadTask {
   /** @return The ConnectionRouter with the specified router_id. Created by ListenForConnection. */
   common::ManagedPointer<ConnectionRouter> GetConnectionRouter(const std::string &router_id);
 
-  /** Processes messages. Responsible for special callback functions specified by message ID. */
-  void ProcessMessage(const ZmqMessage &msg);
+  void ProcessDefaultMessage(std::string_view &sender_id, std::string_view &msg, uint64_t recv_cb_id) {
+    NOISEPAGE_ASSERT(recv_cb_id > static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS), "Bad message ID.");
+    // Default: there should be a stored callback.
+    auto &callback = callbacks_.at(recv_cb_id);
+    callback(common::ManagedPointer(this), sender_id, msg, recv_cb_id);
+    callbacks_.erase(recv_cb_id);
+  }
 
  private:
   friend ConnectionId;
@@ -206,6 +211,9 @@ class Messenger : public common::DedicatedThreadTask {
 
   /** The main server loop. */
   void ServerLoop();
+
+  /** Processes messages. Responsible for special callback functions specified by message ID. */
+  void ProcessMessage(const ZmqMessage &msg);
 
   /** The port that is used for all default endpoints. */
   const uint16_t port_;

@@ -59,7 +59,7 @@ class Replica {
  */
 class ReplicationManager {
  public:
-  enum class MessageType : uint8_t { RESERVED = 0, HEARTBEAT, RECOVER, ACK };
+  enum class MessageType : uint8_t { HEARTBEAT = 0, RECOVER = 1, ACK = 2 };
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
@@ -77,18 +77,18 @@ class ReplicationManager {
 
   /**
    * Sends a replication message to the replica.
-   * 
-   * TODO(wan/tianlei): sync/async seems relatively easy to do in this framework, though I need to fix up the multithreaded block case
-   * just capture a bool in the callback and flip it on response, have the cvar wait on that
-   * I don't think this should actually send the message, though - it should buffer the message to be sent instead
-   * 
+   *
+   * TODO(wan/tianlei): sync/async seems relatively easy to do in this framework, though I need to fix up the
+   * multithreaded block case just capture a bool in the callback and flip it on response, have the cvar wait on that I
+   * don't think this should actually send the message, though - it should buffer the message to be sent instead
+   *
    * @param replica_name The replica to send the replication command to.
    * @param type Type of replication message.
    * @param msg The message to be sent (e.g. serialized log records).
    * @param block synchronous/asynchronous
    */
   void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
-  
+
   /**
    * Sends an acknowledgement to the replica that the replication command is carried out successfully.
    * @param replica_name replica to send the replication command to.
@@ -130,7 +130,8 @@ class ReplicationManager {
   void StartRecovery() { recovery_manager_->StartRecovery(); }
 
  private:
-  void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
+  void EventLoop(common::ManagedPointer<noisepage::messenger::Messenger> messenger, std::string_view &sender_id,
+                 std::string_view &msg, uint64_t recv_cb_id);
   void ReplicaHeartbeat(const std::string &replica_name);
 
   void BuildReplicaList(const std::string &replication_hosts_path);
@@ -152,7 +153,9 @@ class ReplicationManager {
   /** Keeps track of currently stored record buffers. */
   common::ConcurrentQueue<storage::SerializedLogs> replication_consumer_queue_;
   /** Used for determining whether the message being sent over is used for replication. */
-  const std::string replication_message_identifier_ = "replication";
+  const std::string replication_message_identifier_ = "re_";
+  const std::string ack_message_identifier_ = "ac_";
+  const std::string heartbeat_message_identifier_ = "hb_";
 };
 
 }  // namespace noisepage::replication
