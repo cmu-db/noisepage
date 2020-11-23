@@ -18,7 +18,7 @@
 #include "transaction/transaction_defs.h"
 
 namespace noisepage::selfdriving {
-class WorkloadForecast;
+class PilotUtil;
 }
 namespace noisepage::metrics {
 
@@ -86,7 +86,7 @@ class PipelineMetricRawData : public AbstractRawData {
 
  private:
   friend class PipelineMetric;
-  friend class selfdriving::WorkloadForecast;
+  friend class selfdriving::PilotUtil;
   FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 
