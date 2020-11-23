@@ -21,7 +21,7 @@ namespace noisepage::execution::compiler {
 
 IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode &plan,
                                              CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CREATE_INDEX),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::CREATE_INDEX),
       codegen_(compilation_context->GetCodeGen()),
       tvi_var_(codegen_->MakeFreshIdentifier("tvi")),
       vpi_var_(codegen_->MakeFreshIdentifier("vpi")),
@@ -64,10 +64,10 @@ void IndexCreateTranslator::InitializeCounters(const Pipeline &pipeline, Functio
 }
 
 void IndexCreateTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_inserts_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_inserts_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::CREATE_INDEX,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_inserts_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::CREATE_INDEX,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_inserts_));
 }
 
 void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function,
@@ -301,10 +301,12 @@ ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
     auto *idx_size = codegen->CallBuiltin(ast::Builtin::IndexGetSize, {local_storage_interface_.GetPtr(codegen_)});
     builder.Append(codegen->DeclareVarWithInit(num_tuples, idx_size));
 
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+                  codegen->MakeExpr(num_tuples));
 
     auto heap = codegen->MakeFreshIdentifier("heap_size");
     auto *heap_size = codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize,

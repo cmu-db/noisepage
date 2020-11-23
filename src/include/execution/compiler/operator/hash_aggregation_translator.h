@@ -183,7 +183,7 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   ast::FunctionDecl *GenerateEndHookFunction() const;
 
  private:
-  friend class brain::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
   // The name of the variable used to:
   // 1. Materialize an input row and insert into the aggregation hash table.
   // 2. Read from an iterator when iterating over all aggregates.

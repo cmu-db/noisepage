@@ -5,8 +5,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "brain/pilot/pilot.h"
-#include "brain/pilot/pilot_thread.h"
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/dedicated_thread_registry.h"
@@ -18,6 +16,8 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "self_driving/modeling/pilot/pilot.h"
+#include "self_driving/modeling/pilot/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -391,11 +391,11 @@ class DBMain {
                                                                       common::ManagedPointer(metrics_manager));
       }
 
-      std::unique_ptr<brain::PilotThread> pilot_thread = DISABLED;
-      std::unique_ptr<brain::Pilot> pilot = DISABLED;
+      std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
+      std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
-        pilot = std::make_unique<brain::Pilot>(common::ManagedPointer(db_main), pilot_forecast_interval_);
-        pilot_thread = std::make_unique<brain::PilotThread>(
+        pilot = std::make_unique<selfdriving::Pilot>(common::ManagedPointer(db_main), pilot_forecast_interval_);
+        pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
       }
 
@@ -835,7 +835,6 @@ class DBMain {
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
-
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
 
       return settings_manager;
@@ -927,11 +926,14 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<brain::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
+  common::ManagedPointer<selfdriving::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
+
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<brain::PilotThread> GetPilotThread() const { return common::ManagedPointer(pilot_thread_); }
+  common::ManagedPointer<selfdriving::PilotThread> GetPilotThread() const {
+    return common::ManagedPointer(pilot_thread_);
+  }
 
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
@@ -975,8 +977,8 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
-  std::unique_ptr<brain::PilotThread> pilot_thread_;
-  std::unique_ptr<brain::Pilot> pilot_;
+  std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
+  std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 

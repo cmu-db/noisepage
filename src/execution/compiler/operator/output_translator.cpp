@@ -16,7 +16,7 @@ constexpr char OUTPUT_COL_PREFIX[] = "out";
 
 OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::OUTPUT),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::OUTPUT),
       output_var_(GetCodeGen()->MakeFreshIdentifier("outRow")),
       output_struct_(GetCodeGen()->MakeFreshIdentifier("OutputStruct")) {
   // Prepare the child.
@@ -67,8 +67,8 @@ void OutputTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuil
 }
 
 void OutputTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::OUTPUT,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));
 }
 

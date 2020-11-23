@@ -18,8 +18,8 @@ namespace noisepage::common {
  * @brief Singleton class responsible for maintaining and dispensing long running
  * (dedicated) threads to other system components.
  *
- * The class also serves as a control panel for the brain component to be able to collect information on threads in the
- * system and modify how threads are allocated.
+ * The class also serves as a control panel for the self-driving component to be able to collect information on threads
+ * in the system and modify how threads are allocated.
  *
  * Additionally, task owners are able to register or stop threads by calling RegisterDedicatedThread or StopTask
  * respectively.
