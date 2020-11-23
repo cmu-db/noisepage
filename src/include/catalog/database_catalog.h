@@ -552,7 +552,7 @@ class DatabaseCatalog {
    */
   void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
                   const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
-                  postgres::Type type_category);
+                  postgres::PgType::Type type_category);
 
   /**
    * Helper function to insert a type into PG_Type and the type indexes
@@ -566,7 +566,7 @@ class DatabaseCatalog {
    */
   void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type::TypeId internal_type,
                   const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
-                  postgres::Type type_category);
+                  postgres::PgType::Type type_category);
 
   /**
    * Helper function to query the oid and kind from

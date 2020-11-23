@@ -102,10 +102,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(oid), COLUMN_NAME_INDEX_OID);
 
   // Indexes on pg_type
-  dbc->types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(oid), TYPE_OID_INDEX_OID);
-  dbc->types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(oid), TYPE_NAME_INDEX_OID);
+  dbc->types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(oid), PgType::TYPE_OID_INDEX_OID);
+  dbc->types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(oid), PgType::TYPE_NAME_INDEX_OID);
   dbc->types_namespace_index_ =
-      Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(oid), TYPE_NAMESPACE_INDEX_OID);
+      Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(oid), PgType::TYPE_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_constraint
   dbc->pg_constraint_.constraints_oid_index_ =
@@ -313,26 +313,26 @@ Schema Builder::GetTypeTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("typoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(TYPOID_COL_OID);
+  columns.back().SetOid(PgType::TYPOID_COL_OID);
 
   columns.emplace_back("typname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(TYPNAME_COL_OID);
+  columns.back().SetOid(PgType::TYPNAME_COL_OID);
 
   columns.emplace_back("typnamespace", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(TYPNAMESPACE_COL_OID);
+  columns.back().SetOid(PgType::TYPNAMESPACE_COL_OID);
 
   columns.emplace_back("typlen", type::TypeId::SMALLINT, false,
                        parser::ConstantValueExpression(type::TypeId::SMALLINT));
-  columns.back().SetOid(TYPLEN_COL_OID);
+  columns.back().SetOid(PgType::TYPLEN_COL_OID);
 
   columns.emplace_back("typbyval", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(TYPBYVAL_COL_OID);
+  columns.back().SetOid(PgType::TYPBYVAL_COL_OID);
 
   columns.emplace_back("typtype", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
-  columns.back().SetOid(TYPTYPE_COL_OID);
+  columns.back().SetOid(PgType::TYPTYPE_COL_OID);
 
   return Schema(columns);
 }
@@ -502,7 +502,7 @@ IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("typoid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPOID_COL_OID));
+                       parser::ColumnValueExpression(db, PgType::TYPE_TABLE_OID, PgType::TYPOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -515,11 +515,11 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("typnamespace", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
+                       parser::ColumnValueExpression(db, PgType::TYPE_TABLE_OID, PgType::TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   columns.emplace_back("typname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAME_COL_OID));
+                       parser::ColumnValueExpression(db, PgType::TYPE_TABLE_OID, PgType::TYPNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -532,7 +532,7 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("typnamespace", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
+                       parser::ColumnValueExpression(db, PgType::TYPE_TABLE_OID, PgType::TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
