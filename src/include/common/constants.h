@@ -100,7 +100,7 @@ struct Constants {
   static constexpr const float ADAPTIVE_PRED_ORDER_SAMPLE_FREQ = 0.1;
 
   /**
-   * Flag indicating if parallel execution is supported.
+   * Flag indicating if parallel execution is enabled.
    */
   static constexpr const bool IS_PARALLEL_EXECUTION_ENABLED = true;
 
