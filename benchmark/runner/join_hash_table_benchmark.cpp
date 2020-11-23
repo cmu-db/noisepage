@@ -127,7 +127,7 @@ static void BM_Build(benchmark::State &state) {
   // Make build tuples.
   SFC64 gen(std::random_device{}());
   std::uniform_int_distribution<uint64_t> dist(0, num_tuples);
-  std::vector<Tuple<N>> probe_tuples(num_tuples * 10);
+  std::vector<Tuple<N>> probe_tuples(num_tuples * 50);
   std::generate(probe_tuples.begin(), probe_tuples.end(), [&]() { return dist(gen);});
 
   for (auto _ : state) {
@@ -139,8 +139,9 @@ static void BM_Build(benchmark::State &state) {
     // Probe.
     uint64_t count = 0;
     for (const auto &probe : probe_tuples) {
-      jht->template Lookup<Concise>(probe.Hash());
-      count++;
+      count += (jht->template Lookup<Concise>(probe.Hash()).HasNext());
+      //jht->template Lookup<Concise>(probe.Hash()).HasNext();
+      //jht->template Lookup<Concise>(probe.Hash());
     }
     //benchmark::DoNotOptimize(count);
     state.counters["Probes"] = count;
@@ -155,7 +156,7 @@ static void BM_Build(benchmark::State &state) {
 // ---------------------------------------------------------
 
 static void CustomArguments(benchmark::internal::Benchmark *b) {
-  for (int64_t i = 10; i < 21; i++) {
+  for (int64_t i = 18; i < 21; i++) {
     b->Arg(1 << i);
   }
 }
