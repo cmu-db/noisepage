@@ -44,8 +44,6 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = CreateNamespace(txn, "public", postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  // TODO(WAN): BootstrapTypes() used to happen here, _before_ pg_type was created.
-
   // pg_namespace and associated indexes
   retval = CreateTableEntry(txn, postgres::NAMESPACE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
                             "pg_namespace", postgres::Builder::GetNamespaceTableSchema());
