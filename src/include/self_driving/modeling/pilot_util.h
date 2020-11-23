@@ -1,5 +1,11 @@
 #pragma once
 
+#include <list>
+#include <map>
+#include <tuple>
+#include <unordered_map>
+#include <vector>
+
 #include "binder/bind_node_visitor.h"
 #include "common/action_context.h"
 #include "common/error/exception.h"
@@ -33,6 +39,16 @@ class PilotUtil {
    */
   static void CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
                                       common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
+
+  /**
+   * Executing forecasted queries and collect pipeline features for cost estimation to be used in action selection
+   * @param db_main pointer to DBMain to access settings & metrics managers, transaction layer, and catalog layer
+   * @param forecast pointer to object storing result of workload forecast
+   */
+  static void GroupFeaturesByOU(
+      std::multimap<std::tuple<execution::query_id_t, execution::pipeline_id_t>, uint64_t> *pipeline_to_ou_position,
+      const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
+      std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
 };
 
 }  // namespace noisepage::selfdriving
