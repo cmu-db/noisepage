@@ -722,14 +722,19 @@ void PlanGenerator::BuildAggregatePlan(
   }
 
   auto agg_id = 0;
-  ExprMap output_expr_map;
+  /* Each ExprMap represents a single group of tuples (i.e. one relation). For aggregates we manually output all the
+   * group by columns into the 0th relation and all the aggregate values into the 1st relation. Therefore we need a
+   * separate map for each.
+   */
+  ExprMap gb_output_expr_map;
+  ExprMap agg_output_expr_map;
   std::vector<planner::OutputSchema::Column> columns;
   for (size_t idx = 0; idx < output_cols_.size(); ++idx) {
     auto expr = output_cols_[idx];
     expr->DeriveReturnValueType();
-    output_expr_map[expr] = static_cast<unsigned>(idx);
 
     if (parser::ExpressionUtil::IsAggregateExpression(expr->GetExpressionType())) {
+      agg_output_expr_map[expr] = static_cast<unsigned>(agg_id);
       // We need to evaluate the expression first, convert ColumnValue => DerivedValue
       auto eval = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
       NOISEPAGE_ASSERT(parser::ExpressionUtil::IsAggregateExpression(eval->GetExpressionType()),
@@ -740,10 +745,10 @@ void PlanGenerator::BuildAggregatePlan(
       builder.AddAggregateTerm(common::ManagedPointer(agg_expr));
 
       // Maps the aggregate value in the right tuple to the output
-      // See aggregateor.cpp for more detail...
       auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 1, agg_id++);
       columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(dve));
     } else if (gb_map.find(expr) != gb_map.end()) {
+      gb_output_expr_map[expr] = static_cast<unsigned>(idx - agg_id);
       auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 0, gb_map[expr]);
       columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(dve));
     }
@@ -753,9 +758,11 @@ void PlanGenerator::BuildAggregatePlan(
   auto output_schema = std::make_unique<planner::OutputSchema>(std::move(columns));
 
   // Prepare having clause
-  auto eval_have = parser::ExpressionUtil::EvaluateExpression({output_expr_map}, having_predicate);
-  auto predicate =
-      parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_have), {output_expr_map}).release();
+  auto eval_have =
+      parser::ExpressionUtil::EvaluateExpression({gb_output_expr_map, agg_output_expr_map}, having_predicate);
+  auto predicate = parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_have),
+                                                              {gb_output_expr_map, agg_output_expr_map})
+                       .release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
   builder.SetOutputSchema(std::move(output_schema));

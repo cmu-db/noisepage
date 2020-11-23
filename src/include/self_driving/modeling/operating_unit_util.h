@@ -1,14 +1,15 @@
 #pragma once
 
 #include <queue>
+#include <string>
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
-#include "brain/operating_unit.h"
 #include "parser/expression/abstract_expression.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 /**
  * Utility class for OperatingUnits
@@ -45,13 +46,13 @@ class OperatingUnitUtil {
   }
 
   /**
-   * Converts a expression to brain::ExecutionOperatingUnitType
+   * Converts a expression to selfdriving::ExecutionOperatingUnitType
    *
-   * Function returns brain::ExecutionOperatingUnitType::INVALID if the
+   * Function returns selfdriving::ExecutionOperatingUnitType::INVALID if the
    * parser::ExpressionType does not have an equivalent conversion.
    *
    * @param expr Expression
-   * @return converted equivalent brain::ExecutionOperatingUnitType
+   * @return converted equivalent selfdriving::ExecutionOperatingUnitType
    */
   static std::pair<type::TypeId, ExecutionOperatingUnitType> ConvertExpressionType(
       common::ManagedPointer<parser::AbstractExpression> expr) {
@@ -124,8 +125,7 @@ class OperatingUnitUtil {
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
           case type::TypeId::VARCHAR:
           case type::TypeId::VARBINARY:
-            // TODO(wz2): Revisit this since VARCHAR/VARBINARY is more than just integer
-            return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
+            return std::make_pair(type, ExecutionOperatingUnitType::OP_VARCHAR_COMPARE);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
         }
@@ -206,6 +206,12 @@ class OperatingUnitUtil {
     NOISEPAGE_ASSERT(found, "The feature was not found.");
     return features[idx];
   }
+
+  /**
+   * Converts an ExecutionOperatingUnitType enum to string representation
+   * @param f ExecutionOperatingUnitType to convert
+   */
+  static std::string ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f);
 };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

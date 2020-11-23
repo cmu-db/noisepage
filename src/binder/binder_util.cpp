@@ -90,13 +90,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::TINYINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("tinyint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type tinyint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("tinyint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -105,13 +112,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::SMALLINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("smallint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type smallint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("smallint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -120,13 +134,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::INTEGER: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("integer out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type integer: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("integer out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -135,13 +156,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::BIGINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("bigint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type bigint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("bigint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);

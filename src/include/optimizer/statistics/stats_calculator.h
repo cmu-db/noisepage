@@ -46,6 +46,12 @@ class StatsCalculator : public OperatorVisitor {
   void Visit(const LogicalInnerJoin *op) override;
 
   /**
+   * Visit a LogicalSemiJoin
+   * @param op Operator being visited
+   */
+  void Visit(const LogicalSemiJoin *op) override;
+
+  /**
    * Visit a LogicalAggregateAndGroupBy
    * @param op Operator being visited
    */

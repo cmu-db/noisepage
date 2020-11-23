@@ -62,7 +62,7 @@ class Context;
   /* NON_PRIM(CSVReader, noisepage::execution::util::CSVReader)                                */ \
   NON_PRIM(OutputBuffer, noisepage::execution::exec::OutputBuffer)                                \
   NON_PRIM(ExecutionContext, noisepage::execution::exec::ExecutionContext)                        \
-  NON_PRIM(ExecOUFeatureVector, noisepage::brain::ExecOUFeatureVector)                            \
+  NON_PRIM(ExecOUFeatureVector, noisepage::selfdriving::ExecOUFeatureVector)                      \
   NON_PRIM(FilterManager, noisepage::execution::sql::FilterManager)                               \
   NON_PRIM(HashTableEntry, noisepage::execution::sql::HashTableEntry)                             \
   NON_PRIM(HashTableEntryIterator, noisepage::execution::sql::HashTableEntryIterator)             \
