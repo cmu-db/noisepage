@@ -274,12 +274,7 @@ class DatabaseCatalog {
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  /**
-   * Creates a language entry into the pg_language table
-   * @param txn transaction to use
-   * @param lanname name of language to insert
-   * @return oid of created entry if successful else INVALID_LANGUAGE_OID
-   */
+  /** @see PgLanguageImpl::CreateLanguage */
   language_oid_t CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
 
