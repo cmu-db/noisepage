@@ -12,6 +12,7 @@
 #include "catalog/postgres/pg_language_impl.h"
 #include "catalog/postgres/pg_proc_impl.h"
 #include "catalog/postgres/pg_type.h"
+#include "catalog/postgres/pg_type_impl.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
@@ -41,6 +42,7 @@ namespace postgres {
 class PgConstraintImpl;
 class PgLanguageImpl;
 class PgProcImpl;
+class PgTypeImpl;
 }  // namespace postgres
 
 class IndexSchema;
@@ -349,6 +351,7 @@ class DatabaseCatalog {
   friend class postgres::PgConstraintImpl;
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
+  friend class postgres::PgTypeImpl;
 
   // TODO(tanujnay112) Add support for other parameters
 
@@ -448,19 +451,13 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer delete_columns_pri_;
   storage::ProjectionMap delete_columns_prm_;
 
-  storage::SqlTable *types_;
-  storage::index::Index *types_oid_index_;
-  storage::index::Index *types_name_index_;  // indexed on namespace OID and name
-  storage::index::Index *types_namespace_index_;
-  storage::ProjectedRowInitializer pg_type_all_cols_pri_;
-  storage::ProjectionMap pg_type_all_cols_prm_;
-
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
+  postgres::PgTypeImpl pg_type_;
   postgres::PgConstraintImpl pg_constraint_;
   postgres::PgLanguageImpl pg_language_;
   postgres::PgProcImpl pg_proc_;
@@ -469,6 +466,7 @@ class DatabaseCatalog {
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
         db_oid_(oid),
         garbage_collector_(garbage_collector),
+        pg_type_(db_oid_),
         pg_constraint_(db_oid_),
         pg_language_(db_oid_),
         pg_proc_(db_oid_) {}
@@ -529,42 +527,13 @@ class DatabaseCatalog {
   bool DeleteIndexes(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /**
-   * Bootstraps the built-in types found in type::Type
-   * @param txn transaction to insert into catalog with
-   */
-  void BootstrapTypes(common::ManagedPointer<transaction::TransactionContext> txn);
-
-  /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the
    * catalog shouldn't undergo schema changes at runtime
    */
   void BootstrapPRIs();
 
-  /**
-   * Helper function to insert a type into PG_Type and the type indexes
-   * @param txn transaction to insert with
-   * @param type_oid oid of type to insert with
-   * @param name type name
-   * @param namespace_oid namespace to insert type into
-   * @param len length of type in bytes. len should be -1 for varlen types
-   * @param by_val true if type should be passed by value. false if passed by reference
-   * @param type_category category of type
-   */
+  /** @see PgTypeImpl::InsertType */
   void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
-                  const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
-                  postgres::PgType::Type type_category);
-
-  /**
-   * Helper function to insert a type into PG_Type and the type indexes
-   * @param txn transaction to insert with
-   * @param internal_type internal type to insert
-   * @param name type name
-   * @param namespace_oid namespace to insert type into
-   * @param len length of type in bytes. len should be -1 for varlen types
-   * @param by_val true if type should be passed by value. false if passed by reference
-   * @param type_category category of type
-   */
-  void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type::TypeId internal_type,
                   const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
                   postgres::PgType::Type type_category);
 

@@ -14,6 +14,7 @@ class DatabaseCatalog;
 namespace postgres {
 class PgLanguageImpl;
 class PgProcImpl;
+class PgTypeImpl;
 }  // namespace postgres
 }  // namespace noisepage::catalog
 
@@ -273,6 +274,7 @@ class ProjectedRowInitializer {
   friend class catalog::DatabaseCatalog;           // access to the PRI default constructor
   friend class catalog::postgres::PgLanguageImpl;  // access to the PRI default constructor
   friend class catalog::postgres::PgProcImpl;      // access to the PRI default constructor
+  friend class catalog::postgres::PgTypeImpl;      // access to the PRI default constructor
   friend class execution::sql::StorageInterface;   // access to the PRI default constructor
   friend class WriteAheadLoggingTests;
   friend class AbstractLogProvider;

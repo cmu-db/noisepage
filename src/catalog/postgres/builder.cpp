@@ -76,7 +76,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->classes_ = new storage::SqlTable(block_store, Builder::GetClassTableSchema());
   dbc->indexes_ = new storage::SqlTable(block_store, Builder::GetIndexTableSchema());
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
-  dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
+  dbc->pg_type_.types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->pg_constraint_.constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->pg_language_.languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->pg_proc_.procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
@@ -102,9 +102,11 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(oid), COLUMN_NAME_INDEX_OID);
 
   // Indexes on pg_type
-  dbc->types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(oid), PgType::TYPE_OID_INDEX_OID);
-  dbc->types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(oid), PgType::TYPE_NAME_INDEX_OID);
-  dbc->types_namespace_index_ =
+  dbc->pg_type_.types_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(oid), PgType::TYPE_OID_INDEX_OID);
+  dbc->pg_type_.types_name_index_ =
+      Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(oid), PgType::TYPE_NAME_INDEX_OID);
+  dbc->pg_type_.types_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(oid), PgType::TYPE_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_constraint

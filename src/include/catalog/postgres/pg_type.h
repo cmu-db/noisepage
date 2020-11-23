@@ -4,11 +4,32 @@
 
 #include "catalog/catalog_defs.h"
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
+class Builder;
+class PgTypeImpl;
 
 /** The OIDs used by the NoisePage version of pg_type. */
 class PgType {
  public:
+  /** The category of the type. */
+  enum class Type : char {
+    BASE = 'b',       ///< Base type.
+    COMPOSITE = 'c',  ///< Composite type.
+    PG_DOMAIN = 'd',  ///< Domain type.
+    ENUM = 'e',       ///< Enumeration type.
+    PSEUDO = 'p',     ///< Pseudo type.
+    RANGE = 'r',      ///< Range type.
+  };
+
+ private:
+  friend class storage::RecoveryManager;
+  friend class Builder;
+  friend class PgTypeImpl;
+
   static constexpr table_oid_t TYPE_TABLE_OID = table_oid_t(51);
   static constexpr index_oid_t TYPE_OID_INDEX_OID = index_oid_t(52);
   static constexpr index_oid_t TYPE_NAME_INDEX_OID = index_oid_t(53);
@@ -30,15 +51,6 @@ class PgType {
 
   static constexpr std::array<col_oid_t, NUM_PG_TYPE_COLS> PG_TYPE_ALL_COL_OIDS = {
       TYPOID_COL_OID, TYPNAME_COL_OID, TYPNAMESPACE_COL_OID, TYPLEN_COL_OID, TYPBYVAL_COL_OID, TYPTYPE_COL_OID};
-
-  enum class Type : char {
-    BASE = 'b',
-    COMPOSITE = 'c',
-    PG_DOMAIN = 'd',
-    ENUM = 'e',
-    PSEUDO = 'p',
-    RANGE = 'r',
-  };
 
   // TODO(tanujnay112): Not sure how to do this without hardcoding
   static constexpr type_oid_t VAR_ARRAY_OID = type_oid_t(11);

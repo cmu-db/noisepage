@@ -288,12 +288,12 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     }
 
     case (catalog::postgres::PgType::TYPE_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->types_oid_index_,
-                                 db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->types_name_index_,
-                                 db_catalog_ptr->types_name_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->types_namespace_index_,
-                                 db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_type_.types_oid_index_,
+                                 db_catalog_ptr->pg_type_.types_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_type_.types_name_index_,
+                                 db_catalog_ptr->pg_type_.types_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_type_.types_namespace_index_,
+                                 db_catalog_ptr->pg_type_.types_namespace_index_->metadata_.GetSchema());
       break;
     }
 
@@ -856,7 +856,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       break;
     }
     case (catalog::postgres::PgType::TYPE_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_type_.types_);
       break;
     }
     case (catalog::postgres::PgLanguage::LANGUAGE_TABLE_OID.UnderlyingValue()): {
@@ -930,15 +930,15 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     }
 
     case (catalog::postgres::PgType::TYPE_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->types_oid_index_;
+      return db_catalog->pg_type_.types_oid_index_;
     }
 
     case (catalog::postgres::PgType::TYPE_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->types_name_index_;
+      return db_catalog->pg_type_.types_name_index_;
     }
 
     case (catalog::postgres::PgType::TYPE_NAMESPACE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->types_namespace_index_;
+      return db_catalog->pg_type_.types_namespace_index_;
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID.UnderlyingValue()): {
