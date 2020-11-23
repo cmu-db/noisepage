@@ -11,6 +11,7 @@
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
 #include "network/network_io_utils.h"
+#include "storage/recovery/recovery_manager.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
@@ -58,7 +59,7 @@ class Replica {
  */
 class ReplicationManager {
  public:
-  enum class MessageType : uint8_t { RESERVED = 0, HEARTBEAT };
+  enum class MessageType : uint8_t { RESERVED = 0, HEARTBEAT, RECOVER, ACK };
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
@@ -66,12 +67,33 @@ class ReplicationManager {
                      uint16_t port, const std::string &replication_hosts_path,
                      common::ManagedPointer<storage::ReplicationLogProvider> provider);
 
+  /**
+   * Establish a connection to a replica.
+   * @param replica_name replica to connect to.
+   * @param hostname replica hostname.
+   * @param port replica port.
+   */
   void ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port);
 
-  // sync/async seems relatively easy to do in this framework, though I need to fix up the multithreaded block case
-  // just capture a bool in the callback and flip it on response, have the cvar wait on that
-  // I don't think this should actually send the message, though - it should buffer the message to be sent instead
+  /**
+   * Sends a replication message to the replica.
+   * 
+   * TODO(wan/tianlei): sync/async seems relatively easy to do in this framework, though I need to fix up the multithreaded block case
+   * just capture a bool in the callback and flip it on response, have the cvar wait on that
+   * I don't think this should actually send the message, though - it should buffer the message to be sent instead
+   * 
+   * @param replica_name The replica to send the replication command to.
+   * @param type Type of replication message.
+   * @param msg The message to be sent (e.g. serialized log records).
+   * @param block synchronous/asynchronous
+   */
   void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
+  
+  /**
+   * Sends an acknowledgement to the replica that the replication command is carried out successfully.
+   * @param replica_name replica to send the replication command to.
+   */
+  void ReplicaAck(const std::string &replica_name);
 
   /** @return The port that replication is running on. */
   uint16_t GetPort() const { return port_; }
@@ -94,12 +116,18 @@ class ReplicationManager {
   /**
    * Serialize log record buffer to json. This operation empties the record
    * buffer queue.
-   * @return serialized json
+   * @return serialized json string
    */
-  nlohmann::json SerializeLogRecords();
+  std::string SerializeLogRecords();
 
   /** Parse the log record buffer and redirect to replication log provider for recovery. */
   void RecoverFromSerializedLogRecords(const std::string &string_view);
+
+  void SetRecoveryManager(common::ManagedPointer<storage::RecoveryManager> recovery_manager) {
+    recovery_manager_ = recovery_manager;
+  }
+
+  void StartRecovery() { recovery_manager_->StartRecovery(); }
 
  private:
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
@@ -107,8 +135,8 @@ class ReplicationManager {
 
   void BuildReplicaList(const std::string &replication_hosts_path);
 
-  // todo(wan): division of functionality?'
-  // todo(wan): RM would become a dependency to most components
+  // TODO(wan/tianlei): division of functionality?'
+  // TODO(wan/tianlei): RM would become a dependency to most components
 
   common::ManagedPointer<messenger::ConnectionId> GetReplicaConnection(const std::string &replica_name);
 
@@ -119,7 +147,8 @@ class ReplicationManager {
   std::mutex mutex_;
   std::condition_variable cvar_;
 
-  common::ManagedPointer<storage::ReplicationLogProvider> provider_;
+  common::ManagedPointer<storage::RecoveryManager> recovery_manager_;
+  common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
   /** Keeps track of currently stored record buffers. */
   common::ConcurrentQueue<storage::SerializedLogs> replication_consumer_queue_;
   /** Used for determining whether the message being sent over is used for replication. */

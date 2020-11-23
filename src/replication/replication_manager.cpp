@@ -20,11 +20,12 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
                                        const std::string &network_identity, uint16_t port,
                                        const std::string &replication_hosts_path,
                                        common::ManagedPointer<storage::ReplicationLogProvider> provider)
-    : messenger_(messenger), identity_(network_identity), port_(port), provider_(provider) {
+    : messenger_(messenger), identity_(network_identity), port_(port), replication_log_provider_(provider) {
   auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
   messenger_->ListenForConnection(listen_destination, network_identity,
                                   [this](common::ManagedPointer<messenger::Messenger> messenger,
                                          const messenger::ZmqMessage &msg) { EventLoop(messenger, msg); });
+  return;
   BuildReplicaList(replication_hosts_path);
   for (const auto &replica : replicas_) {
     ReplicaHeartbeat(replica.first);
@@ -87,6 +88,7 @@ void ReplicationManager::ReplicaConnect(const std::string &replica_name, const s
 void ReplicationManager::ReplicaSend(const std::string &replica_name, const ReplicationManager::MessageType type,
                                      const std::string &msg, bool block) {
   std::unique_lock<std::mutex> lock(mutex_);
+  REPLICATION_LOG_INFO("Sending to replication message to: " + replica_name);
   bool completed = false;
   messenger_->SendMessage(
       GetReplicaConnection(replica_name), msg,
@@ -103,11 +105,28 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
   lock.unlock();
 }
 
+void ReplicationManager::ReplicaAck(const std::string &replica_name) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  messenger_->SendMessage(GetReplicaConnection(replica_name), "", nullptr,
+                          static_cast<uint64_t>(ReplicationManager::MessageType::ACK));
+  lock.unlock();
+}
+
 void ReplicationManager::EventLoop(common::ManagedPointer<noisepage::messenger::Messenger> messenger,
                                    const noisepage::messenger::ZmqMessage &msg) {
   switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
     case MessageType::HEARTBEAT:
       REPLICATION_LOG_INFO(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
+      break;
+    case MessageType::ACK:
+      REPLICATION_LOG_INFO(fmt::format("Ack from: {}", msg.GetRoutingId()));
+      messenger_->ProcessMessage(msg);
+      break;
+    case MessageType::RECOVER:
+      REPLICATION_LOG_INFO(fmt::format("Message from: {}", msg.GetRoutingId()));
+      // Recover from log records first, then send back an acknowledgement.
+      RecoverFromSerializedLogRecords(std::string(msg.GetMessage()));
+      ReplicaAck(std::string(msg.GetRoutingId()));
       break;
     default:
       break;
@@ -161,7 +180,7 @@ common::ManagedPointer<noisepage::messenger::ConnectionId> ReplicationManager::G
   return replicas_.at(replica_name).GetConnectionId();
 }
 
-nlohmann::json ReplicationManager::SerializeLogRecords() {
+std::string ReplicationManager::SerializeLogRecords() {
   // Grab buffers in queue.
   std::deque<storage::BufferedLogWriter *> temp_buffer_queue;
   uint64_t data_size = 0;
@@ -185,14 +204,19 @@ nlohmann::json ReplicationManager::SerializeLogRecords() {
 
   j["size"] = message_size;
   j["content"] = nlohmann::json::to_cbor(message_content);
-  STORAGE_LOG_INFO("Sending replication message of size ", message_size);
+  REPLICATION_LOG_INFO("Sending replication message of size " + std::to_string(message_size));
 
-  return j;
+  return j.dump();
 }
 
-void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &string_view) {
+void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_record) {
+  if (log_record.length() <= 0) {
+    REPLICATION_LOG_ERROR("Invalid log record size.");
+    return;
+  }
+
   // Parse the message.
-  nlohmann::json message = nlohmann::json::parse(string_view);
+  nlohmann::json message = nlohmann::json::parse(log_record);
 
   // Get the original replication info.
   size_t message_size = message["size"];
@@ -207,7 +231,8 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &stri
   buffer->FillBufferFrom(view, message_size);
 
   // Pass to log provider for recovery.
-  provider_->HandBufferToReplication(std::move(buffer));
+  REPLICATION_LOG_INFO("Recovering from logs...");
+  replication_log_provider_->HandBufferToReplication(std::move(buffer));
 }
 
 }  // namespace noisepage::replication

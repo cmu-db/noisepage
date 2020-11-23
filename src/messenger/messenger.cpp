@@ -165,6 +165,7 @@ class MessengerPolledSockets {
       std::scoped_lock lock(mutex_);
       writer_.items_.emplace_back(pollitem);
       writer_.server_callbacks_.emplace_back(callback);
+      MESSENGER_LOG_INFO("Adding callback");
     }
   }
 
@@ -301,6 +302,8 @@ ConnectionRouter::ConnectionRouter(common::ManagedPointer<Messenger> messenger, 
   MESSENGER_LOG_INFO(
       fmt::format("[PID={}] Messenger ({}) listening: {}", ::getpid(), identity, target.GetDestination()));
   messenger->polled_sockets_->AddPollItem(socket_.get(), common::ManagedPointer(&callback_));
+  MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger ({}) Added callback", ::getpid(), identity));
+  MESSENGER_LOG_INFO(messenger->polled_sockets_->GetPollItems().server_callbacks_.size());
 }
 
 ConnectionRouter::~ConnectionRouter() = default;
@@ -473,8 +476,9 @@ void Messenger::ServerLoop() {
         common::ManagedPointer<zmq::socket_t> socket(reinterpret_cast<zmq::socket_t *>(&item.socket));
         ZmqMessage msg = ZmqUtil::RecvMsg(socket);
         bool has_custom_serverloop = poll_items.server_callbacks_[i] != nullptr;
-        MESSENGER_LOG_TRACE("[PID={}] Messenger RECV-FR {} (custom serverloop: {}): {}", ::getpid(), msg.GetRoutingId(),
-                            has_custom_serverloop, msg.GetRawPayload());
+        MESSENGER_LOG_INFO("[PID={}] Messenger RECV-FR {} (custom serverloop: {}): {}", ::getpid(), msg.GetRoutingId(),
+                           has_custom_serverloop, msg.GetRawPayload());
+
         if (!has_custom_serverloop) {
           ProcessMessage(msg);
         } else {

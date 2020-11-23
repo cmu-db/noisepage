@@ -258,6 +258,9 @@ class Messenger : public common::DedicatedThreadTask {
   /** @return The ConnectionRouter with the specified router_id. Created by ListenForConnection. */
   common::ManagedPointer<ConnectionRouter> GetConnectionRouter(const std::string &router_id);
 
+  /** Processes messages. Responsible for special callback functions specified by message ID. */
+  void ProcessMessage(const ZmqMessage &msg);
+
  private:
   friend ConnectionId;
   friend ConnectionRouter;
@@ -272,9 +275,6 @@ class Messenger : public common::DedicatedThreadTask {
 
   /** The main server loop. */
   void ServerLoop();
-
-  /** Processes messages. Responsible for special callback functions specified by message ID. */
-  void ProcessMessage(const ZmqMessage &msg);
 
   /** The port that is used for all default endpoints. */
   const uint16_t port_;

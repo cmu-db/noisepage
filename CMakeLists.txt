@@ -904,6 +904,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/optimizer/*.cpp"
         "test/parser/*.cpp"
         "test/planner/*.cpp"
+        "test/replication/*.cpp"
         "test/settings/*.cpp"
         "test/storage/*.cpp"
         "test/traffic_cop/*.cpp"
@@ -987,6 +988,7 @@ add_jumbotest("test/network" "network_test;")
 add_jumbotest("test/optimizer" "hyperloglog_test;")
 add_jumbotest("test/parser" "")
 add_jumbotest("test/planner" "")
+add_jumbotest("test/replication" "replication_test;")
 add_jumbotest("test/settings" "")
 add_jumbotest("test/storage" "block_access_controller_test;block_compactor_test;bwtree_test;bwtree_index_test;data_table_test;data_table_concurrent_test;hash_index_test;large_garbage_collector_test;log_test;tuple_access_strategy_test;")
 add_jumbotest("test/traffic_cop" "traffic_cop_test;")
@@ -999,10 +1001,12 @@ set_tests_properties(
         catalog_sql_test jumbotest_catalog_catalog_sql_test
         metrics_test jumbotest_metrics_metrics_test
         network_test jumbotest_network_network_test
+        replication_test jumbotest_replication_replication_test
         traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
         PROPERTIES RESOURCE_GROUPS "port15721:1")
 set_tests_properties(
         messenger_test jumbotest_messenger_messenger_test
+        replication_test jumbotest_replication_replication_test
         PROPERTIES RESOURCE_GROUPS "port15721:1;port15722:1;port15723:1;port9022:1;port9023:1;port9024:1")
 
 #######################################################################################################################

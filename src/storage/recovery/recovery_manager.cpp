@@ -27,9 +27,11 @@
 namespace noisepage::storage {
 
 void RecoveryManager::StartRecovery() {
+  STORAGE_LOG_INFO("Starting recovery...");
   NOISEPAGE_ASSERT(recovery_task_ == nullptr, "Recovery already started");
   recovery_task_ =
       thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
+  STORAGE_LOG_INFO("Ending recovery...");
 }
 
 void RecoveryManager::WaitForRecoveryToFinish() {

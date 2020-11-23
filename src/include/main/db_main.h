@@ -358,19 +358,20 @@ class DBMain {
           std::make_unique<storage::RecordBufferSegmentPool>(record_buffer_segment_size_, record_buffer_segment_reuse_);
 
       std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
-      std::unique_ptr<replication::ReplicationManager> replication_manager = DISABLED;
       if (use_messenger_) {
         messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
                                                            messenger_identity_);
       }
 
+      std::unique_ptr<storage::ReplicationLogProvider> replication_log_provider = DISABLED;
+      std::unique_ptr<replication::ReplicationManager> replication_manager = DISABLED;
       if (use_replication_) {
-        NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
-        auto log_provider =
+        NOISEPAGE_ASSERT(use_replication_, "Replication is enabled.");
+        replication_log_provider =
             std::make_unique<storage::ReplicationLogProvider>(replication_timeout_, use_synchronous_replication_);
         replication_manager = std::make_unique<replication::ReplicationManager>(
             messenger_layer->GetMessenger(), messenger_identity_, replication_port_, replication_hosts_path_,
-            common::ManagedPointer(log_provider));
+            common::ManagedPointer(replication_log_provider));
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
@@ -404,6 +405,19 @@ class DBMain {
         catalog_layer =
             std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
                                            common::ManagedPointer(log_manager), create_default_database_);
+      }
+
+      if (use_replication_) {
+        std::chrono::seconds replication_timeout{10};
+        storage::BlockStore block_store{100, 100};
+
+        auto recovery_manager = std::make_unique<storage::RecoveryManager>(
+            common::ManagedPointer<storage::AbstractLogProvider>(
+                static_cast<storage::AbstractLogProvider *>(replication_log_provider.get())),
+            catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(), txn_layer->GetDeferredActionManager(),
+            common::ManagedPointer(thread_registry), common::ManagedPointer(&block_store));
+        replication_manager->SetRecoveryManager(common::ManagedPointer(recovery_manager));
+        replication_manager->StartRecovery();
       }
 
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
@@ -739,6 +753,24 @@ class DBMain {
      * @param value use component
      * @return self reference for chaining
      */
+    Builder &SetUseReplication(const bool value) {
+      use_replication_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetReplicationPort(const int value) {
+      replication_port_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
     Builder &SetUseExecution(const bool value) {
       use_execution_ = value;
       return *this;
@@ -976,6 +1008,11 @@ class DBMain {
 
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
   common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
+
+  /** @return ManagedPointer to the component, can be nullptr if disabled. */
+  common::ManagedPointer<replication::ReplicationManager> GetReplicationManager() const {
+    return common::ManagedPointer(replication_manager_);
+  }
 
  private:
   // Order matters here for destruction order
