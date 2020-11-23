@@ -165,63 +165,7 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::TYPE_NAMESPACE_INDEX_OID, types_namespace_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  // pg_constraint and associated indexes
-  retval =
-      CreateTableEntry(txn, postgres::PgConstraint::CONSTRAINT_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
-                       "pg_constraint", postgres::Builder::GetConstraintTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetTablePointer(txn, postgres::PgConstraint::CONSTRAINT_TABLE_OID, constraints_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
-                       postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID, "pg_constraint_oid_index",
-                       postgres::Builder::GetConstraintOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID, constraints_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
-                       postgres::PgConstraint::CONSTRAINT_NAME_INDEX_OID, "pg_constraint_name_index",
-                       postgres::Builder::GetConstraintNameIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_NAME_INDEX_OID, constraints_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
-                       postgres::PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID, "pg_constraint_namespace_index",
-                       postgres::Builder::GetConstraintNamespaceIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID, constraints_namespace_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
-                       postgres::PgConstraint::CONSTRAINT_TABLE_INDEX_OID, "pg_constraint_table_index",
-                       postgres::Builder::GetConstraintTableIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_TABLE_INDEX_OID, constraints_table_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
-                       postgres::PgConstraint::CONSTRAINT_INDEX_INDEX_OID, "pg_constraint_index_index",
-                       postgres::Builder::GetConstraintIndexIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_INDEX_INDEX_OID, constraints_index_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgConstraint::CONSTRAINT_TABLE_OID,
-                       postgres::PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID, "pg_constraint_foreigntable_index",
-                       postgres::Builder::GetConstraintForeignTableIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval =
-      SetIndexPointer(txn, postgres::PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
+  pg_constraint_.Bootstrap(common::ManagedPointer(this), txn);
   pg_language_.Bootstrap(common::ManagedPointer(this), txn);
   pg_proc_.Bootstrap(common::ManagedPointer(this), txn);
 }
@@ -1310,12 +1254,10 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
 }
 
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
-  std::vector<parser::AbstractExpression *> expressions;
   std::vector<Schema *> table_schemas;
   std::vector<storage::SqlTable *> tables;
   std::vector<IndexSchema *> index_schemas;
   std::vector<storage::index::Index *> indexes;
-  std::vector<execution::functions::FunctionContext *> func_contexts;
 
   // pg_class (schemas & objects) [this is the largest projection]
   const std::vector<col_oid_t> pg_class_oids{postgres::RELKIND_COL_OID, postgres::REL_SCHEMA_COL_OID,
@@ -1355,23 +1297,8 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
-  // pg_constraint (expressions)
-  const std::vector<col_oid_t> pg_constraint_oids{postgres::PgConstraint::CONBIN_COL_OID};
-  pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, TEARDOWN_MAX_TUPLES);
-  pc = pci.Initialize(buffer);
-
-  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
-
-  table_iter = constraints_->begin();
-  while (table_iter != constraints_->end()) {
-    constraints_->Scan(txn, &table_iter, pc);
-
-    for (uint i = 0; i < pc->NumTuples(); i++) {
-      expressions.emplace_back(exprs[i]);
-    }
-  }
-
-  func_contexts = pg_proc_.TearDownGetFuncContexts(txn, buffer, buffer_len);
+  auto expressions = pg_constraint_.TearDownGetExpressions(txn, buffer, buffer_len);
+  auto func_contexts = pg_proc_.TearDownGetFuncContexts(txn, buffer, buffer_len);
 
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
                    table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},

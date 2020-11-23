@@ -77,7 +77,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->indexes_ = new storage::SqlTable(block_store, Builder::GetIndexTableSchema());
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
-  dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
+  dbc->pg_constraint_.constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->pg_language_.languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->pg_proc_.procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
@@ -108,18 +108,18 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(oid), TYPE_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_constraint
-  dbc->constraints_oid_index_ =
+  dbc->pg_constraint_.constraints_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(oid), PgConstraint::CONSTRAINT_OID_INDEX_OID);
-  dbc->constraints_name_index_ =
+  dbc->pg_constraint_.constraints_name_index_ =
       Builder::BuildUniqueIndex(Builder::GetConstraintNameIndexSchema(oid), PgConstraint::CONSTRAINT_NAME_INDEX_OID);
-  dbc->constraints_namespace_index_ = Builder::BuildLookupIndex(Builder::GetConstraintNamespaceIndexSchema(oid),
-                                                                PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID);
-  dbc->constraints_table_index_ =
+  dbc->pg_constraint_.constraints_namespace_index_ = Builder::BuildLookupIndex(
+      Builder::GetConstraintNamespaceIndexSchema(oid), PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID);
+  dbc->pg_constraint_.constraints_table_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(oid), PgConstraint::CONSTRAINT_TABLE_INDEX_OID);
-  dbc->constraints_index_index_ =
+  dbc->pg_constraint_.constraints_index_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), PgConstraint::CONSTRAINT_INDEX_INDEX_OID);
-  dbc->constraints_foreigntable_index_ = Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid),
-                                                                   PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID);
+  dbc->pg_constraint_.constraints_foreigntable_index_ = Builder::BuildLookupIndex(
+      Builder::GetConstraintForeignTableIndexSchema(oid), PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID);
 
   // Indexes on pg_language
   dbc->pg_language_.languages_oid_index_ =

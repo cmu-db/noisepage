@@ -8,6 +8,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_class.h"
+#include "catalog/postgres/pg_constraint_impl.h"
 #include "catalog/postgres/pg_language_impl.h"
 #include "catalog/postgres/pg_proc_impl.h"
 #include "catalog/postgres/pg_type.h"
@@ -37,6 +38,7 @@ class Index;
 namespace noisepage::catalog {
 
 namespace postgres {
+class PgConstraintImpl;
 class PgLanguageImpl;
 class PgProcImpl;
 }  // namespace postgres
@@ -344,6 +346,7 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+  friend class postgres::PgConstraintImpl;
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
 
@@ -452,20 +455,13 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer pg_type_all_cols_pri_;
   storage::ProjectionMap pg_type_all_cols_prm_;
 
-  storage::SqlTable *constraints_;
-  storage::index::Index *constraints_oid_index_;
-  storage::index::Index *constraints_name_index_;  // indexed on namespace OID and name
-  storage::index::Index *constraints_namespace_index_;
-  storage::index::Index *constraints_table_index_;
-  storage::index::Index *constraints_index_index_;
-  storage::index::Index *constraints_foreigntable_index_;
-
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
+  postgres::PgConstraintImpl pg_constraint_;
   postgres::PgLanguageImpl pg_language_;
   postgres::PgProcImpl pg_proc_;
 
@@ -473,6 +469,7 @@ class DatabaseCatalog {
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
         db_oid_(oid),
         garbage_collector_(garbage_collector),
+        pg_constraint_(db_oid_),
         pg_language_(db_oid_),
         pg_proc_(db_oid_) {}
 

@@ -266,16 +266,16 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->constraints_oid_index_,
-                                 db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_name_index_,
-                                 db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_namespace_index_,
-                                 db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_index_index_,
-                                 db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_foreigntable_index_,
-                                 db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_oid_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_name_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_namespace_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_namespace_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_index_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_index_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_foreigntable_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_foreigntable_index_->metadata_.GetSchema());
       break;
     }
 
@@ -848,7 +848,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       break;
     }
     case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->constraints_);
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_constraint_.constraints_);
       break;
     }
     case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
@@ -942,27 +942,27 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_oid_index_;
+      return db_catalog->pg_constraint_.constraints_oid_index_;
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_name_index_;
+      return db_catalog->pg_constraint_.constraints_name_index_;
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_namespace_index_;
+      return db_catalog->pg_constraint_.constraints_namespace_index_;
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_table_index_;
+      return db_catalog->pg_constraint_.constraints_table_index_;
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_INDEX_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_index_index_;
+      return db_catalog->pg_constraint_.constraints_index_index_;
     }
 
     case (catalog::postgres::PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_foreigntable_index_;
+      return db_catalog->pg_constraint_.constraints_foreigntable_index_;
     }
 
     case (catalog::postgres::PgLanguage::LANGUAGE_OID_INDEX_OID.UnderlyingValue()): {

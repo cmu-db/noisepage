@@ -10,12 +10,14 @@ class RecoveryManager;
 
 namespace noisepage::catalog::postgres {
 class Builder;
+class PgConstraintImpl;
 
 /** The OIDs used by the NoisePage version of pg_constraint. */
 class PgConstraint {
- public:
+ private:
   friend class storage::RecoveryManager;
   friend class Builder;
+  friend class PgConstraintImpl;
 
   static constexpr table_oid_t CONSTRAINT_TABLE_OID = table_oid_t(61);
   static constexpr index_oid_t CONSTRAINT_OID_INDEX_OID = index_oid_t(62);
