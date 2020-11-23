@@ -1111,8 +1111,6 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
       columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), tve->Copy());
     }
 
-    auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
-    (void)cte_scan_out;
     if (children_plans_.size() == 2) {
       output_plan_ = planner::CteScanPlanNode::Builder()
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))

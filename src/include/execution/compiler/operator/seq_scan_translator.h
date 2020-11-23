@@ -130,8 +130,8 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   // This is because the storage layer needs to read at least one column.
   // TODO(Amadou): Create a special code path for COUNT(*).
   // This requires a new table iterator that doesn't materialize tuples as well as a few builtins.
-  static std::vector<catalog::col_oid_t> MakeInputOids(const catalog::CatalogAccessor &accessor, catalog::table_oid_t table,
-                                                       const planner::SeqScanPlanNode &op);
+  static std::vector<catalog::col_oid_t> MakeInputOids(const catalog::CatalogAccessor &accessor,
+                                                       catalog::table_oid_t table, const planner::SeqScanPlanNode &op);
 
   /** @return The index of the given column OID inside the col_oids that the plan is scanning over. */
   uint32_t GetColOidIndex(catalog::col_oid_t col_oid) const;

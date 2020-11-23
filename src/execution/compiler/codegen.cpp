@@ -1285,7 +1285,7 @@ ast::Expr *CodeGen::IndCteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t 
   ast::Expr *col_ids_expr = MakeExpr(col_ids);
   ast::Expr *col_types_expr = MakeExpr(col_types);
 
-  std::vector<ast::Expr *> args{csi, exec_ctx_var, Const32(table_oid.UnderlyingValue()),
+  std::vector<ast::Expr *> args{csi,          exec_ctx_var,   Const32(table_oid.UnderlyingValue()),
                                 col_ids_expr, col_types_expr, ConstBool(is_recursive)};
   return CallBuiltin(ast::Builtin::IndCteScanInit, args);
 }

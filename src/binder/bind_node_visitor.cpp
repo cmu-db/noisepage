@@ -463,7 +463,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
   for (auto &ref : node->GetSelectWith()) {
     // Store CTE table name
-    cte_table_name_.push_back(ref->GetAlias());
+    sherpa_->AddCTETableName(ref->GetAlias());
 
     if (ref->GetSelect() == nullptr) {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -495,7 +495,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       auto num_columns = columns.size();
 
       if (num_aliases > num_columns) {
-        throw BINDER_EXCEPTION(("WITH query " + cte_table_name_.back() + " has " + std::to_string(num_columns) +
+        throw BINDER_EXCEPTION(("WITH query " + ref->GetAlias() + " has " + std::to_string(num_columns) +
                                 " columns available but " + std::to_string(num_aliases) + " specified")
                                    .c_str(),
                                common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
@@ -895,7 +895,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       table->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // Single table
-    if (std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName()) != cte_table_name_.end()) {
+    if (sherpa_->GetCTETableNames().count(node->GetTableName()) > 0) {
       // copy cte table's schema for this alias
       context_->AddCTETableAlias(node->GetTableName(), node->GetAlias());
     } else {

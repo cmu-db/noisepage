@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/json.h"
 #include "catalog/schema.h"
+#include "common/json.h"
 #include "parser/parser_defs.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
@@ -224,7 +224,6 @@ class CteScanPlanNode : public SeqScanPlanNode {
    * @param schema output schema for plan node
    */
   void SetTableSchema(catalog::Schema schema) {
-    // TODO(preetang): Test for memory leak
     table_schema_ = std::move(schema);
   }
 

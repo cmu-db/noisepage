@@ -319,12 +319,18 @@ TEST(OperatorTests, QueryDerivedScanTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  auto alias_to_expr_map_1 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_1_1 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_2 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_3 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_4 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_5 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1 =
+      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1_1 =
+      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_2 =
+      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_3 =
+      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_4 =
+      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_5 =
+      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
 
   parser::AbstractExpression *expr_b_1 =
       new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
@@ -346,8 +352,8 @@ TEST(OperatorTests, QueryDerivedScanTest) {
   Operator query_derived_scan_2 =
       QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_2)).RegisterWithTxnContext(txn_context);
   Operator query_derived_scan_3 =
-      QueryDerivedScan::Make("alias",
-                             std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
+      QueryDerivedScan::Make(
+          "alias", std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
           .RegisterWithTxnContext(txn_context);
   Operator query_derived_scan_4 =
       QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_3)).RegisterWithTxnContext(txn_context);

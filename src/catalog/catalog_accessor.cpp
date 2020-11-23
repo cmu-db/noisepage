@@ -223,7 +223,6 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
 }
 
 void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
-  NOISEPAGE_ASSERT(temp_tables_.find(table_oid) == temp_tables_.end(), "Same oid should not be registered twice");
   temp_tables_[table_oid] = table;
 }
 

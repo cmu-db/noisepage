@@ -190,8 +190,8 @@ common::hash_t ExternalFileScan::Hash() const {
 BaseOperatorNodeContents *QueryDerivedScan::Copy() const { return new QueryDerivedScan(*this); }
 
 Operator QueryDerivedScan::Make(
-    std::string table_alias, std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
-                                  &&alias_to_expr_map) {
+    std::string table_alias,
+    std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new QueryDerivedScan();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = alias_to_expr_map;
