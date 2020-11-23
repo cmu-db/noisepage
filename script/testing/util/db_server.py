@@ -58,11 +58,13 @@ class NoisePageServer:
                     break
                 if has_db_started(raw_db_log_line, self.db_port, self.db_process.pid):
                     db_start_time = time.perf_counter()
-                    LOG.info(f'DB process is verified as running in {round(db_start_time - attempt_to_start_time,2)} sec')
+                    LOG.info(
+                        f'DB process is verified as running in {round(db_start_time - attempt_to_start_time,2)} sec')
                     return
             time.sleep(2 ** attempt)  # exponential backoff
         db_failed_to_start_time = time.perf_counter()
-        raise RuntimeError(f'Failed to start DB after {DB_START_ATTEMPTS} attempts and {round(db_failed_to_start_time - attempt_to_start_time,2)} sec')
+        raise RuntimeError(
+            f'Failed to start DB after {DB_START_ATTEMPTS} attempts and {round(db_failed_to_start_time - attempt_to_start_time,2)} sec')
 
     def stop_db(self):
         """ Stop the Db server and print it's log file """
@@ -82,8 +84,7 @@ class NoisePageServer:
             # still (correctly) running, terminate it
             self.db_process.terminate()
             LOG.info("Stopped DB successfully")
-        self.db_process = None 
-        
+        self.db_process = None
 
     def restart_db(self):
         """ Restart the DB """
@@ -92,9 +93,9 @@ class NoisePageServer:
 
     def delete_wal(self):
         """ Check that the WAL exists and delete if it does """
-        if not self.server_args.get('wal_enable',True):
+        if not self.server_args.get('wal_enable', True):
             return
-        wal_file_path = self.server_args.get('wal_file_path',DEFAULT_DB_WAL_FILE)
+        wal_file_path = self.server_args.get('wal_file_path', DEFAULT_DB_WAL_FILE)
         if os.path.exists(wal_file_path):
             os.remove(wal_file_path)
 
@@ -126,6 +127,7 @@ def has_db_started(raw_db_log_line, port, pid):
     LOG.debug(log_line)
     check_line = f'[info] Listening on Unix domain socket with port {port} [PID={pid}]'
     return log_line.endswith(check_line)
+
 
 def generate_server_args_str(server_args):
     """ Create a server args string to pass to the DBMS """

@@ -14,7 +14,7 @@ class TestJUnit(TestServer):
         TestServer.__init__(self, args)
 
         self.query_mode = args.get("query_mode", "simple")
-        self.set_env_vars(self.query_mode, args.get('prepare_threshold',DEFAULT_PREPARE_THRESHOLD))
+        self.set_env_vars(self.query_mode, args.get('prepare_threshold', DEFAULT_PREPARE_THRESHOLD))
 
     def set_env_vars(self, query_mode, prepare_threshold):
         # set env var for QUERY_MODE

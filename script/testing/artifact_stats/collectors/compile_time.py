@@ -10,6 +10,6 @@ class CompileTimeCollector(BaseArtifactStatsCollector):
         """ Start a timer and run the compile commands """
         if not os.path.exists(self.compile_time_file_path):
             raise FileNotFoundError(f'{self.compile_time_file_path} not found.')
-        with open(self.compile_time_file_path,'r') as compile_time_file:
+        with open(self.compile_time_file_path, 'r') as compile_time_file:
             self.metrics['compile_time_sec'] = float(compile_time_file.read())
         return 0

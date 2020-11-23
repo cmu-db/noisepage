@@ -95,6 +95,7 @@ def load_test_suite(configfile_path):
                 PATH=configfile_path))
     return test_suite_json
 
+
 def get_server_metadata(test_suite_json, max_connection_threads, wal_enable):
     """ Aggregate all the server metadata in one dictionary """
     server_metadata = test_suite_json.get('env', {})

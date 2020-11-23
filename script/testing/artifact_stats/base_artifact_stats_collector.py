@@ -1,16 +1,18 @@
 import os
 
+
 class BaseArtifactStatsCollector(object):
     """ This is the base class to use if you want to collect a new artifact 
     metric. You can override the setup, run_collector, and teardown methods 
     for your specific collector implementation.
-    
+
     Properties:
     `is_debug` - This determines whether debug output from the collector will
                  be printed in stdout. In many cases this will be the stdout 
                  of a spawned process.
     `metrics` - The metrics collected during the execution of the collector.
     """
+
     def __init__(self, is_debug=False):
         self.is_debug = is_debug
         self.metrics = {}

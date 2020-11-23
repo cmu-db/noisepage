@@ -16,6 +16,7 @@ from reporting.report_result import report_oltpbench_result
 
 class TestCaseOLTPBench(TestCase):
     """Class of a test case of OLTPBench"""
+
     def __init__(self, args):
         TestCase.__init__(self, args)
 
@@ -127,8 +128,6 @@ class TestCaseOLTPBench(TestCase):
                 os.path.join(os.getcwd(), "oltp_result",
                              self.filename_suffix), self.publish_username,
                 self.publish_password, self.mem_metrics, self.query_mode)
-        
-        
 
     def create_result_dir(self):
         """
