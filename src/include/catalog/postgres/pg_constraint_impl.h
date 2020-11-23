@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "common/managed_pointer.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
