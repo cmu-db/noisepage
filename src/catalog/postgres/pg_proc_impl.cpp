@@ -27,8 +27,8 @@ void PgProcImpl::BootstrapPRIs() {
   pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
 }
 
-void PgProcImpl::Bootstrap(const common::ManagedPointer<DatabaseCatalog> dbc,
-                           const common::ManagedPointer<transaction::TransactionContext> txn) {
+void PgProcImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                           common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
   retval = dbc->CreateTableEntry(txn, postgres::PgProc::PRO_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,

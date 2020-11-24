@@ -239,7 +239,7 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   BootstrapLanguages(txn);
 
   // pg_proc and associated indexes
-  pg_proc_.Bootstrap(common::ManagedPointer(this), txn);
+  pg_proc_.Bootstrap(txn, common::ManagedPointer(this));
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
