@@ -60,16 +60,12 @@ class PgProcImpl {
                  common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Get all of the function contexts, used in TearDown.
-   * A buffer is passed in to allow for buffer reuse optimizations.
+   * Obtain a function that will teardown pg_proc as it exists at the time of the provided txn.
    *
-   * @param txn             The transaction to obtain all the function contexts in.
-   * @param buffer          The buffer to use for getting function contexts back out.
-   * @param buffer_len      The length of buffer. Only used in debug mode to assert correctness.
-   * @return All the function contexts.
+   * @param txn             The transaction to perform the teardown in.
+   * @return A function that will teardown pg_proc when invoked.
    */
-  std::vector<execution::functions::FunctionContext *> TearDownGetFuncContexts(
-      common::ManagedPointer<transaction::TransactionContext> txn, byte *buffer, UNUSED_ATTRIBUTE uint64_t buffer_len);
+  std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Create a procedure for the pg_proc table.

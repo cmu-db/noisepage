@@ -54,14 +54,13 @@ void PgProcImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContex
   BootstrapProcs(dbc, txn);
 }
 
-std::vector<execution::functions::FunctionContext *> PgProcImpl::TearDownGetFuncContexts(
-    const common::ManagedPointer<transaction::TransactionContext> txn, byte *buffer, const uint64_t buffer_len) {
+std::function<void(void)> PgProcImpl::GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<execution::functions::FunctionContext *> func_contexts;
 
   const std::vector<col_oid_t> pg_proc_contexts{PgProc::PRO_CTX_PTR_COL_OID};
   const storage::ProjectedColumnsInitializer pci =
       procs_->InitializerForProjectedColumns(pg_proc_contexts, DatabaseCatalog::TEARDOWN_MAX_TUPLES);
-  NOISEPAGE_ASSERT(buffer_len >= pci.ProjectedColumnsSize(), "Buffer too small!");
+  byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);
 
   auto ctxts = reinterpret_cast<execution::functions::FunctionContext **>(pc->ColumnStart(0));
@@ -78,7 +77,12 @@ std::vector<execution::functions::FunctionContext *> PgProcImpl::TearDownGetFunc
     }
   }
 
-  return func_contexts;
+  delete[] buffer;
+  return [func_contexts]() {
+    for (auto ctx : func_contexts) {
+      delete ctx;
+    }
+  };
 }
 
 bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
