@@ -35,7 +35,11 @@ class Builder;
 
 /** The NoisePage version of pg_proc. */
 class PgProcImpl {
- public:
+ private:
+  friend class Builder;                   ///< The builder is used to construct pg_proc. TODO(WAN) refactor nuke builder
+  friend class storage::RecoveryManager;  ///< The RM accesses tables and indexes without going through the catalog.
+  friend class catalog::DatabaseCatalog;  ///< DatabaseCatalog sets up and owns pg_proc.
+
   /**
    * Prepare to create pg_proc.
    * Does NOT create anything until the relevant bootstrap functions are called.
@@ -132,10 +136,6 @@ class PgProcImpl {
   proc_oid_t GetProcOid(common::ManagedPointer<DatabaseCatalog> dbc,
                         common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
-
- private:
-  friend class Builder;
-  friend class storage::RecoveryManager;
 
   /** Bootstrap all the builtin procedures in pg_proc. */
   void BootstrapProcs(common::ManagedPointer<DatabaseCatalog> dbc,
