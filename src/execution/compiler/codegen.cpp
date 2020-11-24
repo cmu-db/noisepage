@@ -85,6 +85,12 @@ ast::Expr *CodeGen::Const64(int64_t val) const {
   return expr;
 }
 
+ast::Expr *CodeGen::Const128(int128_t val) const {
+  ast::Expr *expr = context_->GetNodeFactory()->NewIntLiteral(position_, val);
+  expr->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Int128));
+  return expr;
+}
+
 ast::Expr *CodeGen::ConstDouble(double val) const {
   ast::Expr *expr = context_->GetNodeFactory()->NewFloatLiteral(position_, val);
   expr->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Float64));
@@ -352,6 +358,13 @@ ast::Expr *CodeGen::DateToSql(sql::Date date) const {
   return DateToSql(year, month, day);
 }
 
+ast::Expr *CodeGen::FixedDecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const {
+  ast::Expr *call = CallBuiltin(ast::Builtin::FixedDecimalToSql,
+                                {Const128(fixed_decimal.GetValue()), Const32(precision)});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Date));
+  return call;
+}
+
 ast::Expr *CodeGen::DateToSql(int32_t year, int32_t month, int32_t day) const {
   ast::Expr *call = CallBuiltin(ast::Builtin::DateToSql, {Const32(year), Const32(month), Const32(day)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Date));
@@ -508,9 +521,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
       break;
-//    case type::TypeId::FIXEDDECIMAL:
-//      builtin = nullable ? ast::Builtin::PRSetFixedDecimalNull : ast::Builtin::PRSetFixedDecimal;
-//      break;
+    case type::TypeId::FIXEDDECIMAL:
+      builtin = nullable ? ast::Builtin::PRSetFixedDecimalNull : ast::Builtin::PRSetFixedDecimal;
+      break;
     case type::TypeId::TIMESTAMP:
       builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
       break;
@@ -647,6 +660,10 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
     case sql::TypeId::Date:
       builtin = nullable ? ast::Builtin::VPIGetDateNull : ast::Builtin::VPIGetDate;
       ret_kind = ast::BuiltinType::Date;
+      break;
+    case sql::TypeId::FixedDecimal:
+      builtin = nullable ? ast::Builtin::VPIGetFixedDecimalNull : ast::Builtin::VPIGetFixedDecimal;
+      ret_kind = ast::BuiltinType::FixedDecimal;
       break;
     case sql::TypeId::Timestamp:
       builtin = nullable ? ast::Builtin::VPIGetTimestampNull : ast::Builtin::VPIGetTimestamp;

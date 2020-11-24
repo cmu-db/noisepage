@@ -791,6 +791,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_VPI_ACCESS(Date, sql::DateVal)
   GEN_VPI_ACCESS(Timestamp, sql::TimestampVal)
   GEN_VPI_ACCESS(String, sql::StringVal)
+  GEN_VPI_ACCESS(FixedDecimal, sql::DecimalVal)
 #undef GEN_VPI_ACCESS
 
   OP(VPIGetPointer) : {
@@ -955,6 +956,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     OpInitDate(sql_date, year, month, day);
     DISPATCH_NEXT();
   }
+
+  OP(InitFixedDecimal) : {
+    auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
+    auto fixed_decimal = frame->LocalAt<int128_t>(READ_LOCAL_ID());
+    auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    OpInitFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
+  DISPATCH_NEXT();
+}
 
   OP(InitTimestamp) : {
     auto *sql_timestamp = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
@@ -1893,7 +1902,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_PR_SET(Real, sql::Real)
   GEN_PR_SET(Double, sql::Real)
   GEN_PR_SET(DateVal, sql::DateVal)
-  GEN_PR_SET(TimestampVal, sql::TimestampVal)
+  GEN_PR_SET(FixedDecimalVal, sql::DecimalVal)
+GEN_PR_SET(TimestampVal, sql::TimestampVal)
 #undef GEN_PR_SET
 
   OP(PRSetVarlen) : {

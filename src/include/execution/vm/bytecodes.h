@@ -156,6 +156,8 @@ namespace terrier::execution::vm {
   F(VPIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(VPIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
   F(VPIGetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
+  F(VPIGetFixedDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
+  F(VPIGetFixedDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(VPIGetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPIGetPointer, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(VPIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
@@ -178,6 +180,8 @@ namespace terrier::execution::vm {
   F(VPISetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPISetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(VPISetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(VPISetFixedDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
+  F(VPISetFixedDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(VPISetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
   F(VPISetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPISetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
@@ -241,6 +245,7 @@ namespace terrier::execution::vm {
   F(InitInteger64, OperandType::Local, OperandType::Local)                                                            \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(InitFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
   F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
     OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \
@@ -529,6 +534,7 @@ namespace terrier::execution::vm {
   F(PRSetReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
   F(PRSetDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
   F(PRSetDateVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
+  F(PRSetFixedDecimalVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                 \
   F(PRSetTimestampVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
   F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                      \
   F(PRSetBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
@@ -539,6 +545,7 @@ namespace terrier::execution::vm {
   F(PRSetRealNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetDoubleNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
   F(PRSetDateValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
+  F(PRSetFixedDecimalValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                             \
   F(PRSetTimestampValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                \
   F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                  \
                                                                                                                       \

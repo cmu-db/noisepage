@@ -14,6 +14,7 @@ namespace terrier::execution::ast {
   F(BoolToSql, boolToSql)                                               \
   F(FloatToSql, floatToSql)                                             \
   F(DateToSql, dateToSql)                                               \
+  F(FixedDecimalToSql, fixedDecimalToSql)                               \
   F(TimestampToSql, timestampToSql)                                     \
   F(TimestampToSqlYMDHMSMU, timestampToSqlYMDHMSMU)                     \
   F(StringToSql, stringToSql)                                           \
@@ -83,6 +84,8 @@ namespace terrier::execution::ast {
   F(VPIGetDoubleNull, vpiGetDoubleNull)                                 \
   F(VPIGetDate, vpiGetDate)                                             \
   F(VPIGetDateNull, vpiGetDateNull)                                     \
+  F(VPIGetFixedDecimal, vpiGetFixedDecimal)                             \
+  F(VPIGetFixedDecimalNull, vpiGetFixedDecimalNull)                     \
   F(VPIGetTimestamp, vpiGetTimestamp)                                   \
   F(VPIGetTimestampNull, vpiGetTimestampNull)                           \
   F(VPIGetString, vpiGetString)                                         \
@@ -104,6 +107,8 @@ namespace terrier::execution::ast {
   F(VPISetDoubleNull, vpiSetDoubleNull)                                 \
   F(VPISetDate, vpiSetDate)                                             \
   F(VPISetDateNull, vpiSetDateNull)                                     \
+  F(VPISetFixedDecimal, vpiSetFixedDecimal)                             \
+  F(VPISetFixedDecimalNull, vpiSetFixedDecimalNull)                     \
   F(VPISetTimestamp, vpiSetTimestamp)                                   \
   F(VPISetTimestampNull, vpiSetTimestampNull)                           \
   F(VPISetString, vpiSetString)                                         \
@@ -212,6 +217,7 @@ namespace terrier::execution::ast {
   F(PRSetReal, prSetReal)                                               \
   F(PRSetDouble, prSetDouble)                                           \
   F(PRSetDate, prSetDate)                                               \
+  F(PRSetFixedDecimal, prSetFixedDecimal)                               \
   F(PRSetTimestamp, prSetTimestamp)                                     \
   F(PRSetVarlen, prSetVarlen)                                           \
   F(PRSetBoolNull, prSetBoolNull)                                       \
@@ -222,6 +228,7 @@ namespace terrier::execution::ast {
   F(PRSetRealNull, prSetRealNull)                                       \
   F(PRSetDoubleNull, prSetDoubleNull)                                   \
   F(PRSetDateNull, prSetDateNull)                                       \
+  F(PRSetFixedDecimalNull, prSetFixedDecimalNull)                       \
   F(PRSetTimestampNull, prSetTimestampNull)                             \
   F(PRSetVarlenNull, prSetVarlenNull)                                   \
   F(PRGetBool, prGetBool)                                               \

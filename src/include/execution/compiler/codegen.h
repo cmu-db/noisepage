@@ -129,6 +129,11 @@ class CodeGen {
   [[nodiscard]] ast::Expr *Const64(int64_t val) const;
 
   /**
+   * @return A literal whose value is the provided 128-bit signed integer.
+   */
+  [[nodiscard]] ast::Expr *Const128(int128_t val) const;
+
+  /**
    * @return A literal whose value is the provided 64-bit floating point.
    */
   [[nodiscard]] ast::Expr *ConstDouble(double val) const;
@@ -487,6 +492,14 @@ class CodeGen {
    * @return The SQL date.
    */
   [[nodiscard]] ast::Expr *DateToSql(int32_t year, int32_t month, int32_t day) const;
+
+  /**
+   * Call \@dateToSql(). Convert a date into a SQL date.
+   * @param fixed_decimal The fixed decimal.
+   * @param precision The precision
+   * @return The SQL fixed decimal.
+   */
+  [[nodiscard]] ast::Expr *FixedDecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const;
 
   /**
    * Call \@timestampToSql(). Create a timestamp value.

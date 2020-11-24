@@ -60,6 +60,14 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
             ss << val->val_;
           break;
         }
+        case type::TypeId::FIXEDDECIMAL: {
+          auto *val = reinterpret_cast<sql::DecimalVal *>(tuples + row * tuple_size + curr_offset);
+          if (val->is_null_)
+            ss << "NULL";
+          else
+            ss << val->ToString();
+          break;
+        }
         case type::TypeId::DATE: {
           auto *val = reinterpret_cast<sql::DateVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_) {

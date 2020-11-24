@@ -43,6 +43,9 @@ ast::Expr *ConstantTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
       case type::TypeId::DECIMAL:
         dummy_expr = codegen->FloatToSql(0.0);
         break;
+      case type::TypeId::FIXEDDECIMAL:
+        dummy_expr = codegen->FixedDecimalToSql(terrier::execution::sql::Decimal128(0), 0);
+        break;
       case type::TypeId::VARBINARY:
       default:
         UNREACHABLE("Unsupported NULL type!");
@@ -67,6 +70,8 @@ ast::Expr *ConstantTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
       return codegen->TimestampToSql(val.GetTimestampVal().val_);
     case sql::TypeId::Varchar:
       return codegen->StringToSql(val.GetStringVal().StringView());
+    case sql::TypeId::FixedDecimal:
+      return codegen->FixedDecimalToSql(val.GetDecimal().val_, val.GetDecimal().precision_);
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("Translation of constant type {}", TypeIdToString(type_id)));
   }

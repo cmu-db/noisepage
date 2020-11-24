@@ -54,6 +54,24 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
+  // Handle the builtins whose API is different from the other builtins.
+  if (builtin == ast::Builtin::FixedDecimalToSql) {
+    if (!CheckArgCount(call, 2)) {
+      return;
+    }
+//    const auto int32_kind = ast::BuiltinType::Int32;
+//    const auto int128_kind = ast::BuiltinType::Int128;
+
+//    if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(int128_kind) ||
+//        !call->Arguments()[1]->GetType()->IsSpecificBuiltin(int32_kind)) {
+//      GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidCastToSqlFixedDecimal,
+//                                 call->Arguments()[0]->GetType(), call->Arguments()[1]->GetType());
+//    }
+    // All good. Set return type as SQL Date.
+    call->SetType(GetBuiltinType(ast::BuiltinType::FixedDecimal));
+    return;
+  }
+
   // SQL Timestamp.
   if (builtin == ast::Builtin::TimestampToSql) {
     if (!CheckArgCountAtLeast(call, 1)) {
@@ -1329,6 +1347,14 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Date));
       break;
     }
+    case ast::Builtin::VPIGetFixedDecimal:
+    case ast::Builtin::VPIGetFixedDecimalNull: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::FixedDecimal));
+      break;
+    }
     case ast::Builtin::VPIGetTimestamp:
     case ast::Builtin::VPIGetTimestampNull: {
       if (!CheckArgCount(call, 2)) {
@@ -1364,6 +1390,8 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::VPISetDoubleNull:
     case ast::Builtin::VPISetDate:
     case ast::Builtin::VPISetDateNull:
+    case ast::Builtin::VPISetFixedDecimal:
+    case ast::Builtin::VPISetFixedDecimalNull:
     case ast::Builtin::VPISetTimestamp:
     case ast::Builtin::VPISetTimestampNull:
     case ast::Builtin::VPISetString:
@@ -1383,6 +1411,11 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
         case ast::Builtin::VPISetDate:
         case ast::Builtin::VPISetDateNull: {
           sql_kind = ast::BuiltinType::Date;
+          break;
+        }
+        case ast::Builtin::VPISetFixedDecimal:
+        case ast::Builtin::VPISetFixedDecimalNull: {
+          sql_kind = ast::BuiltinType::FixedDecimal;
           break;
         }
         case ast::Builtin::VPISetTimestamp:
@@ -2282,6 +2315,12 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Date;
       break;
     }
+    case ast::Builtin::PRSetFixedDecimal:
+    case ast::Builtin::PRSetFixedDecimalNull: {
+      is_set_call = true;
+      sql_type = ast::BuiltinType::FixedDecimal;
+      break;
+    }
     case ast::Builtin::PRSetTimestamp:
     case ast::Builtin::PRSetTimestampNull: {
       is_set_call = true;
@@ -3000,6 +3039,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
+    case ast::Builtin::FixedDecimalToSql:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:
@@ -3091,6 +3131,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VPIGetDoubleNull:
     case ast::Builtin::VPIGetDate:
     case ast::Builtin::VPIGetDateNull:
+    case ast::Builtin::VPIGetFixedDecimal:
+    case ast::Builtin::VPIGetFixedDecimalNull:
     case ast::Builtin::VPIGetTimestamp:
     case ast::Builtin::VPIGetTimestampNull:
     case ast::Builtin::VPIGetString:
@@ -3112,6 +3154,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VPISetDoubleNull:
     case ast::Builtin::VPISetDate:
     case ast::Builtin::VPISetDateNull:
+    case ast::Builtin::VPISetFixedDecimal:
+    case ast::Builtin::VPISetFixedDecimalNull:
     case ast::Builtin::VPISetTimestamp:
     case ast::Builtin::VPISetTimestampNull:
     case ast::Builtin::VPISetString:
@@ -3294,6 +3338,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetReal:
     case ast::Builtin::PRSetDouble:
     case ast::Builtin::PRSetDate:
+    case ast::Builtin::PRSetFixedDecimal:
     case ast::Builtin::PRSetTimestamp:
     case ast::Builtin::PRSetVarlen:
     case ast::Builtin::PRSetBoolNull:
@@ -3304,6 +3349,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetRealNull:
     case ast::Builtin::PRSetDoubleNull:
     case ast::Builtin::PRSetDateNull:
+    case ast::Builtin::PRSetFixedDecimalNull:
     case ast::Builtin::PRSetTimestampNull:
     case ast::Builtin::PRSetVarlenNull:
     case ast::Builtin::PRGetBool:

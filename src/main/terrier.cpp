@@ -1,4 +1,5 @@
 #include <gflags/gflags.h>
+#include <loggers/execution_logger.h>
 
 #include <csignal>
 #include <memory>
@@ -67,6 +68,7 @@ int main(int argc, char *argv[]) {
 
   // Initialize debug loggers
   terrier::LoggersUtil::Initialize();
+  terrier::execution::execution_logger->set_level(spdlog::level::trace);
 
   // Generate Settings Manager map
   std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;

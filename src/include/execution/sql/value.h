@@ -145,7 +145,49 @@ struct DecimalVal : public Val {
   }
 
   std::string ToString() const {
-    return "";
+    std::string output = "";
+    int128_t value = val_.GetValue();
+    if(value < 0) {
+      output.push_back('-');
+      value = 0 - value;
+    }
+
+
+
+    if(precision_ != 0) {
+
+      int128_t power_of_ten = 1;
+      for(int i = 0; i < precision_; i++) {
+        power_of_ten *= 10;
+      }
+
+      int128_t fractional = value % power_of_ten;
+      int128_t integral = value / power_of_ten;
+
+      while(integral != 0) {
+        int remainder = integral % 10;
+        output.push_back('0' + remainder);
+        integral /= 10;
+      }
+
+      output.push_back('.');
+
+      while(fractional != 0) {
+        int remainder = fractional % 10;
+        output.push_back('0' + remainder);
+        fractional /= 10;
+      }
+      return output;
+    }
+
+    int128_t integral = value;
+    while(integral != 0) {
+      int remainder = integral % 10;
+      output.push_back('0' + remainder);
+      integral /= 10;
+    }
+    return output;
+
   }
 };
 
@@ -347,6 +389,7 @@ struct ValUtil {
       case type::TypeId::TIMESTAMP:
         return static_cast<uint32_t>(sizeof(TimestampVal));
       case type::TypeId::DECIMAL:
+      case type::TypeId::FIXEDDECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
         // TODO(WAN):
         //  to DecimalVal, but we don't have a Real type?
@@ -377,6 +420,7 @@ struct ValUtil {
       case type::TypeId::TIMESTAMP:
         return static_cast<uint32_t>(alignof(TimestampVal));
       case type::TypeId::DECIMAL:
+      case type::TypeId::FIXEDDECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
         // TODO(WAN): switching to DecimalVal, but we don't have a Real type?
         return static_cast<uint32_t>(alignof(DecimalVal));
