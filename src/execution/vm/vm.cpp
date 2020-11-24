@@ -535,18 +535,19 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto query_id = execution::query_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
     OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id, ouvec);
     DISPATCH_NEXT();
   }
 
   OP(ExecOUFeatureVectorRecordFeature) : {
-    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto feature_attribute =
-        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
-    auto mode = static_cast<brain::ExecutionOperatingUnitFeatureUpdateMode>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+        static_cast<selfdriving::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    auto mode =
+        static_cast<selfdriving::ExecutionOperatingUnitFeatureUpdateMode>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
     auto value = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpExecOUFeatureVectorRecordFeature(ouvec, pipeline_id, feature_id, feature_attribute, mode, value);
     DISPATCH_NEXT();
@@ -554,7 +555,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(ExecOUFeatureVectorInitialize) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto is_parallel = frame->LocalAt<bool>(READ_LOCAL_ID());
     OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id, is_parallel);
@@ -562,14 +563,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   OP(ExecOUFeatureVectorFilter) : {
-    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
-    auto type = static_cast<brain::ExecutionOperatingUnitType>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto type = static_cast<selfdriving::ExecutionOperatingUnitType>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
     OpExecOUFeatureVectorFilter(ouvec, type);
     DISPATCH_NEXT();
   }
 
   OP(ExecOUFeatureVectorReset) : {
-    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
     OpExecOUFeatureVectorReset(ouvec);
     DISPATCH_NEXT();
   }
