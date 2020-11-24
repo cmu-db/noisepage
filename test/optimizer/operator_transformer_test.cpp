@@ -899,7 +899,8 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   auto cd = op->GetContentsAs<optimizer::CreateDatabase>();
   EXPECT_EQ(cd->GetDatabaseName(), "c");
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1010,8 +1011,8 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(chk_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(*(chk_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>()),
             parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(100)));
-
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1144,7 +1145,8 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   EXPECT_EQ(child1.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnName(), "a1");
   EXPECT_EQ(child1.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid(), col_a1_oid);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1231,7 +1233,8 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
     EXPECT_EQ(cf->GetFunctionParameterTypes()[i], stmt_params[i]->GetDataType());
   }
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1293,7 +1296,8 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   auto cn = op->GetContentsAs<optimizer::CreateNamespace>();
   EXPECT_EQ(cn->GetNamespaceName(), "e");
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1359,7 +1363,8 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   EXPECT_EQ(*(sc1.CastManagedPointerTo<parser::ConstantValueExpression>()),
             parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(4)));
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1460,7 +1465,8 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
   EXPECT_EQ(ctc1->GetDatabaseOid(), db_oid_);
   EXPECT_EQ(ctc2->GetDatabaseOid(), db_oid_);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1528,7 +1534,8 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   auto dd = op->GetContentsAs<optimizer::DropDatabase>();
   EXPECT_EQ(dd->GetDatabaseOID(), db_oid_);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1580,7 +1587,8 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   auto dt = op->GetContentsAs<optimizer::DropTable>();
   EXPECT_EQ(dt->GetTableOID(), table_a_oid_);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1631,7 +1639,8 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   auto di = op->GetContentsAs<optimizer::DropIndex>();
   EXPECT_EQ(di->GetIndexOID(), a_index_oid_);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1681,7 +1690,8 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   auto dn = op->GetContentsAs<optimizer::DropNamespace>();
   EXPECT_EQ(dn->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1731,7 +1741,8 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   auto dn = op->GetContentsAs<optimizer::DropNamespace>();
   EXPECT_EQ(dn->GetNamespaceOID(), catalog::INVALID_NAMESPACE_OID);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1781,7 +1792,8 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   auto dt = op->GetContentsAs<optimizer::DropTrigger>();
   EXPECT_EQ(dt->GetTriggerOid(), catalog::INVALID_TRIGGER_OID);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1831,7 +1843,8 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   auto dv = op->GetContentsAs<optimizer::DropView>();
   EXPECT_EQ(dv->GetViewOid(), catalog::INVALID_VIEW_OID);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1886,7 +1899,8 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   EXPECT_EQ(physical_op->GetColumns().at(0), col_a1_oid);
   EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
@@ -1940,7 +1954,8 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_EQ(physical_op->GetColumns().size(), 0);
   EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
 
-  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>(new planner::PlanMetaData()));
+  planner::PlanMetaData plan_meta_data{};
+  optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
