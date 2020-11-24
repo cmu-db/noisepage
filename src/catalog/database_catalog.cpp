@@ -2183,7 +2183,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::
                                             namespace_oid_t procns, const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::PgProc::ProArgModes> &arg_modes,
+                                            const std::vector<postgres::PgProc::ArgModes> &arg_modes,
                                             type_oid_t rettype, const std::string &src, bool is_aggregate) {
   proc_oid_t oid = proc_oid_t{next_oid_++};
   auto result = CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes,
@@ -2195,7 +2195,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
                                       const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                                       const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                                       const std::vector<type_oid_t> &all_arg_types,
-                                      const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
+                                      const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                                       const std::string &src, bool is_aggregate) {
   if (!TryLock(txn)) return false;
   return pg_proc_.CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes,

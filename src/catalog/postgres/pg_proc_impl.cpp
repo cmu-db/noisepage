@@ -89,7 +89,7 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
                                  const proc_oid_t oid, const std::string &procname, const language_oid_t language_oid,
                                  const namespace_oid_t procns, const std::vector<std::string> &args,
                                  const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
-                                 const std::vector<postgres::PgProc::ProArgModes> &arg_modes, const type_oid_t rettype,
+                                 const std::vector<postgres::PgProc::ArgModes> &arg_modes, const type_oid_t rettype,
                                  const std::string &src, const bool is_aggregate) {
   NOISEPAGE_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
@@ -475,16 +475,16 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<DatabaseCatalog> db
                        postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
                        {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
                        {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
-                       {postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN,
-                        postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN},
+                       {postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN,
+                        postgres::PgProc::ArgModes::IN},
                        int_type, "", false);
 
   dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "nprunnersemitreal",
                        postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
                        {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
                        {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
-                       {postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN,
-                        postgres::PgProc::ProArgModes::IN, postgres::PgProc::ProArgModes::IN},
+                       {postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN,
+                        postgres::PgProc::ArgModes::IN},
                        real_type, "", false);
 
   dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "nprunnersdummyint",

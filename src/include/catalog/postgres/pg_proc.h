@@ -28,7 +28,7 @@ class PgProcImpl;
 class PgProc {
  public:
   /** The type of the argument to the procedure. */
-  enum class ProArgModes : char {
+  enum class ArgModes : char {
     IN = 'i',       ///< Input argument.
     OUT = 'o',      ///< Output argument.
     INOUT = 'b',    ///< Both input and output argument.
