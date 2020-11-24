@@ -19,7 +19,7 @@ constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
 
 SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, CompilationContext *compilation_context,
                                Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
       sort_row_var_(GetCodeGen()->MakeFreshIdentifier("sortRow")),
       sort_row_type_(GetCodeGen()->MakeFreshIdentifier("SortRow")),
       lhs_row_(GetCodeGen()->MakeIdentifier("lhs")),
@@ -156,13 +156,13 @@ ast::FunctionDecl *SortTranslator::GenerateStartTLHookFunction(bool is_sort) con
   auto *pipeline = &build_pipeline_;
 
   auto name = parallel_starttlsort_hook_fn_;
-  brain::ExecutionOperatingUnitType ou_type, ou_merge_type;
+  selfdriving::ExecutionOperatingUnitType ou_type, ou_merge_type;
   if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
-    ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
-    ou_merge_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
+    ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
+    ou_merge_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
   } else {
-    ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
-    ou_merge_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+    ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+    ou_merge_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
   }
   auto filter = ou_type;
   if (!is_sort) {
@@ -194,20 +194,20 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLSortHookFunction() const {
     auto *sorter_size = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {local_sorter_.GetPtr(codegen)});
     builder.Append(codegen->DeclareVarWithInit(num_tuples, sorter_size));
 
-    brain::ExecutionOperatingUnitType build_ou_type;
+    selfdriving::ExecutionOperatingUnitType build_ou_type;
     ast::Expr *cardinality_val;
     if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
-      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
       cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
     } else {
-      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
       cardinality_val = codegen->MakeExpr(num_tuples);
     }
 
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
                   codegen->MakeExpr(num_tuples));
-    FeatureRecord(&builder, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
                   cardinality_val);
 
     // End Tracker
@@ -227,18 +227,18 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLMergeHookFunction() const {
   auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
   FunctionBuilder builder(codegen, parallel_endtlmerge_hook_fn_, std::move(params), ret_type);
   {
-    brain::ExecutionOperatingUnitType build_merge_ou_type;
+    selfdriving::ExecutionOperatingUnitType build_merge_ou_type;
     if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
-      build_merge_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
+      build_merge_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
     } else {
-      build_merge_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+      build_merge_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
     }
 
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, build_merge_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
-                  codegen->MakeExpr(override_value));
-    FeatureRecord(&builder, build_merge_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
-                  codegen->MakeExpr(override_value));
+    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                  *pipeline, codegen->MakeExpr(override_value));
+    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                  *pipeline, codegen->MakeExpr(override_value));
 
     // End Tracker
     pipeline->InjectEndResourceTracker(&builder, true);
@@ -261,20 +261,20 @@ ast::FunctionDecl *SortTranslator::GenerateEndSingleSorterHookFunction() const {
     auto *sorter_size = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {codegen->MakeExpr(sorter)});
     builder.Append(codegen->DeclareVarWithInit(num_tuples, sorter_size));
 
-    brain::ExecutionOperatingUnitType build_ou_type;
+    selfdriving::ExecutionOperatingUnitType build_ou_type;
     ast::Expr *cardinality_val;
     if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
-      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
       cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
     } else {
-      build_ou_type = brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
       cardinality_val = codegen->MakeExpr(num_tuples);
     }
 
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
                   codegen->MakeExpr(num_tuples));
-    FeatureRecord(&builder, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
                   cardinality_val);
 
     // End Tracker
@@ -301,28 +301,28 @@ void SortTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilde
 
 void SortTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  brain::ExecutionOperatingUnitType build_ou_type;
+  selfdriving::ExecutionOperatingUnitType build_ou_type;
   ast::Expr *cardinality_val;
   if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
-    build_ou_type = brain::ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    build_ou_type = selfdriving::ExecutionOperatingUnitType::SORT_TOPK_BUILD;
     cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
   } else {
-    build_ou_type = brain::ExecutionOperatingUnitType::SORT_BUILD;
+    build_ou_type = selfdriving::ExecutionOperatingUnitType::SORT_BUILD;
     cardinality_val = CounterVal(num_sort_build_rows_);
   }
   if (IsBuildPipeline(pipeline)) {
-    FeatureRecord(function, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+    FeatureRecord(function, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
                   CounterVal(num_sort_build_rows_));
-    FeatureRecord(function, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+    FeatureRecord(function, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   cardinality_val);
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
   } else {
     ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SORT_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
                   CounterVal(num_sort_iterate_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SORT_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_iterate_rows_));
   }

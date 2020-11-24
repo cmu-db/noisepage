@@ -16,7 +16,7 @@
 namespace noisepage::execution::compiler {
 UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::UPDATE),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::UPDATE),
       updater_(GetCodeGen()->MakeFreshIdentifier("updater")),
       update_pr_(GetCodeGen()->MakeFreshIdentifier("update_pr")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
@@ -90,10 +90,10 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 }
 
 void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 
