@@ -67,7 +67,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     log_manager_->ForceFlush();
 
     metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 100);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
                                         common::ManagedPointer(tested.GetTxnManager()));
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);

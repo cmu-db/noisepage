@@ -83,8 +83,7 @@ LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<u
                    gc_on ? common::ManagedPointer(&deferred_action_manager_) : DISABLED,
                    common::ManagedPointer(buffer_pool), gc_on, common::ManagedPointer(log_manager)),
       txn_length_(txn_length),
-      gc_on_(gc_on),
-      abort_count_(0) {
+      gc_on_(gc_on) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(initial_table_size, generator_);
 }

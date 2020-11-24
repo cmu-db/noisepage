@@ -14,7 +14,7 @@ STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
 constexpr uint8_t MIN_GC_INVOCATIONS = 6;
 
 // Number of transactions processed before this thread clean up the deferred action queue
-constexpr int GC_RATIO = 4;
+constexpr int GC_RATIO = 6;
 
 // Max number of deferred action can be processed per DAF invocation
 constexpr uint16_t MAX_ACTION_PER_RUN = 1000;

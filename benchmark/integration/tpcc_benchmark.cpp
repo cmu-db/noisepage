@@ -498,7 +498,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
     uint64_t elapsed_ms;
 
     std::atomic<uint32_t> num_actual_processed = 0;
@@ -608,7 +609,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     gc_thread_->StopGC();
 
     // run the TPCC workload to completion, timing the execution
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
     uint64_t elapsed_ms;
 
     std::atomic<uint32_t> num_actual_processed = 0;

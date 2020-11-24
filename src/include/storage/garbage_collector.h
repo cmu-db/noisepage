@@ -47,7 +47,7 @@ class GarbageCollector {
                    const common::ManagedPointer<transaction::TransactionManager> txn_manager)
       : deferred_action_manager_(deferred_action_manager), txn_manager_(txn_manager) {
     NOISEPAGE_ASSERT(txn_manager_->GCEnabled(),
-                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
+                     "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 
   ~GarbageCollector() = default;
