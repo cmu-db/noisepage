@@ -95,23 +95,22 @@ class TPCCTests : public TerrierTest {
       });
     }
     thread_pool_.WaitUntilAllFinished();
-    db_main->GetTransactionLayer()->GetDeferredActionManager()->FullyPerformGC(
-        db_main->GetStorageLayer()->GetGarbageCollector(), db_main->GetLogManager());
+
     delete tpcc_db;
     CleanUpVarlensInPrecomputedArgs(&precomputed_args);
   }
 };
 
-//// NOLINTNEXTLINE
-// TEST_F(TPCCTests, WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
-//
-//// NOLINTNEXTLINE
-// TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
+// NOLINTNEXTLINE
+ TEST_F(TPCCTests, WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
+
+// NOLINTNEXTLINE
+ TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
 
 // NOLINTNEXTLINE
 TEST_F(TPCCTests, WithLogging) { RunTPCC(true, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-// TEST_F(TPCCTests, WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
+ TEST_F(TPCCTests, WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
 
 }  // namespace noisepage::tpcc
