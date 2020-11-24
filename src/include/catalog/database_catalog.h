@@ -354,6 +354,8 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+  // DatabaseCatalog methods generally handle coarse-grained locking. The various PgXXXImpl classes need to invoke
+  // private DatabaseCatalog methods such as CreateTableEntry and CreateIndexEntry during the Bootstrap process.
   friend class postgres::PgProcImpl;
 
   // TODO(tanujnay112) Add support for other parameters
