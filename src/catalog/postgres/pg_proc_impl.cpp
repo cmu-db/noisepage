@@ -31,6 +31,8 @@ void PgProcImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContex
                            common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
+  BootstrapPRIs();
+
   retval = dbc->CreateTableEntry(txn, postgres::PgProc::PRO_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
                                  "pg_proc", postgres::Builder::GetProcTableSchema());
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
