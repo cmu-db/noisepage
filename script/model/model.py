@@ -41,7 +41,7 @@ def _get_base_ml_model(method):
         regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'nn':
         regressor = neural_network.MLPRegressor(hidden_layer_sizes=(25, 25), early_stopping=True,
-                                                max_iter=1000000, alpha=0.01)
+                                                max_iter=1000000, alpha=5)
 
     return regressor
 
@@ -105,7 +105,7 @@ class Model:
         # transform the y back
         if self._normalize:
             y = self._yscaler.inverse_transform(y)
-        if self._log_transform == 1:
+        if self._log_transform:
             y = np.exp(y) - _LOGTRANS_EPS
             y = np.clip(y, 0, None)
 
