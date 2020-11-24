@@ -1,9 +1,45 @@
-#include "brain/brain_util.h"
+#include "self_driving/modeling/operating_unit_util.h"
+
+#include <cstdint>
+
 #include "execution/util/execution_common.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
-std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f) {
+bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType feature) {
+  switch (feature) {
+    case ExecutionOperatingUnitType::HASHJOIN_BUILD:
+    case ExecutionOperatingUnitType::SORT_BUILD:
+    case ExecutionOperatingUnitType::SORT_TOPK_BUILD:
+    case ExecutionOperatingUnitType::AGGREGATE_BUILD:
+    case ExecutionOperatingUnitType::CREATE_INDEX:
+      return true;
+    default:
+      return false;
+  }
+}
+
+ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperatingUnitType feature) {
+  switch (feature) {
+    case ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN:
+      return ExecutionOperatingUnitType::HASHJOIN_BUILD;
+    case ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD:
+      return ExecutionOperatingUnitType::AGGREGATE_BUILD;
+    case ExecutionOperatingUnitType::PARALLEL_SORT_STEP:
+    case ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP:
+      return ExecutionOperatingUnitType::SORT_BUILD;
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP:
+    case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP:
+      return ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:
+      return ExecutionOperatingUnitType::CREATE_INDEX;
+    default:
+      return ExecutionOperatingUnitType::INVALID;
+  }
+}
+
+std::string OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f) {
   // NOTE: Before adding any extra case to this switch statement,
   // please ensure that the output type is actually supported
   // by the mini-runner infrastructure.
@@ -78,4 +114,4 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
   }
 }
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

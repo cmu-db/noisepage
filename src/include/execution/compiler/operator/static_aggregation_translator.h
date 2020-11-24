@@ -125,7 +125,7 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
  private:
-  friend class brain::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
 
   ast::Identifier agg_row_var_;
   ast::Identifier agg_payload_type_;

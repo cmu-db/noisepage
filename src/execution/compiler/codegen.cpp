@@ -45,7 +45,7 @@ CodeGen::CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor)
       num_cached_scopes_(0),
       scope_(nullptr),
       accessor_(accessor),
-      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()) {
+      pipeline_operating_units_(std::make_unique<selfdriving::PipelineOperatingUnits>()) {
   for (auto &scope : scope_cache_) {
     scope = std::make_unique<Scope>(nullptr);
   }
@@ -787,11 +787,10 @@ ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows
   return call;
 }
 
-ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(ast::Expr *ouvec, pipeline_id_t pipeline_id,
-                                                     feature_id_t feature_id,
-                                                     brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                                     brain::ExecutionOperatingUnitFeatureUpdateMode mode,
-                                                     ast::Expr *value) {
+ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(
+    ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
+    selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+    selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value) {
   ast::Expr *call =
       CallBuiltin(ast::Builtin::ExecOUFeatureVectorRecordFeature,
                   {ouvec, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),

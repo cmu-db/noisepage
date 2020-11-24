@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
 namespace noisepage::runner {
 class MiniRunners;
@@ -56,7 +56,7 @@ namespace noisepage::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
 }  // namespace noisepage::optimizer
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 class ExecOUFeatureVector;
 class OperatingUnitRecorder;
@@ -400,4 +400,4 @@ class PipelineOperatingUnits {
   std::unordered_map<execution::pipeline_id_t, ExecutionOperatingUnitFeatureVector> units_{};
 };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

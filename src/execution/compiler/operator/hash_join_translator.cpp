@@ -19,7 +19,7 @@ const char *row_attr_prefix = "attr";
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline)
     // The ExecutionOperatingUnitType depends on whether it is the build pipeline or probe pipeline.
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
       join_consumer_flag_(false),
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
@@ -137,11 +137,11 @@ ast::FunctionDecl *HashJoinTranslator::GenerateEndHookFunction() const {
   FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
   {
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+    FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
                   codegen->MakeExpr(override_value));
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+    FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
                   codegen->MakeExpr(override_value));
 
     // End Tracker
@@ -200,16 +200,18 @@ void HashJoinTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBu
 
 void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsLeftPipeline(pipeline)) {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_build_rows_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  CounterVal(num_build_rows_));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
   } else {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  CounterVal(num_match_rows_));
     FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
   }
 }

@@ -1,9 +1,7 @@
-#include "brain/operating_unit_recorder.h"
+#include "self_driving/modeling/operating_unit_recorder.h"
 
 #include <utility>
 
-#include "brain/operating_unit.h"
-#include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/context.h"
@@ -48,10 +46,12 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_util.h"
 #include "storage/block_layout.h"
 #include "type/type_id.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
@@ -163,9 +163,9 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
   return ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
 }
 
-void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
-                                              const planner::AbstractPlanNode *plan, size_t scaling_factor,
-                                              double mem_factor) {
+void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size,
+                                              size_t num_keys, const planner::AbstractPlanNode *plan,
+                                              size_t scaling_factor, double mem_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   size_t num_rows = 1;
   size_t cardinality = 1;
@@ -479,7 +479,7 @@ void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
   // IndexScan output number of rows is the "cumulative scan size"
   size_t num_keys = col_vec.size();
   size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec, &num_keys);
-  AggregateFeatures(brain::ExecutionOperatingUnitType::IDX_SCAN, key_size, num_keys, plan, 1, 1);
+  AggregateFeatures(selfdriving::ExecutionOperatingUnitType::IDX_SCAN, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
@@ -730,4 +730,4 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
   return results;
 }
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
