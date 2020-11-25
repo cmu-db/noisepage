@@ -94,6 +94,8 @@ storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *
         *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
             storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
         rotate_counter++;
+        // TODO(lin): For some reason std::shuffle on VarlenEntry (I believe implemented with std::swap) is super
+        //  slow. We can add the shuffling here similar to other data types if we find a more efficient way.
       }
       break;
     }

@@ -12,8 +12,7 @@ class CompilationManager::AsyncCompileTask : public tbb::task {
  public:
   // Construct an asynchronous compilation task to compile the the module
   explicit AsyncCompileTask(std::shared_ptr<BytecodeModule> bytecode_module)
-      : bytecode_module_(bytecode_module),
-        functions_(std::atomic<void *>[](bytecode_module_->GetFunctionCount())){}
+      : bytecode_module_(bytecode_module){}
 
   // Execute
   tbb::task *execute() override {
@@ -37,7 +36,7 @@ class CompilationManager::AsyncCompileTask : public tbb::task {
  private:
   // TODO: is the poking mechanism going to be a future / promise?
   std::shared_ptr<BytecodeModule> bytecode_module_;
-  std::atomic<void *>[] *functions_;
+  std::atomic<void *> (*functions_);
 };
 
 /*
@@ -51,6 +50,14 @@ std::unique_ptr<LLVMEngine::CompiledModule> CompilationManager::getMachineCode(M
 void CompilationManager::addModule(std::shared_ptr<BytecodeModule> bytecode_module) {
   auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(bytecode_module);
   tbb::task::enqueue(*compile_task);
+}
+
+void CompilationManager::transferModule(std::unique_ptr<Module> &&module) {
+  module_.push_back(std::move(module));
+}
+
+void CompilationManager::transferContext(std::unique_ptr<util::Region> region) {
+  region_.push_back(std::move(region));
 }
 
 }  // namespace noisepage::execution::vm

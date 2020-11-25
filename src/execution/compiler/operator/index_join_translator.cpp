@@ -18,7 +18,7 @@ namespace noisepage::execution::compiler {
 
 IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
       input_oids_(plan.CollectInputOids()),
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(input_oids_)),
@@ -127,14 +127,14 @@ void IndexJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionB
     }
     check.EndIf();
 
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, per_loop_num_scans_expr);
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, per_loop_num_scans_expr);
   }
 
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(index_size_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS, pipeline, CounterVal(num_loops_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(index_size_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS, pipeline, CounterVal(num_loops_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_index_));
 }
 

@@ -30,7 +30,11 @@ void DBMain::ForceShutdown() {
 
 DBMain::~DBMain() { ForceShutdown(); }
 
-DBMain::ExecutionLayer::ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
+DBMain::ExecutionLayer::ExecutionLayer() {
+  execution::ExecutionUtil::InitTPL();
+  // Construct an compilation manager that is owned by the execution layer
+  compilation_manager_ = std::make_unique<execution::vm::CompilationManager>();
+}
 
 DBMain::ExecutionLayer::~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
 

@@ -22,6 +22,7 @@
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
+#include "execution/vm/compilation_manager.h"
 
 namespace noisepage {
 
@@ -294,6 +295,13 @@ class DBMain {
    public:
     ExecutionLayer();
     ~ExecutionLayer();
+
+    common::ManagedPointer<execution::vm::CompilationManager> GetCompilationManager() {
+      return common::ManagedPointer<execution::vm::CompilationManager>(compilation_manager_);
+    }
+
+   private:
+    std::unique_ptr<execution::vm::CompilationManager> compilation_manager_;
   };
 
   /** Create a Messenger. */
@@ -405,9 +413,10 @@ class DBMain {
                          "TrafficCopLayer needs the CatalogLayer.");
         NOISEPAGE_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
         NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
+        // TODO(Wuwen): a managed pointer of execution layer is passed to the traffic_cop for easy access, but we might want a better way
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
-            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_,
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), execution_layer->GetCompilationManager(), optimizer_timeout_,
             use_query_cache_, execution_mode_);
       }
 
@@ -815,7 +824,6 @@ class DBMain {
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
-
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
 
       return settings_manager;

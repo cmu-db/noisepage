@@ -197,6 +197,8 @@ class FunctionInfo {
    */
   FunctionInfo(FunctionId id, std::string name, ast::FunctionType *func_type);
 
+  ~FunctionInfo() = default;
+
   /**
    * Allocate a new function parameter.
    * @param type The TPL type of the parameter.

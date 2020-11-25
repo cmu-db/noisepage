@@ -10,6 +10,7 @@
 #include "execution/vm/vm_defs.h"
 #include "network/network_defs.h"
 #include "traffic_cop/traffic_cop_defs.h"
+#include "execution/vm/compilation_manager.h"
 
 namespace noisepage::catalog {
 class Catalog;
@@ -78,16 +79,19 @@ class TrafficCop {
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
              common::ManagedPointer<settings::SettingsManager> settings_manager,
-             common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
+             common::ManagedPointer<optimizer::StatsStorage> stats_storage,
+             common::ManagedPointer<execution::vm::CompilationManager> compilation_manager,
+             uint64_t optimizer_timeout,
              bool use_query_cache, const execution::vm::ExecutionMode execution_mode)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_log_provider_(replication_log_provider),
         settings_manager_(settings_manager),
         stats_storage_(stats_storage),
+        compilation_manager_(compilation_manager),
         optimizer_timeout_(optimizer_timeout),
         use_query_cache_(use_query_cache),
-        execution_mode_(execution_mode) {}
+        execution_mode_(execution_mode){}
 
   virtual ~TrafficCop() = default;
 
@@ -240,6 +244,7 @@ class TrafficCop {
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
+  common::ManagedPointer<execution::vm::CompilationManager> compilation_manager_;
   uint64_t optimizer_timeout_;
   const bool use_query_cache_;
   const execution::vm::ExecutionMode execution_mode_;
