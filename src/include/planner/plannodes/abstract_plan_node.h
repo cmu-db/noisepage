@@ -207,7 +207,7 @@ class AbstractPlanNode {
 
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;
-  plan_node_id_t plan_node_id_ = plan_node_id_t(-1);
+  plan_node_id_t plan_node_id_ = UNDEFINED_PLAN_NODE;
 
   void SwapChildren() {
     // Should only be called from the runners!

@@ -27,7 +27,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   trafficcop::TrafficCopResult result;
 
   const auto query_type = portal->GetStatement()->GetQueryType();
-  const auto physical_plan = portal->PhysicalPlan();
+  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::DMLQueryType(query_type)) {
@@ -170,12 +170,12 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
       // Binding succeeded, optimize to generate a physical plan and then execute
       auto optimize_result = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
 
-      statement->SetPhysicalPlan(std::move(optimize_result->TakePlanNodeOwnership()));
+      statement->SetOptimizeResult(std::move(optimize_result));
 
       const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
 
       if (query_type == network::QueryType::QUERY_SELECT) {
-        out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+        out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
       }
 
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
@@ -386,11 +386,11 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   const auto bind_result = t_cop->BindQuery(connection, statement, common::ManagedPointer(&params));
   if (LIKELY(bind_result.type_ == trafficcop::ResultType::COMPLETE)) {
     // Binding succeeded, optimize to generate a physical plan
-    if (statement->PhysicalPlan() == nullptr || !t_cop->UseQueryCache()) {
+    if (statement->OptimizeResult() == nullptr || !t_cop->UseQueryCache()) {
       // it's not cached, optimize it
       auto optimize_result = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
 
-      statement->SetPhysicalPlan(std::move(optimize_result->TakePlanNodeOwnership()));
+      statement->SetOptimizeResult(std::move(optimize_result));
     }
 
     postgres_interpreter->SetPortal(portal_name,
@@ -446,7 +446,7 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
       out->WriteError({common::ErrorSeverity::ERROR, "Portal does not exist for Describe message.",
                        common::ErrorCode::ERRCODE_PROTOCOL_VIOLATION});
     } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
-      out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+      out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
     } else {
       out->WriteNoData();
     }
@@ -547,7 +547,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     common::thread_context.metrics_store_->RecordExecuteCommandData(portal_name.size(), resource_metrics);
   }
 
-  if (portal->PhysicalPlan() != nullptr) {
+  if (portal->OptimizeResult() != nullptr) {
     ExecutePortal(connection, portal, out, t_cop, postgres_interpreter->ExplicitTransactionBlock());
     if (connection->TransactionState() == NetworkTransactionStateType::FAIL) {
       postgres_interpreter->SetWaitingForSync();

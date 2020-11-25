@@ -77,10 +77,17 @@ class Statement {
   const std::string &GetQueryText() const { return query_text_; }
 
   /**
-   * @return the optimized physical plan for this query
+   * @return the optimize result of the query
    */
+  common::ManagedPointer<optimizer::OptimizeResult> OptimizeResult() const {
+    return common::ManagedPointer(optimize_result_);
+  }
+
+  /**
+ * @return the optimized physical plan for this query
+ */
   common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const {
-    return common::ManagedPointer(physical_plan_);
+    return optimize_result_->GetPlanNode();
   }
 
   /**
@@ -91,12 +98,21 @@ class Statement {
   }
 
   /**
+   * @param optimize_result optimize result to take ownership of
+   */
+  void SetOptimizeResult(std::unique_ptr<optimizer::OptimizeResult> &&optimize_result) {
+    optimize_result_ = std::move(optimize_result);
+  }
+
+  /**
    * @param physical_plan physical plan to take ownership of
    */
   void SetPhysicalPlan(std::unique_ptr<planner::AbstractPlanNode> &&physical_plan) {
-    physical_plan_ = std::move(physical_plan);
+    if (!optimize_result_) {
+      optimize_result_ = std::make_unique<optimizer::OptimizeResult>();
+    }
+    optimize_result_->SetPlanNode(std::move(physical_plan));
   }
-
   /**
    * @param executable_query executable query to take ownership of
    */
@@ -126,7 +142,7 @@ class Statement {
    * DDL change related to this statement.
    */
   void ClearCachedObjects() {
-    physical_plan_ = nullptr;
+    optimize_result_ = nullptr;
     executable_query_ = nullptr;
     desired_param_types_ = {};
   }
@@ -141,7 +157,7 @@ class Statement {
   // The following objects can be "cached" in Statement objects for future statement invocations. Though they don't
   // relate to the Postgres Statement concept, these objects should be compatible with future queries that match the
   // same query text. The exception to this that DDL changes can break these cached objects.
-  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;                // generated in the Bind phase
+  std::unique_ptr<optimizer::OptimizeResult> optimize_result_ = nullptr;                // generated in the Optimize phase
   std::unique_ptr<execution::compiler::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
   std::vector<type::TypeId> desired_param_types_;                                     // generated in the Bind phase
 };

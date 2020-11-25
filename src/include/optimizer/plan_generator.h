@@ -74,7 +74,7 @@ class PlanGenerator : public OperatorVisitor {
       PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
-      std::vector<ExprMap> &&children_expr_map, const planner::PlanMetaData::PlanNodeMetaData &plan_node_meta_data);
+      std::vector<ExprMap> &&children_expr_map, const planner::PlanMetaData::PlanNodeMetaData &&plan_node_meta_data);
 
   /**
    * Visitor function for a TableFreeScan operator
