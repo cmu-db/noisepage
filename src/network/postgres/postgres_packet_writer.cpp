@@ -308,11 +308,6 @@ uint32_t PostgresPacketWriter::WriteBinaryAttribute(const execution::sql::Val *c
         WriteBinaryVal<double, execution::sql::Real>(val, type);
         break;
       }
-      case type::TypeId::FIXEDDECIMAL: {
-        // TODO(Rohan): Find the best way to write this
-        WriteBinaryVal<int128_t , execution::sql::DecimalVal>(val, type);
-        break;
-      }
       case type::TypeId::DATE: {
         WriteBinaryValNeedsToNative<uint32_t, execution::sql::DateVal>(val, type);
         break;

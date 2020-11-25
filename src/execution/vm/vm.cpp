@@ -959,9 +959,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(InitFixedDecimal) : {
     auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
-    auto fixed_decimal = frame->LocalAt<int128_t>(READ_LOCAL_ID());
+    auto fixed_decimal = frame->LocalAt<int64_t>(READ_LOCAL_ID());
+    int128_t fixed_decimal_128 = static_cast<int128_t>(fixed_decimal);
     auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-    OpInitFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
+    OpInitFixedDecimal(sql_fixed_decimal, fixed_decimal_128, precision);
   DISPATCH_NEXT();
 }
 

@@ -164,28 +164,42 @@ struct DecimalVal : public Val {
       int128_t fractional = value % power_of_ten;
       int128_t integral = value / power_of_ten;
 
+      std::string integral_string = "";
+
       while(integral != 0) {
         int remainder = integral % 10;
-        output.push_back('0' + remainder);
+        integral_string.push_back('0' + remainder);
         integral /= 10;
       }
 
+      std::reverse(integral_string.begin(), integral_string.end());
+      output.append(integral_string);
+
       output.push_back('.');
+
+      std::string fractional_string = "";
 
       while(fractional != 0) {
         int remainder = fractional % 10;
-        output.push_back('0' + remainder);
+        fractional_string.push_back('0' + remainder);
         fractional /= 10;
       }
+
+      std::reverse(fractional_string.begin(), fractional_string.end());
+      output.append(fractional_string);
+
       return output;
     }
 
     int128_t integral = value;
+    std::string integral_string = "";
     while(integral != 0) {
       int remainder = integral % 10;
-      output.push_back('0' + remainder);
+      integral_string.push_back('0' + remainder);
       integral /= 10;
     }
+    std::reverse(integral_string.begin(), integral_string.end());
+    output.append(integral_string);
     return output;
 
   }

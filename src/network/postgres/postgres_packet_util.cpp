@@ -66,9 +66,11 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       return {type, execution::sql::Integer(static_cast<int64_t>(std::stoll(string)))};
     case type::TypeId::DECIMAL:
       return {type, execution::sql::Real(std::stod(string))};
-    case type::TypeId::FIXEDDECIMAL:
+    case type::TypeId::FIXEDDECIMAL: {
       // TODO(Rohan): Find out how to fix this
-      return {type, execution::sql::DecimalVal(std::stoi(string))};
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      return {type::TypeId::VARCHAR, string_val.first, std::move(string_val.second)};
+    }
     case type::TypeId::VARCHAR: {
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
       return {type, string_val.first, std::move(string_val.second)};
@@ -132,11 +134,6 @@ parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
     case type::TypeId::DECIMAL: {
       TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
       return {type, execution::sql::Real(read_buffer->ReadValue<double>())};
-    }
-    case type::TypeId::FIXEDDECIMAL: {
-      // TODO(Rohan): Find out what is the right way here
-      TERRIER_ASSERT(size == 16, "Unexpected size for this type.");
-      return {type, execution::sql::DecimalVal(read_buffer->ReadValue<int128_t>())};
     }
     case type::TypeId::DATE: {
       // TODO(Matt): unsure if this is correct. Need tests.

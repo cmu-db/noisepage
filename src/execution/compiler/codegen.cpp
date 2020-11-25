@@ -361,7 +361,7 @@ ast::Expr *CodeGen::DateToSql(sql::Date date) const {
 ast::Expr *CodeGen::FixedDecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const {
   ast::Expr *call = CallBuiltin(ast::Builtin::FixedDecimalToSql,
                                 {Const128(fixed_decimal.GetValue()), Const32(precision)});
-  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Date));
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::FixedDecimal));
   return call;
 }
 
