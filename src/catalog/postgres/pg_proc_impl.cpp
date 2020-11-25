@@ -53,7 +53,7 @@ void PgProcImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContex
   retval = dbc->SetIndexPointer(txn, postgres::PgProc::PRO_NAME_INDEX_OID, procs_name_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  BootstrapProcs(dbc, txn);
+  BootstrapProcs(txn, dbc);
 }
 
 std::function<void(void)> PgProcImpl::GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn) {
@@ -315,10 +315,9 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
   return common::ManagedPointer<execution::functions::FunctionContext>(ptr);
 }
 
-proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<DatabaseCatalog> dbc,
-                                  const common::ManagedPointer<transaction::TransactionContext> txn,
-                                  namespace_oid_t procns, const std::string &procname,
-                                  const std::vector<type_oid_t> &arg_types) {
+proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                  const common::ManagedPointer<DatabaseCatalog> dbc, const namespace_oid_t procns,
+                                  const std::string &procname, const std::vector<type_oid_t> &arg_types) {
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
@@ -388,8 +387,8 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<DatabaseCatalog> 
   return ret;
 }
 
-void PgProcImpl::BootstrapProcs(const common::ManagedPointer<DatabaseCatalog> dbc,
-                                const common::ManagedPointer<transaction::TransactionContext> txn) {
+void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                const common::ManagedPointer<DatabaseCatalog> dbc) {
   auto dec_type = dbc->GetTypeOidForType(type::TypeId::DECIMAL);
   auto int_type = dbc->GetTypeOidForType(type::TypeId::INTEGER);
 
@@ -609,33 +608,33 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<DatabaseCatalog> db
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 
-  BootstrapProcContexts(dbc, txn);
+  BootstrapProcContexts(txn, dbc);
 }
 
-void PgProcImpl::BootstrapProcContext(common::ManagedPointer<DatabaseCatalog> dbc,
-                                      const common::ManagedPointer<transaction::TransactionContext> txn,
-                                      const proc_oid_t proc_oid, std::string &&func_name,
-                                      const type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
-                                      const execution::ast::Builtin builtin, const bool is_exec_ctx_required) {
+void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                      const common::ManagedPointer<DatabaseCatalog> dbc, const proc_oid_t proc_oid,
+                                      std::string &&func_name, const type::TypeId func_ret_type,
+                                      std::vector<type::TypeId> &&args_type, const execution::ast::Builtin builtin,
+                                      const bool is_exec_ctx_required) {
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(args_type), builtin, is_exec_ctx_required);
   const auto retval UNUSED_ATTRIBUTE = dbc->SetProcCtxPtr(txn, proc_oid, func_context);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
-void PgProcImpl::BootstrapProcContexts(common::ManagedPointer<DatabaseCatalog> dbc,
-                                       const common::ManagedPointer<transaction::TransactionContext> txn) {
-  BootstrapProcContext(dbc, txn, postgres::PgProc::ATAN2_PRO_OID, "atan2", type::TypeId::DECIMAL,
+void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                       const common::ManagedPointer<DatabaseCatalog> dbc) {
+  BootstrapProcContext(txn, dbc, postgres::PgProc::ATAN2_PRO_OID, "atan2", type::TypeId::DECIMAL,
                        {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::ATan2, false);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::ABS_REAL_PRO_OID, "abs", type::TypeId::DECIMAL,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::ABS_REAL_PRO_OID, "abs", type::TypeId::DECIMAL,
                        {type::TypeId::DECIMAL}, execution::ast::Builtin::Abs, false);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::ABS_INT_PRO_OID, "abs", type::TypeId::INTEGER,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::ABS_INT_PRO_OID, "abs", type::TypeId::INTEGER,
                        {type::TypeId::INTEGER}, execution::ast::Builtin::Abs, false);
 
 #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin) \
-  BootstrapProcContext(dbc, txn, pro_oid, str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin, false);
+  BootstrapProcContext(txn, dbc, pro_oid, str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin, false);
 
   BOOTSTRAP_TRIG_FN("acos", postgres::PgProc::ACOS_PRO_OID, execution::ast::Builtin::ACos)
 
@@ -675,123 +674,123 @@ void PgProcImpl::BootstrapProcContexts(common::ManagedPointer<DatabaseCatalog> d
 
 #undef BOOTSTRAP_TRIG_FN
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::ROUND2_PRO_OID, "round", type::TypeId::DECIMAL,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::ROUND2_PRO_OID, "round", type::TypeId::DECIMAL,
                        {type::TypeId::DECIMAL, type::TypeId::INTEGER}, execution::ast::Builtin::Round2, false);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::EXP_PRO_OID, "exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+  BootstrapProcContext(txn, dbc, postgres::PgProc::EXP_PRO_OID, "exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                        execution::ast::Builtin::Exp, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::ASCII_PRO_OID, "ascii", type::TypeId::INTEGER,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::ASCII_PRO_OID, "ascii", type::TypeId::INTEGER,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::ASCII, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::LOWER_PRO_OID, "lower", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::LOWER_PRO_OID, "lower", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Lower, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::INITCAP_PRO_OID, "initcap", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::INITCAP_PRO_OID, "initcap", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::InitCap, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::POW_PRO_OID, "pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+  BootstrapProcContext(txn, dbc, postgres::PgProc::POW_PRO_OID, "pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                        execution::ast::Builtin::Pow, false);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR, type::TypeId::INTEGER},
                        execution::ast::Builtin::SplitPart, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::CHR_PRO_OID, "chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
+  BootstrapProcContext(txn, dbc, postgres::PgProc::CHR_PRO_OID, "chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
                        execution::ast::Builtin::Chr, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length", type::TypeId::INTEGER,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length", type::TypeId::INTEGER,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::CharLength, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::POSITION_PRO_OID, "position", type::TypeId::INTEGER,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::POSITION_PRO_OID, "position", type::TypeId::INTEGER,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Position, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::LENGTH_PRO_OID, "length", type::TypeId::INTEGER,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::LENGTH_PRO_OID, "length", type::TypeId::INTEGER,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Length, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::UPPER_PRO_OID, "upper", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::UPPER_PRO_OID, "upper", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Upper, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::VERSION_PRO_OID, "version", type::TypeId::VARCHAR, {},
+  BootstrapProcContext(txn, dbc, postgres::PgProc::VERSION_PRO_OID, "version", type::TypeId::VARCHAR, {},
                        execution::ast::Builtin::Version, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with", type::TypeId::BOOLEAN,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with", type::TypeId::BOOLEAN,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::StartsWith, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::SUBSTR_PRO_OID, "substr", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::SUBSTR_PRO_OID, "substr", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::INTEGER},
                        execution::ast::Builtin::Substring, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::REVERSE_PRO_OID, "reverse", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::REVERSE_PRO_OID, "reverse", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Reverse, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::LEFT_PRO_OID, "left", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::LEFT_PRO_OID, "left", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Left, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::RIGHT_PRO_OID, "right", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::RIGHT_PRO_OID, "right", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Right, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::REPEAT_PRO_OID, "repeat", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::REPEAT_PRO_OID, "repeat", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Repeat, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::TRIM_PRO_OID, "btrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::TRIM_PRO_OID, "btrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Trim, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::TRIM2_PRO_OID, "btrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::TRIM2_PRO_OID, "btrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Trim2, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::CONCAT_PRO_OID, "concat", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::CONCAT_PRO_OID, "concat", type::TypeId::VARCHAR,
                        {type::TypeId::VARIADIC}, execution::ast::Builtin::Concat, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::LPAD_PRO_OID, "lpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::LPAD_PRO_OID, "lpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
                        execution::ast::Builtin::Lpad, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::LPAD2_PRO_OID, "lpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::LPAD2_PRO_OID, "lpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Lpad, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Ltrim, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Ltrim, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::RPAD_PRO_OID, "rpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::RPAD_PRO_OID, "rpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
                        execution::ast::Builtin::Rpad, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::RPAD2_PRO_OID, "rpad", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::RPAD2_PRO_OID, "rpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Rpad, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Rtrim, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR}, execution::ast::Builtin::Rtrim, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::MOD_PRO_OID, "mod", type::TypeId::DECIMAL,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::MOD_PRO_OID, "mod", type::TypeId::DECIMAL,
                        {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::Mod, false);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::INTMOD_PRO_OID, "mod", type::TypeId::INTEGER,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::INTMOD_PRO_OID, "mod", type::TypeId::INTEGER,
                        {type::TypeId::INTEGER, type::TypeId::INTEGER}, execution::ast::Builtin::Mod, false);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_EMIT_INT_PRO_OID, "NpRunnersEmitInt",
+  BootstrapProcContext(txn, dbc, postgres::PgProc::NP_RUNNERS_EMIT_INT_PRO_OID, "NpRunnersEmitInt",
                        type::TypeId::INTEGER,
                        {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
                        execution::ast::Builtin::NpRunnersEmitInt, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "NpRunnersEmitReal",
+  BootstrapProcContext(txn, dbc, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "NpRunnersEmitReal",
                        type::TypeId::DECIMAL,
                        {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
                        execution::ast::Builtin::NpRunnersEmitReal, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "NpRunnersDummyInt",
+  BootstrapProcContext(txn, dbc, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "NpRunnersDummyInt",
                        type::TypeId::INTEGER, {}, execution::ast::Builtin::NpRunnersDummyInt, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::NP_RUNNERS_DUMMY_REAL_PRO_OID, "NpRunnersDummyReal",
+  BootstrapProcContext(txn, dbc, postgres::PgProc::NP_RUNNERS_DUMMY_REAL_PRO_OID, "NpRunnersDummyReal",
                        type::TypeId::DECIMAL, {}, execution::ast::Builtin::NpRunnersDummyReal, true);
 
-  BootstrapProcContext(dbc, txn, postgres::PgProc::DATE_PART_PRO_OID, "date_part", type::TypeId::INTEGER,
+  BootstrapProcContext(txn, dbc, postgres::PgProc::DATE_PART_PRO_OID, "date_part", type::TypeId::INTEGER,
                        {type::TypeId::DATE, type::TypeId::INTEGER}, execution::ast::Builtin::DatePart, false);
 }
 

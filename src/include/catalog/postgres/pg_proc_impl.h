@@ -126,29 +126,30 @@ class PgProcImpl {
   /**
    * Get the OID of a procedure from pg_proc.
    *
-   * @param dbc             The catalog that pg_proc is in. Used for type ID translation.
    * @param txn             The transaction to use.
+   * @param dbc             The catalog that pg_proc is in.
    * @param procns          The namespace of the procedure to look in.
    * @param procname        The name of the procedure to look for.
    * @param arg_types       The types of all arguments in this function.
    * @return The OID of the procedure if found. Else INVALID_PROC_OID.
    */
-  proc_oid_t GetProcOid(common::ManagedPointer<DatabaseCatalog> dbc,
-                        common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
+  proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
+                        common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
 
   /** Bootstrap all the builtin procedures in pg_proc. */
-  void BootstrapProcs(common::ManagedPointer<DatabaseCatalog> dbc,
-                      common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,
+                      common::ManagedPointer<DatabaseCatalog> dbc);
 
   /** Bootstrap all the procedure function contexts in pg_proc. */
-  void BootstrapProcContexts(common::ManagedPointer<DatabaseCatalog> dbc,
-                             common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn,
+                             common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
    * Allocate the FunctionContext and insert the pointer.
    *
    * @param txn                     The transaction to insert into the catalog with.
+   * @param dbc                     The catalog that pg_proc is in.
    * @param proc_oid                The OID of the procedure to to associate with this proc's and its context
    * @param func_name               The name of the function.
    * @param func_ret_type           The return type of the function.
@@ -156,9 +157,9 @@ class PgProcImpl {
    * @param builtin                 The builtin this context refers to.
    * @param is_exec_ctx_required    True if this function requires an execution context variable as its first argument.
    */
-  void BootstrapProcContext(common::ManagedPointer<DatabaseCatalog> dbc,
-                            common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                            std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+  void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn,
+                            common::ManagedPointer<DatabaseCatalog> dbc, proc_oid_t proc_oid, std::string &&func_name,
+                            type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   const db_oid_t db_oid_;

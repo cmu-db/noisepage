@@ -2209,7 +2209,7 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
-  return pg_proc_.GetProcOid(common::ManagedPointer(this), txn, procns, procname, arg_types);
+  return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(
