@@ -118,7 +118,7 @@ class PgProcImpl {
   /**
    * Get the procedure context pointer column of the specified procedure.
    *
-   * @return The procedure context pointer if it exists. nullptr if proc_oid is invalid or no such context exists.
+   * @return The procedure context pointer of the specified procedure, guaranteed to not be nullptr.
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
