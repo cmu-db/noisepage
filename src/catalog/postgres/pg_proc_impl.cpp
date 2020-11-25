@@ -80,7 +80,7 @@ std::function<void(void)> PgProcImpl::GetTearDownFn(common::ManagedPointer<trans
   }
 
   delete[] buffer;
-  return [func_contexts]() {
+  return [func_contexts{std::move(func_contexts)}]() {
     for (auto ctx : func_contexts) {
       delete ctx;
     }
