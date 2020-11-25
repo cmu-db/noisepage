@@ -346,8 +346,12 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<DatabaseCatalog> 
     for (auto &tuple : results) {
       auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
       bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
+
+      // "PROARGTYPES ... represents the call signature of the function". Check only input arguments.
+      // https://www.postgresql.org/docs/12/catalog-pg-proc.html
       storage::VarlenEntry index_all_arg_types = *reinterpret_cast<storage::VarlenEntry *>(
-          table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PgProc::PROALLARGTYPES_COL_OID]));
+          table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PgProc::PROARGTYPES_COL_OID]));
+
       // variadic functions will match any argument types as long as there one or more arguments
       if (index_all_arg_types == all_arg_types_varlen ||
           (index_all_arg_types == variadic_varlen && !arg_types.empty())) {
