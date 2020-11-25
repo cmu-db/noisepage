@@ -308,11 +308,8 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
   auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
 
   execution::functions::FunctionContext *ptr;
-  if (ptr_ptr == nullptr) {
-    ptr = nullptr;
-  } else {
-    ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
-  }
+  NOISEPAGE_ASSERT(nullptr != ptr_ptr, "GetProcCtxPtr called on an invalid OID or before SetProcCtxPtr.");
+  ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
 
   delete[] buffer;
   return common::ManagedPointer<execution::functions::FunctionContext>(ptr);
