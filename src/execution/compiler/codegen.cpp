@@ -359,8 +359,32 @@ ast::Expr *CodeGen::DateToSql(sql::Date date) const {
 }
 
 ast::Expr *CodeGen::FixedDecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const {
+
+  const uint128_t flag = (0xFFFFFFFF);
+  uint128_t fixed_decimal_1 = fixed_decimal.GetValue();
+  fixed_decimal_1 = fixed_decimal_1 >> 96;
+  uint128_t fixed_decimal_2 = fixed_decimal.GetValue();
+  fixed_decimal_2 = fixed_decimal_2 >> 64;
+  fixed_decimal_2 = fixed_decimal_2 & flag;
+  uint128_t fixed_decimal_3 = fixed_decimal.GetValue();
+  fixed_decimal_3 = fixed_decimal_3 >> 32;
+  fixed_decimal_3 = fixed_decimal_3 & flag;
+  uint128_t fixed_decimal_4 = fixed_decimal.GetValue();
+  fixed_decimal_4 = fixed_decimal_4 & flag;
+
   ast::Expr *call = CallBuiltin(ast::Builtin::FixedDecimalToSql,
-                                {Const128(fixed_decimal.GetValue()), Const32(precision)});
+                                {Const32(fixed_decimal_1),
+                                 Const32(fixed_decimal_2),
+                                 Const32(fixed_decimal_3),
+                                 Const32(fixed_decimal_4),
+                                 Const32(precision)});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::FixedDecimal));
+  return call;
+}
+
+ast::Expr *CodeGen::SetPrecisionFixedDecimal(ast::Expr * decimal_value, int32_t precision) const {
+  ast::Expr *call = CallBuiltin(ast::Builtin::SetPrecisionFixedDecimal,
+                                {decimal_value, Const32(precision)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::FixedDecimal));
   return call;
 }

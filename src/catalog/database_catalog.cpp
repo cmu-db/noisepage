@@ -559,7 +559,8 @@ bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::Tra
   *name_entry = name_varlen;
   *type_entry = col.Type();
   // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
-  *len_entry = (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY) ? col.MaxVarlenSize()
+  *len_entry = (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY ||
+                col.Type() == type::TypeId::FIXEDDECIMAL) ? col.MaxVarlenSize()
                                                                                               : col.AttrSize();
   *notnull_entry = !col.Nullable();
   storage::VarlenEntry dsrc_varlen = storage::StorageUtil::CreateVarlen(col.StoredExpression()->ToJson().dump());
@@ -2451,7 +2452,8 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   TERRIER_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
-  Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
+  Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY ||
+                  col_type == type::TypeId::FIXEDDECIMAL)
                    ? Column(name, col_type, col_len, col_null, *expr)
                    : Column(name, col_type, col_null, *expr);
 

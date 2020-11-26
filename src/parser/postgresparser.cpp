@@ -1464,7 +1464,10 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateViewTransform(ParseResult *p
 PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseResult *parse_result, ColumnDef *root) {
   auto type_name = root->type_name_;
 
-  // handle varlen
+  auto datatype_name = reinterpret_cast<value *>(type_name->names_->tail->data.ptr_value)->val_.str_;
+  auto datatype = ColumnDefinition::StrToDataType(datatype_name);
+
+  // handle varlen and fixed decimal precision
   size_t varlen = 0;
   if (type_name->typmods_ != nullptr) {
     auto node = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
@@ -1473,12 +1476,14 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
         auto node_type = reinterpret_cast<A_Const *>(node)->val_.type_;
         switch (node_type) {
           case T_Integer: {
-
-            auto node2 = reinterpret_cast<Node *>(type_name->typmods_->tail->data.ptr_value);
-            varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node2)->val_.val_.ival_);
-
-            varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
-            break;
+            if(datatype == ColumnDefinition::DataType::FIXEDDECIMAL) {
+              auto node2 = reinterpret_cast<Node *>(type_name->typmods_->tail->data.ptr_value);
+              varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node2)->val_.val_.ival_);
+              break;
+            } else {
+              varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
+              break;
+            }
           }
           default: {
             PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node_type);
@@ -1491,9 +1496,6 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
       }
     }
   }
-
-  auto datatype_name = reinterpret_cast<value *>(type_name->names_->tail->data.ptr_value)->val_.str_;
-  auto datatype = ColumnDefinition::StrToDataType(datatype_name);
 
   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;
 

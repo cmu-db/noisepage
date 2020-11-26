@@ -15,6 +15,7 @@ namespace terrier::execution::ast {
   F(FloatToSql, floatToSql)                                             \
   F(DateToSql, dateToSql)                                               \
   F(FixedDecimalToSql, fixedDecimalToSql)                               \
+  F(SetPrecisionFixedDecimal, setPrecisionFixedDecimal)                 \
   F(TimestampToSql, timestampToSql)                                     \
   F(TimestampToSqlYMDHMSMU, timestampToSqlYMDHMSMU)                     \
   F(StringToSql, stringToSql)                                           \

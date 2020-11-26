@@ -156,13 +156,15 @@ struct DecimalVal : public Val {
 
     if(precision_ != 0) {
 
-      int128_t power_of_ten = 1;
+      int128_t fractional = value;
+      std::string fractional_string = "";
       for(int i = 0; i < precision_; i++) {
-        power_of_ten *= 10;
+        int remainder = fractional % 10;
+        fractional_string.push_back('0' + remainder);
+        fractional /= 10;
       }
 
-      int128_t fractional = value % power_of_ten;
-      int128_t integral = value / power_of_ten;
+      int128_t integral = fractional;
 
       std::string integral_string = "";
 
@@ -176,14 +178,6 @@ struct DecimalVal : public Val {
       output.append(integral_string);
 
       output.push_back('.');
-
-      std::string fractional_string = "";
-
-      while(fractional != 0) {
-        int remainder = fractional % 10;
-        fractional_string.push_back('0' + remainder);
-        fractional /= 10;
-      }
 
       std::reverse(fractional_string.begin(), fractional_string.end());
       output.append(fractional_string);

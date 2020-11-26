@@ -167,8 +167,8 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             {
               terrier::execution::sql::Decimal128 decimal_val(0);
               // TODO(Rohan): Fix the precision argument
-              decimal_val.RoundUpAndSet(std::string(str_view), 10);
-              value->SetValue(type::TypeId::FIXEDDECIMAL, execution::sql::DecimalVal(decimal_val));
+              decimal_val.RoundUpAndSet(std::string(str_view), 5);
+              value->SetValue(type::TypeId::FIXEDDECIMAL, execution::sql::DecimalVal(decimal_val, 5));
               break;
             }
           }

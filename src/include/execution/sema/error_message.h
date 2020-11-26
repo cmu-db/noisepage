@@ -92,7 +92,7 @@ namespace sema {
     "types. Received type '%0' in position %1",                                                                       \
     (ast::Type *, uint32_t))                                                                                          \
   F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))            \
-  F(InvalidCastToSqlFixedDecimal, "invalid cast of %0 %1 to SQL fixed decimal", (ast::Type *, ast::Type *))
+  F(InvalidCastToSqlFixedDecimal, "invalid cast of %0 %1 %2 %3 %4 to SQL fixed decimal", (ast::Type *, ast::Type *, ast::Type *, ast::Type *, ast::Type *))
 
 /// Define the ErrorMessageId enumeration
 enum class ErrorMessageId : uint16_t {

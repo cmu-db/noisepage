@@ -325,6 +325,10 @@ ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto type = schema.GetColumn(col_oid).Type();
   auto nullable = schema.GetColumn(col_oid).Nullable();
   auto col_index = GetColOidIndex(col_oid);
+  if(sql::GetTypeId(type) == sql::TypeId::FixedDecimal) {
+    auto vpi_get_expr = GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
+    return GetCodeGen()->SetPrecisionFixedDecimal(vpi_get_expr, schema.GetColumn(col_oid).MaxVarlenSize());
+  }
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
 }
 

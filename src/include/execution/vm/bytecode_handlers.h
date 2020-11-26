@@ -566,6 +566,14 @@ VM_OP_HOT void OpInitFixedDecimal(terrier::execution::sql::DecimalVal *result, i
   result->precision_ = precision;
 }
 
+VM_OP_HOT void OpSetPrecisionFixedDecimal(terrier::execution::sql::DecimalVal *result,
+                                          terrier::execution::sql::DecimalVal * fixed_decimal,
+                                          int32_t precision) {
+  result->is_null_ = false;
+  result->val_ = fixed_decimal->val_;
+  result->precision_ = precision;
+}
+
 VM_OP_HOT void OpInitTimestamp(terrier::execution::sql::TimestampVal *result, uint64_t usec) {
   result->is_null_ = false;
   result->val_ = terrier::execution::sql::Timestamp::FromMicroseconds(usec);
@@ -762,6 +770,18 @@ VM_OP_HOT void OpSubReal(terrier::execution::sql::Real *const result, const terr
 VM_OP_HOT void OpMulReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
                          const terrier::execution::sql::Real *const right) {
   terrier::execution::sql::ArithmeticFunctions::Mul(result, *left, *right);
+}
+
+VM_OP_HOT void OpMulFixedDecimal(terrier::execution::sql::DecimalVal *const result, const terrier::execution::sql::DecimalVal *const left,
+                         const terrier::execution::sql::DecimalVal *const right) {
+  auto left_val = left->val_;
+  auto right_val = right->val_;
+  auto left_precision = left->precision_;
+  auto right_precision = right->precision_;
+  auto lower_precision = left_precision < right_precision ? left_precision : right_precision;
+  left_val.SignedMultiplyWithDecimal(right_val, lower_precision);
+  result->val_ = left_val;
+  result->precision_ = left_precision > right_precision ? left_precision : right_precision;
 }
 
 VM_OP_HOT void OpDivReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,

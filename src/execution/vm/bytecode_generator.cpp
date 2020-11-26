@@ -542,9 +542,19 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::FixedDecimalToSql: {
+      auto fixed_decimal_1 = VisitExpressionForRValue(call->Arguments()[0]);
+      auto fixed_decimal_2 = VisitExpressionForRValue(call->Arguments()[1]);
+      auto fixed_decimal_3 = VisitExpressionForRValue(call->Arguments()[2]);
+      auto fixed_decimal_4 = VisitExpressionForRValue(call->Arguments()[3]);
+      auto precision = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->Emit(Bytecode::InitFixedDecimal, dest, fixed_decimal_1,
+                         fixed_decimal_2, fixed_decimal_3, fixed_decimal_4, precision);
+      break;
+    }
+    case ast::Builtin::SetPrecisionFixedDecimal: {
       auto fixed_decimal = VisitExpressionForRValue(call->Arguments()[0]);
       auto precision = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::InitFixedDecimal, dest, fixed_decimal, precision);
+      GetEmitter()->Emit(Bytecode::SetPrecisionFixedDecimal, dest, fixed_decimal, precision);
       break;
     }
     case ast::Builtin::TimestampToSql: {
@@ -2474,6 +2484,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
     case ast::Builtin::FixedDecimalToSql:
+    case ast::Builtin::SetPrecisionFixedDecimal:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:
@@ -3208,7 +3219,7 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
   LocalVar right = VisitExpressionForLValue(node->Right());
 
   const bool is_integer_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
-
+  const bool is_decimal_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::FixedDecimal);
   Bytecode bytecode;
   switch (node->Op()) {
     case parsing::Token::Type::PLUS: {
@@ -3220,6 +3231,10 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
       break;
     }
     case parsing::Token::Type::STAR: {
+      if(is_decimal_math) {
+        bytecode = Bytecode::MulFixedDecimal;
+        break;
+      }
       bytecode = (is_integer_math ? Bytecode::MulInteger : Bytecode::MulReal);
       break;
     }

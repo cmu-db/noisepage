@@ -502,6 +502,14 @@ class CodeGen {
   [[nodiscard]] ast::Expr *FixedDecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const;
 
   /**
+   * Call \@SetPrecisionFixedDecimal(). Set the precision of a fixed decimal
+   * @param decimal_value AST expression of the deicmal value
+   * @param precision The precision
+   * @return The SQL fixed decimal with precision set.
+   */
+  [[nodiscard]] ast::Expr *SetPrecisionFixedDecimal(ast::Expr * decimal_value, int32_t precision) const;
+
+  /**
    * Call \@timestampToSql(). Create a timestamp value.
    * @param timestamp The timestamp
    * @return The generated sql Timestamp.

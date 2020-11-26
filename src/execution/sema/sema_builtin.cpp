@@ -54,19 +54,40 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
-  // Handle the builtins whose API is different from the other builtins.
-  if (builtin == ast::Builtin::FixedDecimalToSql) {
+  if (builtin == ast::Builtin::SetPrecisionFixedDecimal) {
     if (!CheckArgCount(call, 2)) {
       return;
     }
-//    const auto int32_kind = ast::BuiltinType::Int32;
-//    const auto int128_kind = ast::BuiltinType::Int128;
+    //    const auto int32_kind = ast::BuiltinType::Int32;
+    //    const auto int128_kind = ast::BuiltinType::Int128;
 
-//    if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(int128_kind) ||
-//        !call->Arguments()[1]->GetType()->IsSpecificBuiltin(int32_kind)) {
-//      GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidCastToSqlFixedDecimal,
-//                                 call->Arguments()[0]->GetType(), call->Arguments()[1]->GetType());
-//    }
+    //    if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(int128_kind) ||
+    //        !call->Arguments()[1]->GetType()->IsSpecificBuiltin(int32_kind)) {
+    //      GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidCastToSqlFixedDecimal,
+    //                                 call->Arguments()[0]->GetType(), call->Arguments()[1]->GetType());
+    //    }
+    // All good. Set return type as SQL FixedDecimal.
+    call->SetType(GetBuiltinType(ast::BuiltinType::FixedDecimal));
+    return;
+  }
+
+  // Handle the builtins whose API is different from the other builtins.
+  if (builtin == ast::Builtin::FixedDecimalToSql) {
+    if (!CheckArgCount(call, 5)) {
+      return;
+    }
+    const auto int32_kind = ast::BuiltinType::Int32;
+
+    if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(int32_kind) ||
+        !call->Arguments()[1]->GetType()->IsSpecificBuiltin(int32_kind) ||
+        !call->Arguments()[2]->GetType()->IsSpecificBuiltin(int32_kind) ||
+        !call->Arguments()[3]->GetType()->IsSpecificBuiltin(int32_kind) ||
+        !call->Arguments()[4]->GetType()->IsSpecificBuiltin(int32_kind)) {
+      GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidCastToSqlFixedDecimal,
+                                 call->Arguments()[0]->GetType(), call->Arguments()[1]->GetType(),
+                                 call->Arguments()[2]->GetType(), call->Arguments()[3]->GetType(),
+                                 call->Arguments()[4]->GetType());
+    }
     // All good. Set return type as SQL Date.
     call->SetType(GetBuiltinType(ast::BuiltinType::FixedDecimal));
     return;
@@ -3040,6 +3061,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
     case ast::Builtin::FixedDecimalToSql:
+    case ast::Builtin::SetPrecisionFixedDecimal:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:

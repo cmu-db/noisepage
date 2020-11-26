@@ -236,6 +236,15 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 #undef GEN_COMPARISON_TYPES
 #undef DO_GEN_COMPARISON
 
+  OP(MulFixedDecimal) : {
+    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+
+    OpMulFixedDecimal(dest, lhs, rhs);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Primitive arithmetic
   // -------------------------------------------------------
@@ -959,10 +968,31 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(InitFixedDecimal) : {
     auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
-    auto fixed_decimal = frame->LocalAt<int64_t>(READ_LOCAL_ID());
-    int128_t fixed_decimal_128 = static_cast<int128_t>(fixed_decimal);
+    auto fixed_decimal_1 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto fixed_decimal_2 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto fixed_decimal_3 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto fixed_decimal_4 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+
+    uint128_t fixed_decimal_1_128 = static_cast<uint128_t>(fixed_decimal_1);
+    uint128_t fixed_decimal_2_128 = static_cast<uint128_t>(fixed_decimal_2);
+    uint128_t fixed_decimal_3_128 = static_cast<uint128_t>(fixed_decimal_3);
+    uint128_t fixed_decimal_4_128 = static_cast<uint128_t>(fixed_decimal_4);
+
+    uint128_t fixed_decimal_128 = fixed_decimal_1_128 << 96;
+    fixed_decimal_128 = fixed_decimal_128 | (fixed_decimal_2_128 << 64);
+    fixed_decimal_128 = fixed_decimal_128 | (fixed_decimal_3_128 << 32);
+    fixed_decimal_128 = fixed_decimal_128 | (fixed_decimal_4_128);
+
     auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
     OpInitFixedDecimal(sql_fixed_decimal, fixed_decimal_128, precision);
+    DISPATCH_NEXT();
+  }
+
+  OP(SetPrecisionFixedDecimal) : {
+  auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
+  auto fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
+  auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+  OpSetPrecisionFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
   DISPATCH_NEXT();
 }
 

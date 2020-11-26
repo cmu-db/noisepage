@@ -75,7 +75,6 @@ class Schema {
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
           default_value_(default_value.Copy()) {
-      TERRIER_ASSERT(attr_size_ == storage::VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
@@ -128,7 +127,6 @@ class Schema {
      * @return The maximum length of this column (only valid if it's VARLEN)
      */
     uint16_t MaxVarlenSize() const {
-      TERRIER_ASSERT(attr_size_ == storage::VARLEN_COLUMN, "This attribute has no meaning for non-VARLEN columns.");
       return max_varlen_size_;
     }
 

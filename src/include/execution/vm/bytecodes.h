@@ -245,7 +245,8 @@ namespace terrier::execution::vm {
   F(InitInteger64, OperandType::Local, OperandType::Local)                                                            \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  F(InitFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(InitFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)\
+  F(SetPrecisionFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
   F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
     OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \
@@ -319,6 +320,7 @@ namespace terrier::execution::vm {
   F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(MulFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(ModReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
