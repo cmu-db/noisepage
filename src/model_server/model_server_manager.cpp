@@ -41,7 +41,7 @@ namespace noisepage::modelserver {
 void ModelServerManager::ModelServerHandler(common::ManagedPointer<messenger::Messenger> messenger,
                                             std::string_view sender_id, std::string_view message, uint64_t recv_cb_id) {
   // TODO(ricky): Currently just echo the results. No continuation
-  MODEL_SERVER_LOG_TRACE("[PID={},SEND_ID={},RECV_ID={}] Messenger RECV: {}", ::getpid(), message, sender_id, recv_cb_id);
+  MODEL_SERVER_LOG_TRACE("[PID={},SENDER_ID={}] Messenger RECV: {}", ::getpid(), sender_id, message, recv_cb_id);
   (void)messenger;
 }
 
@@ -102,7 +102,7 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
 void ModelServerManager::PrintMessage(const std::string &msg) {
   nlohmann::json j;
   j["cmd"] = "PRINT";
-  j["data"] = msg;
+  j["data"]["message"] = msg;
   try {
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
   } catch(std::exception &e) {
@@ -125,11 +125,12 @@ void ModelServerManager::StopModelServer() {
   if (thd_.joinable()) thd_.join();
 }
 
-void ModelServerManager::TrainWith(const std::string &model_name, const std::string &seq_files_dir) {
+void ModelServerManager::TrainWith(const std::vector<std::string> &models, const std::string &seq_files_dir) {
   nlohmann::json j;
   j["cmd"] = "TRAIN";
-  j["data"]["model_name"] = model_name;
+  j["data"]["models"] = models;
   j["data"]["seq_files"] = seq_files_dir;
+  j["data"]["data_lists"] = "";
   try{
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
   } catch (std::exception &e) {
@@ -137,11 +138,11 @@ void ModelServerManager::TrainWith(const std::string &model_name, const std::str
   }
 }
 
-void ModelServerManager::DoInference(const std::string &data_file, const std::string &model_map_path) {
+void ModelServerManager::DoInference(brain::ExecutionOperatingUnitType opunit, const std::vector<std::vector<double>> &features) {
   nlohmann::json j;
   j["cmd"] = "INFER";
-  j["data"]["data_file"] = data_file;
-  j["data"]["model_map_path"] = model_map_path;
+  j["data"]["opunit"] = opunit;
+  j["data"]["features"] = features;
   try{
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
   } catch (std::exception &e) {
