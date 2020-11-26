@@ -325,6 +325,8 @@ void DatabaseCatalog::BootstrapPRIs() {
                                                     postgres::PG_LANGUAGE_ALL_COL_OIDS.cend()};
   pg_language_all_cols_pri_ = languages_->InitializerForProjectedRow(pg_language_all_oids);
   pg_language_all_cols_prm_ = languages_->ProjectionMapForOids(pg_language_all_oids);
+
+  pg_proc_.BootstrapPRIs();
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
