@@ -88,8 +88,6 @@ class PgProcImpl {
    * @param src             The source code of the procedure.
    * @param is_aggregate    True iff this is an aggregate procedure.
    * @return True if the creation succeeded. False otherwise.
-   *
-   * @warning Does not support variadics yet.
    */
   bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
                        const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
