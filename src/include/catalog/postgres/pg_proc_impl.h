@@ -111,6 +111,8 @@ class PgProcImpl {
    * Set the procedure context pointer column of the specified procedure.
    *
    * @return False if the proc_oid does not correspond to a valid procedure. True if the set was successful.
+   *
+   * TODO(WAN): See #1356 for a discussion on whether this should be exposed separately.
    */
   bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                      const execution::functions::FunctionContext *func_context);
