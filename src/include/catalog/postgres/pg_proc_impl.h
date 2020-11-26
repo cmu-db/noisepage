@@ -166,9 +166,17 @@ class PgProcImpl {
 
   const db_oid_t db_oid_;
 
+  /**
+   * The table and indexes that define pg_proc.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
   storage::SqlTable *procs_;
   storage::index::Index *procs_oid_index_;
   storage::index::Index *procs_name_index_;
+  ///@}
+
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
   storage::ProjectionMap pg_proc_all_cols_prm_;
   storage::ProjectedRowInitializer pg_proc_ptr_pri_;
