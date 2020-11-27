@@ -43,11 +43,11 @@ class PgLanguageImpl {
    *    pg_languages_oid_index
    *    pg_languages_name_index
    *
-   * @param dbc             The catalog object to bootstrap in.
    * @param txn             The transaction to bootstrap in.
+   * @param dbc             The catalog object to bootstrap in.
    */
-  void Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                 common::ManagedPointer<transaction::TransactionContext> txn);
+  void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                 common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
    * Create a language entry in the pg_language table.
@@ -84,8 +84,8 @@ class PgLanguageImpl {
   friend class storage::RecoveryManager;
 
   /** Bootstrap all the builtin languages in pg_languages. */
-  void BootstrapLanguages(common::ManagedPointer<DatabaseCatalog> dbc,
-                          common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapLanguages(common::ManagedPointer<transaction::TransactionContext> txn,
+                          common::ManagedPointer<DatabaseCatalog> dbc);
 
   const db_oid_t db_oid_;
 

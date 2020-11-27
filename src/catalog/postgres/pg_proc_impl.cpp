@@ -216,7 +216,7 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   NOISEPAGE_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
 
   auto to_delete_slot = results[0];
-  txn->StageDelete(db_oid_, postgres::LANGUAGE_TABLE_OID, to_delete_slot);
+  txn->StageDelete(db_oid_, postgres::PgLanguage::LANGUAGE_TABLE_OID, to_delete_slot);
 
   if (!procs_->Delete(txn, to_delete_slot)) {
     // Someone else has a write-lock. Free the buffer and return false to indicate failure
@@ -390,40 +390,40 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   auto dec_type = dbc->GetTypeOidForType(type::TypeId::DECIMAL);
   auto int_type = dbc->GetTypeOidForType(type::TypeId::INTEGER);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::EXP_PRO_OID, "exp", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::EXP_PRO_OID, "exp", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {dec_type}, {dec_type}, {}, dec_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::ATAN2_PRO_OID, "atan2", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type},
                        {dec_type, dec_type}, {}, dec_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::ABS_REAL_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::ABS_REAL_PRO_OID, "abs", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {dec_type}, {dec_type}, {}, dec_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::ABS_INT_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::ABS_INT_PRO_OID, "abs", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {int_type}, {int_type}, {}, int_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::MOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::MOD_PRO_OID, "mod", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type},
                        {dec_type, dec_type}, {}, dec_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::INTMOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::INTMOD_PRO_OID, "mod", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {int_type, int_type},
                        {int_type, int_type}, {}, int_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::ROUND2_PRO_OID, "round", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, int_type},
                        {dec_type, int_type}, {}, dec_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::POW_PRO_OID, "pow", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::POW_PRO_OID, "pow", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type},
                        {dec_type, dec_type}, {}, dec_type, "", true);
 
 #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                                  \
-  dbc->CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID,                                        \
+  dbc->CreateProcedure(txn, pro_oid, str_name, postgres::PgLanguage::INTERNAL_LANGUAGE_OID,                            \
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", \
                        true);
 
@@ -472,7 +472,7 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   const auto variadic_type = dbc->GetTypeOidForType(type::TypeId::VARIADIC);
 
   dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint",
-                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
                        {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
                        {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
                        {postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN,
@@ -480,7 +480,7 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                        int_type, "", false);
 
   dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_EMIT_REAL_PRO_OID, "nprunnersemitreal",
-                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
                        {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
                        {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
                        {postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN, postgres::PgProc::ArgModes::IN,
@@ -488,121 +488,122 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                        real_type, "", false);
 
   dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_DUMMY_INT_PRO_OID, "nprunnersdummyint",
-                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {},
-                       int_type, "", false);
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {},
+                       {}, {}, int_type, "", false);
 
   dbc->CreateProcedure(txn, postgres::PgProc::NP_RUNNERS_DUMMY_REAL_PRO_OID, "nprunnersdummyreal",
-                       postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {},
-                       real_type, "", false);
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {},
+                       {}, {}, real_type, "", false);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::ASCII_PRO_OID, "ascii", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::ASCII_PRO_OID, "ascii", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::CHR_PRO_OID, "chr", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::CHR_PRO_OID, "chr", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {int_type}, {int_type}, {}, str_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length", postgres::INTERNAL_LANGUAGE_OID,
-                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "",
-                       true);
+  dbc->CreateProcedure(txn, postgres::PgProc::CHARLENGTH_PRO_OID, "char_length",
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"},
+                       {str_type}, {str_type}, {}, int_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::LOWER_PRO_OID, "lower", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::UPPER_PRO_OID, "upper", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::INITCAP_PRO_OID, "initcap", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::INITCAP_PRO_OID, "initcap", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::VERSION_PRO_OID, "version", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part", postgres::INTERNAL_LANGUAGE_OID,
-                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "delim", "field"},
-                       {str_type, str_type, int_type}, {str_type, str_type, int_type}, {}, str_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::SPLIT_PART_PRO_OID, "split_part",
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                       {"str", "delim", "field"}, {str_type, str_type, int_type}, {str_type, str_type, int_type}, {},
+                       str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::LENGTH_PRO_OID, "length", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with", postgres::INTERNAL_LANGUAGE_OID,
-                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "start"}, {str_type, str_type},
-                       {str_type, str_type}, {}, bool_type, "", true);
+  dbc->CreateProcedure(txn, postgres::PgProc::STARTSWITH_PRO_OID, "starts_with",
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                       {"str", "start"}, {str_type, str_type}, {str_type, str_type}, {}, bool_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::SUBSTR_PRO_OID, "substr", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::SUBSTR_PRO_OID, "substr", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "pos", "len"}, {str_type, int_type, int_type},
                        {str_type, int_type, int_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::REVERSE_PRO_OID, "reverse", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::REVERSE_PRO_OID, "reverse", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::LEFT_PRO_OID, "left", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::LEFT_PRO_OID, "left", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type},
                        {str_type, int_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::RIGHT_PRO_OID, "right", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::RIGHT_PRO_OID, "right", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type},
                        {str_type, int_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::REPEAT_PRO_OID, "repeat", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::REPEAT_PRO_OID, "repeat", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type},
                        {str_type, int_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::TRIM_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::TRIM_PRO_OID, "btrim", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::TRIM2_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::TRIM2_PRO_OID, "btrim", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "str"}, {str_type, str_type},
                        {str_type, str_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::CONCAT_PRO_OID, "concat", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::CONCAT_PRO_OID, "concat", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {variadic_type}, {variadic_type}, {},
                        str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
-                       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
-                       {date_type, int_type}, {}, int_type, "", false);
+  dbc->CreateProcedure(txn, postgres::PgProc::DATE_PART_PRO_OID, "date_part",
+                       postgres::PgLanguage::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                       {"date, date_part_type"}, {date_type, int_type}, {date_type, int_type}, {}, int_type, "", false);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::POSITION_PRO_OID, "position", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::POSITION_PRO_OID, "position", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str1", "str2"}, {str_type, str_type},
                        {str_type, str_type}, {}, int_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::LPAD_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::LPAD_PRO_OID, "lpad", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
                        {str_type, int_type, str_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::LPAD2_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::LPAD2_PRO_OID, "lpad", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type},
                        {str_type, int_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::LTRIM2ARG_PRO_OID, "ltrim", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
                        {str_type, str_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::LTRIM1ARG_PRO_OID, "ltrim", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::RPAD_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::RPAD_PRO_OID, "rpad", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
                        {str_type, int_type, str_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::RPAD2_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::RPAD2_PRO_OID, "rpad", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type},
                        {str_type, int_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::RTRIM2ARG_PRO_OID, "rtrim", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
                        {str_type, str_type}, {}, str_type, "", true);
 
-  dbc->CreateProcedure(txn, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+  dbc->CreateProcedure(txn, postgres::PgProc::RTRIM1ARG_PRO_OID, "rtrim", postgres::PgLanguage::INTERNAL_LANGUAGE_OID,
                        postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "",
                        true);
 

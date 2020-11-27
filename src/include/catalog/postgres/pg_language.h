@@ -28,7 +28,7 @@ class PgLanguage {
 
   /*
    * Column names of the form "LAN[name]_COL_OID" are present in the PostgreSQL
-   * catalog specification and columns of the form "ATT_[name]_COL_OID" are
+   * catalog specification and columns of the form "LAN_[name]_COL_OID" are
    * noisepage-specific addtions (generally pointers to internal objects).
    */
   static constexpr col_oid_t LANOID_COL_OID = col_oid_t(1);        // INTEGER (pkey) [lan_oid_t]
