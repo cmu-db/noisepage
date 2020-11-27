@@ -1300,25 +1300,24 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   auto teardown_pg_constraint = pg_constraint_.GetTearDownFn(txn);
   auto teardown_pg_proc = pg_proc_.GetTearDownFn(txn);
 
-  auto dbc_nuke =
-      [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)}, ]() {
-        for (auto table : tables) delete table;
+  auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
+                   table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)}]() {
+    for (auto table : tables) delete table;
 
-        for (auto index : indexes) {
-          if (index->Type() == storage::index::IndexType::BWTREE) {
-            garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index));
-          }
-          delete index;
-        }
+    for (auto index : indexes) {
+      if (index->Type() == storage::index::IndexType::BWTREE) {
+        garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index));
+      }
+      delete index;
+    }
 
-        for (auto schema : table_schemas) delete schema;
+    for (auto schema : table_schemas) delete schema;
 
-        for (auto schema : index_schemas) delete schema;
+    for (auto schema : index_schemas) delete schema;
 
-        teardown_pg_constraint();
-
-        teardown_pg_proc();
-      };
+    teardown_pg_constraint();
+    teardown_pg_proc();
+  };
 
   // No new transactions can see these object but there may be deferred index
   // and other operation.  Therefore, we need to defer the deallocation on delete

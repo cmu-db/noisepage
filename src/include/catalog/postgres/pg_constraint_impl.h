@@ -50,23 +50,19 @@ class PgConstraintImpl {
    *    pg_constraint_index_index
    *    pg_constraint_foreigntable_index
    *
-   * @param dbc             The catalog object to bootstrap in.
    * @param txn             The transaction to bootstrap in.
+   * @param dbc             The catalog object to bootstrap in.
    */
-  void Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                 common::ManagedPointer<transaction::TransactionContext> txn);
+  void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                 common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Get all of the expressions used for constraints, used in TearDown.
-   * A buffer is passed in to allow for buffer reuse optimizations.
+   * Obtain a function that will teardown pg_constraint as it exists at the time of the provided txn.
    *
-   * @param txn             The transaction to obtain all the expressions in.
-   * @param buffer          The buffer to use for getting function contexts back out.
-   * @param buffer_len      The length of buffer. Only used in debug mode to assert correctness.
-   * @return All the expressions used for constraints.
+   * @param txn             The transaction to perform the teardown in.
+   * @return A function that will teardown pg_constraint when invoked.
    */
-  std::vector<parser::AbstractExpression *> TearDownGetExpressions(
-      common::ManagedPointer<transaction::TransactionContext> txn, byte *buffer, UNUSED_ATTRIBUTE uint64_t buffer_len);
+  std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn);
 
  private:
   friend class Builder;
@@ -74,13 +70,20 @@ class PgConstraintImpl {
 
   const db_oid_t db_oid_;
 
-  storage::SqlTable *constraints_;
-  storage::index::Index *constraints_oid_index_;
-  storage::index::Index *constraints_name_index_;  // indexed on namespace OID and name
-  storage::index::Index *constraints_namespace_index_;
-  storage::index::Index *constraints_table_index_;
-  storage::index::Index *constraints_index_index_;
-  storage::index::Index *constraints_foreigntable_index_;
+  /**
+   * The table and indexes that define pg_constraint.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
+  storage::SqlTable *constraints_;                         ///< The constraints table.
+  storage::index::Index *constraints_oid_index_;           ///< Indexed on: conoid
+  storage::index::Index *constraints_name_index_;          ///< Indexed on: connamespace, conname
+  storage::index::Index *constraints_namespace_index_;     ///< Indexed on: connamespace
+  storage::index::Index *constraints_table_index_;         ///< Indexed on: conrelid
+  storage::index::Index *constraints_index_index_;         ///< Indexed on: conindid
+  storage::index::Index *constraints_foreigntable_index_;  ///< Indexed on: confrelid
+  ///@}
 };
 
 }  // namespace noisepage::catalog::postgres

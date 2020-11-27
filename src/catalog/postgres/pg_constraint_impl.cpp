@@ -13,8 +13,8 @@ PgConstraintImpl::PgConstraintImpl(db_oid_t db_oid) : db_oid_(db_oid) {}
 
 void PgConstraintImpl::BootstrapPRIs() {}
 
-void PgConstraintImpl::Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                                 common::ManagedPointer<transaction::TransactionContext> txn) {
+void PgConstraintImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                                 common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
   retval = dbc->CreateTableEntry(txn, PgConstraint::CONSTRAINT_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID,
@@ -66,13 +66,12 @@ void PgConstraintImpl::Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
-std::vector<parser::AbstractExpression *> PgConstraintImpl::TearDownGetExpressions(
-    common::ManagedPointer<transaction::TransactionContext> txn, byte *buffer, UNUSED_ATTRIBUTE uint64_t buffer_len) {
+std::function<void(void)> PgConstraintImpl::GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<parser::AbstractExpression *> expressions;
 
   const std::vector<col_oid_t> pg_constraint_oids{PgConstraint::CONBIN_COL_OID};
   auto pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, DatabaseCatalog::TEARDOWN_MAX_TUPLES);
-  NOISEPAGE_ASSERT(buffer_len >= pci.ProjectedColumnsSize(), "Buffer too small!");
+  byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);
 
   auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
@@ -86,7 +85,12 @@ std::vector<parser::AbstractExpression *> PgConstraintImpl::TearDownGetExpressio
     }
   }
 
-  return expressions;
+  delete[] buffer;
+  return [expressions{std::move(expressions)}]() {
+    for (const auto expression : expressions) {
+      delete expression;
+    }
+  };
 }
 
 }  // namespace noisepage::catalog::postgres
