@@ -981,9 +981,11 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
     l_seq_scan_out.AddOutput("l_orderkey", l_orderkey);
     l_seq_scan_out.AddOutput("l_suppkey", l_suppkey);
 
-    auto date_type = expr_maker.Constant(static_cast<int32_t>(execution::sql::DatePartType::YEAR));
-    auto extract_year = expr_maker.Function("data_part", {l_shipdate, date_type}, type::TypeId::INTEGER,
-                                            noisepage::catalog::postgres::PgProc::DATE_PART_PRO_OID);
+    auto date_part_oid = accessor->GetProcOid("date_part", {accessor->GetTypeOidFromTypeId(type::TypeId::DATE),
+                                                            accessor->GetTypeOidFromTypeId(type::TypeId::INTEGER)});
+
+    auto year_type = expr_maker.Constant(static_cast<int32_t>(execution::sql::DatePartType::YEAR));
+    auto extract_year = expr_maker.Function("extract_year", {l_shipdate, year_type}, type::TypeId::INTEGER, date_part_oid);
 
     l_seq_scan_out.AddOutput("l_year", extract_year);
     auto schema = l_seq_scan_out.MakeSchema();

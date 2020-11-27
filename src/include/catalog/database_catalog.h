@@ -12,7 +12,6 @@
 #include "catalog/postgres/pg_constraint_impl.h"
 #include "catalog/postgres/pg_language_impl.h"
 #include "catalog/postgres/pg_proc_impl.h"
-#include "catalog/postgres/pg_type.h"
 #include "catalog/postgres/pg_type_impl.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
@@ -271,12 +270,7 @@ class DatabaseCatalog {
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  /**
-   * Creates a language entry into the pg_language table
-   * @param txn transaction to use
-   * @param lanname name of language to insert
-   * @return oid of created entry if successful else INVALID_LANGUAGE_OID
-   */
+  /** @see PgLanguageImpl::CreateLanguage */
   language_oid_t CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
 
@@ -294,7 +288,7 @@ class DatabaseCatalog {
   proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
                              language_oid_t language_oid, namespace_oid_t procns, const std::vector<std::string> &args,
                              const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
-                             const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
+                             const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
   /** @see PgProcImpl::CreateProcedure */
@@ -302,7 +296,7 @@ class DatabaseCatalog {
                        const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                        const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                        const std::vector<type_oid_t> &all_arg_types,
-                       const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
+                       const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                        const std::string &src, bool is_aggregate);
 
   /** @see PgProcImpl::DropProcedure */
@@ -341,6 +335,8 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+  // DatabaseCatalog methods generally handle coarse-grained locking. The various PgXXXImpl classes need to invoke
+  // private DatabaseCatalog methods such as CreateTableEntry and CreateIndexEntry during the Bootstrap process.
   friend class postgres::PgAttributeImpl;
   friend class postgres::PgConstraintImpl;
   friend class postgres::PgLanguageImpl;

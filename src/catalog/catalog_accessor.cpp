@@ -177,7 +177,7 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, languag
                                             namespace_oid_t procns, const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::PgProc::ProArgModes> &arg_modes,
+                                            const std::vector<postgres::PgProc::ArgModes> &arg_modes,
                                             type_oid_t rettype, const std::string &src, bool is_aggregate) {
   return dbc_->CreateProcedure(txn_, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype,
                                src, is_aggregate);

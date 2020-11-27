@@ -1044,12 +1044,11 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
-  auto expressions = pg_constraint_.TearDownGetExpressions(txn, buffer, buffer_len);
-  auto func_contexts = pg_proc_.TearDownGetFuncContexts(txn, buffer, buffer_len);
+  auto teardown_pg_constraint = pg_constraint_.GetTearDownFn(txn);
+  auto teardown_pg_proc = pg_proc_.GetTearDownFn(txn);
 
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
-                   table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
-                   expressions{std::move(expressions)}, func_contexts{std::move(func_contexts)}]() {
+                   table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) {
@@ -1063,9 +1062,8 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
 
     for (auto schema : index_schemas) delete schema;
 
-    for (auto expr : expressions) delete expr;
-
-    for (auto func_ctxt : func_contexts) delete func_ctxt;
+    teardown_pg_constraint();
+    teardown_pg_proc();
   };
 
   // No new transactions can see these object but there may be deferred index
@@ -1568,7 +1566,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::
                                             namespace_oid_t procns, const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::PgProc::ProArgModes> &arg_modes,
+                                            const std::vector<postgres::PgProc::ArgModes> &arg_modes,
                                             type_oid_t rettype, const std::string &src, bool is_aggregate) {
   proc_oid_t oid = proc_oid_t{next_oid_++};
   auto result = CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes,
@@ -1580,7 +1578,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
                                       const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                                       const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                                       const std::vector<type_oid_t> &all_arg_types,
-                                      const std::vector<postgres::PgProc::ProArgModes> &arg_modes, type_oid_t rettype,
+                                      const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                                       const std::string &src, bool is_aggregate) {
   if (!TryLock(txn)) return false;
   return pg_proc_.CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes,
@@ -1596,7 +1594,7 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
-  return pg_proc_.GetProcOid(common::ManagedPointer(this), txn, procns, procname, arg_types);
+  return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(

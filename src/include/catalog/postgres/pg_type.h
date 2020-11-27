@@ -51,9 +51,6 @@ class PgType {
 
   static constexpr std::array<col_oid_t, NUM_PG_TYPE_COLS> PG_TYPE_ALL_COL_OIDS = {
       TYPOID_COL_OID, TYPNAME_COL_OID, TYPNAMESPACE_COL_OID, TYPLEN_COL_OID, TYPBYVAL_COL_OID, TYPTYPE_COL_OID};
-
-  // TODO(tanujnay112): Not sure how to do this without hardcoding
-  static constexpr type_oid_t VAR_ARRAY_OID = type_oid_t(11);
 };
 
 }  // namespace noisepage::catalog::postgres
