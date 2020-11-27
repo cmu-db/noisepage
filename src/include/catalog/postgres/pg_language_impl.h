@@ -89,9 +89,17 @@ class PgLanguageImpl {
 
   const db_oid_t db_oid_;
 
-  storage::SqlTable *languages_;
-  storage::index::Index *languages_oid_index_;
-  storage::index::Index *languages_name_index_;  // indexed on language name and namespace
+  /**
+   * The table and indexes that define pg_language.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
+  storage::SqlTable *languages_;                 ///< The language table.
+  storage::index::Index *languages_oid_index_;   ///< Indexed on: language OID
+  storage::index::Index *languages_name_index_;  ///< Indexed on: language name, namespace
+  ///@}
+
   storage::ProjectedRowInitializer pg_language_all_cols_pri_;
   storage::ProjectionMap pg_language_all_cols_prm_;
 };
