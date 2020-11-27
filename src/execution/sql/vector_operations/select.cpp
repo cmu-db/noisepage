@@ -179,6 +179,9 @@ void SelectOperation(const exec::ExecutionSettings &exec_settings, const Vector 
     case TypeId::Date:
       TemplatedSelectOperation<Date, Op>(exec_settings, left, right, tid_list);
       break;
+    case TypeId::FixedDecimal:
+      TemplatedSelectOperation<Decimal128 , Op>(exec_settings, left, right, tid_list);
+      break;
     case TypeId::Timestamp:
       TemplatedSelectOperation<Timestamp, Op>(exec_settings, left, right, tid_list);
       break;

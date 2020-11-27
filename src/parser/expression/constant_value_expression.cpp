@@ -80,6 +80,12 @@ T ConstantValueExpression::Peek() const {
   if constexpr (std::is_same_v<T, execution::sql::Date>) {
     return GetDateVal().val_;
   }
+
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, execution::sql::Decimal128>) {
+    return GetDecimal().val_;
+  }
+
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Timestamp>) {
     return GetTimestampVal().val_;
@@ -172,7 +178,7 @@ common::hash_t ConstantValueExpression::Hash() const {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<double>()));
     }
     case type::TypeId::FIXEDDECIMAL: {
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<int128_t>()));
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<execution::sql::Decimal128>().GetValue()));
     }
     case type::TypeId::TIMESTAMP: {
       return common::HashUtil::CombineHashes(hash,

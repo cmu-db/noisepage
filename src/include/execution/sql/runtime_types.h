@@ -432,6 +432,11 @@ class EXPORT Decimal {
   explicit Decimal(const T &value) : value_(value) {}
 
   /**
+   * Empty constructor.
+   */
+  Decimal() = default;
+
+  /**
    * @return The raw underlying encoded decimal value.
    */
   operator T() const { return value_; }  // NOLINT

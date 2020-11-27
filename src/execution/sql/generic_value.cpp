@@ -175,6 +175,13 @@ GenericValue GenericValue::CreateDate(Date date) {
   return result;
 }
 
+GenericValue GenericValue::CreateFixedDecimal(Decimal128 decimal) {
+  GenericValue result(TypeId::FixedDecimal);
+  result.value_.decimal128_ = decimal;
+  result.is_null_ = false;
+  return result;
+}
+
 GenericValue GenericValue::CreateDate(uint32_t year, uint32_t month, uint32_t day) {
   return CreateDate(Date::FromYMD(year, month, day));
 }
@@ -221,6 +228,8 @@ GenericValue GenericValue::CreateFromRuntimeValue(const TypeId type_id, const Va
       return GenericValue::CreateTimestamp(static_cast<const TimestampVal &>(val).val_);
     case TypeId::Varchar:
       return GenericValue::CreateVarchar(static_cast<const StringVal &>(val).val_.StringView());
+    case TypeId::FixedDecimal:
+      return GenericValue::CreateFixedDecimal(static_cast<const DecimalVal &>(val).val_);
     default:
       throw NOT_IMPLEMENTED_EXCEPTION("Unsupported runtime value as generic value.");
   }
