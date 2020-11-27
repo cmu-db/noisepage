@@ -67,6 +67,15 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   ExecutionOperatingUnitFeatureVector RecordTranslators(
       const std::vector<execution::compiler::OperatorTranslator *> &translators);
 
+  /**
+   * Adjust key_size and num_key based on type
+   *
+   * @param type Type
+   * @param key_size
+   * @param num_key
+   */
+  static void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
+
  private:
   /**
    * Handle additional processing for AbstractPlanNode
@@ -134,15 +143,6 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    */
   double ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset, size_t key_size,
                                   size_t ref_offset);
-
-  /**
-   * Adjust key_size and num_key based on type
-   *
-   * @param type Type
-   * @param key_size
-   * @param num_key
-   */
-  void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
 
   /**
    * Compute key size from vector of expressions

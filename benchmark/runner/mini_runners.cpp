@@ -34,6 +34,7 @@
 #include "runner/mini_runners_settings.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_defs.h"
+#include "self_driving/modeling/operating_unit_recorder.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
@@ -1041,14 +1042,16 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     for (auto i = 0; i < tbl_cols; i++) {
       query << num_rows;
       if (i != tbl_cols - 1) {
-        query << "," << "\n";
+        query << ","
+              << "\n";
       }
     }
     query << ")";
 
     auto settings = GetExecutionSettings(false);
     auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
-    auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), PassthroughPlanChecker, nullptr, nullptr, &settings);
+    auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
+                                       PassthroughPlanChecker, nullptr, nullptr, &settings);
     BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
   }
 
@@ -1099,7 +1102,8 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
         output << "\tvar col_oids: [1]uint32\n";
         output << "\ttable_oid = " << tbl_oid.UnderlyingValue() << "\n";
         output << "\tcol_oids[0] = 1\n";
-        output << "\tfor (@tableIterInit(&tvi, queryState.execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {\n";
+        output
+            << "\tfor (@tableIterInit(&tvi, queryState.execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {\n";
         output << "\t\tvar vpi = @tableIterGetVPI(&tvi)\n";
         output << "\t\tfor (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {\n";
         output << "\t\t\tvar col1 = @vpiGetInt(vpi, 0)\n";
@@ -1200,8 +1204,8 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     // KEY_SIZE: size of the keys
     // KEY_NUM: number of keys
     // Cardinality field: number of indexes being inserted into (i.e batch size)
-    auto feature_type =
-        is_insert ? selfdriving::ExecutionOperatingUnitType::INDEX_INSERT : selfdriving::ExecutionOperatingUnitType::INDEX_DELETE;
+    auto feature_type = is_insert ? selfdriving::ExecutionOperatingUnitType::INDEX_INSERT
+                                  : selfdriving::ExecutionOperatingUnitType::INDEX_DELETE;
     pipe0_vec.emplace_back(execution::translator_id_t(1), feature_type, num_rows, key_size, key_num, num_index, 1, 0,
                            0);
     units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
@@ -1252,15 +1256,18 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   }
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  size_t mix_size;
   type::TypeId mix_type;
   if (varchar_mix == 1)
     mix_type = type::TypeId::VARCHAR;
   else
     mix_type = type::TypeId::DECIMAL;
-  mix_size = type::TypeUtil::GetTypeTrueSize(mix_type);
-  auto tuple_size = int_size * num_integers + mix_size * num_mix;
-  auto num_col = num_integers + num_mix;
+  size_t tuple_size = int_size * num_integers;
+  size_t num_col = num_integers + num_mix;
+
+  // Adjust for type of MIX
+  for (auto i = 0; i < num_mix; i++) {
+    selfdriving::OperatingUnitRecorder::AdjustKeyWithType(mix_type, &tuple_size, &num_col);
+  }
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1294,7 +1301,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_1_SeqScanRunners)(benchmark::State &state) 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state) {
   auto type = static_cast<type::TypeId>(state.range(0));
-  auto key_num = state.range(1);
+  size_t key_num = state.range(1);
   auto num_rows = state.range(2);
   auto lookup_size = state.range(3);
   auto is_build = state.range(4);
@@ -1318,8 +1325,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
   GenIdxScanParameters(type, num_rows, lookup_size, num_iters, &real_params);
 
-  auto type_size = type::TypeUtil::GetTypeTrueSize(type);
-  auto tuple_size = type_size * key_num;
+  size_t tuple_size = 0;
+  size_t num_col = key_num;
+  for (size_t i = 0; i < num_col; i++) {
+    selfdriving::OperatingUnitRecorder::AdjustKeyWithType(type, &tuple_size, &key_num);
+  }
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1329,8 +1339,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
                          tuple_size, key_num, lookup_size, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  std::string cols = ConstructColumns("", type::TypeId::INVALID, type::TypeId::INVALID, key_num, 0);
-  std::string predicate = ConstructIndexScanPredicate(key_num, num_rows, lookup_size, true);
+  std::string cols = ConstructColumns("", type::TypeId::INVALID, type::TypeId::INVALID, num_col, 0);
+  std::string predicate = ConstructIndexScanPredicate(num_col, num_rows, lookup_size, true);
 
   std::vector<parser::ConstantValueExpression> params;
   std::vector<type::TypeId> param_types;
@@ -1354,7 +1364,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   std::stringstream query;
   auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type, num_rows);
   query << "SELECT " << cols << " FROM  " << table_name << " WHERE " << predicate;
-  auto f = std::bind(&MiniRunners::IndexScanChecker, this, key_num, std::placeholders::_1, std::placeholders::_2);
+  auto f = std::bind(&MiniRunners::IndexScanChecker, this, num_col, std::placeholders::_1, std::placeholders::_2);
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), f,
                                      common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
                                      common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
@@ -1509,8 +1519,9 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
                          tuple_size, num_cols, num_rows, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
+  int num_iters = 1 + ((num_rows <= settings.warmup_rows_limit_) ? settings.warmup_iterations_num_ : 0);
   auto equery = OptimizeSqlStatement(query, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true);
+  BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
 
   // Drop the table
   {
@@ -1889,9 +1900,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
   }
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto varchar_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::VARCHAR);
-  auto tuple_size = int_size * num_integers + varchar_size * num_varchars;
-  auto num_col = num_integers + num_varchars;
+  size_t tuple_size = int_size * num_integers;
+  size_t num_col = num_integers + num_varchars;
+  for (auto i = 0; i < num_varchars; i++) {
+    selfdriving::OperatingUnitRecorder::AdjustKeyWithType(type::TypeId::VARCHAR, &tuple_size, &num_col);
+  }
   auto out_cols = num_col + 1;     // pulling the count(*) out
   auto out_size = tuple_size + 4;  // count(*) is an integer
 
@@ -1990,15 +2003,18 @@ void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
   // Only generate counters if executing in parallel
   auto exec_settings = GetParallelExecutionSettings(num_threads, num_threads != 0);
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  size_t mix_size;
   type::TypeId mix_type;
   if (varchar_mix == 1)
     mix_type = type::TypeId::VARCHAR;
   else
     mix_type = type::TypeId::DECIMAL;
-  mix_size = type::TypeUtil::GetTypeTrueSize(mix_type);
-  auto tuple_size = int_size * num_integers + mix_size * num_mix;
-  auto num_col = num_integers + num_mix;
+  size_t tuple_size = int_size * num_integers;
+  size_t num_col = num_integers + num_mix;
+
+  // Adjust for type of MIX
+  for (auto i = 0; i < num_mix; i++) {
+    selfdriving::OperatingUnitRecorder::AdjustKeyWithType(mix_type, &tuple_size, &num_col);
+  }
 
   auto cols = ConstructColumns("", type::TypeId::INTEGER, mix_type, num_integers, num_mix);
   auto tbl_name = ConstructTableName(type::TypeId::INTEGER, mix_type, tbl_ints, tbl_mix, row, car);
@@ -2300,22 +2316,21 @@ void RunBenchmarkSequence(int rerun_counter) {
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
   std::vector<std::vector<std::string>> filters = {
-    /*{"SEQ0"},
-                                                   {"SEQ1_0", "SEQ1_1"},
-                                                   {"SEQ2_0", "SEQ2_1"},
-                                                   {"SEQ3"},
-                                                   {"SEQ4"},
-                                                   {"SEQ5_0", "SEQ5_1"},
-                                                   {"SEQ6_0", "SEQ6_1"},
-                                                   {"SEQ7_2"},
-                                                   {"SEQ8_2"},
-                                                   //{"SEQ9_0", "SEQ9_1"},
-                                                   */
-                                                   {"SEQ10"},
-                                                   //{"SEQ11"}
-                                                   };
-  std::vector<std::string> titles = {/*"OUTPUT",      "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
-                                     "AGGS",        "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX",*/ "INDEX_INSERT"/*,
+      {"SEQ0"},
+      {"SEQ1_0", "SEQ1_1"},
+      {"SEQ2_0", "SEQ2_1"},
+      {"SEQ3"},
+      {"SEQ4"},
+      {"SEQ5_0", "SEQ5_1"},
+      {"SEQ6_0", "SEQ6_1"},
+      {"SEQ7_2"},
+      {"SEQ8_2"},
+      //{"SEQ9_0", "SEQ9_1"},
+      {"SEQ10"},
+      //{"SEQ11"}
+  };
+  std::vector<std::string> titles = {"OUTPUT",      "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+                                     "AGGS",        "INSERT", "UPDATE",    "DELETE", /*"CREATE_INDEX",*/ "INDEX_INSERT"/*,
                                      "INDEX_DELETE"*/};
 
   char buffer[64];
@@ -2323,7 +2338,8 @@ void RunBenchmarkSequence(int rerun_counter) {
   argv[0] = "mini_runners";
   argv[1] = buffer;
 
-  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret, noisepage::execution::vm::ExecutionMode::Compiled};
+  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret,
+                   noisepage::execution::vm::ExecutionMode::Compiled};
   for (size_t i = 0; i < filters.size(); i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {
@@ -2366,11 +2382,12 @@ void RunMiniRunners() {
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {/*"OUTPUT",      "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
-                                     "AGGS",        "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX",*/ "INDEX_INSERT",
-                                     //"INDEX_DELETE"
+  std::vector<std::string> titles = {
+      "OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+      "AGGS",   "INSERT", "UPDATE",    "DELETE", /*"CREATE_INDEX",*/ "INDEX_INSERT",
+      //"INDEX_DELETE"
   };
-  std::vector<std::string> adjusts = {/*"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6",*/ "7" /*, "8"*/};
+  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", /*"6",*/ "7" /*, "8"*/};
   for (size_t t = 0; t < titles.size(); t++) {
     auto &title = titles[t];
     char target[64];
