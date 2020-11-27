@@ -11,9 +11,6 @@
 // Forward declarations for tests.
 namespace noisepage {
 class BinderCorrectnessTest_SimpleFunctionCallTest_Test;
-namespace tpch {
-class TPCHQuery;
-}  // namespace tpch
 }  // namespace noisepage
 
 namespace noisepage::storage {
@@ -28,7 +25,7 @@ class PgProcImpl;
 class PgProc {
  public:
   /** The type of the argument to the procedure. */
-  enum class ProArgModes : char {
+  enum class ArgModes : char {
     IN = 'i',       ///< Input argument.
     OUT = 'o',      ///< Output argument.
     INOUT = 'b',    ///< Both input and output argument.
@@ -40,7 +37,6 @@ class PgProc {
   friend class Builder;
   friend class PgProcImpl;
 
-  friend class noisepage::tpch::TPCHQuery;
   friend class noisepage::BinderCorrectnessTest_SimpleFunctionCallTest_Test;
 
   static constexpr table_oid_t PRO_TABLE_OID = table_oid_t(81);
