@@ -18,8 +18,8 @@ void PgLanguageImpl::BootstrapPRIs() {
   pg_language_all_cols_prm_ = languages_->ProjectionMapForOids(pg_language_all_oids);
 }
 
-void PgLanguageImpl::Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                               common::ManagedPointer<transaction::TransactionContext> txn) {
+void PgLanguageImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                               common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
   retval = dbc->CreateTableEntry(txn, PgLanguage::LANGUAGE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_language",
@@ -42,7 +42,7 @@ void PgLanguageImpl::Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
   retval = dbc->SetIndexPointer(txn, PgLanguage::LANGUAGE_NAME_INDEX_OID, languages_name_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  BootstrapLanguages(dbc, txn);
+  BootstrapLanguages(txn, dbc);
 }
 
 bool PgLanguageImpl::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -176,8 +176,8 @@ bool PgLanguageImpl::DropLanguage(const common::ManagedPointer<transaction::Tran
   return true;
 }
 
-void PgLanguageImpl::BootstrapLanguages(const common::ManagedPointer<DatabaseCatalog> dbc,
-                                        const common::ManagedPointer<transaction::TransactionContext> txn) {
+void PgLanguageImpl::BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                        const common::ManagedPointer<DatabaseCatalog> dbc) {
   dbc->CreateLanguage(txn, "plpgsql", PgLanguage::PLPGSQL_LANGUAGE_OID);
   dbc->CreateLanguage(txn, "internal", PgLanguage::INTERNAL_LANGUAGE_OID);
 }

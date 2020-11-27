@@ -35,7 +35,11 @@ class Builder;
 
 /** The NoisePage version of pg_proc. */
 class PgProcImpl {
- public:
+ private:
+  friend class Builder;                   ///< The builder is used to construct pg_proc. TODO(WAN) refactor nuke builder
+  friend class storage::RecoveryManager;  ///< The RM accesses tables and indexes without going through the catalog.
+  friend class catalog::DatabaseCatalog;  ///< DatabaseCatalog sets up and owns pg_proc.
+
   /**
    * Prepare to create pg_proc.
    * Does NOT create anything until the relevant bootstrap functions are called.
@@ -53,23 +57,19 @@ class PgProcImpl {
    *    pg_proc_oid_index
    *    pg_proc_name_index
    *
-   * @param dbc             The catalog object to bootstrap in.
    * @param txn             The transaction to bootstrap in.
+   * @param dbc             The catalog object to bootstrap in.
    */
-  void Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                 common::ManagedPointer<transaction::TransactionContext> txn);
+  void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                 common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Get all of the function contexts, used in TearDown.
-   * A buffer is passed in to allow for buffer reuse optimizations.
+   * Obtain a function that will teardown pg_proc as it exists at the time of the provided txn.
    *
-   * @param txn             The transaction to obtain all the function contexts in.
-   * @param buffer          The buffer to use for getting function contexts back out.
-   * @param buffer_len      The length of buffer. Only used in debug mode to assert correctness.
-   * @return All the function contexts.
+   * @param txn             The transaction to perform the teardown in.
+   * @return A function that will teardown pg_proc when invoked.
    */
-  std::vector<execution::functions::FunctionContext *> TearDownGetFuncContexts(
-      common::ManagedPointer<transaction::TransactionContext> txn, byte *buffer, UNUSED_ATTRIBUTE uint64_t buffer_len);
+  std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Create a procedure for the pg_proc table.
@@ -89,13 +89,14 @@ class PgProcImpl {
    * @param is_aggregate    True iff this is an aggregate procedure.
    * @return True if the creation succeeded. False otherwise.
    *
-   * @warning Does not support variadics yet.
+   * TODO(WAN): This should be refactored to have a cleaner signature. See #1354.
    */
   bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
                        const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                        const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
-                       const std::vector<type_oid_t> &all_arg_types, const std::vector<PgProc::ProArgModes> &arg_modes,
-                       type_oid_t rettype, const std::string &src, bool is_aggregate);
+                       const std::vector<type_oid_t> &all_arg_types,
+                       const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
+                       const std::string &src, bool is_aggregate);
 
   /**
    * Drop a procedure from the pg_proc table.
@@ -110,6 +111,8 @@ class PgProcImpl {
    * Set the procedure context pointer column of the specified procedure.
    *
    * @return False if the proc_oid does not correspond to a valid procedure. True if the set was successful.
+   *
+   * TODO(WAN): See #1356 for a discussion on whether this should be exposed separately.
    */
   bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                      const execution::functions::FunctionContext *func_context);
@@ -117,7 +120,7 @@ class PgProcImpl {
   /**
    * Get the procedure context pointer column of the specified procedure.
    *
-   * @return The procedure context pointer if it exists. nullptr if proc_oid is invalid or no such context exists.
+   * @return The procedure context pointer of the specified procedure, guaranteed to not be nullptr.
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
@@ -125,33 +128,30 @@ class PgProcImpl {
   /**
    * Get the OID of a procedure from pg_proc.
    *
-   * @param dbc             The catalog that pg_proc is in. Used for type ID translation.
    * @param txn             The transaction to use.
+   * @param dbc             The catalog that pg_proc is in.
    * @param procns          The namespace of the procedure to look in.
    * @param procname        The name of the procedure to look for.
    * @param arg_types       The types of all arguments in this function.
    * @return The OID of the procedure if found. Else INVALID_PROC_OID.
    */
-  proc_oid_t GetProcOid(common::ManagedPointer<DatabaseCatalog> dbc,
-                        common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
+  proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
+                        common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
 
- private:
-  friend class Builder;
-  friend class storage::RecoveryManager;
-
   /** Bootstrap all the builtin procedures in pg_proc. */
-  void BootstrapProcs(common::ManagedPointer<DatabaseCatalog> dbc,
-                      common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,
+                      common::ManagedPointer<DatabaseCatalog> dbc);
 
   /** Bootstrap all the procedure function contexts in pg_proc. */
-  void BootstrapProcContexts(common::ManagedPointer<DatabaseCatalog> dbc,
-                             common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn,
+                             common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
    * Allocate the FunctionContext and insert the pointer.
    *
    * @param txn                     The transaction to insert into the catalog with.
+   * @param dbc                     The catalog that pg_proc is in.
    * @param proc_oid                The OID of the procedure to to associate with this proc's and its context
    * @param func_name               The name of the function.
    * @param func_ret_type           The return type of the function.
@@ -159,16 +159,24 @@ class PgProcImpl {
    * @param builtin                 The builtin this context refers to.
    * @param is_exec_ctx_required    True if this function requires an execution context variable as its first argument.
    */
-  void BootstrapProcContext(common::ManagedPointer<DatabaseCatalog> dbc,
-                            common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                            std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+  void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn,
+                            common::ManagedPointer<DatabaseCatalog> dbc, proc_oid_t proc_oid, std::string &&func_name,
+                            type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   const db_oid_t db_oid_;
 
+  /**
+   * The table and indexes that define pg_proc.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
   storage::SqlTable *procs_;
   storage::index::Index *procs_oid_index_;
   storage::index::Index *procs_name_index_;
+  ///@}
+
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
   storage::ProjectionMap pg_proc_all_cols_prm_;
   storage::ProjectedRowInitializer pg_proc_ptr_pri_;
