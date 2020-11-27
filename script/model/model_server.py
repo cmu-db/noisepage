@@ -10,16 +10,14 @@ code.
 
 TODO(Ricky):
 - Encapsulate the ModelServer in a class
-- ModelServer side of callbacks (once we are more clear on the actions)
-- Model invocation could be improved.
 
 """
 
 from __future__ import annotations
 import sys
 import atexit
-from enum import Enum, auto
-from typing import Dict, Optional, Tuple
+from enum import Enum, auto, IntEnum
+from typing import Dict, Optional, Tuple, List
 import json
 import logging
 import pprint
@@ -31,6 +29,7 @@ from data_class import opunit_data
 from mini_trainer import MiniTrainer
 from sklearn import model_selection
 from util import logging_util
+from type import OpUnit
 
 
 logging_util.init_logging('info')
@@ -42,6 +41,9 @@ socket.set_string(zmq.IDENTITY, 'model')
 logging.info(f"Python model trying to connect to manager at {end_point}")
 socket.connect(f"ipc://{end_point}")
 logging.info(f"Python model connected at {end_point}")
+
+# Gobal model map cache
+g_model_map = None
 
 
 def cleanup_zmq():
@@ -55,6 +57,14 @@ def cleanup_zmq():
 # Register the exit callback
 atexit.register(cleanup_zmq)
 
+
+class Callback(IntEnum):
+    """
+    ModelServerManager <==> ModelServer callback Id.
+    Needs to be kept consistent with ModelServerManager.h's Callback Enum
+    """
+    NOOP = 0
+    CONNECTED = 1
 
 class Command(Enum):
     """
@@ -81,6 +91,7 @@ class Command(Enum):
             return Command.INFER
         else:
             raise ValueError("Invalid command")
+
 
 
 class Message:
@@ -116,90 +127,106 @@ class Message:
         return pprint.pformat(self.__dict__)
 
 
-def parse_msg(payload:str) -> Tuple[int, int, Message]:
+def _parse_msg(payload:str) -> Tuple[int, int, Message]:
     logging.debug("PY RECV: " + payload)
-    tokens = payload.split('-')
+    tokens = payload.split('-', 2)
 
     # Invalid message format
-    if len(tokens) != 3:
-        logging.error(f"Invalid message payload format: {payload}")
-        return -1, -1, None
     try:
         msg_id = int(tokens[0])
         recv_id = int(tokens[1])
     except ValueError as e:
-        logging.error(f"Invalid message payload format: {payload}")
+        logging.error(f"Invalid message payload format: {payload}, ids not int.")
         return -1, -1, None
 
     msg = Message.from_json(tokens[2])
     return msg_id, recv_id, msg
 
-def train_model(data: Dict) -> str:
+def _transform_opunit_data(raw_data: Dict) -> List[opunit_data.OpUnitData]:
+    """
+    Transform the raw training data from ModelServerManger for each data unit
+    :param raw_data: {
+        opunit: (x, y)
+    }
+    :return:
+    """
+    # TODO(ricky): serialize the opunit by name rather than index
+    return [opunit_data.OpUnitData(OpUnit(x[0]), x[1][0], x[1][1]) for x in raw_data]
+
+
+def _train_model(data: Dict) -> Dict:
     """
     Train a model with the given model name and seq_files directory
     :param data: {
-        model_name: lr,
-        seq_files: PATH_TO_SEQ_FILES_FOLDER
+        models: [lr, XXX, ...],
+        seq_files: PATH_TO_SEQ_FILES_FOLDER, or None
+        data_lists: [(OpUnit, X_List, Y_List)/OpUnitData]
     }
-    :return: str where the model map is saved
+    :return: the model map
     """
-    model_name = data["model_name"]
+    ml_models = data["models"]
     seq_files_dir = data["seq_files"]
+    raw_data = data["raw_data"]
 
-    # TODO(ricky): capture parameters with a config class?
-    # perform training
     result_path = "/tmp"
-    ml_models = [model_name]
     test_ratio = 0.2
     trim = 0.2
     expose_all = True
     trainer = MiniTrainer(seq_files_dir, result_path, ml_models, test_ratio, trim, expose_all)
-    model_map = trainer.train()
+    if seq_files_dir:
+        # Perform training from MiniTrainer and input files directory
+        model_map = trainer.train()
+    else:
+        """
+        NOTE:
+        This branch has not been tested yet because the MiniTrainer now heavily relies on the CSV file. 
+        So training with data directly is not yet possible without refactoring the MiniTrainer 
+        """
 
-    # Save model
-    save_path = f"/tmp/{model_name}.pickle"
-    with open(save_path, 'wb') as file:
-        pickle.dump(model_map, file)
-    return save_path
+        # Train from data directly
+        assert(raw_data)
+
+        # Transform with raw data lists
+        opunit_data_list = _transform_opunit_data(raw_data)
+        for data in opunit_data_list:
+            best_y_transformer, best_method = trainer.train_data(data, None)
+            if trainer.expose_all:
+                trainer.train_specific_model(data, best_y_transformer, best_method)
+
+        # Directly get the model map
+        model_map = trainer.get_model_map()
+
+    return model_map
 
 
-def test_model(data:Dict) -> None:
+def _infer(data:Dict) -> Optional[Dict]:
     """
     Do inference on the model, give the data file, and the model_map_path
     :param data: {
-        data_file: PATH_TO_SEQ_FILE ,
-        model_map_path: PATH_TO_PICKLE_FILE
+        features: 2D float arrays [[float]],
+        opunit: Opunit integer for the model
     }
-    :return: List Test errors
+    :return: List predictions
     """
-    data_file = data["data_file"]
-    model_map_path = data["model_map_path"]
+    features = data["features"]
+    opunit = data["opunit"]
 
-    result_path = ""
-    test_ratio = 0.9
-    trim = 0.2
-    error_bias = 1
-    data = opunit_data.get_mini_runner_data(data_file, result_path, {}, {}, trim)[0]
-    x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
-                                                                        test_size=test_ratio,
-                                                                        random_state=0)
+    # Parameter validation
+    if not isinstance(opunit, str):
+        return None
+
+    features = np.array(features)
     # Load the model map
-    with open(model_map_path, 'rb') as f:
-        model_map = pickle.load(f)
+    if g_model_map is None:
+        logging.error("Model has not been trained")
+        return None
+    model = g_model_map[OpUnit[opunit.upper()]]
+    y_pred = model.predict(features)
 
-    results = []
-    for opunit, model in model_map.items():
-        y_pred = model.predict(x_test)
-
-        weights = np.where(y_test > 5, np.ones(y_test.shape), np.full(y_test.shape, 1e-6))
-        percentage_error = np.average(np.abs(y_test - y_pred) / (y_test + error_bias), axis=0,
-                                      weights=weights)
-        results += list(percentage_error) + [""]
-
-    return results
+    return y_pred
 
 
-def send_msg(socket, send_id, recv_id, data) :
+def _send_msg(socket, send_id, recv_id, data) :
     """
     Send a message to the socket.
     :param socket: underlying socket
@@ -208,9 +235,71 @@ def send_msg(socket, send_id, recv_id, data) :
     :param data: payload of the message in JSON
     :return:
     """
-    # socket.send(b"", flags=zmq.SNDMORE)
-    msg = f"{send_id}-{recv_id}-{data}"
+    json_result = json.dumps(data)
+    msg = f"{send_id}-{recv_id}-{json_result}"
     socket.send_multipart([''.encode('utf-8'), msg.encode('utf-8')])
+
+
+def _execute_cmd(cmd: Command, data: Dict) -> Tuple[Dict, Boolean]:
+    """
+    Execute a command from the ModelServerManager
+    :param cmd:
+    :param data:
+    :return: Tuple {
+        message string to sent back,
+        if continue the server
+    }
+    """
+    if cmd == Command.PRINT:
+        msg = data["message"]
+        logging.info(f"MESSAGE PRINT: {str(msg)}")
+        response = {
+            "result": f"MODEL_REPLY_{msg}",
+            "action": Callback.NOOP
+        }
+        return response, True
+    elif cmd == Command.QUIT:
+        # Will not send any message so empty {} is ok
+        return {}, False
+    elif cmd == Command.TRAIN:
+        try:
+            model_map = _train_model(data)
+            global g_model_map
+            g_model_map = model_map
+            logging.info(f"Model_path: {model_map}")
+            response = {
+                "result": "SUCCESS",
+                "action": Callback.NOOP
+
+            }
+        except ValueError as e:
+            logging.error(f"Model Not found : {e}")
+            response = {
+                "result": "FAIL_MODEL_NOT_FOUND",
+                "action": Callback.NOOP
+            }
+        except KeyError as e:
+            logging.error(f"Data format wrong for TRAIN: {e}")
+            response = {
+                "result": "FAIL_DATA_FORMAT_ERROR",
+                "action": Callback.NOOP
+            }
+        except Exception as e:
+            logging.error(f"Training failed. {e}")
+            response = {
+                "result": "FAIL_TRAINING_FAILED",
+                "action": Callback.NOOP
+            }
+
+        return response, True
+    elif cmd == Command.INFER:
+        result = _infer(data)
+        response = {
+            "result": result.tolist(),
+            "action": Callback.NOOP
+        }
+        return response, True
+
 
 
 # Loop until quit
@@ -219,36 +308,30 @@ def run_loop():
     Run in a loop to recv/send message to the ModelServer manager
     :return:
     """
+
+    # ModelServer Connected
+    _send_msg(socket, 0, 0, {"action": Callback.CONNECTED, "result": ""})
     while(1):
         identity = socket.recv()
         delim = socket.recv()
         payload = socket.recv()
-        logging.info(f"Python recv: {str(identity)}, {str(payload)}")
+        logging.debug(f"Python recv: {str(identity)}, {str(payload)}")
 
         payload = payload.decode("ascii")
-        send_id, recv_id, msg = parse_msg(payload)
+        send_id, recv_id, msg = _parse_msg(payload)
         if msg is None:
             continue
-        elif msg.cmd == Command.PRINT:
-            logging.info(f"MESSAGE PRINT: {str(msg)}")
-            send_msg(socket, 0, send_id, str(msg))
-        elif msg.cmd == Command.QUIT:
-            logging.info("Quiting")
-            break
-        elif msg.cmd == Command.TRAIN:
-            try:
-                model_path = train_model(msg.data)
-                logging.info(f"Model_path: {model_path}")
-                send_msg(socket, 0, send_id, model_path)
-            except ValueError as e:
-                logging.error(f"Model Not found : {msg.data}")
-            except KeyError as e:
-                logging.error(f"Data format wrong for TRAIN")
-        elif msg.cmd == Command.INFER:
-            errors = test_model(msg.data)
-            logging.info(f"Test errors: {errors}")
+        else:
+            result, cont = _execute_cmd(msg.cmd, msg.data)
+            if not cont:
+                logging.info("Shutting down.")
+                break
+
+            # Currently not expecting to invoke any callback on ModelServer side, so second parameter 0
+            _send_msg(socket, 0, send_id, result)
+
 
 run_loop()
-logging.info("Model shutting down")
+logging.info("Model shut down")
 
 
