@@ -114,11 +114,11 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::INDEX_TABLE_INDEX_OID, indexes_table_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  pg_attribute_.Bootstrap(common::ManagedPointer(this), txn);
-  pg_type_.Bootstrap(common::ManagedPointer(this), txn);
-  pg_constraint_.Bootstrap(common::ManagedPointer(this), txn);
-  pg_language_.Bootstrap(common::ManagedPointer(this), txn);
-  pg_proc_.Bootstrap(common::ManagedPointer(this), txn);
+  pg_attribute_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_type_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_constraint_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_language_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_proc_.Bootstrap(txn, common::ManagedPointer(this));
 }
 
 void DatabaseCatalog::BootstrapPRIs() {

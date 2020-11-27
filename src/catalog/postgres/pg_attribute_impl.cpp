@@ -29,8 +29,8 @@ void PgAttributeImpl::BootstrapPRIs() {
   delete_columns_prm_ = columns_->ProjectionMapForOids(delete_columns_oids);
 }
 
-void PgAttributeImpl::Bootstrap(const common::ManagedPointer<DatabaseCatalog> dbc,
-                                const common::ManagedPointer<transaction::TransactionContext> txn) {
+void PgAttributeImpl::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                const common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
   retval = dbc->CreateTableEntry(txn, PgAttribute::COLUMN_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,

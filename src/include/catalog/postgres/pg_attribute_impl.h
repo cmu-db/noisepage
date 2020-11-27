@@ -50,11 +50,11 @@ class PgAttributeImpl {
    *    pg_attribute_oid_index
    *    pg_attribute_name_index
    *
-   * @param dbc             The catalog object to bootstrap in.
    * @param txn             The transaction to bootstrap in.
+   * @param dbc             The catalog object to bootstrap in.
    */
-  void Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                 common::ManagedPointer<transaction::TransactionContext> txn);
+  void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                 common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
    * Add a new column entry in pg_attribute.
