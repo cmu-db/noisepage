@@ -339,7 +339,6 @@ class DatabaseCatalog {
   friend class postgres::PgConstraintImpl;
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
-
   friend class postgres::PgTypeImpl;
 
   // TODO(tanujnay112) Add support for other parameters

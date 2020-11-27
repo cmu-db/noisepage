@@ -18,8 +18,8 @@ void PgTypeImpl::BootstrapPRIs() {
   pg_type_all_cols_prm_ = types_->ProjectionMapForOids(pg_type_all_oids);
 }
 
-void PgTypeImpl::Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                           common::ManagedPointer<transaction::TransactionContext> txn) {
+void PgTypeImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                           common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
   retval = dbc->CreateTableEntry(txn, PgType::TYPE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
@@ -152,8 +152,8 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
   InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARBINARY), "varbinary", NAMESPACE_CATALOG_NAMESPACE_OID, -1,
              false, PgType::Type::BASE);
 
-  InsertType(txn, PgType::VAR_ARRAY_OID, "var_array", NAMESPACE_CATALOG_NAMESPACE_OID, -1, false,
-             PgType::Type::COMPOSITE);
+  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::HACK_PG_TYPE_VAR_ARRAY), "var_array",
+             NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::COMPOSITE);
 }
 
 }  // namespace noisepage::catalog::postgres

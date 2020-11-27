@@ -44,11 +44,11 @@ class PgTypeImpl {
    *    pg_type_name_index
    *    pg_type_namespace_index
    *
-   * @param dbc             The catalog object to bootstrap in.
    * @param txn             The transaction to bootstrap in.
+   * @param dbc             The catalog object to bootstrap in.
    */
-  void Bootstrap(common::ManagedPointer<DatabaseCatalog> dbc,
-                 common::ManagedPointer<transaction::TransactionContext> txn);
+  void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
+                 common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
    * Create a new type for the pg_type table.
