@@ -1,27 +1,12 @@
 #pragma once
 
-#include <algorithm>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "catalog/catalog_defs.h"
-#include "catalog/postgres/pg_core_impl.h"
-#include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint_impl.h"
+#include "catalog/postgres/pg_core_impl.h"
 #include "catalog/postgres/pg_language_impl.h"
 #include "catalog/postgres/pg_proc_impl.h"
 #include "catalog/postgres/pg_type_impl.h"
-#include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "execution/ast/builtins.h"
-#include "storage/projected_row.h"
-#include "transaction/transaction_defs.h"
-
-namespace noisepage::execution::functions {
-class FunctionContext;
-}  // namespace noisepage::execution::functions
 
 namespace noisepage::transaction {
 class TransactionContext;
@@ -37,139 +22,55 @@ class Index;
 }  // namespace noisepage::storage
 
 namespace noisepage::catalog {
-class IndexSchema;
-
 /**
- * The catalog stores all of the metadata about user tables and user defined
- * database objects so that other parts of the system (i.e. binder, optimizer,
- * and execution engine) can reason about and execute operations on these
- * objects.
+ * DatabaseCatalog stores all of the metadata about user tables and user defined database objects
+ * so that other parts of the system (i.e., binder, optimizer, and execution engine)
+ * can reason about and execute operations on these objects.
  *
- * @warning Only Catalog and CatalogAccessor (and possibly the recovery system)
- * should be using the interface below.  All other code should use the
- * CatalogAccessor API which enforces scoping to a specific database and handles
- * namespace resolution for finding tables within that database.
+ * @warning     Only Catalog, CatalogAccessor, and RecoveryManager should be using the interface below.
+ *              All other code should use the CatalogAccessor API, which:
+ *              - enforces scoping to a specific database, and
+ *              - handles namespace resolution for finding tables within that database.
  */
 class DatabaseCatalog {
  public:
-  /** The maximum number of tuples to be read out at a time when scanning tables for TearDown(). */
+  /** The maximum number of tuples to be read out at a time when scanning tables during teardown. */
   static constexpr uint32_t TEARDOWN_MAX_TUPLES = 100;
 
   /**
-   * Adds the default/mandatory entries into the catalog that describe itself
-   * @param txn for the operation
+   * Bootstrap the entire catalog with default entries.
+   * @param txn         The transaction to bootstrap in.
    */
   void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn);
 
-  /**
-   * Creates a new namespace within the database
-   * @param txn for the operation
-   * @param name of the new namespace
-   * @return OID of the new namespace or INVALID_NAMESPACE_OID if the operation failed
-   */
+  /** @see PgCoreImpl::CreateNamespace */
   namespace_oid_t CreateNamespace(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
-
-  /**
-   * Deletes the namespace and any objects assigned to the namespace.  The
-   * 'public' namespace cannot be deleted.  This operation will fail if any
-   * objects within the namespace cannot be deleted (i.e. write-write conflicts
-   * exist).
-   * @param txn for the operation
-   * @param ns_oid OID to be deleted
-   * @return true if the deletion succeeded, otherwise false
-   */
+  /** @see PgCoreImpl::DeleteNamespace */
   bool DeleteNamespace(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
-
-  /**
-   * Resolve a namespace name to its OID.
-   * @param txn for the operation
-   * @param name of the namespace
-   * @return OID of the namespace or INVALID_NAMESPACE_OID if it does not exist
-   */
+  /** @see PgCoreImpl::GetNamespaceOid */
   namespace_oid_t GetNamespaceOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
 
-  /**
-   * Create a new user table in the catalog.
-   * @param txn for the operation
-   * @param ns OID of the namespace the table belongs to
-   * @param name of the new table
-   * @param schema columns of the new table
-   * @return OID of the new table or INVALID_TABLE_OID if the operation failed
-   * @warning This function does not allocate the storage for the table.  The
-   * transaction is responsible for setting the table pointer via a separate
-   * function call prior to committing.
-   * @see src/include/catalog/table_details.h
-   */
+  /** @see PgCoreImpl::CreateTable */
   table_oid_t CreateTable(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                           const std::string &name, const Schema &schema);
-
-  /**
-   * Deletes a table and all child objects (i.e columns, indexes, etc.) from
-   * the database.
-   * @param txn for the operation
-   * @param table to be deleted
-   * @return true if the deletion succeeded, otherwise false
-   */
+  /** @see PgCoreImpl::DeleteTable */
   bool DeleteTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
-
-  /**
-   * Resolve a table name to its OID
-   * @param txn for the operation
-   * @param ns OID of the namespace the table belongs to
-   * @param name of the table
-   * @return OID of the table or INVALID_TABLE_OID if the table does not exist
-   */
+  /** @see PgCoreImpl::GetTableOid */
   table_oid_t GetTableOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                           const std::string &name);
-
-  /**
-   * Rename a table.
-   * @param txn for the operation
-   * @param table to be renamed
-   * @param name which the table will now have
-   * @return true if the operation succeeded, otherwise false
-   */
+  /** @see PgCoreImpl::RenameTable */
   bool RenameTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                    const std::string &name);
 
-  /**
-   * Inform the catalog of where the underlying storage for a table is
-   * @param txn for the operation
-   * @param table OID in the catalog
-   * @param table_ptr to the memory where the storage is
-   * @return whether the operation was successful
-   * @warning The table pointer that is passed in must be on the heap as the
-   * catalog will take ownership of it and schedule its deletion with the GC
-   * at the appropriate time.
-   * @warning It is unsafe to call delete on the SqlTable pointer after calling
-   * this function regardless of the return status.
-   */
+  /** @see PgCoreImpl::SetTablePointer */
   bool SetTablePointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                        const storage::SqlTable *table_ptr);
 
-  /**
-   * Obtain the storage pointer for a SQL table
-   * @param txn for the operation
-   * @param table to which we want the storage object
-   * @return the storage object corresponding to the passed OID
-   */
+  /** @see PgCoreImpl::GetTable */
   common::ManagedPointer<storage::SqlTable> GetTable(common::ManagedPointer<transaction::TransactionContext> txn,
                                                      table_oid_t table);
 
-  /**
-   * Apply a new schema to the given table.  The changes should modify the latest
-   * schema as provided by the catalog.  There is no guarantee that the OIDs for
-   * modified columns will be stable across a schema change.
-   * @param txn for the operation
-   * @param table OID of the modified table
-   * @param new_schema object describing the table after modification
-   * @return true if the operation succeeded, false otherwise
-   * @warning The catalog accessor assumes it takes ownership of the schema object
-   * that is passed.  As such, there is no guarantee that the pointer is still
-   * valid when this function returns.  If the caller needs to reference the
-   * schema object after this call, they should use the GetSchema function to
-   * obtain the authoritative schema for this table.
-   */
+  /** @see PgCoreImpl::UpdateSchema */
   bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema);
 
   /**
@@ -197,25 +98,10 @@ class DatabaseCatalog {
    */
   std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  /**
-   * Create the catalog entries for a new index.
-   * @param txn for the operation
-   * @param ns OID of the namespace under which the index will fall
-   * @param name of the new index
-   * @param table on which the new index exists
-   * @param schema describing the new index
-   * @return OID of the new index or INVALID_INDEX_OID if creation failed
-   */
+  /** @see PgCoreImpl::CreateIndex */
   index_oid_t CreateIndex(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                           const std::string &name, table_oid_t table, const IndexSchema &schema);
-
-  /**
-   * Delete an index.  Any constraints that utilize this index must be deleted
-   * or transitioned to a different index prior to deleting an index.
-   * @param txn for the operation
-   * @param index to be deleted
-   * @return true if the deletion succeeded, otherwise false.
-   */
+  /** @see PgCoreImpl::DeleteIndex */
   bool DeleteIndex(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
 
   /**
@@ -335,15 +221,17 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
-  // DatabaseCatalog methods generally handle coarse-grained locking. The various PgXXXImpl classes need to invoke
-  // private DatabaseCatalog methods such as CreateTableEntry and CreateIndexEntry during the Bootstrap process.
+  /**
+   * DatabaseCatalog methods generally handle coarse-grained locking. The various PgXXXImpl classes need to invoke
+   * private DatabaseCatalog methods such as CreateTableEntry and CreateIndexEntry during the Bootstrap process.
+   */
+  ///@{
   friend class postgres::PgCoreImpl;
   friend class postgres::PgConstraintImpl;
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
   friend class postgres::PgTypeImpl;
-
-  // TODO(tanujnay112) Add support for other parameters
+  ///@}
 
   /** @see PgLanguageImpl::CreateLanguage */
   bool CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
@@ -470,14 +358,7 @@ class DatabaseCatalog {
                   const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
                   postgres::PgType::Type type_category);
 
-  /**
-   * Helper function to query the oid and kind from
-   * [pg_class](https://www.postgresql.org/docs/9.3/catalog-pg-class.html)
-   * @param txn transaction to query
-   * @param namespace_oid the namespace oid
-   * @param name name of the table, index, view, etc.
-   * @return a pair of oid and ClassKind
-   */
+  /** @see PgCoreImpl::GetClassOidKind */
   std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                            namespace_oid_t ns_oid, const std::string &name);
 

@@ -5,6 +5,7 @@
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/schema.h"
 #include "storage/sql_table.h"
 
 namespace noisepage::catalog::postgres {

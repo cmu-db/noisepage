@@ -81,35 +81,140 @@ class PgCoreImpl {
   std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn,
                                           common::ManagedPointer<storage::GarbageCollector> garbage_collector);
 
+  /**
+   * Create a namespace with a given ns oid
+   * @param txn transaction to use
+   * @param name name of the namespace
+   * @param ns_oid oid of the namespace
+   * @return true if creation is successful
+   */
   bool CreateNamespace(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
                        namespace_oid_t ns_oid);
+  /**
+   * Deletes the namespace and any objects assigned to the namespace.  The
+   * 'public' namespace cannot be deleted.  This operation will fail if any
+   * objects within the namespace cannot be deleted (i.e. write-write conflicts
+   * exist).
+   * @param txn for the operation
+   * @param ns_oid OID to be deleted
+   * @return true if the deletion succeeded, otherwise false
+   */
   bool DeleteNamespace(common::ManagedPointer<transaction::TransactionContext> txn,
                        common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t ns_oid);
   namespace_oid_t GetNamespaceOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
+  /**
+   * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
+   * as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
+   * @param txn for the operation
+   * @param ns being queried
+   * @return vector of OIDs for all of the objects on this namespace
+   */
   std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceClassOids(
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
 
+  /**
+   * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
+   * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
+   * are basically indentical outside of input types
+   * @tparam ClassOid either index_oid_t or table_oid_t
+   * @tparam Ptr either Index or SqlTable
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param pointer pointer to set
+   * @param class_col pg_class column to insert pointer into
+   * @return true if successful
+   */
   template <typename ClassOid, typename Ptr>
   bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid,
                        const Ptr *const pointer, col_oid_t class_col);
+  /**
+   *
+   * @param txn
+   * @param table_oid
+   * @param ns_oid
+   * @param name
+   * @param schema
+   * @return
+   */
   bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
                         namespace_oid_t ns_oid, const std::string &name, const Schema &schema);
+  /**
+   * Deletes a table and all child objects (i.e columns, indexes, etc.) from
+   * the database.
+   * @param txn for the operation
+   * @param table to be deleted
+   * @return true if the deletion succeeded, otherwise false
+   */
   bool DeleteTable(common::ManagedPointer<transaction::TransactionContext> txn,
                    common::ManagedPointer<DatabaseCatalog> dbc, table_oid_t table);
 
+  /**
+   * Create the catalog entries for a new index.
+   * @param txn for the operation
+   * @param ns OID of the namespace under which the index will fall
+   * @param name of the new index
+   * @param table on which the new index exists
+   * @param schema describing the new index
+   * @return OID of the new index or INVALID_INDEX_OID if creation failed
+   */
   bool CreateIndexEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
                         table_oid_t table_oid, index_oid_t index_oid, const std::string &name,
                         const IndexSchema &schema);
+  /**
+   * Delete an index.  Any constraints that utilize this index must be deleted
+   * or transitioned to a different index prior to deleting an index.
+   * @param txn for the operation
+   * @param index to be deleted
+   * @return true if the deletion succeeded, otherwise false.
+   */
   bool DeleteIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                    common::ManagedPointer<DatabaseCatalog> dbc, index_oid_t index);
+  /**
+   * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
+   * calls to GetIndex and GetIndexSchema
+   * @param txn transaction to use
+   * @param table table to get index objects for
+   * @return vector of pairs of index pointers and their corresponding schemas
+   */
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+  /**
+   * A list of all indexes on the given table
+   * @param txn for the operation
+   * @param table being queried
+   * @return vector of OIDs for all of the indexes on this table
+   */
   std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+
+  /**
+   * Helper function to query an object pointer form pg_class
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @return pair of ptr to and ClassKind of object requested. ptr will be nullptr if no entry was found for the given
+   * oid
+   */
 
   std::pair<void *, postgres::ClassKind> GetClassPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                          uint32_t oid);
+  /**
+   * Helper function to query a schema pointer form pg_class
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @return pair of ptr to schema and ClassKind of object requested. ptr will be nullptr if no entry was found for the
+   * given oid
+   */
+
   std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(
       common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
+
+  /**
+   * Helper function to query the oid and kind from
+   * [pg_class](https://www.postgresql.org/docs/9.3/catalog-pg-class.html)
+   * @param txn transaction to query
+   * @param namespace_oid the namespace oid
+   * @param name name of the table, index, view, etc.
+   * @return a pair of oid and ClassKind
+   */
   std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                            namespace_oid_t ns_oid, const std::string &name);
 
@@ -156,11 +261,12 @@ class PgCoreImpl {
 
   const db_oid_t db_oid_;
 
+  /** Bootstrap functions. */
+  ///@{
   void BootstrapPRIsPgNamespace();
   void BootstrapPRIsPgClass();
   void BootstrapPRIsPgIndex();
   void BootstrapPRIsPgAttribute();
-
   void BootstrapPgNamespace(common::ManagedPointer<transaction::TransactionContext> txn,
                             common::ManagedPointer<DatabaseCatalog> dbc);
   void BootstrapPgClass(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -169,6 +275,7 @@ class PgCoreImpl {
                         common::ManagedPointer<DatabaseCatalog> dbc);
   void BootstrapPgAttribute(common::ManagedPointer<transaction::TransactionContext> txn,
                             common::ManagedPointer<DatabaseCatalog> dbc);
+  ///@}
 
   /**
    * @tparam Column         The type of column (Schema::Column or IndexSchema::Column).
@@ -179,6 +286,12 @@ class PgCoreImpl {
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 
+  /**
+   * The table and indexes that define pg_namespace.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
   storage::index::Index *namespaces_name_index_;
@@ -186,7 +299,14 @@ class PgCoreImpl {
   storage::ProjectionMap pg_namespace_all_cols_prm_;
   storage::ProjectedRowInitializer delete_namespace_pri_;
   storage::ProjectedRowInitializer get_namespace_pri_;
+  ///@}
 
+  /**
+   * The table and indexes that define pg_class.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
   storage::SqlTable *classes_;
   storage::index::Index *classes_oid_index_;
   storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
@@ -200,7 +320,14 @@ class PgCoreImpl {
   storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
   storage::ProjectedRowInitializer get_class_object_and_schema_pri_;
   storage::ProjectionMap get_class_object_and_schema_prm_;
+  ///@}
 
+  /**
+   * The table and indexes that define pg_index.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
   storage::index::Index *indexes_table_index_;
@@ -209,7 +336,14 @@ class PgCoreImpl {
   storage::ProjectionMap delete_index_prm_;
   storage::ProjectedRowInitializer pg_index_all_cols_pri_;
   storage::ProjectionMap pg_index_all_cols_prm_;
+  ///@}
 
+  /**
+   * The table and indexes that define pg_attribute.
+   * Created by: Builder::CreateDatabaseCatalog.
+   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
+   */
+  ///@{
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
@@ -219,6 +353,7 @@ class PgCoreImpl {
   storage::ProjectionMap get_columns_prm_;
   storage::ProjectedRowInitializer delete_columns_pri_;
   storage::ProjectionMap delete_columns_prm_;
+  ///@}
 };
 
 }  // namespace noisepage::catalog::postgres

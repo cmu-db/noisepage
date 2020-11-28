@@ -7,6 +7,7 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/schema.h"
 #include "common/json.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index.h"

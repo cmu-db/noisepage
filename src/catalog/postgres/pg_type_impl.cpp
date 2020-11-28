@@ -4,6 +4,7 @@
 #include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/schema.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 

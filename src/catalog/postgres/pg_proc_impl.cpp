@@ -6,6 +6,7 @@
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/schema.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/functions/function_context.h"
