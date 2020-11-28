@@ -150,8 +150,8 @@ class ZmqMessage {
       NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
 
       // Remove the first two '-'
-      message_.remove_prefix(message_.find_first_of('-')+1);
-      message_.remove_prefix(message_.find_first_of('-')+1);
+      message_.remove_prefix(message_.find_first_of('-') + 1);
+      message_.remove_prefix(message_.find_first_of('-') + 1);
     }
   }
 

@@ -2,10 +2,14 @@
 
 #include <filesystem>
 #include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "loggers/model_server_logger.h"
 #include "messenger/messenger.h"
 #include "messenger/messenger_defs.h"
-#include "brain/brain_defs.h"
+#include "self_driving/modeling/operating_unit.h"
 
 namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
@@ -36,9 +40,13 @@ static constexpr const unsigned char MODEL_SERVER_ERROR_BINARY = 128;
  *
  * @tparam Result the future's result
  */
-template<class Result>
+template <class Result>
 class ModelServerFuture {
  public:
+  /**
+   * Initialize the future with a given mutex
+   * @param mtx
+   */
   ModelServerFuture() = default;
 
   /**
@@ -50,7 +58,7 @@ class ModelServerFuture {
       std::unique_lock<std::mutex> lock(mtx_);
 
       // Wait for it to be done
-      cvar_.wait(lock, [&]{return done_.load();});
+      cvar_.wait(lock, [&] { return done_.load(); });
     }
 
     return {result_, success_};
@@ -65,7 +73,7 @@ class ModelServerFuture {
       std::unique_lock<std::mutex> lock(mtx_);
       result_ = result;
       done_ = true;
-      success_= true;
+      success_ = true;
     }
     cvar_.notify_all();
   }
@@ -81,6 +89,7 @@ class ModelServerFuture {
     }
     cvar_.notify_all();
   }
+
  private:
   /** Result for the future **/
   Result result_;
@@ -89,21 +98,21 @@ class ModelServerFuture {
   std::condition_variable cvar_;
 
   /** If async operation done */
-  std::atomic<bool> done_;
+  std::atomic<bool> done_ = false;
 
   /** If async operation succeeds */
-  std::atomic<bool> success_;
+  std::atomic<bool> success_ = false;
 
   /** Mutex associated with the condition variable **/
   std::mutex mtx_;
 };
 
-
 /**
  * Interface for ModelServerManager related operations
  */
 class ModelServerManager {
-  enum class Callback: uint64_t { NOOP = 0, CONNECTED, DEFAULT};
+  enum class Callback : uint64_t { NOOP = 0, CONNECTED, DEFAULT };
+
  public:
   /**
    * Construct a ModelServerManager with the given executable script to the python ModelServer
@@ -162,7 +171,8 @@ class ModelServerManager {
    * @param future A future object which the caller waits for
    * @bug Currently NOOP for callback
    */
-  void TrainWith(const std::vector<std::string> &methods, const std::string &seq_files_dir, ModelServerFuture<std::string> &future);
+  void TrainWith(const std::vector<std::string> &methods, const std::string &seq_files_dir,
+                 ModelServerFuture<std::string> *future);
 
   /** Train the models with given training data set
    *
@@ -173,8 +183,10 @@ class ModelServerManager {
    * @param x_map training X
    * @param y_map training Y
    */
-  void TrainWith(const std::vector<std::string> &models,
-                                     std::unordered_map<brain::ExecutionOperatingUnitType, std::pair<std::vector<std::vector<double>>, std::vector<std::vector<double>>>> &raw_data);
+  void TrainWith(
+      const std::vector<std::string> &models,
+      std::unordered_map<selfdriving::ExecutionOperatingUnitType,
+                         std::pair<std::vector<std::vector<double>>, std::vector<std::vector<double>>>> &raw_data);
   /**
    * Perform inference on the given data file.
    *
@@ -183,7 +195,8 @@ class ModelServerManager {
    * @param features Feature vectors
    * @return vector of results
    */
-  std::vector<std::vector<double>> DoInference(const std::string &opunit, const std::vector<std::vector<double>> &features);
+  std::vector<std::vector<double>> DoInference(const std::string &opunit,
+                                               const std::vector<std::vector<double>> &features);
 
  private:
   /**
@@ -217,6 +230,9 @@ class ModelServerManager {
 
   /** If ModelServer is connected **/
   std::atomic<bool> connected_ = false;
+
+  /** Mutex for sync */
+  std::mutex mtx_;
 };
 
 }  // namespace noisepage::modelserver

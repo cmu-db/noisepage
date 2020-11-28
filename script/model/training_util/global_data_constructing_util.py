@@ -14,8 +14,8 @@ import global_model_config
 from type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack,
-             ee_sample_interval, txn_sample_interval):
+def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_query_predict_cache, add_noise,
+             ee_sample_interval, txn_sample_interval, network_sample_interval):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -24,9 +24,11 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
     :param mini_model_map: mini models used for prediction
     :param model_results_path: directory path to log the result information
     :param warmup_period: warmup period for pipeline data
-    :param tpcc_hack: whether to manually fix the tpcc features
+    :param use_query_predict_cache: whether cache the prediction result based on the query for acceleration
+    :param add_noise: whether to add noise to the cardinality estimations
     :param ee_sample_interval: sampling interval for the EE OUs
     :param txn_sample_interval: sampling interval for the transaction OUs
+    :param network_sample_interval: sampling interval for the network OUs
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
@@ -36,8 +38,9 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
             resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX = pickle.load(pickle_file)
     else:
         data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
-                                                             warmup_period, tpcc_hack,
-                                                             ee_sample_interval, txn_sample_interval)
+                                                             warmup_period, use_query_predict_cache, add_noise,
+                                                             ee_sample_interval, txn_sample_interval,
+                                                             network_sample_interval)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
@@ -47,7 +50,8 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
 
 
 def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period,
-                                             tpcc_hack, ee_sample_interval, txn_sample_interval):
+                                             use_query_predict_cache, add_noise, ee_sample_interval,
+                                             txn_sample_interval, network_sample_interval):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -56,8 +60,9 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :param warmup_period: warmup period for pipeline data
     :return: The list of the GroupedOpUnitData objects
     """
-    data_list = _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval)
-    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
+    data_list = _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_interval,
+                               network_sample_interval)
+    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, use_query_predict_cache, add_noise)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
 
@@ -100,13 +105,15 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
 
     # Now construct the global impact data
     impact_data_list = []
-    physical_core_num = hardware_info.PHYSICAL_CORE_NUM
     for data in data_list:
         interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.INTERVAL))
-        resource_data = resource_data_map[interval_start_time]
-        cpu_id = data.cpu_id
-        same_core_x = resource_data.x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id]
-        impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data, same_core_x))
+        resource_data_list = []
+        while interval_start_time <= data.get_end_time(ConcurrentCountingMode.ESTIMATED):
+            if interval_start_time in resource_data_map:
+                resource_data_list.append(resource_data_map[interval_start_time])
+            interval_start_time += global_model_config.INTERVAL_SIZE
+
+        impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data_list))
 
     return list(resource_data_map.values()), impact_data_list
 
@@ -147,7 +154,8 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
         data_start_time = data.get_start_time(ConcurrentCountingMode.ESTIMATED)
         data_end_time = data.get_end_time(ConcurrentCountingMode.ESTIMATED)
         ratio = _calculate_range_overlap(start_time, end_time, data_start_time, data_end_time) / (data_end_time -
-                                                                                                  data_start_time + 1)
+                                                                                                  data_start_time + 2)
+        #print(start_time, end_time, data_start_time, data_end_time, data_end_time - data_start_time + 1)
         sample_interval = data.sample_interval
         logging.debug("{} {} {}".format(data_start_time, data_end_time, ratio))
         logging.debug("{} {}".format(data.y, data.y_pred))
@@ -186,7 +194,8 @@ def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
     return min(end_timel, end_timer) - max(start_timel, start_timer) + 1
 
 
-def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
+def _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_interval,
+                   network_sample_interval):
     """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
 
     :param input_path: input data file path
@@ -197,25 +206,48 @@ def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn
 
     # First get the data for all mini runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
-        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period, tpcc_hack,
-                                                                   ee_sample_interval, txn_sample_interval)
+        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period,
+                                                                   ee_sample_interval, txn_sample_interval,
+                                                                   network_sample_interval)
         logging.info("Loaded file: {}".format(filename))
 
     return data_list
 
 
-def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
+def _add_estimation_noise(opunit, x):
+    """Add estimation noise to the OUs that may use the cardinality estimation
+    """
+    if opunit not in data_info.OUS_USING_CAR_EST:
+        return
+    tuple_num_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]
+    cardinality_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]
+    tuple_num = x[tuple_num_index]
+    cardinality = x[cardinality_index]
+    if tuple_num > 1000:
+        logging.debug("Adding noise to tuple num (%)".format(tuple_num))
+        x[tuple_num_index] += np.random.normal(0, tuple_num * 0.3)
+        x[tuple_num_index] = max(1, x[tuple_num_index])
+    if cardinality > 1000:
+        logging.debug("Adding noise to cardinality (%)".format(x[cardinality_index)
+        x[cardinality_index] += np.random.normal(0, cardinality * 0.3)
+        x[cardinality_index] = max(1, x[cardinality_index])
+
+
+def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, use_query_predict_cache, add_noise):
     """Use the mini-runner to predict the resource consumptions for all the GlobalData, and record the prediction
     result in place
 
     :param data_list: The list of the GroupedOpUnitData objects
     :param mini_model_map: The trained mini models
     :param model_results_path: file path to log the prediction results
+    :param use_query_predict_cache: whether cache the prediction result based on the query for acceleration
+    :param add_noise: whether to add noise to the cardinality estimations
     """
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
     pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
-    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us", "Us Error", "Absolute Us", "Assolute Us %"])
+    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us",
+                                            "Us Error", "Absolute Us", "Absolute Us %"])
 
     # Track pipeline cumulative numbers
     num_pipelines = 0
@@ -234,59 +266,71 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
 
+    # use a prediction cache based on queries to accelerate
+    query_prediction_cache = {}
+
     # First run a prediction on the global running data with the mini model results
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
-        logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
+        if data.name[0] != 'q' or (data.name not in query_prediction_cache) or not use_query_predict_cache:
+            logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
 
-        pipeline_y_pred = 0
-        x = None
-        for opunit_feature in data.opunit_features:
-            opunit = opunit_feature[0]
-            opunit_model = mini_model_map[opunit]
-            x = np.array(opunit_feature[1]).reshape(1, -1)
-            key = (opunit, x.tobytes())
-            if key not in prediction_cache:
-                y_pred = opunit_model.predict(x)
-                y_pred = np.clip(y_pred, 0, None)
-                prediction_cache[key] = y_pred
-            else:
-                y_pred = prediction_cache[key]
-            logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
-                                                                                 x[0], y_pred[0, -1]))
+            pipeline_y_pred = 0
+            for opunit_feature in data.opunit_features:
+                opunit = opunit_feature[0]
+                opunit_model = mini_model_map[opunit]
+                x = np.array(opunit_feature[1]).reshape(1, -1)
 
-            if opunit in data_info.MEM_ADJUST_OPUNITS:
-                # Compute the number of "slots" (based on row feature or cardinality feature
-                num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]]
-                if opunit == OpUnit.AGG_BUILD:
-                    num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]]
+                if add_noise:
+                    _add_estimation_noise(opunit, x[0])
 
-                # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
-                # that contains the first pow2 larger than num_tuple entries
-                pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
-                buffer_size = pow_high * data_info.POINTER_SIZE
-                if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
-                    # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
-                    # the buffer is not recorded as part of the pipeline
-                    buffer_size = 0
+                key = (opunit, x.tobytes())
+                if key not in prediction_cache:
+                    y_pred = opunit_model.predict(x)
+                    y_pred = np.clip(y_pred, 0, None)
+                    prediction_cache[key] = y_pred
+                else:
+                    y_pred = prediction_cache[key]
+                logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
+                                                                                     x[0], y_pred[0, -1]))
 
-                pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
-                if pred_mem <= buffer_size:
-                    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
-                                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+                if opunit in data_info.MEM_ADJUST_OPUNITS:
+                    # Compute the number of "slots" (based on row feature or cardinality feature
+                    num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]]
+                    if opunit == OpUnit.AGG_BUILD:
+                        num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]]
 
-                # For hashjoin_build, there is still some inaccuracy due to the
-                # fact that we do not know about the hash table's load factor.
-                scale = data_info.INPUT_CSV_INDEX[ExecutionFeature.MEM_FACTOR]
-                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][scale] + buffer_size
+                    # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
+                    # that contains the first pow2 larger than num_tuple entries
+                    pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
+                    buffer_size = pow_high * data_info.POINTER_SIZE
+                    if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
+                        # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
+                        # the buffer is not recorded as part of the pipeline
+                        buffer_size = 0
 
-                # Don't modify prediction cache
-                y_pred = copy.deepcopy(y_pred)
-                y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
+                    pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
+                    if pred_mem <= buffer_size:
+                        logging.debug("{} feature {} {} with prediction {} exceeds buffer {}"
+                                        .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
-            pipeline_y_pred += y_pred[0]
+                    # For hashjoin_build, there is still some inaccuracy due to the
+                    # fact that we do not know about the hash table's load factor.
+                    scale = data_info.INPUT_CSV_INDEX[ExecutionFeature.MEM_FACTOR]
+                    adj_mem = (pred_mem - buffer_size) * opunit_feature[1][scale] + buffer_size
 
-        pipeline_y = copy.deepcopy(pipeline_y_pred)
+                    # Don't modify prediction cache
+                    y_pred = copy.deepcopy(y_pred)
+                    y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
+
+                pipeline_y_pred += y_pred[0]
+
+            pipeline_y = copy.deepcopy(pipeline_y_pred)
+
+            query_prediction_cache[data.name] = pipeline_y
+        else:
+            pipeline_y_pred = query_prediction_cache[data.name]
+            pipeline_y = copy.deepcopy(pipeline_y_pred)
 
         # Grouping when we're predicting queries
         if data.name[0] == 'q':
@@ -298,8 +342,8 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                                              list(abs(query_y - query_y_pred) / (query_y + 1)))
 
                 current_query_id = query_id
-                query_y = y
-                query_y_pred = pipeline_y_pred
+                query_y = copy.deepcopy(y)
+                query_y_pred = copy.deepcopy(pipeline_y_pred)
             else:
                 query_y += y
                 query_y_pred += pipeline_y_pred
@@ -357,4 +401,3 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     io_util.write_csv_result(pipeline_path, "Total Pipeline", [num_pipelines, 1, total_actual[-1],
                              total_predicted[-1], ratio_error[-1], total_elapsed_err, 1] +
                              [""] + list(total_actual) + [""] + list(total_predicted) + [""] + list(ratio_error))
-

@@ -1,10 +1,12 @@
 
+
 #include <vector>
 
 #include "gtest/gtest.h"
 #include "loggers/messenger_logger.h"
 #include "loggers/model_server_logger.h"
 #include "main/db_main.h"
+#include "self_driving/model_server/model_server_manager.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::modelserver {
@@ -45,16 +47,16 @@ class ModelServerTest : public TerrierTest {
 
   static bool GenerateMiniTrainerCSV() {
     pid_t pid;
-    if((pid = ::fork()) == 0) {
+    if ((pid = ::fork()) == 0) {
       std::string mini_runner = MINI_RUNNER_PATH;
-      std::string bch_filter =  "--benchmark_filter=SEQ0";
+      std::string bch_filter = "--benchmark_filter=SEQ0";
       std::string row_limit = "--mini_runner_rows_limit=1000";
-      char *args[] = {mini_runner.data(), bch_filter.data(),row_limit.data(), nullptr};
-      if(::execvp(args[0], args) < 0) {
+      char *args[] = {mini_runner.data(), bch_filter.data(), row_limit.data(), nullptr};
+      if (::execvp(args[0], args) < 0) {
         MODEL_SERVER_LOG_ERROR("failed to run {}: {}", MINI_RUNNER_PATH, strerror(errno));
       }
       return false;
-    } else if(pid > 0){
+    } else if (pid > 0) {
       ::waitpid(pid, NULL, 0);
 
       /**
@@ -75,9 +77,7 @@ class ModelServerTest : public TerrierTest {
     // Remove the file
     ::remove(TEST_FILE_NAME);
   }
-
 };
-
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, PipelineTest) {
@@ -96,11 +96,11 @@ TEST_F(ModelServerTest, PipelineTest) {
   while (!ms_manager->ModelServerStarted()) {
   }
 
-  std::vector<std::vector<double>> features {
-      {0, 10000, 4, 1, 10000, 1, 0 , 0},
-      {0, 10000, 4, 1, 10000, 1, 0 , 0},
-      {0, 10000, 4, 1, 10000, 1, 0 , 0},
-      {0, 10000, 4, 1, 10000, 1, 0 , 0},
+  std::vector<std::vector<double>> features{
+      {0, 10000, 4, 1, 10000, 1, 0, 0},
+      {0, 10000, 4, 1, 10000, 1, 0, 0},
+      {0, 10000, 4, 1, 10000, 1, 0, 0},
+      {0, 10000, 4, 1, 10000, 1, 0, 0},
   };
 
   // Send a message
@@ -112,13 +112,13 @@ TEST_F(ModelServerTest, PipelineTest) {
   auto seq_files_dir = std::filesystem::current_path();
   MODEL_SERVER_LOG_INFO("Training with {}, and input dir: {}", models[0], seq_files_dir);
   ModelServerFuture<std::string> future;
-  ms_manager->TrainWith(models, seq_files_dir, future);
+  ms_manager->TrainWith(models, seq_files_dir, &future);
   auto res = future.Wait();
-  ASSERT_EQ(res.second,true); // Training succeeds
+  ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference
   auto result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", features);
-  ASSERT_TRUE(result.size() > 0);
+  ASSERT_GT(result.size(), 0);
 
   // Quit
   ms_manager->StopModelServer();
