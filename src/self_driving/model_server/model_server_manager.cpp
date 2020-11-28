@@ -9,7 +9,6 @@
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/modeling/operating_unit.h"
 
 namespace noisepage::modelserver {
 
@@ -156,15 +155,21 @@ void ModelServerManager::TrainWith(const std::vector<std::string> &models, const
   j["data"]["seq_files"] = seq_files_dir;
   j["data"]["raw_data"] = "";
 
+  // Callback to notify the waiter for result, or failure to parse the result.
   auto callback = [&, future](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
                               std::string_view message, uint64_t recv_cb_id) {
     MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
-    nlohmann::json res = nlohmann::json::parse(message);
-    // Deserialize the message result
-    auto result = res.at("result").get<std::string>();
-
-    future->Done(result);
+    try {
+      nlohmann::json res = nlohmann::json::parse(message);
+      // Deserialize the message result
+      auto result = res.at("result").get<std::string>();
+      future->Done(result);
+    } catch (nlohmann::json::exception &e) {
+      MODEL_SERVER_LOG_WARN("Wrong message format, incorrect result field: {}, {}", message, e.what());
+      future->Fail();
+    }
   };
+
   try {
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), callback, 0);
   } catch (std::exception &e) {
@@ -198,14 +203,19 @@ std::vector<std::vector<double>> ModelServerManager::DoInference(const std::stri
   // Sync communication
   ModelServerFuture<std::vector<std::vector<double>>> future;
 
+  // Callback to notify waiter with result
   auto callback = [&](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
                       std::string_view message, uint64_t recv_cb_id) {
     MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
-    nlohmann::json res = nlohmann::json::parse(message);
-    // Deserialize the message result
-    std::vector<std::vector<double>> result = res.at("result").get<std::vector<std::vector<double>>>();
-
-    future.Done(result);
+    try {
+      nlohmann::json res = nlohmann::json::parse(message);
+      // Deserialize the message result
+      std::vector<std::vector<double>> result = res.at("result").get<std::vector<std::vector<double>>>();
+      future.Done(result);
+    } catch (nlohmann::json::exception &e) {
+      MODEL_SERVER_LOG_WARN("Wrong message format, incorrect result field: {}, {}", message, e.what());
+      future.Fail();
+    }
   };
 
   // Register NOOP at the messenger

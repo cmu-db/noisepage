@@ -7,10 +7,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-
-namespace noisepage::self_driving {
-class ExecutionOperatingUnitType;
-}  // namespace noisepage::self_driving
+#include "self_driving/modeling/operating_unit.h"
 
 namespace noisepage::messenger {
 class Messenger;
