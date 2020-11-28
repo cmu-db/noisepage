@@ -216,7 +216,13 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     auto &tbl_col = table_schema_.GetColumn(cve->GetColumnOid());
     auto sql_type = sql::GetTypeId(tbl_col.Type());
     auto scan_offset = oid_offset[cve->GetColumnOid()];
-    const auto &col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
+    execution::ast::Expr * col_expr;
+    if(sql_type == sql::TypeId::FixedDecimal) {
+      auto vpi_get_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
+      col_expr = GetCodeGen()->SetPrecisionFixedDecimal(vpi_get_expr, tbl_col.MaxVarlenSize());
+    } else {
+      col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
+    }
 
     // @prSet(insert_index_pr, attr_type, attr_idx, nullable, attr_index, col_expr, false)
     uint16_t attr_offset = index_pm.at(index_col.Oid());

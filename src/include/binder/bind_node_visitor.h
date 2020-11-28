@@ -125,6 +125,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
                                common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
     }
   }
+  int32_t FixedDecimalExpressionResolvePrecision(common::ManagedPointer<parser::AbstractExpression> expr);
 };
 
 }  // namespace binder

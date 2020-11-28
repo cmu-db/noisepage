@@ -3223,10 +3223,18 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
   Bytecode bytecode;
   switch (node->Op()) {
     case parsing::Token::Type::PLUS: {
+      if(is_decimal_math) {
+        bytecode = Bytecode::AddFixedDecimal;
+        break;
+      }
       bytecode = (is_integer_math ? Bytecode::AddInteger : Bytecode::AddReal);
       break;
     }
     case parsing::Token::Type::MINUS: {
+      if(is_decimal_math) {
+        bytecode = Bytecode::SubFixedDecimal;
+        break;
+      }
       bytecode = (is_integer_math ? Bytecode::SubInteger : Bytecode::SubReal);
       break;
     }
@@ -3239,6 +3247,10 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
       break;
     }
     case parsing::Token::Type::SLASH: {
+      if(is_decimal_math) {
+        bytecode = Bytecode::DivFixedDecimal;
+        break;
+      }
       bytecode = (is_integer_math ? Bytecode::DivInteger : Bytecode::DivReal);
       break;
     }

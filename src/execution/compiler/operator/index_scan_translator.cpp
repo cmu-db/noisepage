@@ -124,6 +124,10 @@ ast::Expr *IndexScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const
   auto type = table_schema_.GetColumn(col_oid).Type();
   auto nullable = table_schema_.GetColumn(col_oid).Nullable();
   uint16_t attr_idx = table_pm_.find(col_oid)->second;
+  if(sql::GetTypeId(type) == sql::TypeId::FixedDecimal) {
+    auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(table_pr_), type, nullable, attr_idx);
+    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).MaxVarlenSize());
+  }
   return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(table_pr_), type, nullable, attr_idx);
 }
 

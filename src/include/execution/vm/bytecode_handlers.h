@@ -772,6 +772,56 @@ VM_OP_HOT void OpMulReal(terrier::execution::sql::Real *const result, const terr
   terrier::execution::sql::ArithmeticFunctions::Mul(result, *left, *right);
 }
 
+VM_OP_HOT void OpAddFixedDecimal(terrier::execution::sql::DecimalVal *const result, const terrier::execution::sql::DecimalVal *const left,
+                                 const terrier::execution::sql::DecimalVal *const right) {
+  auto left_val = left->val_;
+  auto right_val = right->val_;
+  auto left_precision = left->precision_;
+  auto right_precision = right->precision_;
+  // TODO(Rohan): Optimize this
+  if(left_precision < right_precision) {
+    int128_t intermediate_value = left_val.GetValue();
+    for(int i = 0; i < right_precision - left_precision; i++) {
+      intermediate_value *= 10;
+    }
+    left_val.SetValue(intermediate_value);
+  } else {
+    int128_t intermediate_value = right_val.GetValue();
+    for(int i = 0; i < left_precision - right_precision; i++) {
+      intermediate_value *= 10;
+    }
+    right_val.SetValue(intermediate_value);
+  }
+  left_val += right_val;
+  result->val_ = left_val;
+  result->precision_ = left_precision > right_precision ? left_precision : right_precision;
+}
+
+VM_OP_HOT void OpSubFixedDecimal(terrier::execution::sql::DecimalVal *const result, const terrier::execution::sql::DecimalVal *const left,
+                                 const terrier::execution::sql::DecimalVal *const right) {
+  auto left_val = left->val_;
+  auto right_val = right->val_;
+  auto left_precision = left->precision_;
+  auto right_precision = right->precision_;
+  // TODO(Rohan): Optimize this
+  if(left_precision < right_precision) {
+    int128_t intermediate_value = left_val.GetValue();
+    for(int i = 0; i < right_precision - left_precision; i++) {
+      intermediate_value *= 10;
+    }
+    left_val.SetValue(intermediate_value);
+  } else {
+    int128_t intermediate_value = right_val.GetValue();
+    for(int i = 0; i < left_precision - right_precision; i++) {
+      intermediate_value *= 10;
+    }
+    right_val.SetValue(intermediate_value);
+  }
+  left_val -= right_val;
+  result->val_ = left_val;
+  result->precision_ = left_precision > right_precision ? left_precision : right_precision;
+}
+
 VM_OP_HOT void OpMulFixedDecimal(terrier::execution::sql::DecimalVal *const result, const terrier::execution::sql::DecimalVal *const left,
                          const terrier::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
@@ -782,6 +832,17 @@ VM_OP_HOT void OpMulFixedDecimal(terrier::execution::sql::DecimalVal *const resu
   left_val.SignedMultiplyWithDecimal(right_val, lower_precision);
   result->val_ = left_val;
   result->precision_ = left_precision > right_precision ? left_precision : right_precision;
+}
+
+VM_OP_HOT void OpDivFixedDecimal(terrier::execution::sql::DecimalVal *const result, const terrier::execution::sql::DecimalVal *const left,
+                                 const terrier::execution::sql::DecimalVal *const right) {
+  auto left_val = left->val_;
+  auto right_val = right->val_;
+  auto left_precision = left->precision_;
+  auto right_precision = right->precision_;
+  left_val.SignedDivideWithDecimal(right_val, right_precision);
+  result->val_ = left_val;
+  result->precision_ = left_precision;
 }
 
 VM_OP_HOT void OpDivReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,

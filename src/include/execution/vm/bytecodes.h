@@ -318,10 +318,13 @@ namespace terrier::execution::vm {
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(ModInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(AddFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(SubFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(MulFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(DivFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(ModReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
   /* Hashing */                                                                                                       \

@@ -16,6 +16,7 @@
 #include "common/managed_pointer.h"
 #include "execution/functions/function_context.h"
 #include "loggers/binder_logger.h"
+#include "parser/expression_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -447,6 +448,47 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Prep
   SqlNodeVisitor::Visit(node);
 }
 
+int32_t BindNodeVisitor::FixedDecimalExpressionResolvePrecision(common::ManagedPointer<parser::AbstractExpression> expr) {
+
+  if(expr->GetChildrenSize() == 0) {
+    if(expr->GetExpressionType() == terrier::parser::ExpressionType::COLUMN_VALUE) {
+      terrier::catalog::table_oid_t table_oid = reinterpret_cast<
+          common::ManagedPointer<terrier::parser::ColumnValueExpression> &&>(expr)->GetTableOid();
+      terrier::catalog::col_oid_t column_oid = reinterpret_cast<
+          common::ManagedPointer<terrier::parser::ColumnValueExpression> &&>(expr)->GetColumnOid();
+      return catalog_accessor_->GetSchema(table_oid).GetColumn(column_oid).MaxVarlenSize();
+    } else {
+      return -1;
+    }
+  } else {
+    auto children = expr->GetChildren();
+    int precision = -1;
+    for(uint32_t i = 0; i < expr->GetChildrenSize(); i++) {
+      precision = std::max(precision, FixedDecimalExpressionResolvePrecision(children[i]));
+    }
+
+    for(uint32_t i = 0; i < expr->GetChildrenSize(); i++) {
+      if(children[i]->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
+        // TODO(ROHAN): Can cast ints etc too here - needs more discussion
+        const auto str_view = reinterpret_cast<
+            common::ManagedPointer<terrier::parser::ConstantValueExpression > &&>(children[i])
+            ->Peek<std::string_view>();
+
+        terrier::execution::sql::Decimal128 decimal_val(0);
+
+        decimal_val.RoundUpAndSet(std::string(str_view), precision >= 0 ? precision : 10);
+        auto value =
+            std::make_unique<parser::ConstantValueExpression>(
+                type::TypeId::FIXEDDECIMAL, execution::sql::DecimalVal(decimal_val,
+                                                                       precision >= 0 ? precision : 10));
+        expr->SetChild(i, common::ManagedPointer(value).CastManagedPointerTo<parser::AbstractExpression>());
+      }
+    }
+
+    return precision;
+  }
+}
+
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node) {
   BINDER_LOG_TRACE("Visiting SelectStatement ...");
   SqlNodeVisitor::Visit(node);
@@ -479,6 +521,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
     select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
+    if(select_element->GetReturnValueType() == terrier::type::TypeId::FIXEDDECIMAL) {
+      FixedDecimalExpressionResolvePrecision(select_element);
+    }
     // Derive depth for all exprs in the select clause
     select_element->DeriveDepth();
 
