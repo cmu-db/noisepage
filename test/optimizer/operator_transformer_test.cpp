@@ -1664,7 +1664,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   EXPECT_EQ(ref, info);
 
   auto logical_drop = operator_tree_->Contents()->GetContentsAs<optimizer::LogicalDropNamespace>();
-  EXPECT_EQ(logical_drop->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_EQ(logical_drop->GetNamespaceOID(), catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
@@ -1679,7 +1679,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   EXPECT_TRUE(op->IsPhysical());
   EXPECT_EQ(op->GetName(), "DropNamespace");
   auto dn = op->GetContentsAs<optimizer::DropNamespace>();
-  EXPECT_EQ(dn->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_EQ(dn->GetNamespaceOID(), catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
 
   optimizer::PlanGenerator plan_generator{};
   optimizer::PropertySet property_set{};
@@ -1693,7 +1693,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
                                    output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
   auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
-  EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
 }
 
 // NOLINTNEXTLINE

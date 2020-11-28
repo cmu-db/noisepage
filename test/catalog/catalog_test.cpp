@@ -35,7 +35,7 @@ struct CatalogTests : public TerrierTest {
   void VerifyCatalogTables(const catalog::CatalogAccessor &accessor) {
     auto ns_oid = accessor.GetNamespaceOid("pg_catalog");
     EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
-    EXPECT_EQ(ns_oid, catalog::postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
+    EXPECT_EQ(ns_oid, catalog::postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID);
 
     VerifyTablePresent(accessor, ns_oid, "pg_attribute");
     VerifyTablePresent(accessor, ns_oid, "pg_class");
@@ -556,7 +556,7 @@ TEST_F(CatalogTests, UserSearchPathTest) {
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
   auto public_ns_oid = accessor->GetNamespaceOid("public");
   EXPECT_NE(public_ns_oid, catalog::INVALID_NAMESPACE_OID);
-  EXPECT_EQ(public_ns_oid, catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_EQ(public_ns_oid, catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
   auto test_ns_oid = accessor->CreateNamespace("test");
   EXPECT_NE(test_ns_oid, catalog::INVALID_NAMESPACE_OID);
   VerifyCatalogTables(*accessor);  // Check visibility to me
@@ -616,7 +616,7 @@ TEST_F(CatalogTests, UserSearchPathTest) {
 TEST_F(CatalogTests, CatalogSearchPathTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
-  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::postgres::NAMESPACE_TABLE_OID);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -627,20 +627,22 @@ TEST_F(CatalogTests, CatalogSearchPathTest) {
   // Check whether name conflict is inserted into the proper default (first in search path) and masked by implicit
   // addition of 'pg_catalog' at start of search path
   auto user_table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "pg_namespace", tmp_schema);
-  EXPECT_EQ(accessor->GetTableOid(catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
-  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::postgres::NAMESPACE_TABLE_OID);
+  EXPECT_EQ(accessor->GetTableOid(catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"),
+            user_table_oid);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID);
 
   // Explicitly set 'pg_catalog' as second in the search path and check proper searching
-  accessor->SetSearchPath(
-      {catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, catalog::postgres::NAMESPACE_CATALOG_NAMESPACE_OID});
+  accessor->SetSearchPath({catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID,
+                           catalog::postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID});
   EXPECT_EQ(accessor->GetTableOid("pg_namespace"), user_table_oid);
-  EXPECT_EQ(accessor->GetTableOid(catalog::postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace"),
-            catalog::postgres::NAMESPACE_TABLE_OID);
+  EXPECT_EQ(accessor->GetTableOid(catalog::postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace"),
+            catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID);
 
   // Return to implicit declaration to ensure logic works correctly
-  accessor->SetSearchPath({catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID});
-  EXPECT_EQ(accessor->GetTableOid(catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
-  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::postgres::NAMESPACE_TABLE_OID);
+  accessor->SetSearchPath({catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID});
+  EXPECT_EQ(accessor->GetTableOid(catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"),
+            user_table_oid);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID);
 
   // Close out
   txn_manager_->Abort(txn);

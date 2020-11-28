@@ -4,15 +4,48 @@
 
 #include "catalog/catalog_defs.h"
 
-namespace noisepage::catalog::postgres {
+namespace noisepage {
+class CatalogTests_CatalogSearchPathTest_Test;
+}  // namespace noisepage
 
+namespace noisepage::catalog {
+class CatalogAccessor;
+}  // namespace noisepage::catalog
+
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
+namespace noisepage::catalog::postgres {
+class Builder;
+class PgConstraintImpl;
+class PgCoreImpl;
+class PgLanguageImpl;
+class PgProcImpl;
+class PgTypeImpl;
+
+/** The OIDs used by the NoisePage version of pg_namespace. */
 class PgNamespace {
  public:
+  static constexpr namespace_oid_t NAMESPACE_CATALOG_NAMESPACE_OID = namespace_oid_t(14);
+  static constexpr namespace_oid_t NAMESPACE_DEFAULT_NAMESPACE_OID = namespace_oid_t(15);
+
+ private:
+  friend class catalog::CatalogAccessor;
+  friend class storage::RecoveryManager;
+  friend class Builder;
+  friend class PgConstraintImpl;
+  friend class PgCoreImpl;
+  friend class PgLanguageImpl;
+  friend class PgProcImpl;
+  friend class PgTypeImpl;
+
+  friend class noisepage::CatalogTests_CatalogSearchPathTest_Test;
+
   static constexpr table_oid_t NAMESPACE_TABLE_OID = table_oid_t(11);
   static constexpr index_oid_t NAMESPACE_OID_INDEX_OID = index_oid_t(12);
   static constexpr index_oid_t NAMESPACE_NAME_INDEX_OID = index_oid_t(13);
-  static constexpr namespace_oid_t NAMESPACE_CATALOG_NAMESPACE_OID = namespace_oid_t(14);
-  static constexpr namespace_oid_t NAMESPACE_DEFAULT_NAMESPACE_OID = namespace_oid_t(15);
+
   /*
    * Column names of the form "NSP[name]_COL_OID" are present in the PostgreSQL
    * catalog specification and columns of the form "NSP_[name]_COL_OID" are
