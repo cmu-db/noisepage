@@ -84,7 +84,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         block_store_(store),
         recovered_txns_(0) {
     // Initialize catalog_table_schemas_ map
-    catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
+    catalog_table_schemas_[catalog::postgres::PgClass::CLASS_TABLE_OID] =
+        catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
         catalog::postgres::Builder::GetNamespaceTableSchema();
     catalog_table_schemas_[catalog::postgres::PgAttribute::COLUMN_TABLE_OID] =
@@ -264,14 +265,14 @@ class RecoveryManager : public common::DedicatedThreadOwner {
       }
 
       // Case 2
-      return redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
+      return redo_record->GetTableOid() == catalog::postgres::PgClass::CLASS_TABLE_OID ||
              redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID;
     }
 
     // Case 3, 4, 5, and 6
     auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
     return delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
-           delete_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::postgres::PgClass::CLASS_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::INDEX_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::PgAttribute::COLUMN_TABLE_OID;
   }

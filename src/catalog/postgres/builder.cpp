@@ -89,11 +89,11 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 
   // Indexes on pg_class
   dbc->pg_core_.classes_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(oid), CLASS_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(oid), PgClass::CLASS_OID_INDEX_OID);
   dbc->pg_core_.classes_name_index_ =
-      Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(oid), CLASS_NAME_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(oid), PgClass::CLASS_NAME_INDEX_OID);
   dbc->pg_core_.classes_namespace_index_ =
-      Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(oid), CLASS_NAMESPACE_INDEX_OID);
+      Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(oid), PgClass::CLASS_NAMESPACE_INDEX_OID);
 
   // Indexes on pg_index
   dbc->pg_core_.indexes_oid_index_ =
@@ -183,28 +183,28 @@ Schema Builder::GetClassTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("reloid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(RELOID_COL_OID);
+  columns.back().SetOid(PgClass::RELOID_COL_OID);
 
   columns.emplace_back("relname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(RELNAME_COL_OID);
+  columns.back().SetOid(PgClass::RELNAME_COL_OID);
 
   columns.emplace_back("relnamespace", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(RELNAMESPACE_COL_OID);
+  columns.back().SetOid(PgClass::RELNAMESPACE_COL_OID);
 
   columns.emplace_back("relkind", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
-  columns.back().SetOid(RELKIND_COL_OID);
+  columns.back().SetOid(PgClass::RELKIND_COL_OID);
 
   columns.emplace_back("schema", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
-  columns.back().SetOid(REL_SCHEMA_COL_OID);
+  columns.back().SetOid(PgClass::REL_SCHEMA_COL_OID);
 
   columns.emplace_back("pointer", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT));
-  columns.back().SetOid(REL_PTR_COL_OID);
+  columns.back().SetOid(PgClass::REL_PTR_COL_OID);
 
   columns.emplace_back("nextcoloid", type::TypeId::INTEGER, true,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(REL_NEXTCOLOID_COL_OID);
+  columns.back().SetOid(PgClass::REL_NEXTCOLOID_COL_OID);
 
   return Schema(columns);
 }
@@ -407,7 +407,7 @@ IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("reloid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELOID_COL_OID));
+                       parser::ColumnValueExpression(db, PgClass::CLASS_TABLE_OID, PgClass::RELOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -420,11 +420,11 @@ IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("relnamespace", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
+                       parser::ColumnValueExpression(db, PgClass::CLASS_TABLE_OID, PgClass::RELNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   columns.emplace_back("relname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAME_COL_OID));
+                       parser::ColumnValueExpression(db, PgClass::CLASS_TABLE_OID, PgClass::RELNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
@@ -437,7 +437,7 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("relnamespace", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
+                       parser::ColumnValueExpression(db, PgClass::CLASS_TABLE_OID, PgClass::RELNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique

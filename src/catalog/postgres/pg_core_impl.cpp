@@ -36,29 +36,31 @@ void PgCoreImpl::BootstrapPRIsPgNamespace() {
 }
 
 void PgCoreImpl::BootstrapPRIsPgClass() {
-  const std::vector<col_oid_t> pg_class_all_oids{postgres::PG_CLASS_ALL_COL_OIDS.cbegin(),
-                                                 postgres::PG_CLASS_ALL_COL_OIDS.cend()};
+  const std::vector<col_oid_t> pg_class_all_oids{postgres::PgClass::PG_CLASS_ALL_COL_OIDS.cbegin(),
+                                                 postgres::PgClass::PG_CLASS_ALL_COL_OIDS.cend()};
   pg_class_all_cols_pri_ = classes_->InitializerForProjectedRow(pg_class_all_oids);
   pg_class_all_cols_prm_ = classes_->ProjectionMapForOids(pg_class_all_oids);
 
-  const std::vector<col_oid_t> get_class_oid_kind_oids{postgres::RELOID_COL_OID, postgres::RELKIND_COL_OID};
+  const std::vector<col_oid_t> get_class_oid_kind_oids{postgres::PgClass::RELOID_COL_OID,
+                                                       postgres::PgClass::RELKIND_COL_OID};
   get_class_oid_kind_pri_ = classes_->InitializerForProjectedRow(get_class_oid_kind_oids);
 
-  const std::vector<col_oid_t> set_class_pointer_oids{postgres::REL_PTR_COL_OID};
+  const std::vector<col_oid_t> set_class_pointer_oids{postgres::PgClass::REL_PTR_COL_OID};
   set_class_pointer_pri_ = classes_->InitializerForProjectedRow(set_class_pointer_oids);
 
-  const std::vector<col_oid_t> set_class_schema_oids{postgres::REL_SCHEMA_COL_OID};
+  const std::vector<col_oid_t> set_class_schema_oids{postgres::PgClass::REL_SCHEMA_COL_OID};
   set_class_schema_pri_ = classes_->InitializerForProjectedRow(set_class_schema_oids);
 
-  const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
+  const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::PgClass::REL_PTR_COL_OID,
+                                                           postgres::PgClass::RELKIND_COL_OID};
   get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
 
-  const std::vector<col_oid_t> get_class_schema_pointer_kind_oids{postgres::REL_SCHEMA_COL_OID,
-                                                                  postgres::RELKIND_COL_OID};
+  const std::vector<col_oid_t> get_class_schema_pointer_kind_oids{postgres::PgClass::REL_SCHEMA_COL_OID,
+                                                                  postgres::PgClass::RELKIND_COL_OID};
   get_class_schema_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_schema_pointer_kind_oids);
 
-  const std::vector<col_oid_t> get_class_object_and_schema_oids{postgres::REL_PTR_COL_OID,
-                                                                postgres::REL_SCHEMA_COL_OID};
+  const std::vector<col_oid_t> get_class_object_and_schema_oids{postgres::PgClass::REL_PTR_COL_OID,
+                                                                postgres::PgClass::REL_SCHEMA_COL_OID};
   get_class_object_and_schema_pri_ = classes_->InitializerForProjectedRow(get_class_object_and_schema_oids);
   get_class_object_and_schema_prm_ = classes_->ProjectionMapForOids(get_class_object_and_schema_oids);
 }
@@ -134,31 +136,31 @@ void PgCoreImpl::BootstrapPgClass(common::ManagedPointer<transaction::Transactio
                                   common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
-  retval = dbc->CreateTableEntry(txn, postgres::CLASS_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_class",
-                                 postgres::Builder::GetClassTableSchema());
+  retval = dbc->CreateTableEntry(txn, postgres::PgClass::CLASS_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
+                                 "pg_class", postgres::Builder::GetClassTableSchema());
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, postgres::CLASS_TABLE_OID, classes_);
+  retval = dbc->SetTablePointer(txn, postgres::PgClass::CLASS_TABLE_OID, classes_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CLASS_TABLE_OID,
-                                 postgres::CLASS_OID_INDEX_OID, "pg_class_oid_index",
+  retval = dbc->CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgClass::CLASS_TABLE_OID,
+                                 postgres::PgClass::CLASS_OID_INDEX_OID, "pg_class_oid_index",
                                  postgres::Builder::GetClassOidIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, postgres::CLASS_OID_INDEX_OID, classes_oid_index_);
+  retval = dbc->SetIndexPointer(txn, postgres::PgClass::CLASS_OID_INDEX_OID, classes_oid_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CLASS_TABLE_OID,
-                                 postgres::CLASS_NAME_INDEX_OID, "pg_class_name_index",
+  retval = dbc->CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgClass::CLASS_TABLE_OID,
+                                 postgres::PgClass::CLASS_NAME_INDEX_OID, "pg_class_name_index",
                                  postgres::Builder::GetClassNameIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, postgres::CLASS_NAME_INDEX_OID, classes_name_index_);
+  retval = dbc->SetIndexPointer(txn, postgres::PgClass::CLASS_NAME_INDEX_OID, classes_name_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CLASS_TABLE_OID,
-                                 postgres::CLASS_NAMESPACE_INDEX_OID, "pg_class_namespace_index",
+  retval = dbc->CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PgClass::CLASS_TABLE_OID,
+                                 postgres::PgClass::CLASS_NAMESPACE_INDEX_OID, "pg_class_namespace_index",
                                  postgres::Builder::GetClassNamespaceIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, postgres::CLASS_NAMESPACE_INDEX_OID, classes_namespace_index_);
+  retval = dbc->SetIndexPointer(txn, postgres::PgClass::CLASS_NAMESPACE_INDEX_OID, classes_namespace_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
@@ -240,8 +242,8 @@ std::function<void(void)> PgCoreImpl::GetTearDownFn(
   std::vector<storage::index::Index *> indexes;
 
   // pg_class (schemas & objects)
-  const std::vector<col_oid_t> pg_class_oids{postgres::RELKIND_COL_OID, postgres::REL_SCHEMA_COL_OID,
-                                             postgres::REL_PTR_COL_OID};
+  const std::vector<col_oid_t> pg_class_oids{postgres::PgClass::RELKIND_COL_OID, postgres::PgClass::REL_SCHEMA_COL_OID,
+                                             postgres::PgClass::REL_PTR_COL_OID};
 
   auto pci = classes_->InitializerForProjectedColumns(pg_class_oids, DatabaseCatalog::TEARDOWN_MAX_TUPLES);
   auto pm = classes_->ProjectionMapForOids(pg_class_oids);
@@ -251,9 +253,10 @@ std::function<void(void)> PgCoreImpl::GetTearDownFn(
   auto pc = pci.Initialize(buffer);
 
   // Fetch pointers to the start each in the projected columns
-  auto classes = reinterpret_cast<postgres::ClassKind *>(pc->ColumnStart(pm[postgres::RELKIND_COL_OID]));
-  auto schemas = reinterpret_cast<void **>(pc->ColumnStart(pm[postgres::REL_SCHEMA_COL_OID]));
-  auto objects = reinterpret_cast<void **>(pc->ColumnStart(pm[postgres::REL_PTR_COL_OID]));
+  auto classes =
+      reinterpret_cast<postgres::PgClass::ClassKind *>(pc->ColumnStart(pm[postgres::PgClass::RELKIND_COL_OID]));
+  auto schemas = reinterpret_cast<void **>(pc->ColumnStart(pm[postgres::PgClass::REL_SCHEMA_COL_OID]));
+  auto objects = reinterpret_cast<void **>(pc->ColumnStart(pm[postgres::PgClass::REL_PTR_COL_OID]));
 
   // Scan the table
   auto table_iter = classes_->begin();
@@ -263,11 +266,11 @@ std::function<void(void)> PgCoreImpl::GetTearDownFn(
       NOISEPAGE_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
       NOISEPAGE_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
-        case postgres::ClassKind::REGULAR_TABLE:
+        case postgres::PgClass::ClassKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
           tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
-        case postgres::ClassKind::INDEX:
+        case postgres::PgClass::ClassKind::INDEX:
           index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
@@ -375,7 +378,7 @@ bool PgCoreImpl::DeleteNamespace(const common::ManagedPointer<transaction::Trans
   auto ns_objects = GetNamespaceClassOids(txn, ns_oid);
   for (const auto &object : ns_objects) {
     // Delete all of the tables. This should get most of the indexes
-    if (object.second == postgres::ClassKind::REGULAR_TABLE) {
+    if (object.second == postgres::PgClass::ClassKind::REGULAR_TABLE) {
       result = DeleteTable(txn, dbc, static_cast<table_oid_t>(object.first));
       if (!result) {
         // Someone else has a write-lock. Free the buffer and return false to indicate failure
@@ -393,7 +396,7 @@ bool PgCoreImpl::DeleteNamespace(const common::ManagedPointer<transaction::Trans
   for (const auto &object : ns_objects) {
     // Delete all of the straggler indexes that may have been built on tables in other namespaces. We shouldn't get any
     // double-deletions because indexes on tables will already be invisible to us (logically deleted already).
-    if (object.second == postgres::ClassKind::INDEX) {
+    if (object.second == postgres::PgClass::ClassKind::INDEX) {
       result = DeleteIndex(txn, dbc, static_cast<index_oid_t>(object.first));
       if (!result) {
         // Someone else has a write-lock. Free the buffer and return false to indicate failure
@@ -489,9 +492,8 @@ bool PgCoreImpl::SetClassPointer(const common::ManagedPointer<transaction::Trans
       "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
       "code path for this to be called on an oid that isn't present.");
 
-  auto &initializer =
-      (class_col == catalog::postgres::REL_PTR_COL_OID) ? set_class_pointer_pri_ : set_class_schema_pri_;
-  auto *update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, initializer);
+  auto &initializer = (class_col == PgClass::REL_PTR_COL_OID) ? set_class_pointer_pri_ : set_class_schema_pri_;
+  auto *update_redo = txn->StageWrite(db_oid_, PgClass::CLASS_TABLE_OID, initializer);
   update_redo->SetTupleSlot(index_results[0]);
   auto *update_pr = update_redo->Delta();
   auto *const class_ptr_ptr = update_pr->AccessForceNotNull(0);
@@ -505,45 +507,45 @@ bool PgCoreImpl::SetClassPointer(const common::ManagedPointer<transaction::Trans
 bool PgCoreImpl::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table_oid, const namespace_oid_t ns_oid, const std::string &name,
                                   const Schema &schema) {
-  auto *const insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
+  auto *const insert_redo = txn->StageWrite(db_oid_, PgClass::CLASS_TABLE_OID, pg_class_all_cols_pri_);
   auto *const insert_pr = insert_redo->Delta();
 
   // Write the ns_oid into the PR
-  const auto ns_offset = pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID];
+  const auto ns_offset = pg_class_all_cols_prm_[postgres::PgClass::RELNAMESPACE_COL_OID];
   auto *const ns_ptr = insert_pr->AccessForceNotNull(ns_offset);
   *(reinterpret_cast<namespace_oid_t *>(ns_ptr)) = ns_oid;
 
   // Write the table_oid into the PR
-  const auto table_oid_offset = pg_class_all_cols_prm_[postgres::RELOID_COL_OID];
+  const auto table_oid_offset = pg_class_all_cols_prm_[postgres::PgClass::RELOID_COL_OID];
   auto *const table_oid_ptr = insert_pr->AccessForceNotNull(table_oid_offset);
   *(reinterpret_cast<table_oid_t *>(table_oid_ptr)) = table_oid;
 
   auto next_col_oid = col_oid_t(static_cast<uint32_t>(schema.GetColumns().size() + 1));
 
   // Write the next_col_oid into the PR
-  const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
+  const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::PgClass::REL_NEXTCOLOID_COL_OID];
   auto *const next_col_oid_ptr = insert_pr->AccessForceNotNull(next_col_oid_offset);
   *(reinterpret_cast<col_oid_t *>(next_col_oid_ptr)) = next_col_oid;
 
   // Write the schema_ptr as nullptr into the PR (need to update once we've recreated the columns)
-  const auto schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
+  const auto schema_ptr_offset = pg_class_all_cols_prm_[postgres::PgClass::REL_SCHEMA_COL_OID];
   auto *const schema_ptr_ptr = insert_pr->AccessForceNotNull(schema_ptr_offset);
   *(reinterpret_cast<Schema **>(schema_ptr_ptr)) = nullptr;
 
   // Set table_ptr to NULL because it gets set by execution layer after instantiation
-  const auto table_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
+  const auto table_ptr_offset = pg_class_all_cols_prm_[postgres::PgClass::REL_PTR_COL_OID];
   insert_pr->SetNull(table_ptr_offset);
 
   // Write the kind into the PR
-  const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
+  const auto kind_offset = pg_class_all_cols_prm_[postgres::PgClass::RELKIND_COL_OID];
   auto *const kind_ptr = insert_pr->AccessForceNotNull(kind_offset);
-  *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::REGULAR_TABLE);
+  *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::PgClass::ClassKind::REGULAR_TABLE);
 
   // Create the necessary varlen for storage operations
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Write the name into the PR
-  const auto name_offset = pg_class_all_cols_prm_[postgres::RELNAME_COL_OID];
+  const auto name_offset = pg_class_all_cols_prm_[postgres::PgClass::RELNAME_COL_OID];
   auto *const name_ptr = insert_pr->AccessForceNotNull(name_offset);
   *(reinterpret_cast<storage::VarlenEntry *>(name_ptr)) = name_varlen;
 
@@ -596,7 +598,7 @@ bool PgCoreImpl::CreateTableEntry(const common::ManagedPointer<transaction::Tran
   auto *new_schema = new Schema(cols);
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_pri_);
+  auto *const update_redo = txn->StageWrite(db_oid_, postgres::PgClass::CLASS_TABLE_OID, set_class_schema_pri_);
   auto *const update_pr = update_redo->Delta();
 
   update_redo->SetTupleSlot(tuple_slot);
@@ -636,7 +638,7 @@ bool PgCoreImpl::DeleteTable(const common::ManagedPointer<transaction::Transacti
   NOISEPAGE_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
-  txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
+  txn->StageDelete(db_oid_, postgres::PgClass::CLASS_TABLE_OID, index_results[0]);
   result = classes_->Delete(txn, index_results[0]);
   if (!result) {
     // write-write conflict. Someone beat us to this operation.
@@ -648,19 +650,19 @@ bool PgCoreImpl::DeleteTable(const common::ManagedPointer<transaction::Transacti
 
   // Get the attributes we need for indexes
   const table_oid_t table_oid = *(reinterpret_cast<const table_oid_t *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELOID_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::RELOID_COL_OID])));
   NOISEPAGE_ASSERT(table == table_oid,
                    "table oid from pg_classes did not match what was found by the index scan from the argument.");
   const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::RELNAMESPACE_COL_OID])));
   const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAME_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::RELNAME_COL_OID])));
 
   // Get the attributes we need for delete
   auto *const schema_ptr = *(reinterpret_cast<const Schema *const *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::REL_SCHEMA_COL_OID])));
   auto *const table_ptr = *(reinterpret_cast<storage::SqlTable *const *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::REL_PTR_COL_OID])));
 
   const auto oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto name_index_init = classes_name_index_->GetProjectedRowInitializer();
@@ -703,42 +705,42 @@ bool PgCoreImpl::CreateIndexEntry(const common::ManagedPointer<transaction::Tran
                                   const namespace_oid_t ns_oid, const table_oid_t table_oid,
                                   const index_oid_t index_oid, const std::string &name, const IndexSchema &schema) {
   // First, insert into pg_class
-  auto *const class_insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
+  auto *const class_insert_redo = txn->StageWrite(db_oid_, postgres::PgClass::CLASS_TABLE_OID, pg_class_all_cols_pri_);
   auto *const class_insert_pr = class_insert_redo->Delta();
 
   // Write the index_oid into the PR
-  auto index_oid_offset = pg_class_all_cols_prm_[postgres::RELOID_COL_OID];
+  auto index_oid_offset = pg_class_all_cols_prm_[postgres::PgClass::RELOID_COL_OID];
   auto *index_oid_ptr = class_insert_pr->AccessForceNotNull(index_oid_offset);
   *(reinterpret_cast<index_oid_t *>(index_oid_ptr)) = index_oid;
 
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Write the name into the PR
-  const auto name_offset = pg_class_all_cols_prm_[postgres::RELNAME_COL_OID];
+  const auto name_offset = pg_class_all_cols_prm_[postgres::PgClass::RELNAME_COL_OID];
   auto *const name_ptr = class_insert_pr->AccessForceNotNull(name_offset);
   *(reinterpret_cast<storage::VarlenEntry *>(name_ptr)) = name_varlen;
 
   // Write the ns_oid into the PR
-  const auto ns_offset = pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID];
+  const auto ns_offset = pg_class_all_cols_prm_[postgres::PgClass::RELNAMESPACE_COL_OID];
   auto *const ns_ptr = class_insert_pr->AccessForceNotNull(ns_offset);
   *(reinterpret_cast<namespace_oid_t *>(ns_ptr)) = ns_oid;
 
   // Write the kind into the PR
-  const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
+  const auto kind_offset = pg_class_all_cols_prm_[postgres::PgClass::RELKIND_COL_OID];
   auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
-  *(reinterpret_cast<postgres::ClassKind *>(kind_ptr)) = postgres::ClassKind::INDEX;
+  *(reinterpret_cast<postgres::PgClass::ClassKind *>(kind_ptr)) = postgres::PgClass::ClassKind::INDEX;
 
   // Write the index_schema_ptr into the PR
-  const auto index_schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
+  const auto index_schema_ptr_offset = pg_class_all_cols_prm_[postgres::PgClass::REL_SCHEMA_COL_OID];
   auto *const index_schema_ptr_ptr = class_insert_pr->AccessForceNotNull(index_schema_ptr_offset);
   *(reinterpret_cast<IndexSchema **>(index_schema_ptr_ptr)) = nullptr;
 
   // Set next_col_oid to NULL because indexes don't need col_oid
-  const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
+  const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::PgClass::REL_NEXTCOLOID_COL_OID];
   class_insert_pr->SetNull(next_col_oid_offset);
 
   // Set index_ptr to NULL because it gets set by execution layer after instantiation
-  const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
+  const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::PgClass::REL_PTR_COL_OID];
   class_insert_pr->SetNull(index_ptr_offset);
 
   // Insert into pg_class table
@@ -862,7 +864,7 @@ bool PgCoreImpl::CreateIndexEntry(const common::ManagedPointer<transaction::Tran
       new IndexSchema(cols, schema.Type(), schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_pri_);
+  auto *const update_redo = txn->StageWrite(db_oid_, postgres::PgClass::CLASS_TABLE_OID, set_class_schema_pri_);
   auto *const update_pr = update_redo->Delta();
 
   update_redo->SetTupleSlot(class_tuple_slot);
@@ -904,7 +906,7 @@ bool PgCoreImpl::DeleteIndex(const common::ManagedPointer<transaction::Transacti
   NOISEPAGE_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
-  txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
+  txn->StageDelete(db_oid_, postgres::PgClass::CLASS_TABLE_OID, index_results[0]);
   result = classes_->Delete(txn, index_results[0]);
   if (!result) {
     // write-write conflict. Someone beat us to this operation.
@@ -914,16 +916,16 @@ bool PgCoreImpl::DeleteIndex(const common::ManagedPointer<transaction::Transacti
 
   // Get the attributes we need for pg_class indexes
   table_oid_t table_oid = *(reinterpret_cast<const table_oid_t *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELOID_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::RELOID_COL_OID])));
   const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::RELNAMESPACE_COL_OID])));
   const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAME_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::RELNAME_COL_OID])));
 
   auto *const schema_ptr = *(reinterpret_cast<const IndexSchema *const *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::REL_SCHEMA_COL_OID])));
   auto *const index_ptr = *(reinterpret_cast<storage::index::Index *const *const>(
-      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID])));
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::PgClass::REL_PTR_COL_OID])));
 
   const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
@@ -1079,14 +1081,14 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
     bool result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, class_select_pr);
     NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
-    auto *index = *(reinterpret_cast<storage::index::Index *const *const>(
-        class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_PTR_COL_OID])));
+    auto *index = *(reinterpret_cast<storage::index::Index *const *const>(class_select_pr->AccessForceNotNull(
+        get_class_object_and_schema_prm_[catalog::postgres::PgClass::REL_PTR_COL_OID])));
     NOISEPAGE_ASSERT(
         index != nullptr,
         "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
         "SetIndexPointer?");
-    auto *schema = *(reinterpret_cast<catalog::IndexSchema *const *const>(
-        class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_SCHEMA_COL_OID])));
+    auto *schema = *(reinterpret_cast<catalog::IndexSchema *const *const>(class_select_pr->AccessForceNotNull(
+        get_class_object_and_schema_prm_[catalog::postgres::PgClass::REL_SCHEMA_COL_OID])));
     NOISEPAGE_ASSERT(schema != nullptr,
                      "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
 
@@ -1132,7 +1134,7 @@ std::vector<index_oid_t> PgCoreImpl::GetIndexOids(const common::ManagedPointer<t
   return index_oids;
 }
 
-std::vector<std::pair<uint32_t, postgres::ClassKind>> PgCoreImpl::GetNamespaceClassOids(
+std::vector<std::pair<uint32_t, postgres::PgClass::ClassKind>> PgCoreImpl::GetNamespaceClassOids(
     const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid) {
   std::vector<storage::TupleSlot> index_scan_results;
 
@@ -1152,14 +1154,15 @@ std::vector<std::pair<uint32_t, postgres::ClassKind>> PgCoreImpl::GetNamespaceCl
   }
 
   auto *select_pr = get_class_oid_kind_pri_.InitializeRow(buffer);
-  std::vector<std::pair<uint32_t, postgres::ClassKind>> ns_objects;
+  std::vector<std::pair<uint32_t, postgres::PgClass::ClassKind>> ns_objects;
   ns_objects.reserve(index_scan_results.size());
   for (const auto scan_result : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, scan_result, select_pr);
     NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     // oid_t is guaranteed to be larger in size than ClassKind, so we know the column offsets without the PR map
-    ns_objects.emplace_back(*(reinterpret_cast<const uint32_t *const>(select_pr->AccessWithNullCheck(0))),
-                            *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1))));
+    ns_objects.emplace_back(
+        *(reinterpret_cast<const uint32_t *const>(select_pr->AccessWithNullCheck(0))),
+        *(reinterpret_cast<const postgres::PgClass::ClassKind *const>(select_pr->AccessForceNotNull(1))));
   }
 
   // Finish
@@ -1167,7 +1170,7 @@ std::vector<std::pair<uint32_t, postgres::ClassKind>> PgCoreImpl::GetNamespaceCl
   return ns_objects;
 }
 
-std::pair<void *, postgres::ClassKind> PgCoreImpl::GetClassPtrKind(
+std::pair<void *, postgres::PgClass::ClassKind> PgCoreImpl::GetClassPtrKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
   std::vector<storage::TupleSlot> index_results;
 
@@ -1193,7 +1196,7 @@ std::pair<void *, postgres::ClassKind> PgCoreImpl::GetClassPtrKind(
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *const ptr_ptr = (reinterpret_cast<void *const *const>(select_pr->AccessWithNullCheck(0)));
-  auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
+  auto kind = *(reinterpret_cast<const postgres::PgClass::ClassKind *const>(select_pr->AccessForceNotNull(1)));
 
   void *ptr;
   if (ptr_ptr == nullptr) {
@@ -1206,7 +1209,7 @@ std::pair<void *, postgres::ClassKind> PgCoreImpl::GetClassPtrKind(
   return {ptr, kind};
 }
 
-std::pair<void *, postgres::ClassKind> PgCoreImpl::GetClassSchemaPtrKind(
+std::pair<void *, postgres::PgClass::ClassKind> PgCoreImpl::GetClassSchemaPtrKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
   std::vector<storage::TupleSlot> index_results;
 
@@ -1232,7 +1235,7 @@ std::pair<void *, postgres::ClassKind> PgCoreImpl::GetClassSchemaPtrKind(
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *const ptr = *(reinterpret_cast<void *const *const>(select_pr->AccessForceNotNull(0)));
-  auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
+  auto kind = *(reinterpret_cast<const postgres::PgClass::ClassKind *const>(select_pr->AccessForceNotNull(1)));
 
   NOISEPAGE_ASSERT(ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
 
@@ -1240,7 +1243,7 @@ std::pair<void *, postgres::ClassKind> PgCoreImpl::GetClassSchemaPtrKind(
   return {ptr, kind};
 }
 
-std::pair<uint32_t, postgres::ClassKind> PgCoreImpl::GetClassOidKind(
+std::pair<uint32_t, postgres::PgClass::ClassKind> PgCoreImpl::GetClassOidKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid,
     const std::string &name) {
   const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
@@ -1265,7 +1268,7 @@ std::pair<uint32_t, postgres::ClassKind> PgCoreImpl::GetClassOidKind(
   if (index_results.empty()) {
     delete[] buffer;
     // If the OID is invalid, we don't care the class kind and return a random one.
-    return std::make_pair(catalog::NULL_OID, postgres::ClassKind::REGULAR_TABLE);
+    return std::make_pair(catalog::NULL_OID, postgres::PgClass::ClassKind::REGULAR_TABLE);
   }
   NOISEPAGE_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
 
@@ -1278,7 +1281,7 @@ std::pair<uint32_t, postgres::ClassKind> PgCoreImpl::GetClassOidKind(
   // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
   // sizes
   const auto oid = *(reinterpret_cast<const uint32_t *const>(pr->AccessForceNotNull(0)));
-  const auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(pr->AccessForceNotNull(1)));
+  const auto kind = *(reinterpret_cast<const postgres::PgClass::ClassKind *const>(pr->AccessForceNotNull(1)));
 
   // Finish
   delete[] buffer;

@@ -248,13 +248,13 @@ class DatabaseCatalog {
                        namespace_oid_t ns_oid);
 
   /**
-   * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
-   * as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
+   * A list of all oids and their postgres::PgClass::ClassKind from pg_class on the given namespace. This is currently
+   * designed as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
    * @param txn for the operation
    * @param ns being queried
    * @return vector of OIDs for all of the objects on this namespace
    */
-  std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceClassOids(
+  std::vector<std::pair<uint32_t, postgres::PgClass::ClassKind>> GetNamespaceClassOids(
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
 
   /** @see PgAttributeImpl::CreateColumn */
@@ -359,8 +359,8 @@ class DatabaseCatalog {
                   postgres::PgType::Type type_category);
 
   /** @see PgCoreImpl::GetClassOidKind */
-  std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                           namespace_oid_t ns_oid, const std::string &name);
+  std::pair<uint32_t, postgres::PgClass::ClassKind> GetClassOidKind(
+      common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid, const std::string &name);
 
   /**
    * Sets a table's schema in pg_class

@@ -131,7 +131,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
 table_oid_t DatabaseCatalog::GetTableOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const namespace_oid_t ns, const std::string &name) {
   const auto oid_pair = pg_core_.GetClassOidKind(txn, ns, name);
-  if (oid_pair.first == catalog::NULL_OID || oid_pair.second != postgres::ClassKind::REGULAR_TABLE) {
+  if (oid_pair.first == catalog::NULL_OID || oid_pair.second != postgres::PgClass::ClassKind::REGULAR_TABLE) {
     // User called GetTableOid on an object that doesn't have type REGULAR_TABLE
     return INVALID_TABLE_OID;
   }
@@ -169,7 +169,7 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
     deferred_action_manager->RegisterDeferredAction(
         [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; }); });
   });
-  return SetClassPointer(txn, table, table_ptr, postgres::REL_PTR_COL_OID);
+  return SetClassPointer(txn, table, table_ptr, postgres::PgClass::REL_PTR_COL_OID);
 }
 
 /**
@@ -180,7 +180,7 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
 common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
     const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table) {
   const auto ptr_pair = pg_core_.GetClassPtrKind(txn, table.UnderlyingValue());
-  if (ptr_pair.second != postgres::ClassKind::REGULAR_TABLE) {
+  if (ptr_pair.second != postgres::PgClass::ClassKind::REGULAR_TABLE) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::SqlTable>(nullptr);
   }
@@ -207,7 +207,8 @@ const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transactio
                                          const table_oid_t table) {
   const auto ptr_pair = pg_core_.GetClassSchemaPtrKind(txn, table.UnderlyingValue());
   NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
-  NOISEPAGE_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
+  NOISEPAGE_ASSERT(ptr_pair.second == postgres::PgClass::ClassKind::REGULAR_TABLE,
+                   "Requested a table schema for a non-table");
   return *reinterpret_cast<Schema *>(ptr_pair.first);
 }
 
@@ -239,12 +240,12 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
 bool DatabaseCatalog::SetTableSchemaPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                             const table_oid_t oid, const Schema *const schema) {
-  return SetClassPointer(txn, oid, schema, postgres::REL_SCHEMA_COL_OID);
+  return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
 }
 
 bool DatabaseCatalog::SetIndexSchemaPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                             const index_oid_t oid, const IndexSchema *const schema) {
-  return SetClassPointer(txn, oid, schema, postgres::REL_SCHEMA_COL_OID);
+  return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
 }
 
 template <typename ClassOid, typename Ptr>
@@ -271,13 +272,13 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
         }
         deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
       });
-  return SetClassPointer(txn, index, index_ptr, postgres::REL_PTR_COL_OID);
+  return SetClassPointer(txn, index, index_ptr, postgres::PgClass::REL_PTR_COL_OID);
 }
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
   const auto ptr_pair = pg_core_.GetClassPtrKind(txn, index.UnderlyingValue());
-  if (ptr_pair.second != postgres::ClassKind::INDEX) {
+  if (ptr_pair.second != postgres::PgClass::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
   }
@@ -287,7 +288,7 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
 index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          namespace_oid_t ns, const std::string &name) {
   const auto oid_pair = pg_core_.GetClassOidKind(txn, ns, name);
-  if (oid_pair.first == NULL_OID || oid_pair.second != postgres::ClassKind::INDEX) {
+  if (oid_pair.first == NULL_OID || oid_pair.second != postgres::PgClass::ClassKind::INDEX) {
     // User called GetIndexOid on an object that doesn't have type INDEX
     return INVALID_INDEX_OID;
   }
@@ -298,7 +299,7 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<
                                                    index_oid_t index) {
   auto ptr_pair = pg_core_.GetClassSchemaPtrKind(txn, index.UnderlyingValue());
   NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
-  NOISEPAGE_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
+  NOISEPAGE_ASSERT(ptr_pair.second == postgres::PgClass::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 
@@ -379,7 +380,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
 }
 
-std::vector<std::pair<uint32_t, postgres::ClassKind>> DatabaseCatalog::GetNamespaceClassOids(
+std::vector<std::pair<uint32_t, postgres::PgClass::ClassKind>> DatabaseCatalog::GetNamespaceClassOids(
     const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid) {
   return pg_core_.GetNamespaceClassOids(txn, ns_oid);
 }

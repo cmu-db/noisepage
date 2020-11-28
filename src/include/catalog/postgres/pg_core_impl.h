@@ -103,13 +103,13 @@ class PgCoreImpl {
                        common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t ns_oid);
   namespace_oid_t GetNamespaceOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
   /**
-   * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
-   * as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
+   * A list of all oids and their PgClass::ClassKind from pg_class on the given namespace. This is currently
+   * designed as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
    * @param txn for the operation
    * @param ns being queried
    * @return vector of OIDs for all of the objects on this namespace
    */
-  std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceClassOids(
+  std::vector<std::pair<uint32_t, PgClass::ClassKind>> GetNamespaceClassOids(
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
 
   /**
@@ -194,8 +194,8 @@ class PgCoreImpl {
    * oid
    */
 
-  std::pair<void *, postgres::ClassKind> GetClassPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                         uint32_t oid);
+  std::pair<void *, PgClass::ClassKind> GetClassPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                        uint32_t oid);
   /**
    * Helper function to query a schema pointer form pg_class
    * @param txn transaction to query
@@ -204,7 +204,7 @@ class PgCoreImpl {
    * given oid
    */
 
-  std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(
+  std::pair<void *, PgClass::ClassKind> GetClassSchemaPtrKind(
       common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
 
   /**
@@ -215,8 +215,8 @@ class PgCoreImpl {
    * @param name name of the table, index, view, etc.
    * @return a pair of oid and ClassKind
    */
-  std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                           namespace_oid_t ns_oid, const std::string &name);
+  std::pair<uint32_t, PgClass::ClassKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                          namespace_oid_t ns_oid, const std::string &name);
 
   /**
    * Add a new column entry in pg_attribute.
