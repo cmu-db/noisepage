@@ -723,9 +723,8 @@ class DBMain {
     }
 
     /**
-     *
      * @param value with ModelServer enable
-     * @return  self reference for chaining
+     * @return self reference for chaining
      */
     Builder &SetWithModelServer(const bool value) {
       model_server_enable_ = value;
@@ -734,7 +733,7 @@ class DBMain {
 
     /**
      * @param value model_server_path
-     * @return  self reference for chaining
+     * @return self reference for chaining
      */
     Builder &SetModelServerPath(const std::string &value) {
       model_server_path_ = value;
@@ -816,6 +815,7 @@ class DBMain {
         wal_persist_threshold_ =
             static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_persist_threshold));
       }
+
       use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
       use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
 
@@ -843,6 +843,7 @@ class DBMain {
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
+
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
       model_server_enable_ = settings_manager->GetBool(settings::Param::model_server_enable);
       model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);

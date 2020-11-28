@@ -1,4 +1,3 @@
-#include "self_driving/model_server/model_server_manager.h"
 
 #include <sys/wait.h>
 
@@ -9,6 +8,8 @@
 #include "loggers/model_server_logger.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
+#include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/modeling/operating_unit.h"
 
 namespace noisepage::modelserver {
 

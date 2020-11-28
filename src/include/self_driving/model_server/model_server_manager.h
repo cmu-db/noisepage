@@ -6,10 +6,15 @@
 #include <utility>
 #include <vector>
 
-#include "loggers/model_server_logger.h"
-#include "messenger/messenger.h"
-#include "messenger/messenger_defs.h"
-#include "self_driving/modeling/operating_unit.h"
+#include "common/managed_pointer.h"
+
+namespace noisepage::self_driving {
+class ExecutionOperatingUnitType;
+}  // namespace noisepage::self_driving
+
+namespace noisepage::messenger {
+class Messenger;
+}  // namespace noisepage::messenger
 
 namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
