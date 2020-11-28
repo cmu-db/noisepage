@@ -23,27 +23,27 @@ void PgTypeImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContex
                            common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
-  retval = dbc->CreateTableEntry(txn, PgType::TYPE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
+  retval = dbc->CreateTableEntry(txn, PgType::TYPE_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
                                  Builder::GetTypeTableSchema());
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetTablePointer(txn, PgType::TYPE_TABLE_OID, types_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval =
-      dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID, PgType::TYPE_OID_INDEX_OID,
-                            "pg_type_oid_index", Builder::GetTypeOidIndexSchema(db_oid_));
+      dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
+                            PgType::TYPE_OID_INDEX_OID, "pg_type_oid_index", Builder::GetTypeOidIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetIndexPointer(txn, PgType::TYPE_OID_INDEX_OID, types_oid_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval =
-      dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID, PgType::TYPE_NAME_INDEX_OID,
-                            "pg_type_name_index", Builder::GetTypeNameIndexSchema(db_oid_));
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
+                                 PgType::TYPE_NAME_INDEX_OID, "pg_type_name_index",
+                                 Builder::GetTypeNameIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetIndexPointer(txn, PgType::TYPE_NAME_INDEX_OID, types_name_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
                                  PgType::TYPE_NAMESPACE_INDEX_OID, "pg_type_namespace_index",
                                  Builder::GetTypeNamespaceIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
@@ -131,9 +131,9 @@ void PgTypeImpl::InsertType(const common::ManagedPointer<transaction::Transactio
 
 void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> dbc,
                                 const common::ManagedPointer<transaction::TransactionContext> txn) {
-#define INSERT_BASE_TYPE(type_id, type_name, type_size)                                                               \
-  InsertType(txn, dbc->GetTypeOidForType((type_id)), (type_name), NAMESPACE_CATALOG_NAMESPACE_OID, (type_size), true, \
-             PgType::Type::BASE)
+#define INSERT_BASE_TYPE(type_id, type_name, type_size)                                                         \
+  InsertType(txn, dbc->GetTypeOidForType((type_id)), (type_name), PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, \
+             (type_size), true, PgType::Type::BASE)
 
   INSERT_BASE_TYPE(type::TypeId::INVALID, "invalid", 1);
   INSERT_BASE_TYPE(type::TypeId::BOOLEAN, "boolean", sizeof(bool));
@@ -147,14 +147,14 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
 
 #undef INSERT_BASE_TYPE
 
-  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARCHAR), "varchar", NAMESPACE_CATALOG_NAMESPACE_OID, -1, false,
-             PgType::Type::BASE);
+  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARCHAR), "varchar",
+             PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);
 
-  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARBINARY), "varbinary", NAMESPACE_CATALOG_NAMESPACE_OID, -1,
-             false, PgType::Type::BASE);
+  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARBINARY), "varbinary",
+             PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);
 
   InsertType(txn, dbc->GetTypeOidForType(type::TypeId::HACK_PG_TYPE_VAR_ARRAY), "var_array",
-             NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::COMPOSITE);
+             PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::COMPOSITE);
 }
 
 }  // namespace noisepage::catalog::postgres

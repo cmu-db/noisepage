@@ -239,7 +239,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       break;
     }
 
-    case (catalog::postgres::NAMESPACE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(db_catalog_ptr->pg_core_.namespaces_oid_index_,
                                  db_catalog_ptr->pg_core_.namespaces_oid_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->pg_core_.namespaces_name_index_,
@@ -279,7 +279,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       break;
     }
 
-    case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgIndex::INDEX_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(db_catalog_ptr->pg_core_.indexes_oid_index_,
                                  db_catalog_ptr->pg_core_.indexes_oid_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->pg_core_.indexes_table_index_,
@@ -412,7 +412,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       return 0;  // Case 2, no additional records processed
     }
 
-    case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgIndex::INDEX_TABLE_OID.UnderlyingValue()): {
       NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
                        "Special case pg_index record must be a delete");
       // A delete into pg_index means we are dropping an index. In this case, we dont process the record because the
@@ -659,9 +659,10 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
             // NOLINTNEXTLINE
             col_oids.clear();
-            col_oids = {catalog::postgres::INDISUNIQUE_COL_OID, catalog::postgres::INDISPRIMARY_COL_OID,
-                        catalog::postgres::INDISEXCLUSION_COL_OID, catalog::postgres::INDIMMEDIATE_COL_OID,
-                        catalog::postgres::IND_TYPE_COL_OID};
+            col_oids = {catalog::postgres::PgIndex::INDISUNIQUE_COL_OID,
+                        catalog::postgres::PgIndex::INDISPRIMARY_COL_OID,
+                        catalog::postgres::PgIndex::INDISEXCLUSION_COL_OID,
+                        catalog::postgres::PgIndex::INDIMMEDIATE_COL_OID, catalog::postgres::PgIndex::IND_TYPE_COL_OID};
             auto pg_index_pr_init = db_catalog->pg_core_.indexes_->InitializerForProjectedRow(col_oids);
             auto pg_index_pr_map = db_catalog->pg_core_.indexes_->ProjectionMapForOids(col_oids);
             delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
@@ -671,15 +672,15 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
                 db_catalog->pg_core_.indexes_->Select(common::ManagedPointer(txn), tuple_slot_result[0], pr);
             NOISEPAGE_ASSERT(result, "Select into pg_index should succeed during recovery");
             bool is_unique = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISUNIQUE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISUNIQUE_COL_OID])));
             bool is_primary = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISPRIMARY_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISPRIMARY_COL_OID])));
             bool is_exclusion = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISEXCLUSION_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISEXCLUSION_COL_OID])));
             bool is_immediate = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDIMMEDIATE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDIMMEDIATE_COL_OID])));
             storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::IND_TYPE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::IND_TYPE_COL_OID])));
 
             // Step 4: Create and set IndexSchema in catalog
             auto *index_schema =
@@ -843,7 +844,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->pg_core_.classes_);
       break;
     }
-    case (catalog::postgres::NAMESPACE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID.UnderlyingValue()): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->pg_core_.namespaces_);
       break;
     }
@@ -855,7 +856,7 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->pg_constraint_.constraints_);
       break;
     }
-    case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgIndex::INDEX_TABLE_OID.UnderlyingValue()): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->pg_core_.indexes_);
       break;
     }
@@ -897,11 +898,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
   NOISEPAGE_ASSERT((oid.UnderlyingValue()) < catalog::START_OID, "Oid must be a valid catalog oid");
 
   switch (oid.UnderlyingValue()) {
-    case (catalog::postgres::NAMESPACE_OID_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgNamespace::NAMESPACE_OID_INDEX_OID.UnderlyingValue()): {
       return db_catalog->pg_core_.namespaces_oid_index_;
     }
 
-    case (catalog::postgres::NAMESPACE_NAME_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgNamespace::NAMESPACE_NAME_INDEX_OID.UnderlyingValue()): {
       return db_catalog->pg_core_.namespaces_name_index_;
     }
 
@@ -917,11 +918,11 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->pg_core_.classes_namespace_index_;
     }
 
-    case (catalog::postgres::INDEX_OID_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgIndex::INDEX_OID_INDEX_OID.UnderlyingValue()): {
       return db_catalog->pg_core_.indexes_oid_index_;
     }
 
-    case (catalog::postgres::INDEX_TABLE_INDEX_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgIndex::INDEX_TABLE_INDEX_OID.UnderlyingValue()): {
       return db_catalog->pg_core_.indexes_table_index_;
     }
 

@@ -394,8 +394,9 @@ class EXPORT CatalogAccessor {
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
-        search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
-        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID),
+        search_path_({postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
+                      postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID}),
+        default_namespace_(postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID),
         cache_(cache) {}
 
  private:

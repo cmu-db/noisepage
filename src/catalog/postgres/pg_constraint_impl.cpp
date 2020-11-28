@@ -18,48 +18,48 @@ void PgConstraintImpl::Bootstrap(common::ManagedPointer<transaction::Transaction
                                  common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
-  retval = dbc->CreateTableEntry(txn, PgConstraint::CONSTRAINT_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID,
+  retval = dbc->CreateTableEntry(txn, PgConstraint::CONSTRAINT_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
                                  "pg_constraint", Builder::GetConstraintTableSchema());
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetTablePointer(txn, PgConstraint::CONSTRAINT_TABLE_OID, constraints_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
                                  PgConstraint::CONSTRAINT_OID_INDEX_OID, "pg_constraint_oid_index",
                                  Builder::GetConstraintOidIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetIndexPointer(txn, PgConstraint::CONSTRAINT_OID_INDEX_OID, constraints_oid_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
                                  PgConstraint::CONSTRAINT_NAME_INDEX_OID, "pg_constraint_name_index",
                                  Builder::GetConstraintNameIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetIndexPointer(txn, PgConstraint::CONSTRAINT_NAME_INDEX_OID, constraints_name_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
                                  PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID, "pg_constraint_namespace_index",
                                  Builder::GetConstraintNamespaceIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetIndexPointer(txn, PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID, constraints_namespace_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
                                  PgConstraint::CONSTRAINT_TABLE_INDEX_OID, "pg_constraint_table_index",
                                  Builder::GetConstraintTableIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetIndexPointer(txn, PgConstraint::CONSTRAINT_TABLE_INDEX_OID, constraints_table_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
                                  PgConstraint::CONSTRAINT_INDEX_INDEX_OID, "pg_constraint_index_index",
                                  Builder::GetConstraintIndexIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = dbc->SetIndexPointer(txn, PgConstraint::CONSTRAINT_INDEX_INDEX_OID, constraints_index_index_);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = dbc->CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
+  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgConstraint::CONSTRAINT_TABLE_OID,
                                  PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID, "pg_constraint_foreigntable_index",
                                  Builder::GetConstraintForeignTableIndexSchema(db_oid_));
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");

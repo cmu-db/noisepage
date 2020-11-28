@@ -83,9 +83,9 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 
   // Indexes on pg_namespace
   dbc->pg_core_.namespaces_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetNamespaceOidIndexSchema(oid), NAMESPACE_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetNamespaceOidIndexSchema(oid), PgNamespace::NAMESPACE_OID_INDEX_OID);
   dbc->pg_core_.namespaces_name_index_ =
-      Builder::BuildUniqueIndex(Builder::GetNamespaceNameIndexSchema(oid), NAMESPACE_NAME_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetNamespaceNameIndexSchema(oid), PgNamespace::NAMESPACE_NAME_INDEX_OID);
 
   // Indexes on pg_class
   dbc->pg_core_.classes_oid_index_ =
@@ -97,9 +97,9 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 
   // Indexes on pg_index
   dbc->pg_core_.indexes_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(oid), INDEX_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(oid), PgIndex::INDEX_OID_INDEX_OID);
   dbc->pg_core_.indexes_table_index_ =
-      Builder::BuildLookupIndex(Builder::GetIndexTableIndexSchema(oid), INDEX_TABLE_INDEX_OID);
+      Builder::BuildLookupIndex(Builder::GetIndexTableIndexSchema(oid), PgIndex::INDEX_TABLE_INDEX_OID);
 
   // Indexes on pg_attribute
   dbc->pg_core_.columns_oid_index_ =
@@ -263,43 +263,43 @@ Schema Builder::GetIndexTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("indoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(INDOID_COL_OID);
+  columns.back().SetOid(PgIndex::INDOID_COL_OID);
 
   columns.emplace_back("indrelid", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(INDRELID_COL_OID);
+  columns.back().SetOid(PgIndex::INDRELID_COL_OID);
 
   columns.emplace_back("indisunique", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDISUNIQUE_COL_OID);
+  columns.back().SetOid(PgIndex::INDISUNIQUE_COL_OID);
 
   columns.emplace_back("indisprimary", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDISPRIMARY_COL_OID);
+  columns.back().SetOid(PgIndex::INDISPRIMARY_COL_OID);
 
   columns.emplace_back("indisexclusion", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDISEXCLUSION_COL_OID);
+  columns.back().SetOid(PgIndex::INDISEXCLUSION_COL_OID);
 
   columns.emplace_back("indimmediate", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDIMMEDIATE_COL_OID);
+  columns.back().SetOid(PgIndex::INDIMMEDIATE_COL_OID);
 
   columns.emplace_back("indisvalid", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDISVALID_COL_OID);
+  columns.back().SetOid(PgIndex::INDISVALID_COL_OID);
 
   columns.emplace_back("indisready", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDISREADY_COL_OID);
+  columns.back().SetOid(PgIndex::INDISREADY_COL_OID);
 
   columns.emplace_back("indislive", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(INDISLIVE_COL_OID);
+  columns.back().SetOid(PgIndex::INDISLIVE_COL_OID);
 
   columns.emplace_back("implementation", type::TypeId::TINYINT, false,
                        parser::ConstantValueExpression(type::TypeId::TINYINT));
-  columns.back().SetOid(IND_TYPE_COL_OID);
+  columns.back().SetOid(PgIndex::IND_TYPE_COL_OID);
 
   return Schema(columns);
 }
@@ -308,11 +308,11 @@ Schema Builder::GetNamespaceTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("nspoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(NSPOID_COL_OID);
+  columns.back().SetOid(PgNamespace::NSPOID_COL_OID);
 
   columns.emplace_back("nspname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(NSPNAME_COL_OID);
+  columns.back().SetOid(PgNamespace::NSPNAME_COL_OID);
 
   return Schema(columns);
 }
@@ -380,8 +380,9 @@ Schema Builder::GetLanguageTableSchema() {
 IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("nspoid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, NAMESPACE_TABLE_OID, NSPOID_COL_OID));
+  columns.emplace_back(
+      "nspoid", type::TypeId::INTEGER, false,
+      parser::ColumnValueExpression(db, PgNamespace::NAMESPACE_TABLE_OID, PgNamespace::NSPOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -393,8 +394,9 @@ IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("nspname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, NAMESPACE_TABLE_OID, NSPNAME_COL_OID));
+  columns.emplace_back(
+      "nspname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+      parser::ColumnValueExpression(db, PgNamespace::NAMESPACE_TABLE_OID, PgNamespace::NSPNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
@@ -450,7 +452,7 @@ IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("indoid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDOID_COL_OID));
+                       parser::ColumnValueExpression(db, PgIndex::INDEX_TABLE_OID, PgIndex::INDOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -463,7 +465,7 @@ IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("indrelid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, INDEX_TABLE_OID, INDRELID_COL_OID));
+                       parser::ColumnValueExpression(db, PgIndex::INDEX_TABLE_OID, PgIndex::INDRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique

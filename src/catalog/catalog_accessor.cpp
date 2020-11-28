@@ -30,13 +30,13 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
 
   // Check if 'pg_catalog is explicitly set'
   for (auto &ns : search_path_)
-    if (ns == postgres::NAMESPACE_CATALOG_NAMESPACE_OID) return;
+    if (ns == postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID) return;
 
-  search_path_.emplace(search_path_.begin(), postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
+  search_path_.emplace(search_path_.begin(), postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID);
 }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) const {
-  if (name.empty()) return catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  if (name.empty()) return catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID;
   NormalizeObjectName(&name);
   return dbc_->GetNamespaceOid(txn_, name);
 }
