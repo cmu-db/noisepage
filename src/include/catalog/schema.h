@@ -26,7 +26,7 @@ namespace noisepage::catalog {
 
 namespace postgres {
 class Builder;
-class PgAttributeImpl;
+class PgCoreImpl;
 }  // namespace postgres
 
 /**
@@ -220,7 +220,7 @@ class Schema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
-    friend class postgres::PgAttributeImpl;
+    friend class postgres::PgCoreImpl;
 
     friend class tpcc::Schemas;
     friend class noisepage::StorageTestUtil;

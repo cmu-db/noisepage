@@ -34,7 +34,7 @@ class DatabaseCatalog;
 
 namespace postgres {
 class Builder;
-class PgAttributeImpl;
+class PgCoreImpl;
 }  // namespace postgres
 
 /**
@@ -226,7 +226,7 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
-    friend class postgres::PgAttributeImpl;
+    friend class postgres::PgCoreImpl;
     friend class tpcc::Schemas;
     friend class noisepage::StorageTestUtil;
   };
@@ -421,6 +421,7 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
+  friend class postgres::PgCoreImpl;
   friend class noisepage::TpccPlanTest;
 };
 

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/postgres/pg_attribute_impl.h"
+#include "catalog/postgres/pg_core_impl.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint_impl.h"
 #include "catalog/postgres/pg_language_impl.h"
@@ -337,7 +337,7 @@ class DatabaseCatalog {
  private:
   // DatabaseCatalog methods generally handle coarse-grained locking. The various PgXXXImpl classes need to invoke
   // private DatabaseCatalog methods such as CreateTableEntry and CreateIndexEntry during the Bootstrap process.
-  friend class postgres::PgAttributeImpl;
+  friend class postgres::PgCoreImpl;
   friend class postgres::PgConstraintImpl;
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
@@ -382,44 +382,13 @@ class DatabaseCatalog {
   template <typename Column, typename ClassOid>
   bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 
-  storage::SqlTable *namespaces_;
-  storage::index::Index *namespaces_oid_index_;
-  storage::index::Index *namespaces_name_index_;
-  storage::ProjectedRowInitializer pg_namespace_all_cols_pri_;
-  storage::ProjectionMap pg_namespace_all_cols_prm_;
-  storage::ProjectedRowInitializer delete_namespace_pri_;
-  storage::ProjectedRowInitializer get_namespace_pri_;
-
-  storage::SqlTable *classes_;
-  storage::index::Index *classes_oid_index_;
-  storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
-  storage::index::Index *classes_namespace_index_;
-  storage::ProjectedRowInitializer pg_class_all_cols_pri_;
-  storage::ProjectionMap pg_class_all_cols_prm_;
-  storage::ProjectedRowInitializer get_class_oid_kind_pri_;
-  storage::ProjectedRowInitializer set_class_pointer_pri_;
-  storage::ProjectedRowInitializer set_class_schema_pri_;
-  storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
-  storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
-  storage::ProjectedRowInitializer get_class_object_and_schema_pri_;
-  storage::ProjectionMap get_class_object_and_schema_prm_;
-
-  storage::SqlTable *indexes_;
-  storage::index::Index *indexes_oid_index_;
-  storage::index::Index *indexes_table_index_;
-  storage::ProjectedRowInitializer get_indexes_pri_;
-  storage::ProjectedRowInitializer delete_index_pri_;
-  storage::ProjectionMap delete_index_prm_;
-  storage::ProjectedRowInitializer pg_index_all_cols_pri_;
-  storage::ProjectionMap pg_index_all_cols_prm_;
-
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
-  postgres::PgAttributeImpl pg_attribute_;
+  postgres::PgCoreImpl pg_core_;
   postgres::PgTypeImpl pg_type_;
   postgres::PgConstraintImpl pg_constraint_;
   postgres::PgLanguageImpl pg_language_;
@@ -429,7 +398,7 @@ class DatabaseCatalog {
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
         db_oid_(oid),
         garbage_collector_(garbage_collector),
-        pg_attribute_(db_oid_),
+        pg_core_(db_oid_),
         pg_type_(db_oid_),
         pg_constraint_(db_oid_),
         pg_language_(db_oid_),
@@ -511,26 +480,6 @@ class DatabaseCatalog {
    */
   std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                            namespace_oid_t ns_oid, const std::string &name);
-
-  /**
-   * Helper function to query an object pointer form pg_class
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @return pair of ptr to and ClassKind of object requested. ptr will be nullptr if no entry was found for the given
-   * oid
-   */
-  std::pair<void *, postgres::ClassKind> GetClassPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                         uint32_t oid);
-
-  /**
-   * Helper function to query a schema pointer form pg_class
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @return pair of ptr to schema and ClassKind of object requested. ptr will be nullptr if no entry was found for the
-   * given oid
-   */
-  std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(
-      common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
 
   /**
    * Sets a table's schema in pg_class

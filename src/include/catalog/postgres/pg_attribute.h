@@ -17,7 +17,7 @@ class PgAttribute {
  private:
   friend class storage::RecoveryManager;
   friend class Builder;
-  friend class PgAttributeImpl;
+  friend class PgCoreImpl;
 
   static constexpr table_oid_t COLUMN_TABLE_OID = table_oid_t(41);
   static constexpr index_oid_t COLUMN_OID_INDEX_OID = index_oid_t(42);

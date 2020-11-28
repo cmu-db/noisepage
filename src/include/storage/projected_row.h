@@ -12,7 +12,7 @@ class Catalog;
 class DatabaseCatalog;
 
 namespace postgres {
-class PgAttributeImpl;
+class PgCoreImpl;
 class PgLanguageImpl;
 class PgProcImpl;
 class PgTypeImpl;
@@ -273,7 +273,7 @@ class ProjectedRowInitializer {
  private:
   friend class catalog::Catalog;                    // access to the PRI default constructor
   friend class catalog::DatabaseCatalog;            // access to the PRI default constructor
-  friend class catalog::postgres::PgAttributeImpl;  // access to the PRI default constructor
+  friend class catalog::postgres::PgCoreImpl;       // access to the PRI default constructor
   friend class catalog::postgres::PgLanguageImpl;   // access to the PRI default constructor
   friend class catalog::postgres::PgProcImpl;       // access to the PRI default constructor
   friend class catalog::postgres::PgTypeImpl;       // access to the PRI default constructor
