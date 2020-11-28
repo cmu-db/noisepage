@@ -93,8 +93,6 @@ std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<tra
   return pg_core_.GetColumns<Column, ClassOid, ColOid>(txn, class_oid);
 }
 
-// TODO(Matt): we need a DeleteColumn()
-
 template <typename Column, typename ClassOid>
 bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
                                     const ClassOid class_oid) {

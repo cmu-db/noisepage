@@ -46,11 +46,28 @@ class PgCoreImpl {
    */
   explicit PgCoreImpl(db_oid_t db_oid);
 
-  /** Bootstrap the projected row initializers for pg_attribute. */
+  /** Bootstrap the projected row initializers for the core catalog tables. */
   void BootstrapPRIs();
 
   /**
    * Bootstrap:
+   *   The "pg_catalog" and "public" namespaces.
+   *   pg_namespace
+   *   pg_namespace_oid_index
+   *   pg_namespace_name_index
+   *   pg_class
+   *   pg_class_oid_index
+   *   pg_class_name_index
+   *   pg_class_namespace_index
+   *   pg_index
+   *   pg_index_oid_index
+   *   pg_index_table_index
+   *   pg_attribute
+   *   pg_attribute_oid_index
+   *   pg_attribute_name_index
+   *
+   * Dependencies:
+   *   None
    */
   void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                  common::ManagedPointer<DatabaseCatalog> dbc);
@@ -62,42 +79,39 @@ class PgCoreImpl {
    * @return A function that will teardown the core catalog tables when invoked.
    */
   std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn,
-                                          const common::ManagedPointer<storage::GarbageCollector> garbage_collector);
+                                          common::ManagedPointer<storage::GarbageCollector> garbage_collector);
 
-  bool CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
-                       const namespace_oid_t ns_oid);
-  bool DeleteNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
-                       const common::ManagedPointer<DatabaseCatalog> dbc, const namespace_oid_t ns_oid);
-  namespace_oid_t GetNamespaceOid(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                  const std::string &name);
+  bool CreateNamespace(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
+                       namespace_oid_t ns_oid);
+  bool DeleteNamespace(common::ManagedPointer<transaction::TransactionContext> txn,
+                       common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t ns_oid);
+  namespace_oid_t GetNamespaceOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
   std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceClassOids(
-      const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid);
+      common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
 
   template <typename ClassOid, typename Ptr>
-  bool SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid oid,
-                       const Ptr *const pointer, const col_oid_t class_col);
-  bool CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table_oid,
-                        const namespace_oid_t ns_oid, const std::string &name, const Schema &schema);
-  bool DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
-                   const common::ManagedPointer<DatabaseCatalog> dbc, const table_oid_t table);
+  bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid,
+                       const Ptr *const pointer, col_oid_t class_col);
+  bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                        namespace_oid_t ns_oid, const std::string &name, const Schema &schema);
+  bool DeleteTable(common::ManagedPointer<transaction::TransactionContext> txn,
+                   common::ManagedPointer<DatabaseCatalog> dbc, table_oid_t table);
 
-  bool CreateIndexEntry(const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid,
-                        const table_oid_t table_oid, const index_oid_t index_oid, const std::string &name,
+  bool CreateIndexEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
+                        table_oid_t table_oid, index_oid_t index_oid, const std::string &name,
                         const IndexSchema &schema);
-  bool DeleteIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
+  bool DeleteIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                    common::ManagedPointer<DatabaseCatalog> dbc, index_oid_t index);
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
-      const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
-  std::vector<index_oid_t> GetIndexOids(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                        table_oid_t table);
+      common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+  std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  std::pair<void *, postgres::ClassKind> GetClassPtrKind(
-      const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
+  std::pair<void *, postgres::ClassKind> GetClassPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                         uint32_t oid);
   std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(
-      const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
-  std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(
-      const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid,
-      const std::string &name);
+      common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
+  std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                           namespace_oid_t ns_oid, const std::string &name);
 
   /**
    * Add a new column entry in pg_attribute.
@@ -130,6 +144,8 @@ class PgCoreImpl {
    * @param txn             The transaction to use.
    * @param class_oid       The OID of the table (or index).
    * @return True if the delete was successful. False otherwise.
+   *
+   * TODO(Matt): We need a DeleteColumn.
    */
   template <typename Column, typename ClassOid>
   bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
