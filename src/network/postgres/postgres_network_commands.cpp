@@ -175,7 +175,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
       const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
 
       if (query_type == network::QueryType::QUERY_SELECT) {
-        out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+        out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(),
+                                 portal->ResultFormats());
       }
 
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
@@ -446,7 +447,8 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
       out->WriteError({common::ErrorSeverity::ERROR, "Portal does not exist for Describe message.",
                        common::ErrorCode::ERRCODE_PROTOCOL_VIOLATION});
     } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
-      out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+      out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(),
+                               portal->ResultFormats());
     } else {
       out->WriteNoData();
     }

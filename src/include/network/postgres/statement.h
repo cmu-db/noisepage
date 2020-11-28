@@ -84,11 +84,9 @@ class Statement {
   }
 
   /**
- * @return the optimized physical plan for this query
- */
-  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const {
-    return optimize_result_->GetPlanNode();
-  }
+   * @return the optimized physical plan for this query
+   */
+  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const { return optimize_result_->GetPlanNode(); }
 
   /**
    * @return the compiled executable query
@@ -157,7 +155,7 @@ class Statement {
   // The following objects can be "cached" in Statement objects for future statement invocations. Though they don't
   // relate to the Postgres Statement concept, these objects should be compatible with future queries that match the
   // same query text. The exception to this that DDL changes can break these cached objects.
-  std::unique_ptr<optimizer::OptimizeResult> optimize_result_ = nullptr;                // generated in the Optimize phase
+  std::unique_ptr<optimizer::OptimizeResult> optimize_result_ = nullptr;              // generated in the Optimize phase
   std::unique_ptr<execution::compiler::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
   std::vector<type::TypeId> desired_param_types_;                                     // generated in the Bind phase
 };
