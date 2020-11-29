@@ -37,19 +37,23 @@ class Builder;
 
 /** The NoisePage version of pg_namespace, pg_class, pg_index, and pg_attribute. */
 class PgCoreImpl {
- public:
+ private:
+  friend class catalog::DatabaseCatalog;
+
   /**
-   * Prepare to create the core catalog tables: pg_namespace, pg_class, pg_index, and pg_attribute.
-   * Does NOT create anything until the relevant bootstrap functions are called.
+   * @brief Prepare to create the core catalog tables: pg_namespace, pg_class, pg_index, and pg_attribute.
+   *        Does NOT create anything until the relevant bootstrap functions are called.
    *
-   * @param db_oid          The OID of the database that the core catalog tables should be created in.
+   * @param db_oid  The OID of the database that the core catalog tables should be created in.
    */
   explicit PgCoreImpl(db_oid_t db_oid);
 
-  /** Bootstrap the projected row initializers for the core catalog tables. */
+  /** @brief Bootstrap the projected row initializers for the core catalog tables. */
   void BootstrapPRIs();
 
   /**
+   * @brief Create all the catalog namespaces, tables, and indexes for core catalog functionality.
+   *
    * Bootstrap:
    *   The "pg_catalog" and "public" namespaces.
    *   pg_namespace
@@ -68,73 +72,87 @@ class PgCoreImpl {
    *
    * Dependencies:
    *   None
+   *
+   * @param txn     The transaction to bootstrap in.
+   * @param dbc     The database catalog that this PgCoreImpl instance resides in.
    */
   void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                  common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Obtain a function that will teardown the core catalog tables as they exist at the time of the provided txn.
+   * @brief Obtain a function that will teardown the core catalog objects as they exist at the time of the provided txn.
    *
-   * @param txn             The transaction to perform the teardown in.
-   * @return A function that will teardown the core catalog tables when invoked.
+   * @param txn     The transaction to perform the teardown in.
+   * @param dbc     The database catalog that this PgCoreImpl instance resides in.
+   * @return        A function that will teardown the core catalog objects when invoked.
    */
   std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn,
-                                          common::ManagedPointer<storage::GarbageCollector> garbage_collector);
+                                          common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Create a namespace with a given ns oid
-   * @param txn transaction to use
-   * @param name name of the namespace
-   * @param ns_oid oid of the namespace
-   * @return true if creation is successful
+   * @brief Create a namespace with the given namespace oid.
+   *
+   * @param txn     The transaction to use for the operation.
+   * @param name    The name of the namespace.
+   * @param ns_oid  The oid of the created namespace.
+   * @return        True if creation is successful. False otherwise.
    */
   bool CreateNamespace(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
                        namespace_oid_t ns_oid);
   /**
-   * Deletes the namespace and any objects assigned to the namespace.  The
-   * 'public' namespace cannot be deleted.  This operation will fail if any
-   * objects within the namespace cannot be deleted (i.e. write-write conflicts
-   * exist).
-   * @param txn for the operation
-   * @param ns_oid OID to be deleted
-   * @return true if the deletion succeeded, otherwise false
+   * @brief Delete the namespace and any objects assigned to the namespace.
+   *
+   * The 'public' namespace cannot be deleted.
+   * This will fail if any objects within the namespace cannot be deleted, i.e., write-write conflicts exist.
+   *
+   * @param txn     The transaction to use for the operation.
+   * @param dbc     The database catalog that this PgCoreImpl instance resides in.
+   * @param ns_oid  The oid of the namespace to delete.
+   * @return        True if the deletion is successful. False otherwise.
    */
   bool DeleteNamespace(common::ManagedPointer<transaction::TransactionContext> txn,
                        common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t ns_oid);
+  /**
+   * @brief Get the OID of the specified namespace.
+   *
+   * @param txn     The transaction to use for the operation.
+   * @param ns_oid  The OID of the namespace to query.
+   * @return        The OID of the specified namespace.
+   */
   namespace_oid_t GetNamespaceOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
   /**
-   * A list of all oids and their PgClass::ClassKind from pg_class on the given namespace. This is currently
-   * designed as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
-   * @param txn for the operation
-   * @param ns being queried
-   * @return vector of OIDs for all of the objects on this namespace
+   * @brief Get a list of all OIDs and their PgClass::RelKind from pg_class for all objects on the given namespace.
+   *
+   * @param txn     The transaction to use for the operation.
+   * @param ns_oid  The OID of the namespace to query.
+   * @return        A list of all OIDs and their PgClass::RelKind for all objects on the given namespace.
    */
   std::vector<std::pair<uint32_t, PgClass::RelKind>> GetNamespaceClassOids(
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
 
   /**
-   * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
-   * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
-   * are basically indentical outside of input types
-   * @tparam ClassOid either index_oid_t or table_oid_t
-   * @tparam Ptr either Index or SqlTable
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @param pointer pointer to set
-   * @param class_col pg_class column to insert pointer into
-   * @return true if successful
+   * @brief Insert the provided pointer into the specified pg_class column.
+   *
+   * @tparam ClassOid   (table_oid_t) OR (index_oid_t)
+   * @tparam Ptr        (SqlTable or Schema) OR (Index or IndexSchema), depending on ClassOid
+   * @param txn         The transaction to insert in.
+   * @param oid         The OID of the object.
+   * @param pointer     The pointer to be inserted.
+   * @param class_col   The pg_class column to insert the pointer into.
+   * @return            True if successful. False otherwise.
    */
   template <typename ClassOid, typename Ptr>
   bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid,
                        const Ptr *const pointer, col_oid_t class_col);
   /**
+   * @brief Create a table.
    *
-   * @param txn
-   * @param table_oid
-   * @param ns_oid
-   * @param name
-   * @param schema
-   * @return
+   * @param txn         The transaction to create a table in.
+   * @param table_oid   The OID of the table to be created.
+   * @param ns_oid      The OID of the namespace to create a table in.
+   * @param name        The name of the table to be created.
+   * @param schema      The schema to use for the created table.
+   * @return            True if successful. False otherwise.
    */
   bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
                         namespace_oid_t ns_oid, const std::string &name, const Schema &schema);
@@ -144,6 +162,15 @@ class PgCoreImpl {
    * @param txn for the operation
    * @param table to be deleted
    * @return true if the deletion succeeded, otherwise false
+   */
+
+  /**
+   * @brief Delete a table and all the table's child objects (e.g., columns, indexes) from the database.
+   *
+   * @param txn         The transaction to delete in.
+   * @param dbc         The database catalog that this PgCoreImpl instance resides in.
+   * @param table       The OID of the table to delete.
+   * @return            True if successful. False otherwise.
    */
   bool DeleteTable(common::ManagedPointer<transaction::TransactionContext> txn,
                    common::ManagedPointer<DatabaseCatalog> dbc, table_oid_t table);

@@ -230,9 +230,8 @@ void PgCoreImpl::Bootstrap(const common::ManagedPointer<transaction::Transaction
 // Other functions
 // --------------------------------------------------------------------------------------------------------------------
 
-std::function<void(void)> PgCoreImpl::GetTearDownFn(
-    common::ManagedPointer<transaction::TransactionContext> txn,
-    const common::ManagedPointer<storage::GarbageCollector> garbage_collector) {
+std::function<void(void)> PgCoreImpl::GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                    const common::ManagedPointer<DatabaseCatalog> dbc) {
   std::vector<Schema *> table_schemas;
   std::vector<storage::SqlTable *> tables;
   std::vector<IndexSchema *> index_schemas;
@@ -277,7 +276,7 @@ std::function<void(void)> PgCoreImpl::GetTearDownFn(
   }
 
   delete[] buffer;
-  return [garbage_collector{garbage_collector}, tables{std::move(tables)}, indexes{std::move(indexes)},
+  return [garbage_collector{dbc->garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
           table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)}]() {
     for (auto table : tables) delete table;
     for (auto index : indexes) {

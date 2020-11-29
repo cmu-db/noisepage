@@ -41,7 +41,7 @@ DatabaseCatalog::DatabaseCatalog(const db_oid_t oid,
       pg_proc_(db_oid_) {}
 
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
-  auto teardown_pg_core = pg_core_.GetTearDownFn(txn, garbage_collector_);
+  auto teardown_pg_core = pg_core_.GetTearDownFn(txn, common::ManagedPointer(this));
   auto teardown_pg_constraint = pg_constraint_.GetTearDownFn(txn);
   auto teardown_pg_proc = pg_proc_.GetTearDownFn(txn);
 
