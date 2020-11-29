@@ -4,7 +4,17 @@
 
 #include "catalog/catalog_defs.h"
 
+namespace noisepage::catalog {
+class DatabaseCatalog;
+}  // namespace noisepage::catalog
+
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
+class Builder;
+class PgCoreImpl;
 
 class PgClass {
  public:
@@ -18,6 +28,12 @@ class PgClass {
     TOAST_TABLE = 't',
     FOREIGN_TABLE = 'f',
   };
+
+ private:
+  friend class catalog::DatabaseCatalog;
+  friend class storage::RecoveryManager;
+  friend class Builder;
+  friend class PgCoreImpl;
 
   static constexpr table_oid_t CLASS_TABLE_OID = table_oid_t(21);
   static constexpr index_oid_t CLASS_OID_INDEX_OID = index_oid_t(22);

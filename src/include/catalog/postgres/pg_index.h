@@ -4,10 +4,20 @@
 
 #include "catalog/catalog_defs.h"
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
+class Builder;
+class PgCoreImpl;
 
 class PgIndex {
- public:
+ private:
+  friend class storage::RecoveryManager;
+  friend class Builder;
+  friend class PgCoreImpl;
+
   static constexpr table_oid_t INDEX_TABLE_OID = table_oid_t(31);
   static constexpr index_oid_t INDEX_OID_INDEX_OID = index_oid_t(32);
   static constexpr index_oid_t INDEX_TABLE_INDEX_OID = index_oid_t(33);
