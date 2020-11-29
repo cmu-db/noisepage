@@ -308,15 +308,21 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   return pg_core_.GetIndexes(txn, table);
 }
 
+type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
+  return type_oid_t(static_cast<uint8_t>(type));
+}
+
+bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                       const table_oid_t table_oid, const namespace_oid_t ns_oid,
+                                       const std::string &name, const Schema &schema) {
+  return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
+}
+
 bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const namespace_oid_t ns_oid, const table_oid_t table_oid,
                                        const index_oid_t index_oid, const std::string &name,
                                        const IndexSchema &schema) {
   return pg_core_.CreateIndexEntry(txn, ns_oid, table_oid, index_oid, name, schema);
-}
-
-type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
-  return type_oid_t(static_cast<uint8_t>(type));
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -337,22 +343,11 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
 
 common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetProcCtxPtr(
     common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
-  return pg_proc_.GetProcCtxPtr(txn, proc_oid);
-}
-
-common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
-    const common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid) {
-  auto func_ctx = GetProcCtxPtr(txn, proc_oid);
-  NOISEPAGE_ASSERT(!(func_ctx == nullptr && IS_BUILTIN_PROC(proc_oid)),
+  auto proc_ctx = pg_proc_.GetProcCtxPtr(txn, proc_oid);
+  NOISEPAGE_ASSERT(!(proc_ctx == nullptr && IS_BUILTIN_PROC(proc_oid)),
                    "Builtin procedures should have been bootstrapped.");
-  NOISEPAGE_ASSERT(func_ctx != nullptr, "Dynamically added UDFs are currently not supported.");
-  return func_ctx;
-}
-
-bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                       const table_oid_t table_oid, const namespace_oid_t ns_oid,
-                                       const std::string &name, const Schema &schema) {
-  return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
+  NOISEPAGE_ASSERT(proc_ctx != nullptr, "Dynamically added UDFs are currently not supported.");
+  return proc_ctx;
 }
 
 bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::TransactionContext> txn) {
@@ -438,24 +433,37 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
   return pg_core_.SetClassPointer(txn, oid, pointer, class_col);
 }
 
-template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t class_oid,
-    const col_oid_t col_oid, const Schema::Column &col);
-template bool DatabaseCatalog::CreateColumn<IndexSchema::Column, index_oid_t>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const index_oid_t class_oid,
-    const indexkeycol_oid_t col_oid, const IndexSchema::Column &col);
+// Template instantiations.
 
-template std::vector<Schema::Column> DatabaseCatalog::GetColumns<Schema::Column, table_oid_t, col_oid_t>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t class_oid);
+#define DEFINE_SET_CLASS_POINTER(ClassOid, Ptr)                                                                        \
+  template bool DatabaseCatalog::SetClassPointer<ClassOid, Ptr>(                                                       \
+      const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid oid, const Ptr *const pointer, \
+      const col_oid_t class_col);
+#define DEFINE_CREATE_COLUMN(Column, ClassOid, ColOid)                                             \
+  template bool DatabaseCatalog::CreateColumn<Column, ClassOid, ColOid>(                           \
+      const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid class_oid, \
+      const ColOid col_oid, const Column &col);
+#define DEFINE_GET_COLUMNS(Column, ClassOid, ColOid)                                  \
+  template std::vector<Column> DatabaseCatalog::GetColumns<Column, ClassOid, ColOid>( \
+      const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid class_oid);
+#define DEFINE_DELETE_COLUMNS(Column, ClassOid)                   \
+  template bool DatabaseCatalog::DeleteColumns<Column, ClassOid>( \
+      const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid class_oid);
 
-template std::vector<IndexSchema::Column>
-DatabaseCatalog::GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const index_oid_t class_oid);
+DEFINE_SET_CLASS_POINTER(table_oid_t, storage::SqlTable);
+DEFINE_SET_CLASS_POINTER(table_oid_t, Schema);
+DEFINE_SET_CLASS_POINTER(index_oid_t, storage::index::Index);
+DEFINE_SET_CLASS_POINTER(index_oid_t, IndexSchema);
+DEFINE_CREATE_COLUMN(Schema::Column, table_oid_t, col_oid_t);
+DEFINE_CREATE_COLUMN(IndexSchema::Column, index_oid_t, indexkeycol_oid_t);
+DEFINE_GET_COLUMNS(Schema::Column, table_oid_t, col_oid_t);
+DEFINE_GET_COLUMNS(IndexSchema::Column, index_oid_t, indexkeycol_oid_t);
+DEFINE_DELETE_COLUMNS(Schema::Column, table_oid_t);
+DEFINE_DELETE_COLUMNS(IndexSchema::Column, index_oid_t);
 
-template bool DatabaseCatalog::DeleteColumns<Schema::Column, table_oid_t>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t class_oid);
-
-template bool DatabaseCatalog::DeleteColumns<IndexSchema::Column, index_oid_t>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const index_oid_t class_oid);
+#undef DEFINE_SET_CLASS_POINTER
+#undef DEFINE_CREATE_COLUMN
+#undef DEFINE_GET_COLUMNS
+#undef DEFINE_DELETE_COLUMNS
 
 }  // namespace noisepage::catalog

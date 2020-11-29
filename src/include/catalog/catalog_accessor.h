@@ -356,14 +356,6 @@ class EXPORT CatalogAccessor {
   common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
 
   /**
-   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
-   * object is reconstructed, put in pg_proc and returned
-   * @param proc_oid The proc_oid whose FunctionContext object we are returning here
-   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
-   */
-  common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
-
-  /**
    * Returns the type oid of the given TypeId in pg_type
    * @param type
    * @return type_oid of type in pg_type

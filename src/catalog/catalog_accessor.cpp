@@ -204,10 +204,6 @@ common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::G
   return dbc_->GetProcCtxPtr(txn_, proc_oid);
 }
 
-common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetFunctionContext(proc_oid_t proc_oid) {
-  return dbc_->GetFunctionContext(txn_, proc_oid);
-}
-
 type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
