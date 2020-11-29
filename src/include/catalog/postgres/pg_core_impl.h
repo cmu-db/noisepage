@@ -157,14 +157,6 @@ class PgCoreImpl {
   bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
                         namespace_oid_t ns_oid, const std::string &name, const Schema &schema);
   /**
-   * Deletes a table and all child objects (i.e columns, indexes, etc.) from
-   * the database.
-   * @param txn for the operation
-   * @param table to be deleted
-   * @return true if the deletion succeeded, otherwise false
-   */
-
-  /**
    * @brief Delete a table and all the table's child objects (e.g., columns, indexes) from the database.
    *
    * @param txn         The transaction to delete in.
@@ -176,73 +168,78 @@ class PgCoreImpl {
                    common::ManagedPointer<DatabaseCatalog> dbc, table_oid_t table);
 
   /**
-   * Create the catalog entries for a new index.
-   * @param txn for the operation
-   * @param ns OID of the namespace under which the index will fall
-   * @param name of the new index
-   * @param table on which the new index exists
-   * @param schema describing the new index
-   * @return OID of the new index or INVALID_INDEX_OID if creation failed
+   * @brief Create an index.
+   *
+   * @param txn         The transaction to create an index in.
+   * @param ns_oid      The OID of the namespace to create an index in.
+   * @param table_oid   The OID of the table to create an index on.
+   * @param index_oid   The OID of the index to be created.
+   * @param name        The name of the index to be created.
+   * @param schema      The index schema to use for the created index.
+   * @return            True if successful. False otherwise.
    */
   bool CreateIndexEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
                         table_oid_t table_oid, index_oid_t index_oid, const std::string &name,
                         const IndexSchema &schema);
   /**
-   * Delete an index.  Any constraints that utilize this index must be deleted
-   * or transitioned to a different index prior to deleting an index.
-   * @param txn for the operation
-   * @param index to be deleted
-   * @return true if the deletion succeeded, otherwise false.
+   * @brief Delete an index.
+   *
+   * @warning       Any constraints that utilize this index must be deleted
+   *                or transitioned to a different index prior to deleting an index.
+   *
+   * @param txn     The transaction to delete the index in.
+   * @param index   The OID of the index to be deleted.
+   * @return        True if the deletion succeeded. False otherwise.
    */
   bool DeleteIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                    common::ManagedPointer<DatabaseCatalog> dbc, index_oid_t index);
   /**
-   * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
-   * calls to GetIndex and GetIndexSchema
-   * @param txn transaction to use
-   * @param table table to get index objects for
-   * @return vector of pairs of index pointers and their corresponding schemas
+   * @brief Get index pointers and schemas for every index on a table.
+   *
+   * Provides much better performance than individual calls to GetIndex and GetIndexSchema.
+   *
+   * @param txn     The transaction to query in.
+   * @param table   The OID of the table to be queried.
+   * @return        A vector of pairs of index pointers and their corresponding schemas.
    */
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
-
   /**
-   * Get a list of all the indexes for a particular table, given as OIDs.
+   * @brief Get a list of all the indexes for a particular table, given as OIDs.
    *
    * @param txn     The transaction used for the operation.
    * @param table   The table whose indexes are being requested.
-   * @return The indexes for the identified table at the time of the transaction.
+   * @return        The indexes for the identified table at the time of the transaction.
    */
   std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /**
-   * Helper function to query an object pointer form pg_class
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @return pair of ptr to and ClassKind of object requested. ptr will be nullptr if no entry was found for the given
-   * oid
+   * @brief Get an object pointer from pg_class.
+   *
+   * @param txn     The transaction to query in.
+   * @param oid     The OID of the object.
+   * @return        A pair of a pointer to, and the RelKind, of the object requested.
+   *                The pointer will be nullptr if no entry was found for the given oid.
    */
-
   std::pair<void *, PgClass::RelKind> GetClassPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                       uint32_t oid);
   /**
-   * Helper function to query a schema pointer form pg_class
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @return pair of ptr to schema and ClassKind of object requested. ptr will be nullptr if no entry was found for the
-   * given oid
+   * @brief Get a schema pointer from pg_class.
+   *
+   * @param txn     The transaction to query in.
+   * @param oid     The OID of the object.
+   * @return        A pair of a pointer to the schema, and the RelKind, of the object requested.
+   *                The pointer will be nullptr if no entry was found for the given oid.
    */
-
   std::pair<void *, PgClass::RelKind> GetClassSchemaPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                             uint32_t oid);
-
   /**
-   * Helper function to query the oid and kind from
-   * [pg_class](https://www.postgresql.org/docs/9.3/catalog-pg-class.html)
-   * @param txn transaction to query
-   * @param namespace_oid the namespace oid
-   * @param name name of the table, index, view, etc.
-   * @return a pair of oid and ClassKind
+   * @brief Get the OID and kind from pg_class.
+   *
+   * @param txn     The transaction to query in.
+   * @param ns_oid  The namespace the object lives in.
+   * @param oid     The name of the object (e.g., table, index, view).
+   * @return        A pair of the OID and the RelKind of the object requested.
    */
   std::pair<uint32_t, PgClass::RelKind> GetClassOidKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                         namespace_oid_t ns_oid, const std::string &name);
@@ -250,12 +247,12 @@ class PgCoreImpl {
   /**
    * Add a new column entry in pg_attribute.
    *
-   * @tparam Column         The type of column (Schema::Column or IndexSchema::Column).
-   * @param txn             The transaction to use.
-   * @param class_oid       The OID of the table (or index).
-   * @param col_oid         The OID of the column to insert.
-   * @param col             The column to insert.
-   * @return True if the insert succeeded. False otherwise.
+   * @tparam Column     The type of column (Schema::Column or IndexSchema::Column).
+   * @param txn         The transaction to use.
+   * @param class_oid   The OID of the table (or index).
+   * @param col_oid     The OID of the column to insert.
+   * @param col         The column to insert.
+   * @return            True if the insert succeeded. False otherwise.
    */
   template <typename Column, typename ClassOid, typename ColOid>
   bool CreateColumn(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid, ColOid col_oid,
@@ -266,7 +263,7 @@ class PgCoreImpl {
    * @tparam Column         The type of column (Schema::Column or IndexSchema::Column).
    * @param txn             The transaction to use.
    * @param class_oid       The OID of the table (or index).
-   * @return The columns corresponding to the entry.
+   * @return                The columns corresponding to the entry.
    */
   template <typename Column, typename ClassOid, typename ColOid>
   std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
@@ -277,7 +274,7 @@ class PgCoreImpl {
    * @tparam Column         The type of column (Schema::Column or IndexSchema::Column).
    * @param txn             The transaction to use.
    * @param class_oid       The OID of the table (or index).
-   * @return True if the delete was successful. False otherwise.
+   * @return                True if the delete was successful. False otherwise.
    *
    * TODO(Matt): We need a DeleteColumn.
    */
@@ -310,7 +307,7 @@ class PgCoreImpl {
    * @tparam Column         The type of column (Schema::Column or IndexSchema::Column).
    * @param pr              The ProjectedRow to populate.
    * @param table_pm        The ProjectionMap for the ProjectedRow.
-   * @return The requested column.
+   * @return                The requested column.
    */
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
