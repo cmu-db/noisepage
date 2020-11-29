@@ -113,7 +113,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   planner::PlanMetaData::PlanNodeMetaData plan_node_meta_data(context_->GetMemo().GetGroupByID(id)->GetNumRows());
   auto plan =
       generator->ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols, std::move(children_plans),
-                               std::move(children_expr_map), std::move(plan_node_meta_data));
+                               std::move(children_expr_map), plan_node_meta_data);
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group " + std::to_string(id.UnderlyingValue()));
 
   delete op;
