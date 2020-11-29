@@ -39,6 +39,8 @@ class Builder;
 class PgCoreImpl {
  private:
   friend class catalog::DatabaseCatalog;
+  friend class storage::RecoveryManager;
+  friend class Builder;
 
   /**
    * @brief Prepare to create the core catalog tables: pg_namespace, pg_class, pg_index, and pg_attribute.
@@ -281,12 +283,6 @@ class PgCoreImpl {
   template <typename Column, typename ClassOid>
   bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 
- private:
-  friend class Builder;
-  friend class storage::RecoveryManager;
-
-  const db_oid_t db_oid_;
-
   /** Bootstrap functions. */
   ///@{
   void BootstrapPRIsPgNamespace();
@@ -311,6 +307,8 @@ class PgCoreImpl {
    */
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
+
+  const db_oid_t db_oid_;
 
   /**
    * The table and indexes that define pg_namespace.
