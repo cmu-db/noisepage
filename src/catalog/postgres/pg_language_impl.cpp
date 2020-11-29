@@ -179,8 +179,8 @@ bool PgLanguageImpl::DropLanguage(const common::ManagedPointer<transaction::Tran
 
 void PgLanguageImpl::BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn,
                                         const common::ManagedPointer<DatabaseCatalog> dbc) {
-  dbc->CreateLanguage(txn, "plpgsql", PgLanguage::PLPGSQL_LANGUAGE_OID);
-  dbc->CreateLanguage(txn, "internal", PgLanguage::INTERNAL_LANGUAGE_OID);
+  CreateLanguage(txn, "plpgsql", PgLanguage::PLPGSQL_LANGUAGE_OID);
+  CreateLanguage(txn, "internal", PgLanguage::INTERNAL_LANGUAGE_OID);
 }
 
 }  // namespace noisepage::catalog::postgres

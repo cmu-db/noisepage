@@ -29,20 +29,34 @@
 
 namespace noisepage::catalog {
 
-void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn) {
-  BootstrapPRIs();
+DatabaseCatalog::DatabaseCatalog(const db_oid_t oid,
+                                 const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
+    : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
+      db_oid_(oid),
+      garbage_collector_(garbage_collector),
+      pg_core_(db_oid_),
+      pg_type_(db_oid_),
+      pg_constraint_(db_oid_),
+      pg_language_(db_oid_),
+      pg_proc_(db_oid_) {}
 
-  // Declare variable for return values (UNUSED when compiled for release)
-  bool UNUSED_ATTRIBUTE retval;
+void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
+  auto teardown_pg_core = pg_core_.GetTearDownFn(txn, garbage_collector_);
+  auto teardown_pg_constraint = pg_constraint_.GetTearDownFn(txn);
+  auto teardown_pg_proc = pg_proc_.GetTearDownFn(txn);
 
-  retval = TryLock(txn);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  auto dbc_nuke = [=]() {
+    // Order matters!
+    teardown_pg_core();
+    teardown_pg_constraint();
+    teardown_pg_proc();
+  };
 
-  pg_core_.Bootstrap(txn, common::ManagedPointer(this));
-  pg_type_.Bootstrap(txn, common::ManagedPointer(this));
-  pg_constraint_.Bootstrap(txn, common::ManagedPointer(this));
-  pg_language_.Bootstrap(txn, common::ManagedPointer(this));
-  pg_proc_.Bootstrap(txn, common::ManagedPointer(this));
+  // No new transactions can see these object but there may be deferred index
+  // and other operation.  Therefore, we need to defer the deallocation on delete
+  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction(dbc_nuke);
+  });
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
@@ -55,19 +69,25 @@ void DatabaseCatalog::BootstrapPRIs() {
   pg_proc_.BootstrapPRIs();
 }
 
+void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn) {
+  BootstrapPRIs();
+
+  bool UNUSED_ATTRIBUTE retval;
+  retval = TryLock(txn);
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+
+  pg_core_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_type_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_constraint_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_language_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_proc_.Bootstrap(txn, common::ManagedPointer(this));
+}
+
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                  const std::string &name) {
   if (!TryLock(txn)) return INVALID_NAMESPACE_OID;
   const namespace_oid_t ns_oid{next_oid_++};
-  if (!CreateNamespace(txn, name, ns_oid)) {
-    return INVALID_NAMESPACE_OID;
-  }
-  return ns_oid;
-}
-
-bool DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                      const std::string &name, const namespace_oid_t ns_oid) {
-  return pg_core_.CreateNamespace(txn, name, ns_oid);
+  return pg_core_.CreateNamespace(txn, name, ns_oid) ? ns_oid : INVALID_NAMESPACE_OID;
 }
 
 bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -81,24 +101,6 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(const common::ManagedPointer<tr
   return pg_core_.GetNamespaceOid(txn, name);
 }
 
-template <typename Column, typename ClassOid, typename ColOid>
-bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const ClassOid class_oid, const ColOid col_oid, const Column &col) {
-  return pg_core_.CreateColumn<Column, ClassOid, ColOid>(txn, class_oid, col_oid, col);
-}
-
-template <typename Column, typename ClassOid, typename ColOid>
-std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                                ClassOid class_oid) {
-  return pg_core_.GetColumns<Column, ClassOid, ColOid>(txn, class_oid);
-}
-
-template <typename Column, typename ClassOid>
-bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                    const ClassOid class_oid) {
-  return pg_core_.DeleteColumns<Column, ClassOid>(txn, class_oid);
-}
-
 table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const namespace_oid_t ns, const std::string &name, const Schema &schema) {
   if (!TryLock(txn)) return INVALID_TABLE_OID;
@@ -106,36 +108,10 @@ table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transactio
   return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
 }
 
-bool DatabaseCatalog::DeleteIndexes(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                    const table_oid_t table) {
-  if (!TryLock(txn)) return false;
-  // Get the indexes
-  const auto index_oids = GetIndexOids(txn, table);
-  // Delete all indexes
-  for (const auto index_oid : index_oids) {
-    auto result = DeleteIndex(txn, index_oid);
-    if (!result) {
-      // write-write conflict. Someone beat us to this operation.
-      return false;
-    }
-  }
-  return true;
-}
-
 bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table) {
   if (!TryLock(txn)) return false;
   return pg_core_.DeleteTable(txn, common::ManagedPointer(this), table);
-}
-
-table_oid_t DatabaseCatalog::GetTableOid(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                         const namespace_oid_t ns, const std::string &name) {
-  const auto oid_pair = pg_core_.GetClassOidKind(txn, ns, name);
-  if (oid_pair.first == catalog::NULL_OID || oid_pair.second != postgres::PgClass::RelKind::REGULAR_TABLE) {
-    // User called GetTableOid on an object that doesn't have type REGULAR_TABLE
-    return INVALID_TABLE_OID;
-  }
-  return table_oid_t(oid_pair.first);
 }
 
 bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -172,78 +148,6 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
   return SetClassPointer(txn, table, table_ptr, postgres::PgClass::REL_PTR_COL_OID);
 }
 
-/**
- * Obtain the storage pointer for a SQL table
- * @param table to which we want the storage object
- * @return the storage object corresponding to the passed OID
- */
-common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table) {
-  const auto ptr_pair = pg_core_.GetClassPtrKind(txn, table.UnderlyingValue());
-  if (ptr_pair.second != postgres::PgClass::RelKind::REGULAR_TABLE) {
-    // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
-    return common::ManagedPointer<storage::SqlTable>(nullptr);
-  }
-  return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
-}
-
-bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                  const table_oid_t table, const std::string &name) {
-  if (!TryLock(txn)) return false;
-  // TODO(John): Implement
-  NOISEPAGE_ASSERT(false, "Not implemented");
-  return false;
-}
-
-bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const table_oid_t table, Schema *const new_schema) {
-  if (!TryLock(txn)) return false;
-  // TODO(John): Implement
-  NOISEPAGE_ASSERT(false, "Not implemented");
-  return false;
-}
-
-const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                         const table_oid_t table) {
-  const auto ptr_pair = pg_core_.GetClassSchemaPtrKind(txn, table.UnderlyingValue());
-  NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
-  NOISEPAGE_ASSERT(ptr_pair.second == postgres::PgClass::RelKind::REGULAR_TABLE,
-                   "Requested a table schema for a non-table");
-  return *reinterpret_cast<Schema *>(ptr_pair.first);
-}
-
-std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
-    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
-  // TODO(John): Implement
-  NOISEPAGE_ASSERT(false, "Not implemented");
-  return {};
-}
-
-std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
-    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
-  return pg_core_.GetIndexOids(txn, table);
-}
-
-index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                         namespace_oid_t ns, const std::string &name, table_oid_t table,
-                                         const IndexSchema &schema) {
-  if (!TryLock(txn)) return INVALID_INDEX_OID;
-  const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
-  return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
-}
-
-bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                  index_oid_t index) {
-  if (!TryLock(txn)) return false;
-  return pg_core_.DeleteIndex(txn, common::ManagedPointer(this), index);
-}
-
-template <typename ClassOid, typename Ptr>
-bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                      const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
-  return pg_core_.SetClassPointer(txn, oid, pointer, class_col);
-}
-
 bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const index_oid_t index, storage::index::Index *const index_ptr) {
   NOISEPAGE_ASSERT(
@@ -265,14 +169,14 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
   return SetClassPointer(txn, index, index_ptr, postgres::PgClass::REL_PTR_COL_OID);
 }
 
-common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
-    const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
-  const auto ptr_pair = pg_core_.GetClassPtrKind(txn, index.UnderlyingValue());
-  if (ptr_pair.second != postgres::PgClass::RelKind::INDEX) {
-    // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
-    return common::ManagedPointer<storage::index::Index>(nullptr);
+table_oid_t DatabaseCatalog::GetTableOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                         const namespace_oid_t ns, const std::string &name) {
+  const auto oid_pair = pg_core_.GetClassOidKind(txn, ns, name);
+  if (oid_pair.first == catalog::NULL_OID || oid_pair.second != postgres::PgClass::RelKind::REGULAR_TABLE) {
+    // User called GetTableOid on an object that doesn't have type REGULAR_TABLE
+    return INVALID_TABLE_OID;
   }
-  return common::ManagedPointer(reinterpret_cast<storage::index::Index *>(ptr_pair.first));
+  return table_oid_t(oid_pair.first);
 }
 
 index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -285,6 +189,35 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
   return index_oid_t(oid_pair.first);
 }
 
+common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
+    const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table) {
+  const auto ptr_pair = pg_core_.GetClassPtrKind(txn, table.UnderlyingValue());
+  if (ptr_pair.second != postgres::PgClass::RelKind::REGULAR_TABLE) {
+    // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
+    return common::ManagedPointer<storage::SqlTable>(nullptr);
+  }
+  return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
+}
+
+common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
+    const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
+  const auto ptr_pair = pg_core_.GetClassPtrKind(txn, index.UnderlyingValue());
+  if (ptr_pair.second != postgres::PgClass::RelKind::INDEX) {
+    // User called GetTable with an OID for an object that doesn't have type INDEX
+    return common::ManagedPointer<storage::index::Index>(nullptr);
+  }
+  return common::ManagedPointer(reinterpret_cast<storage::index::Index *>(ptr_pair.first));
+}
+
+const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                         const table_oid_t table) {
+  const auto ptr_pair = pg_core_.GetClassSchemaPtrKind(txn, table.UnderlyingValue());
+  NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
+  NOISEPAGE_ASSERT(ptr_pair.second == postgres::PgClass::RelKind::REGULAR_TABLE,
+                   "Requested a table schema for a non-table");
+  return *reinterpret_cast<Schema *>(ptr_pair.first);
+}
+
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
   auto ptr_pair = pg_core_.GetClassSchemaPtrKind(txn, index.UnderlyingValue());
@@ -293,28 +226,86 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 
+bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                  const table_oid_t table, const std::string &name) {
+  if (!TryLock(txn)) return false;
+  // TODO(John): Implement
+  NOISEPAGE_ASSERT(false, "Not implemented");
+  return false;
+}
+
+bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                   const table_oid_t table, Schema *const new_schema) {
+  if (!TryLock(txn)) return false;
+  // TODO(John): Implement
+  NOISEPAGE_ASSERT(false, "Not implemented");
+  return false;
+}
+
+template <typename Column, typename ClassOid, typename ColOid>
+bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                   const ClassOid class_oid, const ColOid col_oid, const Column &col) {
+  return pg_core_.CreateColumn<Column, ClassOid, ColOid>(txn, class_oid, col_oid, col);
+}
+
+template <typename Column, typename ClassOid, typename ColOid>
+std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                                ClassOid class_oid) {
+  return pg_core_.GetColumns<Column, ClassOid, ColOid>(txn, class_oid);
+}
+
+template <typename Column, typename ClassOid>
+bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                    const ClassOid class_oid) {
+  return pg_core_.DeleteColumns<Column, ClassOid>(txn, class_oid);
+}
+
+bool DatabaseCatalog::DeleteIndexes(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                    const table_oid_t table) {
+  if (!TryLock(txn)) return false;
+  // Get the indexes
+  const auto index_oids = GetIndexOids(txn, table);
+  // Delete all indexes
+  for (const auto index_oid : index_oids) {
+    auto result = DeleteIndex(txn, index_oid);
+    if (!result) {
+      // write-write conflict. Someone beat us to this operation.
+      // TODO(WAN): Wait, can you end up deleting only some of the indexes?
+      return false;
+    }
+  }
+  return true;
+}
+
+std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
+    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
+  // TODO(John): Implement
+  NOISEPAGE_ASSERT(false, "Not implemented");
+  return {};
+}
+
+index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                         namespace_oid_t ns, const std::string &name, table_oid_t table,
+                                         const IndexSchema &schema) {
+  if (!TryLock(txn)) return INVALID_INDEX_OID;
+  const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
+  return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
+}
+
+bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                  index_oid_t index) {
+  if (!TryLock(txn)) return false;
+  return pg_core_.DeleteIndex(txn, common::ManagedPointer(this), index);
+}
+
+std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
+    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
+  return pg_core_.GetIndexOids(txn, table);
+}
+
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> DatabaseCatalog::GetIndexes(
     const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
   return pg_core_.GetIndexes(txn, table);
-}
-
-void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
-  auto teardown_pg_core = pg_core_.GetTearDownFn(txn, garbage_collector_);
-  auto teardown_pg_constraint = pg_constraint_.GetTearDownFn(txn);
-  auto teardown_pg_proc = pg_proc_.GetTearDownFn(txn);
-
-  auto dbc_nuke = [=]() {
-    // Order matters!
-    teardown_pg_core();
-    teardown_pg_constraint();
-    teardown_pg_proc();
-  };
-
-  // No new transactions can see these object but there may be deferred index
-  // and other operation.  Therefore, we need to defer the deallocation on delete
-  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction(dbc_nuke);
-  });
 }
 
 bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -326,12 +317,6 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
 
 type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
   return type_oid_t(static_cast<uint8_t>(type));
-}
-
-void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
-                                 const std::string &name, const namespace_oid_t namespace_oid, const int16_t len,
-                                 bool by_val, const postgres::PgType::Type type_category) {
-  pg_type_.InsertType(txn, type_oid, name, namespace_oid, len, by_val, type_category);
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -370,11 +355,6 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
 }
 
-std::vector<std::pair<uint32_t, postgres::PgClass::RelKind>> DatabaseCatalog::GetNamespaceClassOids(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid) {
-  return pg_core_.GetNamespaceClassOids(txn, ns_oid);
-}
-
 bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto current_val = write_lock_.load();
 
@@ -407,30 +387,22 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
   return false;
 }
 
-bool DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                     const std::string &lanname, language_oid_t oid) {
-  if (!TryLock(txn)) return false;
-  return pg_language_.CreateLanguage(txn, lanname, oid);
-}
-
 language_oid_t DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                const std::string &lanname) {
+  if (!TryLock(txn)) return INVALID_LANGUAGE_OID;
   auto oid = language_oid_t{next_oid_++};
-  if (!CreateLanguage(txn, lanname, oid)) {
-    return INVALID_LANGUAGE_OID;
-  }
-  return oid;
-}
-
-language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                               const std::string &lanname) {
-  return pg_language_.GetLanguageOid(txn, lanname);
+  return pg_language_.CreateLanguage(txn, lanname, oid) ? oid : INVALID_LANGUAGE_OID;
 }
 
 bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
                                    language_oid_t oid) {
   if (!TryLock(txn)) return false;
   return pg_language_.DropLanguage(txn, oid);
+}
+
+language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                               const std::string &lanname) {
+  return pg_language_.GetLanguageOid(txn, lanname);
 }
 
 proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -440,21 +412,12 @@ proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::
                                             const std::vector<type_oid_t> &all_arg_types,
                                             const std::vector<postgres::PgProc::ArgModes> &arg_modes,
                                             type_oid_t rettype, const std::string &src, bool is_aggregate) {
+  if (!TryLock(txn)) return INVALID_PROC_OID;
   proc_oid_t oid = proc_oid_t{next_oid_++};
-  auto result = CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes,
-                                rettype, src, is_aggregate);
-  return result ? oid : INVALID_PROC_OID;
-}
-
-bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
-                                      const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
-                                      const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
-                                      const std::vector<type_oid_t> &all_arg_types,
-                                      const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
-                                      const std::string &src, bool is_aggregate) {
-  if (!TryLock(txn)) return false;
   return pg_proc_.CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes,
-                                  rettype, src, is_aggregate);
+                                  rettype, src, is_aggregate)
+             ? oid
+             : INVALID_PROC_OID;
 }
 
 bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -467,6 +430,12 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
   return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
+}
+
+template <typename ClassOid, typename Ptr>
+bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                      const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
+  return pg_core_.SetClassPointer(txn, oid, pointer, class_col);
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(

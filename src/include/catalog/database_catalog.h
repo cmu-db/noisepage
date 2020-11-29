@@ -34,138 +34,138 @@ namespace noisepage::catalog {
  */
 class DatabaseCatalog {
  public:
-  /** The maximum number of tuples to be read out at a time when scanning tables during teardown. */
-  static constexpr uint32_t TEARDOWN_MAX_TUPLES = 100;
-
   /**
-   * Bootstrap the entire catalog with default entries.
+   * @brief Bootstrap the entire catalog with default entries.
    * @param txn         The transaction to bootstrap in.
    */
   void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn);
 
-  /** @see PgCoreImpl::CreateNamespace */
+  /** @brief Create a new namespace. @see PgCoreImpl::CreateNamespace */
   namespace_oid_t CreateNamespace(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
-  /** @see PgCoreImpl::DeleteNamespace */
+  /** @brief Delete the specified namespace. @see PgCoreImpl::DeleteNamespace */
   bool DeleteNamespace(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
-  /** @see PgCoreImpl::GetNamespaceOid */
+  /** @brief Get the OID of the specified namespace. @see PgCoreImpl::GetNamespaceOid */
   namespace_oid_t GetNamespaceOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
 
-  /** @see PgCoreImpl::CreateTable */
+  /** @brief Create a new table. @see PgCoreImpl::CreateTable */
   table_oid_t CreateTable(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                           const std::string &name, const Schema &schema);
-  /** @see PgCoreImpl::DeleteTable */
+  /** @brief Delete the specified table. @see PgCoreImpl::DeleteTable */
   bool DeleteTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
-  /** @see PgCoreImpl::GetTableOid */
+
+  /**
+   * Set the location of the underlying storage for the specified table.
+   *
+   * @param txn             The transaction for the operation.
+   * @param table           The OID of the table in the catalog.
+   * @param table_ptr       The pointer to the underlying storage in memory.
+   * @return True if the operation was successful. False otherwise.
+   *
+   * @warning   The SqlTable pointer that is passed in must be on the heap as the catalog will take
+   *            ownership of it and schedule its deletion with the GC at the appropriate time.
+   * @warning   It is unsafe to call delete on the SqlTable pointer after calling this function.
+   *            This is regardless of the return status.
+   */
+  bool SetTablePointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
+                       const storage::SqlTable *table_ptr);
+  /**
+   * Set the location of the underlying implementation for the specified index.
+   *
+   * @param txn             The transaction for the operation.
+   * @param index           The OID of the index in the catalog.
+   * @param index_ptr       The pointer to the underlying index implementation in memory.
+   * @return True if the operation was successful. False otherwise.
+   *
+   * @warning   The Index pointer that is passed in must be on the heap as the catalog will take
+   *            ownership of it and schedule its deletion with the GC at the appropriate time.
+   * @warning   It is unsafe to call delete on the Index pointer after calling this function.
+   *            This is regardless of the return status.
+   */
+  bool SetIndexPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index,
+                       storage::index::Index *index_ptr);
+
+  /** @brief Get the OID for the specified table, or INVALID_TABLE_OID if no such REGULAR_TABLE exists. */
   table_oid_t GetTableOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                           const std::string &name);
-  /** @see PgCoreImpl::RenameTable */
+  /** @brief Get the OID for the specified index, or INVALID_INDEX_OID if no such INDEX exists. */
+  index_oid_t GetIndexOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                          const std::string &name);
+
+  /** @brief Get the storage pointer for the specified table, or nullptr if no such REGULAR_TABLE exists. */
+  common::ManagedPointer<storage::SqlTable> GetTable(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                     table_oid_t table);
+  /** @brief Get the index pointer for the specified index, or nullptr if no such INDEX exists. */
+  common::ManagedPointer<storage::index::Index> GetIndex(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                         index_oid_t index);
+
+  /** @brief Get the schema for the specified table. */
+  const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+  /** @brief Get the index schema for the specified index. */
+  const IndexSchema &GetIndexSchema(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
+
+  /**
+   * @brief Rename a table.
+   *
+   * @param txn         The transaction to rename the table in.
+   * @param table       The table to be renamed.
+   * @param name        The new name for the table.
+   * @return            True if the rename succeeded. False otherwise.
+   *
+   * TODO(WAN): if this logic can be pushed to PgCoreImpl, update this comment to match style
+   */
   bool RenameTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                    const std::string &name);
 
-  /** @see PgCoreImpl::SetTablePointer */
-  bool SetTablePointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
-                       const storage::SqlTable *table_ptr);
-
-  /** @see PgCoreImpl::GetTable */
-  common::ManagedPointer<storage::SqlTable> GetTable(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                     table_oid_t table);
-
-  /** @see PgCoreImpl::UpdateSchema */
+  /**
+   * @brief Update the schema of the table.
+   *
+   * Apply a new schema to the given table.
+   * The changes will modify the latest schema as provided by the catalog.
+   * There is no guarantee that the OIDs for modified columns will be stable across a schema change.
+   *
+   * @param txn         The transaction to update the table's schema in.
+   * @param table       The table whose schema should be updated.
+   * @param new_schema  The new schema to update the table to.
+   * @return            True if the update succeeded. False otherwise.
+   *
+   * @warning           The catalog accessor assumes it takes ownership of the schema object that is passed.
+   *                    As such, there is no guarantee that the pointer is still valid when this function returns.
+   *                    If the caller needs to reference the schema object after this call, the caller should use
+   *                    the GetSchema function to obtain the authoritative schema for this table.
+   *
+   * TODO(WAN): if this logic can be pushed to PgCoreImpl, update this comment to match style
+   */
   bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema);
-
-  /**
-   * Get the visible schema describing the table.
-   * @param txn for the operation
-   * @param table corresponding to the requested schema
-   * @return the visible schema object for the identified table
-   */
-  const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
-
-  /**
-   * A list of all constraints on this table
-   * @param txn for the operation
-   * @param table being queried
-   * @return vector of OIDs for all of the constraints that apply to this table
-   */
-  std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
-                                               table_oid_t table);
-
-  /**
-   * A list of all indexes on the given table
-   * @param txn for the operation
-   * @param table being queried
-   * @return vector of OIDs for all of the indexes on this table
-   */
-  std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /** @see PgCoreImpl::CreateIndex */
   index_oid_t CreateIndex(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                           const std::string &name, table_oid_t table, const IndexSchema &schema);
   /** @see PgCoreImpl::DeleteIndex */
   bool DeleteIndex(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
-
-  /**
-   * Resolve an index name to its OID
-   * @param txn for the operation
-   * @param ns OID for the namespace in which the index belongs
-   * @param name of the index
-   * @return OID of the index or INVALID_INDEX_OID if it does not exist
-   */
-  index_oid_t GetIndexOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-                          const std::string &name);
-
-  /**
-   * Gets the schema used to define the index
-   * @param txn for the operation
-   * @param index being queried
-   * @return the index schema
-   */
-  const IndexSchema &GetIndexSchema(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
-
-  /**
-   * Inform the catalog of where the underlying implementation of the index is
-   * @param txn for the operation
-   * @param index OID in the catalog
-   * @param index_ptr to the memory where the index is
-   * @return whether the operation was successful
-   * @warning The index pointer that is passed in must be on the heap as the
-   * catalog will take ownership of it and schedule its deletion with the GC
-   * at the appropriate time.
-   * @warning It is unsafe to call delete on the Index pointer after calling
-   * this function regardless of the return status.
-   */
-  bool SetIndexPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index,
-                       storage::index::Index *index_ptr);
-
-  /**
-   * Obtain the pointer to the index
-   * @param txn transaction to use
-   * @param index to which we want a pointer
-   * @return the pointer to the index
-   */
-  common::ManagedPointer<storage::index::Index> GetIndex(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                         index_oid_t index);
-
-  /**
-   * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
-   * calls to GetIndex and GetIndexSchema
-   * @param txn transaction to use
-   * @param table table to get index objects for
-   * @return vector of pairs of index pointers and their corresponding schemas
-   */
+  /** @brief Get all of the index OIDs for a specific table. @see PgCoreImpl::GetIndexOids */
+  std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+  /** @brief More efficient way of getting all the indexes for a specific table. @see PgCoreImpl::GetIndexes */
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  /** @see PgLanguageImpl::CreateLanguage */
+  /**
+   * Get a list of all the constraints for a particular table.
+   *
+   * @param txn     The transaction used for the operation.
+   * @param table   The table whose constraints are being requested.
+   * @return The OIDs of all the constraints for the identified table at the time of the transaction.
+   */
+  std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
+                                               table_oid_t table);
+
+  /** @brief Create a new language. @see PgLanguageImpl::CreateLanguage */
   language_oid_t CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
-
-  /** @see PgLanguageImpl::GetLanguageOid */
+  /** @brief Drop the specified language. @see PgLanguageImpl::DropLanguage */
+  bool DropLanguage(common::ManagedPointer<transaction::TransactionContext> txn, language_oid_t oid);
+  /** @brief Get the OID of the specified language. @see PgLanguageImpl::GetLanguageOid */
   language_oid_t GetLanguageOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
-
-  /** @see PgLanguageImpl::CreateProcedure */
-  bool DropLanguage(common::ManagedPointer<transaction::TransactionContext> txn, language_oid_t oid);
 
   /**
    * @see PgProcImpl::CreateProcedure
@@ -176,26 +176,15 @@ class DatabaseCatalog {
                              const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
                              const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
-
-  /** @see PgProcImpl::CreateProcedure */
-  bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
-                       const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
-                       const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
-                       const std::vector<type_oid_t> &all_arg_types,
-                       const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
-                       const std::string &src, bool is_aggregate);
-
   /** @see PgProcImpl::DropProcedure */
   bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
 
   /** @see PgProcImpl::GetProcOid */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
-
   /** @see PgProcImpl::SetProcCtxPtr */
   bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                      const execution::functions::FunctionContext *func_context);
-
   /** @see PgProcImpl::GetProcCtxPtr */
   common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
@@ -213,14 +202,16 @@ class DatabaseCatalog {
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(
       common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
 
-  /**
-   * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid
-   * @param type internal type
-   * @return oid for internal type
-   */
+  /** @return The type_oid_t that corresponds to the internal TypeId. */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+  /**
+   * The maximum number of tuples to be read out at a time when scanning tables during teardown.
+   * This is arbitrary and defined here so that all PgBlahImpl classes can use the same value.
+   */
+  static constexpr uint32_t TEARDOWN_MAX_TUPLES = 100;
+
   /**
    * DatabaseCatalog methods generally handle coarse-grained locking. The various PgXXXImpl classes need to invoke
    * private DatabaseCatalog methods such as CreateTableEntry and CreateIndexEntry during the Bootstrap process.
@@ -232,83 +223,55 @@ class DatabaseCatalog {
   friend class postgres::PgProcImpl;
   friend class postgres::PgTypeImpl;
   ///@}
+  friend class Catalog;                   ///< Accesses write_lock_ (creating accessor) and TearDown (cleanup).
+  friend class postgres::Builder;         ///< Initializes DatabaseCatalog's tables.
+  friend class storage::RecoveryManager;  ///< Directly modifies DatabaseCatalog's tables.
 
-  /** @see PgLanguageImpl::CreateLanguage */
-  bool CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
-                      language_oid_t oid);
+  std::atomic<uint32_t> next_oid_;                    ///< The next OID, shared across different pg tables.
+  std::atomic<transaction::timestamp_t> write_lock_;  ///< Used to prevent concurrent DDL change.
+
+  const db_oid_t db_oid_;  ///< The OID of the database that this DatabaseCatalog is established in.
+  const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;  ///< The garbage collector used.
+
+  postgres::PgCoreImpl pg_core_;              ///< Core Postgres tables: pg_namespace, pg_class, pg_index, pg_attribute.
+  postgres::PgTypeImpl pg_type_;              ///< Types: pg_type.
+  postgres::PgConstraintImpl pg_constraint_;  ///< Constraints: pg_constraint.
+  postgres::PgLanguageImpl pg_language_;      ///< Languages: pg_language.
+  postgres::PgProcImpl pg_proc_;              ///< Procedures: pg_proc.
+
+  /** @brief Create a new DatabaseCatalog. Does not create any tables until Bootstrap is called. */
+  DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector);
 
   /**
-   * Create a namespace with a given ns oid
-   * @param txn transaction to use
-   * @param name name of the namespace
-   * @param ns_oid oid of the namespace
-   * @return true if creation is successful
+   * @brief Create all of the ProjectedRowInitializer and ProjectionMap objects for the catalog.
+   * The initializers and maps can be stashed because the catalog should not undergo schema changes at runtime.
    */
-  bool CreateNamespace(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
-                       namespace_oid_t ns_oid);
+  void BootstrapPRIs();
 
-  /**
-   * A list of all oids and their postgres::PgClass::ClassKind from pg_class on the given namespace. This is currently
-   * designed as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
-   * @param txn for the operation
-   * @param ns being queried
-   * @return vector of OIDs for all of the objects on this namespace
-   */
-  std::vector<std::pair<uint32_t, postgres::PgClass::RelKind>> GetNamespaceClassOids(
-      common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
-
-  /** @see PgAttributeImpl::CreateColumn */
-  template <typename Column, typename ClassOid, typename ColOid>
-  bool CreateColumn(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid, ColOid col_oid,
-                    const Column &col);
-
-  /** @see PgAttributeImpl::GetColumns */
-  template <typename Column, typename ClassOid, typename ColOid>
-  std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
-
-  /** @see PgAttributeImpl::DeleteColumns */
-  template <typename Column, typename ClassOid>
-  bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
-
-  std::atomic<uint32_t> next_oid_;
-  std::atomic<transaction::timestamp_t> write_lock_;
-
-  const db_oid_t db_oid_;
-  const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
-
-  postgres::PgCoreImpl pg_core_;
-  postgres::PgTypeImpl pg_type_;
-  postgres::PgConstraintImpl pg_constraint_;
-  postgres::PgLanguageImpl pg_language_;
-  postgres::PgProcImpl pg_proc_;
-
-  DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
-      : write_lock_(transaction::INITIAL_TXN_TIMESTAMP),
-        db_oid_(oid),
-        garbage_collector_(garbage_collector),
-        pg_core_(db_oid_),
-        pg_type_(db_oid_),
-        pg_constraint_(db_oid_),
-        pg_language_(db_oid_),
-        pg_proc_(db_oid_) {}
-
+  /** Cleanup the tables and indexes maintained by the DatabaseCatalog. */
   void TearDown(common::ManagedPointer<transaction::TransactionContext> txn);
-  bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
-                        namespace_oid_t ns_oid, const std::string &name, const Schema &schema);
-
-  friend class Catalog;
-  friend class postgres::Builder;
-  friend class storage::RecoveryManager;
 
   /**
-   * Internal function to DatabaseCatalog to disallow concurrent DDL changes. This also disallows older txns to enact
-   * DDL changes after a newer transaction has committed one. This effectively follows the same timestamp ordering logic
-   * as the version pointer MVCC stuff in the storage layer. It also serializes all DDL within a database.
    * @param txn Requesting txn. This is used to inspect the timestamp and register commit/abort events to release the
    * lock if it is acquired.
    * @return true if lock was acquired, false otherwise
    * @warning this requires that commit actions be performed after the commit time is stored in the
    * TransactionContext's FinishTime.
+   */
+
+  /**
+   * @brief Lock the DatabaseCatalog to disallow concurrent DDL changes.
+   *
+   * Internal function to DatabaseCatalog to disallow concurrent DDL changes.
+   * This also disallows older txns to enact DDL changes after a newer transaction has committed one.
+   * This effectively follows the same timestamp ordering logic as the version pointer MVCC stuff in the storage layer.
+   * It also serializes all DDL within a database.
+   *
+   * @param txn     Requesting transaction.
+   *                Used to inspect the timestamp and register commit/abort events to release the lock if acquired.
+   * @return True if the lock was acquired. False otherwise.
+   * @warning This requires that commit actions be performed after the commit time is stored in the TransactionContext's
+   * FinishTime.
    */
   bool TryLock(common::ManagedPointer<transaction::TransactionContext> txn);
 
@@ -325,6 +288,13 @@ class DatabaseCatalog {
   }
 
   /**
+   * @brief Create a new table entry WITHOUT TAKING THE DDL LOCK. Used by other members of DatabaseCatalog.
+   * @see PgCoreImpl::CreateTable
+   */
+  bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                        namespace_oid_t ns_oid, const std::string &name, const Schema &schema);
+
+  /**
    * Helper method to create index entries into pg_class and pg_indexes.
    * @param txn txn for the operation
    * @param ns_oid  OID of the namespace under which the index will fall
@@ -339,31 +309,29 @@ class DatabaseCatalog {
                         const IndexSchema &schema);
 
   /**
-   * Delete all of the indexes for a given table. This is currently designed as an internal function, though could be
-   * exposed via the CatalogAccessor if desired in the future.
-   * @param txn for the operation
-   * @param table to remove all indexes for
-   * @return true if the deletion succeeded, otherwise false.
+   * @brief Delete all of the indexes for a given table.
+   *
+   * This is currently designed as an internal function, though it could be exposed via CatalogAccessor if desired.
+   *
+   * @param txn             The transaction to perform the deletions in.
+   * @param table           The OID of the table to remove all indexes for.
+   * @return True if the deletion succeeded and false otherwise.
    */
   bool DeleteIndexes(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  /**
-   * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the
-   * catalog shouldn't undergo schema changes at runtime
-   */
-  void BootstrapPRIs();
-
-  /** @see PgTypeImpl::InsertType */
-  void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
-                  const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
-                  postgres::PgType::Type type_category);
-
-  /** @see PgCoreImpl::GetClassOidKind */
-  std::pair<uint32_t, postgres::PgClass::RelKind> GetClassOidKind(
-      common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid, const std::string &name);
+  /** @see PgAttributeImpl::CreateColumn */
+  template <typename Column, typename ClassOid, typename ColOid>
+  bool CreateColumn(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid, ColOid col_oid,
+                    const Column &col);
+  /** @see PgAttributeImpl::GetColumns */
+  template <typename Column, typename ClassOid, typename ColOid>
+  std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
+  /** @see PgAttributeImpl::DeleteColumns */
+  template <typename Column, typename ClassOid>
+  bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 
   /**
-   * Set the schema of a table in pg_class.
+   * @brief Set the schema of a table in pg_class.
    *
    * @tparam CallerType     The type of the caller. Should only be used by recovery!
    * @param txn             The transaction to perform the schema change in.
@@ -379,13 +347,13 @@ class DatabaseCatalog {
   }
 
   /**
-   * Set the schema of an index in pg_class.
+   * @brief Set the schema of an index in pg_class.
    *
    * @tparam CallerType     The type of the caller. Should only be used by recovery!
    * @param txn             The transaction to perform the schema change in.
    * @param oid             The OID of the index.
-   * @param schema          The new schema to set.
-   * @return True if the schema was set successfully. False otherwise.
+   * @param schema          The new index schema to set.
+   * @return True if the index schema was set successfully. False otherwise.
    */
   template <typename CallerType>
   auto SetIndexSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t oid,
@@ -394,7 +362,7 @@ class DatabaseCatalog {
     return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
   }
 
-  /** @see PgCoreImpl::SetClassPointer */
+  /** @brief Set REL_PTR for the specified pg_class column. @see PgCoreImpl::SetClassPointer */
   template <typename ClassOid, typename Ptr>
   bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid, const Ptr *pointer,
                        col_oid_t class_col);

@@ -215,9 +215,9 @@ void PgCoreImpl::Bootstrap(const common::ManagedPointer<transaction::Transaction
                            common::ManagedPointer<DatabaseCatalog> dbc) {
   UNUSED_ATTRIBUTE bool retval;
 
-  retval = dbc->CreateNamespace(txn, "pg_catalog", PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID);
+  retval = CreateNamespace(txn, "pg_catalog", PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->CreateNamespace(txn, "public", PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  retval = CreateNamespace(txn, "public", PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   BootstrapPgNamespace(txn, dbc);
@@ -463,6 +463,12 @@ namespace_oid_t PgCoreImpl::GetNamespaceOid(const common::ManagedPointer<transac
 template <typename ClassOid, typename Ptr>
 bool PgCoreImpl::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid oid,
                                  const Ptr *const pointer, const col_oid_t class_col) {
+  static_assert(std::is_same_v<ClassOid, table_oid_t> || std::is_same_v<ClassOid, index_oid_t>, "Invalid ClassOid.");
+  static_assert((std::is_same_v<ClassOid, table_oid_t> && std::is_same_v<Ptr, storage::SqlTable>) ||
+                    (std::is_same_v<ClassOid, table_oid_t> && std::is_same_v<Ptr, Schema>) ||
+                    (std::is_same_v<ClassOid, index_oid_t> && std::is_same_v<Ptr, storage::index::Index>) ||
+                    (std::is_same_v<ClassOid, index_oid_t> && std::is_same_v<Ptr, IndexSchema>),
+                "Invalid Ptr.");
   NOISEPAGE_ASSERT(
       (std::is_same<ClassOid, table_oid_t>::value &&
        (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||

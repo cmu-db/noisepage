@@ -152,16 +152,15 @@ class PgProcImpl {
    *
    * @param txn                     The transaction to insert into the catalog with.
    * @param dbc                     The catalog that pg_proc is in.
-   * @param proc_oid                The OID of the procedure to to associate with this proc's and its context
    * @param func_name               The name of the function.
    * @param func_ret_type           The return type of the function.
-   * @param args_type               The types of the arguments.
+   * @param arg_types               The types of the arguments.
    * @param builtin                 The builtin this context refers to.
    * @param is_exec_ctx_required    True if this function requires an execution context variable as its first argument.
    */
   void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn,
-                            common::ManagedPointer<DatabaseCatalog> dbc, proc_oid_t proc_oid, std::string &&func_name,
-                            type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+                            common::ManagedPointer<DatabaseCatalog> dbc, std::string &&func_name,
+                            type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   const db_oid_t db_oid_;

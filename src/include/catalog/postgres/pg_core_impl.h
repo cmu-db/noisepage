@@ -178,11 +178,13 @@ class PgCoreImpl {
    */
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+
   /**
-   * A list of all indexes on the given table
-   * @param txn for the operation
-   * @param table being queried
-   * @return vector of OIDs for all of the indexes on this table
+   * Get a list of all the indexes for a particular table, given as OIDs.
+   *
+   * @param txn     The transaction used for the operation.
+   * @param table   The table whose indexes are being requested.
+   * @return The indexes for the identified table at the time of the transaction.
    */
   std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 

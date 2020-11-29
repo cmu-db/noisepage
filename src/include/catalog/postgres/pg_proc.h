@@ -88,68 +88,6 @@ class PgProc {
       PRORETSET_COL_OID,   PROVOLATILE_COL_OID,    PRONARGS_COL_OID,     PRONARGDEFAULTS_COL_OID, PRORETTYPE_COL_OID,
       PROARGTYPES_COL_OID, PROALLARGTYPES_COL_OID, PROARGMODES_COL_OID,  PROARGDEFAULTS_COL_OID,  PROARGNAMES_COL_OID,
       PROSRC_COL_OID,      PROCONFIG_COL_OID,      PRO_CTX_PTR_COL_OID};
-
-  static constexpr proc_oid_t ATAN2_PRO_OID = proc_oid_t(84);
-  static constexpr proc_oid_t ACOS_PRO_OID = proc_oid_t(85);
-  static constexpr proc_oid_t ASIN_PRO_OID = proc_oid_t(86);
-  static constexpr proc_oid_t ATAN_PRO_OID = proc_oid_t(87);
-  static constexpr proc_oid_t COS_PRO_OID = proc_oid_t(88);
-  static constexpr proc_oid_t SIN_PRO_OID = proc_oid_t(89);
-
-  // TODO(tanujnay112) This overflows into the next internal oid range and will continue to do so
-  static constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
-  static constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
-  static constexpr proc_oid_t COSH_PRO_OID = proc_oid_t(92);
-  static constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(93);
-  static constexpr proc_oid_t TANH_PRO_OID = proc_oid_t(94);
-  static constexpr proc_oid_t EXP_PRO_OID = proc_oid_t(95);
-  static constexpr proc_oid_t CEIL_PRO_OID = proc_oid_t(96);
-  static constexpr proc_oid_t FLOOR_PRO_OID = proc_oid_t(97);
-  static constexpr proc_oid_t TRUNCATE_PRO_OID = proc_oid_t(98);
-  static constexpr proc_oid_t LOG10_PRO_OID = proc_oid_t(99);
-  static constexpr proc_oid_t LOG2_PRO_OID = proc_oid_t(100);
-  static constexpr proc_oid_t MOD_PRO_OID = proc_oid_t(101);
-  static constexpr proc_oid_t INTMOD_PRO_OID = proc_oid_t(102);
-  static constexpr proc_oid_t SQRT_PRO_OID = proc_oid_t(103);
-  static constexpr proc_oid_t CBRT_PRO_OID = proc_oid_t(104);
-  static constexpr proc_oid_t ROUND_PRO_OID = proc_oid_t(105);
-  static constexpr proc_oid_t ROUND2_PRO_OID = proc_oid_t(106);
-  static constexpr proc_oid_t POW_PRO_OID = proc_oid_t(107);
-  static constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(108);
-  static constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(109);
-  static constexpr proc_oid_t STARTSWITH_PRO_OID = proc_oid_t(110);
-  static constexpr proc_oid_t SUBSTR_PRO_OID = proc_oid_t(111);
-  static constexpr proc_oid_t LEFT_PRO_OID = proc_oid_t(112);
-  static constexpr proc_oid_t RIGHT_PRO_OID = proc_oid_t(113);
-  static constexpr proc_oid_t REVERSE_PRO_OID = proc_oid_t(114);
-  static constexpr proc_oid_t REPEAT_PRO_OID = proc_oid_t(115);
-  static constexpr proc_oid_t TRIM_PRO_OID = proc_oid_t(116);
-  static constexpr proc_oid_t TRIM2_PRO_OID = proc_oid_t(117);
-  static constexpr proc_oid_t ABS_INT_PRO_OID = proc_oid_t(118);
-  static constexpr proc_oid_t ABS_REAL_PRO_OID = proc_oid_t(119);
-  static constexpr proc_oid_t ASCII_PRO_OID = proc_oid_t(120);
-  static constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(121);
-  static constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(122);
-  static constexpr proc_oid_t POSITION_PRO_OID = proc_oid_t(123);
-  static constexpr proc_oid_t LENGTH_PRO_OID = proc_oid_t(124);
-  static constexpr proc_oid_t INITCAP_PRO_OID = proc_oid_t(125);
-  static constexpr proc_oid_t SPLIT_PART_PRO_OID = proc_oid_t(126);
-  static constexpr proc_oid_t LPAD_PRO_OID = proc_oid_t(127);
-  static constexpr proc_oid_t LPAD2_PRO_OID = proc_oid_t(128);
-  static constexpr proc_oid_t LTRIM2ARG_PRO_OID = proc_oid_t(129);
-  static constexpr proc_oid_t LTRIM1ARG_PRO_OID = proc_oid_t(130);
-  static constexpr proc_oid_t RPAD_PRO_OID = proc_oid_t(131);
-  static constexpr proc_oid_t RPAD2_PRO_OID = proc_oid_t(132);
-  static constexpr proc_oid_t RTRIM2ARG_PRO_OID = proc_oid_t(133);
-  static constexpr proc_oid_t RTRIM1ARG_PRO_OID = proc_oid_t(134);
-  static constexpr proc_oid_t CONCAT_PRO_OID = proc_oid_t(135);
-  static constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(136);
-  static constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(137);
-
-  static constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(900);
-  static constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);
-  static constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(902);
-  static constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(903);
 };
 
 }  // namespace noisepage::catalog::postgres
