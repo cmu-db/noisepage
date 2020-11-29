@@ -607,11 +607,11 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
         pg_class_ptr->Select(common::ManagedPointer(txn), GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
         auto class_oid = *(
             reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID_COL_OID])));
-        auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::ClassKind *>(
+        auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
             pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND_COL_OID])));
 
         switch (class_kind) {
-          case (catalog::postgres::PgClass::ClassKind::REGULAR_TABLE): {
+          case (catalog::postgres::PgClass::RelKind::REGULAR_TABLE): {
             // Step 2: Query pg_attribute for the columns of the table
             auto schema_cols =
                 db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
@@ -643,7 +643,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             return 0;  // No additional records processed
           }
 
-          case (catalog::postgres::PgClass::ClassKind::INDEX): {
+          case (catalog::postgres::PgClass::RelKind::INDEX): {
             // Step 2: Query pg_attribute for the columns of the index
             auto index_cols =
                 db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
@@ -741,7 +741,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   pg_class->Select(common::ManagedPointer(txn), GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
   auto class_oid =
       *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID_COL_OID])));
-  auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::ClassKind *>(
+  auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
       pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND_COL_OID])));
   delete[] buffer;
 
@@ -764,12 +764,12 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
                          "PR Map must contain class kind");
         auto next_class_oid = *(reinterpret_cast<uint32_t *>(
             next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID_COL_OID])));
-        auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::PgClass::ClassKind *>(
+        auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
             next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND_COL_OID])));
 
         if (class_oid == next_class_oid) {  // Condition 4: If the oid matches on the next record, this is a renaming
           NOISEPAGE_ASSERT(
-              class_kind == catalog::postgres::PgClass::ClassKind::REGULAR_TABLE && class_kind == next_class_kind,
+              class_kind == catalog::postgres::PgClass::RelKind::REGULAR_TABLE && class_kind == next_class_kind,
               "We only allow renaming of tables");
           // Step 4: Extract out the new name
           VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
@@ -807,11 +807,11 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   // Step 3: If it was not a renaming, we call to the catalog to delete the class object
   bool result UNUSED_ATTRIBUTE;
   switch (class_kind) {
-    case (catalog::postgres::PgClass::ClassKind::REGULAR_TABLE): {
+    case (catalog::postgres::PgClass::RelKind::REGULAR_TABLE): {
       result = db_catalog_ptr->DeleteTable(common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
       break;
     }
-    case (catalog::postgres::PgClass::ClassKind::INDEX): {
+    case (catalog::postgres::PgClass::RelKind::INDEX): {
       result = db_catalog_ptr->DeleteIndex(common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
       break;
     }

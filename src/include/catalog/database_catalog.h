@@ -254,7 +254,7 @@ class DatabaseCatalog {
    * @param ns being queried
    * @return vector of OIDs for all of the objects on this namespace
    */
-  std::vector<std::pair<uint32_t, postgres::PgClass::ClassKind>> GetNamespaceClassOids(
+  std::vector<std::pair<uint32_t, postgres::PgClass::RelKind>> GetNamespaceClassOids(
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid);
 
   /** @see PgAttributeImpl::CreateColumn */
@@ -359,7 +359,7 @@ class DatabaseCatalog {
                   postgres::PgType::Type type_category);
 
   /** @see PgCoreImpl::GetClassOidKind */
-  std::pair<uint32_t, postgres::PgClass::ClassKind> GetClassOidKind(
+  std::pair<uint32_t, postgres::PgClass::RelKind> GetClassOidKind(
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid, const std::string &name);
 
   /**

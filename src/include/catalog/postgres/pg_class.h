@@ -16,17 +16,19 @@ namespace noisepage::catalog::postgres {
 class Builder;
 class PgCoreImpl;
 
+/** The OIDs used by the NoisePage version of pg_class. */
 class PgClass {
  public:
-  enum class ClassKind : char {
-    REGULAR_TABLE = 'r',
-    INDEX = 'i',
-    SEQUENCE = 'S',  // yes, this really is the only capitalized one. Ask postgres wtf.
-    VIEW = 'v',
-    MATERIALIZED_VIEW = 'm',
-    COMPOSITE_TYPE = 'c',
-    TOAST_TABLE = 't',
-    FOREIGN_TABLE = 'f',
+  /** The relkind in Postgres, i.e., the kind of relation. All enum values match Postgres. */
+  enum class RelKind : char {
+    REGULAR_TABLE = 'r',      ///< Ordinary table.
+    INDEX = 'i',              ///< Index.
+    SEQUENCE = 'S',           ///< Sequence.
+    VIEW = 'v',               ///< View.
+    MATERIALIZED_VIEW = 'm',  ///< Materialized view.
+    COMPOSITE_TYPE = 'c',     ///< Composite type.
+    TOAST_TABLE = 't',        ///< TOAST table.
+    FOREIGN_TABLE = 'f',      ///< Foreign table.
   };
 
  private:

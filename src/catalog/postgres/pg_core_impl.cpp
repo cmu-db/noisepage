@@ -250,7 +250,7 @@ std::function<void(void)> PgCoreImpl::GetTearDownFn(
   auto pc = pci.Initialize(buffer);
 
   // Fetch pointers to the start each in the projected columns
-  auto classes = reinterpret_cast<PgClass::ClassKind *>(pc->ColumnStart(pm[PgClass::RELKIND_COL_OID]));
+  auto classes = reinterpret_cast<PgClass::RelKind *>(pc->ColumnStart(pm[PgClass::RELKIND_COL_OID]));
   auto schemas = reinterpret_cast<void **>(pc->ColumnStart(pm[PgClass::REL_SCHEMA_COL_OID]));
   auto objects = reinterpret_cast<void **>(pc->ColumnStart(pm[PgClass::REL_PTR_COL_OID]));
 
@@ -262,11 +262,11 @@ std::function<void(void)> PgCoreImpl::GetTearDownFn(
       NOISEPAGE_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
       NOISEPAGE_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
-        case PgClass::ClassKind::REGULAR_TABLE:
+        case PgClass::RelKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
           tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
-        case PgClass::ClassKind::INDEX:
+        case PgClass::RelKind::INDEX:
           index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
@@ -374,7 +374,7 @@ bool PgCoreImpl::DeleteNamespace(const common::ManagedPointer<transaction::Trans
   auto ns_objects = GetNamespaceClassOids(txn, ns_oid);
   for (const auto &object : ns_objects) {
     // Delete all of the tables. This should get most of the indexes
-    if (object.second == PgClass::ClassKind::REGULAR_TABLE) {
+    if (object.second == PgClass::RelKind::REGULAR_TABLE) {
       result = DeleteTable(txn, dbc, static_cast<table_oid_t>(object.first));
       if (!result) {
         // Someone else has a write-lock. Free the buffer and return false to indicate failure
@@ -392,7 +392,7 @@ bool PgCoreImpl::DeleteNamespace(const common::ManagedPointer<transaction::Trans
   for (const auto &object : ns_objects) {
     // Delete all of the straggler indexes that may have been built on tables in other namespaces. We shouldn't get any
     // double-deletions because indexes on tables will already be invisible to us (logically deleted already).
-    if (object.second == PgClass::ClassKind::INDEX) {
+    if (object.second == PgClass::RelKind::INDEX) {
       result = DeleteIndex(txn, dbc, static_cast<index_oid_t>(object.first));
       if (!result) {
         // Someone else has a write-lock. Free the buffer and return false to indicate failure
@@ -535,7 +535,7 @@ bool PgCoreImpl::CreateTableEntry(const common::ManagedPointer<transaction::Tran
   // Write the kind into the PR
   const auto kind_offset = pg_class_all_cols_prm_[PgClass::RELKIND_COL_OID];
   auto *const kind_ptr = insert_pr->AccessForceNotNull(kind_offset);
-  *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(PgClass::ClassKind::REGULAR_TABLE);
+  *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(PgClass::RelKind::REGULAR_TABLE);
 
   // Create the necessary varlen for storage operations
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
@@ -724,7 +724,7 @@ bool PgCoreImpl::CreateIndexEntry(const common::ManagedPointer<transaction::Tran
   // Write the kind into the PR
   const auto kind_offset = pg_class_all_cols_prm_[PgClass::RELKIND_COL_OID];
   auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
-  *(reinterpret_cast<PgClass::ClassKind *>(kind_ptr)) = PgClass::ClassKind::INDEX;
+  *(reinterpret_cast<PgClass::RelKind *>(kind_ptr)) = PgClass::RelKind::INDEX;
 
   // Write the index_schema_ptr into the PR
   const auto index_schema_ptr_offset = pg_class_all_cols_prm_[PgClass::REL_SCHEMA_COL_OID];
@@ -1130,7 +1130,7 @@ std::vector<index_oid_t> PgCoreImpl::GetIndexOids(const common::ManagedPointer<t
   return index_oids;
 }
 
-std::vector<std::pair<uint32_t, PgClass::ClassKind>> PgCoreImpl::GetNamespaceClassOids(
+std::vector<std::pair<uint32_t, PgClass::RelKind>> PgCoreImpl::GetNamespaceClassOids(
     const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid) {
   std::vector<storage::TupleSlot> index_scan_results;
 
@@ -1150,14 +1150,14 @@ std::vector<std::pair<uint32_t, PgClass::ClassKind>> PgCoreImpl::GetNamespaceCla
   }
 
   auto *select_pr = get_class_oid_kind_pri_.InitializeRow(buffer);
-  std::vector<std::pair<uint32_t, PgClass::ClassKind>> ns_objects;
+  std::vector<std::pair<uint32_t, PgClass::RelKind>> ns_objects;
   ns_objects.reserve(index_scan_results.size());
   for (const auto scan_result : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, scan_result, select_pr);
     NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     // oid_t is guaranteed to be larger in size than ClassKind, so we know the column offsets without the PR map
     ns_objects.emplace_back(*(reinterpret_cast<const uint32_t *const>(select_pr->AccessWithNullCheck(0))),
-                            *(reinterpret_cast<const PgClass::ClassKind *const>(select_pr->AccessForceNotNull(1))));
+                            *(reinterpret_cast<const PgClass::RelKind *const>(select_pr->AccessForceNotNull(1))));
   }
 
   // Finish
@@ -1165,7 +1165,7 @@ std::vector<std::pair<uint32_t, PgClass::ClassKind>> PgCoreImpl::GetNamespaceCla
   return ns_objects;
 }
 
-std::pair<void *, PgClass::ClassKind> PgCoreImpl::GetClassPtrKind(
+std::pair<void *, PgClass::RelKind> PgCoreImpl::GetClassPtrKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
   std::vector<storage::TupleSlot> index_results;
 
@@ -1191,7 +1191,7 @@ std::pair<void *, PgClass::ClassKind> PgCoreImpl::GetClassPtrKind(
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *const ptr_ptr = (reinterpret_cast<void *const *const>(select_pr->AccessWithNullCheck(0)));
-  auto kind = *(reinterpret_cast<const PgClass::ClassKind *const>(select_pr->AccessForceNotNull(1)));
+  auto kind = *(reinterpret_cast<const PgClass::RelKind *const>(select_pr->AccessForceNotNull(1)));
 
   void *ptr;
   if (ptr_ptr == nullptr) {
@@ -1204,7 +1204,7 @@ std::pair<void *, PgClass::ClassKind> PgCoreImpl::GetClassPtrKind(
   return {ptr, kind};
 }
 
-std::pair<void *, PgClass::ClassKind> PgCoreImpl::GetClassSchemaPtrKind(
+std::pair<void *, PgClass::RelKind> PgCoreImpl::GetClassSchemaPtrKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
   std::vector<storage::TupleSlot> index_results;
 
@@ -1230,7 +1230,7 @@ std::pair<void *, PgClass::ClassKind> PgCoreImpl::GetClassSchemaPtrKind(
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *const ptr = *(reinterpret_cast<void *const *const>(select_pr->AccessForceNotNull(0)));
-  auto kind = *(reinterpret_cast<const PgClass::ClassKind *const>(select_pr->AccessForceNotNull(1)));
+  auto kind = *(reinterpret_cast<const PgClass::RelKind *const>(select_pr->AccessForceNotNull(1)));
 
   NOISEPAGE_ASSERT(ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
 
@@ -1238,7 +1238,7 @@ std::pair<void *, PgClass::ClassKind> PgCoreImpl::GetClassSchemaPtrKind(
   return {ptr, kind};
 }
 
-std::pair<uint32_t, PgClass::ClassKind> PgCoreImpl::GetClassOidKind(
+std::pair<uint32_t, PgClass::RelKind> PgCoreImpl::GetClassOidKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid,
     const std::string &name) {
   const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
@@ -1263,7 +1263,7 @@ std::pair<uint32_t, PgClass::ClassKind> PgCoreImpl::GetClassOidKind(
   if (index_results.empty()) {
     delete[] buffer;
     // If the OID is invalid, we don't care the class kind and return a random one.
-    return std::make_pair(catalog::NULL_OID, PgClass::ClassKind::REGULAR_TABLE);
+    return std::make_pair(catalog::NULL_OID, PgClass::RelKind::REGULAR_TABLE);
   }
   NOISEPAGE_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
 
@@ -1276,7 +1276,7 @@ std::pair<uint32_t, PgClass::ClassKind> PgCoreImpl::GetClassOidKind(
   // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
   // sizes
   const auto oid = *(reinterpret_cast<const uint32_t *const>(pr->AccessForceNotNull(0)));
-  const auto kind = *(reinterpret_cast<const PgClass::ClassKind *const>(pr->AccessForceNotNull(1)));
+  const auto kind = *(reinterpret_cast<const PgClass::RelKind *const>(pr->AccessForceNotNull(1)));
 
   // Finish
   delete[] buffer;
