@@ -363,39 +363,38 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid, const std::string &name);
 
   /**
-   * Sets a table's schema in pg_class
-   * @warning Should only be used by recovery
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @param schema object schema to insert
-   * @return true if succesfull
+   * Set the schema of a table in pg_class.
+   *
+   * @tparam CallerType     The type of the caller. Should only be used by recovery!
+   * @param txn             The transaction to perform the schema change in.
+   * @param oid             The OID of the table.
+   * @param schema          The new schema to set.
+   * @return True if the schema was set successfully. False otherwise.
    */
-  bool SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
-                             const Schema *schema);
+  template <typename CallerType>
+  auto SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
+                             const Schema *schema)
+      -> std::enable_if_t<std::is_same_v<CallerType, storage::RecoveryManager>, bool> {
+    return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
+  }
 
   /**
-   * Sets an index's schema in pg_class
-   * @warning Should only be used by recovery
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @param schema object schema to insert
-   * @return true if succesfull
+   * Set the schema of an index in pg_class.
+   *
+   * @tparam CallerType     The type of the caller. Should only be used by recovery!
+   * @param txn             The transaction to perform the schema change in.
+   * @param oid             The OID of the index.
+   * @param schema          The new schema to set.
+   * @return True if the schema was set successfully. False otherwise.
    */
-  bool SetIndexSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t oid,
-                             const IndexSchema *schema);
+  template <typename CallerType>
+  auto SetIndexSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t oid,
+                             const IndexSchema *schema)
+      -> std::enable_if_t<std::is_same_v<CallerType, storage::RecoveryManager>, bool> {
+    return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
+  }
 
-  /**
-   * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
-   * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
-   * are basically indentical outside of input types
-   * @tparam ClassOid either index_oid_t or table_oid_t
-   * @tparam Ptr either Index or SqlTable
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @param pointer pointer to set
-   * @param class_col pg_class column to insert pointer into
-   * @return true if successful
-   */
+  /** @see PgCoreImpl::SetClassPointer */
   template <typename ClassOid, typename Ptr>
   bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid, const Ptr *pointer,
                        col_oid_t class_col);

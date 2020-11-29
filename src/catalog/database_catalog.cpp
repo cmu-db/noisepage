@@ -238,16 +238,6 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   return pg_core_.DeleteIndex(txn, common::ManagedPointer(this), index);
 }
 
-bool DatabaseCatalog::SetTableSchemaPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            const table_oid_t oid, const Schema *const schema) {
-  return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
-}
-
-bool DatabaseCatalog::SetIndexSchemaPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            const index_oid_t oid, const IndexSchema *const schema) {
-  return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
-}
-
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {

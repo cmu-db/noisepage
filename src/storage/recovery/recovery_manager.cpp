@@ -619,8 +619,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
             // Step 3: Create and set schema in catalog
             auto *schema = new catalog::Schema(std::move(schema_cols));
-            bool result UNUSED_ATTRIBUTE =
-                db_catalog->SetTableSchemaPointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid), schema);
+            bool result UNUSED_ATTRIBUTE = db_catalog->SetTableSchemaPointer<RecoveryManager>(
+                common::ManagedPointer(txn), catalog::table_oid_t(class_oid), schema);
             NOISEPAGE_ASSERT(result,
                              "Setting table schema pointer should succeed, entry should be in pg_class already");
 
@@ -685,8 +685,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             // Step 4: Create and set IndexSchema in catalog
             auto *index_schema =
                 new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
-            result = db_catalog->SetIndexSchemaPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid),
-                                                       index_schema);
+            result = db_catalog->SetIndexSchemaPointer<RecoveryManager>(common::ManagedPointer(txn),
+                                                                        catalog::index_oid_t(class_oid), index_schema);
             NOISEPAGE_ASSERT(result,
                              "Setting index schema pointer should succeed, entry should be in pg_class already");
 
