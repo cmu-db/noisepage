@@ -903,6 +903,9 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
       case ast::BuiltinType::Date:
         GetEmitter()->Emit(Bytecode::HashDate, hash_val, input, hash_val.ValueOf());
         break;
+      case ast::BuiltinType::FixedDecimal:
+        GetEmitter()->Emit(Bytecode::HashFixedDecimal, hash_val, input, hash_val.ValueOf());
+        break;
       case ast::BuiltinType::Timestamp:
         GetEmitter()->Emit(Bytecode::HashTimestamp, hash_val, input, hash_val.ValueOf());
       default:
@@ -3311,6 +3314,9 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
       break;                                                            \
     case ast::BuiltinType::Kind::StringVal:                             \
       CODE_RESULT = Bytecode::COMPARISON_TYPE##String;                  \
+      break;                                                            \
+    case ast::BuiltinType::Kind::FixedDecimal:                          \
+      CODE_RESULT = Bytecode::COMPARISON_TYPE##FixedDecimal;            \
       break;                                                            \
     default:                                                            \
       UNREACHABLE("Undefined SQL comparison!");                         \

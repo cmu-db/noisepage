@@ -467,6 +467,11 @@ VM_OP_HOT void OpHashDate(terrier::hash_t *const hash_val, const terrier::execut
   *hash_val = input->is_null_ ? 0 : input->val_.Hash(seed);
 }
 
+VM_OP_HOT void OpHashFixedDecimal(terrier::hash_t *const hash_val, const terrier::execution::sql::DecimalVal *const input,
+                          const terrier::hash_t seed) {
+  *hash_val = input->is_null_ ? 0 : input->val_.Hash(seed);
+}
+
 VM_OP_HOT void OpHashTimestamp(terrier::hash_t *const hash_val,
                                const terrier::execution::sql::TimestampVal *const input, const terrier::hash_t seed) {
   *hash_val = input->is_null_ ? 0 : input->val_.Hash(seed);
@@ -711,6 +716,41 @@ GEN_SQL_COMPARISONS(Timestamp, TimestampVal)
 GEN_SQL_COMPARISONS(String, StringVal)
 
 #undef GEN_SQL_COMPARISONS
+
+// TODO(Rohan): Optimize this
+#define GEN_FIXED_DECIMAL_COMPARISONS(NAME, EXPR)                                                   \
+  VM_OP_HOT void Op##NAME##FixedDecimal(terrier::execution::sql::BoolVal *const result,             \
+                                     const terrier::execution::sql::DecimalVal *const left,         \
+                                     const terrier::execution::sql::DecimalVal *const right) {      \
+    auto left_val = left->val_;                                                                     \
+    auto right_val = right->val_;                                                                   \
+    auto left_precision = left->precision_;                                                         \
+    auto right_precision = right->precision_;                                                       \
+    if(left_precision < right_precision) {                                                          \
+      int128_t intermediate_value = left_val.GetValue();                                            \
+      for(int i = 0; i < right_precision - left_precision; i++) {                                   \
+        intermediate_value *= 10;                                                                   \
+      }                                                                                             \
+      left_val.SetValue(intermediate_value);                                                        \
+    } else {                                                                                        \
+      int128_t intermediate_value = right_val.GetValue();                                           \
+      for(int i = 0; i < left_precision - right_precision; i++) {                                   \
+        intermediate_value *= 10;                                                                   \
+      }                                                                                             \
+      right_val.SetValue(intermediate_value);                                                       \
+    }                                                                                               \
+    result->is_null_ = (left->is_null_ || right->is_null_);                                         \
+    result->val_ = (left_val EXPR right_val);                                                       \
+  }                                                                                                 \
+
+GEN_FIXED_DECIMAL_COMPARISONS(GreaterThan, >)
+GEN_FIXED_DECIMAL_COMPARISONS(GreaterThanEqual, >=)
+GEN_FIXED_DECIMAL_COMPARISONS(LessThan, <)
+GEN_FIXED_DECIMAL_COMPARISONS(LessThanEqual, <=)
+GEN_FIXED_DECIMAL_COMPARISONS(Equal, ==)
+GEN_FIXED_DECIMAL_COMPARISONS(NotEqual, !=)
+
+#undef GEN_FIXED_DECIMAL_COMPARISONS
 
 VM_OP_WARM void OpAbsInteger(terrier::execution::sql::Integer *const result,
                              const terrier::execution::sql::Integer *const left) {

@@ -236,42 +236,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 #undef GEN_COMPARISON_TYPES
 #undef DO_GEN_COMPARISON
 
-  OP(AddFixedDecimal) : {
-    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
-    OpAddFixedDecimal(dest, lhs, rhs);
-    DISPATCH_NEXT();
-  }
-
-  OP(SubFixedDecimal) : {
-    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
-    OpSubFixedDecimal(dest, lhs, rhs);
-    DISPATCH_NEXT();
-  }
-
-  OP(MulFixedDecimal) : {
-    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
-    OpMulFixedDecimal(dest, lhs, rhs);
-    DISPATCH_NEXT();
-  }
-
-  OP(DivFixedDecimal) : {
-    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
-    OpDivFixedDecimal(dest, lhs, rhs);
-    DISPATCH_NEXT();
-  }
-
   // -------------------------------------------------------
   // Primitive arithmetic
   // -------------------------------------------------------
@@ -854,6 +818,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_HASH(Int, sql::Integer)
   GEN_HASH(Real, sql::Real)
   GEN_HASH(Date, sql::DateVal)
+  GEN_HASH(FixedDecimal, sql::DecimalVal)
   GEN_HASH(Timestamp, sql::TimestampVal)
   GEN_HASH(String, sql::StringVal)
 #undef GEN_HASH
@@ -1134,6 +1099,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     Op##op##Date(result, left, right);                                  \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
+  OP(op##FixedDecimal) : {                                              \
+    auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());     \
+    auto *left = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());    \
+    auto *right = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());   \
+    Op##op##FixedDecimal(result, left, right);                          \
+    DISPATCH_NEXT();                                                    \
+  }                                                                     \
   OP(op##Timestamp) : {                                                 \
     auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());     \
     auto *left = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());  \
@@ -1211,6 +1183,43 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_MATH_OPS(Mod)
 
 #undef GEN_MATH_OPS
+
+
+  OP(AddFixedDecimal) : {
+    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+
+    OpAddFixedDecimal(dest, lhs, rhs);
+    DISPATCH_NEXT();
+  }
+
+  OP(SubFixedDecimal) : {
+    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+
+    OpSubFixedDecimal(dest, lhs, rhs);
+    DISPATCH_NEXT();
+  }
+
+  OP(MulFixedDecimal) : {
+    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+
+    OpMulFixedDecimal(dest, lhs, rhs);
+    DISPATCH_NEXT();
+  }
+
+  OP(DivFixedDecimal) : {
+    auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+
+    OpDivFixedDecimal(dest, lhs, rhs);
+    DISPATCH_NEXT();
+  }
 
   // -------------------------------------------------------
   // Aggregations

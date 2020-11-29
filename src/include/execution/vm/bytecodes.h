@@ -287,6 +287,12 @@ namespace terrier::execution::vm {
   F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(LessThanEqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(GreaterThanFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(GreaterThanEqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(EqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(NotEqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(LessThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
   F(LessThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(GreaterThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
@@ -331,6 +337,7 @@ namespace terrier::execution::vm {
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(HashReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashDate, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
+  F(HashFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
   F(HashTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
   F(HashString, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(HashCombine, OperandType::Local, OperandType::Local)                                                              \
