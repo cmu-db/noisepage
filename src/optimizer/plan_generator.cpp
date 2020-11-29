@@ -60,7 +60,7 @@ std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpNode(
     PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
     std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans, std::vector<ExprMap> &&children_expr_map,
-    const planner::PlanMetaData::PlanNodeMetaData &&plan_node_meta_data) {
+    const planner::PlanMetaData::PlanNodeMetaData plan_node_meta_data) {
   required_props_ = required_props;
   required_cols_ = required_cols;
   output_cols_ = output_cols;
