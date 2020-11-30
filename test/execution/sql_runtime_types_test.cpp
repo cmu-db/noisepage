@@ -132,6 +132,156 @@ TEST_F(RuntimeTypesTest, StringToNegativeDecimalTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionTest) {
+  Decimal128 d(0);
+  int returned_precision;
+  returned_precision = d.SetMaxmPrecision(std::string("1234.567"));
+  Decimal128 a_1(1234567);
+  EXPECT_EQ(1, a_1 == d);
+  EXPECT_EQ(returned_precision, 3);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.56"));
+  Decimal128 a_2(123456);
+  EXPECT_EQ(1, a_2 == d);
+  EXPECT_EQ(returned_precision, 2);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234."));
+  Decimal128 a_3(1234);
+  EXPECT_EQ(1, a_3 == d);
+  EXPECT_EQ(returned_precision, 0);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234"));
+  Decimal128 a_4(1234);
+  EXPECT_EQ(1, a_4 == d);
+  EXPECT_EQ(returned_precision, 0);
+
+  returned_precision = d.SetMaxmPrecision(std::string("123"));
+  Decimal128 a_5(123);
+  EXPECT_EQ(1, a_5 == d);
+  EXPECT_EQ(returned_precision, 0);
+
+  returned_precision = d.SetMaxmPrecision(std::string("123.5"));
+  Decimal128 a_6(1235);
+  EXPECT_EQ(1, a_6 == d);
+  EXPECT_EQ(returned_precision, 1);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.568"));
+  Decimal128 a_7(1234568);
+  EXPECT_EQ(1, a_7 == d);
+  EXPECT_EQ(returned_precision, 3);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.5678"));
+  Decimal128 a_8(12345678);
+  EXPECT_EQ(1, a_8 == d);
+  EXPECT_EQ(returned_precision, 4);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.56789"));
+  Decimal128 a_9(123456789);
+  EXPECT_EQ(1, a_9 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.56785"));
+  Decimal128 a_10(123456785);
+  EXPECT_EQ(1, a_10 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.56784"));
+  Decimal128 a_11(123456784);
+  EXPECT_EQ(1, a_11 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.56779"));
+  Decimal128 a_12(123456779);
+  EXPECT_EQ(1, a_12 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.56775"));
+  Decimal128 a_13(123456775);
+  EXPECT_EQ(1, a_13 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("1234.56774"));
+  Decimal128 a_14(123456774);
+  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(1, a_14 == d);
+}
+
+// NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionNegativeTest) {
+  Decimal128 d(0);
+  int returned_precision;
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.567"));
+  Decimal128 a_1(-1234567);
+  EXPECT_EQ(1, a_1 == d);
+  EXPECT_EQ(returned_precision, 3);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.56"));
+  Decimal128 a_2(-123456);
+  EXPECT_EQ(1, a_2 == d);
+  EXPECT_EQ(returned_precision, 2);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234."));
+  Decimal128 a_3(-1234);
+  EXPECT_EQ(1, a_3 == d);
+  EXPECT_EQ(returned_precision, 0);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234"));
+  Decimal128 a_4(-1234);
+  EXPECT_EQ(1, a_4 == d);
+  EXPECT_EQ(returned_precision, 0);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-123"));
+  Decimal128 a_5(-123);
+  EXPECT_EQ(1, a_5 == d);
+  EXPECT_EQ(returned_precision, 0);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-123.5"));
+  Decimal128 a_6(-1235);
+  EXPECT_EQ(1, a_6 == d);
+  EXPECT_EQ(returned_precision, 1);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.568"));
+  Decimal128 a_7(-1234568);
+  EXPECT_EQ(1, a_7 == d);
+  EXPECT_EQ(returned_precision, 3);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.5678"));
+  Decimal128 a_8(-12345678);
+  EXPECT_EQ(1, a_8 == d);
+  EXPECT_EQ(returned_precision, 4);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.56789"));
+  Decimal128 a_9(-123456789);
+  EXPECT_EQ(1, a_9 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.56785"));
+  Decimal128 a_10(-123456785);
+  EXPECT_EQ(1, a_10 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.56784"));
+  Decimal128 a_11(-123456784);
+  EXPECT_EQ(1, a_11 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.56779"));
+  Decimal128 a_12(-123456779);
+  EXPECT_EQ(1, a_12 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.56775"));
+  Decimal128 a_13(-123456775);
+  EXPECT_EQ(1, a_13 == d);
+  EXPECT_EQ(returned_precision, 5);
+
+  returned_precision = d.SetMaxmPrecision(std::string("-1234.56774"));
+  Decimal128 a_14(-123456774);
+  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(1, a_14 == d);
+}
+
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
   // Valid date
   Decimal128 d_1(0);
