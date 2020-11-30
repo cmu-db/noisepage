@@ -952,17 +952,80 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   BenchmarkExecQuery(settings.warmup_iterations_num_ + 1, &exec_query, schema.get(), true);
 }
 
-void PrintInitSI(std::stringstream &output, size_t tbl_cols, uint32_t tbl_oid) {
+/**
+ * Emits initializing the storage interface
+ *
+ * @param output OutputStream to write to
+ * @param tbl_cols Number of table columns
+ * @param tbl_oid Table OID
+ * @param is_insert Whether for INDEX-INSERT or INDEX-DELETE
+ */
+void PrintInitSI(std::stringstream &output, size_t tbl_cols, uint32_t tbl_oid, bool is_insert) {
   // Define col_oids for StorageInserters
-  output << "\tvar col_oids : [" << tbl_cols << "]uint32\n";
-  for (size_t i = 0; i < tbl_cols; i++) {
-    output << "\tcol_oids[" << i << "] = " << (i + 1) << "\n";
+  if (is_insert) {
+    output << "\tvar col_oids : [" << tbl_cols << "]uint32\n";
+    for (size_t i = 0; i < tbl_cols; i++) {
+      output << "\tcol_oids[" << i << "] = " << (i + 1) << "\n";
+    }
+  } else {
+    output << "\tvar col_oids : [0]uint32\n";
   }
 
   // Define all per-tuple variables now
-  output << "\tvar inserter: StorageInterface\n";
-  output << "\tvar insert_pr: *ProjectedRow\n";
-  output << "\t@storageInterfaceInit(&inserter, queryState.execCtx, " << tbl_oid << ", col_oids, true)\n";
+  output << "\tvar si: StorageInterface\n";
+  output << "\tvar si_pr: *ProjectedRow\n";
+  output << "\t@storageInterfaceInit(&si, queryState.execCtx, " << tbl_oid << ", col_oids, true)\n";
+}
+
+/**
+ * Constructs a string for setting a projected row
+ *
+ * @param type Type of the field
+ * @param idx_pr Name of the ProjectedRow to set
+ * @param col Column offset of PR to set
+ * @param from_pr Whether value comes from src_pr[col]
+ * @param src_pr Source PR to copy value from if from_pr is true
+ * @param value Value to insert into PR if from_pr is false
+ * @returns TPL for setting a projected row column
+ */
+std::string PrintPRSet(type::TypeId type, std::string idx_pr, std::string col, bool from_pr, std::string src_pr,
+                       size_t value) {
+  std::stringstream output;
+  switch (type) {
+    case type::TypeId::INTEGER:
+      output << "@prSetInt(";
+      break;
+    case type::TypeId::BIGINT:
+      output << "@prSetBigInt(";
+      break;
+    default:
+      throw "Unsupported type in PrintPRSet";
+      break;
+  }
+
+  output << idx_pr << ", " << col << ", ";
+  std::string pr_get, to_sql;
+  switch (type) {
+    case type::TypeId::INTEGER:
+      pr_get = "@prGetInt(";
+      to_sql = "@intToSql(";
+      break;
+    case type::TypeId::BIGINT:
+      pr_get = "@prGetBigInt(";
+      to_sql = "@intToSql(";
+      break;
+    default:
+      throw "Unsupported type in PrintPRSet";
+      break;
+  }
+
+  if (from_pr) {
+    output << pr_get << src_pr << ", " << col << "))";
+  } else {
+    output << to_sql << value << "))";
+  }
+
+  return output.str();
 }
 
 /**
@@ -970,44 +1033,59 @@ void PrintInitSI(std::stringstream &output, size_t tbl_cols, uint32_t tbl_oid) {
  * Code is emitted to the attached std::stringstream.
  *
  * Defines:
- * inserter: StorageInterface
- * insert_pr: Table PR
- * insert_slot: TupleSlot of insert
+ * si_pr: Table PR
+ * si_slot: TupleSlot of insert
+ *
+ * @param output Stream to write to
+ * @param type Type of tuple columns
+ * @param tbl_cols Number of tuple columns
+ * @param value Value to write for each column
  */
-void PrintInsertTupleIntoTable(std::stringstream &output, size_t tbl_cols, size_t value) {
-  output << "\tinsert_pr = @getTablePR(&inserter)\n";
+void PrintInsertTupleIntoTable(std::stringstream &output, type::TypeId type, size_t tbl_cols, size_t value) {
+  output << "\tsi_pr = @getTablePR(&si)\n";
 
-  // Init all projected rows for insert
+  // Init all projected rows for si
   for (size_t i = 0; i < tbl_cols; i++) {
-    output << "\t@prSetInt(insert_pr, " << i << ", @intToSql(" << value << "))\n";
+    output << "\t" << PrintPRSet(type, "si_pr", std::to_string(i), false, "", value) << "\n";
   }
 
   // Table Insert
-  output << "\tvar insert_slot = @tableInsert(&inserter)\n";
+  output << "\tvar si_slot = @tableInsert(&si)\n";
 }
 
 /**
- * Writes code to output that inserts a tuple into multiple indexes.
- * Requires "insert_pr" to be defined prior in the program.
- * Requires "inserter" to be defined prior in the program.
+ * Writes code to output that inserts/updates a tuple into multiple indexes.
+ *
+ * @param output Output to write to
+ * @param type Type of column
+ * @param idx_oids Indexes to update
+ * @param key_num Number of keys
+ * @param is_insert Whether INDEX-INSERT
+ * @param value INDEX-DELETE target value
  */
-void PrintInsertTupleIntoIndexes(std::stringstream &output, std::vector<catalog::index_oid_t> idx_oids,
-                                 size_t key_num) {
+void PrintModifyTupleIntoIndexes(std::stringstream &output, type::TypeId type,
+                                 std::vector<catalog::index_oid_t> idx_oids, size_t key_num, bool is_insert,
+                                 size_t value) {
   for (auto idx : idx_oids) {
     auto oid = static_cast<uint32_t>(idx);
     std::string idx_pr;
     {
       std::stringstream idx_pr_creator;
-      idx_pr_creator << "insert_index_pr_" << oid;
+      idx_pr_creator << "index_pr_" << oid;
       idx_pr = idx_pr_creator.str();
     }
-    output << "\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
+    output << "\tvar " << idx_pr << " = @getIndexPR(&si, " << oid << ")\n";
     for (size_t col = 0; col < key_num; col++) {
-      output << "\t@prSetInt(" << idx_pr << ", " << col << ", @prGetInt(insert_pr, " << col << "))\n";
+      output << "\t" << PrintPRSet(type, idx_pr, std::to_string(col), is_insert, "si_pr", value) << "\n";
     }
-    output << "\tif (!@indexInsert(&inserter)) {\n";
-    output << "\t\t@abortTxn(queryState.execCtx)\n";
-    output << "\t}\n";
+    if (is_insert) {
+      output << "\tif (!@indexInsert(&si)) {\n";
+      output << "\t\t@abortTxn(queryState.execCtx)\n";
+      output << "\t}\n";
+    } else {
+      output << "\t@indexDelete(&si, &tuple_slot)\n";
+      output << "\n";
+    }
     output << "\n";
   }
 }
@@ -1022,7 +1100,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     return;
   }
 
-  // Create the indexes
+  // Create the indexes for batch-insert
   auto cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
   auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, num_rows);
   for (auto i = 0; i < num_index; i++) {
@@ -1037,6 +1115,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   }
 
   if (!is_insert) {
+    // INSERT a tuple that we will delete for INDEX-DELETE
     std::stringstream query;
     query << "INSERT INTO " << tbl_name << " VALUES (";
     for (auto i = 0; i < tbl_cols; i++) {
@@ -1056,7 +1135,6 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   }
 
   // Invoke GC to clean some data
-  InvokeGC();
   InvokeGC();
   InvokeGC();
 
@@ -1085,13 +1163,14 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
 
       if (is_insert) {
         // Insert Tuple
-        PrintInitSI(output, tbl_cols, tbl_oid.UnderlyingValue());
-        PrintInsertTupleIntoTable(output, tbl_cols, num_rows);
+        PrintInitSI(output, tbl_cols, tbl_oid.UnderlyingValue(), true);
+        PrintInsertTupleIntoTable(output, type, tbl_cols, num_rows);
 
         // It is possible that we should iterate against a single index.
         output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
-        PrintInsertTupleIntoIndexes(output, idx_oids, key_num);
+        PrintModifyTupleIntoIndexes(output, type, idx_oids, key_num, true, 0);
         output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
+        output << "\t@storageInterfaceFree(&si)\n";
       } else {
         // Need to first insert into the indexes. This is not necessarily ideal
         // but we need a TupleSlot in order to call IndexDelete.
@@ -1100,56 +1179,37 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
         output << "\tvar tvi: TableVectorIterator\n";
         output << "\tvar table_oid : uint32\n";
         output << "\tvar col_oids: [1]uint32\n";
+        output << "\tvar tuple_slot: TupleSlot\n";
         output << "\ttable_oid = " << tbl_oid.UnderlyingValue() << "\n";
         output << "\tcol_oids[0] = 1\n";
-        output
-            << "\tfor (@tableIterInit(&tvi, queryState.execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {\n";
+        output << "\t@tableIterInit(&tvi, queryState.execCtx, table_oid, col_oids)\n";
+        output << "\tfor (@tableIterAdvance(&tvi)) {\n";
         output << "\t\tvar vpi = @tableIterGetVPI(&tvi)\n";
         output << "\t\tfor (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {\n";
         output << "\t\t\tvar col1 = @vpiGetInt(vpi, 0)\n";
         output << "\t\t\tif (col1 == " << num_rows << ") {\n";
-        output << "\t\t\t\tvar insert_slot: TupleSlot\n";
-        output << "\t\t\t\tinsert_slot = @vpiGetSlot(vpi)\n";
+        output << "\t\t\t\ttuple_slot = @vpiGetSlot(vpi)\n";
         output << "\n";
 
-        // It is possible that we should iterate against a single index.
-        PrintInitSI(output, tbl_cols, tbl_oid.UnderlyingValue());
-        output << "\t\t\t\tif (!@tableDelete(&inserter, &insert_slot)) {\n";
+        PrintInitSI(output, tbl_cols, tbl_oid.UnderlyingValue(), false);
+        output << "\t\t\t\tif (!@tableDelete(&si, &tuple_slot)) {\n";
         output << "\t\t\t\t\t@abortTxn(queryState.execCtx)\n";
         output << "\t\t\t\t}\n";
         output << "\n";
+
         output << "\t\t\t\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
-        for (auto idx : idx_oids) {
-          auto oid = static_cast<uint32_t>(idx);
-          std::string idx_pr;
-          {
-            std::stringstream idx_pr_creator;
-            idx_pr_creator << "delete_index_pr_" << oid;
-            idx_pr = idx_pr_creator.str();
-          }
-          output << "\t\t\t\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
-          for (int col = 0; col < key_num; col++) {
-            output << "\t\t\t\t@prSetInt(" << idx_pr << ", " << col << ", @intToSql(" << num_rows << "))\n";
-          }
-          output << "\t\t\t\t@indexDelete(&inserter, &insert_slot)\n";
-          output << "\n";
-        }
+        PrintModifyTupleIntoIndexes(output, type, idx_oids, key_num, false, num_rows);
         output << "\t\t\t\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
-        output << "\t@storageInterfaceFree(&inserter)\n";
+        output << "\t@storageInterfaceFree(&si)\n";
 
         output << "\n";
         output << "\t\t\t}\n";
         output << "\t\t}\n";
-        output << "\t\t@vpiReset(vpi)\n";
         output << "\t}\n";
         output << "\t@tableIterClose(&tvi)\n";
       }
 
       // Free storage interfaces
-      output << "\n";
-      if (is_insert) {
-        output << "\t@storageInterfaceFree(&inserter)\n";
-      }
       output << "\treturn\n";
       output << "}\n";
 
@@ -1212,8 +1272,9 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     exec_query.SetPipelineOperatingUnits(std::move(units));
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto num_iters = 1 + settings.index_model_warmup_iterations_num_;
-    BenchmarkExecQuery(num_iters, &exec_query, nullptr, !is_insert, &empty_params, &exec_settings);
+    // auto num_iters = 1 + settings.index_model_warmup_iterations_num_;
+    auto num_iters = 1;
+    BenchmarkExecQuery(num_iters, &exec_query, nullptr, true /*!is_insert*/, &empty_params, &exec_settings);
   }
 
   // Drop the indexes
