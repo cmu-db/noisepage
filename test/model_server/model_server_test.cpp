@@ -1,5 +1,4 @@
-
-
+#include <filesystem>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -56,8 +55,9 @@ class ModelServerTest : public TerrierTest {
         MODEL_SERVER_LOG_ERROR("failed to run {}: {}", MINI_RUNNER_PATH, strerror(errno));
       }
       return false;
-    } else if (pid > 0) {
-      ::waitpid(pid, NULL, 0);
+    }
+    if (pid > 0) {
+      ::waitpid(pid, nullptr, 0);
 
       /**
        * TODO:
@@ -67,13 +67,12 @@ class ModelServerTest : public TerrierTest {
        */
       ::rename("pipeline.csv", TEST_FILE_NAME);
       return true;
-    } else {
-      MODEL_SERVER_LOG_ERROR("failed to fork");
     }
+    MODEL_SERVER_LOG_ERROR("failed to fork");
     return false;
   }
 
-  static void CleanUp(void) {
+  static void CleanUp() {
     // Remove the file
     ::remove(TEST_FILE_NAME);
   }
@@ -108,17 +107,38 @@ TEST_F(ModelServerTest, PipelineTest) {
   ms_manager->PrintMessage(msg);
 
   // Perform a training
-  std::vector<std::string> models{"lr"};
+  std::vector<std::string> models{"lr", "gbm"};
+  std::string save_path = "/tmp/model_server_test.pickle";
+
+  // Test with new model trained
+  if (std::filesystem::exists(save_path)) {
+    std::filesystem::remove(save_path);
+  }
+  ASSERT_FALSE(std::filesystem::exists(save_path));
+
   auto seq_files_dir = std::filesystem::current_path();
-  MODEL_SERVER_LOG_INFO("Training with {}, and input dir: {}", models[0], seq_files_dir);
   ModelServerFuture<std::string> future;
-  ms_manager->TrainWith(models, seq_files_dir, &future);
+  ms_manager->TrainWith(models, seq_files_dir, save_path, &future);
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference
-  auto result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", features);
-  ASSERT_GT(result.size(), 0);
+  auto result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", save_path, features);
+  ASSERT_EQ(result.size(), features.size());
+  result = ms_manager->DoInference("OP_DECIMAL_COMPARE", save_path, features);
+  ASSERT_EQ(result.size(), features.size());
+  result = ms_manager->DoInference("OP_INTEGER_MULTIPLY", save_path, features);
+  ASSERT_EQ(result.size(), features.size());
+
+  // Model at another path should not exist
+  std::string non_exist_path("/tmp/model_server_test_non_exist.pickle");
+  ASSERT_FALSE(std::filesystem::exists(non_exist_path));
+  result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", non_exist_path, features);
+  ASSERT_EQ(result.size(), 0);
+
+  // Inference with invalid opunit name will fail
+  result = ms_manager->DoInference("OP_SUPER_MAGICAL_DIVIDE", non_exist_path, features);
+  ASSERT_EQ(result.size(), 0);
 
   // Quit
   ms_manager->StopModelServer();

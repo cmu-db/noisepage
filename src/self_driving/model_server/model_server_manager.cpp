@@ -147,13 +147,13 @@ void ModelServerManager::StopModelServer() {
   if (thd_.joinable()) thd_.join();
 }
 
-void ModelServerManager::TrainWith(const std::vector<std::string> &models, const std::string &seq_files_dir,
-                                   ModelServerFuture<std::string> *future) {
+void ModelServerManager::TrainWith(const std::vector<std::string> &methods, const std::string &seq_files_dir,
+                                   const std::string &save_path, ModelServerFuture<std::string> *future) {
   nlohmann::json j;
   j["cmd"] = "TRAIN";
-  j["data"]["models"] = models;
+  j["data"]["methods"] = methods;
   j["data"]["seq_files"] = seq_files_dir;
-  j["data"]["raw_data"] = "";
+  j["data"]["save_path"] = save_path;
 
   // Callback to notify the waiter for result, or failure to parse the result.
   auto callback = [&, future](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
@@ -166,7 +166,7 @@ void ModelServerManager::TrainWith(const std::vector<std::string> &models, const
       future->Done(result);
     } catch (nlohmann::json::exception &e) {
       MODEL_SERVER_LOG_WARN("Wrong message format, incorrect result field: {}, {}", message, e.what());
-      future->Fail();
+      future->Fail("WRONG_RESULT_FORMAT");
     }
   };
 
@@ -177,28 +177,14 @@ void ModelServerManager::TrainWith(const std::vector<std::string> &models, const
   }
 }
 
-void ModelServerManager::TrainWith(
-    const std::vector<std::string> &models,
-    std::unordered_map<selfdriving::ExecutionOperatingUnitType,
-                       std::pair<std::vector<std::vector<double>>, std::vector<std::vector<double>>>> &raw_data) {
-  nlohmann::json j;
-  j["cmd"] = "TRAIN";
-  j["data"]["models"] = models;
-  j["data"]["seq_files"] = "";
-  j["data"]["raw_data"] = raw_data;
-  try {
-    messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
-  } catch (std::exception &e) {
-    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to invoke TrainWith. Error: {}", ::getpid(), e.what());
-  }
-}
-
 std::vector<std::vector<double>> ModelServerManager::DoInference(const std::string &opunit,
+                                                                 const std::string &model_path,
                                                                  const std::vector<std::vector<double>> &features) {
   nlohmann::json j;
   j["cmd"] = "INFER";
   j["data"]["opunit"] = opunit;
   j["data"]["features"] = features;
+  j["data"]["model_path"] = model_path;
 
   // Sync communication
   ModelServerFuture<std::vector<std::vector<double>>> future;
@@ -210,11 +196,11 @@ std::vector<std::vector<double>> ModelServerManager::DoInference(const std::stri
     try {
       nlohmann::json res = nlohmann::json::parse(message);
       // Deserialize the message result
-      std::vector<std::vector<double>> result = res.at("result").get<std::vector<std::vector<double>>>();
+      auto result = res.at("result").get<std::vector<std::vector<double>>>();
       future.Done(result);
     } catch (nlohmann::json::exception &e) {
       MODEL_SERVER_LOG_WARN("Wrong message format, incorrect result field: {}, {}", message, e.what());
-      future.Fail();
+      future.Fail("WRONG_RESULT_FORMAT");
     }
   };
 

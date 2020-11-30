@@ -12,7 +12,9 @@ The command format should be kept with ModelServerManager in the noisepage sourc
 code.
 
 TODO(Ricky):
-- Encapsulate the ModelServer in a class
+- Design an Error code scheme for ModelServerManager and ModelServer.
+    Like some string errors? This should be transparent to the user of the ModelServerManager so I
+    am delaying this to next PR.
 
 """
 
@@ -25,18 +27,17 @@ import json
 import logging
 import pprint
 import pickle
+from pathlib import Path
+
 import numpy as np
 import zmq
 
 from data_class import opunit_data
 from mini_trainer import MiniTrainer
-from sklearn import model_selection
 from util import logging_util
 from type import OpUnit
 
-
 logging_util.init_logging('info')
-
 
 
 
@@ -138,7 +139,7 @@ class ModelServer:
         atexit.register(self.cleanup_zmq)
 
         # Gobal model map cache
-        self.g_model_map = None
+        self.cache = dict()
 
         # Notify the ModelServerManager that I am connected
         self._send_msg(0, 0, ModelServer._make_response(Callback.CONNECTED, ""))
@@ -209,77 +210,116 @@ class ModelServer:
         """
         Train a model with the given model name and seq_files directory
         :param data: {
-            models: [lr, XXX, ...],
+            methods: [lr, XXX, ...],
             seq_files: PATH_TO_SEQ_FILES_FOLDER, or None
             data_lists: [(OpUnit, X_List, Y_List)/OpUnitData]
         }
         :return: the model map
         """
-        ml_models = data["models"]
+        ml_models = data["methods"]
         seq_files_dir = data["seq_files"]
-        raw_data = data["raw_data"]
+        save_path = data["save_path"]
 
-        result_path = ModelServer.RESULT_PATH
+        # Do path checking up-front
+        save_path = Path(save_path)
+        save_dir = save_path.parent
+        try:
+            # Exist ok, and Creates parent if ok
+            save_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            return "FAIL_PERMISSION_ERROR"
+
+        # Create result model metrics in the same directory
+        save_file_name = save_path.stem
+        result_path = save_path.with_name(str(save_file_name) + "_metric_results")
+        result_path.mkdir(parents=True, exist_ok=True)
+
         test_ratio = ModelServer.TEST_RATIO
         trim = ModelServer.TRIM_RATIO
         expose_all = ModelServer.EXPOSE_ALL
         txn_sample_interval = ModelServer.TXN_SAMPLE_INTERVAL
+
         trainer = MiniTrainer(seq_files_dir, result_path, ml_models, test_ratio, trim, expose_all,txn_sample_interval)
-        if seq_files_dir:
-            # Perform training from MiniTrainer and input files directory
-            model_map = trainer.train()
-        else:
-            """
-            NOTE:
-            This branch has not been tested yet because the MiniTrainer now heavily relies on the CSV file. 
-            So training with data directly is not yet possible without refactoring the MiniTrainer 
-            """
+        # Perform training from MiniTrainer and input files directory
+        model_map = trainer.train()
+        self.cache[str(save_path)] = model_map
 
-            # Train from data directly
-            assert(raw_data)
-
-            # Transform with raw data lists
-            opunit_data_list = self._transform_opunit_data(raw_data)
-            for data in opunit_data_list:
-                best_y_transformer, best_method = trainer.train_data(data, None)
-                if trainer.expose_all:
-                    trainer.train_specific_model(data, best_y_transformer, best_method)
-
-            # Directly get the model map
-            model_map = trainer.get_model_map()
-
-        self.g_model_map = model_map
+        # Pickle dump the model
+        with save_path.open(mode='wb') as f:
+            pickle.dump(model_map, f)
 
         return "SUCCESS"
 
+    def _load_model_map(self, save_path: str) -> Optional[Dict]:
+        """
+        Check if a trained model exists at the path.
+        Load the model into cache if it is not.
+        :param save_path: path to model to load
+        :return: None if no model exists at path, or Model map saved at path
+        """
+        save_path = Path(save_path)
 
-    def _infer(self, data:Dict) -> Optional[Dict]:
+        # Check model exists
+        if not save_path.exists():
+            return None
+
+        # Load from cache
+        if self.cache.get(save_path, None) is not None:
+            return self.cache[save_path]
+
+        # Load into cache
+        with save_path.open(mode='rb') as f:
+            model = pickle.load(f)
+
+            # TODO(ricky): model checking here?
+            if len(model) == 0:
+                logging.warning(f"Empty model at {str(save_path)}")
+                return None
+
+            self.cache[str(save_path)] = model
+            return model
+
+    def _infer(self, data:Dict) -> Optional[List]:
         """
         Do inference on the model, give the data file, and the model_map_path
         :param data: {
             features: 2D float arrays [[float]],
             opunit: Opunit integer for the model
+            model_path: model path
         }
         :return: List predictions
         """
         features = data["features"]
         opunit = data["opunit"]
+        model_path = data["model_path"]
 
         # Parameter validation
         if not isinstance(opunit, str):
-            return None
+            return []
+        try:
+            opunit = OpUnit[opunit]
+        except KeyError as e:
+            logging.error(f"{opunit} is not a valid Opunit name")
+            return []
 
         features = np.array(features)
-        logging.info(f"Using model on {opunit}")
+        logging.debug(f"Using model on {opunit}")
+
         # Load the model map
-        if self.g_model_map is None:
-            logging.error("Model has not been trained")
-            return None
-        model = self.g_model_map[OpUnit[opunit.upper()]]
+        model_map = self._load_model_map(model_path)
+        if model_map is None:
+            logging.error(f"Model map at {str(model_path)} has not been trained")
+            return []
+
+        model = model_map[opunit]
+
+        if model is None:
+            logging.error(f"Model for {opunit} doesn't exist")
+            return []
+
         y_pred = model.predict(features)
 
-        return y_pred
-
+        return y_pred.tolist()
 
     def _execute_cmd(self,cmd: Command, data: Dict) -> Tuple[Dict, Boolean]:
         """
@@ -316,7 +356,7 @@ class ModelServer:
             return response, True
         elif cmd == Command.INFER:
             result = self._infer(data)
-            response = self._make_response(Callback.NOOP, result.tolist())
+            response = self._make_response(Callback.NOOP, result)
             return response, True
 
     def run_loop(self):
