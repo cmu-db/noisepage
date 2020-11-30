@@ -1271,10 +1271,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
     exec_query.SetPipelineOperatingUnits(std::move(units));
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    // auto num_iters = 1 + settings.index_model_warmup_iterations_num_;
-    auto num_iters = 1;
-    BenchmarkExecQuery(num_iters, &exec_query, nullptr, true /*!is_insert*/, &empty_params, &exec_settings);
+    BenchmarkExecQuery(1, &exec_query, nullptr, !is_insert, &empty_params, &exec_settings);
   }
 
   // Drop the indexes
@@ -2376,23 +2373,20 @@ void RunBenchmarkSequence(int rerun_counter) {
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
-  std::vector<std::vector<std::string>> filters = {
-      {"SEQ0"},
-      {"SEQ1_0", "SEQ1_1"},
-      {"SEQ2_0", "SEQ2_1"},
-      {"SEQ3"},
-      {"SEQ4"},
-      {"SEQ5_0", "SEQ5_1"},
-      {"SEQ6_0", "SEQ6_1"},
-      {"SEQ7_2"},
-      {"SEQ8_2"},
-      //{"SEQ9_0", "SEQ9_1"},
-      {"SEQ10"},
-      //{"SEQ11"}
-  };
-  std::vector<std::string> titles = {"OUTPUT",      "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
-                                     "AGGS",        "INSERT", "UPDATE",    "DELETE", /*"CREATE_INDEX",*/ "INDEX_INSERT"/*,
-                                     "INDEX_DELETE"*/};
+  std::vector<std::vector<std::string>> filters = {{"SEQ0"},
+                                                   {"SEQ1_0", "SEQ1_1"},
+                                                   {"SEQ2_0", "SEQ2_1"},
+                                                   {"SEQ3"},
+                                                   {"SEQ4"},
+                                                   {"SEQ5_0", "SEQ5_1"},
+                                                   {"SEQ6_0", "SEQ6_1"},
+                                                   {"SEQ7_2"},
+                                                   {"SEQ8_2"},
+                                                   {"SEQ9_0", "SEQ9_1"},
+                                                   {"SEQ10"},
+                                                   {"SEQ11"}};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",           "AGGS",
+                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX_INSERT", "INDEX_DELETE"};
 
   char buffer[64];
   const char *argv[2];
@@ -2443,12 +2437,9 @@ void RunMiniRunners() {
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {
-      "OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
-      "AGGS",   "INSERT", "UPDATE",    "DELETE", /*"CREATE_INDEX",*/ "INDEX_INSERT",
-      //"INDEX_DELETE"
-  };
-  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", /*"6",*/ "7" /*, "8"*/};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",           "AGGS",
+                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX_INSERT", "INDEX_DELETE"};
+  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6", "7", "8"};
   for (size_t t = 0; t < titles.size(); t++) {
     auto &title = titles[t];
     char target[64];
