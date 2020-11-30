@@ -38,7 +38,7 @@ class PlanMetaData {
    * @param plan_node_id plan node id
    * @param meta_data plan node meta data
    */
-  void AddPlanNodeMetaData(const plan_node_id_t &plan_node_id, const PlanNodeMetaData &meta_data) {
+  void AddPlanNodeMetaData(plan_node_id_t plan_node_id, const PlanNodeMetaData &meta_data) {
     NOISEPAGE_ASSERT(plan_node_meta_data_.count(plan_node_id) == 0, "already exists meta data for the plan node");
     plan_node_meta_data_[plan_node_id] = meta_data;
   }
@@ -48,7 +48,7 @@ class PlanMetaData {
    * @param plan_node_id plan node id
    * @return plan node meta data
    */
-  PlanNodeMetaData GetPlanNodeMetaData(const plan_node_id_t &plan_node_id) {
+  const PlanNodeMetaData &GetPlanNodeMetaData(plan_node_id_t plan_node_id) {
     NOISEPAGE_ASSERT(plan_node_meta_data_.count(plan_node_id) != 0, "there is no meta data for the plan node");
     return plan_node_meta_data_[plan_node_id];
   }

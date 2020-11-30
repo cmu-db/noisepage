@@ -375,6 +375,9 @@ void PlanGenerator::Visit(const Limit *op) {
     }
 
     output_plan_ = order_build.Build();
+    // Adding plan node meta data of other nodes is mainly handled in ConvertOpNode.
+    // Need to call AddPlanNodeMetaData for Limit here because the limit node is not the output_plan_,
+    // but an additional node generated in Visit.
     plan_meta_data_->AddPlanNodeMetaData(output_plan_->GetPlanNodeId(), plan_node_meta_data_);
   }
 
