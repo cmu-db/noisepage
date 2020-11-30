@@ -7,17 +7,19 @@ import traceback
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
-from junit import constants
+from junit.constants import JUNIT_TEST_CMD_JUNIT, JUNIT_TEST_CMD_TRACE, TESTFILES_PREFIX, REPO_TRACE_DIR
 from junit.utils import parse_command_line_args
 from junit.test_junit import TestJUnit
-from util.constants import LOG,ErrorCode
+from util.constants import LOG, ErrorCode
 from test_case_junit import TestCaseJUnit
 
+
 def section_header(title):
-    border = "+++ " + "="*100 + " +++\n"
+    border = "+++ " + "=" * 100 + " +++\n"
     middle = "+++ " + title.center(100) + " +++\n"
     return "\n\n" + border + middle + border
 # DEF
+
 
 if __name__ == "__main__":
 
@@ -29,13 +31,11 @@ if __name__ == "__main__":
 
     # Step 1: Run the regular JUnit tests.
     LOG.info(section_header("JUNIT TESTS"))
-    test_command_regular = constants.JUNIT_TEST_CMD_JUNIT
     try:
-        test_case_junit = TestCaseJUnit(
-            args, test_command=test_command_regular)
+        test_case_junit = TestCaseJUnit(args, test_command=JUNIT_TEST_CMD_JUNIT)
         exit_code = junit_test_runner.run(test_case_junit)
     except:
-        LOG.error("Exception trying to run '%s'" % test_command_regular)
+        LOG.error(f'Exception trying to run {JUNIT_TEST_CMD_JUNIT}')
         LOG.error("================ Python Error Output ==================")
         traceback.print_exc(file=sys.stdout)
         exit_code = ErrorCode.ERROR
@@ -44,28 +44,25 @@ if __name__ == "__main__":
 
     # Step 2: Run the trace test for each file that we find
     # Each directory represents another set of SQL traces to test.
-    noise_trace_dir = os.path.join(base_path, constants.REPO_TRACE_DIR)
-    test_command_tracefile = constants.JUNIT_TEST_CMD_TRACE
+    LOG.info(section_header("TRACEFILE TESTS"))
+    noise_trace_dir = os.path.join(base_path, REPO_TRACE_DIR)
     for item in os.listdir(noise_trace_dir):
         # Look for all of the .test files in the each directory
-        if item.endswith(constants.TESTFILES_PREFIX):
-            os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(
-                noise_trace_dir, item)
-            LOG.info(section_header("TRACEFILE TEST: " +
-                                    os.environ["NOISEPAGE_TRACE_FILE"]))
+        if item.endswith(TESTFILES_PREFIX):
+            os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(noise_trace_dir, item)
+            LOG.info(section_header("TRACEFILE TEST: " + os.environ["NOISEPAGE_TRACE_FILE"]))
             exit_code = ErrorCode.ERROR
             try:
                 test_case_junit = TestCaseJUnit(
-                    args, test_command=test_command_tracefile)
+                    args, test_command=JUNIT_TEST_CMD_TRACE)
                 exit_code = junit_test_runner.run(test_case_junit)
             except KeyboardInterrupt:
                 exit_code = ErrorCode.ERROR
                 raise
-            except:
-                LOG.error("Exception trying to run '%s'" %
-                          test_command_tracefile)
-                LOG.error(
-                    "================ Python Error Output ==================")
+            except Exception as err:
+                LOG.error(f'Exception trying to run {JUNIT_TEST_CMD_TRACE}')
+                LOG.error(err)
+                LOG.error("================ Python Error Output ==================")
                 traceback.print_exc(file=sys.stdout)
                 exit_code = ErrorCode.ERROR
             finally:

@@ -16,6 +16,7 @@ from reporting.report_result import report_oltpbench_result
 
 class TestCaseOLTPBench(TestCase):
     """Class of a test case of OLTPBench"""
+
     def __init__(self, args):
         TestCase.__init__(self, args)
 

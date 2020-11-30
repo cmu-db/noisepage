@@ -2,7 +2,7 @@
 
 import argparse
 
-from oltpbench.constants import PERFORMANCE_STORAGE_SERVICE_API
+from util.constants import PERFORMANCE_STORAGE_SERVICE_API
 
 
 def parse_command_line_args():
