@@ -4,20 +4,25 @@
 #include <vector>
 
 #include "storage/projected_row.h"
+#include "loggers/storage_logger.h"
 
 namespace noisepage::storage {
 
 std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord() {
   // Pointer to buffers for non-aligned varlen entries so we can clean them up down the road
+  STORAGE_LOG_INFO("1");
   std::vector<byte *> varlen_contents;
   // Read in LogRecord header data
   auto size = ReadValue<uint32_t>();
+  STORAGE_LOG_INFO("2");
   byte *buf = common::AllocationUtil::AllocateAligned(size);
   auto record_type = ReadValue<storage::LogRecordType>();
   auto txn_begin = ReadValue<transaction::timestamp_t>();
+  STORAGE_LOG_INFO("3");
 
   switch (record_type) {
     case (storage::LogRecordType::COMMIT): {
+      STORAGE_LOG_INFO("COMMIT log");
       auto txn_commit = ReadValue<transaction::timestamp_t>();
       auto oldest_active_txn = ReadValue<transaction::timestamp_t>();
       NOISEPAGE_ASSERT(oldest_active_txn != transaction::INVALID_TXN_TIMESTAMP,
@@ -32,10 +37,12 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     case (storage::LogRecordType::ABORT): {
+      STORAGE_LOG_INFO("ABORT log");
       return {storage::AbortRecord::Initialize(buf, txn_begin, nullptr, nullptr), varlen_contents};
     }
 
     case (storage::LogRecordType::DELETE): {
+      STORAGE_LOG_INFO("DELETE log");
       auto database_oid = ReadValue<catalog::db_oid_t>();
       auto table_oid = ReadValue<catalog::table_oid_t>();
       auto tuple_slot = ReadValue<storage::TupleSlot>();
@@ -43,6 +50,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     case (storage::LogRecordType::REDO): {
+      STORAGE_LOG_INFO("REDO log");
       auto database_oid = ReadValue<catalog::db_oid_t>();
       auto table_oid = ReadValue<catalog::table_oid_t>();
       auto tuple_slot = ReadValue<storage::TupleSlot>();
@@ -139,6 +147,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     default:
+      STORAGE_LOG_INFO("UNKNOWN log");
       throw std::runtime_error("Unknown log record type during deserialization: " +
                                std::to_string(static_cast<uint8_t>(record_type)));
   }

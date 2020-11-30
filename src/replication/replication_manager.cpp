@@ -26,8 +26,15 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
       listen_destination, network_identity,
       [this](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id, std::string_view msg,
              uint64_t recv_cb_id) { EventLoop(messenger, sender_id, msg, recv_cb_id); });
-  
+  if (port == 15445) {
+    port_ = 15445;
+    ReplicaConnect("replica1", "localhost", 15446);
+  } else {
+    port_ = 15446;
+  }
+  return;
   BuildReplicaList(replication_hosts_path);
+
   for (const auto &replica : replicas_) {
     ReplicaHeartbeat(replica.first);
   }
@@ -35,8 +42,6 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
   for (const auto &replica : replicas_) {
     ReplicaHeartbeat(replica.first);
   }
-
-  return;
 }
 
 void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_path) {
@@ -48,7 +53,7 @@ void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_p
   // Repeated and separated by newlines.
   std::ifstream hosts_file(replication_hosts_path);
   if (!hosts_file.is_open()) {
-    REPLICATION_LOG_ERROR(fmt::format("Unable to open file: {}", replication_hosts_path));
+    throw REPLICATION_EXCEPTION(fmt::format("Unable to open file: {}", replication_hosts_path));
     return;
   }
   std::string line;
@@ -91,8 +96,8 @@ void ReplicationManager::ReplicaConnect(const std::string &replica_name, const s
 
 void ReplicationManager::ReplicaSend(const std::string &replica_name, const ReplicationManager::MessageType type,
                                      const std::string &msg, bool block) {
+  if (port_ == 15446) return;
   std::unique_lock<std::mutex> lock(mutex_);
-  REPLICATION_LOG_INFO(fmt::format("Sending to replication message to: {} with type {}", replica_name, type));
   bool completed = false;
   auto callback = [this, &completed](common::ManagedPointer<messenger::Messenger> messenger,
                                                       std::string_view sender_id, std::string_view message,
@@ -101,6 +106,7 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
     cvar_.notify_all();
   };
   messenger_->SendMessage(GetReplicaConnection(replica_name), msg, callback, static_cast<uint64_t>(type));
+  REPLICATION_LOG_INFO(fmt::format("Replication message sent to: {} with type {}", replica_name, type));
 
   if (block) {
     // If the caller requested to block until the operation was completed, the thread waits.
@@ -111,6 +117,7 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
 }
 
 void ReplicationManager::ReplicaAck(const std::string &replica_name) {
+  if (port_ == 15445) return;
   std::unique_lock<std::mutex> lock(mutex_);
   REPLICATION_LOG_INFO("Sending ack to: " + replica_name);
   messenger_->SendMessage(GetReplicaConnection(replica_name), ack_message_identifier_, nullptr,
@@ -125,8 +132,9 @@ void ReplicationManager::EventLoop(common::ManagedPointer<noisepage::messenger::
   if (message_type == heartbeat_message_identifier_) {
     REPLICATION_LOG_INFO(fmt::format("Heartbeat from: {}", sender_id));
   } else if (message_type == ack_message_identifier_) {
-    REPLICATION_LOG_INFO(fmt::format("Ack from: {}", sender_id));
+    //REPLICATION_LOG_INFO(fmt::format("Ack from: {}", sender_id));
     messenger_->ProcessDefaultMessage(sender_id, msg, recv_cb_id);
+    //REPLICATION_LOG_INFO(fmt::format("Ack unlocked!", sender_id));
   } else if (message_type == replication_message_identifier_) {
     REPLICATION_LOG_INFO(fmt::format("Recover message from: {}", sender_id));
     // Recover from log records first, then send back an acknowledgement.
@@ -179,10 +187,17 @@ void ReplicationManager::AddLogRecordBuffer(storage::BufferedLogWriter *network_
 
 common::ManagedPointer<noisepage::messenger::ConnectionId> ReplicationManager::GetReplicaConnection(
     const std::string &replica_name) {
+  if (!replicas_.count(replica_name)) {
+    if (port_ == 15446) {
+      REPLICATION_LOG_INFO("hahahahah");
+      ReplicaConnect("primary", "localhost", 15445);
+    }
+  }
   return replicas_.at(replica_name).GetConnectionId();
 }
 
 std::string ReplicationManager::SerializeLogRecords() {
+  if (port_ == 15446) return "";
   // Grab buffers in queue.
   std::deque<storage::BufferedLogWriter *> temp_buffer_queue;
   uint64_t data_size = 0;
@@ -206,7 +221,6 @@ std::string ReplicationManager::SerializeLogRecords() {
 
   j["size"] = message_size;
   j["content"] = nlohmann::json::to_cbor(message_content);
-  REPLICATION_LOG_INFO("Sending replication message of size " + std::to_string(message_size));
 
   return replication_message_identifier_ + j.dump();
 }
@@ -222,6 +236,7 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
 
   // Get the original replication info.
   size_t message_size = message["size"];
+  REPLICATION_LOG_ERROR("Received replication message size of " + std::to_string(message_size));
 
   std::unique_ptr<network::ReadBuffer> buffer(new network::ReadBuffer(message_size));
   std::vector<uint8_t> message_content_raw = message["content"];
@@ -235,6 +250,9 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
   // Pass to log provider for recovery.
   REPLICATION_LOG_INFO("Recovering from logs...");
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
+  REPLICATION_LOG_INFO("Start recovery...");
+  recovery_manager_->StartRecovery();
+  REPLICATION_LOG_INFO("Recovered from logs...");
 }
 
 }  // namespace noisepage::replication

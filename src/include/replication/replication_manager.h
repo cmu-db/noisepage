@@ -89,6 +89,9 @@ class ReplicationManager {
    */
   void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
 
+  void ReplicaTestSend(const std::string&msg, bool block) {
+  }
+
   /**
    * Sends an acknowledgement to the replica that the replication command is carried out successfully.
    * @param replica_name replica to send the replication command to.
@@ -128,6 +131,10 @@ class ReplicationManager {
   }
 
   void StartRecovery() { recovery_manager_->StartRecovery(); }
+
+  common::ManagedPointer<storage::RecoveryManager> GetRecoveryManager() { return recovery_manager_; }
+
+  uint64_t ReplicaSize() { return replicas_.size(); }
 
  private:
   void EventLoop(common::ManagedPointer<noisepage::messenger::Messenger> messenger, std::string_view &sender_id,

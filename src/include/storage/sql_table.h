@@ -27,6 +27,10 @@ namespace noisepage::catalog {
 class Schema;
 }  // namespace noisepage::catalog
 
+namespace noisepage::replication {
+class ReplicationTests;
+}
+
 namespace noisepage::storage {
 
 /**
@@ -246,6 +250,7 @@ class SqlTable {
   friend class noisepage::RandomSqlTableTransaction;
   friend class noisepage::LargeSqlTableTestObject;
   friend class RecoveryTests;
+  friend class noisepage::replication::ReplicationTests;
 
   /*
    * Internals are exposed to the execution::sql::VectorProjection class so that we do not need to do a full recompile

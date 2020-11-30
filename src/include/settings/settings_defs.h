@@ -343,6 +343,14 @@ SETTING_int(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_string(
+    messenger_identity,
+    "NoisePage messenger port (default: primary)",
+    "primary",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     replication_enable,
     "Whether to enable replication (default: false)",

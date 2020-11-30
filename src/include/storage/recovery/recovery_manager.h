@@ -25,6 +25,10 @@ namespace noisepage {
 class RecoveryBenchmark;
 }  // namespace noisepage
 
+namespace noisepage::replication {
+class ReplicationTests;
+}  // namespace replication
+
 namespace noisepage::transaction {
 class TransactionManager;
 }  // namespace noisepage::transaction
@@ -108,6 +112,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;
   friend class noisepage::RecoveryBenchmark;
+  friend class replication::ReplicationTests;
 
   // Log provider for reading in logs
   const common::ManagedPointer<AbstractLogProvider> log_provider_;

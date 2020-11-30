@@ -136,12 +136,19 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
-  if (replication_manager_ != DISABLED) {
+  if (replication_manager_ != DISABLED && filled_buffer_queue_ != nullptr && filled_buffer_ != nullptr) {
     // Add current logs to the replication manager.
     BufferedLogWriter *network_buffer;
     empty_buffer_queue_->Dequeue(&network_buffer);
     network_buffer->CopyFromBuffer(filled_buffer_);
+
+    // Try sychronous replication...
     replication_manager_->AddLogRecordBuffer(network_buffer);
+    /*if (replication_manager_->ReplicaSize() > 0) {
+      // Send message.
+      replication_manager_->ReplicaSend("replica1", replication::ReplicationManager::MessageType::RECOVER,
+                                        replication_manager_->SerializeLogRecords(), true);
+    }*/
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
@@ -160,6 +167,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
   for (LogRecord &record : *buffer_to_serialize) {
     switch (record.RecordType()) {
       case (LogRecordType::COMMIT): {
+        //STORAGE_LOG_INFO("Serializing COMMIT");
         auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
 
         // If a transaction is read-only, then the only record it generates is its commit record. This commit record is
@@ -174,6 +182,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
       }
 
       case (LogRecordType::ABORT): {
+        //STORAGE_LOG_INFO("Serializing ABORT");
         // If an abort record shows up at all, the transaction cannot be read-only
         num_bytes += SerializeRecord(record);
         auto *abord_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
@@ -208,6 +217,7 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
 
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
+      //STORAGE_LOG_INFO("Serializing REDO");
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
       num_bytes += WriteValue(record_body->GetDatabaseOid());
       num_bytes += WriteValue(record_body->GetTableOid());
@@ -263,6 +273,7 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
       break;
     }
     case LogRecordType::DELETE: {
+      //STORAGE_LOG_INFO("Serializing DELETE");
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
       num_bytes += WriteValue(record_body->GetDatabaseOid());
       num_bytes += WriteValue(record_body->GetTableOid());
@@ -270,12 +281,14 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
       break;
     }
     case LogRecordType::COMMIT: {
+      //STORAGE_LOG_INFO("Serializing COMMIT");
       auto *record_body = record.GetUnderlyingRecordBodyAs<CommitRecord>();
       num_bytes += WriteValue(record_body->CommitTime());
       num_bytes += WriteValue(record_body->OldestActiveTxn());
       break;
     }
     case LogRecordType::ABORT: {
+      //STORAGE_LOG_INFO("Serializing ABORT");
       // AbortRecord does not hold any additional metadata
       break;
     }

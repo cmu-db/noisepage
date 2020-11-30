@@ -409,15 +409,17 @@ class DBMain {
 
       if (use_replication_) {
         std::chrono::seconds replication_timeout{10};
-        storage::BlockStore block_store{100, 100};
+        std::unique_ptr<storage::BlockStore> block_store(new storage::BlockStore{100, 100});
 
         auto recovery_manager = std::make_unique<storage::RecoveryManager>(
             common::ManagedPointer<storage::AbstractLogProvider>(
                 static_cast<storage::AbstractLogProvider *>(replication_log_provider.get())),
             catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(), txn_layer->GetDeferredActionManager(),
-            common::ManagedPointer(thread_registry), common::ManagedPointer(&block_store));
+            common::ManagedPointer(thread_registry), common::ManagedPointer(common::ManagedPointer(block_store)));
         replication_manager->SetRecoveryManager(common::ManagedPointer(recovery_manager));
-        replication_manager->StartRecovery();
+        if (replication_port_ == 15446) {
+          //replication_manager->StartRecovery();
+        }
       }
 
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
@@ -834,7 +836,7 @@ class DBMain {
     uint16_t messenger_port_ = 9022;
     std::string messenger_identity_ = "primary";
     uint16_t replication_port_ = 15445;
-    std::string replication_hosts_path_ = "replication.conf";
+    std::string replication_hosts_path_ = "../../build-support/data/replication.conf";
     std::chrono::seconds replication_timeout_{10};
     bool use_synchronous_replication_ = false;
 
@@ -894,6 +896,7 @@ class DBMain {
 
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
       messenger_port_ = settings_manager->GetInt(settings::Param::messenger_port);
+      messenger_identity_ = settings_manager->GetString(settings::Param::messenger_identity);
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
       replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
