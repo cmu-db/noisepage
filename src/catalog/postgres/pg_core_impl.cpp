@@ -106,109 +106,53 @@ void PgCoreImpl::BootstrapPRIs() {
 
 void PgCoreImpl::BootstrapPgNamespace(common::ManagedPointer<transaction::TransactionContext> txn,
                                       common::ManagedPointer<DatabaseCatalog> dbc) {
-  UNUSED_ATTRIBUTE bool retval;
-
-  retval = dbc->CreateTableEntry(txn, PgNamespace::NAMESPACE_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
-                                 "pg_namespace", Builder::GetNamespaceTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, PgNamespace::NAMESPACE_TABLE_OID, namespaces_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgNamespace::NAMESPACE_TABLE_OID,
-                                 PgNamespace::NAMESPACE_OID_INDEX_OID, "pg_namespace_oid_index",
-                                 Builder::GetNamespaceOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgNamespace::NAMESPACE_OID_INDEX_OID, namespaces_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgNamespace::NAMESPACE_TABLE_OID,
-                                 PgNamespace::NAMESPACE_NAME_INDEX_OID, "pg_namespace_name_index",
-                                 Builder::GetNamespaceNameIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgNamespace::NAMESPACE_NAME_INDEX_OID, namespaces_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  dbc->BootstrapTable(txn, PgNamespace::NAMESPACE_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
+                      "pg_namespace", Builder::GetNamespaceTableSchema(), namespaces_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgNamespace::NAMESPACE_TABLE_OID,
+                      PgNamespace::NAMESPACE_OID_INDEX_OID, "pg_namespace_oid_index",
+                      Builder::GetNamespaceOidIndexSchema(db_oid_), namespaces_oid_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgNamespace::NAMESPACE_TABLE_OID,
+                      PgNamespace::NAMESPACE_NAME_INDEX_OID, "pg_namespace_name_index",
+                      Builder::GetNamespaceNameIndexSchema(db_oid_), namespaces_name_index_);
 }
 
 void PgCoreImpl::BootstrapPgClass(common::ManagedPointer<transaction::TransactionContext> txn,
                                   common::ManagedPointer<DatabaseCatalog> dbc) {
-  UNUSED_ATTRIBUTE bool retval;
-
-  retval = dbc->CreateTableEntry(txn, PgClass::CLASS_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
-                                 "pg_class", Builder::GetClassTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, PgClass::CLASS_TABLE_OID, classes_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgClass::CLASS_TABLE_OID,
-                                 PgClass::CLASS_OID_INDEX_OID, "pg_class_oid_index",
-                                 Builder::GetClassOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgClass::CLASS_OID_INDEX_OID, classes_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgClass::CLASS_TABLE_OID,
-                                 PgClass::CLASS_NAME_INDEX_OID, "pg_class_name_index",
-                                 Builder::GetClassNameIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgClass::CLASS_NAME_INDEX_OID, classes_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgClass::CLASS_TABLE_OID,
-                                 PgClass::CLASS_NAMESPACE_INDEX_OID, "pg_class_namespace_index",
-                                 Builder::GetClassNamespaceIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgClass::CLASS_NAMESPACE_INDEX_OID, classes_namespace_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  dbc->BootstrapTable(txn, PgClass::CLASS_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_class",
+                      Builder::GetClassTableSchema(), classes_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgClass::CLASS_TABLE_OID,
+                      PgClass::CLASS_OID_INDEX_OID, "pg_class_oid_index", Builder::GetClassOidIndexSchema(db_oid_),
+                      classes_oid_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgClass::CLASS_TABLE_OID,
+                      PgClass::CLASS_NAME_INDEX_OID, "pg_class_name_index", Builder::GetClassNameIndexSchema(db_oid_),
+                      classes_name_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgClass::CLASS_TABLE_OID,
+                      PgClass::CLASS_NAMESPACE_INDEX_OID, "pg_class_namespace_index",
+                      Builder::GetClassNamespaceIndexSchema(db_oid_), classes_namespace_index_);
 }
 
 void PgCoreImpl::BootstrapPgIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                                   common::ManagedPointer<DatabaseCatalog> dbc) {
-  UNUSED_ATTRIBUTE bool retval;
-
-  retval = dbc->CreateTableEntry(txn, PgIndex::INDEX_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
-                                 "pg_index", Builder::GetIndexTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, PgIndex::INDEX_TABLE_OID, indexes_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgIndex::INDEX_TABLE_OID,
-                                 PgIndex::INDEX_OID_INDEX_OID, "pg_index_oid_index",
-                                 Builder::GetIndexOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgIndex::INDEX_OID_INDEX_OID, indexes_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgIndex::INDEX_TABLE_OID,
-                                 PgIndex::INDEX_TABLE_INDEX_OID, "pg_index_table_index",
-                                 Builder::GetIndexTableIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgIndex::INDEX_TABLE_INDEX_OID, indexes_table_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  dbc->BootstrapTable(txn, PgIndex::INDEX_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_index",
+                      Builder::GetIndexTableSchema(), indexes_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgIndex::INDEX_TABLE_OID,
+                      PgIndex::INDEX_OID_INDEX_OID, "pg_index_oid_index", Builder::GetIndexOidIndexSchema(db_oid_),
+                      indexes_oid_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgIndex::INDEX_TABLE_OID,
+                      PgIndex::INDEX_TABLE_INDEX_OID, "pg_index_table_index",
+                      Builder::GetIndexTableIndexSchema(db_oid_), indexes_table_index_);
 }
 
 void PgCoreImpl::BootstrapPgAttribute(common::ManagedPointer<transaction::TransactionContext> txn,
                                       common::ManagedPointer<DatabaseCatalog> dbc) {
-  UNUSED_ATTRIBUTE bool retval;
-
-  retval = dbc->CreateTableEntry(txn, PgAttribute::COLUMN_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
-                                 "pg_attribute", Builder::GetColumnTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, PgAttribute::COLUMN_TABLE_OID, columns_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgAttribute::COLUMN_TABLE_OID,
-                                 PgAttribute::COLUMN_OID_INDEX_OID, "pg_attribute_oid_index",
-                                 Builder::GetColumnOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgAttribute::COLUMN_OID_INDEX_OID, columns_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgAttribute::COLUMN_TABLE_OID,
-                                 PgAttribute::COLUMN_NAME_INDEX_OID, "pg_attribute_name_index",
-                                 Builder::GetColumnNameIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgAttribute::COLUMN_NAME_INDEX_OID, columns_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  dbc->BootstrapTable(txn, PgAttribute::COLUMN_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_attribute",
+                      Builder::GetColumnTableSchema(), columns_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgAttribute::COLUMN_TABLE_OID,
+                      PgAttribute::COLUMN_OID_INDEX_OID, "pg_attribute_oid_index",
+                      Builder::GetColumnOidIndexSchema(db_oid_), columns_oid_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgAttribute::COLUMN_TABLE_OID,
+                      PgAttribute::COLUMN_NAME_INDEX_OID, "pg_attribute_name_index",
+                      Builder::GetColumnNameIndexSchema(db_oid_), columns_name_index_);
 }
 
 void PgCoreImpl::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn,

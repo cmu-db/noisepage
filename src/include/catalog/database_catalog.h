@@ -258,6 +258,15 @@ class DatabaseCatalog {
     } while (!next_oid_.compare_exchange_weak(expected, desired));
   }
 
+  /** @brief Wrapper around calling CreateTableEntry and SetTablePointer. */
+  void BootstrapTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                      namespace_oid_t ns_oid, const std::string &name, const Schema &schema,
+                      storage::SqlTable *table_ptr);
+  /** @brief Wrapper around calling CreateIndexEntry and SetIndexPointer. */
+  void BootstrapIndex(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
+                      table_oid_t table_oid, index_oid_t index_oid, const std::string &name, const IndexSchema &schema,
+                      storage::index::Index *index_ptr);
+
   /**
    * @brief Create a new table entry WITHOUT TAKING THE DDL LOCK. Used by other members of DatabaseCatalog.
    * @see   PgCoreImpl::CreateTableEntry

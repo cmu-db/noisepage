@@ -312,6 +312,27 @@ type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
   return type_oid_t(static_cast<uint8_t>(type));
 }
 
+void DatabaseCatalog::BootstrapTable(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                     const table_oid_t table_oid, const namespace_oid_t ns_oid, const std::string &name,
+                                     const Schema &schema, storage::SqlTable *table_ptr) {
+  bool UNUSED_ATTRIBUTE retval;
+  retval = CreateTableEntry(txn, table_oid, ns_oid, name, schema);
+  NOISEPAGE_ASSERT(retval, "Bootstrap of table should not fail (creating table entry).");
+  retval = SetTablePointer(txn, table_oid, table_ptr);
+  NOISEPAGE_ASSERT(retval, "Bootstrap of table should not fail (setting table pointer).");
+}
+
+void DatabaseCatalog::BootstrapIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                     const namespace_oid_t ns_oid, const table_oid_t table_oid,
+                                     const index_oid_t index_oid, const std::string &name, const IndexSchema &schema,
+                                     storage::index::Index *index_ptr) {
+  bool UNUSED_ATTRIBUTE retval;
+  retval = CreateIndexEntry(txn, ns_oid, table_oid, index_oid, name, schema);
+  NOISEPAGE_ASSERT(retval, "Bootstrap of index should not fail (creating index entry).");
+  retval = SetIndexPointer(txn, index_oid, index_ptr);
+  NOISEPAGE_ASSERT(retval, "Bootstrap of index should not fail (setting index pointer).");
+}
+
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
