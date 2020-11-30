@@ -30,27 +30,14 @@ void PgProcImpl::BootstrapPRIs() {
 
 void PgProcImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                            common::ManagedPointer<DatabaseCatalog> dbc) {
-  UNUSED_ATTRIBUTE bool retval;
-
-  retval = dbc->CreateTableEntry(txn, PgProc::PRO_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_proc",
-                                 Builder::GetProcTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, PgProc::PRO_TABLE_OID, procs_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgProc::PRO_TABLE_OID,
-                            PgProc::PRO_OID_INDEX_OID, "pg_proc_oid_index", Builder::GetProcOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgProc::PRO_OID_INDEX_OID, procs_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgProc::PRO_TABLE_OID,
-                            PgProc::PRO_NAME_INDEX_OID, "pg_proc_name_index", Builder::GetProcNameIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgProc::PRO_NAME_INDEX_OID, procs_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  dbc->BootstrapTable(txn, PgProc::PRO_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_proc",
+                      Builder::GetProcTableSchema(), procs_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgProc::PRO_TABLE_OID,
+                      PgProc::PRO_OID_INDEX_OID, "pg_proc_oid_index", Builder::GetProcOidIndexSchema(db_oid_),
+                      procs_oid_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgProc::PRO_TABLE_OID,
+                      PgProc::PRO_NAME_INDEX_OID, "pg_proc_name_index", Builder::GetProcNameIndexSchema(db_oid_),
+                      procs_name_index_);
 
   BootstrapProcs(txn, dbc);
 }

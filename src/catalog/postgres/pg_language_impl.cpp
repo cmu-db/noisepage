@@ -21,27 +21,14 @@ void PgLanguageImpl::BootstrapPRIs() {
 
 void PgLanguageImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                                common::ManagedPointer<DatabaseCatalog> dbc) {
-  UNUSED_ATTRIBUTE bool retval;
-
-  retval = dbc->CreateTableEntry(txn, PgLanguage::LANGUAGE_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
-                                 "pg_language", Builder::GetLanguageTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, PgLanguage::LANGUAGE_TABLE_OID, languages_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgLanguage::LANGUAGE_TABLE_OID,
-                                 PgLanguage::LANGUAGE_OID_INDEX_OID, "pg_languages_oid_index",
-                                 Builder::GetLanguageOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgLanguage::LANGUAGE_OID_INDEX_OID, languages_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgLanguage::LANGUAGE_TABLE_OID,
-                                 PgLanguage::LANGUAGE_NAME_INDEX_OID, "pg_languages_name_index",
-                                 Builder::GetLanguageNameIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgLanguage::LANGUAGE_NAME_INDEX_OID, languages_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  dbc->BootstrapTable(txn, PgLanguage::LANGUAGE_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_language",
+                      Builder::GetLanguageTableSchema(), languages_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgLanguage::LANGUAGE_TABLE_OID,
+                      PgLanguage::LANGUAGE_OID_INDEX_OID, "pg_languages_oid_index",
+                      Builder::GetLanguageOidIndexSchema(db_oid_), languages_oid_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgLanguage::LANGUAGE_TABLE_OID,
+                      PgLanguage::LANGUAGE_NAME_INDEX_OID, "pg_languages_name_index",
+                      Builder::GetLanguageNameIndexSchema(db_oid_), languages_name_index_);
 
   BootstrapLanguages(txn, dbc);
 }

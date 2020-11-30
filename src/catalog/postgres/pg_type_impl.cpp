@@ -21,35 +21,17 @@ void PgTypeImpl::BootstrapPRIs() {
 
 void PgTypeImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                            common::ManagedPointer<DatabaseCatalog> dbc) {
-  UNUSED_ATTRIBUTE bool retval;
-
-  retval = dbc->CreateTableEntry(txn, PgType::TYPE_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
-                                 Builder::GetTypeTableSchema());
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetTablePointer(txn, PgType::TYPE_TABLE_OID, types_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval =
-      dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
-                            PgType::TYPE_OID_INDEX_OID, "pg_type_oid_index", Builder::GetTypeOidIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgType::TYPE_OID_INDEX_OID, types_oid_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
-                                 PgType::TYPE_NAME_INDEX_OID, "pg_type_name_index",
-                                 Builder::GetTypeNameIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgType::TYPE_NAME_INDEX_OID, types_name_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = dbc->CreateIndexEntry(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
-                                 PgType::TYPE_NAMESPACE_INDEX_OID, "pg_type_namespace_index",
-                                 Builder::GetTypeNamespaceIndexSchema(db_oid_));
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = dbc->SetIndexPointer(txn, PgType::TYPE_NAMESPACE_INDEX_OID, types_namespace_index_);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
-
+  dbc->BootstrapTable(txn, PgType::TYPE_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
+                      Builder::GetTypeTableSchema(), types_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
+                      PgType::TYPE_OID_INDEX_OID, "pg_type_oid_index", Builder::GetTypeOidIndexSchema(db_oid_),
+                      types_oid_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
+                      PgType::TYPE_NAME_INDEX_OID, "pg_type_name_index", Builder::GetTypeNameIndexSchema(db_oid_),
+                      types_name_index_);
+  dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgType::TYPE_TABLE_OID,
+                      PgType::TYPE_NAMESPACE_INDEX_OID, "pg_type_namespace_index",
+                      Builder::GetTypeNamespaceIndexSchema(db_oid_), types_namespace_index_);
   BootstrapTypes(dbc, txn);
 }
 
