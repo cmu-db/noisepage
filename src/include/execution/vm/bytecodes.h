@@ -247,6 +247,7 @@ namespace terrier::execution::vm {
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)\
   F(SetPrecisionFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(UpgradePrecisionFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
   F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
     OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \
@@ -397,6 +398,12 @@ namespace terrier::execution::vm {
   F(RealSumAggregateReset, OperandType::Local)                                                                        \
   F(RealSumAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealSumAggregateFree, OperandType::Local)                                                                         \
+  F(FixedDecimalSumAggregateInit, OperandType::Local)                                                                 \
+  F(FixedDecimalSumAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
+  F(FixedDecimalSumAggregateMerge, OperandType::Local, OperandType::Local)                                            \
+  F(FixedDecimalSumAggregateReset, OperandType::Local)                                                                \
+  F(FixedDecimalSumAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
+  F(FixedDecimalSumAggregateFree, OperandType::Local)                                                                 \
   /* MAX Aggregates */                                                                                                \
   F(IntegerMaxAggregateInit, OperandType::Local)                                                                      \
   F(IntegerMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
@@ -410,6 +417,12 @@ namespace terrier::execution::vm {
   F(RealMaxAggregateReset, OperandType::Local)                                                                        \
   F(RealMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealMaxAggregateFree, OperandType::Local)                                                                         \
+  F(FixedDecimalMaxAggregateInit, OperandType::Local)                                                                 \
+  F(FixedDecimalMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
+  F(FixedDecimalMaxAggregateMerge, OperandType::Local, OperandType::Local)                                            \
+  F(FixedDecimalMaxAggregateReset, OperandType::Local)                                                                \
+  F(FixedDecimalMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
+  F(FixedDecimalMaxAggregateFree, OperandType::Local)                                                                 \
   F(DateMaxAggregateInit, OperandType::Local)                                                                         \
   F(DateMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(DateMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
@@ -435,6 +448,12 @@ namespace terrier::execution::vm {
   F(RealMinAggregateReset, OperandType::Local)                                                                        \
   F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealMinAggregateFree, OperandType::Local)                                                                         \
+  F(FixedDecimalMinAggregateInit, OperandType::Local)                                                                 \
+  F(FixedDecimalMinAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
+  F(FixedDecimalMinAggregateMerge, OperandType::Local, OperandType::Local)                                            \
+  F(FixedDecimalMinAggregateReset, OperandType::Local)                                                                \
+  F(FixedDecimalMinAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
+  F(FixedDecimalMinAggregateFree, OperandType::Local)                                                                 \
   F(DateMinAggregateInit, OperandType::Local)                                                                         \
   F(DateMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(DateMinAggregateMerge, OperandType::Local, OperandType::Local)                                                    \

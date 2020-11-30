@@ -521,9 +521,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
     select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
-    if(select_element->GetReturnValueType() == terrier::type::TypeId::FIXEDDECIMAL) {
-      FixedDecimalExpressionResolvePrecision(select_element);
-    }
+//    if(select_element->GetReturnValueType() == terrier::type::TypeId::FIXEDDECIMAL) {
+//      FixedDecimalExpressionResolvePrecision(select_element);
+//    }
     // Derive depth for all exprs in the select clause
     select_element->DeriveDepth();
 

@@ -579,6 +579,8 @@ class EXPORT Decimal {
    * @param input the constant to be multiplied with. */
   void SignedMultiplyWithConstant(int64_t input);
 
+  int SetMaxmPrecision(std::string input);
+
  private:
   // The encoded decimal value
   T value_;

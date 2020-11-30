@@ -172,7 +172,8 @@ void UpdateTranslator::GetUpdatePR(terrier::execution::compiler::FunctionBuilder
       const auto idx = table_pm_.find(oid)->second;
 
       ast::Expr *child_expr = child->GetTableColumn(oid);
-      ast::Expr *set_pr = GetCodeGen()->PRSet(update_pr, col.Type(), col.Nullable(), idx, child_expr, true);
+      ast::Expr *set_pr = GetCodeGen()->PRSet(update_pr, col.Type(), col.Nullable(), idx, child_expr, true,
+                                              col.MaxVarlenSize());
       builder->Append(GetCodeGen()->MakeStmt(set_pr));
     }
   }
@@ -187,7 +188,8 @@ void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     const auto &clause_expr = context->DeriveValue(*clause.second, this);
     auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                            table_pm_.find(table_col_oid)->second, clause_expr, true);
+                                            table_pm_.find(table_col_oid)->second, clause_expr, true,
+                                            table_col.MaxVarlenSize());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 }
@@ -233,7 +235,8 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     uint16_t attr_offset = index_pm.at(index_col.Oid());
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
-    auto *set_key_call = GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, true);
+    auto *set_key_call = GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, true,
+                                             index_col.MaxVarlenSize());
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 
@@ -285,7 +288,8 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
     // For example, if the child is a seq scan, the index expressions would contain ColumnValueExpressions
     const auto &val = context->DeriveValue(*index_col.StoredExpression().Get(), child);
     auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
-                                            index_col.Nullable(), index_pm.at(index_col.Oid()), val, true);
+                                            index_col.Nullable(), index_pm.at(index_col.Oid()), val, true,
+                                            index_col.MaxVarlenSize());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 

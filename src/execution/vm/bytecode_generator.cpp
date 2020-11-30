@@ -557,6 +557,12 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::SetPrecisionFixedDecimal, dest, fixed_decimal, precision);
       break;
     }
+    case ast::Builtin::UpgradePrecisionFixedDecimal: {
+      auto fixed_decimal = VisitExpressionForRValue(call->Arguments()[0]);
+      auto precision = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::UpgradePrecisionFixedDecimal, dest, fixed_decimal, precision);
+      break;
+    }
     case ast::Builtin::TimestampToSql: {
       auto usec = VisitExpressionForRValue(call->Arguments()[0]);
       GetEmitter()->Emit(Bytecode::InitTimestamp, dest, usec);
@@ -1206,6 +1212,18 @@ namespace {
   /* SUM(real_col) */                                                                                                  \
   F(RealSumAggregate, RealSumAggregateInit, RealSumAggregateAdvance, RealSumAggregateGetResult, RealSumAggregateMerge, \
     RealSumAggregateReset, RealSumAggregateFree)                                                                       \
+  /* MAX(FixedDecimal_col) */                                                                                          \
+  F(FixedDecimalMaxAggregate, FixedDecimalMaxAggregateInit, FixedDecimalMaxAggregateAdvance,                           \
+    FixedDecimalMaxAggregateGetResult, FixedDecimalMaxAggregateMerge, FixedDecimalMaxAggregateReset,                   \
+    FixedDecimalMaxAggregateFree)                                                                                      \
+  /* MIN(FixedDecimal_col) */                                                                                          \
+  F(FixedDecimalMinAggregate, FixedDecimalMinAggregateInit, FixedDecimalMinAggregateAdvance,                           \
+    FixedDecimalMinAggregateGetResult, FixedDecimalMinAggregateMerge,                                                  \
+    FixedDecimalMinAggregateReset, FixedDecimalMinAggregateFree)                                                       \
+  /* SUM(FixedDecimal_col) */                                                                                          \
+  F(FixedDecimalSumAggregate, FixedDecimalSumAggregateInit, FixedDecimalSumAggregateAdvance,                           \
+    FixedDecimalSumAggregateGetResult, FixedDecimalSumAggregateMerge,                                                  \
+    FixedDecimalSumAggregateReset, FixedDecimalSumAggregateFree)                                                       \
   /* MAX(date_col) */                                                                                                  \
   F(DateMaxAggregate, DateMaxAggregateInit, DateMaxAggregateAdvance, DateMaxAggregateGetResult, DateMaxAggregateMerge, \
     DateMaxAggregateReset, DateMaxAggregateFree)                                                                       \
@@ -2488,6 +2506,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::DateToSql:
     case ast::Builtin::FixedDecimalToSql:
     case ast::Builtin::SetPrecisionFixedDecimal:
+    case ast::Builtin::UpgradePrecisionFixedDecimal:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:

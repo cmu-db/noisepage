@@ -224,6 +224,8 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId r
         return BuiltinType(ast::BuiltinType::DateMinAggregate);
       } else if (ret_type == sql::TypeId::Varchar) {
         return BuiltinType(ast::BuiltinType::StringMinAggregate);
+      }  else if (ret_type == sql::TypeId::FixedDecimal) {
+        return BuiltinType(ast::BuiltinType::FixedDecimalMinAggregate);
       } else {
         throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("MIN() aggregates on type {}", TypeIdToString(ret_type)));
       }
@@ -236,6 +238,8 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId r
         return BuiltinType(ast::BuiltinType::DateMaxAggregate);
       } else if (ret_type == sql::TypeId::Varchar) {
         return BuiltinType(ast::BuiltinType::StringMaxAggregate);
+      } else if (ret_type == sql::TypeId::FixedDecimal) {
+        return BuiltinType(ast::BuiltinType::FixedDecimalMaxAggregate);
       } else {
         throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("MAX() aggregates on type {}", TypeIdToString(ret_type)));
       }
@@ -243,6 +247,8 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId r
       TERRIER_ASSERT(IsTypeNumeric(ret_type), "Only arithmetic types have sums.");
       if (IsTypeIntegral(ret_type)) {
         return BuiltinType(ast::BuiltinType::IntegerSumAggregate);
+      } else if (ret_type == sql::TypeId::FixedDecimal) {
+        return BuiltinType(ast::BuiltinType::FixedDecimalSumAggregate);
       }
       return BuiltinType(ast::BuiltinType::RealSumAggregate);
     default: {
@@ -521,7 +527,14 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 }
 
 ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                          bool own) {
+                          bool own, uint16_t max_varlen_size) {
+
+  if(type == type::TypeId::FIXEDDECIMAL) {
+    // The max var len size represents the precision in case of a fixed decimal
+    val = CallBuiltin(ast::Builtin::UpgradePrecisionFixedDecimal, {val, Const32(max_varlen_size)});
+    val->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::FixedDecimal));
+  }
+
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::BOOLEAN:

@@ -54,7 +54,8 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
-  if (builtin == ast::Builtin::SetPrecisionFixedDecimal) {
+  if (builtin == ast::Builtin::SetPrecisionFixedDecimal ||
+      builtin == ast::Builtin::UpgradePrecisionFixedDecimal) {
     if (!CheckArgCount(call, 2)) {
       return;
     }
@@ -662,6 +663,11 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
         case ast::BuiltinType::Kind::RealSumAggregate:
         case ast::BuiltinType::Kind::AvgAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Real));
+          break;
+        case ast::BuiltinType::Kind::FixedDecimalMaxAggregate:
+        case ast::BuiltinType::Kind::FixedDecimalMinAggregate:
+        case ast::BuiltinType::Kind::FixedDecimalSumAggregate:
+          call->SetType(GetBuiltinType(ast::BuiltinType::FixedDecimal));
           break;
         default:
           UNREACHABLE("Impossible aggregate type!");
@@ -3062,6 +3068,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::DateToSql:
     case ast::Builtin::FixedDecimalToSql:
     case ast::Builtin::SetPrecisionFixedDecimal:
+    case ast::Builtin::UpgradePrecisionFixedDecimal:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:

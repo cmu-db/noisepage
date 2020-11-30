@@ -85,6 +85,9 @@ class Context;
   NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                         \
   NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                         \
+  NON_PRIM(FixedDecimalMaxAggregate, terrier::execution::sql::FixedDecimalMaxAggregate)         \
+  NON_PRIM(FixedDecimalMinAggregate, terrier::execution::sql::FixedDecimalMinAggregate)         \
+  NON_PRIM(FixedDecimalSumAggregate, terrier::execution::sql::FixedDecimalSumAggregate)         \
   NON_PRIM(DateMinAggregate, terrier::execution::sql::DateMinAggregate)                         \
   NON_PRIM(DateMaxAggregate, terrier::execution::sql::DateMaxAggregate)                         \
   NON_PRIM(StringMinAggregate, terrier::execution::sql::StringMinAggregate)                     \
@@ -388,7 +391,7 @@ class BuiltinType : public Type {
    * @return True if this type is a SQL aggregator type (i.e., IntegerSumAggregate,
    *         CountAggregate, etc.); false otherwise.
    */
-  bool IsSqlAggregateType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::RealSumAggregate; }
+  bool IsSqlAggregateType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::StringMaxAggregate; }
 
   /**
    * @return The kind of this builtin.

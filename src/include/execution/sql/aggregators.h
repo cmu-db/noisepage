@@ -148,6 +148,66 @@ class IntegerSumAggregate : public SumAggregate<Integer> {};
 /** Real sums. */
 class RealSumAggregate : public SumAggregate<Real> {};
 
+/** FixedDecimal sums. */
+class FixedDecimalSumAggregate {
+
+ public:
+  /**
+   * Constructor.
+   */
+  FixedDecimalSumAggregate() : sum_(static_cast<decltype(DecimalVal::val_)>(0)) { sum_.is_null_ = true; }
+
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(FixedDecimalSumAggregate);
+
+  /**
+   * Advance the aggregate by a given input value.
+   * If the input is NULL, no change is applied to the aggregate.
+   * @param val The (potentially NULL) value to advance the sum by.
+   */
+  void Advance(const DecimalVal &val) {
+    if (val.is_null_) {
+      return;
+    }
+    sum_.precision_ = val.precision_;
+    sum_.is_null_ = false;
+    sum_.val_ += val.val_;
+  }
+
+  /**
+   * Merge a partial sum aggregate into this aggregate.
+   * If the partial sum is NULL, no change is applied to this aggregate.
+   * @param that The (potentially NULL) value to merge into this aggregate.
+   */
+  void Merge(const FixedDecimalSumAggregate &that) {
+    if (that.sum_.is_null_) {
+      return;
+    }
+    sum_.precision_ = that.sum_.precision_;
+    sum_.is_null_ = false;
+    sum_.val_ += that.sum_.val_;
+  }
+
+  /**
+   * Reset the summation.
+   */
+  void Reset() {
+    sum_.is_null_ = true;
+    sum_.val_ = Decimal128(0);
+  }
+
+  /**
+   * Return the result of the summation.
+   * @return The current value of the sum.
+   */
+  const DecimalVal &GetResultSum() const { return sum_; }
+
+ private:
+  DecimalVal sum_;
+};
+
 /** Generic max. */
 template <typename T>
 class MaxAggregate {
@@ -218,6 +278,69 @@ class TimestampMaxAggregate : public MaxAggregate<TimestampVal> {};
 /** String max. */
 class StringMaxAggregate : public MaxAggregate<StringVal> {};
 
+/** FixedDecimal max. */
+class FixedDecimalMaxAggregate {
+
+ public:
+  /**
+   * Constructor.
+   */
+  FixedDecimalMaxAggregate() : max_(std::numeric_limits<decltype(DecimalVal::val_)>::min()) {
+
+    int128_t minval = 1;
+    minval = minval << 127;
+    max_.val_.SetValue(minval);
+    max_.is_null_ = true;
+  }
+
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(FixedDecimalMaxAggregate);
+
+  /**
+   * Advance the aggregate by the input value @em val.
+   */
+  void Advance(const DecimalVal &val) {
+    if (val.is_null_) {
+      return;
+    }
+    max_.precision_ = val.precision_;
+    max_.is_null_ = false;
+    max_.val_ = std::max(val.val_, max_.val_);
+  }
+
+  /**
+   * Merge a partial max aggregate into this aggregate.
+   */
+  void Merge(const FixedDecimalMaxAggregate &that) {
+    if (that.max_.is_null_) {
+      return;
+    }
+    max_.precision_ = that.max_.precision_;
+    max_.is_null_ = false;
+    max_.val_ = std::max(that.max_.val_, max_.val_);
+  }
+
+  /**
+   * Reset the aggregate.
+   */
+  void Reset() {
+    max_.is_null_ = true;
+    int128_t minval = 1;
+    minval = minval << 127;
+    max_.val_.SetValue(minval);
+  }
+
+  /**
+   * Return the result of the max.
+   */
+  const DecimalVal &GetResultMax() const { return max_; }
+
+ private:
+  DecimalVal max_;
+};
+
 /** Generic min. */
 template <typename T>
 class MinAggregate {
@@ -287,6 +410,71 @@ class TimestampMinAggregate : public MinAggregate<TimestampVal> {};
 
 /** String min. */
 class StringMinAggregate : public MinAggregate<StringVal> {};
+
+/** FixedDecimal min. */
+class FixedDecimalMinAggregate {
+  static_assert(std::is_base_of_v<Val, DecimalVal>, "Template type must subclass value");
+
+ public:
+  /**
+   * Constructor.
+   */
+  FixedDecimalMinAggregate() : min_(std::numeric_limits<decltype(DecimalVal::val_)>::max()) {
+    uint128_t maxval = 1;
+    maxval = maxval << 127;
+    maxval -= 1;
+    min_.val_.SetValue(maxval);
+    min_.is_null_ = true;
+  }
+
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(FixedDecimalMinAggregate);
+
+  /**
+   * Advance the aggregate by the input value @em val.
+   */
+  void Advance(const DecimalVal &val) {
+    if (val.is_null_) {
+      return;
+    }
+    min_.precision_ = val.precision_;
+    min_.is_null_ = false;
+    min_.val_ = std::min(val.val_, min_.val_);
+  }
+
+  /**
+   * Merge a partial min aggregate into this aggregate.
+   */
+  void Merge(const FixedDecimalMinAggregate &that) {
+    if (that.min_.is_null_) {
+      return;
+    }
+    min_.precision_ = that.min_.precision_;
+    min_.is_null_ = false;
+    min_.val_ = std::min(that.min_.val_, min_.val_);
+  }
+
+  /**
+   * Reset the aggregate.
+   */
+  void Reset() {
+    min_.is_null_ = true;
+    uint128_t maxval = 1;
+    maxval = maxval << 127;
+    maxval -= 1;
+    min_.val_.SetValue(maxval);
+  }
+
+  /**
+   * Return the result of the minimum.
+   */
+  const DecimalVal &GetResultMin() const { return min_; }
+
+ private:
+  DecimalVal min_;
+};
 
 /** Average aggregate. */
 class AvgAggregate {

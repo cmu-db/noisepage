@@ -1315,6 +1315,60 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     return result_lower | result_upper;
   }
 }
+template <typename T>
+int Decimal<T>::SetMaxmPrecision(std::string input) {
+  this->value_ = 0;
+
+  if (input.size() == 0) return 0;
+
+  unsigned pos = 0;
+
+  bool is_negative = false;
+  if (input[pos] == '-') {
+    pos++;
+    is_negative = true;
+  }
+
+  while (pos < input.size() && input[pos] != '.') {
+    this->value_ += input[pos] - '0';
+    if(pos < input.size() - 1) {
+      this->value_ *= 10;
+    }
+    pos++;
+  }
+
+  if(pos == input.size()) {
+    if (is_negative) {
+      this->value_ = -this->value_;
+    }
+    return 0;
+  } else {
+    pos++;
+  }
+
+  if(pos == input.size()) {
+    this->value_ /= 10;
+    if (is_negative) {
+      this->value_ = -this->value_;
+    }
+    return 0;
+  }
+
+  int precision = 0;
+  while(pos < input.size()) {
+    this->value_ += input[pos] - '0';
+    if(pos < input.size() - 1) {
+      this->value_ *= 10;
+    }
+    pos++;
+    precision++;
+  }
+
+  if (is_negative) {
+    this->value_ = -this->value_;
+  }
+  return precision;
+}
 
 template class Decimal<int128_t>;
 template class Decimal<int64_t>;

@@ -574,8 +574,29 @@ VM_OP_HOT void OpInitFixedDecimal(terrier::execution::sql::DecimalVal *result, i
 VM_OP_HOT void OpSetPrecisionFixedDecimal(terrier::execution::sql::DecimalVal *result,
                                           terrier::execution::sql::DecimalVal * fixed_decimal,
                                           int32_t precision) {
-  result->is_null_ = false;
+  result->is_null_ = fixed_decimal->is_null_;
   result->val_ = fixed_decimal->val_;
+  result->precision_ = precision;
+}
+
+VM_OP_HOT void OpUpgradePrecisionFixedDecimal(terrier::execution::sql::DecimalVal *result,
+                                          terrier::execution::sql::DecimalVal * fixed_decimal,
+                                          int32_t precision) {
+  result->is_null_ = fixed_decimal->is_null_;
+  result->val_.SetValue(fixed_decimal->val_.GetValue());
+  if(fixed_decimal->precision_ < precision) {
+    int128_t value = result->val_.GetValue();
+    for(int i = 0; i < precision - fixed_decimal->precision_; i++) {
+      value *= 10;
+    }
+    result->val_.SetValue(value);
+  } else if(fixed_decimal->precision_ > precision) {
+    int128_t value = result->val_.GetValue();
+    for(int i = 0; i < fixed_decimal->precision_ - precision; i++) {
+      value /= 10;
+    }
+    result->val_.SetValue(value);
+  }
   result->precision_ = precision;
 }
 
@@ -834,6 +855,7 @@ VM_OP_HOT void OpAddFixedDecimal(terrier::execution::sql::DecimalVal *const resu
   }
   left_val += right_val;
   result->val_ = left_val;
+  result->is_null_ = left->is_null_ || right->is_null_;
   result->precision_ = left_precision > right_precision ? left_precision : right_precision;
 }
 
@@ -859,6 +881,7 @@ VM_OP_HOT void OpSubFixedDecimal(terrier::execution::sql::DecimalVal *const resu
   }
   left_val -= right_val;
   result->val_ = left_val;
+  result->is_null_ = left->is_null_ || right->is_null_;
   result->precision_ = left_precision > right_precision ? left_precision : right_precision;
 }
 
@@ -870,6 +893,7 @@ VM_OP_HOT void OpMulFixedDecimal(terrier::execution::sql::DecimalVal *const resu
   auto right_precision = right->precision_;
   auto lower_precision = left_precision < right_precision ? left_precision : right_precision;
   left_val.SignedMultiplyWithDecimal(right_val, lower_precision);
+  result->is_null_ = left->is_null_ || right->is_null_;
   result->val_ = left_val;
   result->precision_ = left_precision > right_precision ? left_precision : right_precision;
 }
@@ -881,6 +905,7 @@ VM_OP_HOT void OpDivFixedDecimal(terrier::execution::sql::DecimalVal *const resu
   auto left_precision = left->precision_;
   auto right_precision = right->precision_;
   left_val.SignedDivideWithDecimal(right_val, right_precision);
+  result->is_null_ = left->is_null_ || right->is_null_;
   result->val_ = left_val;
   result->precision_ = left_precision;
 }
@@ -1115,6 +1140,29 @@ VM_OP_HOT void OpRealSumAggregateGetResult(terrier::execution::sql::Real *result
 
 VM_OP_HOT void OpRealSumAggregateFree(terrier::execution::sql::RealSumAggregate *agg) { agg->~RealSumAggregate(); }
 
+VM_OP_HOT void OpFixedDecimalSumAggregateInit(terrier::execution::sql::FixedDecimalSumAggregate *agg) {
+  new (agg) terrier::execution::sql::FixedDecimalSumAggregate();
+}
+
+VM_OP_HOT void OpFixedDecimalSumAggregateAdvance(terrier::execution::sql::FixedDecimalSumAggregate *agg,
+                                         const terrier::execution::sql::DecimalVal *val) {
+  agg->Advance(*val);
+}
+
+VM_OP_HOT void OpFixedDecimalSumAggregateMerge(terrier::execution::sql::FixedDecimalSumAggregate *agg_1,
+                                       const terrier::execution::sql::FixedDecimalSumAggregate *agg_2) {
+  agg_1->Merge(*agg_2);
+}
+
+VM_OP_HOT void OpFixedDecimalSumAggregateReset(terrier::execution::sql::FixedDecimalSumAggregate *agg) { agg->Reset(); }
+
+VM_OP_HOT void OpFixedDecimalSumAggregateGetResult(terrier::execution::sql::DecimalVal *result,
+                                           const terrier::execution::sql::FixedDecimalSumAggregate *agg) {
+  *result = agg->GetResultSum();
+}
+
+VM_OP_HOT void OpFixedDecimalSumAggregateFree(terrier::execution::sql::FixedDecimalSumAggregate *agg) { agg->~FixedDecimalSumAggregate(); }
+
 // ---------------------------------------------------------
 // MAX
 // ---------------------------------------------------------
@@ -1166,6 +1214,29 @@ VM_OP_HOT void OpRealMaxAggregateGetResult(terrier::execution::sql::Real *result
 }
 
 VM_OP_HOT void OpRealMaxAggregateFree(terrier::execution::sql::RealMaxAggregate *agg) { agg->~RealMaxAggregate(); }
+
+VM_OP_HOT void OpFixedDecimalMaxAggregateInit(terrier::execution::sql::FixedDecimalMaxAggregate *agg) {
+  new (agg) terrier::execution::sql::FixedDecimalMaxAggregate();
+}
+
+VM_OP_HOT void OpFixedDecimalMaxAggregateAdvance(terrier::execution::sql::FixedDecimalMaxAggregate *agg,
+                                         const terrier::execution::sql::DecimalVal *val) {
+  agg->Advance(*val);
+}
+
+VM_OP_HOT void OpFixedDecimalMaxAggregateMerge(terrier::execution::sql::FixedDecimalMaxAggregate *agg_1,
+                                       const terrier::execution::sql::FixedDecimalMaxAggregate *agg_2) {
+  agg_1->Merge(*agg_2);
+}
+
+VM_OP_HOT void OpFixedDecimalMaxAggregateReset(terrier::execution::sql::FixedDecimalMaxAggregate *agg) { agg->Reset(); }
+
+VM_OP_HOT void OpFixedDecimalMaxAggregateGetResult(terrier::execution::sql::DecimalVal *result,
+                                           const terrier::execution::sql::FixedDecimalMaxAggregate *agg) {
+  *result = agg->GetResultMax();
+}
+
+VM_OP_HOT void OpFixedDecimalMaxAggregateFree(terrier::execution::sql::FixedDecimalMaxAggregate *agg) { agg->~FixedDecimalMaxAggregate(); }
 
 VM_OP_HOT void OpDateMaxAggregateInit(terrier::execution::sql::DateMaxAggregate *agg) {
   new (agg) terrier::execution::sql::DateMaxAggregate();
@@ -1266,6 +1337,29 @@ VM_OP_HOT void OpRealMinAggregateGetResult(terrier::execution::sql::Real *result
 }
 
 VM_OP_HOT void OpRealMinAggregateFree(terrier::execution::sql::RealMinAggregate *agg) { agg->~RealMinAggregate(); }
+
+VM_OP_HOT void OpFixedDecimalMinAggregateInit(terrier::execution::sql::FixedDecimalMinAggregate *agg) {
+  new (agg) terrier::execution::sql::FixedDecimalMinAggregate();
+}
+
+VM_OP_HOT void OpFixedDecimalMinAggregateAdvance(terrier::execution::sql::FixedDecimalMinAggregate *agg,
+                                         const terrier::execution::sql::DecimalVal *val) {
+  agg->Advance(*val);
+}
+
+VM_OP_HOT void OpFixedDecimalMinAggregateMerge(terrier::execution::sql::FixedDecimalMinAggregate *agg_1,
+                                       const terrier::execution::sql::FixedDecimalMinAggregate *agg_2) {
+  agg_1->Merge(*agg_2);
+}
+
+VM_OP_HOT void OpFixedDecimalMinAggregateReset(terrier::execution::sql::FixedDecimalMinAggregate *agg) { agg->Reset(); }
+
+VM_OP_HOT void OpFixedDecimalMinAggregateGetResult(terrier::execution::sql::DecimalVal *result,
+                                           const terrier::execution::sql::FixedDecimalMinAggregate *agg) {
+  *result = agg->GetResultMin();
+}
+
+VM_OP_HOT void OpFixedDecimalMinAggregateFree(terrier::execution::sql::FixedDecimalMinAggregate *agg) { agg->~FixedDecimalMinAggregate(); }
 
 VM_OP_HOT void OpDateMinAggregateInit(terrier::execution::sql::DateMinAggregate *agg) {
   new (agg) terrier::execution::sql::DateMinAggregate();

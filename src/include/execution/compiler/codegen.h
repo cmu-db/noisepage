@@ -723,10 +723,11 @@ class CodeGen {
    * @param attr_idx Index of the column being accessed.
    * @param val The value to set the column to.
    * @param own When inserting varchars, whether the VarlenEntry should own its content.
+   * @param max_varlen_size max_varlen_size of the column where we are inserting
    * @return The expression corresponding to the builtin call.
    */
   [[nodiscard]] ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                                 bool own = false);
+                                 bool own = false, uint16_t max_varlen_size = 0);
 
   // -------------------------------------------------------
   //

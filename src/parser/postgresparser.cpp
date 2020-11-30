@@ -721,9 +721,11 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
         const auto string = std::string_view{val.val_.str_};
-        auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
-                                                           std::move(string_val.second));
+        terrier::execution::sql::Decimal128 decimal_val(0);
+        // TODO(Rohan): Fix the precision argument
+        int precision = decimal_val.SetMaxmPrecision(std::string(string));
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::FIXEDDECIMAL,
+                                                           execution::sql::DecimalVal(decimal_val, precision));
       }
       break;
     }

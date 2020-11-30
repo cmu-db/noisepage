@@ -981,12 +981,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   OP(SetPrecisionFixedDecimal) : {
-  auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
-  auto fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
-  auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-  OpSetPrecisionFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
-  DISPATCH_NEXT();
-}
+    auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
+    auto fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
+    auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    OpSetPrecisionFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpgradePrecisionFixedDecimal) : {
+    auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
+    auto fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
+    auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    OpUpgradePrecisionFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
+    DISPATCH_NEXT();
+  }
 
   OP(InitTimestamp) : {
     auto *sql_timestamp = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
@@ -1505,6 +1513,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_AGGREGATE(Real, RealSumAggregate);
   GEN_AGGREGATE(Real, RealMaxAggregate);
   GEN_AGGREGATE(Real, RealMinAggregate);
+  GEN_AGGREGATE(DecimalVal, FixedDecimalSumAggregate);
+  GEN_AGGREGATE(DecimalVal, FixedDecimalMaxAggregate);
+  GEN_AGGREGATE(DecimalVal, FixedDecimalMinAggregate);
   GEN_AGGREGATE(DateVal, DateMaxAggregate);
   GEN_AGGREGATE(DateVal, DateMinAggregate);
   GEN_AGGREGATE(StringVal, StringMaxAggregate);
