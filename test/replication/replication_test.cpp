@@ -155,7 +155,9 @@ class ReplicationTests : public TerrierTest {
   static void DirtySleep(int seconds) { std::this_thread::sleep_for(std::chrono::seconds(seconds)); }
 };
 
+
 // NOLINTNEXTLINE
+/*
 TEST_F(ReplicationTests, CreateDatabaseTest) {
   replication_logger->set_level(spdlog::level::trace);
 
@@ -193,7 +195,7 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
     std::string database_name = "testdb";
     //std::string namespace_name = "testns";
     auto *txn = primary->GetTransactionLayer()->GetTransactionManager()->BeginTransaction();
-    /*auto db_oid =*/ CreateDatabase(txn, primary->GetCatalogLayer()->GetCatalog(), database_name);
+    auto db_oid = CreateDatabase(txn, primary->GetCatalogLayer()->GetCatalog(), database_name);
     //auto db_catalog = primary->GetCatalogLayer()->GetCatalog()->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
     //EXPECT_TRUE(db_catalog);
     //CreateNamespace(txn, db_catalog, namespace_name);
@@ -201,8 +203,9 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
                                                                     nullptr);
 
     // Send message.
-    replication_manager->ReplicaSend("replica1", ReplicationManager::MessageType::RECOVER,
-                                     replication_manager->SerializeLogRecords(), true);
+    //replication_manager->ReplicaSend("replica1", ReplicationManager::MessageType::RECOVER,
+    //                                 replication_manager->SerializeLogRecords(), true);
+
     REPLICATION_LOG_INFO("Waiting on replica...");
 
     while (!done[1]) {
@@ -253,9 +256,9 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
 
   UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
   NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
-}
+}*/
 
-/*
+
 // This test inserts some tuples into a single table. It then recreates the test table from
 // the log, and verifies that this new table is the same as the original table
 // NOLINTNEXTLINE
@@ -280,74 +283,13 @@ TEST_F(ReplicationTests, SingleTableTest) {
   uint16_t port_replication_primary = 15445;
   uint16_t port_replication_replica1 = port_replication_primary + 1;
 
-  volatile bool *done = static_cast<volatile bool *>(
-      mmap(nullptr, 2 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
-  NOISEPAGE_ASSERT(MAP_FAILED != done, "mmap() failed.");
-
-  done[0] = false;
-  done[1] = false;
-
-  auto spin_until_done = [done]() {
-    while (!(done[0] && done[1])) {
-    }
-  };
-
   std::unique_ptr<DBMain> primary = BuildDBMain(port_primary, port_messenger_primary, port_replication_primary, "primary");
-  std::shared_ptr<DBMain> replica1;
+  std::unique_ptr<DBMain> replica1 = BuildDBMain(port_replica1, port_messenger_replica1, port_replication_replica1, "replica1");
   
-  VoidFn primary_fn = [=, &primary,&replica1]() {
-    REPLICATION_LOG_INFO("Running primary");
-    primary->GetNetworkLayer()->GetServer()->RunServer();
-
-    // Connect to replica1.
-    auto replication_manager = primary->GetReplicationManager();
-    replication_manager->ReplicaConnect("replica1", "localhost", port_replication_replica1);
-    DirtySleep(10);
-
-    REPLICATION_LOG_INFO("Running some OLTP tests...");
-    RunTest(primary, config);
-
-    // Wait short time for recovery to wrap up.
-    DirtySleep(5);
-    REPLICATION_LOG_INFO("Running some checks...");
-    //RunCheck(tested, primary, replica1);
-
-    while (!done[1]) {
-    }
-
-    REPLICATION_LOG_INFO("Primary done.");
-    done[0] = true;
-    spin_until_done();
-    REPLICATION_LOG_INFO("Primary exit.");
-  };
-
-  VoidFn replica1_fn = [=, &replica1]() {
-    replica1 = std::move(BuildDBMain(port_replica1, port_messenger_replica1, port_replication_replica1, "replica1"));
-    replica1->GetNetworkLayer()->GetServer()->RunServer();
-
-    // Connect to primary.
-    auto replication_manager = replica1->GetReplicationManager();
-    replication_manager->ReplicaConnect("primary", "localhost", port_replication_primary);
-    DirtySleep(15);
-
-    REPLICATION_LOG_INFO("Replica 1 done.");
-    done[1] = true;
-    while (!done[0]) {
-    }
-    spin_until_done();
-    REPLICATION_LOG_INFO("Replica 1 exit.");
-  };
-
-  std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn});
-
-  // Spin until all done.
-  while (!(done[0] && done[1])) {
-  }
-
-  DirtySleep(5);
-
-  UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
-  NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
-}*/
+  primary->GetNetworkLayer()->GetServer()->RunServer();
+  auto replication_manager = primary->GetReplicationManager();
+  replication_manager->ReplicaConnect("replica1", "localhost", port_replication_replica1);
+  RunTest(primary, config);
+}
 
 }  // namespace noisepage::replication

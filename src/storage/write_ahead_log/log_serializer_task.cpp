@@ -136,7 +136,7 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
-  if (replication_manager_ != DISABLED && filled_buffer_queue_ != nullptr && filled_buffer_ != nullptr) {
+  if (replication_manager_ != DISABLED && filled_buffer_ != nullptr) {
     // Add current logs to the replication manager.
     BufferedLogWriter *network_buffer;
     empty_buffer_queue_->Dequeue(&network_buffer);
@@ -144,11 +144,11 @@ void LogSerializerTask::HandFilledBufferToWriter() {
 
     // Try sychronous replication...
     replication_manager_->AddLogRecordBuffer(network_buffer);
-    //if (replication_manager_->ReplicaSize() > 0) {
+    if (replication_manager_->ReplicaSize() > 0) {
       // Send message.
-      //replication_manager_->ReplicaSend("replica1", replication::ReplicationManager::MessageType::RECOVER,
-      //                                  replication_manager_->SerializeLogRecords(), true);
-    //}
+      replication_manager_->ReplicaSend("replica1", replication::ReplicationManager::MessageType::RECOVER,
+                                        replication_manager_->SerializeLogRecords(), true);
+    }
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));

@@ -19,7 +19,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
 
   switch (record_type) {
     case (storage::LogRecordType::COMMIT): {
-      STORAGE_LOG_INFO("COMMIT log");
+      //STORAGE_LOG_INFO("COMMIT log");
       auto txn_commit = ReadValue<transaction::timestamp_t>();
       auto oldest_active_txn = ReadValue<transaction::timestamp_t>();
       NOISEPAGE_ASSERT(oldest_active_txn != transaction::INVALID_TXN_TIMESTAMP,
@@ -34,12 +34,12 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     case (storage::LogRecordType::ABORT): {
-      STORAGE_LOG_INFO("ABORT log");
+      //STORAGE_LOG_INFO("ABORT log");
       return {storage::AbortRecord::Initialize(buf, txn_begin, nullptr, nullptr), varlen_contents};
     }
 
     case (storage::LogRecordType::DELETE): {
-      STORAGE_LOG_INFO("DELETE log");
+      //STORAGE_LOG_INFO("DELETE log");
       auto database_oid = ReadValue<catalog::db_oid_t>();
       auto table_oid = ReadValue<catalog::table_oid_t>();
       auto tuple_slot = ReadValue<storage::TupleSlot>();
@@ -47,7 +47,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     case (storage::LogRecordType::REDO): {
-      STORAGE_LOG_INFO("REDO log");
+      //STORAGE_LOG_INFO("REDO log");
       auto database_oid = ReadValue<catalog::db_oid_t>();
       auto table_oid = ReadValue<catalog::table_oid_t>();
       auto tuple_slot = ReadValue<storage::TupleSlot>();

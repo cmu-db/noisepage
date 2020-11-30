@@ -28,7 +28,8 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
              uint64_t recv_cb_id) { EventLoop(messenger, sender_id, msg, recv_cb_id); });
   if (port == 15445) {
     port_ = 15445;
-    //ReplicaConnect("replica1", "localhost", 15446);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    ReplicaConnect("replica1", "localhost", 15446);
   } else {
     port_ = 15446;
   }
@@ -106,7 +107,12 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
     cvar_.notify_all();
   };
   messenger_->SendMessage(GetReplicaConnection(replica_name), msg, callback, static_cast<uint64_t>(type));
-  REPLICATION_LOG_INFO(fmt::format("Replication message sent to: {} with type {}", replica_name, type));
+  // Parse the message.
+  nlohmann::json message = nlohmann::json::parse(std::string(msg.substr(3)));
+
+  // Get the original replication info.
+  size_t message_size = message["size"];
+  REPLICATION_LOG_INFO(fmt::format("Replication message sent to {} of size {}", replica_name, message_size));
 
   if (block) {
     // If the caller requested to block until the operation was completed, the thread waits.
@@ -250,7 +256,7 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
   // Pass to log provider for recovery.
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
   //recovery_manager_->StartRecovery();
-  REPLICATION_LOG_INFO("Recovered from logs");
+  //REPLICATION_LOG_INFO("Recovered from logs");
 }
 
 }  // namespace noisepage::replication

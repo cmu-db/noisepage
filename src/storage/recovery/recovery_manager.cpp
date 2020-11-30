@@ -44,7 +44,7 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs() {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    STORAGE_LOG_INFO("[Recovery Manager]: Grabbing next log record...");
+    //STORAGE_LOG_INFO("[Recovery Manager]: Grabbing next log record...");
     auto pair = log_provider_->GetNextRecord();
     auto *log_record = pair.first;
 
@@ -57,7 +57,7 @@ void RecoveryManager::RecoverFromLogs() {
 
     switch (log_record->RecordType()) {
       case (LogRecordType::ABORT): {
-        STORAGE_LOG_INFO("[Recovery Manager]: Processing ABORT logs");
+        //STORAGE_LOG_INFO("[Recovery Manager]: Processing ABORT logs");
         NOISEPAGE_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
@@ -66,7 +66,7 @@ void RecoveryManager::RecoverFromLogs() {
       }
 
       case (LogRecordType::COMMIT): {
-        STORAGE_LOG_INFO("[Recovery Manager]: Processing COMMIT logs");
+        //STORAGE_LOG_INFO("[Recovery Manager]: Processing COMMIT logs");
         NOISEPAGE_ASSERT(pair.second.empty(), "Commit records should not have any varlen pointers");
         auto *commit_record = log_record->GetUnderlyingRecordBodyAs<CommitRecord>();
 
@@ -80,23 +80,19 @@ void RecoveryManager::RecoverFromLogs() {
         }
 
         // Process any deferred transactions that are safe to execute
-        STORAGE_LOG_INFO("[Recovery Manager]: COMMIT logs ProcessDeferredTransactions");
         recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
 
         // Clean up the log record
-        STORAGE_LOG_INFO("[Recovery Manager]: COMMIT logs RegisterDeferredAction");
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
       }
 
       default:
-        STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs");
+        //STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs");
         NOISEPAGE_ASSERT(
             log_record->RecordType() == LogRecordType::REDO || log_record->RecordType() == LogRecordType::DELETE,
             "We should only buffer changes for redo or delete records");
-        STORAGE_LOG_INFO(log_record->TxnBegin());
         buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
-        STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs done");
     }
     
     // Process all deferred txns
@@ -185,6 +181,10 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::ti
 
   // If we actually processed some txns, remove them from the set
   if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
+
+  if (deferred_txns_.empty() && !log_provider_.CastManagedPointerTo<storage::ReplicationLogProvider>()->NonBlockingHasMoreRecords()) {
+    STORAGE_LOG_INFO("Notifying primary of sync");
+  }
 
   return txns_processed;
 }
