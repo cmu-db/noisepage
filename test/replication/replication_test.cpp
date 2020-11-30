@@ -203,6 +203,7 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
     // Send message.
     replication_manager->ReplicaSend("replica1", ReplicationManager::MessageType::RECOVER,
                                      replication_manager->SerializeLogRecords(), true);
+    REPLICATION_LOG_INFO("Waiting on replica...");
 
     while (!done[1]) {
     }
@@ -220,9 +221,12 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
     // Connect to primary.
     auto replication_manager = replica1->GetReplicationManager();
     replication_manager->ReplicaConnect("primary", "localhost", port_replication_primary);
-    DirtySleep(15);
+    DirtySleep(10);
 
     // Wait short time for recovery.
+    //replica1->GetRecoveryManager()->StartRecovery();
+    //DirtySleep(5);
+
     auto txn = replica1->GetTransactionLayer()->GetTransactionManager()->BeginTransaction();
     catalog::db_oid_t db_oid{0};
     //catalog::namespace_oid_t ns_oid{0};

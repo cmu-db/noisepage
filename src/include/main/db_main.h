@@ -407,18 +407,19 @@ class DBMain {
                                            common::ManagedPointer(log_manager), create_default_database_);
       }
 
+      std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
       if (use_replication_) {
         std::chrono::seconds replication_timeout{10};
-        std::unique_ptr<storage::BlockStore> block_store(new storage::BlockStore{100, 100});
+        storage::BlockStore block_store{100, 100};
 
-        auto recovery_manager = std::make_unique<storage::RecoveryManager>(
+        recovery_manager = std::make_unique<storage::RecoveryManager>(
             common::ManagedPointer<storage::AbstractLogProvider>(
                 static_cast<storage::AbstractLogProvider *>(replication_log_provider.get())),
             catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(), txn_layer->GetDeferredActionManager(),
-            common::ManagedPointer(thread_registry), common::ManagedPointer(common::ManagedPointer(block_store)));
+            common::ManagedPointer(thread_registry), common::ManagedPointer(&block_store));
         replication_manager->SetRecoveryManager(common::ManagedPointer(recovery_manager));
         if (replication_port_ == 15446) {
-          //replication_manager->StartRecovery();
+          replication_manager->StartRecovery();
         }
       }
 
@@ -477,6 +478,7 @@ class DBMain {
       db_main->network_layer_ = std::move(network_layer);
       db_main->messenger_layer_ = std::move(messenger_layer);
       db_main->replication_manager_ = std::move(replication_manager);
+      db_main->recovery_manager_ = std::move(recovery_manager);
 
       return db_main;
     }
@@ -1017,6 +1019,11 @@ class DBMain {
     return common::ManagedPointer(replication_manager_);
   }
 
+  /** @return ManagedPointer to the component, can be nullptr if disabled. */
+  common::ManagedPointer<storage::RecoveryManager> GetRecoveryManager() const {
+    return common::ManagedPointer(recovery_manager_);
+  }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -1036,6 +1043,7 @@ class DBMain {
   std::unique_ptr<NetworkLayer> network_layer_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<replication::ReplicationManager> replication_manager_;
+  std::unique_ptr<storage::RecoveryManager> recovery_manager_;
 };
 
 }  // namespace noisepage

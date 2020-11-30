@@ -25,9 +25,7 @@ class AbstractLogProvider {
    * provided.
    */
   std::pair<LogRecord *, std::vector<byte *>> GetNextRecord() {
-    STORAGE_LOG_INFO("wtf");
     bool hasMoreRecords = HasMoreRecords();
-    STORAGE_LOG_INFO("wtf2");
     if (hasMoreRecords) {
       auto next = ReadNextRecord();
       return next;

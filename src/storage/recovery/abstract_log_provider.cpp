@@ -10,15 +10,12 @@ namespace noisepage::storage {
 
 std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord() {
   // Pointer to buffers for non-aligned varlen entries so we can clean them up down the road
-  STORAGE_LOG_INFO("1");
   std::vector<byte *> varlen_contents;
   // Read in LogRecord header data
   auto size = ReadValue<uint32_t>();
-  STORAGE_LOG_INFO("2");
   byte *buf = common::AllocationUtil::AllocateAligned(size);
   auto record_type = ReadValue<storage::LogRecordType>();
   auto txn_begin = ReadValue<transaction::timestamp_t>();
-  STORAGE_LOG_INFO("3");
 
   switch (record_type) {
     case (storage::LogRecordType::COMMIT): {

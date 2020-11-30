@@ -31,6 +31,7 @@ void RecoveryManager::StartRecovery() {
   NOISEPAGE_ASSERT(recovery_task_ == nullptr, "Recovery already started");
   recovery_task_ =
       thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
+  STORAGE_LOG_INFO("[Recovery]: Task registered");
 }
 
 void RecoveryManager::WaitForRecoveryToFinish() {
@@ -41,18 +42,17 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 }
 
 void RecoveryManager::RecoverFromLogs() {
-  STORAGE_LOG_INFO("[Recovery]: what is going on");
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    STORAGE_LOG_INFO("[Recovery]: Do something");
+    STORAGE_LOG_INFO("[Recovery Manager]: Grabbing next log record...");
     auto pair = log_provider_->GetNextRecord();
     auto *log_record = pair.first;
 
     // If we have exhausted all the logs, break from the loop
     if (log_record == nullptr) {
-      STORAGE_LOG_INFO("[Recovery]: Exhausted all logs");
-      //continue;
-      break;
+      STORAGE_LOG_INFO("[Recovery Manager]: Exhausted all logs!");
+      continue;
+      //break;
     }
 
     switch (log_record->RecordType()) {
@@ -90,13 +90,15 @@ void RecoveryManager::RecoverFromLogs() {
       }
 
       default:
-        STORAGE_LOG_INFO("[Recovery]: Processing REDO/DELETE logs");
+        STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs");
         NOISEPAGE_ASSERT(
             log_record->RecordType() == LogRecordType::REDO || log_record->RecordType() == LogRecordType::DELETE,
             "We should only buffer changes for redo or delete records");
+        STORAGE_LOG_INFO(log_record->TxnBegin());
         buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
+        STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs done");
     }
-
+    
     // Process all deferred txns
     ProcessDeferredTransactions(transaction::INVALID_TXN_TIMESTAMP);
     NOISEPAGE_ASSERT(deferred_txns_.empty(),

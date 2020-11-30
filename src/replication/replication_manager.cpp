@@ -28,7 +28,7 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
              uint64_t recv_cb_id) { EventLoop(messenger, sender_id, msg, recv_cb_id); });
   if (port == 15445) {
     port_ = 15445;
-    ReplicaConnect("replica1", "localhost", 15446);
+    //ReplicaConnect("replica1", "localhost", 15446);
   } else {
     port_ = 15446;
   }
@@ -236,7 +236,7 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
 
   // Get the original replication info.
   size_t message_size = message["size"];
-  REPLICATION_LOG_ERROR("Received replication message size of " + std::to_string(message_size));
+  REPLICATION_LOG_ERROR("Recovering from log record of size " + std::to_string(message_size));
 
   std::unique_ptr<network::ReadBuffer> buffer(new network::ReadBuffer(message_size));
   std::vector<uint8_t> message_content_raw = message["content"];
@@ -248,11 +248,9 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
   buffer->FillBufferFrom(view, message_size);
 
   // Pass to log provider for recovery.
-  REPLICATION_LOG_INFO("Recovering from logs...");
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
-  REPLICATION_LOG_INFO("Start recovery...");
-  recovery_manager_->StartRecovery();
-  REPLICATION_LOG_INFO("Recovered from logs...");
+  //recovery_manager_->StartRecovery();
+  REPLICATION_LOG_INFO("Recovered from logs");
 }
 
 }  // namespace noisepage::replication
