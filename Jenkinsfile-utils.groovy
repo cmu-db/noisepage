@@ -17,7 +17,7 @@ def noisePageBuild(Map args = [:]){
         compile_cmd += " -DNOISEPAGE_GENERATE_COVERAGE=ON"
     }
 
-    if(config.useCache){
+    if(config.os=='macos' || config.useCache){
         compile_cmd += " -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
     }
 
