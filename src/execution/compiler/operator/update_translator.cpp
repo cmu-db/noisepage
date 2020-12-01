@@ -91,10 +91,22 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 }
 
 void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
-                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
-  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
-                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  if (GetPlanAs<planner::UpdatePlanNode>().GetIndexOids().empty()) {
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  } else {
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  }
+
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 

@@ -263,6 +263,24 @@ class MiniRunnersArgumentGenerator {
                                             const MiniRunnersDataConfig &config);
 
   /**
+   * Generates arguments for modeling UPDATE/DELETE with seq-scans
+   *
+   * Benchmark arguments are as follows:
+   * Arg 0: Number of integers to utilize
+   * Arg 1: Number of bigints to utilize
+   * Arg 2: Number of integers in the underlying table
+   * Arg 3: Number of bigints in the underlying table
+   * Arg 4: Number of rows in the underlying table
+   * Arg 5: Cardinality of underlying table
+   *
+   * @param b Vector to store output argument vectors
+   * @param settings Settings of the mini-runners
+   * @param config MiniRunners data parameters
+   */
+  static void GenUpdateDeleteScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                           const MiniRunnersDataConfig &config);
+
+  /**
    * Generates arguments for modeling CREATE INDEX
    *
    * Benchmark arguments are as follows:

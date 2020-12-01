@@ -153,10 +153,6 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
             for idx, feature in enumerate(features):
                 if feature == 'LIMIT':
                     continue
-                if feature == 'INDEX_INSERT':
-                    continue
-                if feature == 'INDEX_DELETE':
-                    continue
 
                 opunit = OpUnit[feature]
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]

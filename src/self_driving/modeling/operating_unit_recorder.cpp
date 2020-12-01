@@ -588,12 +588,19 @@ void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {
   VisitAbstractPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
 
-  // Record the Update
-  auto num_key = cols.size();
-  auto key_size = ComputeKeySize(plan->GetTableOid(), cols, &num_key);
-  AggregateFeatures(plan_feature_type_, key_size, num_key, plan, 1, 1);
+  if (plan->GetIndexOids().empty()) {
+    // Record an "in-place" update
+    auto num_key = cols.size();
+    auto key_size = ComputeKeySize(plan->GetTableOid(), cols, &num_key);
+    AggregateFeatures(plan_feature_type_, key_size, num_key, plan, 1, 1);
+  } else {
+    // Record an TableDelete followed by TableInsert
+    auto &schema = accessor_->GetSchema(plan->GetTableOid());
+    auto num_cols = schema.GetColumns().size();
+    auto key_size = ComputeKeySize(plan->GetTableOid(), &num_cols);
+    AggregateFeatures(selfdriving::ExecutionOperatingUnitType::INSERT, key_size, num_cols, plan, 1, 1);
+    AggregateFeatures(selfdriving::ExecutionOperatingUnitType::DELETE, key_size, num_cols, plan, 1, 1);
 
-  if (!plan->GetIndexOids().empty()) {
     RecordIndexOperations<planner::UpdatePlanNode>(plan->GetIndexOids());
   }
 }
