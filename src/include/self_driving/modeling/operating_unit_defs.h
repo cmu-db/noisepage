@@ -1,6 +1,6 @@
 #pragma once
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 
 enum class ExecutionOperatingUnitType : uint32_t {
   /** INVALID is associated with translators that are INVALID no matter what. */
@@ -44,6 +44,12 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * cardinality: # unique values
    */
   SORT_BUILD,
+  /**
+   * TOPK_SORT_BUILD
+   * num_rows: # input tuples
+   * cardinality: K from TopK
+   */
+  SORT_TOPK_BUILD,
   /**
    * SORT_ITERATE
    * num_rows: # tuples output
@@ -108,6 +114,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PARALLEL_MERGE_AGGBUILD,
   PARALLEL_SORT_STEP,
   PARALLEL_SORT_MERGE_STEP,
+  PARALLEL_SORT_TOPK_STEP,
+  PARALLEL_SORT_TOPK_MERGE_STEP,
   CREATE_INDEX,
   CREATE_INDEX_MAIN,
 
@@ -125,7 +133,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
   OP_DECIMAL_MULTIPLY,
   OP_DECIMAL_DIVIDE,
   OP_DECIMAL_COMPARE,
-  OP_BOOL_COMPARE
+  OP_BOOL_COMPARE,
+  OP_VARCHAR_COMPARE
 };
 
 /** The attributes of an ExecutionOperatingUnitFeature that can be set from TPL. */
@@ -133,4 +142,4 @@ enum class ExecutionOperatingUnitFeatureAttribute : uint8_t { NUM_ROWS, CARDINAL
 
 enum class ExecutionOperatingUnitFeatureUpdateMode : uint8_t { SET, ADD, MULT };
 
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving

@@ -78,13 +78,14 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param is_for_update flag for if scan is for an update
    * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
+   * @param plan_node_id Plan node id
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate,
                   std::vector<catalog::col_oid_t> &&column_oids, bool is_for_update, catalog::db_oid_t database_oid,
                   catalog::table_oid_t table_oid, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
-                  bool scan_has_offset);
+                  bool scan_has_offset, plan_node_id_t plan_node_id);
 
  public:
   /**

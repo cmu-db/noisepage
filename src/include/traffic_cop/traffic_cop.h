@@ -24,6 +24,7 @@ class Portal;
 
 namespace noisepage::optimizer {
 class StatsStorage;
+class OptimizeResult;
 }  // namespace noisepage::optimizer
 
 namespace noisepage::parser {
@@ -125,9 +126,9 @@ class TrafficCop {
   /**
    * @param connection_ctx context containg txn and catalog accessor to be used
    * @param query bound ParseResult
-   * @return physical plan that can be executed
+   * @return optimize result containing physical plan that can be executed and the plan meta data
    */
-  std::unique_ptr<planner::AbstractPlanNode> OptimizeBoundQuery(
+  std::unique_ptr<optimizer::OptimizeResult> OptimizeBoundQuery(
       common::ManagedPointer<network::ConnectionContext> connection_ctx,
       common::ManagedPointer<parser::ParseResult> query) const;
 

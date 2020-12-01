@@ -36,7 +36,7 @@
 #include "main/db_main.h"
 #include "metrics/metrics_thread.h"
 #include "parser/expression/constant_value_expression.h"
-#include "runner/mini_runners_config.h"
+#include "runner/mini_runners_data_config.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"

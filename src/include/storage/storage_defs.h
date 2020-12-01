@@ -574,4 +574,17 @@ struct hash<noisepage::storage::TupleSlot> {
    */
   size_t operator()(const noisepage::storage::TupleSlot &slot) const { return hash<uintptr_t>()(slot.bytes_); }
 };
+
+/**
+ * Implements std::hash for VarlenEntry.
+ */
+template <>
+struct hash<noisepage::storage::VarlenEntry> {
+  /**
+   * Returns the hash of a VarlenEntry.
+   * @param key VarlenEntry to be hashed.
+   * @return the hash of the VarlenEntry.
+   */
+  size_t operator()(const noisepage::storage::VarlenEntry &key) const { return key.Hash(); }
+};
 }  // namespace std

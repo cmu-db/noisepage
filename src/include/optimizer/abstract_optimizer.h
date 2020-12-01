@@ -24,6 +24,7 @@ class TransactionContext;
 }
 
 namespace noisepage::optimizer {
+class OptimizeResult;
 
 /**
  * Struct defining information about the query.
@@ -97,12 +98,12 @@ class AbstractOptimizer {
    * @param storage StatsStorage
    * @param query_info Information about the query
    * @param op_tree Logical operator tree for execution
-   * @returns execution plan
+   * @returns OptimizeResult containing both execution plan and plan meta data
    */
-  virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
-                                                                   catalog::CatalogAccessor *accessor,
-                                                                   StatsStorage *storage, QueryInfo query_info,
-                                                                   std::unique_ptr<AbstractOptimizerNode> op_tree) = 0;
+  virtual std::unique_ptr<OptimizeResult> BuildPlanTree(transaction::TransactionContext *txn,
+                                                        catalog::CatalogAccessor *accessor, StatsStorage *storage,
+                                                        QueryInfo query_info,
+                                                        std::unique_ptr<AbstractOptimizerNode> op_tree) = 0;
 
   /**
    * Reset the optimizer's internal state

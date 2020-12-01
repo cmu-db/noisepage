@@ -124,11 +124,12 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param table_oid the OID of the target SQL table
    * @param values values to insert
    * @param parameter_info parameters information
+   * @param plan_node_id Plan node id
    */
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                 std::vector<catalog::col_oid_t> &&parameter_info);
+                 std::vector<catalog::col_oid_t> &&parameter_info, plan_node_id_t plan_node_id);
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)
