@@ -113,13 +113,14 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param quote The character used to quote data (i.e., strings)
    * @param escape The character that should appear before any data characters that match the quote character.
    * @param value_types Value types for vector of columns
+   * @param plan_node_id Plan node id
    */
   CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                   catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote, char escape,
                   std::vector<type::TypeId> value_types, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
-                  bool scan_has_offset);
+                  bool scan_has_offset, plan_node_id_t plan_node_id);
 
  public:
   /**

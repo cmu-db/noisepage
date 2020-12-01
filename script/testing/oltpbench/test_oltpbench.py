@@ -15,6 +15,7 @@ from oltpbench import constants
 
 class TestOLTPBench(TestServer):
     """ Class to run OLTP Bench tests """
+
     def __init__(self, args):
         TestServer.__init__(self, args)
 
