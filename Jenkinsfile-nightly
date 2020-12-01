@@ -50,12 +50,6 @@ pipeline {
                 script{
                     utils.noisePageBuild(useCache:false, buildType:"Release", isBuildTests:false, isRecordTime:true)
                 }
-                
-                sh script:'''
-                mkdir build
-                cd build
-                /usr/bin/time -o /tmp/compiletime.txt -f %e sh -c "cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
-                ninja noisepage"''', label: 'Timed Compile & Build'
 
                 sh script: '''
                 cd build
