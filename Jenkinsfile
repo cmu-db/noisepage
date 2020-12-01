@@ -133,7 +133,11 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild os:"macos", useASAN:true
+                        sh 'pwd'
+                        script{
+                            pwd
+                            utils.noisePageBuild(os:"macos",useASAN:true)
+                        }
                         // sh script: '''
                         // mkdir build
                         // cd build
@@ -171,7 +175,9 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild useASAN:true, isJumboTest:true
+                        script{
+                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
+                        }
                         // sh script: '''
                         // mkdir build
                         // cd build
@@ -213,7 +219,9 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild isCodeCoverage:true
+                        script{
+                            utils.noisePageBuild(isCodeCoverage:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -268,7 +276,9 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild useASAN:true, isJumboTest:true
+                        script{
+                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -309,7 +319,9 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild os:"macos", buildType:"Release"
+                        script{
+                            utils.noisePageBuild(os:"macos",buildType:"Release")
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -348,7 +360,9 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild buildType:"Release", isJumboTest:true
+                        script{
+                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -391,7 +405,9 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild buildType:"Release", isJumboTest:true
+                        script{
+                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -435,7 +451,9 @@ pipeline {
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild os:"macos", useASAN:true, isBuildTests:false
+                        script{
+                            utils.noisePageBuild(os:"macos", useASAN:true, isBuildTests:false)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -497,7 +515,9 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         sh 'mkdir build && cd build'
-                        utils.noisePageBuild useASAN:true, isBuildTests:false
+                        script{
+                            utils.noisePageBuild(useASAN:true, isBuildTests:false)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -556,7 +576,9 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
 
                 sh 'mkdir build && cd build'
-                utils.noisePageBuild buildType:"Release", isBuildTests:false
+                script{
+                    utils.noisePageBuild(buildType:"Release", isBuildTests:false)
+                }
 
                 // sh script:'''
                 // mkdir build
@@ -608,7 +630,9 @@ pipeline {
 
 
                 sh 'mkdir build && cd build'
-                utils.noisePageBuild isBuildTests:false, isBuildBenchmarks:true
+                script{
+                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
+                }
                 // sh script: '''
                 // mkdir build
                 // cd build
