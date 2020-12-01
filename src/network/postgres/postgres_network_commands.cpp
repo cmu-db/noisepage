@@ -10,7 +10,6 @@
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
-#include "parser/explain_statement.h"
 #include "traffic_cop/traffic_cop.h"
 
 namespace noisepage::network {
