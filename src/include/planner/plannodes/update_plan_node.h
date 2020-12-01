@@ -90,7 +90,7 @@ class UpdatePlanNode : public AbstractPlanNode {
     std::unique_ptr<UpdatePlanNode> Build() {
       return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::make_unique<OutputSchema>(),
                                                                 database_oid_, table_oid_, update_primary_key_,
-                                                                indexed_update_, std::move(sets_)));
+                                                                indexed_update_, std::move(sets_), plan_node_id_));
     }
 
    protected:
@@ -130,11 +130,12 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param update_primary_key whether to update primary key
    * @param indexed_update whether to update indexes
    * @param sets SET clauses
+   * @param plan_node_id Plan node id
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, bool update_primary_key,
-                 bool indexed_update, std::vector<SetClause> sets)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                 bool indexed_update, std::vector<SetClause> sets, plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         database_oid_(database_oid),
         table_oid_(table_oid),
         update_primary_key_(update_primary_key),

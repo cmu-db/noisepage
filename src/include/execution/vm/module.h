@@ -212,9 +212,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
 
   switch (exec_mode) {
     case ExecutionMode::Adaptive: {
-      //TODO @wuwen: copy bytecode module here
-      //TODO @kunal: make sure to instantiate compilation manager in the upper parts of the system. maybe just making the task queue static works?
-
+      //TODO(kjobanputra): call into compilation manager here with new module
       CompileToMachineCodeAsync();
       FALLTHROUGH;
     }
