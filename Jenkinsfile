@@ -37,87 +37,87 @@ pipeline {
                 }
             }
         }
-        stage('Check') {
-            parallel {
-                stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
-                    agent { label 'macos' }
-                    environment {
-                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
-                        CC="${LLVM_DIR}/bin/clang"
-                        CXX="${LLVM_DIR}/bin/clang++"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | ./script/installation/packages.sh build', label: 'Installing packages'
-                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja ..'
-                        sh 'cd build && timeout 20m ninja check-format'
-                        sh 'cd build && timeout 20m ninja check-lint'
-                        sh 'cd build && timeout 20m ninja check-censored'
-                        sh 'cd build && ninja check-clang-tidy'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
+        // stage('Check') {
+        //     parallel {
+        //         stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
+        //             agent { label 'macos' }
+        //             environment {
+        //                 LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
+        //                 LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+        //                 CC="${LLVM_DIR}/bin/clang"
+        //                 CXX="${LLVM_DIR}/bin/clang++"
+        //             }
+        //             steps {
+        //                 sh 'echo $NODE_NAME'
+        //                 sh script: 'echo y | ./script/installation/packages.sh build', label: 'Installing packages'
+        //                 sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
+        //                 sh 'mkdir build'
+        //                 sh 'cd build && cmake -GNinja ..'
+        //                 sh 'cd build && timeout 20m ninja check-format'
+        //                 sh 'cd build && timeout 20m ninja check-lint'
+        //                 sh 'cd build && timeout 20m ninja check-censored'
+        //                 sh 'cd build && ninja check-clang-tidy'
+        //             }
+        //             post {
+        //                 cleanup {
+        //                     deleteDir()
+        //                 }
+        //             }
+        //         }
 
-                stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
-                    agent {
-                        docker {
-                            image 'noisepage:focal'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
-                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja ..'
-                        sh 'cd build && timeout 20m ninja check-format'
-                        sh 'cd build && timeout 20m ninja check-lint'
-                        sh 'cd build && timeout 20m ninja check-censored'
-                        sh 'cd build && ninja check-clang-tidy'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
+        //         stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
+        //             agent {
+        //                 docker {
+        //                     image 'noisepage:focal'
+        //                 }
+        //             }
+        //             steps {
+        //                 sh 'echo $NODE_NAME'
+        //                 sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
+        //                 sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
+        //                 sh 'mkdir build'
+        //                 sh 'cd build && cmake -GNinja ..'
+        //                 sh 'cd build && timeout 20m ninja check-format'
+        //                 sh 'cd build && timeout 20m ninja check-lint'
+        //                 sh 'cd build && timeout 20m ninja check-censored'
+        //                 sh 'cd build && ninja check-clang-tidy'
+        //             }
+        //             post {
+        //                 cleanup {
+        //                     deleteDir()
+        //                 }
+        //             }
+        //         }
 
-                stage('ubuntu-20.04/clang-8.0 (Debug/format/lint/censored)') {
-                    agent {
-                        docker {
-                            image 'noisepage:focal'
-                        }
-                    }
-                    environment {
-                        CC="/usr/bin/clang-8"
-                        CXX="/usr/bin/clang++-8"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
-                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja ..'
-                        sh 'cd build && timeout 20m ninja check-format'
-                        sh 'cd build && timeout 20m ninja check-lint'
-                        sh 'cd build && timeout 20m ninja check-censored'
-                        sh 'cd build && ninja check-clang-tidy'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-            }
-        }
+        //         stage('ubuntu-20.04/clang-8.0 (Debug/format/lint/censored)') {
+        //             agent {
+        //                 docker {
+        //                     image 'noisepage:focal'
+        //                 }
+        //             }
+        //             environment {
+        //                 CC="/usr/bin/clang-8"
+        //                 CXX="/usr/bin/clang++-8"
+        //             }
+        //             steps {
+        //                 sh 'echo $NODE_NAME'
+        //                 sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
+        //                 sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
+        //                 sh 'mkdir build'
+        //                 sh 'cd build && cmake -GNinja ..'
+        //                 sh 'cd build && timeout 20m ninja check-format'
+        //                 sh 'cd build && timeout 20m ninja check-lint'
+        //                 sh 'cd build && timeout 20m ninja check-censored'
+        //                 sh 'cd build && ninja check-clang-tidy'
+        //             }
+        //             post {
+        //                 cleanup {
+        //                     deleteDir()
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Test') {
             parallel {
