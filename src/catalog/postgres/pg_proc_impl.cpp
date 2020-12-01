@@ -169,13 +169,12 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
-  std::vector<storage::TupleSlot> results;  // Storing index scan results.
+  auto oid_pr = oid_pri.InitializeRow(buffer);
+  oid_pr->Set<proc_oid_t, false>(0, proc, false);
 
   // Look for the procedure in pg_proc_oid_index.
-  auto oid_pr = oid_pri.InitializeRow(buffer);
+  std::vector<storage::TupleSlot> results;
   {
-    oid_pr->Set<proc_oid_t, false>(0, proc, false);
-
     procs_oid_index_->ScanKey(*txn, *oid_pr, &results);
     if (results.empty()) {
       delete[] buffer;
@@ -185,15 +184,7 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
 
   NOISEPAGE_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
 
-  // Look for the procedure in pg_proc.
   auto to_delete_slot = results[0];
-  auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-  bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, to_delete_slot, table_pr);
-
-  auto &proc_pm = pg_proc_all_cols_prm_;
-  auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME_COL_OID], nullptr);
-  auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE_COL_OID], nullptr);
-  auto ctx_ptr = table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR_COL_OID]);
 
   // Delete from pg_proc.
   {
@@ -207,6 +198,15 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
 
   // Delete from pg_proc_oid_index. Reuses oid_pr from the index scan above.
   { procs_oid_index_->Delete(txn, *oid_pr, to_delete_slot); }
+
+  // Look for the procedure in pg_proc.
+  auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
+  bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, to_delete_slot, table_pr);
+
+  auto &proc_pm = pg_proc_all_cols_prm_;
+  auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME_COL_OID], nullptr);
+  auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE_COL_OID], nullptr);
+  auto ctx_ptr = table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR_COL_OID]);
 
   // Delete from pg_proc_name_index.
   {
@@ -349,6 +349,7 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
   if (matching_functions.size() == 1) {
     ret = matching_functions[0];
   } else if (matching_functions.size() > 1) {
+    // TODO(WAN): See #1361 for a discussion on whether we can avoid this
     // TODO(Joe Koshakow) would be nice to to include the parsed arg types of the function and the arg types that it
     // matches with
     throw BINDER_EXCEPTION(
@@ -378,6 +379,8 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                     PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, args, arg_types, all_arg_types, {}, rettype, "",
                     true);
   };
+
+  lowest_builtin_proc_oid_ = proc_oid_t(dbc->next_oid_.load());
 
   // Math functions.
   create_fn("abs", {"x"}, {DEC}, {DEC}, DEC, true);
@@ -455,6 +458,8 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                   PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, INT, "", false);
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersdummyreal", PgLanguage::INTERNAL_LANGUAGE_OID,
                   PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, REAL, "", false);
+
+  highest_builtin_proc_oid_ = proc_oid_t(dbc->next_oid_.load());
 
   BootstrapProcContexts(txn, dbc);
 }

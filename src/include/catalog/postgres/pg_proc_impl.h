@@ -147,7 +147,12 @@ class PgProcImpl {
                         common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
 
-  /** @brief Bootstrap all the builtin procedures in pg_proc. */
+  /** @return True if the provided OID is within the builtin proc range. */
+  bool IsBuiltinProc(const proc_oid_t oid) const {
+    return lowest_builtin_proc_oid_ <= oid && oid < highest_builtin_proc_oid_;
+  }
+
+  /** @brief Bootstrap all the builtin procedures in pg_proc. This assumes exclusive use of dbc->next_oid_. */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,
                       common::ManagedPointer<DatabaseCatalog> dbc);
 
@@ -172,6 +177,8 @@ class PgProcImpl {
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   const db_oid_t db_oid_;
+  proc_oid_t lowest_builtin_proc_oid_;   // The lowest builtin proc OID, inclusive.
+  proc_oid_t highest_builtin_proc_oid_;  // The highest builtin proc OID, non-inclusive.
 
   /**
    * The table and indexes that define pg_proc.

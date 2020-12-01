@@ -365,7 +365,7 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
 common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetProcCtxPtr(
     common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
   auto proc_ctx = pg_proc_.GetProcCtxPtr(txn, proc_oid);
-  NOISEPAGE_ASSERT(!(proc_ctx == nullptr && IS_BUILTIN_PROC(proc_oid)),
+  NOISEPAGE_ASSERT(!(proc_ctx == nullptr && pg_proc_.IsBuiltinProc(proc_oid)),
                    "Builtin procedures should have been bootstrapped.");
   NOISEPAGE_ASSERT(proc_ctx != nullptr, "Dynamically added UDFs are currently not supported.");
   return proc_ctx;
