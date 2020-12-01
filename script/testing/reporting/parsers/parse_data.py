@@ -8,7 +8,7 @@ from decimal import Decimal
 from reporting.parsers.oltpbench.config_parser import parse_config_file
 from reporting.parsers.oltpbench.summary_parser import parse_summary_file
 from reporting.parsers.oltpbench.res_parser import parse_res_file
-from util.constants import DIR_UTIL, LOG
+from util.constants import LOG
 from reporting.constants import UNKNOWN_RESULT
 
 
@@ -50,10 +50,20 @@ def parse_microbenchmark_data(artifact_processor_comparison):
         metrics (dict): The metrics gathered from the result of the test
     """
     env_metadata = parse_jenkins_env_vars()
-    metadata = {**env_metadata, **parse_db_metadata()}
+    metadata = parse_standard_metadata()
     test_suite, test_name, metrics = parse_microbenchmark_comparison(
         artifact_processor_comparison)
     return metadata, test_suite, test_name, metrics
+
+
+def parse_standard_metadata():
+    """ Gather the standard metadata infromation from Jenkins and the DBMS.
+    This will get the DB version from a file. If there is a better way to
+    get that information from the test then that is advisible 
+    (like OLTPBench)"""
+    env_metadata = parse_jenkins_env_vars()
+    metadata = {**env_metadata, **parse_db_metadata()}
+    return metadata
 
 
 def parse_jenkins_env_vars():

@@ -12,15 +12,16 @@ namespace noisepage::planner {
 std::unique_ptr<HashJoinPlanNode> HashJoinPlanNode::Builder::Build() {
   return std::unique_ptr<HashJoinPlanNode>(new HashJoinPlanNode(std::move(children_), std::move(output_schema_),
                                                                 join_type_, join_predicate_, std::move(left_hash_keys_),
-                                                                std::move(right_hash_keys_)));
+                                                                std::move(right_hash_keys_), plan_node_id_));
 }
 
 HashJoinPlanNode::HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                    std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                                    common::ManagedPointer<parser::AbstractExpression> predicate,
                                    std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
-                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys)
-    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
+                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys,
+                                   plan_node_id_t plan_node_id)
+    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate, plan_node_id),
       left_hash_keys_(std::move(left_hash_keys)),
       right_hash_keys_(std::move(right_hash_keys)) {}
 
