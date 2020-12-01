@@ -41,30 +41,38 @@ class PgProcImpl {
   friend class catalog::DatabaseCatalog;  ///< DatabaseCatalog sets up and owns pg_proc.
 
   /**
-   * Prepare to create pg_proc.
+   * @brief Prepare to create pg_proc.
+   *
    * Does NOT create anything until the relevant bootstrap functions are called.
    *
    * @param db_oid          The OID of the database that pg_proc should be created in.
    */
   explicit PgProcImpl(db_oid_t db_oid);
 
-  /** Bootstrap the projected row initializers for pg_proc. */
+  /** @brief Bootstrap the projected row initializers for pg_proc. */
   void BootstrapPRIs();
 
   /**
+   * @brief Create pg_proc and associated indexes.
+   *
    * Bootstrap:
    *    pg_proc
    *    pg_proc_oid_index
    *    pg_proc_name_index
    *
-   * @param txn             The transaction to bootstrap in.
-   * @param dbc             The catalog object to bootstrap in.
+   * Dependencies (for bootstrapping):
+   *    pg_core must have been bootstrapped.
+   * Dependencies (for execution):
+   *    pg_language must have been bootstrapped.
+   *
+   * @param txn     The transaction to bootstrap in.
+   * @param dbc     The catalog object to bootstrap in.
    */
   void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                  common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Obtain a function that will teardown pg_proc as it exists at the time of the provided txn.
+   * @brief Obtain a function that will teardown pg_proc as it exists at the time of the provided txn.
    *
    * @param txn             The transaction to perform the teardown in.
    * @return A function that will teardown pg_proc when invoked.
@@ -72,7 +80,7 @@ class PgProcImpl {
   std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * Create a procedure for the pg_proc table.
+   * @brief Create a procedure in the pg_proc table.
    *
    * @param txn             The transaction to use.
    * @param oid             The OID to assign to the procedure.
@@ -99,7 +107,7 @@ class PgProcImpl {
                        const std::string &src, bool is_aggregate);
 
   /**
-   * Drop a procedure from the pg_proc table.
+   * @brief Drop a procedure from the pg_proc table.
    *
    * @param txn             The transaction to use.
    * @param proc            The OID of the procedure to drop.
@@ -108,7 +116,7 @@ class PgProcImpl {
   bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
 
   /**
-   * Set the procedure context pointer column of the specified procedure.
+   * @brief Set the procedure context pointer column of the specified procedure.
    *
    * @return False if the proc_oid does not correspond to a valid procedure. True if the set was successful.
    *
@@ -118,7 +126,7 @@ class PgProcImpl {
                      const execution::functions::FunctionContext *func_context);
 
   /**
-   * Get the procedure context pointer column of the specified procedure.
+   * @brief Get the procedure context pointer column of the specified procedure.
    *
    * @return The procedure context pointer of the specified procedure, guaranteed to not be nullptr.
    */
@@ -126,7 +134,7 @@ class PgProcImpl {
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
   /**
-   * Get the OID of a procedure from pg_proc.
+   * @brief Get the OID of a procedure from pg_proc.
    *
    * @param txn             The transaction to use.
    * @param dbc             The catalog that pg_proc is in.
@@ -139,16 +147,16 @@ class PgProcImpl {
                         common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
 
-  /** Bootstrap all the builtin procedures in pg_proc. */
+  /** @brief Bootstrap all the builtin procedures in pg_proc. */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,
                       common::ManagedPointer<DatabaseCatalog> dbc);
 
-  /** Bootstrap all the procedure function contexts in pg_proc. */
+  /** @brief Bootstrap all the procedure function contexts in pg_proc. */
   void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn,
                              common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Allocate the FunctionContext and insert the pointer.
+   * @brief Allocate the FunctionContext and insert the pointer.
    *
    * @param txn                     The transaction to insert into the catalog with.
    * @param dbc                     The catalog that pg_proc is in.

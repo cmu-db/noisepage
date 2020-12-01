@@ -1,5 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_constraint_impl.h"
 #include "catalog/postgres/pg_core_impl.h"

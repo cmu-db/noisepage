@@ -32,6 +32,13 @@ class PgProc {
     VARIADIC = 'v'  ///< Variadic number of arguments.
   };
 
+  /** The possible values for provolatile, which describe whether a function's result depends only on its input. */
+  enum class ProVolatile : char {
+    IMMUTABLE = 'i',  ///< Immutable: Always deliver the same result for the same inputs.
+    STABLE = 's',     ///< Stable: For fixed inputs, results do not change within a scan.
+    VOLATILE = 'v'    ///< Volatile: Results might change at any time, or the function has side-effects.
+  };
+
  private:
   friend class storage::RecoveryManager;
   friend class Builder;

@@ -729,6 +729,7 @@ Schema Builder::GetProcTableSchema() {
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PgProc::PROARGTYPES_COL_OID);
 
+  // TODO(WAN): PROALLARGTYPES does not follow Postgres semantics, see #1359
   columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PgProc::PROALLARGTYPES_COL_OID);
