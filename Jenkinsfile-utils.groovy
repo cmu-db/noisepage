@@ -8,7 +8,7 @@ def noisePageBuild(Map args = [:]){
         useASAN: false,
         isBuildBenchmarks: false,
         isCodeCoverage: false,
-        isJumboTest: false
+        isJumboTest: false,
         isRecordTime: false
     ]
     def Map config = defaultArgs << args
