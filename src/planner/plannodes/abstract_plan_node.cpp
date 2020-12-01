@@ -44,6 +44,10 @@ AbstractPlanNode::AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>
                                    std::unique_ptr<OutputSchema> output_schema)
     : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
 
+AbstractPlanNode::AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                   std::unique_ptr<OutputSchema> output_schema, plan_node_id_t plan_node_id)
+    : children_(std::move(children)), output_schema_(std::move(output_schema)), plan_node_id_(plan_node_id) {}
+
 AbstractPlanNode::~AbstractPlanNode() = default;
 
 nlohmann::json AbstractPlanNode::ToJson() const {

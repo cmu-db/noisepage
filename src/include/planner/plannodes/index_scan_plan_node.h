@@ -141,6 +141,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param lo_index_cols lower bound of the scan (or exact key when scan type = Exact).
    * @param hi_index_cols upper bound of the scan
    * @param index_size number of tuples in index
+   * @param plan_node_id Plan node id
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema,
@@ -150,7 +151,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
                     uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset,
-                    uint64_t index_size, uint64_t table_num_tuple);
+                    uint64_t index_size, uint64_t table_num_tuple, plan_node_id_t plan_node_id);
 
  public:
   /**

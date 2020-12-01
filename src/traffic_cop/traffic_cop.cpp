@@ -129,7 +129,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
   out->WriteCommandComplete(query_type, 0);
 }
 
-std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
+std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<parser::ParseResult> query) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
@@ -299,7 +299,7 @@ TrafficCopResult TrafficCop::BindQuery(
                    "Not in a valid txn. This should have been caught before calling this function.");
 
   try {
-    if (statement->PhysicalPlan() == nullptr || !UseQueryCache()) {
+    if (statement->OptimizeResult() == nullptr || !UseQueryCache()) {
       // it's not cached, bind it
       binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
       if (parameters != nullptr && !parameters->empty()) {
@@ -340,7 +340,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
-  const auto physical_plan = portal->PhysicalPlan();
+  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
                        query_type == network::QueryType::QUERY_CREATE_INDEX ||
                        query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
@@ -382,7 +382,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type = portal->GetStatement()->GetQueryType();
-  const auto physical_plan = portal->PhysicalPlan();
+  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
                        query_type == network::QueryType::QUERY_CREATE_INDEX ||
                        query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
