@@ -1,4 +1,3 @@
-#include <filesystem>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -110,15 +109,8 @@ TEST_F(ModelServerTest, PipelineTest) {
   std::vector<std::string> models{"lr", "gbm"};
   std::string save_path = "/tmp/model_server_test.pickle";
 
-  // Test with new model trained
-  if (std::filesystem::exists(save_path)) {
-    std::filesystem::remove(save_path);
-  }
-  ASSERT_FALSE(std::filesystem::exists(save_path));
-
-  auto seq_files_dir = std::filesystem::current_path();
   ModelServerFuture<std::string> future;
-  ms_manager->TrainWith(models, seq_files_dir, save_path, &future);
+  ms_manager->TrainWith(models, "./", save_path, &future);
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
@@ -132,7 +124,6 @@ TEST_F(ModelServerTest, PipelineTest) {
 
   // Model at another path should not exist
   std::string non_exist_path("/tmp/model_server_test_non_exist.pickle");
-  ASSERT_FALSE(std::filesystem::exists(non_exist_path));
   result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", non_exist_path, features);
   ASSERT_EQ(result.size(), 0);
 
