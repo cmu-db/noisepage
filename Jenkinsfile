@@ -135,7 +135,7 @@ pipeline {
                         sh 'mkdir build && cd build'
                         sh 'pwd'
                         script{
-                            pwd
+                            pwd()
                             utils.noisePageBuild(os:"macos",useASAN:true)
                         }
                         // sh script: '''
