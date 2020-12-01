@@ -41,6 +41,8 @@ def noisePageBuild(Map args = [:]){
         compile_cmd += " -DNOISEPAGE_USE_JUMBOTESTS=ON"
     }
 
+    compile_cmd += " .."
+
     def String build_cmd = "ninja"
     if(!config.isBuildBenchmarks && !config.isBuildTests){
         build_cmd += " noisepage"
