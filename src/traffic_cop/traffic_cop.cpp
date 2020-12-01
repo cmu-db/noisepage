@@ -2,7 +2,6 @@
 
 #include <future>  // NOLINT
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,6 +26,7 @@
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
+#include "nlohmann/json.hpp"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/drop_statement.h"
 #include "parser/explain_statement.h"
