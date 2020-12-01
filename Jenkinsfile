@@ -1,9 +1,12 @@
-def utils = load("Jenkinsfile-utils.groovy")
+
 pipeline {
     agent none
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
         parallelsAlwaysFailFast()
+    }
+    environment{
+        utils = load("Jenkinsfile-utils.groovy")
     }
     stages {
         stage('Ready For CI') {
