@@ -1,4 +1,4 @@
-def utils = load "Jenkinsfile-utils.groovy"
+def utils = load("Jenkinsfile-utils.groovy")
 pipeline {
     agent none
     options {
