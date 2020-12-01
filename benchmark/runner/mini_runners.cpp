@@ -410,9 +410,11 @@ class MiniRunners : public benchmark::Fixture {
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
     binder.BindNameToNode(common::ManagedPointer(stmt_list), params, param_types);
 
-    auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-        common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
-        db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+    auto out_plan =
+        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                             common::ManagedPointer(stmt_list), db_oid, db_main->GetStatsStorage(),
+                                             std::move(cost_model), optimizer_timeout_)
+            ->TakePlanNodeOwnership();
 
     out_plan = checker(common::ManagedPointer(txn), std::move(out_plan));
     if (out_plan->GetPlanNodeType() == planner::PlanNodeType::CREATE_INDEX) {

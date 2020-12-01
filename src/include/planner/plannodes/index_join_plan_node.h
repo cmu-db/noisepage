@@ -111,13 +111,15 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param join_type logical join type
    * @param predicate join predicate
+   * @param plan_node_id Plan node id
    */
   IndexJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
                     catalog::table_oid_t table_oid, IndexScanType scan_type,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_cols,
-                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols, uint64_t index_size);
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols, uint64_t index_size,
+                    plan_node_id_t plan_node_id);
 
  public:
   /**

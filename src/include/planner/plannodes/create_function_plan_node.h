@@ -191,6 +191,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * @param function_name function name of the UDF
    * @param return_type return type of the UDF
    * @param param_count number of parameter of UDF
+   * @param plan_node_id Plan node id
    */
   CreateFunctionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
@@ -198,7 +199,8 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
                          std::vector<std::string> &&function_param_names,
                          std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                          std::vector<std::string> &&function_body, bool is_replace, std::string function_name,
-                         parser::BaseFunctionParameter::DataType return_type, int param_count);
+                         parser::BaseFunctionParameter::DataType return_type, int param_count,
+                         plan_node_id_t plan_node_id);
 
  public:
   /**
