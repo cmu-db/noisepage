@@ -65,7 +65,7 @@ def generateCompileCmd(Map config = [:]) {
 def generateBuildCmd(Map config = [:]){
     def String buildCmd = "ninja"
     if(!config.isBuildBenchmarks && !config.isBuildTests){
-        build_cmd += " noisepage"
+        buildCmd += " noisepage"
     }
     return buildCmd
 }
