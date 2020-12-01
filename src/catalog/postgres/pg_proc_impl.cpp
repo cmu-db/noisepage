@@ -362,6 +362,7 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
   if (matching_functions.size() == 1) {
     ret = matching_functions[0];
   } else if (matching_functions.size() > 1) {
+    // TODO(WAN): See #1361 for a discussion on whether we can avoid this
     // TODO(Joe Koshakow) would be nice to to include the parsed arg types of the function and the arg types that it
     // matches with
     throw BINDER_EXCEPTION(
