@@ -6,7 +6,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment{
-        utils = load("Jenkinsfile-utils.groovy")
+        utils = load 'Jenkinsfile-utils.groovy'
     }
     stages {
         stage('Ready For CI') {
