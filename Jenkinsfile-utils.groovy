@@ -11,7 +11,7 @@ def noisePageBuild(Map args = [:]){
         isJumboTest: false
     ]
     def Map config = defaultArgs << args
-    def String compile_cmd = "cmake -GNinja -DNoisePage_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=$config.buildType"
+    def String compile_cmd = "cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=$config.buildType"
     
     if(config.isCodeCoverage){
         compile_cmd += " -DNOISEPAGE_GENERATE_COVERAGE=ON"
