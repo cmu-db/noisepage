@@ -14,8 +14,9 @@ AbstractScanPlanNode::AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractP
                                            std::unique_ptr<OutputSchema> output_schema,
                                            common::ManagedPointer<parser::AbstractExpression> predicate,
                                            bool is_for_update, catalog::db_oid_t database_oid, uint32_t scan_limit,
-                                           bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                                           bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset,
+                                           plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       scan_predicate_(predicate),
       is_for_update_(is_for_update),
       database_oid_(database_oid),

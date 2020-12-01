@@ -40,10 +40,11 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param join_type logical join type
    * @param predicate join predicate
+   * @param plan_node_id Plan node id
    */
   NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         common::ManagedPointer<parser::AbstractExpression> predicate);
+                         common::ManagedPointer<parser::AbstractExpression> predicate, plan_node_id_t plan_node_id);
 
  public:
   /**

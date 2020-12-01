@@ -71,9 +71,11 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
       visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result), nullptr, nullptr);
 
       // generate plan node
-      std::unique_ptr<planner::AbstractPlanNode> plan_node = trafficcop::TrafficCopUtil::Optimize(
-          common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(parse_result), db_oid_,
-          db_main_->GetStatsStorage(), std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout);
+      std::unique_ptr<planner::AbstractPlanNode> plan_node =
+          trafficcop::TrafficCopUtil::Optimize(
+              common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(parse_result),
+              db_oid_, db_main_->GetStatsStorage(), std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout)
+              ->TakePlanNodeOwnership();
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid_, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings_,

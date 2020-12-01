@@ -177,13 +177,15 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
    * @param trigger_columns trigger columns
    * @param trigger_when trigger when clause
    * @param trigger_type trigger type, i.e. information about row, timing, events, access by pg_trigger
+   * @param plan_node_id Plan node id
    */
   CreateTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                         std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                         catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                         std::string trigger_name, std::vector<std::string> &&trigger_funcnames,
                         std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns,
-                        common::ManagedPointer<parser::AbstractExpression> trigger_when, int16_t trigger_type);
+                        common::ManagedPointer<parser::AbstractExpression> trigger_when, int16_t trigger_type,
+                        plan_node_id_t plan_node_id);
 
  public:
   /**
