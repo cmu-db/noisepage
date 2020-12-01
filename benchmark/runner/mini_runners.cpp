@@ -1611,18 +1611,11 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto car = state->range(5);
 
   int num_iters = 1;
-  if (car <= settings.warmup_rows_limit_) {
+  if (row <= settings.warmup_rows_limit_) {
     num_iters += settings.warmup_iterations_num_;
-  } else if (rerun_start || settings.skip_large_rows_runs_) {
+  } else if (settings.skip_large_rows_runs_) {
     return;
   }
-
-  // UPDATE [] SET [col] = [col]
-  // By doing an update in this way, we simulate a seq_scan more closely
-  // by requiring the seq_scan to produce the column value.
-  std::stringstream query;
-  auto tbl = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
-  query << "UPDATE " << tbl << " SET ";
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
   auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
@@ -1631,10 +1624,24 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto update_size = int_size * num_integers + bigint_size * num_bigints;
   auto update_col = num_integers + num_bigints;
 
-  // This special cases the ConstructPredicate implementation
-  auto set_clause =
-      ConstructPredicate(tbl, tbl, type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints);
-  query << set_clause;
+  // UPDATE [] SET [col] = [col]
+  // By doing an update in this way, we simulate a seq_scan more closely
+  // by requiring the seq_scan to produce the column value.
+  std::stringstream query;
+  auto tbl = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
+  query << "UPDATE " << tbl << " SET ";
+
+  for (auto i = 1; i <= num_integers; i++) {
+    auto type_name = type::TypeUtil::TypeIdToString(type::TypeId::INTEGER);
+    query << type_name << i << " = " << type_name << i;
+    if (num_bigints != 0 || i != num_integers) query << ", ";
+  }
+
+  for (auto i = 1; i <= num_bigints; i++) {
+    auto type_name = type::TypeUtil::TypeIdToString(type::TypeId::BIGINT);
+    query << type_name << i << " = " << type_name << i;
+    if (i != num_bigints) query << ", ";
+  }
 
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
@@ -1642,8 +1649,8 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   // Record in accordance with optimizer
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::UPDATE, car,
-                         update_size, update_col, car, 1, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::UPDATE, row,
+                         update_size, update_col, row, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
                          tuple_size, tuple_col, car, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
@@ -1660,17 +1667,15 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 BENCHMARK_DEFINE_F(MiniRunners, SEQ7_2_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
 void MiniRunners::ExecuteDelete(benchmark::State *state) {
-  auto num_integers = state->range(0);
-  auto num_bigints = state->range(1);
   auto tbl_ints = state->range(2);
   auto tbl_bigints = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
 
   int num_iters = 1;
-  if (car <= settings.warmup_rows_limit_) {
+  if (row <= settings.warmup_rows_limit_) {
     num_iters += settings.warmup_iterations_num_;
-  } else if (rerun_start || settings.skip_large_rows_runs_) {
+  } else if (settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1686,8 +1691,8 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   // that stipulates a scan outputs all columns
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::DELETE, car, tbl_size,
-                         tbl_col, car, 1, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::DELETE, row, tbl_size,
+                         tbl_col, row, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
                          tbl_size, tbl_col, car, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
@@ -1699,6 +1704,8 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units));
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false);
   state->SetItemsProcessed(row);
+
+  // Clean GC
   InvokeGC();
 }
 

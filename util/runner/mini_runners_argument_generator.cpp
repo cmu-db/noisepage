@@ -353,20 +353,11 @@ void MiniRunnersArgumentGenerator::GenUpdateDeleteScanArguments(OutputArgs *b, c
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
-        int64_t car = 1;
-        std::vector<int64_t> cars;
-        while (car < row) {
-          cars.push_back(car);
-          car *= 2;
-        }
-        cars.push_back(row);
-
-        for (auto car : cars) {
-          if (type == type::TypeId::INTEGER)
-            b->push_back({col, 0, 15, 0, row, car});
-          else if (type == type::TypeId::DECIMAL)
-            b->push_back({0, col, 0, 15, row, car});
-        }
+        // The cardinality of the table does not matter.
+        if (type == type::TypeId::INTEGER)
+          b->push_back({col, 0, 15, 0, row, row});
+        else if (type == type::TypeId::DECIMAL)
+          b->push_back({0, col, 0, 15, row, row});
       }
     }
   }
