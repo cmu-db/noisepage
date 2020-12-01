@@ -133,10 +133,9 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh 'mkdir build && cd build'
-                        sh 'pwd'
+                        //sh 'mkdir build && cd build'
                         script{
-                            pwd()
+                            sh('mkdir build && cd build')
                             utils.noisePageBuild(os:"macos",useASAN:true)
                         }
                         // sh script: '''
@@ -175,12 +174,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         
-                        sh 'mkdir build && cd build'
+                        //sh 'mkdir build && cd build'
                         script{
-                            sh("pwd")
-                            sh("ls")
-                        }
-                        script{
+                            sh('mkdir build && cd build')
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
                         // sh script: '''
@@ -223,12 +219,10 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         
-                        sh 'mkdir build && cd build'
+                        //sh 'mkdir build && cd build'
+
                         script{
-                            sh("pwd")
-                            sh("ls")
-                        }
-                        script{
+                            sh('mkdir build && cd build')
                             utils.noisePageBuild(isCodeCoverage:true)
                         }
 
@@ -284,12 +278,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh 'mkdir build && cd build'
+                        //sh 'mkdir build && cd build'                     
                         script{
-                            sh("pwd")
-                            sh("ls")
-                        }                        
-                        script{
+                            sh('mkdir build && cd build')
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
 
@@ -331,12 +322,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
 
-                        sh 'mkdir build && cd build'
+                        //sh 'mkdir build && cd build'
                         script{
-                            sh("pwd")
-                            sh("ls")
-                        }
-                        script{
+                            sh('mkdir build && cd build')
                             utils.noisePageBuild(os:"macos",buildType:"Release")
                         }
 
@@ -376,12 +364,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh 'mkdir build && cd build'
+                        //sh 'mkdir build && cd build'
                         script{
-                            sh("pwd")
-                            sh("ls")
-                        }
-                        script{
+                            sh('mkdir build && cd build')
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
@@ -425,12 +410,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh 'mkdir build && cd build'
+                        //sh 'mkdir build && cd build'
                         script{
-                            sh("pwd")
-                            sh("ls")
-                        }
-                        script{
+                            sh('mkdir build && cd build')
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
