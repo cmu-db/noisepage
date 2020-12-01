@@ -11,47 +11,64 @@ def noisePageBuild(Map args = [:]){
         isJumboTest: false
     ]
     def Map config = defaultArgs << args
-    def String compile_cmd = "cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=$config.buildType"
-    
-    if(config.isCodeCoverage){
-        compile_cmd += " -DNOISEPAGE_GENERATE_COVERAGE=ON"
-    }
-
-    if(config.os != "macos" && config.useCache){
-        compile_cmd += " -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
-    }
-
-    if(config.os == "ubuntu" && config.isBuildTests){
-        compile_cmd += " -DNOISEPAGE_TEST_PARALLELISM=\$(nproc)"
-    }
-
-    if(config.useASAN){
-        compile_cmd += " -DNOISEPAGE_USE_ASAN=ON"
-    }
-
-    if(!config.isBuildBenchmarks){
-        compile_cmd += " -DNOISEPAGE_BUILD_BENCHMARKS=OFF"
-    }
-
-    if(config.buildType=='Release' && !config.isBuildTests){
-        compile_cmd += " -DNOISEPAGE_USE_JEMALLOC=ON"
-    }
-
-    if(config.isJumboTest){
-        compile_cmd += " -DNOISEPAGE_USE_JUMBOTESTS=ON"
-    }
-
-    compile_cmd += " .."
-
-    def String build_cmd = "ninja"
-    if(!config.isBuildBenchmarks && !config.isBuildTests){
-        build_cmd += " noisepage"
-    }
+    def String compileCmd = generateCompileCmd(config)
+    def String buildCmd = generateBuildCmd(config)
 
     sh script:"""
     mkdir build
     cd build
-    ${compile_cmd}
-    ${build_cmd} """, label: 'Compile & Build'
+    $compileCmd
+    $buildCmd """, label: "Compile & Build"
 }
+
+def generateCompileCmd(Map config = [:]) {
+    def String compileCmd = "cmake -GNinja -DCMAKE_BUILD_TYPE=$config.buildType"
+    
+    if(config.isCodeCoverage){
+        compileCmd += " -DNOISEPAGE_GENERATE_COVERAGE=ON"
+    }else{
+        compileCmd += " -DNOISEPAGE_UNITY_BUILD=ON"
+    }
+
+    if(config.os != "macos" && config.useCache){
+        compileCmd += " -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+    }
+
+    if(config.os == "ubuntu" && config.isBuildTests){
+        compileCmd += " -DNOISEPAGE_TEST_PARALLELISM=\$(nproc)"
+    }
+
+    if(config.useASAN){
+        compileCmd += " -DNOISEPAGE_USE_ASAN=ON"
+    }
+
+    if(!config.isBuildBenchmarks){
+        compileCmd += " -DNOISEPAGE_BUILD_BENCHMARKS=OFF"
+    }
+
+    if(!config.isBuildTests){
+        compileCmd += " -DNOISEPAGE_BUILD_TESTS=OFF"
+    }
+
+    if(config.buildType=="Release" && !config.isBuildTests){
+        compileCmd += " -DNOISEPAGE_USE_JEMALLOC=ON"
+    }
+
+    if(config.isJumboTest){
+        compileCmd += " -DNOISEPAGE_USE_JUMBOTESTS=ON"
+    }
+
+    compileCmd += " .."
+    return compileCmd
+}
+
+def generateBuildCmd(Map config = [:]){
+    def String buildCmd = "ninja"
+    if(!config.isBuildBenchmarks && !config.isBuildTests){
+        build_cmd += " noisepage"
+    }
+    return buildCmd
+}
+
+
 return this
