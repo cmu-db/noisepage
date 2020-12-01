@@ -7,9 +7,6 @@ pipeline {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
         parallelsAlwaysFailFast()
     }
-    node{
-        utils = load("Jenkinsfile-utils.groovy")
-    }
     stages {
         stage('Ready For CI') {
             agent {
@@ -25,6 +22,7 @@ pipeline {
             }
             steps {
                 script {
+                   utils = load("Jenkinsfile-utils.groovy")
                    ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
                    if(ready_for_build != 0) {
                         currentBuild.result = 'ABORTED'
