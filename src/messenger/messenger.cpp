@@ -412,6 +412,7 @@ void Messenger::RunTask() {
     // Run the server loop.
     ServerLoop();
   } catch (zmq::error_t &err) {
+    MESSENGER_LOG_TRACE(fmt::format("[PID={}] ServerLoop exited with {}", ::getpid(), err.what()));
     Terminate();
   }
 }
@@ -524,6 +525,8 @@ void Messenger::ServerLoop() {
           auto &server_callback = poll_items.server_callbacks_[i];
           (*server_callback)(common::ManagedPointer(this), msg.GetRoutingId(), msg.GetMessage(),
                              msg.GetMessageIdSender());
+        } else {
+          //ProcessMessage(msg);
         }
         --num_sockets_with_data;
       }
