@@ -116,7 +116,6 @@ class ModelServer:
     """
 
     # Training parameters
-    RESULT_PATH = '/tmp'
     TEST_RATIO = 0.2
     TRIM_RATIO = 0.2
     EXPOSE_ALL = True
