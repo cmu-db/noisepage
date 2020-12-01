@@ -149,6 +149,55 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   // TODO(boweic): calculate stats based on predicates other than join conditions
 }
 
+void StatsCalculator::Visit(const LogicalSemiJoin *op) {
+  // Check if there's join condition
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
+  auto left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
+  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Calculate output num rows first
+  if (root_group->GetNumRows() == -1) {
+    size_t curr_rows = left_child_group->GetNumRows() * right_child_group->GetNumRows();
+    for (auto &annotated_expr : op->GetJoinPredicates()) {
+      // See if there are join conditions
+      if (annotated_expr.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL &&
+          annotated_expr.GetExpr()->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
+          annotated_expr.GetExpr()->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+        auto left_child = annotated_expr.GetExpr()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+        auto right_child = annotated_expr.GetExpr()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+        auto left_col = left_child->GetFullName();
+        auto right_col = right_child->GetFullName();
+        if ((left_child_group->HasColumnStats(left_col) && right_child_group->HasColumnStats(right_col)) ||
+            (left_child_group->HasColumnStats(right_col) && right_child_group->HasColumnStats(left_col))) {
+          curr_rows /= std::max(std::max(left_child_group->GetNumRows(), right_child_group->GetNumRows()), 1);
+        }
+      }
+    }
+    root_group->SetNumRows(static_cast<int>(curr_rows));
+  }
+
+  size_t num_rows = root_group->GetNumRows();
+  for (auto &col : required_cols_) {
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto col_name = tv_expr->GetFullName();
+    std::unique_ptr<ColumnStats> column_stats;
+
+    // Make a copy from the child stats
+    if (left_child_group->HasColumnStats(col_name)) {
+      column_stats = std::make_unique<ColumnStats>(*left_child_group->GetStats(col_name));
+    } else {
+      NOISEPAGE_ASSERT(right_child_group->HasColumnStats(col_name), "Name must be in right group");
+      column_stats = std::make_unique<ColumnStats>(*right_child_group->GetStats(col_name));
+    }
+
+    // Reset num_rows
+    column_stats->SetNumRows(num_rows);
+    root_group->AddStats(col_name, std::move(column_stats));
+  }
+}
+
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *op) {
   // TODO(boweic): For now we just pass the stats needed without any computation, need implement aggregate stats
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Aggregate must have 1 child");

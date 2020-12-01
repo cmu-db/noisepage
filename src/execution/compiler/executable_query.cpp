@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "brain/operating_unit.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/ast/ast_dump.h"
@@ -12,6 +11,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::compiler {
@@ -73,7 +73,7 @@ std::string GetFileName(const std::string &path) {
 
 std::atomic<query_id_t> ExecutableQuery::query_identifier{0};
 
-void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units) {
+void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::PipelineOperatingUnits> &&units) {
   pipeline_operating_units_ = std::move(units);
 }
 
@@ -135,7 +135,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 ExecutableQuery::~ExecutableQuery() = default;
 
 void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
-                            std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units) {
+                            std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units) {
   NOISEPAGE_ASSERT(
       std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
       "All query fragments are not compiled!");

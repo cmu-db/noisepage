@@ -6,6 +6,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
+#include "optimizer/optimize_result.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;
@@ -48,7 +49,7 @@ class TrafficCopUtil {
    * @param optimizer_timeout used by optimizer
    * @return physical plan that can be executed
    */
-  static std::unique_ptr<planner::AbstractPlanNode> Optimize(
+  static std::unique_ptr<optimizer::OptimizeResult> Optimize(
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
       catalog::db_oid_t db_oid, common::ManagedPointer<optimizer::StatsStorage> stats_storage,

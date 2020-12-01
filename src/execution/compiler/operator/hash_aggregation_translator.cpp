@@ -18,7 +18,7 @@ constexpr char AGGREGATE_TERM_ATTR_PREFIX[] = "agg_term_attr";
 
 HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePlanNode &plan,
                                                      CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
       agg_row_var_(GetCodeGen()->MakeFreshIdentifier("aggRow")),
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
@@ -320,10 +320,11 @@ ast::FunctionDecl *HashAggregationTranslator::GenerateEndHookFunction() const {
     builder.Append(codegen->DeclareVarWithInit(num_tuples, count));
 
     // FeatureRecord with the overrideValue
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
-    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+    FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, selfdriving::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
                   codegen->MakeExpr(override_value));
 
     // End Tracker
@@ -372,8 +373,8 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
   auto *codegen = GetCodeGen();
   if (IsBuildPipeline(pipeline)) {
     const auto &agg_ht = pipeline.IsParallel() ? local_agg_ht_ : global_agg_ht_;
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
 
     if (build_pipeline_.IsParallel() && IsCountersEnabled()) {
       // In parallel mode, we subtract from the insert count of the last task that might
@@ -382,11 +383,11 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
       // @see HashAggregationTranslator::agg_count_ for further information.
       auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
       auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
+      FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
     } else {
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+      FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                     codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
     }
 
@@ -402,11 +403,12 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
       agg_ht = global_agg_ht_.GetPtr(codegen);
     }
 
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  CounterVal(num_agg_outputs_));
 
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
   }

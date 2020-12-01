@@ -56,9 +56,11 @@ class DropNamespacePlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace to drop
+   * @param plan_node_id Plan node id
    */
   DropNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                        std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid);
+                        std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
+                        plan_node_id_t plan_node_id);
 
  public:
   /**

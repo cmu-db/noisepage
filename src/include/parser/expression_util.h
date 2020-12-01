@@ -20,6 +20,7 @@
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
+#include "parser/expression/type_cast_expression.h"
 
 namespace noisepage::parser {
 
@@ -423,23 +424,22 @@ class ExpressionUtil {
       // ColumnValueExpression particularly when dealing with InnerIndexJoin.
       OPTIMIZER_LOG_TRACE("EvaluateExpression resulted in an unbound ColumnValueExpression");
     } else if (IsAggregateExpression(expr->GetExpressionType())) {
-      /*
-      TODO(wz2, [ExecutionEngine]): If value_idx is somehow needed during aggregation, reviist this
-      Peloton never seems to read from AggregateExpression's value_idx
-
-      auto c_aggr_expr = dynamic_cast<const AggregateExpression *>(expr);
+      // if aggregate expression exists in the children expression map
+      // make a derived value expression to avoid double computation
+      auto c_aggr_expr = expr.CastManagedPointerTo<AggregateExpression>();
       NOISEPAGE_ASSERT(c_aggr_expr, "expr should be AggregateExpression");
 
-      auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
-
+      int tuple_idx = 0;
       for (auto &expr_map : expr_maps) {
         auto iter = expr_map.find(expr);
         if (iter != expr_map.end()) {
-          aggr_expr->SetValueIdx(iter->second);
+          // Create DerivedValueExpression (iter->second is value_idx)
+          auto type = c_aggr_expr->GetReturnValueType();
+          return std::make_unique<DerivedValueExpression>(type, tuple_idx, iter->second);
         }
+        ++tuple_idx;
       }
 
-      */
     } else if (expr->GetExpressionType() == ExpressionType::FUNCTION) {
       /*
       TODO(wz2): Uncomment and fix this when Functions exist
@@ -479,6 +479,9 @@ class ExpressionUtil {
       auto def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause());
       auto type = case_expr->GetReturnValueType();
       return std::make_unique<CaseExpression>(type, std::move(clauses), std::move(def_cond));
+    } else if (expr->GetExpressionType() == ExpressionType::OPERATOR_CAST) {
+      NOISEPAGE_ASSERT(children_size == 1, "TypeCastExpression should have exactly 1 child.");
+      return expr->GetChild(0)->Copy();
     }
 
     return expr->CopyWithChildren(std::move(children));

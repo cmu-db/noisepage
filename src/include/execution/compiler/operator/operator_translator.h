@@ -3,18 +3,18 @@
 #include <string>
 #include <type_traits>
 
-#include "brain/brain_defs.h"
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/compiler/expression/column_value_provider.h"
 #include "execution/compiler/state_descriptor.h"
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
-namespace noisepage::brain {
+namespace noisepage::selfdriving {
 class ExecutionOperatingUnitFeature;
 class OperatingUnitRecorder;
-}  // namespace noisepage::brain
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::parser {
 class AbstractExpression;
@@ -94,7 +94,7 @@ class OperatorTranslator : public ColumnValueProvider {
    * @param feature_type Minirunner execution operating unit type for this operator.
    */
   OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline,
-                     brain::ExecutionOperatingUnitType feature_type);
+                     selfdriving::ExecutionOperatingUnitType feature_type);
 
   /**
    * This class cannot be copied or moved.
@@ -246,7 +246,7 @@ class OperatorTranslator : public ColumnValueProvider {
   CompilationContext *GetCompilationContext() const { return compilation_context_; }
 
   /** @return Feature type. */
-  brain::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
+  selfdriving::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
 
   /** @return The plan node as a generic node. */
   const planner::AbstractPlanNode *Op() const { return &plan_; }
@@ -315,8 +315,8 @@ class OperatorTranslator : public ColumnValueProvider {
   /** Get the feature value out of a counter. */
   ast::Expr *CounterVal(StateDescriptor::Entry entry) const;
   /** Record a specified feature's value. */
-  void FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
-                     brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
+  void FeatureRecord(FunctionBuilder *function, selfdriving::ExecutionOperatingUnitType feature_type,
+                     selfdriving::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                      ast::Expr *val) const;
   /** Record arithmetic feature values by setting feature values to val. */
   void FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline,
@@ -347,7 +347,7 @@ class OperatorTranslator : public ColumnValueProvider {
   void SetChildTranslator(common::ManagedPointer<OperatorTranslator> translator) { child_translator_ = translator; }
   /** Set the parent translator.. */
   void SetParentTranslator(common::ManagedPointer<OperatorTranslator> translator) { parent_translator_ = translator; }
-  friend class brain::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
   /** @return The child translator. */
   common::ManagedPointer<OperatorTranslator> GetChildTranslator() const { return child_translator_; }
   /** @return The parent translator. */
@@ -369,7 +369,7 @@ class OperatorTranslator : public ColumnValueProvider {
   /** The parent operator translator. */
   common::ManagedPointer<OperatorTranslator> parent_translator_{nullptr};
   /** ExecutionOperatingUnitType. */
-  brain::ExecutionOperatingUnitType feature_type_{brain::ExecutionOperatingUnitType::INVALID};
+  selfdriving::ExecutionOperatingUnitType feature_type_{selfdriving::ExecutionOperatingUnitType::INVALID};
 };
 
 }  // namespace noisepage::execution::compiler
