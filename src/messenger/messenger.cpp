@@ -525,8 +525,6 @@ void Messenger::ServerLoop() {
           auto &server_callback = poll_items.server_callbacks_[i];
           (*server_callback)(common::ManagedPointer(this), msg.GetRoutingId(), msg.GetMessage(),
                              msg.GetMessageIdSender());
-        } else {
-          //ProcessMessage(msg);
         }
         --num_sockets_with_data;
       }
