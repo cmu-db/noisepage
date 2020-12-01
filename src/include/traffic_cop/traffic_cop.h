@@ -205,7 +205,6 @@ class TrafficCop {
    * @param connection_ctx context to be used to access the internal txn
    * @param out packet writer to return results
    * @param physical_plan to be executed
-   * @param query_type QUERY_EXPLAIN
    * @return result of the operation
    */
   TrafficCopResult ExecuteExplainStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
