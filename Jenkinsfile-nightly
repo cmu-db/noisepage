@@ -48,6 +48,9 @@ pipeline {
                 // The following command compiles and builds the binary without caching and times the whole operation. 
                 // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
                 script{
+                    if(!utils){
+                        utils = load("Jenkinsfile-utils.groovy")
+                    }
                     utils.noisePageBuild(useCache:false, buildType:"Release", isBuildTests:false, isRecordTime:true)
                 }
 
@@ -69,6 +72,9 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
+                    if(!utils){
+                        utils = load("Jenkinsfile-utils.groovy")
+                    }
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false)
                 }
 
@@ -107,6 +113,9 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
+                    if(!utils){
+                        utils = load("Jenkinsfile-utils.groovy")
+                    }
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false, isBuildBenchmarks:true)
                 }
 
