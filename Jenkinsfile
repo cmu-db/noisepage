@@ -135,7 +135,6 @@ pipeline {
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
                         //sh 'mkdir build && cd build'
                         script{
-                            sh('mkdir build && cd build')
                             utils.noisePageBuild(os:"macos",useASAN:true)
                         }
                         // sh script: '''
@@ -176,7 +175,6 @@ pipeline {
                         
                         //sh 'mkdir build && cd build'
                         script{
-                            sh('mkdir build && cd build')
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
                         // sh script: '''
@@ -222,7 +220,6 @@ pipeline {
                         //sh 'mkdir build && cd build'
 
                         script{
-                            sh('mkdir build && cd build')
                             utils.noisePageBuild(isCodeCoverage:true)
                         }
 
@@ -280,7 +277,6 @@ pipeline {
 
                         //sh 'mkdir build && cd build'                     
                         script{
-                            sh('mkdir build && cd build')
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
 
@@ -324,7 +320,6 @@ pipeline {
 
                         //sh 'mkdir build && cd build'
                         script{
-                            sh('mkdir build && cd build')
                             utils.noisePageBuild(os:"macos",buildType:"Release")
                         }
 
@@ -366,7 +361,6 @@ pipeline {
 
                         //sh 'mkdir build && cd build'
                         script{
-                            sh('mkdir build && cd build')
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
@@ -412,7 +406,6 @@ pipeline {
 
                         //sh 'mkdir build && cd build'
                         script{
-                            sh('mkdir build && cd build')
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
