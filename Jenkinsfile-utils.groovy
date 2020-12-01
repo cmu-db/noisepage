@@ -48,10 +48,10 @@ def noisePageBuild(Map args = [:]){
         build_cmd += " noisepage"
     }
 
-    sh script:'''
+    sh script:"""
     mkdir build
     cd build
     ${compile_cmd}
-    ${build_cmd} ''', label: 'Compile & Build'
+    ${build_cmd} """, label: 'Compile & Build'
 }
 return this
