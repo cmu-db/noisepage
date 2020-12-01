@@ -985,7 +985,8 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
                                                             accessor->GetTypeOidFromTypeId(type::TypeId::INTEGER)});
 
     auto year_type = expr_maker.Constant(static_cast<int32_t>(execution::sql::DatePartType::YEAR));
-    auto extract_year = expr_maker.Function("extract_year", {l_shipdate, year_type}, type::TypeId::INTEGER, date_part_oid);
+    auto extract_year =
+        expr_maker.Function("extract_year", {l_shipdate, year_type}, type::TypeId::INTEGER, date_part_oid);
 
     l_seq_scan_out.AddOutput("l_year", extract_year);
     auto schema = l_seq_scan_out.MakeSchema();
