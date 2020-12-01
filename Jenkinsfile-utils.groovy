@@ -9,16 +9,14 @@ def noisePageBuild(Map args = [:]){
         isBuildBenchmarks: false,
         isCodeCoverage: false,
         isJumboTest: false
+        isRecordTime: false
     ]
     def Map config = defaultArgs << args
     def String compileCmd = generateCompileCmd(config)
     def String buildCmd = generateBuildCmd(config)
+    def String buildScript = generateBuildScript(compileCmd, buildCmd, config.isRecordTime)
 
-    sh script:"""
-    mkdir build
-    cd build
-    $compileCmd
-    $buildCmd """, label: "Compile & Build"
+    sh script:buildScript, label: "Compile & Build"
 }
 
 def generateCompileCmd(Map config = [:]) {
@@ -68,6 +66,23 @@ def generateBuildCmd(Map config = [:]){
         buildCmd += " noisepage"
     }
     return buildCmd
+}
+
+def generateBuildScript(compileCmd, buildCmd, isRecordTime){
+    def String script = '''
+    mkdir build
+    cd build
+    '''
+    if(isRecordTime){
+        script += """
+        /usr/bin/time -o /tmp/compiletime.txt -f %e sh -c \"$compileCmd
+        $buildCmd\""""
+    }else{
+        script += """
+        $compileCmd
+        $buildCmd"""
+    }
+    return script
 }
 
 

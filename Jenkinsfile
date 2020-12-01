@@ -1,7 +1,5 @@
-
-
 def utils
-def noisePageBuild
+
 pipeline {
     agent none
     options {
@@ -153,11 +151,6 @@ pipeline {
                         script{
                             utils.noisePageBuild(os:"macos",useASAN:true)
                         }
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF ..
-                        // ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
@@ -192,11 +185,6 @@ pipeline {
                         script{
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. 
-                        // ninja''', label: 'Compiling'
                         
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
@@ -235,12 +223,6 @@ pipeline {
                         script{
                             utils.noisePageBuild(isCodeCoverage:true)
                         }
-
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON ..
-                        // ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
@@ -292,12 +274,6 @@ pipeline {
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
 
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
-                        // ninja''', label: 'Compiling'
-
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
@@ -330,16 +306,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
 
-                        //sh 'mkdir build && cd build'
                         script{
                             utils.noisePageBuild(os:"macos",buildType:"Release")
                         }
-
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF ..
-                        // ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
@@ -374,12 +343,6 @@ pipeline {
                         script{
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
-
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
-                        // ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
@@ -419,12 +382,6 @@ pipeline {
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
-                        // sh script: '''
-                        // mkdir build
-                        // cd build 
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
-                        // ninja''', label: 'Compiling'
-
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
@@ -463,12 +420,6 @@ pipeline {
                         script{
                             utils.noisePageBuild(os:"macos", useASAN:true, isBuildTests:false)
                         }
-
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON .. 
-                        // ninja noisepage''', label: 'Compiling'
 
                         sh script: '''
                         cd build
@@ -527,12 +478,6 @@ pipeline {
                             utils.noisePageBuild(useASAN:true, isBuildTests:false)
                         }
 
-                        // sh script: '''
-                        // mkdir build
-                        // cd build
-                        // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON ..
-                        // ninja noisepage''', label: 'Compiling'
-
                         sh script: '''
                         cd build
                         timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug
@@ -579,6 +524,9 @@ pipeline {
         }
         stage('End-to-End Performance') {
             agent { label 'benchmark' }
+            environment {
+                PSS_CREATOR= credentials('pss-creator')
+            }
             steps {
                 sh 'echo $NODE_NAME'
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
@@ -587,40 +535,34 @@ pipeline {
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false)
                 }
 
-                // sh script:'''
-                // mkdir build
-                // cd build
-                // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON ..
-                // ninja noisepage''', label: 'Compiling'
-
                 sh script:'''
                 cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release
+                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'OLTPBench (TATP)'
 
                 sh script:'''
                 cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release
+                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'OLTPBench (TATP No WAL)'
 
                 sh script:'''
                 cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release
+                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'OLTPBench (TATP RamDisk WAL)'
 
                 sh script:'''
                 cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release
+                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'OLTPBench (TPCC HDD WAL)'
 
                 sh script:'''
                 cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release
+                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'OLTPBench (TPCC No WAL)'
 
                 sh script:'''
                 cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release
+                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'OLTPBench (TPCC RamDisk WAL)'
             }
              post {
@@ -639,11 +581,6 @@ pipeline {
                 script{
                     utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
                 }
-                // sh script: '''
-                // mkdir build
-                // cd build
-                // cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
-                // ninja all''', label: 'Microbenchmark (Compile)'
             }
             post {
                 cleanup {
