@@ -1,6 +1,7 @@
 
 
 def utils
+def noisePageBuild
 pipeline {
     agent none
     options {
@@ -23,6 +24,7 @@ pipeline {
             steps {
                 script {
                    utils = load("Jenkinsfile-utils.groovy")
+                   noisePageBuild = utils.noisePageBuild
                    ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
                    if(ready_for_build != 0) {
                         currentBuild.result = 'ABORTED'
@@ -175,9 +177,7 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         sh 'mkdir build && cd build'
-                        script{
-                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
-                        }
+                        noisePageBuild(useASAN:true, isJumboTest:true)
                         // sh script: '''
                         // mkdir build
                         // cd build
@@ -219,9 +219,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         sh 'mkdir build && cd build'
-                        script{
-                            utils.noisePageBuild(isCodeCoverage:true)
-                        }
+                        noisePageBuild(isCodeCoverage:true)
 
                         // sh script: '''
                         // mkdir build
@@ -276,9 +274,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        script{
-                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
-                        }
+                        noisePageBuild(useASAN:true, isJumboTest:true)
 
                         // sh script: '''
                         // mkdir build
@@ -319,9 +315,7 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        script{
-                            utils.noisePageBuild(os:"macos",buildType:"Release")
-                        }
+                        noisePageBuild(os:"macos",buildType:"Release")
 
                         // sh script: '''
                         // mkdir build
@@ -360,9 +354,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        script{
-                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
-                        }
+                        noisePageBuild(buildType:"Release", isJumboTest:true)
 
                         // sh script: '''
                         // mkdir build
@@ -405,9 +397,8 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        script{
-                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
-                        }
+                        noisePageBuild(buildType:"Release", isJumboTest:true)
+                        
 
                         // sh script: '''
                         // mkdir build
