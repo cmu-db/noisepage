@@ -71,6 +71,8 @@ void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::Output
     const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
     // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
+    // Because SQL EXPLAIN passes in a dummy output schema, this function handles when a column's
+    // expression is nullptr
     const auto &name = columns[i].GetExpr() == nullptr || columns[i].GetExpr()->GetAlias().empty()
                            ? columns[i].GetName()
                            : columns[i].GetExpr()->GetAlias();
