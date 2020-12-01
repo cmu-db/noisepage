@@ -24,7 +24,6 @@ pipeline {
             steps {
                 script {
                    utils = load("Jenkinsfile-utils.groovy")
-                   noisePageBuild = utils.noisePageBuild
                    ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
                    if(ready_for_build != 0) {
                         currentBuild.result = 'ABORTED'
@@ -177,7 +176,13 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         sh 'mkdir build && cd build'
-                        noisePageBuild(useASAN:true, isJumboTest:true)
+                        script{
+                            sh("pwd")
+                            sh("ls")
+                        }
+                        script{
+                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
+                        }
                         // sh script: '''
                         // mkdir build
                         // cd build
@@ -219,7 +224,13 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         sh 'mkdir build && cd build'
-                        noisePageBuild(isCodeCoverage:true)
+                        script{
+                            sh("pwd")
+                            sh("ls")
+                        }
+                        script{
+                            utils.noisePageBuild(isCodeCoverage:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -274,7 +285,13 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        noisePageBuild(useASAN:true, isJumboTest:true)
+                        script{
+                            sh("pwd")
+                            sh("ls")
+                        }                        
+                        script{
+                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -315,7 +332,13 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        noisePageBuild(os:"macos",buildType:"Release")
+                        script{
+                            sh("pwd")
+                            sh("ls")
+                        }
+                        script{
+                            utils.noisePageBuild(os:"macos",buildType:"Release")
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -354,7 +377,13 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        noisePageBuild(buildType:"Release", isJumboTest:true)
+                        script{
+                            sh("pwd")
+                            sh("ls")
+                        }
+                        script{
+                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
@@ -397,8 +426,13 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh 'mkdir build && cd build'
-                        noisePageBuild(buildType:"Release", isJumboTest:true)
-                        
+                        script{
+                            sh("pwd")
+                            sh("ls")
+                        }
+                        script{
+                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
+                        }
 
                         // sh script: '''
                         // mkdir build
