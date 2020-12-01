@@ -167,7 +167,7 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
   {
     auto oid_pr = oid_pri.InitializeRow(buffer);
     oid_pr->Set<proc_oid_t, false>(0, oid, false);
-    bool result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
+    bool UNUSED_ATTRIBUTE result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
     NOISEPAGE_ASSERT(result, "Oid insertion should be unique");
   }
 
