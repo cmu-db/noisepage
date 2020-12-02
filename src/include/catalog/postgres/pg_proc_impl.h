@@ -45,7 +45,7 @@ class PgProcImpl {
    *
    * Does NOT create anything until the relevant bootstrap functions are called.
    *
-   * @param db_oid          The OID of the database that pg_proc should be created in.
+   * @param db_oid      The OID of the database that pg_proc should be created in.
    */
   explicit PgProcImpl(db_oid_t db_oid);
 
@@ -65,8 +65,8 @@ class PgProcImpl {
    * Dependencies (for execution):
    *    pg_language must have been bootstrapped.
    *
-   * @param txn     The transaction to bootstrap in.
-   * @param dbc     The catalog object to bootstrap in.
+   * @param txn         The transaction to bootstrap in.
+   * @param dbc         The catalog object to bootstrap in.
    */
   void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                  common::ManagedPointer<DatabaseCatalog> dbc);
@@ -95,7 +95,7 @@ class PgProcImpl {
    * @param rettype         The OID of the type of return value.
    * @param src             The source code of the procedure.
    * @param is_aggregate    True iff this is an aggregate procedure.
-   * @return True if the creation succeeded. False otherwise.
+   * @return                True if the creation succeeded. False otherwise.
    *
    * TODO(WAN): This should be refactored to have a cleaner signature. See #1354.
    */
@@ -111,14 +111,17 @@ class PgProcImpl {
    *
    * @param txn             The transaction to use.
    * @param proc            The OID of the procedure to drop.
-   * @return True if the process was successfully found and dropped. False otherwise.
+   * @return                True if the procedure was successfully found and dropped. False otherwise.
    */
   bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
 
   /**
    * @brief Set the procedure context pointer column of the specified procedure.
    *
-   * @return False if the proc_oid does not correspond to a valid procedure. True if the set was successful.
+   * @param txn             The transaction to use.
+   * @param proc            The OID of the procedure to set the context for.
+   * @param func_context    The procedure context to set to.
+   * @return                False if the proc_oid does not map to a valid procedure. True if the set was successful.
    *
    * TODO(WAN): See #1356 for a discussion on whether this should be exposed separately.
    */
@@ -128,7 +131,9 @@ class PgProcImpl {
   /**
    * @brief Get the procedure context pointer column of the specified procedure.
    *
-   * @return The procedure context pointer of the specified procedure, guaranteed to not be nullptr.
+   * @param txn             The transaction to use.
+   * @param proc_oid        The OID of the procedure whose procedure context is to be obtained.
+   * @return                The procedure context pointer of the specified procedure, guaranteed to not be nullptr.
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
@@ -141,16 +146,11 @@ class PgProcImpl {
    * @param procns          The namespace of the procedure to look in.
    * @param procname        The name of the procedure to look for.
    * @param arg_types       The types of all arguments in this function.
-   * @return The OID of the procedure if found. Else INVALID_PROC_OID.
+   * @return                The OID of the procedure if found. Else INVALID_PROC_OID.
    */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                         common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
-
-  /** @return True if the provided OID is within the builtin proc range. */
-  bool IsBuiltinProc(const proc_oid_t oid) const {
-    return lowest_builtin_proc_oid_ <= oid && oid < highest_builtin_proc_oid_;
-  }
 
   /** @brief Bootstrap all the builtin procedures in pg_proc. This assumes exclusive use of dbc->next_oid_. */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -177,8 +177,6 @@ class PgProcImpl {
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   const db_oid_t db_oid_;
-  proc_oid_t lowest_builtin_proc_oid_;   // The lowest builtin proc OID, inclusive.
-  proc_oid_t highest_builtin_proc_oid_;  // The highest builtin proc OID, non-inclusive.
 
   /**
    * The table and indexes that define pg_proc.

@@ -154,7 +154,7 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
   {
     auto oid_pr = oid_pri.InitializeRow(buffer);
     oid_pr->Set<proc_oid_t, false>(0, oid, false);
-    bool result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
+    bool UNUSED_ATTRIBUTE result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
     NOISEPAGE_ASSERT(result, "Oid insertion should be unique");
   }
 
@@ -380,8 +380,6 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                     true);
   };
 
-  lowest_builtin_proc_oid_ = proc_oid_t(dbc->next_oid_.load());
-
   // Math functions.
   create_fn("abs", {"x"}, {DEC}, {DEC}, DEC, true);
   create_fn("abs", {"n"}, {INT}, {INT}, INT, true);
@@ -458,8 +456,6 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                   PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, INT, "", false);
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersdummyreal", PgLanguage::INTERNAL_LANGUAGE_OID,
                   PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, REAL, "", false);
-
-  highest_builtin_proc_oid_ = proc_oid_t(dbc->next_oid_.load());
 
   BootstrapProcContexts(txn, dbc);
 }
