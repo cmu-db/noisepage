@@ -392,8 +392,6 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                     args, arg_types, all_arg_types, {}, rettype, "", true);
   };
 
-  lowest_builtin_proc_oid_ = proc_oid_t(dbc->next_oid_.load());
-
   // Math functions.
   create_fn("abs", {"x"}, {DEC}, {DEC}, DEC, true);
   create_fn("abs", {"n"}, {INT}, {INT}, INT, true);
@@ -468,8 +466,6 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                   NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, INT, "", false);
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersdummyreal", INTERNAL_LANGUAGE_OID,
                   NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, REAL, "", false);
-
-  highest_builtin_proc_oid_ = proc_oid_t(dbc->next_oid_.load());
 
   BootstrapProcContexts(txn, dbc);
 }

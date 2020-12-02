@@ -1753,8 +1753,6 @@ common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::G
 common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
     const common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid) {
   auto func_ctx = GetProcCtxPtr(txn, proc_oid);
-  NOISEPAGE_ASSERT(!(func_ctx == nullptr && pg_proc_.IsBuiltinProc(proc_oid)),
-                   "Builtin procedures should have been bootstrapped.");
   NOISEPAGE_ASSERT(func_ctx != nullptr, "Dynamically added UDFs are currently not supported.");
   return func_ctx;
 }
