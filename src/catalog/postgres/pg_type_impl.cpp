@@ -38,96 +38,82 @@ void PgTypeImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContex
 void PgTypeImpl::InsertType(const common::ManagedPointer<transaction::TransactionContext> txn,
                             const type_oid_t type_oid, const std::string &name, const namespace_oid_t namespace_oid,
                             const int16_t len, const bool by_val, const PgType::Type type_category) {
-  // Stage the write into the table
   auto redo_record = txn->StageWrite(db_oid_, PgType::TYPE_TABLE_OID, pg_type_all_cols_pri_);
-  auto *delta = redo_record->Delta();
+  auto delta = common::ManagedPointer(redo_record->Delta());
 
-  // Populate oid
-  auto offset = pg_type_all_cols_prm_[PgType::TYPOID_COL_OID];
-  *(reinterpret_cast<type_oid_t *>(delta->AccessForceNotNull(offset))) = type_oid;
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);  // pg_type and pg_type_name_index use this.
 
-  // Populate type name
-  offset = pg_type_all_cols_prm_[PgType::TYPNAME_COL_OID];
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  // Prepare PR for insertion.
+  {
+    auto &pm = pg_type_all_cols_prm_;
+    PgType::TYPOID.Set(delta, pm, type_oid);
+    PgType::TYPNAME.Set(delta, pm, name_varlen);
+    PgType::TYPNAMESPACE.Set(delta, pm, namespace_oid);
+    PgType::TYPLEN.Set(delta, pm, len);
+    PgType::TYPBYVAL.Set(delta, pm, by_val);
+    PgType::TYPTYPE.Set(delta, pm, static_cast<uint8_t>(type_category));
+  }
 
-  *(reinterpret_cast<storage::VarlenEntry *>(delta->AccessForceNotNull(offset))) = name_varlen;
-
-  // Populate namespace
-  offset = pg_type_all_cols_prm_[PgType::TYPNAMESPACE_COL_OID];
-  *(reinterpret_cast<namespace_oid_t *>(delta->AccessForceNotNull(offset))) = namespace_oid;
-
-  // Populate len
-  offset = pg_type_all_cols_prm_[PgType::TYPLEN_COL_OID];
-  *(reinterpret_cast<int16_t *>(delta->AccessForceNotNull(offset))) = len;
-
-  // Populate byval
-  offset = pg_type_all_cols_prm_[PgType::TYPBYVAL_COL_OID];
-  *(reinterpret_cast<bool *>(delta->AccessForceNotNull(offset))) = by_val;
-
-  // Populate type
-  offset = pg_type_all_cols_prm_[PgType::TYPTYPE_COL_OID];
-  auto type = static_cast<uint8_t>(type_category);
-  *(reinterpret_cast<uint8_t *>(delta->AccessForceNotNull(offset))) = type;
-
-  // Insert into table
+  // Insert into pg_type.
   auto tuple_slot = types_->Insert(txn, redo_record);
 
-  // Allocate buffer of largest size needed
+  // Allocate a buffer of the largest size needed.
   NOISEPAGE_ASSERT((types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
                     types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
                        (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
                         types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
-                   "Buffer must be allocated for largest ProjectedRow size");
+                   "Buffer must be allocated for the largest ProjectedRow size.");
   byte *buffer =
       common::AllocationUtil::AllocateAligned(types_name_index_->GetProjectedRowInitializer().ProjectedRowSize());
 
-  // Insert into oid index
-  auto oid_index_delta = types_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
-  auto oid_index_offset = types_oid_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  *(reinterpret_cast<uint32_t *>(oid_index_delta->AccessForceNotNull(oid_index_offset))) = type_oid.UnderlyingValue();
-  auto result UNUSED_ATTRIBUTE = types_oid_index_->InsertUnique(txn, *oid_index_delta, tuple_slot);
-  NOISEPAGE_ASSERT(result, "Insert into type oid index should always succeed");
+  // Insert into pg_type_oid_index.
+  {
+    auto oid_index_delta = types_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
+    auto typoid_offset = types_oid_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
+    oid_index_delta->Set<type_oid_t, false>(typoid_offset, type_oid, false);
+    auto UNUSED_ATTRIBUTE result = types_oid_index_->InsertUnique(txn, *oid_index_delta, tuple_slot);
+    NOISEPAGE_ASSERT(result, "Insert into pg_type_oid_index should always succeed");
+  }
 
-  // Insert into (namespace_oid, name) index
-  auto name_index_delta = types_name_index_->GetProjectedRowInitializer().InitializeRow(buffer);
-  // Populate namespace
-  auto name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  *(reinterpret_cast<uint32_t *>(name_index_delta->AccessForceNotNull(name_index_offset))) =
-      namespace_oid.UnderlyingValue();
-  // Populate type name
-  name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(2));
-  *(reinterpret_cast<storage::VarlenEntry *>(name_index_delta->AccessForceNotNull(name_index_offset))) = name_varlen;
-  result = types_name_index_->InsertUnique(txn, *name_index_delta, tuple_slot);
-  NOISEPAGE_ASSERT(result, "Insert into type name index should always succeed");
+  // Insert into pg_type_name_index.
+  {
+    auto name_index_delta = types_name_index_->GetProjectedRowInitializer().InitializeRow(buffer);
+    auto typnamespace_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
+    auto typname_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(2));
+    name_index_delta->Set<namespace_oid_t, false>(typnamespace_offset, namespace_oid, false);
+    name_index_delta->Set<storage::VarlenEntry, false>(typname_offset, name_varlen, false);
+    auto UNUSED_ATTRIBUTE result = types_name_index_->InsertUnique(txn, *name_index_delta, tuple_slot);
+    NOISEPAGE_ASSERT(result, "Insert into pg_type_name_index should always succeed");
+  }
 
-  // Insert into (non-unique) namespace oid index
-  auto namespace_index_delta = types_namespace_index_->GetProjectedRowInitializer().InitializeRow(buffer);
-  auto namespace_index_offset = types_namespace_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  *(reinterpret_cast<uint32_t *>(namespace_index_delta->AccessForceNotNull(namespace_index_offset))) =
-      namespace_oid.UnderlyingValue();
-  result = types_namespace_index_->Insert(txn, *name_index_delta, tuple_slot);
-  NOISEPAGE_ASSERT(result, "Insert into type namespace index should always succeed");
+  // Insert into pg_type_namespace_index.
+  {
+    auto namespace_index_delta = types_namespace_index_->GetProjectedRowInitializer().InitializeRow(buffer);
+    auto typnamespace_offset = types_namespace_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
+    namespace_index_delta->Set<namespace_oid_t, false>(typnamespace_offset, namespace_oid, false);
+    auto UNUSED_ATTRIBUTE result = types_namespace_index_->Insert(txn, *namespace_index_delta, tuple_slot);
+    NOISEPAGE_ASSERT(result, "Insert into pg_type_namespace_index should always succeed");
+  }
 
   delete[] buffer;
 }
 
 void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> dbc,
                                 const common::ManagedPointer<transaction::TransactionContext> txn) {
-#define INSERT_BASE_TYPE(type_id, type_name, type_size)                                                         \
-  InsertType(txn, dbc->GetTypeOidForType((type_id)), (type_name), PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, \
-             (type_size), true, PgType::Type::BASE)
+  auto insert_base_type = [&](const type::TypeId type, const std::string &type_name, const int16_t type_size) {
+    InsertType(txn, dbc->GetTypeOidForType(type), type_name, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, type_size,
+               true, PgType::Type::BASE);
+  };
 
-  INSERT_BASE_TYPE(type::TypeId::INVALID, "invalid", 1);
-  INSERT_BASE_TYPE(type::TypeId::BOOLEAN, "boolean", sizeof(bool));
-  INSERT_BASE_TYPE(type::TypeId::TINYINT, "tinyint", sizeof(int8_t));
-  INSERT_BASE_TYPE(type::TypeId::SMALLINT, "smallint", sizeof(int16_t));
-  INSERT_BASE_TYPE(type::TypeId::INTEGER, "integer", sizeof(int32_t));
-  INSERT_BASE_TYPE(type::TypeId::BIGINT, "bigint", sizeof(int64_t));
-  INSERT_BASE_TYPE(type::TypeId::DECIMAL, "decimal", sizeof(double));
-  INSERT_BASE_TYPE(type::TypeId::DATE, "date", sizeof(type::date_t));
-  INSERT_BASE_TYPE(type::TypeId::TIMESTAMP, "timestamp", sizeof(type::timestamp_t));
-
-#undef INSERT_BASE_TYPE
+  insert_base_type(type::TypeId::INVALID, "invalid", 1);
+  insert_base_type(type::TypeId::BOOLEAN, "boolean", sizeof(bool));
+  insert_base_type(type::TypeId::TINYINT, "tinyint", sizeof(int8_t));
+  insert_base_type(type::TypeId::SMALLINT, "smallint", sizeof(int16_t));
+  insert_base_type(type::TypeId::INTEGER, "integer", sizeof(int32_t));
+  insert_base_type(type::TypeId::BIGINT, "bigint", sizeof(int64_t));
+  insert_base_type(type::TypeId::DECIMAL, "decimal", sizeof(double));
+  insert_base_type(type::TypeId::DATE, "date", sizeof(type::date_t));
+  insert_base_type(type::TypeId::TIMESTAMP, "timestamp", sizeof(type::timestamp_t));
 
   InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARCHAR), "varchar",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);

@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "catalog/catalog_column_def.h"
 #include "catalog/catalog_defs.h"
 
 namespace noisepage::storage {
@@ -36,21 +37,21 @@ class PgType {
   static constexpr index_oid_t TYPE_NAMESPACE_INDEX_OID = index_oid_t(54);
 
   /*
-   * Column names of the form "TYP[name]_COL_OID" are present in the PostgreSQL
-   * catalog specification and columns of the form "TYP_[name]_COL_OID" are
-   * noisepage-specific addtions (generally pointers to internal objects).
+   * Column names of the form "TYP[name]" are present in the PostgreSQL
+   * catalog specification and columns of the form "TYP_[name]" are
+   * noisepage-specific additions (generally pointers to internal objects).
    */
-  static constexpr col_oid_t TYPOID_COL_OID = col_oid_t(1);        // INTEGER (pkey)
-  static constexpr col_oid_t TYPNAME_COL_OID = col_oid_t(2);       // VARCHAR
-  static constexpr col_oid_t TYPNAMESPACE_COL_OID = col_oid_t(3);  // INTEGER (fkey: pg_namespace)
-  static constexpr col_oid_t TYPLEN_COL_OID = col_oid_t(4);        // SMALLINT
-  static constexpr col_oid_t TYPBYVAL_COL_OID = col_oid_t(5);      // BOOLEAN
-  static constexpr col_oid_t TYPTYPE_COL_OID = col_oid_t(6);       // CHAR
+  static constexpr CatalogColumnDef<type_oid_t> TYPOID{col_oid_t{1}};             // INTEGER (pkey)
+  static constexpr CatalogColumnDef<storage::VarlenEntry> TYPNAME{col_oid_t{2}};  // VARCHAR
+  static constexpr CatalogColumnDef<namespace_oid_t> TYPNAMESPACE{col_oid_t{3}};  // INTEGER (fkey: pg_namespace)
+  static constexpr CatalogColumnDef<int16_t> TYPLEN{col_oid_t{4}};                // SMALLINT
+  static constexpr CatalogColumnDef<bool> TYPBYVAL{col_oid_t{5}};                 // BOOLEAN
+  static constexpr CatalogColumnDef<uint8_t> TYPTYPE{col_oid_t{6}};               // CHAR
 
   static constexpr uint8_t NUM_PG_TYPE_COLS = 6;
 
   static constexpr std::array<col_oid_t, NUM_PG_TYPE_COLS> PG_TYPE_ALL_COL_OIDS = {
-      TYPOID_COL_OID, TYPNAME_COL_OID, TYPNAMESPACE_COL_OID, TYPLEN_COL_OID, TYPBYVAL_COL_OID, TYPTYPE_COL_OID};
+      TYPOID.oid_, TYPNAME.oid_, TYPNAMESPACE.oid_, TYPLEN.oid_, TYPBYVAL.oid_, TYPTYPE.oid_};
 };
 
 }  // namespace noisepage::catalog::postgres
