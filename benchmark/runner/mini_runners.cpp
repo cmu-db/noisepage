@@ -953,6 +953,24 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 }
 
 /**
+ * Print the correct VPIGet call based on type
+ *
+ * @param type Type
+ * @returns VPIGet function call
+ */
+std::string PrintVPIGet(type::TypeId type) {
+  switch (type) {
+    case type::TypeId::INTEGER:
+      return "@vpiGetInt";
+    case type::TypeId::BIGINT:
+      return "@vpiGetBigInt";
+    default:
+      throw "Unsupported type in PrintVPIGet";
+      return "";
+  }
+}
+
+/**
  * Emits initializing the storage interface
  *
  * @param output OutputStream to write to
@@ -1096,6 +1114,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   auto num_rows = state->range(2);
   auto type = static_cast<type::TypeId>(state->range(3));
   auto num_index = state->range(4);
+  auto target = num_rows + 1;
   if (settings.skip_large_rows_runs_ && num_rows > settings.warmup_rows_limit_) {
     return;
   }
@@ -1119,7 +1138,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     std::stringstream query;
     query << "INSERT INTO " << tbl_name << " VALUES (";
     for (auto i = 0; i < tbl_cols; i++) {
-      query << num_rows;
+      query << target;
       if (i != tbl_cols - 1) {
         query << ","
               << "\n";
@@ -1164,7 +1183,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
       if (is_insert) {
         // Insert Tuple
         PrintInitSI(output, tbl_cols, tbl_oid.UnderlyingValue(), true);
-        PrintInsertTupleIntoTable(output, type, tbl_cols, num_rows);
+        PrintInsertTupleIntoTable(output, type, tbl_cols, target);
 
         // It is possible that we should iterate against a single index.
         output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
@@ -1186,8 +1205,8 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
         output << "\tfor (@tableIterAdvance(&tvi)) {\n";
         output << "\t\tvar vpi = @tableIterGetVPI(&tvi)\n";
         output << "\t\tfor (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {\n";
-        output << "\t\t\tvar col1 = @vpiGetInt(vpi, 0)\n";
-        output << "\t\t\tif (col1 == " << num_rows << ") {\n";
+        output << "\t\t\tvar col1 = " << PrintVPIGet(type) << "(vpi, 0)\n";
+        output << "\t\t\tif (col1 == " << target << ") {\n";
         output << "\t\t\t\ttuple_slot = @vpiGetSlot(vpi)\n";
         output << "\n";
 
@@ -1198,7 +1217,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
         output << "\n";
 
         output << "\t\t\t\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
-        PrintModifyTupleIntoIndexes(output, type, idx_oids, key_num, false, num_rows);
+        PrintModifyTupleIntoIndexes(output, type, idx_oids, key_num, false, target);
         output << "\t\t\t\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
         output << "\t@storageInterfaceFree(&si)\n";
 
@@ -1273,7 +1292,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     auto num_iters = 1 + settings.index_model_warmup_iterations_num_;
-    BenchmarkExecQuery(num_iters, &exec_query, nullptr, !is_insert, &empty_params, &exec_settings);
+    BenchmarkExecQuery(num_iters, &exec_query, nullptr, false, &empty_params, &exec_settings);
   }
 
   // Drop the indexes
