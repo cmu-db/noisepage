@@ -117,9 +117,25 @@ def _tuple_num_cardinality_linear_log_predict_transform(x, y):
     return y * ((cardinality * np.log2(tuple_num)) + 1)[:, np.newaxis]
 
 
-# Transform the target in a linaer log scale (cardinality * log tuple_num)
+# Transform the target in a linear log scale (cardinality * log tuple_num)
 _tuple_num_cardinality_linear_log_transformer = (_tuple_num_cardinality_linear_log_train_transform,
                                                  _tuple_num_cardinality_linear_log_predict_transform)
+
+def _tuple_cardinality_linear_train_transform(x, y):
+    # Transform down the target according to the log tuple num value in the input
+    cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
+    return y / (cardinality + 1)[:, np.newaxis]
+
+
+def _tuple_cardinality_linear_predict_transform(x, y):
+    # Transform up the target according to the log tuple num value in the input
+    cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
+    return y * (cardinality + 1)[:, np.newaxis]
+
+
+# Transform the target in a linear scale (cardinality)
+_tuple_cardinality_linear_transformer = (_tuple_cardinality_linear_train_transform,
+                                         _tuple_cardinality_linear_predict_transform)
 
 # Map the opunit to the output (y) transformer it needs for mini-model training
 OPUNIT_Y_TRANSFORMER_MAP = {
@@ -165,7 +181,7 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.PARALLEL_SORT_MERGE_STEP: _tuple_num_linear_log_transformer,
 
     OpUnit.INDEX_INSERT: _tuple_num_cardinality_linear_log_transformer,
-    OpUnit.INDEX_DELETE: _tuple_num_cardinality_linear_log_transformer,
+    OpUnit.INDEX_DELETE: _tuple_cardinality_linear_transformer,
 }
 
 
