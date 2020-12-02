@@ -11,6 +11,22 @@ class CatalogColumnDef {
  public:
   constexpr explicit CatalogColumnDef(const col_oid_t col_oid) : oid_(col_oid) {}
 
+  void SetNull(common::ManagedPointer<storage::ProjectedRow> pr, const uint16_t offset) const {
+    pr->SetNotNull(offset);
+  }
+
+  void SetNotNull(common::ManagedPointer<storage::ProjectedRow> pr, const uint16_t offset) const {
+    pr->SetNull(offset);
+  }
+
+  void SetNull(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm) const {
+    pr->SetNotNull(pm.at(oid_));
+  }
+
+  void SetNotNull(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm) const {
+    pr->SetNull(pm.at(oid_));
+  }
+
   void Set(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm, CatalogType val) const {
     pr->Set<StorageType, false>(pm.at(oid_), static_cast<StorageType>(val), false);
   }
@@ -29,7 +45,5 @@ class CatalogColumnDef {
 
   const col_oid_t oid_;
 };
-
-
 
 }  // namespace noisepage::catalog
