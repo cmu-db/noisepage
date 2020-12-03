@@ -2,9 +2,11 @@ def utils // common build functions are loaded from Jenkinsfile-utils into this 
 /**
  * loadUtils conditionally loads the Jenkins utility functions file and stores it in the utils varaible
  */
-void loadUtils(){
+void loadUtils() {
     String utilsFileName  = 'Jenkinsfile-utils'
-    utils = utils ?: load(utilsFileName)
+    if(!utils) {
+        utils = load(utilsFileName)
+    }
 }
 
 pipeline {
