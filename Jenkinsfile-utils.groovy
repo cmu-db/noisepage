@@ -1,4 +1,9 @@
-
+/*
+noisePageBuild will create a build directory and compile and build the
+noisepage binary in that directory. The options passed into the method
+determine the compilation and build options. Refer to the defaultArgs
+for the different options that can be passed in.
+*/
 def noisePageBuild(Map args = [:]){
     def defaultArgs = [
         useCache: true,
@@ -19,6 +24,11 @@ def noisePageBuild(Map args = [:]){
     sh script:buildScript, label: "Compile & Build"
 }
 
+/*
+generateCompileCmd creates the cmake command string. It is based on the
+config passed into the function. The config arguments are the same as the
+defaultArgs in noisePageBuild.
+*/
 def generateCompileCmd(Map config = [:]) {
     def String compileCmd = "cmake -GNinja -DCMAKE_BUILD_TYPE=$config.buildType"
     
@@ -60,6 +70,10 @@ def generateCompileCmd(Map config = [:]) {
     return compileCmd
 }
 
+/*
+generateBuildCmd creates the build command string based on the config passed
+in. The config arguments are the same as the defaultArgs in noisePageBuild.
+*/
 def generateBuildCmd(Map config = [:]){
     def String buildCmd = "ninja"
     if(!config.isBuildBenchmarks && !config.isBuildTests){
@@ -68,6 +82,12 @@ def generateBuildCmd(Map config = [:]){
     return buildCmd
 }
 
+/*
+generateBuildScript creates the full script string, including the commands to
+create the directory. It even allows us to wrap the compile command in a timer
+if we want to time how long the build takes. This time will be output to a
+file.
+*/
 def generateBuildScript(compileCmd, buildCmd, isRecordTime){
     def String script = '''
     mkdir build
