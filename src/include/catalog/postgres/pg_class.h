@@ -2,14 +2,17 @@
 
 #include <array>
 
+#include "catalog/catalog_column_def.h"
 #include "catalog/catalog_defs.h"
 
 namespace noisepage::catalog {
 class DatabaseCatalog;
+class Schema;
 }  // namespace noisepage::catalog
 
 namespace noisepage::storage {
 class RecoveryManager;
+class SqlTable;
 }  // namespace noisepage::storage
 
 namespace noisepage::catalog::postgres {
@@ -43,23 +46,24 @@ class PgClass {
   static constexpr index_oid_t CLASS_NAMESPACE_INDEX_OID = index_oid_t(24);
 
   /*
-   * Column names of the form "REL[name]_COL_OID" are present in the PostgreSQL
-   * catalog specification and columns of the form "REL_[name]_COL_OID" are
-   * noisepage-specific addtions (generally pointers to internal objects).
+   * Column names of the form "REL[name]" are present in the PostgreSQL
+   * catalog specification and columns of the form "REL_[name]" are
+   * noisepage-specific additions (generally pointers to internal objects).
    */
-  static constexpr col_oid_t RELOID_COL_OID = col_oid_t(1);          // INTEGER (pkey)
-  static constexpr col_oid_t RELNAME_COL_OID = col_oid_t(2);         // VARCHAR
-  static constexpr col_oid_t RELNAMESPACE_COL_OID = col_oid_t(3);    // INTEGER (fkey: pg_namespace)
-  static constexpr col_oid_t RELKIND_COL_OID = col_oid_t(4);         // CHAR
-  static constexpr col_oid_t REL_SCHEMA_COL_OID = col_oid_t(5);      // BIGINT (assumes 64-bit pointers)
-  static constexpr col_oid_t REL_PTR_COL_OID = col_oid_t(6);         // BIGINT (assumes 64-bit pointers)
-  static constexpr col_oid_t REL_NEXTCOLOID_COL_OID = col_oid_t(7);  // INTEGER
+  static constexpr CatalogColumnDef<table_oid_t, uint32_t> RELOID{col_oid_t{1}};  // INTEGER (pkey)
+  static constexpr CatalogColumnDef<storage::VarlenEntry> RELNAME{col_oid_t{2}};  // VARCHAR
+  static constexpr CatalogColumnDef<namespace_oid_t, uint32_t> RELNAMESPACE{
+      col_oid_t{3}};                                                               // INTEGER (fkey: pg_namespace)
+  static constexpr CatalogColumnDef<char, uint8_t> RELKIND{col_oid_t{4}};          // CHAR
+  static constexpr CatalogColumnDef<Schema *, uint64_t> REL_SCHEMA{col_oid_t{5}};  // BIGINT (assumes 64-bit pointers)
+  static constexpr CatalogColumnDef<storage::SqlTable *, uint64_t> REL_PTR{
+      col_oid_t{6}};  // BIGINT (assumes 64-bit pointers)
+  static constexpr CatalogColumnDef<col_oid_t, uint32_t> REL_NEXTCOLOID{col_oid_t{7}};  // INTEGER
 
   static constexpr uint8_t NUM_PG_CLASS_COLS = 7;
 
   static constexpr std::array<col_oid_t, NUM_PG_CLASS_COLS> PG_CLASS_ALL_COL_OIDS = {
-      RELOID_COL_OID,     RELNAME_COL_OID, RELNAMESPACE_COL_OID,  RELKIND_COL_OID,
-      REL_SCHEMA_COL_OID, REL_PTR_COL_OID, REL_NEXTCOLOID_COL_OID};
+      RELOID.oid_, RELNAME.oid_, RELNAMESPACE.oid_, RELKIND.oid_, REL_SCHEMA.oid_, REL_PTR.oid_, REL_NEXTCOLOID.oid_};
 };
 
 }  // namespace noisepage::catalog::postgres

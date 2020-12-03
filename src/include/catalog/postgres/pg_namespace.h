@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "catalog/catalog_column_def.h"
 #include "catalog/catalog_defs.h"
 
 namespace noisepage {
@@ -47,17 +48,16 @@ class PgNamespace {
   static constexpr index_oid_t NAMESPACE_NAME_INDEX_OID = index_oid_t(13);
 
   /*
-   * Column names of the form "NSP[name]_COL_OID" are present in the PostgreSQL
-   * catalog specification and columns of the form "NSP_[name]_COL_OID" are
+   * Column names of the form "NSP[name]" are present in the PostgreSQL
+   * catalog specification and columns of the form "NSP_[name]" are
    * noisepage-specific addtions (generally pointers to internal objects).
    */
-  static constexpr col_oid_t NSPOID_COL_OID = col_oid_t(1);   // INTEGER (pkey)
-  static constexpr col_oid_t NSPNAME_COL_OID = col_oid_t(2);  // VARCHAR
+  static constexpr CatalogColumnDef<namespace_oid_t, uint32_t> NSPOID{col_oid_t{1}};        // INTEGER (pkey)
+  static constexpr CatalogColumnDef<storage::VarlenEntry> NSPNAME{col_oid_t{2}};  // VARCHAR
 
   static constexpr uint8_t NUM_PG_NAMESPACE_COLS = 2;
 
-  static constexpr std::array<col_oid_t, NUM_PG_NAMESPACE_COLS> PG_NAMESPACE_ALL_COL_OIDS{NSPOID_COL_OID,
-                                                                                          NSPNAME_COL_OID};
+  static constexpr std::array<col_oid_t, NUM_PG_NAMESPACE_COLS> PG_NAMESPACE_ALL_COL_OIDS{NSPOID.oid_, NSPNAME.oid_};
 };
 
 }  // namespace noisepage::catalog::postgres

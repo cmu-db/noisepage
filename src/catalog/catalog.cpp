@@ -30,18 +30,19 @@ Catalog::Catalog(const common::ManagedPointer<transaction::TransactionManager> t
       next_oid_(1) {
   databases_ = new storage::SqlTable(catalog_block_store_, postgres::Builder::GetDatabaseTableSchema());
   databases_oid_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(),
-                                                             postgres::DATABASE_OID_INDEX_OID);
+                                                             postgres::PgDatabase::DATABASE_OID_INDEX_OID);
   databases_name_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(),
-                                                              postgres::DATABASE_NAME_INDEX_OID);
-  get_database_oid_pri_ = databases_->InitializerForProjectedRow({postgres::DATOID_COL_OID});
-  get_database_catalog_pri_ = databases_->InitializerForProjectedRow({postgres::DAT_CATALOG_COL_OID});
+                                                              postgres::PgDatabase::DATABASE_NAME_INDEX_OID);
+  get_database_oid_pri_ = databases_->InitializerForProjectedRow({postgres::PgDatabase::DATOID.oid_});
+  get_database_catalog_pri_ = databases_->InitializerForProjectedRow({postgres::PgDatabase::DAT_CATALOG.oid_});
 
-  const std::vector<col_oid_t> pg_database_all_oids{postgres::PG_DATABASE_ALL_COL_OIDS.cbegin(),
-                                                    postgres::PG_DATABASE_ALL_COL_OIDS.cend()};
+  const std::vector<col_oid_t> pg_database_all_oids{postgres::PgDatabase::PG_DATABASE_ALL_COL_OIDS.cbegin(),
+                                                    postgres::PgDatabase::PG_DATABASE_ALL_COL_OIDS.cend()};
   pg_database_all_cols_pri_ = databases_->InitializerForProjectedRow(pg_database_all_oids);
   pg_database_all_cols_prm_ = databases_->ProjectionMapForOids(pg_database_all_oids);
 
-  const std::vector<col_oid_t> delete_database_entry_oids{postgres::DATNAME_COL_OID, postgres::DAT_CATALOG_COL_OID};
+  const std::vector<col_oid_t> delete_database_entry_oids{postgres::PgDatabase::DATNAME.oid_,
+                                                          postgres::PgDatabase::DAT_CATALOG.oid_};
   delete_database_entry_pri_ = databases_->InitializerForProjectedRow(delete_database_entry_oids);
   delete_database_entry_prm_ = databases_->ProjectionMapForOids(delete_database_entry_oids);
 }
@@ -49,7 +50,7 @@ Catalog::Catalog(const common::ManagedPointer<transaction::TransactionManager> t
 void Catalog::TearDown() {
   auto *txn = txn_manager_->BeginTransaction();
   // Get a projected column on DatabaseCatalog pointers for scanning the table
-  const std::vector<col_oid_t> cols{postgres::DAT_CATALOG_COL_OID};
+  const std::vector<col_oid_t> cols{postgres::PgDatabase::DAT_CATALOG.oid_};
 
   // Only one column, so we only need the initializer and not the ProjectionMap
   const auto pci = databases_->InitializerForProjectedColumns(cols, 100);
@@ -221,15 +222,16 @@ bool Catalog::CreateDatabaseEntry(const common::ManagedPointer<transaction::Tran
 
   // Create the redo record for inserting into the table
 
-  auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, postgres::DATABASE_TABLE_OID, pg_database_all_cols_pri_);
+  auto *const redo =
+      txn->StageWrite(INVALID_DATABASE_OID, postgres::PgDatabase::DATABASE_TABLE_OID, pg_database_all_cols_pri_);
 
   // Populate the projected row
   *(reinterpret_cast<db_oid_t *>(
-      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::DATOID_COL_OID]))) = db;
+      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::PgDatabase::DATOID.oid_]))) = db;
   *(reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::DATNAME_COL_OID]))) = name_varlen;
+      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::PgDatabase::DATNAME.oid_]))) = name_varlen;
   *(reinterpret_cast<DatabaseCatalog **>(
-      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::DAT_CATALOG_COL_OID]))) = dbc;
+      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::PgDatabase::DAT_CATALOG.oid_]))) = dbc;
 
   // Insert into the table to get the tuple slot
   const auto tupleslot = databases_->Insert(common::ManagedPointer(txn), redo);
@@ -291,7 +293,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(const common::ManagedPointer<trans
 
   NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-  txn->StageDelete(INVALID_DATABASE_OID, postgres::DATABASE_TABLE_OID, index_results[0]);
+  txn->StageDelete(INVALID_DATABASE_OID, postgres::PgDatabase::DATABASE_TABLE_OID, index_results[0]);
   if (!databases_->Delete(common::ManagedPointer(txn), index_results[0])) {
     // Someone else has a write-lock
     delete[] buffer;
@@ -302,9 +304,9 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(const common::ManagedPointer<trans
   // tuple's visibility and because the pointer cannot be null in a running
   // database
   auto *dbc = *reinterpret_cast<DatabaseCatalog **>(
-      pr->AccessForceNotNull(delete_database_entry_prm_[postgres::DAT_CATALOG_COL_OID]));
+      pr->AccessForceNotNull(delete_database_entry_prm_[postgres::PgDatabase::DAT_CATALOG.oid_]));
   auto name = *reinterpret_cast<storage::VarlenEntry *>(
-      pr->AccessForceNotNull(delete_database_entry_prm_[postgres::DATNAME_COL_OID]));
+      pr->AccessForceNotNull(delete_database_entry_prm_[postgres::PgDatabase::DATNAME.oid_]));
 
   pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;

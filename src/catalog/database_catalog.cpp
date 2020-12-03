@@ -145,7 +145,7 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
     deferred_action_manager->RegisterDeferredAction(
         [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; }); });
   });
-  return SetClassPointer(txn, table, table_ptr, postgres::PgClass::REL_PTR_COL_OID);
+  return SetClassPointer(txn, table, table_ptr, postgres::PgClass::REL_PTR.oid_);
 }
 
 bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -166,7 +166,7 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
         }
         deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
       });
-  return SetClassPointer(txn, index, index_ptr, postgres::PgClass::REL_PTR_COL_OID);
+  return SetClassPointer(txn, index, index_ptr, postgres::PgClass::REL_PTR.oid_);
 }
 
 table_oid_t DatabaseCatalog::GetTableOid(const common::ManagedPointer<transaction::TransactionContext> txn,

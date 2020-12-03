@@ -232,7 +232,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
   // be entries in pg_index. Thus, we hardcode these to update
   switch (table_oid.UnderlyingValue()) {
-    case (catalog::postgres::DATABASE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgDatabase::DATABASE_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(catalog_->databases_name_index_,
                                  catalog_->databases_name_index_->metadata_.GetSchema());
       index_objects.emplace_back(catalog_->databases_oid_index_, catalog_->databases_oid_index_->metadata_.GetSchema());
@@ -393,7 +393,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
   }
 
   switch (table_oid.UnderlyingValue()) {
-    case (catalog::postgres::DATABASE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgDatabase::DATABASE_TABLE_OID.UnderlyingValue()): {
       return ProcessSpecialCasePGDatabaseRecord(txn, buffered_changes, start_idx);
     }
 
@@ -437,7 +437,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
 
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID,
+    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID,
                      "This function must be only called with records modifying pg_database");
 
     // An insert into pg_database is a special case because we need the catalog to actually create the necessary
@@ -447,14 +447,14 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
     // Step 1: Extract inserted values from the PR in redo record
     storage::SqlTable *pg_database = catalog_->databases_;
     auto pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, redo_record));
-    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(),
+    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATOID.oid_) != pr_map.end(),
                      "PR Map must contain database oid");
-    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATNAME_COL_OID) != pr_map.end(),
+    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATNAME.oid_) != pr_map.end(),
                      "PR Map must contain database name");
     catalog::db_oid_t db_oid(*(reinterpret_cast<uint32_t *>(
-        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID]))));
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATOID.oid_]))));
     VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATNAME_COL_OID])));
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATNAME.oid_])));
     std::string name_string(name_varlen.StringView());
 
     // Step 2: Recreate the database
@@ -483,18 +483,18 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
   NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE, "Must be delete record at this point");
   auto *delete_record = curr_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
 
-  NOISEPAGE_ASSERT(delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID,
+  NOISEPAGE_ASSERT(delete_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID,
                    "Special case for delete should be on pg_class or pg_database");
 
   // Step 1: Determine the database oid for the database that is being deleted
   storage::SqlTable *pg_database = catalog_->databases_;
-  auto pr_init = pg_database->InitializerForProjectedRow({catalog::postgres::DATOID_COL_OID});
-  auto pr_map = pg_database->ProjectionMapForOids({catalog::postgres::DATOID_COL_OID});
+  auto pr_init = pg_database->InitializerForProjectedRow({catalog::postgres::PgDatabase::DATOID.oid_});
+  auto pr_map = pg_database->ProjectionMapForOids({catalog::postgres::PgDatabase::DATOID.oid_});
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *pr = pr_init.InitializeRow(buffer);
   pg_database->Select(common::ManagedPointer(txn), GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
-  auto db_oid =
-      *(reinterpret_cast<catalog::db_oid_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID])));
+  auto db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
+      pr->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATOID.oid_])));
   delete[] buffer;
 
   // Step 2: We need to handle the case where we are just renaming a database, in this case we don't wan't to delete
@@ -509,18 +509,18 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
           IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
         // Step 3: Get the oid and name for the database being created
         pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, next_redo_record));
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATOID.oid_) != pr_map.end(),
                          "PR Map must contain class oid");
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATNAME_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATNAME.oid_) != pr_map.end(),
                          "PR Map must contain class name");
         auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
-            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID])));
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATOID.oid_])));
 
         // If the oid matches on the next record, this is a renaming
         if (db_oid == next_db_oid) {
           // Step 4: Extract out the new name
           VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATNAME_COL_OID])));
+              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATNAME.oid_])));
           std::string name_string(name_varlen.StringView());
 
           // Step 5: Rename the database
@@ -584,31 +584,31 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
     auto updated_pg_class_oid = redo_record_oids[0];
 
     switch (updated_pg_class_oid.UnderlyingValue()) {
-      case (catalog::postgres::PgClass::REL_NEXTCOLOID_COL_OID.UnderlyingValue()): {  // Case 1
+      case (catalog::postgres::PgClass::REL_NEXTCOLOID.oid_.UnderlyingValue()): {  // Case 1
         ReplayRedoRecord(txn, curr_record);
         return 0;  // No additional logs processed
       }
 
-      case (catalog::postgres::PgClass::REL_SCHEMA_COL_OID.UnderlyingValue()): {  // Case 2
+      case (catalog::postgres::PgClass::REL_SCHEMA.oid_.UnderlyingValue()): {  // Case 2
         // TODO(Gus): Add support for recovering DDL changes.
         return 0;  // No additional logs processed
       }
 
-      case (catalog::postgres::PgClass::REL_PTR_COL_OID.UnderlyingValue()): {  // Case 3
+      case (catalog::postgres::PgClass::REL_PTR.oid_.UnderlyingValue()): {  // Case 3
         // An update to the ptr column of pg_class means that we have inserted all necessary metadata into the other
         // catalog tables, and we can now recreate the object
         // Step 1: Get the class oid and kind for the object we're updating
-        std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID_COL_OID,
-                                                    catalog::postgres::PgClass::RELKIND_COL_OID};
+        std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID.oid_,
+                                                    catalog::postgres::PgClass::RELKIND.oid_};
         auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
         auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
         auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
         auto *pr = pr_init.InitializeRow(buffer);
         pg_class_ptr->Select(common::ManagedPointer(txn), GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-        auto class_oid = *(
-            reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID_COL_OID])));
+        auto class_oid =
+            *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID.oid_])));
         auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
-            pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND_COL_OID])));
+            pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND.oid_])));
 
         switch (class_kind) {
           case (catalog::postgres::PgClass::RelKind::REGULAR_TABLE): {
@@ -659,10 +659,9 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
             // NOLINTNEXTLINE
             col_oids.clear();
-            col_oids = {catalog::postgres::PgIndex::INDISUNIQUE_COL_OID,
-                        catalog::postgres::PgIndex::INDISPRIMARY_COL_OID,
-                        catalog::postgres::PgIndex::INDISEXCLUSION_COL_OID,
-                        catalog::postgres::PgIndex::INDIMMEDIATE_COL_OID, catalog::postgres::PgIndex::IND_TYPE_COL_OID};
+            col_oids = {catalog::postgres::PgIndex::INDISUNIQUE.oid_, catalog::postgres::PgIndex::INDISPRIMARY.oid_,
+                        catalog::postgres::PgIndex::INDISEXCLUSION.oid_, catalog::postgres::PgIndex::INDIMMEDIATE.oid_,
+                        catalog::postgres::PgIndex::IND_TYPE.oid_};
             auto pg_index_pr_init = db_catalog->pg_core_.indexes_->InitializerForProjectedRow(col_oids);
             auto pg_index_pr_map = db_catalog->pg_core_.indexes_->ProjectionMapForOids(col_oids);
             delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
@@ -672,15 +671,15 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
                 db_catalog->pg_core_.indexes_->Select(common::ManagedPointer(txn), tuple_slot_result[0], pr);
             NOISEPAGE_ASSERT(result, "Select into pg_index should succeed during recovery");
             bool is_unique = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISUNIQUE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISUNIQUE.oid_])));
             bool is_primary = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISPRIMARY_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISPRIMARY.oid_])));
             bool is_exclusion = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISEXCLUSION_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISEXCLUSION.oid_])));
             bool is_immediate = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDIMMEDIATE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDIMMEDIATE.oid_])));
             storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::IND_TYPE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::IND_TYPE.oid_])));
 
             // Step 4: Create and set IndexSchema in catalog
             auto *index_schema =
@@ -732,17 +731,17 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   // Step 1: Determine the object oid and type that is being deleted
   auto db_catalog_ptr = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid());
   storage::SqlTable *pg_class = db_catalog_ptr->pg_core_.classes_;
-  std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID_COL_OID,
-                                              catalog::postgres::PgClass::RELKIND_COL_OID};
+  std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID.oid_,
+                                              catalog::postgres::PgClass::RELKIND.oid_};
   auto pr_init = pg_class->InitializerForProjectedRow(col_oids);
   auto pr_map = pg_class->ProjectionMapForOids(col_oids);
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *pr = pr_init.InitializeRow(buffer);
   pg_class->Select(common::ManagedPointer(txn), GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
   auto class_oid =
-      *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID_COL_OID])));
+      *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID.oid_])));
   auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
-      pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND_COL_OID])));
+      pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND.oid_])));
   delete[] buffer;
 
   // Step 2: We need to handle the case where we are just renaming a table, in this case we don't wan't to delete
@@ -756,16 +755,16 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
           IsInsertRecord(next_redo_record)) {  // Condition 3: next record is an insert into the same pg_class
         // Step 3: Get the oid and kind of the object being inserted
         auto pr_map = pg_class->ProjectionMapForOids(GetOidsForRedoRecord(pg_class, next_redo_record));
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELOID_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELOID.oid_) != pr_map.end(),
                          "PR Map must contain class oid");
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELNAME_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELNAME.oid_) != pr_map.end(),
                          "PR Map must contain class name");
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELKIND_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELKIND.oid_) != pr_map.end(),
                          "PR Map must contain class kind");
         auto next_class_oid = *(reinterpret_cast<uint32_t *>(
-            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID_COL_OID])));
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID.oid_])));
         auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
-            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND_COL_OID])));
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND.oid_])));
 
         if (class_oid == next_class_oid) {  // Condition 4: If the oid matches on the next record, this is a renaming
           NOISEPAGE_ASSERT(
@@ -773,7 +772,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
               "We only allow renaming of tables");
           // Step 4: Extract out the new name
           VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELNAME_COL_OID])));
+              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELNAME.oid_])));
           std::string name_string(name_varlen.StringView());
 
           // Step 5: Rename the table
@@ -831,7 +830,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transaction::TransactionContext *txn,
                                                                        const catalog::db_oid_t db_oid,
                                                                        const catalog::table_oid_t table_oid) {
-  if (table_oid == catalog::postgres::DATABASE_TABLE_OID) {
+  if (table_oid == catalog::postgres::PgDatabase::DATABASE_TABLE_OID) {
     return common::ManagedPointer(catalog_->databases_);
   }
 
@@ -1014,7 +1013,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->pg_proc_.procs_;
     auto pr_map = pg_proc->ProjectionMapForOids(GetOidsForRedoRecord(pg_proc, redo_record));
     catalog::proc_oid_t proc_oid(*(reinterpret_cast<uint32_t *>(
-        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgProc::PROOID_COL_OID]))));
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgProc::PROOID.oid_]))));
 
     auto result UNUSED_ATTRIBUTE =
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())

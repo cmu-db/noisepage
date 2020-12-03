@@ -320,7 +320,7 @@ class DatabaseCatalog {
   bool SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
                              const Schema *schema) {
     static_assert(std::is_same_v<CallerType, storage::RecoveryManager>, "Only recovery should call this.");
-    return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
+    return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA.oid_);
   }
 
   /**
@@ -336,7 +336,7 @@ class DatabaseCatalog {
   bool SetIndexSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t oid,
                              const IndexSchema *schema) {
     static_assert(std::is_same_v<CallerType, storage::RecoveryManager>, "Only recovery should call this.");
-    return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA_COL_OID);
+    return SetClassPointer(txn, oid, schema, postgres::PgClass::REL_SCHEMA.oid_);
   }
 
   /** @brief Set REL_PTR for the specified pg_class column. @see PgCoreImpl::SetClassPointer */

@@ -261,7 +261,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
       if (IsInsertRecord(redo_record)) {
         // Case 1
-        return redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
+        return redo_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID ||
                redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID;
       }
 
@@ -272,7 +272,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
     // Case 3, 4, 5, and 6
     auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
-    return delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
+    return delete_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::PgClass::CLASS_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::PgIndex::INDEX_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::PgAttribute::COLUMN_TABLE_OID;

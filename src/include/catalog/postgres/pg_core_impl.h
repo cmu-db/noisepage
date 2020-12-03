@@ -40,13 +40,14 @@ class Builder;
 /** The NoisePage version of pg_namespace, pg_class, pg_index, and pg_attribute. */
 class PgCoreImpl {
  private:
-  friend class catalog::DatabaseCatalog;
-  friend class storage::RecoveryManager;
-  friend class Builder;
+  friend class Builder;                   ///< The builder is used to construct the core catalog tables.
+  friend class catalog::DatabaseCatalog;  ///< DatabaseCatalog sets up and owns the core catalog tables.
+  friend class storage::RecoveryManager;  ///< The RM accesses tables and indexes without going through the catalog.
 
   /**
    * @brief Prepare to create the core catalog tables: pg_namespace, pg_class, pg_index, and pg_attribute.
-   *        Does NOT create anything until the relevant bootstrap functions are called.
+   *
+   * Does NOT create anything until the relevant bootstrap functions are called.
    *
    * @param db_oid  The OID of the database that the core catalog tables should be created in.
    */

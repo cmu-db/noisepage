@@ -24,7 +24,7 @@ void PgProcImpl::BootstrapPRIs() {
   pg_proc_all_cols_pri_ = procs_->InitializerForProjectedRow(pg_proc_all_oids);
   pg_proc_all_cols_prm_ = procs_->ProjectionMapForOids(pg_proc_all_oids);
 
-  const std::vector<col_oid_t> set_pg_proc_ptr_oids{PgProc::PRO_CTX_PTR_COL_OID};
+  const std::vector<col_oid_t> set_pg_proc_ptr_oids{PgProc::PRO_CTX_PTR.oid_};
   pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
 }
 
@@ -45,7 +45,7 @@ void PgProcImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContex
 std::function<void(void)> PgProcImpl::GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<execution::functions::FunctionContext *> func_contexts;
 
-  const std::vector<col_oid_t> pg_proc_contexts{PgProc::PRO_CTX_PTR_COL_OID};
+  const std::vector<col_oid_t> pg_proc_contexts{PgProc::PRO_CTX_PTR.oid_};
   const auto pci = procs_->InitializerForProjectedColumns(pg_proc_contexts, DatabaseCatalog::TEARDOWN_MAX_TUPLES);
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);
@@ -101,34 +101,34 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
     const auto arg_modes_varlen = storage::StorageUtil::CreateVarlen(arg_modes);
     const auto src_varlen = storage::StorageUtil::CreateVarlen(src);
 
-    delta->Set<proc_oid_t, false>(pm[PgProc::PROOID_COL_OID], oid, false);                     // Procedure OID.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PRONAME_COL_OID], name_varlen, false);  // Procedure name.
-    delta->Set<namespace_oid_t, false>(pm[PgProc::PRONAMESPACE_COL_OID], procns, false);  // Namespace of procedure.
-    delta->Set<language_oid_t, false>(pm[PgProc::PROLANG_COL_OID], language_oid, false);  // Language for procedure.
-    delta->Set<double, false>(pm[PgProc::PROCOST_COL_OID], 0, false);  // Estimated cost per row returned.
-    delta->Set<double, false>(pm[PgProc::PROROWS_COL_OID], 0, false);  // Estimated number of result rows.
+    delta->Set<proc_oid_t, false>(pm[PgProc::PROOID.oid_], oid, false);                     // Procedure OID.
+    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PRONAME.oid_], name_varlen, false);  // Procedure name.
+    delta->Set<namespace_oid_t, false>(pm[PgProc::PRONAMESPACE.oid_], procns, false);       // Namespace of procedure.
+    delta->Set<language_oid_t, false>(pm[PgProc::PROLANG.oid_], language_oid, false);       // Language for procedure.
+    delta->Set<double, false>(pm[PgProc::PROCOST.oid_], 0, false);  // Estimated cost per row returned.
+    delta->Set<double, false>(pm[PgProc::PROROWS.oid_], 0, false);  // Estimated number of result rows.
     // The Postgres documentation says that provariadic should be 0 if no variadics are present.
     // Otherwise, it is the data type of the variadic array parameter's elements.
     // TODO(WAN): Hang on, how are we using CreateProcedure for variadics then?
-    delta->Set<type_oid_t, false>(pm[PgProc::PROVARIADIC_COL_OID], type_oid_t{0}, false);  // Assume no variadics.
-    delta->Set<bool, false>(pm[PgProc::PROISAGG_COL_OID], is_aggregate, false);            // Whether aggregate or not.
-    delta->Set<bool, false>(pm[PgProc::PROISWINDOW_COL_OID], false, false);                // Not window.
-    delta->Set<bool, false>(pm[PgProc::PROISSTRICT_COL_OID], true, false);                 // Strict.
-    delta->Set<bool, false>(pm[PgProc::PRORETSET_COL_OID], false, false);                  // Doesn't return a set.
-    delta->Set<char, false>(pm[PgProc::PROVOLATILE_COL_OID], static_cast<char>(PgProc::ProVolatile::STABLE),
-                            false);                                                                        // Stable.
-    delta->Set<uint16_t, false>(pm[PgProc::PRONARGS_COL_OID], static_cast<uint16_t>(args.size()), false);  // Num args.
-    delta->Set<uint16_t, false>(pm[PgProc::PRONARGDEFAULTS_COL_OID], 0, false);     // Assume no default args.
-    delta->Set<type_oid_t, false>(pm[PgProc::PRORETTYPE_COL_OID], rettype, false);  // Return type.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGTYPES_COL_OID], arg_types_varlen, false);  // Arg types.
+    delta->Set<type_oid_t, false>(pm[PgProc::PROVARIADIC.oid_], type_oid_t{0}, false);  // Assume no variadics.
+    delta->Set<bool, false>(pm[PgProc::PROISAGG.oid_], is_aggregate, false);            // Whether aggregate or not.
+    delta->Set<bool, false>(pm[PgProc::PROISWINDOW.oid_], false, false);                // Not window.
+    delta->Set<bool, false>(pm[PgProc::PROISSTRICT.oid_], true, false);                 // Strict.
+    delta->Set<bool, false>(pm[PgProc::PRORETSET.oid_], false, false);                  // Doesn't return a set.
+    delta->Set<char, false>(pm[PgProc::PROVOLATILE.oid_], static_cast<char>(PgProc::ProVolatile::STABLE),
+                            false);                                                                     // Stable.
+    delta->Set<uint16_t, false>(pm[PgProc::PRONARGS.oid_], static_cast<uint16_t>(args.size()), false);  // Num args.
+    delta->Set<uint16_t, false>(pm[PgProc::PRONARGDEFAULTS.oid_], 0, false);     // Assume no default args.
+    delta->Set<type_oid_t, false>(pm[PgProc::PRORETTYPE.oid_], rettype, false);  // Return type.
+    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGTYPES.oid_], arg_types_varlen, false);  // Arg types.
     // TODO(WAN): proallargtypes and proargmodes in Postgres should be NULL most of the time. See #1359.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROALLARGTYPES_COL_OID], all_arg_types_varlen, false);
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGMODES_COL_OID], arg_modes_varlen, false);
-    delta->SetNull(pm[PgProc::PROARGDEFAULTS_COL_OID]);  // Assume no default args.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGNAMES_COL_OID], arg_names_varlen, false);  // Arg names.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROSRC_COL_OID], src_varlen, false);             // Source code.
-    delta->SetNull(pm[PgProc::PROCONFIG_COL_OID]);    // Assume no procedure local run-time configuration.
-    delta->SetNull(pm[PgProc::PRO_CTX_PTR_COL_OID]);  // Pointer to procedure context.
+    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROALLARGTYPES.oid_], all_arg_types_varlen, false);
+    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGMODES.oid_], arg_modes_varlen, false);
+    delta->SetNull(pm[PgProc::PROARGDEFAULTS.oid_]);  // Assume no default args.
+    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGNAMES.oid_], arg_names_varlen, false);  // Arg names.
+    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROSRC.oid_], src_varlen, false);             // Source code.
+    delta->SetNull(pm[PgProc::PROCONFIG.oid_]);    // Assume no procedure local run-time configuration.
+    delta->SetNull(pm[PgProc::PRO_CTX_PTR.oid_]);  // Pointer to procedure context.
   }
 
   const auto tuple_slot = procs_->Insert(txn, redo);
@@ -204,9 +204,9 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, to_delete_slot, table_pr);
 
   auto &proc_pm = pg_proc_all_cols_prm_;
-  auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME_COL_OID], nullptr);
-  auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE_COL_OID], nullptr);
-  auto ctx_ptr = table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR_COL_OID]);
+  auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME.oid_], nullptr);
+  auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE.oid_], nullptr);
+  auto ctx_ptr = table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]);
 
   // Delete from pg_proc_name_index.
   {
@@ -324,14 +324,14 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
       // "PROARGTYPES ... represents the call signature of the function". Check only input arguments.
       // https://www.postgresql.org/docs/12/catalog-pg-proc.html
       auto &pm = pg_proc_all_cols_prm_;
-      auto ind_all_arg_types = *table_pr->Get<storage::VarlenEntry, false>(pm[PgProc::PROARGTYPES_COL_OID], nullptr);
+      auto ind_all_arg_types = *table_pr->Get<storage::VarlenEntry, false>(pm[PgProc::PROARGTYPES.oid_], nullptr);
 
       // Variadic functions will match any argument type as long as there are one or more arguments.
       bool matches_exactly = ind_all_arg_types == all_arg_types_varlen;
       bool is_variadic = ind_all_arg_types == variadic_varlen && !arg_types.empty();
 
       if (matches_exactly || is_variadic) {
-        auto proc_oid = *table_pr->Get<proc_oid_t, false>(pm[PgProc::PROOID_COL_OID], nullptr);
+        auto proc_oid = *table_pr->Get<proc_oid_t, false>(pm[PgProc::PROOID.oid_], nullptr);
         matching_functions.push_back(proc_oid);
         break;
       }

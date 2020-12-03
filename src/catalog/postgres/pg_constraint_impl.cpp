@@ -41,7 +41,7 @@ void PgConstraintImpl::Bootstrap(common::ManagedPointer<transaction::Transaction
 std::function<void(void)> PgConstraintImpl::GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<parser::AbstractExpression *> expressions;
 
-  const std::vector<col_oid_t> pg_constraint_oids{PgConstraint::CONBIN_COL_OID};
+  const std::vector<col_oid_t> pg_constraint_oids{PgConstraint::CONBIN.oid_};
   auto pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, DatabaseCatalog::TEARDOWN_MAX_TUPLES);
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);

@@ -34,14 +34,15 @@ class PgLanguage {
    * catalog specification and columns of the form "LAN_[name]" are
    * noisepage-specific additions (generally pointers to internal objects).
    */
-  static constexpr CatalogColumnDef<language_oid_t> LANOID{col_oid_t{1}};         // INTEGER (pkey)
-  static constexpr CatalogColumnDef<storage::VarlenEntry> LANNAME{col_oid_t{2}};  // VARCHAR (skey)
-  static constexpr CatalogColumnDef<bool> LANISPL{col_oid_t{3}};                  // BOOLEAN (skey)
-  static constexpr CatalogColumnDef<bool> LANPLTRUSTED{col_oid_t{4}};             // BOOLEAN (skey)
+  static constexpr CatalogColumnDef<language_oid_t, uint32_t> LANOID{col_oid_t{1}};  // INTEGER (pkey)
+  static constexpr CatalogColumnDef<storage::VarlenEntry> LANNAME{col_oid_t{2}};     // VARCHAR (skey)
+  static constexpr CatalogColumnDef<bool> LANISPL{col_oid_t{3}};                     // BOOLEAN (skey)
+  static constexpr CatalogColumnDef<bool> LANPLTRUSTED{col_oid_t{4}};                // BOOLEAN (skey)
   // TODO(tanujnay112): Make these foreign keys when we implement pg_proc
-  static constexpr CatalogColumnDef<proc_oid_t> LANPLCALLFOID{col_oid_t{5}};  // INTEGER (skey) (fkey: pg_proc)
-  static constexpr CatalogColumnDef<proc_oid_t> LANINLINE{col_oid_t{6}};      // INTEGER (skey) (fkey: pg_proc)
-  static constexpr CatalogColumnDef<proc_oid_t> LANVALIDATOR{col_oid_t{7}};   // INTEGER (skey) (fkey: pg_proc)
+  static constexpr CatalogColumnDef<proc_oid_t, uint32_t> LANPLCALLFOID{
+      col_oid_t{5}};                                                                   // INTEGER (skey) (fkey: pg_proc)
+  static constexpr CatalogColumnDef<proc_oid_t, uint32_t> LANINLINE{col_oid_t{6}};     // INTEGER (skey) (fkey: pg_proc)
+  static constexpr CatalogColumnDef<proc_oid_t, uint32_t> LANVALIDATOR{col_oid_t{7}};  // INTEGER (skey) (fkey: pg_proc)
 
   static constexpr uint8_t NUM_PG_LANGUAGE_COLS = 7;
 
