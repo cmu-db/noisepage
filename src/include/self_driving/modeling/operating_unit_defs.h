@@ -106,10 +106,13 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * LIMIT
    * num_rows:
    * cardinality:
-   * This gets dropped right now... :(
    */
   LIMIT,
 
+  /**
+   * num_rows: index size
+   * cardinality: number of indexes
+   */
   INDEX_INSERT,
   INDEX_DELETE,
 

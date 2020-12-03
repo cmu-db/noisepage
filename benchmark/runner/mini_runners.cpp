@@ -1685,46 +1685,82 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 BENCHMARK_DEFINE_F(MiniRunners, SEQ7_2_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
 void MiniRunners::ExecuteDelete(benchmark::State *state) {
+  auto num_integers = state->range(0);
+  auto num_decimals = state->range(1);
   auto tbl_ints = state->range(2);
-  auto tbl_bigints = state->range(3);
+  auto tbl_decimals = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
+  auto is_build = state->range(6);
+
+  if (row == 0) {
+    state->SetItemsProcessed(row);
+    InvokeGC();
+    return;
+  }
+
+  // A lookup size of 0 indicates a special query
+  auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
+  if (car == 0) {
+    if (is_build < 0) {
+      throw "Invalid is_build argument for ExecuteDelete";
+    }
+
+    HandleBuildDropIndex(is_build != 0, row, num_integers + num_decimals, type);
+    return;
+  }
 
   int num_iters = 1;
-  if (row <= settings.warmup_rows_limit_) {
+  if (car <= settings.warmup_rows_limit_) {
     num_iters += settings.warmup_iterations_num_;
-  } else if (settings.skip_large_rows_runs_) {
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
-  auto tbl_col = tbl_ints + tbl_bigints;
-  auto tbl_size = tbl_ints * int_size + tbl_bigints * bigint_size;
+  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
+  auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
+  auto num_col = num_integers + num_decimals;
 
+  std::stringstream query;
+  std::vector<std::vector<parser::ConstantValueExpression>> real_params;
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
 
-  // We record a full table for SEQ_SCAN to be consistent with optimizer
-  // that stipulates a scan outputs all columns
+  auto tbl_col = tbl_ints + tbl_decimals;
+  auto tbl_size = tbl_ints * int_size + tbl_decimals * decimal_size;
+
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::DELETE, row, tbl_size,
-                         tbl_col, row, 1, 0, 0);
-  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
-                         tbl_size, tbl_col, car, 1, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::DELETE, car, tbl_size,
+                         tbl_col, car, 1, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::INDEX_DELETE, row,
+                         tuple_size, num_col, car, 1, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::IDX_SCAN, row,
+                         tuple_size, num_col, car, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  std::stringstream query;
-  auto tbl = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
-  query << "DELETE FROM " << tbl;
+  std::vector<parser::ConstantValueExpression> params;
+  std::vector<type::TypeId> param_types;
+  params.emplace_back(type, execution::sql::Integer(0));
+  param_types.push_back(type);
+  if (car > 1) {
+    params.emplace_back(type, execution::sql::Integer(0));
+    param_types.push_back(type);
+  }
 
-  equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units));
-  BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false);
+  GenIdxScanParameters(type, row, car, num_iters, &real_params);
+  std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
+  query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableIndexName(type, row) << " WHERE "
+        << predicate;
+
+  auto f = std::bind(&MiniRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
+  equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
+                                common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
+                                common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
+
+  BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false, &real_params);
   state->SetItemsProcessed(row);
-
-  // Clean GC
-  InvokeGC();
 }
 
 // NOLINTNEXTLINE
@@ -2216,7 +2252,7 @@ void RegisterRunners() {
   BENCHMARK_REGISTER_F(MiniRunners, SEQ8_2_DeleteRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenUpdateDeleteScanArguments>);
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
       ->Unit(benchmark::kMillisecond)
@@ -2333,13 +2369,13 @@ void RunBenchmarkSequence(int rerun_counter) {
                                                    {"SEQ4"},
                                                    {"SEQ5_0", "SEQ5_1"},
                                                    {"SEQ6_0", "SEQ6_1"},
-                                                   {"SEQ7_2"},
-                                                   {"SEQ8_2"},
-                                                   {"SEQ9_0", "SEQ9_1"},
                                                    {"SEQ10"},
-                                                   {"SEQ11"}};
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",           "AGGS",
-                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX_INSERT", "INDEX_DELETE"};
+                                                   {"SEQ7_2"},
+                                                   {"SEQ11"},
+                                                   {"SEQ8_2"},
+                                                   {"SEQ9_0", "SEQ9_1"}};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",        "IDX_SCANS", "SORTS",        "HJ",     "AGGS",
+                                     "INSERT", "INDEX_INSERT", "UPDATE",    "INDEX_DELETE", "DELETE", "CREATE_INDEX"};
 
   char buffer[64];
   const char *argv[2];
@@ -2390,9 +2426,9 @@ void RunMiniRunners() {
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",           "AGGS",
-                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX_INSERT", "INDEX_DELETE"};
-  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6", "7", "8"};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",        "IDX_SCANS", "SORTS",        "HJ",     "AGGS",
+                                     "INSERT", "INDEX_INSERT", "UPDATE",    "INDEX_DELETE", "DELETE", "CREATE_INDEX"};
+  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "6", "7_0", "7_1", "8"};
   for (size_t t = 0; t < titles.size(); t++) {
     auto &title = titles[t];
     char target[64];
