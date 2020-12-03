@@ -258,12 +258,12 @@ class RecoveryManager : public common::DedicatedThreadOwner {
       if (IsInsertRecord(redo_record)) {
         // Case 1
         return redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
-               redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
+               redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID;
       }
 
       // Case 2
       return redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
-             redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
+             redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID;
     }
 
     // Case 3, 4, 5, and 6

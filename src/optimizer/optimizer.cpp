@@ -21,13 +21,14 @@ namespace noisepage::optimizer {
 
 void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
-std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
-                                                                    catalog::CatalogAccessor *accessor,
-                                                                    StatsStorage *storage, QueryInfo query_info,
-                                                                    std::unique_ptr<AbstractOptimizerNode> op_tree) {
+std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
+                                                         catalog::CatalogAccessor *accessor, StatsStorage *storage,
+                                                         QueryInfo query_info,
+                                                         std::unique_ptr<AbstractOptimizerNode> op_tree) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
+  auto optimize_result = std::make_unique<OptimizeResult>();
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
@@ -52,11 +53,12 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   }
 
   try {
-    auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs);
-
+    PlanGenerator generator(optimize_result->GetPlanMetaData());
+    auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs, &generator);
+    optimize_result->SetPlanNode(std::move(best_plan));
     // Reset memo after finishing the optimization
     Reset();
-    return best_plan;
+    return optimize_result;
   } catch (Exception &e) {
     Reset();
     throw e;
@@ -65,7 +67,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
     transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, group_id_t id,
-    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
+    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+    PlanGenerator *generator) {
   Group *group = context_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
@@ -98,9 +101,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
       child_expr_map[input_cols[i][offset]] = offset;
     }
 
-    auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i]);
+    auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i], generator);
     NOISEPAGE_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
-
     children_plans.emplace_back(std::move(child_plan));
     children_expr_map.push_back(child_expr_map);
   }
@@ -108,9 +110,9 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   // Derive root plan
   auto *op = new OperatorNode(gexpr->Contents(), {}, txn);
 
-  PlanGenerator generator;
-  auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
-                                      std::move(children_plans), std::move(children_expr_map));
+  planner::PlanMetaData::PlanNodeMetaData plan_node_meta_data(context_->GetMemo().GetGroupByID(id)->GetNumRows());
+  auto plan = generator->ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
+                                       std::move(children_plans), std::move(children_expr_map), plan_node_meta_data);
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group " + std::to_string(id.UnderlyingValue()));
 
   delete op;
