@@ -519,57 +519,6 @@ pipeline {
                         }
                     }
                 }
-                stage('macos-10.14/clang-8.0 (Debug/e2etest/self-driving)') {
-                    agent { label 'macos' }
-                    environment {
-                        ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
-                        CC="${LLVM_DIR}/bin/clang"
-                        CXX="${LLVM_DIR}/bin/clang++"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
-
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON ..
-                        ninja mini_runners''', label: 'Compiling Mini-runner'
-
-                        sh 'cd build && BUILD_ABS_PATH=`pwd` gtimeout 10m ninja self_driving_test'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-                stage('ubuntu-20.04/gcc-9.3 (Debug/e2etest/self-driving)') {
-                    agent {
-                        docker {
-                            image 'noisepage:focal'
-                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
-
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON ..
-                        ninja mini_runners''', label: 'Compiling Mini-runners'
-
-                        sh 'cd build && BUILD_ABS_PATH=`pwd` gtimeout 10m ninja self_driving_test'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
             }
         }
         stage('End-to-End Performance') {
@@ -619,6 +568,31 @@ pipeline {
                      deleteDir()
                  }
              }
+        }
+        stage('Self-driving end-to-end test') {
+            agent { label 'benchmark' }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+
+                sh script: '''
+                mkdir build
+                cd build
+                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF  -DNOISEPAGE_BUILD_SELF_DRIVING_TESTS=ON ..
+                ninja mini_runners''', label: 'Self-driving tests (Compile mini_runners)'
+
+                sh script :'''
+                cd build/bin
+                ../benchmark/mini_runners --mini_runner_rows_limit=1000 --rerun=0 --warm_num=1
+                ''', label: 'Mini-trainer input generation'
+
+                sh 'cd build && BUILD_ABS_PATH=`pwd` gtimeout 10m ninja self_driving_test'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
         }
         stage('Microbenchmark') {
             agent { label 'benchmark' }

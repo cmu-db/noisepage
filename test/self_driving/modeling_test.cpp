@@ -12,15 +12,11 @@ namespace noisepage::modelserver {
 /**
  * @warning Running this test requires external dependency to be located at specific paths.
  *  The environment BUILD_ABS_PATH needs to be set to be the build directory such that:
- *      1. BUILD_ABS_PATH/benchmark/mini_runners is executable
- *      2. BUILD_ABS_PATH/../script/model/model_server.py is executable
+ *      1. BUILD_ABS_PATH/../script/model/model_server.py is executable
  */
 class ModelServerTest : public TerrierTest {
  protected:
-  /** A generic function that takes no arguments and returns no output. */
-  using VoidFn = std::function<void(void)>;
 
-  static constexpr const char *TEST_FILE_NAME = "SEQ0_execution.csv";
   static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
 
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
@@ -43,40 +39,6 @@ class ModelServerTest : public TerrierTest {
 
     return db_main;
   }
-
-  static bool GenerateMiniTrainerCSV() {
-    pid_t pid;
-    std::string project_build_path = ::getenv(BUILD_ABS_PATH);
-    std::string mini_runner_path = project_build_path + "/benchmark/mini_runners";
-    if ((pid = ::fork()) == 0) {
-      std::string bch_filter = "--benchmark_filter=SEQ0";
-      std::string row_limit = "--mini_runner_rows_limit=1000";
-      char *args[] = {mini_runner_path.data(), bch_filter.data(), row_limit.data(), nullptr};
-      if (::execvp(args[0], args) < 0) {
-        MODEL_SERVER_LOG_ERROR("failed to run {}: {}", mini_runner_path, strerror(errno));
-      }
-      return false;
-    }
-    if (pid > 0) {
-      ::waitpid(pid, nullptr, 0);
-
-      /**
-       * TODO:
-       * Unfortunately, the current codebase relies on hardcoded name such as 'pipeline.csv' (mini_runners.cpp),
-       * and 'xxx_execution.csv' (mini_train.py) heavily.
-       * We would want to remove this hard-coded names in the future.
-       */
-      ::rename("pipeline.csv", TEST_FILE_NAME);
-      return true;
-    }
-    MODEL_SERVER_LOG_ERROR("failed to fork");
-    return false;
-  }
-
-  static void CleanUp() {
-    // Remove the file
-    ::remove(TEST_FILE_NAME);
-  }
 };
 
 // NOLINTNEXTLINE
@@ -86,9 +48,6 @@ TEST_F(ModelServerTest, PipelineTest) {
   ASSERT_NE(project_build_path, nullptr);
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
-
-  // Generate the trace files
-  ASSERT_TRUE(GenerateMiniTrainerCSV());
 
   auto primary = BuildDBMain();
   primary->GetNetworkLayer()->GetServer()->RunServer();
@@ -115,7 +74,7 @@ TEST_F(ModelServerTest, PipelineTest) {
   std::string save_path = "/tmp/model_server_test.pickle";
 
   ModelServerFuture<std::string> future;
-  ms_manager->TrainWith(models, "./", save_path, &future);
+  ms_manager->TrainWith(models, std::string(project_build_path) + "/bin", save_path, &future);
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
@@ -138,7 +97,5 @@ TEST_F(ModelServerTest, PipelineTest) {
 
   // Quit
   ms_manager->StopModelServer();
-
-  CleanUp();
 }
 }  // namespace noisepage::modelserver

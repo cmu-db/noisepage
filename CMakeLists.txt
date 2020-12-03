@@ -152,6 +152,7 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 # CMake options, specify with -DNOISEPAGE_{option}=On.
 #   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default ON.
 #   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL target. Default ON.
+#   NOISEPAGE_BUILD_SELF_DRIVING_TESTS      : Enable building self-driving end-to-end tests. Default OFF
 #   NOISEPAGE_GENERATE_COVERAGE             : Enable C++ code coverage. Default OFF.
 #   NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE    : Enable verbose unittest failures. Default OFF. Can be very verbose.
 #   NOISEPAGE_UNITY_BUILD                   : Enable unity (aka jumbo) builds. Default OFF.
@@ -183,6 +184,10 @@ option(NOISEPAGE_BUILD_BENCHMARKS
 option(NOISEPAGE_BUILD_TESTS
         "Enable building tests as part of the ALL target."
         ON)
+
+option(NOISEPAGE_BUILD_SELF_DRIVING_TESTS
+        "Enable building self-driving tests as part of the ALL target."
+        OFF)
 
 option(NOISEPAGE_GENERATE_COVERAGE
         "Enable C++ code coverage."
@@ -947,9 +952,7 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_SELF_DRIVING_TEST_SOURCES})
     get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
     get_filename_component(NOISEPAGE_TEST ${NOISEPAGE_TEST_CPP} NAME_WE)
 
-    if (NOT ${NOISEPAGE_BUILD_TESTS})
-        set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
-    elseif (${NOISEPAGE_USE_JUMBOTESTS})
+    if (NOT ${NOISEPAGE_BUILD_SELF_DRIVING_TESTS})
         set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
     else ()
         set(EXCLUDE_OR_NOT "NO_EXCLUDE")
