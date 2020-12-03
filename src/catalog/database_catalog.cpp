@@ -243,21 +243,9 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
 }
 
 template <typename Column, typename ClassOid, typename ColOid>
-bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const ClassOid class_oid, const ColOid col_oid, const Column &col) {
-  return pg_core_.CreateColumn<Column, ClassOid, ColOid>(txn, class_oid, col_oid, col);
-}
-
-template <typename Column, typename ClassOid, typename ColOid>
 std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                 ClassOid class_oid) {
   return pg_core_.GetColumns<Column, ClassOid, ColOid>(txn, class_oid);
-}
-
-template <typename Column, typename ClassOid>
-bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                    const ClassOid class_oid) {
-  return pg_core_.DeleteColumns<Column, ClassOid>(txn, class_oid);
 }
 
 bool DatabaseCatalog::DeleteIndexes(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -459,31 +447,18 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
   template bool DatabaseCatalog::SetClassPointer<ClassOid, Ptr>(                                                       \
       const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid oid, const Ptr *const pointer, \
       const col_oid_t class_col);
-#define DEFINE_CREATE_COLUMN(Column, ClassOid, ColOid)                                             \
-  template bool DatabaseCatalog::CreateColumn<Column, ClassOid, ColOid>(                           \
-      const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid class_oid, \
-      const ColOid col_oid, const Column &col);
 #define DEFINE_GET_COLUMNS(Column, ClassOid, ColOid)                                  \
   template std::vector<Column> DatabaseCatalog::GetColumns<Column, ClassOid, ColOid>( \
-      const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid class_oid);
-#define DEFINE_DELETE_COLUMNS(Column, ClassOid)                   \
-  template bool DatabaseCatalog::DeleteColumns<Column, ClassOid>( \
       const common::ManagedPointer<transaction::TransactionContext> txn, const ClassOid class_oid);
 
 DEFINE_SET_CLASS_POINTER(table_oid_t, storage::SqlTable);
 DEFINE_SET_CLASS_POINTER(table_oid_t, Schema);
 DEFINE_SET_CLASS_POINTER(index_oid_t, storage::index::Index);
 DEFINE_SET_CLASS_POINTER(index_oid_t, IndexSchema);
-DEFINE_CREATE_COLUMN(Schema::Column, table_oid_t, col_oid_t);
-DEFINE_CREATE_COLUMN(IndexSchema::Column, index_oid_t, indexkeycol_oid_t);
 DEFINE_GET_COLUMNS(Schema::Column, table_oid_t, col_oid_t);
 DEFINE_GET_COLUMNS(IndexSchema::Column, index_oid_t, indexkeycol_oid_t);
-DEFINE_DELETE_COLUMNS(Schema::Column, table_oid_t);
-DEFINE_DELETE_COLUMNS(IndexSchema::Column, index_oid_t);
 
 #undef DEFINE_SET_CLASS_POINTER
-#undef DEFINE_CREATE_COLUMN
 #undef DEFINE_GET_COLUMNS
-#undef DEFINE_DELETE_COLUMNS
 
 }  // namespace noisepage::catalog

@@ -296,16 +296,9 @@ class DatabaseCatalog {
    */
   bool DeleteIndexes(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  /** @brief Create a column entry in pg_attribute. @see PgAttributeImpl::CreateColumn */
-  template <typename Column, typename ClassOid, typename ColOid>
-  bool CreateColumn(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid, ColOid col_oid,
-                    const Column &col);
   /** @brief Get all the columns for a particular pg_attribute entry. @see PgAttributeImpl::GetColumns */
   template <typename Column, typename ClassOid, typename ColOid>
   std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
-  /** @brief Delete all columns for a particular pg_attribute entry. @see PgAttributeImpl::DeleteColumns */
-  template <typename Column, typename ClassOid>
-  bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 
   /**
    * @brief Set the schema of a table in pg_class.
