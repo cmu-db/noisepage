@@ -12,27 +12,35 @@ class CatalogColumnDef {
   constexpr explicit CatalogColumnDef(const col_oid_t col_oid) : oid_(col_oid) {}
 
   void SetNull(common::ManagedPointer<storage::ProjectedRow> pr, const uint16_t offset) const {
-    pr->SetNotNull(offset);
-  }
-
-  void SetNotNull(common::ManagedPointer<storage::ProjectedRow> pr, const uint16_t offset) const {
     pr->SetNull(offset);
   }
 
-  void SetNull(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm) const {
-    pr->SetNotNull(pm.at(oid_));
+  void SetNotNull(common::ManagedPointer<storage::ProjectedRow> pr, const uint16_t offset) const {
+    pr->SetNotNull(offset);
   }
 
-  void SetNotNull(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm) const {
+  void SetNull(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm) const {
     pr->SetNull(pm.at(oid_));
   }
 
+  void SetNotNull(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm) const {
+    pr->SetNotNull(pm.at(oid_));
+  }
+
   void Set(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm, CatalogType val) const {
-    pr->Set<StorageType, false>(pm.at(oid_), static_cast<StorageType>(val), false);
+    if constexpr (std::is_pointer_v<CatalogType>) {
+      pr->Set<StorageType, false>(pm.at(oid_), reinterpret_cast<StorageType>(val), false);
+    } else {
+      pr->Set<StorageType, false>(pm.at(oid_), static_cast<StorageType>(val), false);
+    }
   }
 
   void Set(common::ManagedPointer<storage::ProjectedRow> pr, const uint16_t offset, CatalogType val) const {
-    pr->Set<StorageType, false>(offset, static_cast<StorageType>(val), false);
+    if constexpr (std::is_pointer_v<CatalogType>) {
+      pr->Set<StorageType, false>(offset, reinterpret_cast<StorageType>(val), false);
+    } else {
+      pr->Set<StorageType, false>(offset, static_cast<StorageType>(val), false);
+    }
   }
 
   CatalogType Get(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm) const {
