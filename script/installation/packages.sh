@@ -55,6 +55,7 @@ LINUX_BUILD_PACKAGES=(\
   "ninja-build"
   "wget" \
   "zlib1g-dev" \
+  "time" \
 )
 LINUX_TEST_PACKAGES=(\
   "ant" \

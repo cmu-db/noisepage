@@ -79,7 +79,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
-  dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
+  dbc->pg_proc_.procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
   // Indexes on pg_namespace
   dbc->namespaces_oid_index_ =
@@ -128,8 +128,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), LANGUAGE_NAME_INDEX_OID);
 
   // Indexes on pg_proc
-  dbc->procs_oid_index_ = Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PRO_OID_INDEX_OID);
-  dbc->procs_name_index_ = Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
+  dbc->pg_proc_.procs_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PgProc::PRO_OID_INDEX_OID);
+  dbc->pg_proc_.procs_name_index_ =
+      Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PgProc::PRO_NAME_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 
@@ -651,92 +653,92 @@ Schema Builder::GetProcTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("prooid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PROOID_COL_OID);
+  columns.back().SetOid(PgProc::PROOID_COL_OID);
 
   columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(PRONAME_COL_OID);
+  columns.back().SetOid(PgProc::PRONAME_COL_OID);
 
   columns.emplace_back("pronamespace", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PRONAMESPACE_COL_OID);
+  columns.back().SetOid(PgProc::PRONAMESPACE_COL_OID);
 
   columns.emplace_back("prolang", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PROLANG_COL_OID);
+  columns.back().SetOid(PgProc::PROLANG_COL_OID);
 
   columns.emplace_back("procost", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
-  columns.back().SetOid(PROCOST_COL_OID);
+  columns.back().SetOid(PgProc::PROCOST_COL_OID);
 
   columns.emplace_back("prorows", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
-  columns.back().SetOid(PROROWS_COL_OID);
+  columns.back().SetOid(PgProc::PROROWS_COL_OID);
 
   columns.emplace_back("provariadic", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PROVARIADIC_COL_OID);
+  columns.back().SetOid(PgProc::PROVARIADIC_COL_OID);
 
   columns.emplace_back("proisagg", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(PROISAGG_COL_OID);
+  columns.back().SetOid(PgProc::PROISAGG_COL_OID);
 
   columns.emplace_back("proiswindow", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(PROISWINDOW_COL_OID);
+  columns.back().SetOid(PgProc::PROISWINDOW_COL_OID);
 
   columns.emplace_back("proisstrict", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(PROISSTRICT_COL_OID);
+  columns.back().SetOid(PgProc::PROISSTRICT_COL_OID);
 
   columns.emplace_back("proretset", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(PRORETSET_COL_OID);
+  columns.back().SetOid(PgProc::PRORETSET_COL_OID);
 
   columns.emplace_back("provolatile", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
-  columns.back().SetOid(PROVOLATILE_COL_OID);
+  columns.back().SetOid(PgProc::PROVOLATILE_COL_OID);
 
   columns.emplace_back("pronargs", type::TypeId::SMALLINT, false,
                        parser::ConstantValueExpression(type::TypeId::TINYINT));
-  columns.back().SetOid(PRONARGS_COL_OID);
+  columns.back().SetOid(PgProc::PRONARGS_COL_OID);
 
   columns.emplace_back("pronargdefaults", type::TypeId::SMALLINT, false,
                        parser::ConstantValueExpression(type::TypeId::TINYINT));
-  columns.back().SetOid(PRONARGDEFAULTS_COL_OID);
+  columns.back().SetOid(PgProc::PRONARGDEFAULTS_COL_OID);
 
   columns.emplace_back("prorettype", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PRORETTYPE_COL_OID);
+  columns.back().SetOid(PgProc::PRORETTYPE_COL_OID);
 
   columns.emplace_back("proargtypes", type::TypeId::VARBINARY, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
-  columns.back().SetOid(PROARGTYPES_COL_OID);
+  columns.back().SetOid(PgProc::PROARGTYPES_COL_OID);
 
   columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
-  columns.back().SetOid(PROALLARGTYPES_COL_OID);
+  columns.back().SetOid(PgProc::PROALLARGTYPES_COL_OID);
 
   columns.emplace_back("proargmodes", type::TypeId::VARBINARY, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
-  columns.back().SetOid(PROARGMODES_COL_OID);
+  columns.back().SetOid(PgProc::PROARGMODES_COL_OID);
 
   columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
-  columns.back().SetOid(PROARGDEFAULTS_COL_OID);
+  columns.back().SetOid(PgProc::PROARGDEFAULTS_COL_OID);
 
   columns.emplace_back("proargnames", type::TypeId::VARBINARY, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
-  columns.back().SetOid(PROARGNAMES_COL_OID);
+  columns.back().SetOid(PgProc::PROARGNAMES_COL_OID);
 
   columns.emplace_back("prosrc", type::TypeId::VARCHAR, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
-  columns.back().SetOid(PROSRC_COL_OID);
+  columns.back().SetOid(PgProc::PROSRC_COL_OID);
 
   columns.emplace_back("proconfig", type::TypeId::VARBINARY, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARBINARY));
-  columns.back().SetOid(PROCONFIG_COL_OID);
+  columns.back().SetOid(PgProc::PROCONFIG_COL_OID);
 
   columns.emplace_back("ctx_pointer", type::TypeId::BIGINT, true,
                        parser::ConstantValueExpression(type::TypeId::BIGINT));
-  columns.back().SetOid(PRO_CTX_PTR_COL_OID);
+  columns.back().SetOid(PgProc::PRO_CTX_PTR_COL_OID);
 
   return Schema(columns);
 }
@@ -745,7 +747,7 @@ IndexSchema Builder::GetProcOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("prooid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PROOID_COL_OID));
+                       parser::ColumnValueExpression(db, PgProc::PRO_TABLE_OID, PgProc::PROOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -758,11 +760,11 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("pronamespace", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAMESPACE_COL_OID));
+                       parser::ColumnValueExpression(db, PgProc::PRO_TABLE_OID, PgProc::PRONAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAME_COL_OID));
+                       parser::ColumnValueExpression(db, PgProc::PRO_TABLE_OID, PgProc::PRONAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Non-Unique, not primary

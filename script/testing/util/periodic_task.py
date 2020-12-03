@@ -6,6 +6,7 @@ class PeriodicTask:
     """
     A utility class for simple periodic tasks with Timer threads
     """
+
     def __init__(self, interval, function, *args, **kwargs):
         """
         Initialize the PeriodicTask object and schedule the initial Timer

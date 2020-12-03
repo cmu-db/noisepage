@@ -1245,6 +1245,12 @@ SELECT a FROM t WHERE a IN (2,3);
 3
 
 query I rowsort
+SELECT a FROM t WHERE a NOT IN (2,3);
+----
+1
+4
+
+query I rowsort
 SELECT a FROM t WHERE b IN ('a','nananananabanana');
 ----
 1
@@ -1255,6 +1261,13 @@ SELECT a FROM t WHERE b IN ('nananananabanana','catdogelephantfishgiraffehorse')
 ----
 2
 3
+
+query I rowsort
+SELECT a FROM t WHERE b NOT IN ('a');
+----
+2
+3
+4
 
 query I rowsort
 SELECT a FROM t WHERE b IN ('a','nananananabanana','catdogelephantfishgiraffehorse','d');

@@ -13,7 +13,7 @@ namespace noisepage::planner {
 std::unique_ptr<SeqScanPlanNode> SeqScanPlanNode::Builder::Build() {
   return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(
       std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
-      database_oid_, table_oid_, scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_));
+      database_oid_, table_oid_, scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, plan_node_id_));
 }
 
 SeqScanPlanNode::SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
@@ -21,9 +21,10 @@ SeqScanPlanNode::SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> 
                                  common::ManagedPointer<parser::AbstractExpression> predicate,
                                  std::vector<catalog::col_oid_t> &&column_oids, bool is_for_update,
                                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, uint32_t scan_limit,
-                                 bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset)
+                                 bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset,
+                                 plan_node_id_t plan_node_id)
     : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
-                           scan_limit, scan_has_limit, scan_offset, scan_has_offset),
+                           scan_limit, scan_has_limit, scan_offset, scan_has_offset, plan_node_id),
       column_oids_(std::move(column_oids)),
       table_oid_(table_oid) {}
 
