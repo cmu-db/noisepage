@@ -184,7 +184,8 @@ void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
       const auto idx = table_pm_.find(oid)->second;
 
       ast::Expr *child_expr = provider->GetTableColumn(oid);
-      ast::Expr *set_pr = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), col.Type(), col.Nullable(), idx, child_expr, true);
+      ast::Expr *set_pr =
+          GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), col.Type(), col.Nullable(), idx, child_expr, true);
       builder->Append(GetCodeGen()->MakeStmt(set_pr));
     }
   }
