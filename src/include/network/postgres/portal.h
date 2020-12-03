@@ -46,9 +46,9 @@ class Portal {
   common::ManagedPointer<Statement> GetStatement() const { return statement_; }
 
   /**
-   * @return the optimized physical plan for this query
+   * @return the optimize result for this query
    */
-  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const { return statement_->PhysicalPlan(); }
+  common::ManagedPointer<optimizer::OptimizeResult> OptimizeResult() const { return statement_->OptimizeResult(); }
 
   /**
    * @return output formats for this query
