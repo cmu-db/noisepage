@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_column_def.h"
 #include "catalog/catalog_defs.h"
+#include "storage/storage_defs.h"
 
 namespace noisepage::catalog {
 class DatabaseCatalog;

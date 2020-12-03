@@ -56,23 +56,25 @@ class PgProc {
    * catalog specification and columns of the form "PRO_[name]" are
    * noisepage-specific additions (generally pointers to internal objects).
    */
-  static constexpr CatalogColumnDef<proc_oid_t> PROOID{col_oid_t{1}};             // INTEGER (pkey) [proc_oid_t]
+  static constexpr CatalogColumnDef<proc_oid_t, uint32_t> PROOID{col_oid_t{1}};   // INTEGER (pkey) [proc_oid_t]
   static constexpr CatalogColumnDef<storage::VarlenEntry> PRONAME{col_oid_t{2}};  // VARCHAR (skey)
-  static constexpr CatalogColumnDef<namespace_oid_t> PRONAMESPACE{col_oid_t{3}};  // INTEGER (skey) (fkey: pg_namespace)
-  static constexpr CatalogColumnDef<language_oid_t> PROLANG{col_oid_t{4}};        // INTEGER (skey) (fkey: pg_language)
-  static constexpr CatalogColumnDef<double> PROCOST{col_oid_t{5}};                // DECIMAL (skey)
-  static constexpr CatalogColumnDef<double> PROROWS{col_oid_t{6}};                // DECIMAL (skey)
-  static constexpr CatalogColumnDef<type_oid_t> PROVARIADIC{col_oid_t{7}};        // INTEGER (skey) (fkey: pg_type)
+  static constexpr CatalogColumnDef<namespace_oid_t, uint32_t> PRONAMESPACE{
+      col_oid_t{3}};  // INTEGER (skey) (fkey: pg_namespace)
+  static constexpr CatalogColumnDef<language_oid_t, uint32_t> PROLANG{
+      col_oid_t{4}};                                                        // INTEGER (skey) (fkey: pg_language)
+  static constexpr CatalogColumnDef<double> PROCOST{col_oid_t{5}};          // DECIMAL (skey)
+  static constexpr CatalogColumnDef<double> PROROWS{col_oid_t{6}};          // DECIMAL (skey)
+  static constexpr CatalogColumnDef<type_oid_t> PROVARIADIC{col_oid_t{7}};  // INTEGER (skey) (fkey: pg_type)
 
-  static constexpr CatalogColumnDef<bool> PROISAGG{col_oid_t{8}};      // BOOLEAN (skey)
-  static constexpr CatalogColumnDef<bool> PROISWINDOW{col_oid_t{9}};   // BOOLEAN (skey)
-  static constexpr CatalogColumnDef<bool> PROISSTRICT{col_oid_t{10}};  // BOOLEAN (skey)
-  static constexpr CatalogColumnDef<bool> PRORETSET{col_oid_t{11}};    // BOOLEAN (skey)
-  static constexpr CatalogColumnDef<bool> PROVOLATILE{col_oid_t{12}};  // BOOLEAN (skey)
+  static constexpr CatalogColumnDef<bool> PROISAGG{col_oid_t{8}};               // BOOLEAN (skey)
+  static constexpr CatalogColumnDef<bool> PROISWINDOW{col_oid_t{9}};            // BOOLEAN (skey)
+  static constexpr CatalogColumnDef<bool> PROISSTRICT{col_oid_t{10}};           // BOOLEAN (skey)
+  static constexpr CatalogColumnDef<bool> PRORETSET{col_oid_t{11}};             // BOOLEAN (skey)
+  static constexpr CatalogColumnDef<char, uint8_t> PROVOLATILE{col_oid_t{12}};  // CHAR (skey)
 
-  static constexpr CatalogColumnDef<uint16_t> PRONARGS{col_oid_t{13}};         // SMALLINT (skey)
-  static constexpr CatalogColumnDef<uint16_t> PRONARGDEFAULTS{col_oid_t{14}};  // SMALLINT (skey)
-  static constexpr CatalogColumnDef<type_oid_t> PRORETTYPE{col_oid_t{15}};     // INTEGER (skey) (fkey: pg_type)
+  static constexpr CatalogColumnDef<uint16_t> PRONARGS{col_oid_t{13}};                // SMALLINT (skey)
+  static constexpr CatalogColumnDef<uint16_t> PRONARGDEFAULTS{col_oid_t{14}};         // SMALLINT (skey)
+  static constexpr CatalogColumnDef<type_oid_t, uint32_t> PRORETTYPE{col_oid_t{15}};  // INTEGER (skey) (fkey: pg_type)
   static constexpr CatalogColumnDef<storage::VarlenEntry> PROARGTYPES{
       col_oid_t{16}};  // VARBINARY (skey) [type_oid_t[]]
   static constexpr CatalogColumnDef<storage::VarlenEntry> PROALLARGTYPES{

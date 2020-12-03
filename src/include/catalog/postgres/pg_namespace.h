@@ -28,8 +28,8 @@ class PgTypeImpl;
 /** The OIDs used by the NoisePage version of pg_namespace. */
 class PgNamespace {
  public:
-  static constexpr namespace_oid_t NAMESPACE_CATALOG_NAMESPACE_OID = namespace_oid_t(14);
-  static constexpr namespace_oid_t NAMESPACE_DEFAULT_NAMESPACE_OID = namespace_oid_t(15);
+  static constexpr namespace_oid_t NAMESPACE_CATALOG_NAMESPACE_OID = namespace_oid_t(14);  ///< "pg_catalog" namespace
+  static constexpr namespace_oid_t NAMESPACE_DEFAULT_NAMESPACE_OID = namespace_oid_t(15);  ///< "public" namespace
 
  private:
   friend class catalog::CatalogAccessor;
@@ -52,8 +52,8 @@ class PgNamespace {
    * catalog specification and columns of the form "NSP_[name]" are
    * noisepage-specific addtions (generally pointers to internal objects).
    */
-  static constexpr CatalogColumnDef<namespace_oid_t, uint32_t> NSPOID{col_oid_t{1}};        // INTEGER (pkey)
-  static constexpr CatalogColumnDef<storage::VarlenEntry> NSPNAME{col_oid_t{2}};  // VARCHAR
+  static constexpr CatalogColumnDef<namespace_oid_t, uint32_t> NSPOID{col_oid_t{1}};  // INTEGER (pkey)
+  static constexpr CatalogColumnDef<storage::VarlenEntry> NSPNAME{col_oid_t{2}};      // VARCHAR
 
   static constexpr uint8_t NUM_PG_NAMESPACE_COLS = 2;
 

@@ -709,8 +709,8 @@ Schema Builder::GetProcTableSchema() {
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PgProc::PRORETSET.oid_);
 
-  columns.emplace_back("provolatile", type::TypeId::BOOLEAN, false,
-                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
+  columns.emplace_back("provolatile", type::TypeId::TINYINT, false,
+                       parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(PgProc::PROVOLATILE.oid_);
 
   columns.emplace_back("pronargs", type::TypeId::SMALLINT, false,

@@ -27,22 +27,30 @@ class Builder;
 class PgTypeImpl {
  public:
   /**
-   * Prepare to create pg_type.
+   * @brief Prepare to create pg_type.
+   *
    * Does NOT create anything until the relevant bootstrap functions are called.
    *
    * @param db_oid          The OID of the database that pg_type should be created in.
    */
   explicit PgTypeImpl(db_oid_t db_oid);
 
-  /** Bootstrap the projected row initializers for pg_type. */
+  /** @brief Bootstrap the projected row initializers for pg_type. */
   void BootstrapPRIs();
 
   /**
+   * @brief Create pg_type and associated indexes.
+   *
    * Bootstrap:
    *    pg_type
    *    pg_type_oid_index
    *    pg_type_name_index
    *    pg_type_namespace_index
+   *
+   * Dependencies (for bootstrapping):
+   *    pg_core must have been bootstrapped.
+   * Dependencies (for execution):
+   *    No other dependencies.
    *
    * @param txn             The transaction to bootstrap in.
    * @param dbc             The catalog object to bootstrap in.
@@ -51,7 +59,7 @@ class PgTypeImpl {
                  common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Create a new type for the pg_type table.
+   * @brief Create a new type for the pg_type table.
    *
    * @param txn             The transaction to use.
    * @param type_oid        The OID to assign to the type.
@@ -69,7 +77,7 @@ class PgTypeImpl {
   friend class Builder;
   friend class storage::RecoveryManager;
 
-  /** Bootstrap all the builtin types in pg_type. */
+  /** @brief Bootstrap all the builtin types in pg_type. */
   void BootstrapTypes(common::ManagedPointer<DatabaseCatalog> dbc,
                       common::ManagedPointer<transaction::TransactionContext> txn);
 

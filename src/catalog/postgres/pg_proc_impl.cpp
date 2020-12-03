@@ -84,7 +84,7 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
   auto *const redo = txn->StageWrite(db_oid_, PgProc::PRO_TABLE_OID, pg_proc_all_cols_pri_);
-  auto *delta = redo->Delta();
+  auto delta = common::ManagedPointer(redo->Delta());
   auto &pm = pg_proc_all_cols_prm_;
 
   // Prepare the PR for insertion.
@@ -101,34 +101,33 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
     const auto arg_modes_varlen = storage::StorageUtil::CreateVarlen(arg_modes);
     const auto src_varlen = storage::StorageUtil::CreateVarlen(src);
 
-    delta->Set<proc_oid_t, false>(pm[PgProc::PROOID.oid_], oid, false);                     // Procedure OID.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PRONAME.oid_], name_varlen, false);  // Procedure name.
-    delta->Set<namespace_oid_t, false>(pm[PgProc::PRONAMESPACE.oid_], procns, false);       // Namespace of procedure.
-    delta->Set<language_oid_t, false>(pm[PgProc::PROLANG.oid_], language_oid, false);       // Language for procedure.
-    delta->Set<double, false>(pm[PgProc::PROCOST.oid_], 0, false);  // Estimated cost per row returned.
-    delta->Set<double, false>(pm[PgProc::PROROWS.oid_], 0, false);  // Estimated number of result rows.
+    PgProc::PROOID.Set(delta, pm, oid);            // Procedure OID.
+    PgProc::PRONAME.Set(delta, pm, name_varlen);   // Procedure name.
+    PgProc::PRONAMESPACE.Set(delta, pm, procns);   // Namespace of procedure.
+    PgProc::PROLANG.Set(delta, pm, language_oid);  // Language for procedure.
+    PgProc::PROCOST.Set(delta, pm, 0);             // Estimated cost per row returned.
+    PgProc::PROROWS.Set(delta, pm, 0);             // Estimated number of result rows.
     // The Postgres documentation says that provariadic should be 0 if no variadics are present.
     // Otherwise, it is the data type of the variadic array parameter's elements.
     // TODO(WAN): Hang on, how are we using CreateProcedure for variadics then?
-    delta->Set<type_oid_t, false>(pm[PgProc::PROVARIADIC.oid_], type_oid_t{0}, false);  // Assume no variadics.
-    delta->Set<bool, false>(pm[PgProc::PROISAGG.oid_], is_aggregate, false);            // Whether aggregate or not.
-    delta->Set<bool, false>(pm[PgProc::PROISWINDOW.oid_], false, false);                // Not window.
-    delta->Set<bool, false>(pm[PgProc::PROISSTRICT.oid_], true, false);                 // Strict.
-    delta->Set<bool, false>(pm[PgProc::PRORETSET.oid_], false, false);                  // Doesn't return a set.
-    delta->Set<char, false>(pm[PgProc::PROVOLATILE.oid_], static_cast<char>(PgProc::ProVolatile::STABLE),
-                            false);                                                                     // Stable.
-    delta->Set<uint16_t, false>(pm[PgProc::PRONARGS.oid_], static_cast<uint16_t>(args.size()), false);  // Num args.
-    delta->Set<uint16_t, false>(pm[PgProc::PRONARGDEFAULTS.oid_], 0, false);     // Assume no default args.
-    delta->Set<type_oid_t, false>(pm[PgProc::PRORETTYPE.oid_], rettype, false);  // Return type.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGTYPES.oid_], arg_types_varlen, false);  // Arg types.
+    PgProc::PROVARIADIC.Set(delta, pm, type_oid_t{0});                                   // Assume no variadics.
+    PgProc::PROISAGG.Set(delta, pm, is_aggregate);                                       // Whether aggregate or not.
+    PgProc::PROISWINDOW.Set(delta, pm, false);                                           // Not window.
+    PgProc::PROISSTRICT.Set(delta, pm, true);                                            // Strict.
+    PgProc::PRORETSET.Set(delta, pm, false);                                             // Doesn't return a set.
+    PgProc::PROVOLATILE.Set(delta, pm, static_cast<char>(PgProc::ProVolatile::STABLE));  // Stable.
+    PgProc::PRONARGS.Set(delta, pm, static_cast<uint16_t>(args.size()));                 // Num args.
+    PgProc::PRONARGDEFAULTS.Set(delta, pm, 0);                                           // Assume no default args.
+    PgProc::PRORETTYPE.Set(delta, pm, rettype);                                          // Return type.
+    PgProc::PROARGTYPES.Set(delta, pm, arg_types_varlen);                                // Arg types.
     // TODO(WAN): proallargtypes and proargmodes in Postgres should be NULL most of the time. See #1359.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROALLARGTYPES.oid_], all_arg_types_varlen, false);
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGMODES.oid_], arg_modes_varlen, false);
-    delta->SetNull(pm[PgProc::PROARGDEFAULTS.oid_]);  // Assume no default args.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROARGNAMES.oid_], arg_names_varlen, false);  // Arg names.
-    delta->Set<storage::VarlenEntry, false>(pm[PgProc::PROSRC.oid_], src_varlen, false);             // Source code.
-    delta->SetNull(pm[PgProc::PROCONFIG.oid_]);    // Assume no procedure local run-time configuration.
-    delta->SetNull(pm[PgProc::PRO_CTX_PTR.oid_]);  // Pointer to procedure context.
+    PgProc::PROALLARGTYPES.Set(delta, pm, all_arg_types_varlen);
+    PgProc::PROARGMODES.Set(delta, pm, arg_modes_varlen);
+    delta->SetNull(pm[PgProc::PROARGDEFAULTS.oid_]);       // Assume no default args.
+    PgProc::PROARGNAMES.Set(delta, pm, arg_names_varlen);  // Arg names.
+    PgProc::PROSRC.Set(delta, pm, src_varlen);             // Source code.
+    delta->SetNull(pm[PgProc::PROCONFIG.oid_]);            // Assume no procedure local run-time configuration.
+    delta->SetNull(pm[PgProc::PRO_CTX_PTR.oid_]);          // Pointer to procedure context.
   }
 
   const auto tuple_slot = procs_->Insert(txn, redo);

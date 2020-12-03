@@ -223,7 +223,7 @@ class DatabaseCatalog {
   postgres::PgProcImpl pg_proc_;              ///< Procedures: pg_proc.
 
   /** @brief Create a new DatabaseCatalog. Does not create any tables until Bootstrap is called. */
-  DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector);
+  DatabaseCatalog(db_oid_t oid, common::ManagedPointer<storage::GarbageCollector> garbage_collector);
 
   /**
    * @brief Create all of the ProjectedRowInitializer and ProjectionMap objects for the catalog.

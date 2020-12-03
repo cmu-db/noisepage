@@ -69,7 +69,7 @@ class PgLanguageImpl {
    * @param oid             The OID to assign to the language.
    * @return                True if the creation succeeded. False otherwise.
    */
-  bool CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
+  bool CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
                       language_oid_t oid);
 
   /**

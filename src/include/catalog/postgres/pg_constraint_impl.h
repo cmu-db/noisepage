@@ -30,10 +30,11 @@ class Builder;
 class PgConstraintImpl {
  public:
   /**
-   * Prepare to create pg_constraint.
+   * @brief Prepare to create pg_constraint.
+   *
    * Does NOT create anything until the relevant bootstrap functions are called.
    *
-   * @param db_oid          The OID of the database that pg_constraint should be created in.
+   * @param db_oid  The OID of the database that pg_constraint should be created in.
    */
   explicit PgConstraintImpl(db_oid_t db_oid);
 
@@ -41,6 +42,8 @@ class PgConstraintImpl {
   void BootstrapPRIs();
 
   /**
+   * @brief Create pg_constraint and associated indexes.
+   *
    * Bootstrap:
    *    pg_constraint
    *    pg_constraint_oid_index
@@ -50,17 +53,22 @@ class PgConstraintImpl {
    *    pg_constraint_index_index
    *    pg_constraint_foreigntable_index
    *
-   * @param txn             The transaction to bootstrap in.
-   * @param dbc             The catalog object to bootstrap in.
+   * Dependencies (for bootstrapping):
+   *    pg_core must have been bootstrapped.
+   * Dependencies (for execution):
+   *    Doesn't do anything right now, so nothing.
+   *
+   * @param txn     The transaction to bootstrap in.
+   * @param dbc     The catalog object to bootstrap in.
    */
   void Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                  common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Obtain a function that will teardown pg_constraint as it exists at the time of the provided txn.
+   * @brief Obtain a function that will teardown pg_constraint as it exists at the time of the provided txn.
    *
-   * @param txn             The transaction to perform the teardown in.
-   * @return A function that will teardown pg_constraint when invoked.
+   * @param txn     The transaction to perform the teardown in.
+   * @return        A function that will teardown pg_constraint when invoked.
    */
   std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn);
 

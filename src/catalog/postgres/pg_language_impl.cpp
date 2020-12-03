@@ -106,7 +106,7 @@ language_oid_t PgLanguageImpl::GetLanguageOid(const common::ManagedPointer<trans
       auto all_cols_pr = common::ManagedPointer(pg_language_all_cols_pri_.InitializeRow(buffer));
       auto found_tuple = results[0];
       languages_->Select(txn, found_tuple, all_cols_pr.Get());
-      oid = PgLanguage::LANOID.Get(all_cols_pr, pg_language_all_cols_prm_);
+      oid = *PgLanguage::LANOID.Get(all_cols_pr, pg_language_all_cols_prm_);
     }
   }
 
@@ -158,10 +158,10 @@ bool PgLanguageImpl::DropLanguage(const common::ManagedPointer<transaction::Tran
   {
     auto table_pr = common::ManagedPointer(pg_language_all_cols_pri_.InitializeRow(buffer));
     bool UNUSED_ATTRIBUTE visible = languages_->Select(txn, to_delete_slot, table_pr.Get());
-    auto name_varlen = PgLanguage::LANNAME.Get(table_pr, pg_language_all_cols_prm_);
+    auto name_varlen = *PgLanguage::LANNAME.Get(table_pr, pg_language_all_cols_prm_);
 
     index_pr = name_pri.InitializeRow(buffer);
-    *reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0)) = name_varlen;
+    index_pr->Set<storage::VarlenEntry, false>(0, name_varlen, false);
     languages_name_index_->Delete(txn, *index_pr, to_delete_slot);
   }
 
