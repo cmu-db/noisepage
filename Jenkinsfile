@@ -1,4 +1,11 @@
-def utils
+def utils // common build functions are loaded from Jenkinsfile-utils into this object
+/**
+ * loadUtils conditionally loads the Jenkins utility functions file and stores it in the utils varaible
+ */
+void loadUtils(){
+    String utilsFileName  = 'Jenkinsfile-utils'
+    utils = utils ?: load(utilsFileName)
+}
 
 pipeline {
     agent none
@@ -26,23 +33,6 @@ pipeline {
                         currentBuild.result = 'ABORTED'
                         error('Not ready for CI. Please add ready-for-ci tag in Github when you are ready to build your PR.')
                    }
-                }
-            }
-            post {
-                cleanup {
-                    deleteDir()
-                }
-            }
-        }
-        stage('Load Utils') {
-            agent {
-                docker {
-                    image 'noisepage:focal'
-                }
-            }
-            steps {
-                script {
-                   utils = load("Jenkinsfile-utils.groovy")
                 }
             }
             post {
@@ -149,9 +139,7 @@ pipeline {
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(os:"macos",useASAN:true)
                         }
 
@@ -186,9 +174,7 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
                         
@@ -227,9 +213,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(isCodeCoverage:true)
                         }
 
@@ -280,9 +264,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
 
@@ -319,9 +301,7 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
 
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(os:"macos",buildType:"Release")
                         }
 
@@ -356,9 +336,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
@@ -397,9 +375,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
@@ -439,9 +415,7 @@ pipeline {
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(os:"macos", useASAN:true, isBuildTests:false)
                         }
 
@@ -499,9 +473,7 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         script{
-                            if(!utils){
-                                utils = load("Jenkinsfile-utils.groovy")
-                            }
+                            loadUtils()
                             utils.noisePageBuild(useASAN:true, isBuildTests:false)
                         }
 
@@ -559,9 +531,7 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
 
                 script{
-                    if(!utils){
-                        utils = load("Jenkinsfile-utils.groovy")
-                    }
+                    loadUtils()
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false)
                 }
 
@@ -609,9 +579,7 @@ pipeline {
 
 
                 script{
-                    if(!utils){
-                        utils = load("Jenkinsfile-utils.groovy")
-                    }
+                    loadUtils()
                     utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
                 }
             }

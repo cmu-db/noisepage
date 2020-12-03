@@ -1,12 +1,19 @@
-def utils
+def utils // common build functions are loaded from Jenkinsfile-utils into this object
+/**
+ * loadUtils conditionally loads the Jenkins utility functions file and stores it in the utils varaible
+ */
+void loadUtils(){
+    String utilsFileName  = 'Jenkinsfile-utils'
+    utils = utils ?: load(utilsFileName)
+}
 
 pipeline {
     agent none
 
     environment{
-        //Do not change. 
+        //Do not change.
         //Performance Storage Service(Django) authentication information. The credentials can only be changed on Jenkins webpage
-        PSS_CREATOR= credentials('pss-creator')
+        PSS_CREATOR = credentials('pss-creator')
     }
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
@@ -18,23 +25,6 @@ pipeline {
     }
 
     stages {
-        stage('Load Utils') {
-            agent {
-                docker {
-                    image 'noisepage:focal'
-                }
-            }
-            steps {
-                script {
-                   utils = load("Jenkinsfile-utils.groovy")
-                }
-            }
-            post {
-                cleanup {
-                    deleteDir()
-                }
-            }
-        }
         stage('Artifact Stats') {
             agent {
                 docker {
@@ -48,9 +38,7 @@ pipeline {
                 // The following command compiles and builds the binary without caching and times the whole operation. 
                 // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
                 script{
-                    if(!utils){
-                        utils = load("Jenkinsfile-utils.groovy")
-                    }
+                    loadUtils
                     utils.noisePageBuild(useCache:false, buildType:"Release", isBuildTests:false, isRecordTime:true)
                 }
 
@@ -72,9 +60,7 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
-                    if(!utils){
-                        utils = load("Jenkinsfile-utils.groovy")
-                    }
+                    loadUtils()
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false)
                 }
 
@@ -113,9 +99,7 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
-                    if(!utils){
-                        utils = load("Jenkinsfile-utils.groovy")
-                    }
+                    loadUtils()
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false, isBuildBenchmarks:true)
                 }
 
