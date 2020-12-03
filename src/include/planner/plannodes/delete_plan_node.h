@@ -9,7 +9,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  * The plan node for DELETE
  */
@@ -55,10 +55,7 @@ class DeletePlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::unique_ptr<DeletePlanNode> Build() {
-      return std::unique_ptr<DeletePlanNode>(
-          new DeletePlanNode(std::move(children_), std::make_unique<OutputSchema>(), database_oid_, table_oid_));
-    }
+    std::unique_ptr<DeletePlanNode> Build();
 
    protected:
     /**
@@ -79,12 +76,10 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid the OID of the target SQL table
+   * @param plan_node_id Plan node id
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        table_oid_(table_oid) {}
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -133,4 +128,4 @@ class DeletePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DeletePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

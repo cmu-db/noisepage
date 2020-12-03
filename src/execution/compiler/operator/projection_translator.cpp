@@ -4,7 +4,7 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/projection_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 // The majority of work for projections are performed during expression
 // evaluation. In the context of projections, expressions are derived when
@@ -12,7 +12,7 @@ namespace terrier::execution::compiler {
 
 ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlanNode &plan,
                                            CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::PROJECTION) {
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::PROJECTION) {
   switch (plan.GetChildrenSize()) {
     case 0: {
       // This should only happen for SELECT 1; type of situations.
@@ -34,4 +34,4 @@ void ProjectionTranslator::PerformPipelineWork(WorkContext *context, FunctionBui
   context->Push(function);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

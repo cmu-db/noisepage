@@ -579,3 +579,703 @@ SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NU
 
 statement ok
 DROP TABLE like_tbl;
+
+# index-join
+statement ok
+CREATE TABLE xxx (idx INT PRIMARY KEY, valx INT);
+
+statement ok
+CREATE TABLE yyy (idy INT PRIMARY KEY, valy INT);
+
+statement ok
+INSERT INTO xxx VALUES (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO yyy VALUES (3, 3), (4,4);
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > yyy.idy;
+----
+12 values hashing to 2211707029586b57f3cd914baf324b2c
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < yyy.idy;
+----
+4 values hashing to 0d3bb445591b380a6dda3e14858bb6d8
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 5 > yyy.idy;
+----
+24 values hashing to c1b907cf71f6191015b4faf1a98ea419
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 2 < yyy.idy;
+----
+24 values hashing to c1b907cf71f6191015b4faf1a98ea419
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < 6;
+----
+24 values hashing to 59da6214b398ce9dbf3a59784fe2a5a9
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > 3;
+----
+16 values hashing to 6d9c94d9a90929418f3338158f3506a0
+
+query I nosort
+SELECT * FROM yyy INNER JOIN xxx ON yyy.idy > xxx.idx;
+----
+4 values hashing to 78ebd17527f557a57704ea0c0ee12ff6
+
+statement ok
+DROP TABLE xxx
+
+statement ok
+DROP TABLE yyy
+
+# LEFT OUTER JOIN
+
+statement ok
+CREATE TABLE xxx (id INT PRIMARY KEY, val INT);
+
+statement ok
+CREATE TABLE yyy (id INT PRIMARY KEY, val INT);
+
+statement ok
+INSERT INTO xxx VALUES (2,2), (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO yyy VALUES (2,2), (3,3), (4,4);
+
+query IIII nosort
+SELECT * FROM xxx LEFT OUTER JOIN yyy ON xxx.id = yyy.id;
+----
+16 values hashing to 9b5db11aa006df4bd42954943bad4c2e
+
+query IIII nosort
+SELECT * FROM xxx LEFT OUTER JOIN yyy ON xxx.val = yyy.val;
+----
+16 values hashing to 9b5db11aa006df4bd42954943bad4c2e
+
+statement ok
+DROP TABLE xxx;
+
+statement ok
+DROP TABLE yyy;
+
+statement ok
+
+
+statement ok
+CREATE TABLE tab0(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab1(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab2(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+INSERT INTO tab0 VALUES(97,1,99);
+
+statement ok
+INSERT INTO tab0 VALUES(15,81,47);
+
+statement ok
+INSERT INTO tab0 VALUES(87,21,10);
+
+statement ok
+INSERT INTO tab0 VALUES(65, 57, 73);
+
+statement ok
+INSERT INTO tab1 VALUES(51,14,96);
+
+statement ok
+INSERT INTO tab1 VALUES(85,5,59);
+
+statement ok
+INSERT INTO tab1 VALUES(91,47,68);
+
+statement ok
+INSERT INTO tab1 VALUES(65, 57, 21);
+
+statement ok
+INSERT INTO tab2 VALUES(64,77,40);
+
+statement ok
+INSERT INTO tab2 VALUES(75,67,58);
+
+statement ok
+INSERT INTO tab2 VALUES(46,51,23);
+
+statement ok
+INSERT INTO tab2 VALUES(65, 84, 93);
+
+query IIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 ORDER BY tab0.col0 ASC;
+----
+24 values hashing to 2a84540455705fe817e98454de2ace6c
+
+query IIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col1 = tab1.col1 ORDER BY tab0.col1 ASC;
+----
+24 values hashing to 5a527294c5e516c91f3272a2cf40b839
+
+query IIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col2 = tab1.col2 ORDER BY tab0.col2 ASC;
+----
+24 values hashing to 14518454e4a8b066a4b4da08adc9b70e
+
+query IIIIIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 LEFT OUTER JOIN tab2 ON tab0.col0 = tab2.col0 ORDER BY tab0.col0 ASC;
+----
+36 values hashing to 85710c95d9cc0b47c11f8d9f337a14ea
+
+query IIIIIIIII nosort
+SELECT * FROM tab1 LEFT OUTER JOIN tab0 ON tab0.col0 = tab1.col0 LEFT OUTER JOIN tab2 ON tab1.col0 = tab2.col0 ORDER BY tab1.col0 ASC;
+----
+36 values hashing to c7a1815881623a3bd00c29e67f9e8947
+
+query IIIIIIIII nosort
+SELECT * FROM tab2 LEFT OUTER JOIN tab0 ON tab2.col0 = tab0.col0 LEFT OUTER JOIN tab1 ON tab2.col0 = tab1.col0 ORDER BY tab2.col0 ASC;
+----
+36 values hashing to dd53c7839eafa8257a7c65224d248e7f
+
+statement ok
+DROP TABLE tab0;
+
+statement ok
+DROP TABLE tab1;
+
+statement ok
+DROP TABLE tab2;
+
+statement ok
+
+
+statement ok
+CREATE TABLE tab3(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab4(col0 INTEGER, col1 INTEGER);
+
+statement ok
+INSERT INTO tab3 VALUES(967,14,399);
+
+statement ok
+INSERT INTO tab3 VALUES(115,281,437);
+
+statement ok
+INSERT INTO tab3 VALUES(847,221,102);
+
+statement ok
+INSERT INTO tab3 VALUES(653, 573, 733);
+
+statement ok
+INSERT INTO tab4 VALUES(51, 14);
+
+statement ok
+INSERT INTO tab4 VALUES(854,5);
+
+statement ok
+INSERT INTO tab4 VALUES(967, 399);
+
+statement ok
+INSERT INTO tab4 VALUES(653, 239);
+
+query IIIII nosort
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col0 = tab4.col0 ORDER BY tab3.col0 ASC;
+----
+20 values hashing to 05444ccc4114ea58ea81c4d7265ce0cf
+
+query IIIII nosort
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col1 = tab4.col1 ORDER BY tab3.col1 ASC;
+----
+20 values hashing to e020bd906325b64a85b01baac93ca8f5
+
+query IIIII nosort
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col2 = tab4.col1 ORDER BY tab3.col1 ASC;
+----
+20 values hashing to 79503262d3189fbafe4a8a9697104c7c
+
+statement ok
+DROP TABLE tab3;
+
+statement ok
+DROP TABLE tab4;
+
+# #1020 SELECT * TODO(WAN): no good way of testing exceptions being thrown right now
+
+# #1191 SELECT NULL
+query T
+SELECT NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+# Fix #780
+statement ok
+CREATE TABLE t (a INT, aa INT);
+
+statement ok
+CREATE TABLE tt (b INT, bb INT);
+
+statement ok
+INSERT INTO t VALUES (1,1), (2,2), (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO tt VALUES (10,10), (20,20), (30,30), (40,40), (50,50);
+
+query II nosort
+SELECT * FROM t;
+----
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+
+query II nosort
+SELECT * FROM tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query IIII nosort
+SELECT *, * FROM t;
+----
+1
+1
+1
+1
+2
+2
+2
+2
+3
+3
+3
+3
+4
+4
+4
+4
+5
+5
+5
+5
+
+query IIII nosort
+SELECT *, * FROM tt;
+----
+10
+10
+10
+10
+20
+20
+20
+20
+30
+30
+30
+30
+40
+40
+40
+40
+50
+50
+50
+50
+
+query IIII nosort
+SELECT * FROM t, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIIIIIII nosort
+SELECT *, * FROM t, tt;
+----
+200 values hashing to f63c5b706ef9235039ca4a62161936e9
+
+query II nosort
+SELECT t.* FROM t;
+----
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+
+query II nosort
+SELECT tt.* FROM tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query IIII nosort
+SELECT t.*, tt.* FROM t, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT ta.*, tt.* FROM t ta, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT t.*, tb.* FROM t, tt tb;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT ta.*, tb.* FROM t ta, tt tb;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query II nosort
+SELECT t.* FROM t, tt;
+----
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+4
+4
+4
+4
+4
+4
+4
+4
+4
+4
+5
+5
+5
+5
+5
+5
+5
+5
+5
+5
+
+query II nosort
+SELECT tt.* FROM t, tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query II nosort
+SELECT ta.* FROM t ta, tt;
+----
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+4
+4
+4
+4
+4
+4
+4
+4
+4
+4
+5
+5
+5
+5
+5
+5
+5
+5
+5
+5
+
+query II nosort
+SELECT tb.* FROM t, tt tb;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query T
+SELECT true;
+----
+t
+
+query T
+SELECT '2020-11-07'::date;
+----
+2020-11-07
+
+statement ok
+CREATE TABLE foo (a date);
+
+statement ok
+INSERT INTO foo VALUES ('2020-11-07'::date);
+
+statement ok
+INSERT INTO foo VALUES ('2020-11-08'::date);
+
+query T rowsort
+select * from foo where a > '2020-11-07'::date;
+----
+2020-11-08
+
+query T rowsort
+SELECT * FROM foo WHERE a >= '2020-11-07'::date;
+----
+2020-11-07
+2020-11-08
+
+statement ok
+DROP TABLE foo;
+
+statement ok
+DROP TABLE IF EXISTS t;
+
+statement ok
+CREATE TABLE t (a INT PRIMARY KEY);
+
+statement ok
+INSERT INTO t VALUES (1);
+
+statement error
+INSERT INTO t VALUES (1);
+
+statement ok
+DROP TABLE t;
+
+statement ok
+DROP TABLE tt;
+
+statement ok
+CREATE TABLE t (a INT, b VARCHAR(32));
+
+statement ok
+INSERT INTO t VALUES (1, 'a'), (2, 'nananananabanana'), (3, 'catdogelephantfishgiraffehorse'), (4, 'd');
+
+query I rowsort
+SELECT a FROM t WHERE a IN (1);
+----
+1
+
+query I rowsort
+SELECT a FROM t WHERE a IN (2,3);
+----
+2
+3
+
+query I rowsort
+SELECT a FROM t WHERE a NOT IN (2,3);
+----
+1
+4
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('a','nananananabanana');
+----
+1
+2
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('nananananabanana','catdogelephantfishgiraffehorse');
+----
+2
+3
+
+query I rowsort
+SELECT a FROM t WHERE b NOT IN ('a');
+----
+2
+3
+4
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('a','nananananabanana','catdogelephantfishgiraffehorse','d');
+----
+1
+2
+3
+4
+
+statement ok
+DROP TABLE t;

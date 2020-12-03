@@ -9,7 +9,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * The plan node for ANALYZE
@@ -59,10 +59,7 @@ class AnalyzePlanNode : public AbstractPlanNode {
      * Build the analyze plan node
      * @return plan node
      */
-    std::unique_ptr<AnalyzePlanNode> Build() {
-      return std::unique_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
-                                                                  database_oid_, table_oid_, std::move(column_oids_)));
-    }
+    std::unique_ptr<AnalyzePlanNode> Build();
 
    protected:
     /**
@@ -88,14 +85,12 @@ class AnalyzePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param table_oid OID of the target SQL table
    * @param column_oids OIDs of the columns of the target table
+   * @param plan_node_id Plan node id
    */
   AnalyzePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                  catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        table_oid_(table_oid),
-        column_oids_(std::move(column_oids)) {}
+                  catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids,
+                  plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -154,4 +149,4 @@ class AnalyzePlanNode : public AbstractPlanNode {
   std::vector<catalog::col_oid_t> column_oids_;
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

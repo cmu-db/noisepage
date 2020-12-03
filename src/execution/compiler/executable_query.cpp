@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "brain/operating_unit.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/ast/ast_dump.h"
@@ -12,9 +11,10 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 //===----------------------------------------------------------------------===//
 //
@@ -73,7 +73,7 @@ std::string GetFileName(const std::string &path) {
 
 std::atomic<query_id_t> ExecutableQuery::query_identifier{0};
 
-void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units) {
+void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::PipelineOperatingUnits> &&units) {
   pipeline_operating_units_ = std::move(units);
 }
 
@@ -135,12 +135,12 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 ExecutableQuery::~ExecutableQuery() = default;
 
 void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
-                            std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units) {
-  TERRIER_ASSERT(
+                            std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units) {
+  NOISEPAGE_ASSERT(
       std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
       "All query fragments are not compiled!");
-  TERRIER_ASSERT(query_state_size >= sizeof(void *),
-                 "Query state must be large enough to store at least an ExecutionContext pointer.");
+  NOISEPAGE_ASSERT(query_state_size >= sizeof(void *),
+                   "Query state must be large enough to store at least an ExecutionContext pointer.");
 
   fragments_ = std::move(fragments);
   query_state_size_ = query_state_size;
@@ -154,14 +154,20 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   // First, allocate the query state and move the execution context into it.
   auto query_state = std::make_unique<byte[]>(query_state_size_);
   *reinterpret_cast<exec::ExecutionContext **>(query_state.get()) = exec_ctx.Get();
+  exec_ctx->SetQueryState(query_state.get());
 
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
   exec_ctx->SetPipelineOperatingUnits(GetPipelineOperatingUnits());
+  exec_ctx->SetQueryId(query_id_);
 
   // Now run through fragments.
   for (const auto &fragment : fragments_) {
     fragment->Run(query_state.get(), mode);
   }
+
+  // We do not currently re-use ExecutionContexts. However, this is unset to help ensure
+  // we don't *intentionally* retain any dangling pointers.
+  exec_ctx->SetQueryState(nullptr);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

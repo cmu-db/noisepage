@@ -12,14 +12,14 @@
 #include "common/spin_latch.h"
 #include "metrics/metrics_manager.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * @brief Singleton class responsible for maintaining and dispensing long running
  * (dedicated) threads to other system components.
  *
- * The class also serves as a control panel for the brain component to be able to collect information on threads in the
- * system and modify how threads are allocated.
+ * The class also serves as a control panel for the self-driving component to be able to collect information on threads
+ * in the system and modify how threads are allocated.
  *
  * Additionally, task owners are able to register or stop threads by calling RegisterDedicatedThread or StopTask
  * respectively.
@@ -36,7 +36,7 @@ class DedicatedThreadRegistry {
   ~DedicatedThreadRegistry() {
     // Note that if registry is shutting down, it doesn't matter whether
     // owners are notified as this class should have the same life cycle
-    // as the entire terrier process.
+    // as the entire noisepage process.
 
     TearDown();
   }
@@ -102,7 +102,7 @@ class DedicatedThreadRegistry {
       common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
       // Exposing the raw pointer like this is okay because we own the underlying raw pointer
       auto search = threads_table_.find(task.operator->());
-      TERRIER_ASSERT(search != threads_table_.end(), "Task is not registered");
+      NOISEPAGE_ASSERT(search != threads_table_.end(), "Task is not registered");
       task_ptr = search->first;
       task_thread = &search->second;
     }
@@ -143,4 +143,4 @@ class DedicatedThreadRegistry {
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

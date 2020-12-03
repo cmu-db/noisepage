@@ -9,7 +9,7 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 namespace {
 
@@ -86,18 +86,15 @@ bool IsSorted(const Vector &vec) {
 
 }  // namespace
 
-class SorterVectorIteratorTest : public TplTest {
+class SorterVectorIteratorTest : public SqlBasedTest {
  public:
   SorterVectorIteratorTest()
-      : memory_(nullptr),
-        schema_({
+      : schema_({
             {"key", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT)},
             {"attributes", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
         }) {}
 
  protected:
-  MemoryPool *Memory() { return &memory_; }
-
   std::vector<const catalog::Schema::Column *> RowMeta() const {
     std::vector<const catalog::Schema::Column *> cols;
     for (const auto &col : schema_.GetColumns()) {
@@ -107,16 +104,16 @@ class SorterVectorIteratorTest : public TplTest {
   }
 
  private:
-  MemoryPool memory_;
   catalog::Schema schema_;
 };
 
 // NOLINTNEXTLINE
 TEST_F(SorterVectorIteratorTest, EmptyIterator) {
+  auto exec_ctx = MakeExecCtx();
   const auto compare = [](const void *lhs, const void *rhs) {
     return CompareTuple(*reinterpret_cast<const Tuple *>(lhs), *reinterpret_cast<const Tuple *>(rhs));
   };
-  Sorter sorter(Memory(), compare, sizeof(Tuple));
+  Sorter sorter(exec_ctx.get(), compare, sizeof(Tuple));
 
   for (SorterVectorIterator iter(sorter, RowMeta(), Transpose); iter.HasNext(); iter.Next(Transpose)) {
     FAIL() << "Iteration should not occur on empty sorter instance";
@@ -126,12 +123,13 @@ TEST_F(SorterVectorIteratorTest, EmptyIterator) {
 // NOLINTNEXTLINE
 TEST_F(SorterVectorIteratorTest, Iterate) {
   // To ensure at least two vector's worth of data
+  auto exec_ctx = MakeExecCtx();
   const uint32_t num_elems = common::Constants::K_DEFAULT_VECTOR_SIZE + 29;
 
   const auto compare = [](const void *lhs, const void *rhs) {
     return CompareTuple(*reinterpret_cast<const Tuple *>(lhs), *reinterpret_cast<const Tuple *>(rhs));
   };
-  Sorter sorter(Memory(), compare, sizeof(Tuple));
+  Sorter sorter(exec_ctx.get(), compare, sizeof(Tuple));
   PopulateSorter(&sorter, num_elems);
   sorter.Sort();
 
@@ -162,4 +160,4 @@ TEST_F(SorterVectorIteratorTest, Iterate) {
   EXPECT_EQ(num_elems, num_found);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

@@ -7,7 +7,7 @@
 #include "optimizer/operator_visitor.h"
 #include "optimizer/property_set.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace catalog {
 class CatalogAccessor;
@@ -140,6 +140,11 @@ class ChildPropertyDeriver : public OperatorVisitor {
    */
   void Visit(const OuterHashJoin *op) override;
 
+  /**
+   * Visitor function for LeftSemiHashJoin
+   * @param op LeftSemiHashJoin operator to visit
+   */
+  void Visit(const LeftSemiHashJoin *op) override;
   /**
    * Visitor function for Insert
    * @param op Insert operator to visit
@@ -299,4 +304,4 @@ class ChildPropertyDeriver : public OperatorVisitor {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

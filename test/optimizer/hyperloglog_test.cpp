@@ -7,7 +7,7 @@
 #include "loggers/optimizer_logger.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class HyperLogLogTests : public TerrierTest {
  public:
@@ -183,4 +183,4 @@ TEST_F(HyperLogLogTests, LargeDatasetTest) {
   HyperLogLogTests::CheckErrorBounds(threshold, actual, estimate, error);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

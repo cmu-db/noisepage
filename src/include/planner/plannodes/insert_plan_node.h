@@ -13,7 +13,7 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for insert
@@ -83,14 +83,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::unique_ptr<InsertPlanNode> Build() {
-      TERRIER_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
-      TERRIER_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
-                     "Must have parameter info for each value");
-      return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, table_oid_, std::move(values_),
-                                                                std::move(parameter_info_)));
-    }
+    std::unique_ptr<InsertPlanNode> Build();
 
    protected:
     /**
@@ -131,16 +124,12 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param table_oid the OID of the target SQL table
    * @param values values to insert
    * @param parameter_info parameters information
+   * @param plan_node_id Plan node id
    */
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                 std::vector<catalog::col_oid_t> &&parameter_info)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        table_oid_(table_oid),
-        values_(std::move(values)),
-        parameter_info_(std::move(parameter_info)) {}
+                 std::vector<catalog::col_oid_t> &&parameter_info, plan_node_id_t plan_node_id);
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)
@@ -238,4 +227,4 @@ class InsertPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(InsertPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

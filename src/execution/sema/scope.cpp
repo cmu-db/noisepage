@@ -2,7 +2,7 @@
 
 #include "execution/ast/ast.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 bool Scope::Declare(ast::Identifier decl_name, ast::Type *type) {
   ast::Type *curr_decl = Lookup(decl_name);
@@ -29,4 +29,4 @@ ast::Type *Scope::LookupLocal(ast::Identifier name) const {
   return (iter == decls_.end() ? nullptr : iter->second);
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

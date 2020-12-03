@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  *  The plan node for dropping indexes
  */
@@ -41,10 +41,7 @@ class DropIndexPlanNode : public AbstractPlanNode {
      * Build the drop index plan node
      * @return plan node
      */
-    std::unique_ptr<DropIndexPlanNode> Build() {
-      return std::unique_ptr<DropIndexPlanNode>(
-          new DropIndexPlanNode(std::move(children_), std::move(output_schema_), index_oid_));
-    }
+    std::unique_ptr<DropIndexPlanNode> Build();
 
    protected:
     /**
@@ -60,10 +57,11 @@ class DropIndexPlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param index_oid OID of the index to drop
+   * @param plan_node_id Plan node id
    */
   DropIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::unique_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), index_oid_(index_oid) {}
+                    std::unique_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
+                    plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -104,4 +102,4 @@ class DropIndexPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DropIndexPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -9,15 +9,14 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_util.h"
-#include "brain/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for processing the execute command
@@ -41,10 +40,10 @@ class ExecuteCommandMetricRawData : public AbstractRawData {
    * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
    */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
-    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+    NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
+    NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
 
@@ -97,4 +96,4 @@ class ExecuteCommandMetric : public AbstractMetric<ExecuteCommandMetricRawData> 
     GetRawData()->RecordExecuteCommandData(portal_name_size, resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

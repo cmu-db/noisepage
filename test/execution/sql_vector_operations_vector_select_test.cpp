@@ -7,7 +7,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorSelectTest : public TplTest {};
 
@@ -262,4 +262,4 @@ TEST_F(VectorSelectTest, IsNullAndIsNotNull) {
   EXPECT_EQ(2u, tid_list[0]);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

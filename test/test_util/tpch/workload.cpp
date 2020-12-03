@@ -17,7 +17,7 @@
 #include "test_util/ssb/star_schema_query.h"
 #include "test_util/tpch/tpch_query.h"
 
-namespace terrier::tpch {
+namespace noisepage::tpch {
 
 Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db_name, const std::string &table_root,
                    enum BenchmarkType type) {
@@ -36,10 +36,14 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
       catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
   ns_oid_ = accessor->GetDefaultNamespace();
 
+  // Enable counters and disable the parallel execution for this workload
+  exec_settings_.is_parallel_execution_enabled_ = false;
+  exec_settings_.is_counters_enabled_ = true;
+
   // Make the execution context
   auto exec_ctx = execution::exec::ExecutionContext(
       db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), nullptr, nullptr,
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_);
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_, db_main->GetMetricsManager());
 
   // create the TPCH database and compile the queries
   GenerateTables(&exec_ctx, table_root, type);
@@ -73,16 +77,15 @@ void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const
   }
   execution::sql::TableReader table_reader(exec_ctx, block_store_.Get(), ns_oid_);
 
-  for (const auto &table_name : *tables) {
-    auto table_dir = dir_name + table_name;
-    auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", table_dir.append(kind));
+  for (UNUSED_ATTRIBUTE const auto &table_name : *tables) {
+    UNUSED_ATTRIBUTE auto table_dir = dir_name + table_name;
+    UNUSED_ATTRIBUTE auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", table_dir.append(kind));
     EXECUTION_LOG_INFO("Wrote {} rows on table {}.", num_rows, table_name);
   }
 }
 
 void Workload::LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type) {
   // Executable query and plan node are stored as a tuple as the entry of vector
-  // TODO(wuwenw): add q16 after LIKE PR get merged
   switch (type) {
     case tpch::Workload::BenchmarkType::TPCH:
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ1(accessor, exec_settings_));
@@ -145,7 +148,7 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     execution::exec::NoOpResultConsumer printer;
     auto exec_ctx = execution::exec::ExecutionContext(
         db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), printer, output_schema,
-        common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_);
+        common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_, db_main_->GetMetricsManager());
 
     std::get<0>(query_and_plan_[index[counter]])
         ->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
@@ -163,4 +166,4 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
   db_main_->GetMetricsManager()->UnregisterThread();
 }
 
-}  // namespace terrier::tpch
+}  // namespace noisepage::tpch

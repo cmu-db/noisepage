@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /* Magic array for 256 bit division with powers of 10
  * This map is used after multiplication of decimals to get
@@ -184,11 +184,11 @@ uint128_t PowerOfTen[39][2] = {{0, 0},
                                {0x4b3b4ca85a86c47a, 0x098a224000000000}};
 
 /* Magic map for 128 bit division with constants*/
-std::unordered_map<uint128_t, struct Magic_Number_128> MagicMap128BitConstantDivision = {
+std::map<uint128_t, struct Magic_Number_128> MagicMap128BitConstantDivision = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccd, 130, 0}}, {7, {0x2492492492492492, 0x4924924924924925, 131, 1}}};
 
 /* Magic map for 256 bit division with constants*/
-std::unordered_map<uint128_t, struct Magic_Number_256> MagicMap256BitConstantDivision = {
+std::map<uint128_t, struct Magic_Number_256> MagicMap256BitConstantDivision = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
     {7, {0x2492492492492492, 0x4924924924924924, 0x9249249249249249, 0x2492492492492493, 259, 1}},
     {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09, 0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},
@@ -198,7 +198,7 @@ std::unordered_map<uint128_t, struct Magic_Number_256> MagicMap256BitConstantDiv
 /* Map of powers of 2
  * This map stores powers of two to be used during
  * constant division of a decimal with a power of 2*/
-std::unordered_map<uint128_t, unsigned> PowerTwo = {
+std::map<uint128_t, unsigned> PowerTwo = {
     {0x2, 1},
     {0x4, 2},
     {0x8, 3},

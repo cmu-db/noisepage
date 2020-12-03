@@ -9,11 +9,11 @@
 #include "network/postgres/statement.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Portal is a postgres concept (see the Extended Query documentation:
@@ -46,9 +46,9 @@ class Portal {
   common::ManagedPointer<Statement> GetStatement() const { return statement_; }
 
   /**
-   * @return the optimized physical plan for this query
+   * @return the optimize result for this query
    */
-  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const { return statement_->PhysicalPlan(); }
+  common::ManagedPointer<optimizer::OptimizeResult> OptimizeResult() const { return statement_->OptimizeResult(); }
 
   /**
    * @return output formats for this query
@@ -68,4 +68,4 @@ class Portal {
   const std::vector<FieldFormat> result_formats_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

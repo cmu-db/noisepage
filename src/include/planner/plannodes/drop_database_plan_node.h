@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  *  The plan node for dropping databases
  */
@@ -41,10 +41,7 @@ class DropDatabasePlanNode : public AbstractPlanNode {
      * Build the drop database plan node
      * @return plan node
      */
-    std::unique_ptr<DropDatabasePlanNode> Build() {
-      return std::unique_ptr<DropDatabasePlanNode>(
-          new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_));
-    }
+    std::unique_ptr<DropDatabasePlanNode> Build();
 
    protected:
     /**
@@ -58,10 +55,11 @@ class DropDatabasePlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database to drop
+   * @param plan_node_id Plan node id
    */
   DropDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), database_oid_(database_oid) {}
+                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                       plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -99,4 +97,4 @@ class DropDatabasePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DropDatabasePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

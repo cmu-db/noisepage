@@ -4,16 +4,17 @@
 #include <limits>
 
 #include "execution/sql/runtime_types.h"
+#include "common/error/error_code.h"
 #include "network/postgres/postgres_defs.h"
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 void BinderUtil::PromoteParameters(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression> > parameters,
     const std::vector<type::TypeId> &desired_parameter_types) {
-  TERRIER_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
+  NOISEPAGE_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
   for (uint32_t parameter_index = 0; parameter_index < desired_parameter_types.size(); parameter_index++) {
     const auto desired_type = desired_parameter_types[parameter_index];
 
@@ -90,13 +91,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::TINYINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("tinyint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type tinyint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("tinyint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -105,13 +113,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::SMALLINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("smallint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type smallint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("smallint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -120,13 +135,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::INTEGER: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("integer out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type integer: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("integer out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -135,13 +157,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::BIGINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("bigint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type bigint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("bigint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -165,7 +194,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
 
           case type::TypeId::FIXEDDECIMAL: {
             {
-              terrier::execution::sql::Decimal128 decimal_val(0);
+              noisepage::execution::sql::Decimal128 decimal_val(0);
               // TODO(Rohan): Fix the precision argument
               int precision = decimal_val.SetMaxmPrecision(std::string(str_view));
               value->SetValue(type::TypeId::FIXEDDECIMAL, execution::sql::DecimalVal(decimal_val, precision));
@@ -193,7 +222,13 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
 
 template <typename Output, typename Input>
 bool BinderUtil::IsRepresentable(const Input int_val) {
-  return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
+  // Fixes this hideously obscure bug: https://godbolt.org/z/M14jdb
+  if constexpr (std::numeric_limits<Output>::is_integer && !std::numeric_limits<Input>::is_integer) {  // NOLINT
+    return std::numeric_limits<Output>::lowest() <= int_val &&
+           static_cast<Output>(int_val) < std::numeric_limits<Output>::max();
+  } else {  // NOLINT
+    return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
+  }
 }
 
 /**
@@ -290,4 +325,4 @@ template bool BinderUtil::IsRepresentable<int32_t>(const double int_val);
 template bool BinderUtil::IsRepresentable<int64_t>(const double int_val);
 template bool BinderUtil::IsRepresentable<double>(const double int_val);
 
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

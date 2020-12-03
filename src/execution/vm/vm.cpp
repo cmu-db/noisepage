@@ -10,7 +10,7 @@
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * An execution frame where all function's local variables and parameters live
@@ -21,8 +21,8 @@ class VM::Frame {
 
  public:
   Frame(uint8_t *frame_data, std::size_t frame_size) : frame_data_(frame_data), frame_size_(frame_size) {
-    TERRIER_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
-    TERRIER_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
+    NOISEPAGE_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
+    NOISEPAGE_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
     (void)frame_size_;
   }
 
@@ -87,7 +87,7 @@ VM::VM(const Module *module) : module_(module) {}
 void VM::InvokeFunction(const Module *module, const FunctionId func_id, const uint8_t args[]) {
   // The function's info
   const FunctionInfo *func_info = module->GetFuncInfoById(func_id);
-  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  NOISEPAGE_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->GetFrameSize();
 
   // Let's try to get some space
@@ -472,6 +472,30 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextRegisterHook) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+
+    auto fn_id = READ_FUNC_ID();
+    auto fn = reinterpret_cast<exec::ExecutionContext::HookFn>(module_->GetRawFunctionImpl(fn_id));
+
+    OpExecutionContextRegisterHook(exec_ctx, idx, fn);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextClearHooks) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpExecutionContextClearHooks(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextInitHooks) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpExecutionContextInitHooks(exec_ctx, size);
+    DISPATCH_NEXT();
+  }
+
   OP(ExecutionContextGetTLS) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer **>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
@@ -511,29 +535,61 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto query_id = execution::query_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id);
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id, ouvec);
     DISPATCH_NEXT();
   }
 
-  OP(ExecutionContextGetFeature) : {
-    auto *value = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+  OP(ExecOUFeatureVectorRecordFeature) : {
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto feature_attribute =
-        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
-    OpExecutionContextGetFeature(value, exec_ctx, pipeline_id, feature_id, feature_attribute);
-    DISPATCH_NEXT();
-  }
-
-  OP(ExecutionContextRecordFeature) : {
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    auto feature_attribute =
-        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+        static_cast<selfdriving::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    auto mode =
+        static_cast<selfdriving::ExecutionOperatingUnitFeatureUpdateMode>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
     auto value = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpExecutionContextRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value);
+    OpExecOUFeatureVectorRecordFeature(ouvec, pipeline_id, feature_id, feature_attribute, mode, value);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecOUFeatureVectorInitialize) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto is_parallel = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id, is_parallel);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecOUFeatureVectorFilter) : {
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto type = static_cast<selfdriving::ExecutionOperatingUnitType>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    OpExecOUFeatureVectorFilter(ouvec, type);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecOUFeatureVectorReset) : {
+    auto *ouvec = frame->LocalAt<selfdriving::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    OpExecOUFeatureVectorReset(ouvec);
+    DISPATCH_NEXT();
+  }
+
+  OP(RegisterThreadWithMetricsManager) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpRegisterThreadWithMetricsManager(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(EnsureTrackersStopped) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpEnsureTrackersStopped(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregateMetricsThread) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpAggregateMetricsThread(exec_ctx);
     DISPATCH_NEXT();
   }
 
@@ -627,11 +683,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
     auto query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *exec_context = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto scan_fn_id = READ_FUNC_ID();
 
     auto scan_fn = reinterpret_cast<sql::TableVectorIterator::ScanFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelScanTable(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn);
+    OpParallelScanTable(table_oid, col_oids, num_oids, query_state, exec_context, scan_fn);
     DISPATCH_NEXT();
   }
 
@@ -816,6 +872,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   GEN_HASH(Int, sql::Integer)
+  GEN_HASH(Bool, sql::BoolVal)
   GEN_HASH(Real, sql::Real)
   GEN_HASH(Date, sql::DateVal)
   GEN_HASH(FixedDecimal, sql::DecimalVal)
@@ -1236,9 +1293,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(AggregationHashTableInit) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto payload_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpAggregationHashTableInit(agg_hash_table, exec_ctx, memory, payload_size);
+    OpAggregationHashTableInit(agg_hash_table, exec_ctx, payload_size);
     DISPATCH_NEXT();
   }
 
@@ -1246,6 +1302,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     OpAggregationHashTableGetTupleCount(result, agg_hash_table);
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregationHashTableGetInsertCount) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
+    OpAggregationHashTableGetInsertCount(result, agg_hash_table);
     DISPATCH_NEXT();
   }
 
@@ -1576,9 +1639,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(JoinHashTableInit) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<sql::MemoryPool *>(READ_LOCAL_ID());
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpJoinHashTableInit(join_hash_table, exec_ctx, memory, tuple_size);
+    OpJoinHashTableInit(join_hash_table, exec_ctx, tuple_size);
     DISPATCH_NEXT();
   }
 
@@ -1639,18 +1701,51 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(JoinHashTableIteratorInit) : {
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    auto *hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorInit(iter, hash_table);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorHasNext) : {
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorHasNext(has_more, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorNext) : {
+    auto *hash_table_iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorNext(hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorGetRow) : {
+    auto *row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorGetRow(row, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorFree) : {
+    auto *hash_table_iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorFree(hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Sorting
   // -------------------------------------------------------
 
   OP(SorterInit) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<noisepage::execution::exec::ExecutionContext *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     auto cmp_fn = reinterpret_cast<sql::Sorter::ComparisonFunction>(module_->GetRawFunctionImpl(cmp_func_id));
-    OpSorterInit(sorter, memory, cmp_fn, tuple_size);
+    OpSorterInit(sorter, exec_ctx, cmp_fn, tuple_size);
     DISPATCH_NEXT();
   }
 
@@ -1756,16 +1851,29 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // Output
   // -------------------------------------------------------
 
+  OP(ResultBufferNew) : {
+    auto *result = frame->LocalAt<exec::OutputBuffer **>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpResultBufferNew(result, exec_ctx);
+    DISPATCH_NEXT();
+  }
+
   OP(ResultBufferAllocOutputRow) : {
     auto *result = frame->LocalAt<byte **>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpResultBufferAllocOutputRow(result, exec_ctx);
+    auto *out = frame->LocalAt<exec::OutputBuffer *>(READ_LOCAL_ID());
+    OpResultBufferAllocOutputRow(result, out);
     DISPATCH_NEXT();
   }
 
   OP(ResultBufferFinalize) : {
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpResultBufferFinalize(exec_ctx);
+    auto *out = frame->LocalAt<exec::OutputBuffer *>(READ_LOCAL_ID());
+    OpResultBufferFinalize(out);
+    DISPATCH_NEXT();
+  }
+
+  OP(ResultBufferFree) : {
+    auto *out = frame->LocalAt<exec::OutputBuffer *>(READ_LOCAL_ID());
+    OpResultBufferFree(out);
     DISPATCH_NEXT();
   }
 
@@ -2206,6 +2314,41 @@ GEN_PR_SET(TimestampVal, sql::TimestampVal)
 #undef BINARY_REAL_MATH_OP
 #undef UNARY_REAL_MATH_OP
 
+#define ATOMIC_BINARY_OP(AOP, T)                       \
+  OP(Atomic##AOP) : {                                  \
+    auto *ret = frame->LocalAt<T *>(READ_LOCAL_ID());  \
+    auto *dest = frame->LocalAt<T *>(READ_LOCAL_ID()); \
+    auto val = frame->LocalAt<T>(READ_LOCAL_ID());     \
+    OpAtomic##AOP(ret, dest, val);                     \
+    DISPATCH_NEXT();                                   \
+  }
+
+#define ATOMIC_CMPXCHG_OP(SIZE, T)                               \
+  OP(AtomicCompareExchange##SIZE) : {                            \
+    auto *ret = frame->LocalAt<bool *>(READ_LOCAL_ID());         \
+    auto *dest = frame->LocalAt<T *>(READ_LOCAL_ID());           \
+    auto *expected = frame->LocalAt<T *>(READ_LOCAL_ID());       \
+    auto desired = frame->LocalAt<T>(READ_LOCAL_ID());           \
+    OpAtomicCompareExchange##SIZE(ret, dest, expected, desired); \
+    DISPATCH_NEXT();                                             \
+  }
+
+  ATOMIC_BINARY_OP(And1, uint8_t);
+  ATOMIC_BINARY_OP(And2, uint16_t);
+  ATOMIC_BINARY_OP(And4, uint32_t);
+  ATOMIC_BINARY_OP(And8, uint64_t);
+  ATOMIC_BINARY_OP(Or1, uint8_t);
+  ATOMIC_BINARY_OP(Or2, uint16_t);
+  ATOMIC_BINARY_OP(Or4, uint32_t);
+  ATOMIC_BINARY_OP(Or8, uint64_t);
+  ATOMIC_CMPXCHG_OP(1, uint8_t);
+  ATOMIC_CMPXCHG_OP(2, uint16_t);
+  ATOMIC_CMPXCHG_OP(4, uint32_t);
+  ATOMIC_CMPXCHG_OP(8, uint64_t);
+
+#undef ATOMIC_BINARY_OP
+#undef ATOMIC_CMPXCHG_OP
+
   // -------------------------------------------------------
   // Mini runners functions
   // -------------------------------------------------------
@@ -2533,7 +2676,7 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
 
   // Lookup the function
   const FunctionInfo *func_info = module_->GetFuncInfoById(func_id);
-  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  NOISEPAGE_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->GetFrameSize();
 
   // Get some space for the function's frame
@@ -2573,4 +2716,4 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   return ip;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

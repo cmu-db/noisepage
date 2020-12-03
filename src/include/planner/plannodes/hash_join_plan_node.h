@@ -8,7 +8,7 @@
 #include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for hash join. Hash joins are constructed so that the left is the probe table, and the right is the
@@ -52,11 +52,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * Build the hash join plan node
      * @return plan node
      */
-    std::unique_ptr<HashJoinPlanNode> Build() {
-      return std::unique_ptr<HashJoinPlanNode>(
-          new HashJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_,
-                               std::move(left_hash_keys_), std::move(right_hash_keys_)));
-    }
+    std::unique_ptr<HashJoinPlanNode> Build();
 
    protected:
     /**
@@ -77,15 +73,14 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    * @param predicate join predicate
    * @param left_hash_keys left side keys to be hashed on
    * @param right_hash_keys right side keys to be hashed on
+   * @param plan_node_id Plan node id
    */
   HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                    std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                    common::ManagedPointer<parser::AbstractExpression> predicate,
                    std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
-                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
-        left_hash_keys_(std::move(left_hash_keys)),
-        right_hash_keys_(std::move(right_hash_keys)) {}
+                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys,
+                   plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -134,4 +129,4 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(HashJoinPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

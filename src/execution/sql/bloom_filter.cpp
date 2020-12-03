@@ -8,7 +8,7 @@
 #include "execution/util/simd.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 BloomFilter::BloomFilter() noexcept {}  // NOLINT default constructor doesn't support noexcept
 
@@ -99,4 +99,4 @@ std::string BloomFilter::DebugString() const {
                      GetSizeInBits(), bits_per_elem, GetTotalBitsSet(), bit_set_prob);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

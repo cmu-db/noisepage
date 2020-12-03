@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /** Counting aggregate. */
 class CountAggregate {
@@ -231,8 +231,13 @@ class MaxAggregate {
     if (val.is_null_) {
       return;
     }
+
+    if (max_.is_null_) {  // Initial null value should not be larger than any value
+      max_.val_ = val.val_;
+    } else {
+      max_.val_ = std::max(val.val_, max_.val_);
+    }
     max_.is_null_ = false;
-    max_.val_ = std::max(val.val_, max_.val_);
   }
 
   /**
@@ -242,8 +247,13 @@ class MaxAggregate {
     if (that.max_.is_null_) {
       return;
     }
+
+    if (max_.is_null_) {  // Initial null value should not be larger than any value
+      max_.val_ = that.max_.val_;
+    } else {
+      max_.val_ = std::max(that.max_.val_, max_.val_);
+    }
     max_.is_null_ = false;
-    max_.val_ = std::max(that.max_.val_, max_.val_);
   }
 
   /**
@@ -364,8 +374,13 @@ class MinAggregate {
     if (val.is_null_) {
       return;
     }
+
+    if (min_.is_null_) {  // Initial null String should not be smaller than any string
+      min_.val_ = val.val_;
+    } else {
+      min_.val_ = std::min(val.val_, min_.val_);
+    }
     min_.is_null_ = false;
-    min_.val_ = std::min(val.val_, min_.val_);
   }
 
   /**
@@ -375,8 +390,13 @@ class MinAggregate {
     if (that.min_.is_null_) {
       return;
     }
+
+    if (min_.is_null_) {  // Initial null String should not be smaller than any string
+      min_.val_ = that.min_.val_;
+    } else {
+      min_.val_ = std::min(that.min_.val_, min_.val_);
+    }
     min_.is_null_ = false;
-    min_.val_ = std::min(that.min_.val_, min_.val_);
   }
 
   /**
@@ -532,4 +552,4 @@ class AvgAggregate {
   uint64_t count_{0};
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -3,7 +3,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 If::If(FunctionBuilder *function, ast::Expr *condition)
     : function_(function),
@@ -45,4 +45,4 @@ void If::EndIf() {
   completed_ = true;
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

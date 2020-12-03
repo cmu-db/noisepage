@@ -3,7 +3,7 @@
 #include "common/macros.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class Memo;
 class GroupExpression;
@@ -127,6 +127,12 @@ class TrivialCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) override {}
 
   /**
+   * Visit a LeftSemiHashJoin operator
+   * @param op operator
+   */
+  void Visit(UNUSED_ATTRIBUTE const LeftSemiHashJoin *op) override { output_cost_ = 1.f; }
+
+  /**
    * Visit a Insert operator
    * @param op operator
    */
@@ -195,4 +201,4 @@ class TrivialCostModel : public AbstractCostModel {
   double output_cost_ = 0;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

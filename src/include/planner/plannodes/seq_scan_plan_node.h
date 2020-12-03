@@ -14,7 +14,7 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for sequanial table scan
@@ -55,11 +55,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * Build the sequential scan plan node
      * @return plan node
      */
-    std::unique_ptr<SeqScanPlanNode> Build() {
-      return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(
-          std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
-          database_oid_, table_oid_, scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_));
-    }
+    std::unique_ptr<SeqScanPlanNode> Build();
 
    protected:
     /**
@@ -82,17 +78,14 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param is_for_update flag for if scan is for an update
    * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
+   * @param plan_node_id Plan node id
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate,
                   std::vector<catalog::col_oid_t> &&column_oids, bool is_for_update, catalog::db_oid_t database_oid,
                   catalog::table_oid_t table_oid, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
-                  bool scan_has_offset)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
-                             scan_limit, scan_has_limit, scan_offset, scan_has_offset),
-        column_oids_(std::move(column_oids)),
-        table_oid_(table_oid) {}
+                  bool scan_has_offset, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -143,4 +136,4 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(SeqScanPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

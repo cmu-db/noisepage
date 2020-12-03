@@ -6,8 +6,19 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+std::unique_ptr<DropIndexPlanNode> DropIndexPlanNode::Builder::Build() {
+  return std::unique_ptr<DropIndexPlanNode>(
+      new DropIndexPlanNode(std::move(children_), std::move(output_schema_), index_oid_, plan_node_id_));
+}
+
+DropIndexPlanNode::DropIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                     std::unique_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
+                                     plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), index_oid_(index_oid) {}
 
 common::hash_t DropIndexPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -38,7 +49,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropIndexPlanNode::From
   index_oid_ = j.at("index_oid").get<catalog::index_oid_t>();
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(DropIndexPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

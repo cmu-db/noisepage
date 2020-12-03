@@ -5,7 +5,7 @@
 #include "execution/ast/ast.h"
 #include "execution/util/region.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
  * A factory for AST nodes. This factory uses a region allocator to quickly
@@ -341,4 +341,4 @@ class AstNodeFactory {
   util::Region *region_;
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

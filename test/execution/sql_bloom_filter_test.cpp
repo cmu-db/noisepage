@@ -6,7 +6,7 @@
 #include "execution/sql/bloom_filter.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class BloomFilterTest : public TplTest {
  public:
@@ -46,7 +46,7 @@ void GenerateRandom32(std::vector<uint32_t> &vals, uint32_t n) {  // NOLINT
 // Mix in elements from source into the target vector with probability p
 template <typename T>
 void Mix(std::vector<T> &target, const std::vector<T> &source, double p) {  // NOLINT
-  TERRIER_ASSERT(target.size() > source.size(), "Bad sizes!");
+  NOISEPAGE_ASSERT(target.size() > source.size(), "Bad sizes!");
   std::random_device random;
   std::mt19937 g(random());
 
@@ -102,11 +102,12 @@ TEST_F(BloomFilterTest, Comprehensive) {
 
     timer.Stop();
 
-    double fpr = (actual_found - expected_found) / static_cast<double>(lookups.size());
-    double probes_per_sec = static_cast<double>(lookups.size()) / timer.GetElapsed() * 1000.0 / 1000000.0;
+    UNUSED_ATTRIBUTE double fpr = (actual_found - expected_found) / static_cast<double>(lookups.size());
+    UNUSED_ATTRIBUTE double probes_per_sec =
+        static_cast<double>(lookups.size()) / timer.GetElapsed() * 1000.0 / 1000000.0;
     EXECUTION_LOG_TRACE("p: {:.2f}, {} M probes/sec, FPR: {:2.4f}, (expected: {}, actual: {})", prob_success,
                         probes_per_sec, fpr, expected_found, actual_found);
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

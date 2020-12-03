@@ -3,28 +3,28 @@
 #include <string>
 #include <type_traits>
 
-#include "brain/brain_defs.h"
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/compiler/expression/column_value_provider.h"
 #include "execution/compiler/state_descriptor.h"
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 
-namespace terrier::brain {
+namespace noisepage::selfdriving {
 class ExecutionOperatingUnitFeature;
 class OperatingUnitRecorder;
-}  // namespace terrier::brain
+}  // namespace noisepage::selfdriving
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class CodeGen;
 class CompilationContext;
@@ -94,7 +94,7 @@ class OperatorTranslator : public ColumnValueProvider {
    * @param feature_type Minirunner execution operating unit type for this operator.
    */
   OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline,
-                     brain::ExecutionOperatingUnitType feature_type);
+                     selfdriving::ExecutionOperatingUnitType feature_type);
 
   /**
    * This class cannot be copied or moved.
@@ -121,6 +121,14 @@ class OperatorTranslator : public ColumnValueProvider {
   virtual void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {}
 
   /**
+   * Define any helper functions that rely on pipeline's thread local state.
+   * @param pipeline Pipeline that helper functions are being generated for.
+   * @param decls Query-level declarations.
+   */
+  virtual void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                 util::RegionVector<ast::FunctionDecl *> *decls) {}
+
+  /**
    * Initialize all query state.
    * @param function The builder for the query state initialization function.
    */
@@ -145,6 +153,42 @@ class OperatorTranslator : public ColumnValueProvider {
    * @param function The function being built.
    */
   virtual void BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
+
+  /**
+   * Function to initialize relevant counters.
+   * @param pipeline The pipeline to initialize counters for.
+   * @param function The function being built.
+   */
+  virtual void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}
+
+  /**
+   * Function to record relevant counters.
+   * @param pipeline The pipeline to record counters for.
+   * @param function The function being built.
+   */
+  virtual void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}
+
+  /**
+   * Perform any logic that should happen at the start of a parallel work function.
+   * The parallel work function is the function that is invoked by LaunchWork from the driver.
+   * By default, this function re-initializes any relevant counters.
+   *
+   * @param pipeline The pipeline whose pre parallel work logic is being generated.
+   * @param function The function being built.
+   */
+  virtual void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+    InitializeCounters(pipeline, function);
+  }
+
+  /**
+   * Perform any logic that should happen at the end of a parallel work function.
+   * The parallel work function is the function that is invoked by LaunchWork from the driver.
+   * @param pipeline The pipeline whose post parallel work logic is being generated.
+   * @param function The function being built.
+   */
+  virtual void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+    RecordCounters(pipeline, function);
+  }
 
   /**
    * Perform the primary logic of a pipeline. This is where the operator's logic should be
@@ -202,7 +246,7 @@ class OperatorTranslator : public ColumnValueProvider {
   CompilationContext *GetCompilationContext() const { return compilation_context_; }
 
   /** @return Feature type. */
-  brain::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
+  selfdriving::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
 
   /** @return The plan node as a generic node. */
   const planner::AbstractPlanNode *Op() const { return &plan_; }
@@ -252,11 +296,14 @@ class OperatorTranslator : public ColumnValueProvider {
   /** @return True if we should collect counters in TPL, used for Lin's models. */
   bool IsCountersEnabled() const;
 
+  /** @return True if we should collect pipeline metrics */
+  bool IsPipelineMetricsEnabled() const;
+
   /** @return True if this translator should pass ownership of its counters further down, used for Lin's models. */
   virtual bool IsCountersPassThrough() const { return false; }
 
   /** Declare a counter for Lin's models. */
-  StateDescriptor::Entry CounterDeclare(const std::string &counter_name) const;
+  StateDescriptor::Entry CounterDeclare(const std::string &counter_name, Pipeline *pipeline) const;
   /** Set the value of a counter for Lin's models. */
   void CounterSet(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
   /** Set the value of a counter for Lin's models. */
@@ -268,8 +315,8 @@ class OperatorTranslator : public ColumnValueProvider {
   /** Get the feature value out of a counter. */
   ast::Expr *CounterVal(StateDescriptor::Entry entry) const;
   /** Record a specified feature's value. */
-  void FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
-                     brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
+  void FeatureRecord(FunctionBuilder *function, selfdriving::ExecutionOperatingUnitType feature_type,
+                     selfdriving::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                      ast::Expr *val) const;
   /** Record arithmetic feature values by setting feature values to val. */
   void FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline,
@@ -278,6 +325,21 @@ class OperatorTranslator : public ColumnValueProvider {
   void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
                                   execution::translator_id_t translator_id, ast::Expr *val) const;
 
+  /**
+   * Get arguments for a hook function.
+   *
+   * A hook function takes in 3 arguments. The first argument is the QueryState.
+   * The second argument is the thread-local state. The third argument depends
+   * on the particular hook function.
+   *
+   * @param pipeline Pipeline that the hook is being added for
+   * @param arg Third argument identifier if necessary (nullptr to indicate hook does not use the 3rd arg)
+   * @param arg_type Type of the third argument if arg is specified
+   * @returns hook function arguments
+   */
+  util::RegionVector<ast::FieldDecl *> GetHookParams(const Pipeline &pipeline, ast::Identifier *arg,
+                                                     ast::Expr *arg_type) const;
+
  private:
   // For mini-runner stuff.
   friend class Pipeline;
@@ -285,7 +347,7 @@ class OperatorTranslator : public ColumnValueProvider {
   void SetChildTranslator(common::ManagedPointer<OperatorTranslator> translator) { child_translator_ = translator; }
   /** Set the parent translator.. */
   void SetParentTranslator(common::ManagedPointer<OperatorTranslator> translator) { parent_translator_ = translator; }
-  friend class brain::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
   /** @return The child translator. */
   common::ManagedPointer<OperatorTranslator> GetChildTranslator() const { return child_translator_; }
   /** @return The parent translator. */
@@ -307,7 +369,7 @@ class OperatorTranslator : public ColumnValueProvider {
   /** The parent operator translator. */
   common::ManagedPointer<OperatorTranslator> parent_translator_{nullptr};
   /** ExecutionOperatingUnitType. */
-  brain::ExecutionOperatingUnitType feature_type_{brain::ExecutionOperatingUnitType::INVALID};
+  selfdriving::ExecutionOperatingUnitType feature_type_{selfdriving::ExecutionOperatingUnitType::INVALID};
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

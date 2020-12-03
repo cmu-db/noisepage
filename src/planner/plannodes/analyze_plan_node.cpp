@@ -7,8 +7,24 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+std::unique_ptr<AnalyzePlanNode> AnalyzePlanNode::Builder::Build() {
+  return std::unique_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
+                                                              database_oid_, table_oid_, std::move(column_oids_),
+                                                              plan_node_id_));
+}
+
+AnalyzePlanNode::AnalyzePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                 std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                                 catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids,
+                                 plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
+      database_oid_(database_oid),
+      table_oid_(table_oid),
+      column_oids_(std::move(column_oids)) {}
 
 common::hash_t AnalyzePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -59,4 +75,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AnalyzePlanNode::FromJs
   column_oids_ = j.at("column_oids").get<std::vector<catalog::col_oid_t>>();
   return exprs;
 }
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

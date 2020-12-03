@@ -8,7 +8,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/scope.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class Context;
@@ -130,6 +130,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinJoinHashTableLookup(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableFree(ast::CallExpr *call);
   void CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinJoinHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterInit(ast::CallExpr *call);
   void CheckBuiltinSorterGetTupleCount(ast::CallExpr *call);
   void CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin);
@@ -137,8 +138,11 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinSorterFree(ast::CallExpr *call);
   void CheckBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinExecOUFeatureVectorCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin);
+
   void CheckBuiltinSizeOfCall(ast::CallExpr *call);
   void CheckBuiltinOffsetOfCall(ast::CallExpr *call);
   void CheckBuiltinPtrCastCall(ast::CallExpr *call);
@@ -176,7 +180,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void EnterScope(Scope::Kind scope_kind) {
     if (num_cached_scopes_ > 0) {
       Scope *scope = scope_cache_[--num_cached_scopes_].release();
-      TERRIER_ASSERT(scope != nullptr, "Cached scope was null");
+      NOISEPAGE_ASSERT(scope != nullptr, "Cached scope was null");
       scope->Init(GetCurrentScope(), scope_kind);
       scope_ = scope;
     } else {
@@ -186,7 +190,7 @@ class Sema : public ast::AstVisitor<Sema> {
 
   // Exit the current scope
   void ExitScope() {
-    TERRIER_ASSERT(GetCurrentScope() != nullptr, "Mismatched scope exit");
+    NOISEPAGE_ASSERT(GetCurrentScope() != nullptr, "Mismatched scope exit");
 
     Scope *scope = GetCurrentScope();
     scope_ = scope->Outer();
@@ -264,4 +268,4 @@ class Sema : public ast::AstVisitor<Sema> {
 };
 
 }  // namespace sema
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

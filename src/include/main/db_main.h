@@ -7,19 +7,23 @@
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
+#include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
+#include "network/connection_handle_factory.h"
+#include "network/noisepage_server.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
-#include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace settings {
 class SettingsManager;
@@ -53,7 +57,7 @@ class DBMain {
 
   /**
    * Shuts down the server.
-   * It is worth noting that in normal cases, terrier will shut down and return from Run().
+   * It is worth noting that in normal cases, noisepage will shut down and return from Run().
    * So, use this function only when you want to shutdown the server from code.
    * For example, in the end of unit tests when you want to shut down your test server.
    */
@@ -71,7 +75,7 @@ class DBMain {
      */
     TransactionLayer(const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool,
                      const bool gc_enabled, const common::ManagedPointer<storage::LogManager> log_manager) {
-      TERRIER_ASSERT(buffer_segment_pool != nullptr, "Need a buffer segment pool for Transaction layer.");
+      NOISEPAGE_ASSERT(buffer_segment_pool != nullptr, "Need a buffer segment pool for Transaction layer.");
       timestamp_manager_ = std::make_unique<transaction::TimestampManager>();
       deferred_action_manager_ =
           std::make_unique<transaction::DeferredActionManager>(common::ManagedPointer(timestamp_manager_));
@@ -182,7 +186,7 @@ class DBMain {
         : deferred_action_manager_(txn_layer->GetDeferredActionManager()),
           garbage_collector_(storage_layer->GetGarbageCollector()),
           log_manager_(log_manager) {
-      TERRIER_ASSERT(garbage_collector_ != DISABLED, "Required component missing.");
+      NOISEPAGE_ASSERT(garbage_collector_ != DISABLED, "Required component missing.");
 
       catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore(),
                                                     garbage_collector_);
@@ -200,7 +204,33 @@ class DBMain {
     }
 
     ~CatalogLayer() {
-      catalog_->TearDown();  // generates txns and deferred actions, so need to flush the system afterwards
+      // Ensure all user-driven transactions are fully flushed and GC'd
+      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+      // Identify and schedule deletion of remaining tables and objects (generates txns and deferred actions).
+      // Specifically, this will generate the following (Note: these transactions are read-only and there are no logical
+      // deletes of the data as that would cause replicas to replay :
+      //
+      // CatalogTearDown:
+      //   BEGIN
+      //     For each database:
+      //       DEFER {
+      //         database.TearDown()
+      //         delete database
+      //       }
+      //     DEFER deletion of pg_database objects
+      //   COMMIT
+      //
+      // DatabaseTearDown:
+      //   BEGIN
+      //     For each stored object:
+      //       DEFER deletion of object
+      //   COMMIT
+      //
+      // TODO(John): We could eagerly execute the database.TearDown() and delete calls, but this would force us into
+      // sequential execution of TearDown when we could potentially multithread the table scans of each database catalog
+      // using DAF.
+      catalog_->TearDown();
+      // Ensure these resources are properly released.
       deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
     }
 
@@ -220,7 +250,7 @@ class DBMain {
   };
 
   /**
-   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreter::Provider, Server
+   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreterProvider, Server
    */
   class NetworkLayer {
    public:
@@ -233,7 +263,7 @@ class DBMain {
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,
-                 const uint16_t connection_thread_count, const std::string socket_directory) {
+                 const uint16_t connection_thread_count, const std::string &socket_directory) {
       connection_handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(traffic_cop);
       command_factory_ = std::make_unique<network::PostgresCommandFactory>();
       provider_ =
@@ -252,7 +282,7 @@ class DBMain {
     // Order matters here for destruction order
     std::unique_ptr<network::ConnectionHandleFactory> connection_handle_factory_;
     std::unique_ptr<network::PostgresCommandFactory> command_factory_;
-    std::unique_ptr<network::ProtocolInterpreter::Provider> provider_;
+    std::unique_ptr<network::ProtocolInterpreterProvider> provider_;
     std::unique_ptr<network::TerrierServer> server_;
   };
 
@@ -264,6 +294,30 @@ class DBMain {
    public:
     ExecutionLayer();
     ~ExecutionLayer();
+  };
+
+  /** Create a Messenger. */
+  class MessengerLayer {
+   public:
+    /**
+     * Instantiate and register a Messenger.
+     * @param thread_registry       The DedicatedThreadRegistry that the Messenger will be registered to.
+     * @param messenger_port        The port on which the Messenger will listen by default.
+     * @param messenger_identity    The name by which this Messenger instance will be known.
+     */
+    explicit MessengerLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                            const uint16_t messenger_port, const std::string &messenger_identity)
+        : messenger_manager_(
+              std::make_unique<messenger::MessengerManager>(thread_registry, messenger_port, messenger_identity)) {}
+
+    /** Destructor. */
+    ~MessengerLayer() = default;
+
+    /** @return The Messenger. */
+    common::ManagedPointer<messenger::Messenger> GetMessenger() const { return messenger_manager_->GetMessenger(); }
+
+   private:
+    std::unique_ptr<messenger::MessengerManager> messenger_manager_;
   };
 
   /**
@@ -288,8 +342,8 @@ class DBMain {
 
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
-        TERRIER_ASSERT(use_metrics_ && metrics_manager != DISABLED,
-                       "Can't have a MetricsThread without a MetricsManager.");
+        NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
+                         "Can't have a MetricsThread without a MetricsManager.");
         metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
                                                                   std::chrono::microseconds{metrics_interval_});
       }
@@ -319,7 +373,8 @@ class DBMain {
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
-        TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED, "Catalog needs GarbageCollector.");
+        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
+                         "Catalog needs GarbageCollector.");
         catalog_layer =
             std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
                                            common::ManagedPointer(log_manager), create_default_database_);
@@ -327,8 +382,8 @@ class DBMain {
 
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
       if (use_gc_thread_) {
-        TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
-                       "GarbageCollectorThread needs GarbageCollector.");
+        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
+                         "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
                                                                       std::chrono::microseconds{gc_interval_},
                                                                       common::ManagedPointer(metrics_manager));
@@ -346,10 +401,10 @@ class DBMain {
 
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
       if (use_traffic_cop_) {
-        TERRIER_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
-                       "TrafficCopLayer needs the CatalogLayer.");
-        TERRIER_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
-        TERRIER_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
+        NOISEPAGE_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
+                         "TrafficCopLayer needs the CatalogLayer.");
+        NOISEPAGE_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
+        NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
             common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_,
@@ -358,10 +413,16 @@ class DBMain {
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
       if (use_network_) {
-        TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
+        NOISEPAGE_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
         network_layer =
             std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), common::ManagedPointer(traffic_cop),
                                            network_port_, connection_thread_count_, uds_file_directory_);
+      }
+
+      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
+      if (use_messenger_) {
+        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
+                                                           messenger_identity_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -378,6 +439,7 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->messenger_layer_ = std::move(messenger_layer);
 
       return db_main;
     }
@@ -545,11 +607,38 @@ class DBMain {
     }
 
     /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseMessenger(const bool value) {
+      use_messenger_ = value;
+      return *this;
+    }
+
+    /**
      * @param port Network port
      * @return self reference for chaining
      */
     Builder &SetNetworkPort(const uint16_t port) {
       network_port_ = port;
+      return *this;
+    }
+
+    /**
+     * @param port Messenger port
+     * @return self reference for chaining
+     */
+    Builder &SetMessengerPort(const uint16_t port) {
+      messenger_port_ = port;
+      return *this;
+    }
+
+    /**
+     * @param identity Messenger identity
+     * @return self reference for chaining
+     */
+    Builder &SetMessengerIdentity(const std::string &identity) {
+      messenger_identity_ = identity;
       return *this;
     }
 
@@ -636,12 +725,14 @@ class DBMain {
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
-    bool metrics_pipeline_ = false;
-    bool metrics_transaction_ = false;
-    bool metrics_logging_ = false;
-    bool metrics_gc_ = false;
-    bool metrics_bind_command_ = false;
-    bool metrics_execute_command_ = false;
+    bool query_trace_metrics_ = false;
+    bool pipeline_metrics_ = false;
+    uint32_t pipeline_metrics_interval_ = 9;
+    bool transaction_metrics_ = false;
+    bool logging_metrics_ = false;
+    bool gc_metrics_ = false;
+    bool bind_command_metrics_ = false;
+    bool execute_command_metrics_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
     std::string wal_file_path_ = "wal.log";
@@ -667,6 +758,9 @@ class DBMain {
     std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
+    bool use_messenger_ = false;
+    uint16_t messenger_port_ = 9022;
+    std::string messenger_identity_ = "primary";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -674,7 +768,7 @@ class DBMain {
      */
     std::unique_ptr<settings::SettingsManager> BootstrapSettingsManager(const common::ManagedPointer<DBMain> db_main) {
       std::unique_ptr<settings::SettingsManager> settings_manager;
-      TERRIER_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
+      NOISEPAGE_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
       settings_manager = std::make_unique<settings::SettingsManager>(db_main, std::move(param_map_));
 
       record_buffer_segment_size_ =
@@ -694,11 +788,15 @@ class DBMain {
             static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_persist_threshold));
       }
 
-      use_metrics_ = use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics);
+      use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
+      use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
+      // TODO(WAN): open an issue for handling settings.
+      //  If you set it with the builder, it gets overwritten.
+      //  If you set it with the setting manager, it isn't mutable.
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
@@ -709,12 +807,15 @@ class DBMain {
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
 
-      metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
-      metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
-      metrics_logging_ = settings_manager->GetBool(settings::Param::metrics_logging);
-      metrics_gc_ = settings_manager->GetBool(settings::Param::metrics_gc);
-      metrics_bind_command_ = settings_manager->GetBool(settings::Param::metrics_bind_command);
-      metrics_execute_command_ = settings_manager->GetBool(settings::Param::metrics_execute_command);
+      query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
+      pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
+      pipeline_metrics_interval_ = settings_manager->GetInt(settings::Param::pipeline_metrics_interval);
+      transaction_metrics_ = settings_manager->GetBool(settings::Param::transaction_metrics_enable);
+      logging_metrics_ = settings_manager->GetBool(settings::Param::logging_metrics_enable);
+      gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
+      bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
+      execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
+      use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
 
       return settings_manager;
     }
@@ -725,12 +826,16 @@ class DBMain {
      */
     std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
-      if (metrics_pipeline_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 9);
-      if (metrics_transaction_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
-      if (metrics_logging_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-      if (metrics_gc_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
-      if (metrics_bind_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND, 0);
-      if (metrics_execute_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND, 0);
+      metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE,
+                                               pipeline_metrics_interval_);
+
+      if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
+      if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+      if (transaction_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+      if (logging_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+      if (gc_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
+      if (bind_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND);
+      if (execute_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND);
 
       return metrics_manager;
     }
@@ -820,6 +925,9 @@ class DBMain {
    */
   common::ManagedPointer<ExecutionLayer> GetExecutionLayer() const { return common::ManagedPointer(execution_layer_); }
 
+  /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
+  common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -837,6 +945,7 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 
-}  // namespace terrier
+}  // namespace noisepage

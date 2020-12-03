@@ -32,6 +32,7 @@ point.tpl,false,-20
 pointer.tpl,false,10
 return-expr.tpl,false,15
 #return-val.tpl,false,44                    While it returns the right value, it throws some error. We weren't running with this before.
+return-sql.tpl,false,0
 #scope.tpl,false,3                          Scoping doesn't work in TPL
 #scope-2.tpl,false,42                       Scoping doesn't work in TPL
 simple.tpl,false,1
@@ -44,6 +45,7 @@ struct-empty.tpl,false,0
 struct-field-use.tpl,false,30
 struct-nested.tpl,false,10
 struct-nested-2.tpl,false,10
+struct-padding.tpl,false,1500
 struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10

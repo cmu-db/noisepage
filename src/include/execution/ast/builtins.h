@@ -4,7 +4,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // The list of all builtin functions
 // Args: internal name, function name
@@ -42,10 +42,17 @@ namespace terrier::execution::ast {
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
   F(ExecutionContextGetTLS, execCtxGetTLS)                              \
+  F(ExecutionContextRegisterHook, execCtxRegisterHook)                  \
+  F(ExecutionContextClearHooks, execCtxClearHooks)                      \
+  F(ExecutionContextInitHooks, execCtxInitHooks)                        \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \
   F(ThreadStateContainerClear, tlsClear)                                \
+  F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
+  F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
+  F(ExecOUFeatureVectorFilter, execOUFeatureVectorFilter)               \
+  F(ExecOUFeatureVectorReset, execOUFeatureVectorReset)                 \
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
@@ -54,6 +61,7 @@ namespace terrier::execution::ast {
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
+  F(TableIterCreateIndexParallel, iterateTableCreateIndexParallel)      \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \
@@ -138,6 +146,7 @@ namespace terrier::execution::ast {
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \
   F(AggHashTableGetTupleCount, aggHTGetTupleCount)                      \
+  F(AggHashTableGetInsertCount, aggHTGetInsertCount)                    \
   F(AggHashTableInsert, aggHTInsert)                                    \
   F(AggHashTableLinkEntry, aggHTLink)                                   \
   F(AggHashTableLookup, aggHTLookup)                                    \
@@ -174,6 +183,12 @@ namespace terrier::execution::ast {
   F(HashTableEntryIterHasNext, htEntryIterHasNext)                      \
   F(HashTableEntryIterGetRow, htEntryIterGetRow)                        \
                                                                         \
+  F(JoinHashTableIterInit, joinHTIterInit)                              \
+  F(JoinHashTableIterHasNext, joinHTIterHasNext)                        \
+  F(JoinHashTableIterNext, joinHTIterNext)                              \
+  F(JoinHashTableIterGetRow, joinHTIterGetRow)                          \
+  F(JoinHashTableIterFree, joinHTIterFree)                              \
+                                                                        \
   /* Sorting */                                                         \
   F(SorterInit, sorterInit)                                             \
   F(SorterGetTupleCount, sorterGetTupleCount)                           \
@@ -192,8 +207,10 @@ namespace terrier::execution::ast {
   F(SorterIterClose, sorterIterClose)                                   \
                                                                         \
   /* Output */                                                          \
+  F(ResultBufferNew, resultBufferNew)                                   \
   F(ResultBufferAllocOutRow, resultBufferAllocRow)                      \
   F(ResultBufferFinalize, resultBufferFinalize)                         \
+  F(ResultBufferFree, resultBufferFree)                                 \
                                                                         \
   /* Index */                                                           \
   F(IndexIteratorInit, indexIteratorInit)                               \
@@ -306,6 +323,11 @@ namespace terrier::execution::ast {
   F(OffsetOf, offsetOf)                                                 \
   F(PtrCast, ptrCast)                                                   \
                                                                         \
+  /* Low-level Atomics*/                                                \
+  F(AtomicAnd, atomicAnd)                                               \
+  F(AtomicOr, atomicOr)                                                 \
+  F(AtomicCompareExchange, atomicCompareExchange)                       \
+                                                                        \
   /* Parameter calls */                                                 \
   F(GetParamBool, getParamBool)                                         \
   F(GetParamTinyInt, getParamTinyInt)                                   \
@@ -361,8 +383,10 @@ namespace terrier::execution::ast {
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ExecutionContextStartPipelineTracker, execCtxStartPipelineTracker)  \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
-  F(ExecutionContextGetFeature, execCtxGetFeature)                      \
-  F(ExecutionContextRecordFeature, execCtxRecordFeature)                \
+                                                                        \
+  F(RegisterThreadWithMetricsManager, registerThreadWithMetricsManager) \
+  F(EnsureTrackersStopped, ensureTrackersStopped)                       \
+  F(AggregateMetricsThread, aggregateMetricsThread)                     \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \
@@ -412,4 +436,4 @@ class Builtins {
   static const char *builtin_function_names[];
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

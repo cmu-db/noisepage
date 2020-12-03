@@ -19,7 +19,7 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughJoin
@@ -141,9 +141,9 @@ bool RewritePushExplicitFilterThroughJoin::Check(common::ManagedPointer<Abstract
 
 void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                                                      std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                                     OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePushExplicitFilterThroughJoin::Transform");
-
+  // input is LOGICALFILTER
   auto &memo = context->GetOptimizerContext()->GetMemo();
   auto join_op_expr = input->GetChildren()[0];
   auto join_children = join_op_expr->GetChildren();
@@ -214,9 +214,39 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Abst
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(std::move(left_branch));
   c.emplace_back(std::move(right_branch));
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates))
-                                                   .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                               std::move(c), context->GetOptimizerContext()->GetTxn());
+
+  // Convert Inner Join to Semi Join
+  bool semi_join = false;
+  std::vector<AnnotatedExpression> semi_join_predicates;
+  for (auto &join_predicate : join_predicates) {
+    // COMPARE_IN is equivalent to EXSITS
+    // semi join is the standard way to implement a EXSITS relation
+    if (join_predicate.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
+      semi_join = true;
+      // Construct a new annotated expression and set its expression type to equal
+      auto new_join_expr = join_predicate.GetExpr()->Copy().release();
+      new_join_expr->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
+      context->GetOptimizerContext()->RegisterExprWithTxn(new_join_expr);
+
+      auto table_alias = join_predicate.GetTableAliasSet();
+      auto semi_join_predicate = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(new_join_expr),
+                                                     std::move(table_alias));
+      semi_join_predicates.push_back(semi_join_predicate);
+    } else {
+      semi_join_predicates.push_back(join_predicate);
+    }
+  }
+  std::unique_ptr<OperatorNode> output;
+  if (semi_join) {
+    output = std::make_unique<OperatorNode>(LogicalSemiJoin::Make(std::move(semi_join_predicates))
+                                                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                            std::move(c), context->GetOptimizerContext()->GetTxn());
+  } else {
+    output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates))
+                                                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                            std::move(c), context->GetOptimizerContext()->GetTxn());
+  }
+
   transformed->emplace_back(std::move(output));
 }
 
@@ -392,10 +422,10 @@ bool RewritePullFilterThroughMarkJoin::Check(common::ManagedPointer<AbstractOpti
   (void)plan;
 
   auto children = plan->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "MarkJoin should have two children");
+  NOISEPAGE_ASSERT(children.size() == 2, "MarkJoin should have two children");
 
   UNUSED_ATTRIBUTE auto r_grandchildren = children[0]->GetChildren();
-  TERRIER_ASSERT(r_grandchildren.size() == 1, "Filter should have only 1 child");
+  NOISEPAGE_ASSERT(r_grandchildren.size() == 1, "Filter should have only 1 child");
   return true;
 }
 
@@ -404,7 +434,7 @@ void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<Abstract
                                                  UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePullFilterThroughMarkJoin::Transform");
   UNUSED_ATTRIBUTE auto mark_join = input->Contents()->GetContentsAs<LogicalMarkJoin>();
-  TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have zero children");
+  NOISEPAGE_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have zero children");
 
   auto join_children = input->GetChildren();
   auto filter_children = join_children[1]->GetChildren();
@@ -443,10 +473,10 @@ bool RewritePullFilterThroughAggregation::Check(common::ManagedPointer<AbstractO
   (void)plan;
 
   auto children = plan->GetChildren();
-  TERRIER_ASSERT(children.size() == 1, "AggregateAndGroupBy should have 1 child");
+  NOISEPAGE_ASSERT(children.size() == 1, "AggregateAndGroupBy should have 1 child");
 
   UNUSED_ATTRIBUTE auto r_grandchildren = children[1]->GetChildren();
-  TERRIER_ASSERT(r_grandchildren.size() == 1, "Filter should have 1 child");
+  NOISEPAGE_ASSERT(r_grandchildren.size() == 1, "Filter should have 1 child");
   return true;
 }
 
@@ -515,4 +545,4 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
   transformed->emplace_back(std::move(output));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

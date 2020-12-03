@@ -6,8 +6,26 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+std::unique_ptr<DropTriggerPlanNode> DropTriggerPlanNode::Builder::Build() {
+  return std::unique_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(std::move(children_), std::move(output_schema_),
+                                                                      database_oid_, namespace_oid_, trigger_oid_,
+                                                                      if_exists_, plan_node_id_));
+}
+
+DropTriggerPlanNode::DropTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                         std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                                         catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid,
+                                         bool if_exists, plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
+      database_oid_(database_oid),
+      namespace_oid_(namespace_oid),
+      trigger_oid_(trigger_oid),
+      if_exists_(if_exists) {}
+
 common::hash_t DropTriggerPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
@@ -67,7 +85,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropTriggerPlanNode::Fr
   if_exists_ = j.at("if_exists").get<bool>();
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(DropTriggerPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

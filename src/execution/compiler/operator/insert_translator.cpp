@@ -15,10 +15,10 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::INSERT),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::INSERT),
       inserter_(GetCodeGen()->MakeFreshIdentifier("inserter")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
@@ -42,10 +42,12 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
     }
   }
 
-  num_inserts_ = CounterDeclare("num_inserts");
+  num_inserts_ = CounterDeclare("num_inserts", pipeline);
 }
 
-void InsertTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_inserts_, 0); }
+void InsertTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_inserts_, 0);
+}
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32
@@ -71,18 +73,18 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     }
   }
 
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
                 CounterVal(num_inserts_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_inserts_));
   FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_inserts_));
 
   GenInserterFree(function);
 }
 
-void InsertTranslator::DeclareInserter(terrier::execution::compiler::FunctionBuilder *builder) const {
+void InsertTranslator::DeclareInserter(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var col_oids: [num_cols]uint32
   // col_oids[i] = ...
   SetOids(builder);
@@ -96,7 +98,7 @@ void InsertTranslator::DeclareInserter(terrier::execution::compiler::FunctionBui
   builder->Append(GetCodeGen()->MakeStmt(inserter_setup));
 }
 
-void InsertTranslator::GenInserterFree(terrier::execution::compiler::FunctionBuilder *builder) const {
+void InsertTranslator::GenInserterFree(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // Call @storageInterfaceFree
   ast::Expr *inserter_free =
       GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {GetCodeGen()->AddressOf(inserter_)});
@@ -104,7 +106,7 @@ void InsertTranslator::GenInserterFree(terrier::execution::compiler::FunctionBui
 }
 
 ast::Expr *InsertTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
-  TERRIER_ASSERT(child_idx == 0, "Insert plan can only have one child");
+  NOISEPAGE_ASSERT(child_idx == 0, "Insert plan can only have one child");
 
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
@@ -134,13 +136,13 @@ void InsertTranslator::SetOids(FunctionBuilder *builder) const {
   }
 }
 
-void InsertTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void InsertTranslator::DeclareInsertPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr : *ProjectedRow
   auto *pr_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
   builder->Append(GetCodeGen()->DeclareVar(insert_pr_, GetCodeGen()->PointerType(pr_type), nullptr));
 }
 
-void InsertTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void InsertTranslator::GetInsertPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr = @getTablePR(&inserter)
   auto *get_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetTablePR, {GetCodeGen()->AddressOf(inserter_)});
   builder->Append(GetCodeGen()->Assign(GetCodeGen()->MakeExpr(insert_pr_), get_pr_call));
@@ -213,4 +215,4 @@ std::vector<catalog::col_oid_t> InsertTranslator::AllColOids(const catalog::Sche
   return oids;
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -9,9 +9,9 @@
 #include "storage/garbage_collector_thread.h"
 #include "storage/write_ahead_log/log_manager.h"
 
-#define LOG_FILE_NAME "benchmark.txt"
+#define LOG_TEST_LOG_FILE_NAME "benchmark.txt"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 class TransactionLoggingGCRunner : public benchmark::Fixture {
  public:
@@ -42,7 +42,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
   const double select = static_cast<double>(state.range(5)) / 100;
 
   // scale up num_txns by the number of threads since it counts for all threads
-  const uint32_t num_txns = (log2(num_thread) + 1) * 2000000 / txn_interval;
+  const uint32_t num_txns = (log2(num_thread) + 1) * 3000000 / txn_interval;
 
   uint64_t abort_count = 0;
   const std::vector<double> insert_update_select_ratio = {insert, update, select};
@@ -58,8 +58,8 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool),
+        new storage::LogManager(LOG_TEST_LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
+                                log_persist_interval_, log_persist_threshold_, common::ManagedPointer(&buffer_pool),
                                 common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
 
@@ -68,7 +68,8 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 49);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
@@ -87,7 +88,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     delete gc_thread_;
     delete thread_registry_;
     delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -118,7 +119,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
 
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, config_interval, config_interval,
+    log_manager_ = new storage::LogManager(LOG_TEST_LOG_FILE_NAME, num_log_buffers_, config_interval, config_interval,
                                            log_persist_threshold_, common::ManagedPointer(&buffer_pool),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
@@ -128,8 +129,10 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
@@ -148,7 +151,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     delete gc_thread_;
     delete thread_registry_;
     delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -162,8 +165,8 @@ static void UNUSED_ATTRIBUTE TransactionArguments(benchmark::internal::Benchmark
   for (uint32_t txn_length : txn_lengths)
     for (uint32_t txn_interval : txn_intervals)
       for (uint32_t num_thread : num_threads)
-        for (uint32_t insert = 0; insert <= 50; insert += 10)
-          for (uint32_t update = insert; update <= insert; update += 10) {
+        for (uint32_t insert = 0; insert <= 50; insert += 25)
+          for (uint32_t update = insert; update <= 50; update += 25) {
             b->Args({txn_length, txn_interval, num_thread, insert, update, 100 - insert - update});
           }
 }
@@ -196,4 +199,4 @@ BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, LoggingGCRunner)
     ->UseManualTime()
     ->Iterations(1)
     ->Apply(LoggingGCArguments);
-}  // namespace terrier::runner
+}  // namespace noisepage::runner

@@ -11,10 +11,10 @@
 #include "planner/plannodes/delete_plan_node.h"
 #include "storage/index/index.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DELETE),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DELETE),
       deleter_(GetCodeGen()->MakeFreshIdentifier("deleter")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -28,10 +28,12 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
     }
   }
 
-  num_deletes_ = CounterDeclare("num_deletes");
+  num_deletes_ = CounterDeclare("num_deletes", pipeline);
 }
 
-void DeleteTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_deletes_, 0); }
+void DeleteTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_deletes_, 0);
+}
 
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
@@ -50,10 +52,10 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 }
 
 void DeleteTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_deletes_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_deletes_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_deletes_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_deletes_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_deletes_));
 }
 
@@ -81,7 +83,7 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
   // if (!@tableDelete(&deleter, &slot)) { Abort(); }
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
   const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
-  TERRIER_ASSERT(child != nullptr, "delete should have a child");
+  NOISEPAGE_ASSERT(child != nullptr, "delete should have a child");
   const auto &delete_slot = child->GetSlotAddress();
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), delete_slot};
   auto *delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, delete_args);
@@ -134,4 +136,4 @@ void DeleteTranslator::SetOids(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->DeclareVar(col_oids_, arr_type, nullptr));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

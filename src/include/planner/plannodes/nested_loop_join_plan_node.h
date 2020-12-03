@@ -8,7 +8,7 @@
 #include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for nested loop joins
@@ -31,10 +31,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
      * Build the nested loop join plan node
      * @return plan node
      */
-    std::unique_ptr<NestedLoopJoinPlanNode> Build() {
-      return std::unique_ptr<NestedLoopJoinPlanNode>(
-          new NestedLoopJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_));
-    }
+    std::unique_ptr<NestedLoopJoinPlanNode> Build();
   };
 
  private:
@@ -43,11 +40,11 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param join_type logical join type
    * @param predicate join predicate
+   * @param plan_node_id Plan node id
    */
   NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         common::ManagedPointer<parser::AbstractExpression> predicate)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate) {}
+                         common::ManagedPointer<parser::AbstractExpression> predicate, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -77,4 +74,4 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(NestedLoopJoinPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

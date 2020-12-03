@@ -8,7 +8,7 @@
 #define HIGHEST_BUILTIN_PROC_ID proc_oid_t(1000)
 #define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 
 enum class ProArgModes : char { IN = 'i', OUT = 'o', INOUT = 'b', VARIADIC = 'v' };
 
@@ -19,7 +19,7 @@ constexpr index_oid_t PRO_NAME_INDEX_OID = index_oid_t(83);
 /*
  * Column names of the form "PRO[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "PRO_[name]_COL_OID" are
- * terrier-specific additions (generally pointers to internal objects).
+ * noisepage-specific additions (generally pointers to internal objects).
  */
 constexpr col_oid_t PROOID_COL_OID = col_oid_t(1);        // INTEGER (pkey) [proc_oid_t]
 constexpr col_oid_t PRONAME_COL_OID = col_oid_t(2);       // VARCHAR (skey)
@@ -123,4 +123,4 @@ constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);
 constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(902);
 constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(903);
 
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

@@ -14,8 +14,7 @@ from util import io_util, logging_util
 from data_class import opunit_data
 from info import data_info
 from training_util import data_transforming_util, result_writing_util
-
-from type import Target
+from type import Target, ExecutionFeature
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -27,7 +26,7 @@ class MiniTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all):
+    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all, txn_sample_interval):
         self.input_path = input_path
         self.model_metrics_path = model_metrics_path
         self.ml_models = ml_models
@@ -36,6 +35,7 @@ class MiniTrainer:
         self.stats_map = {}
         self.trim = trim
         self.expose_all = expose_all
+        self.txn_sample_interval = txn_sample_interval
 
     def _train_specific_model(self, data, y_transformer_idx, method_idx):
         methods = self.ml_models
@@ -73,6 +73,7 @@ class MiniTrainer:
         min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
+        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1
@@ -98,20 +99,28 @@ class MiniTrainer:
                     # In order to avoid the percentage error to explode when the actual label is very small,
                     # we omit the data point with the actual label <= 5 when calculating the percentage error (by
                     # essentially giving the data points with small labels a very small weight)
-                    weights = np.where(evaluate_y > 5, np.ones(evaluate_y.shape), np.full(evaluate_y.shape, 1e-6))
+                    evaluate_threshold = 5
+                    weights = np.where(evaluate_y > evaluate_threshold, np.ones(evaluate_y.shape), np.full(evaluate_y.shape, 1e-6))
                     percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + error_bias), axis=0,
                                                   weights=weights)
                     results += list(percentage_error) + [""]
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
 
+                    # The default method of determining whether a model is better is by comparing the model error
+                    # on the elapsed us. For any opunits in MEM_EVALUATE_OPUNITS, we evaluate by comparing the
+                    # model error on memory_b.
+                    eval_error = percentage_error[elapsed_us_index]
+                    if data.opunit in data_info.MEM_EVALUATE_OPUNITS:
+                        eval_error = percentage_error[memory_b_index]
+
                     # Record the model with the lowest elapsed time prediction (since that might be the most
                     # important prediction)
                     # Only use linear regression for the arithmetic operating units
-                    if (j == 1 and percentage_error[elapsed_us_index] < min_percentage_error
+                    if (j == 1 and eval_error < min_percentage_error
                             and y_transformer == y_transformers[-1]
                             and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
-                        min_percentage_error = percentage_error[elapsed_us_index]
+                        min_percentage_error = eval_error
                         if self.expose_all:
                             best_y_transformer = i
                             best_method = m
@@ -149,8 +158,8 @@ class MiniTrainer:
         # First get the data for all mini runners
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
-            data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
-                                                         self.stats_map, self.trim)
+            data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.txn_sample_interval,
+                                                         self.model_map, self.stats_map, self.trim)
             for data in data_list:
                 best_y_transformer, best_method = self._train_data(data, summary_file)
                 if self.expose_all:
@@ -170,16 +179,19 @@ if __name__ == '__main__':
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
-                         default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
+                         default=["lr", "rf", "gbm"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
     aparser.add_argument('--expose_all', default=True, help='Should expose all data to the model')
+    aparser.add_argument('--txn_sample_interval', type=int, default=49,
+                         help='Sampling interval for the transaction OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
     logging_util.init_logging(args.log)
-    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim, args.expose_all)
+    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim,
+                          args.expose_all, args.txn_sample_interval)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
         pickle.dump(trained_model_map, file)

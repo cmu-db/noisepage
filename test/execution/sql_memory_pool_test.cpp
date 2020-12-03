@@ -3,7 +3,7 @@
 #include "execution/sql/memory_pool.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class MemoryPoolTest : public TplTest {};
 
@@ -59,4 +59,4 @@ TEST_F(MemoryPoolTest, ComplexPointers) {
   pool.DeleteObject(std::move(obj1));
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

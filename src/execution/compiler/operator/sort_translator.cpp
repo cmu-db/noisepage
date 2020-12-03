@@ -7,9 +7,11 @@
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
 #include "execution/compiler/work_context.h"
+#include "execution/sql/sorter.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
@@ -17,7 +19,7 @@ constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
 
 SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, CompilationContext *compilation_context,
                                Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
       sort_row_var_(GetCodeGen()->MakeFreshIdentifier("sortRow")),
       sort_row_type_(GetCodeGen()->MakeFreshIdentifier("SortRow")),
       lhs_row_(GetCodeGen()->MakeIdentifier("lhs")),
@@ -25,7 +27,7 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
       compare_func_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("Compare"))),
       build_pipeline_(this, Pipeline::Parallelism::Parallel),
       current_row_(CurrentRow::Child) {
-  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Sorts expected to have a single child.");
+  NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "Sorts expected to have a single child.");
   // Register this as the source for the pipeline. It must be serial to maintain
   // sorted output order.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -53,8 +55,21 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
     local_sorter_ = build_pipeline_.DeclarePipelineStateEntry("sorter", sorter_type);
   }
 
-  num_sort_build_rows_ = CounterDeclare("num_sort_build_rows");
-  num_sort_iterate_rows_ = CounterDeclare("num_sort_iterate_rows");
+  num_sort_build_rows_ = CounterDeclare("num_sort_build_rows", &build_pipeline_);
+  num_sort_iterate_rows_ = CounterDeclare("num_sort_iterate_rows", pipeline);
+
+  if (build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    parallel_starttlsort_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("StartTLSortHook"));
+    parallel_starttlmerge_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("StartTLMergeHook"));
+    parallel_endtlsort_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("EndTLSortHook"));
+    parallel_endtlmerge_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("EndTLMergeHook"));
+    parallel_endsinglesorter_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(build_pipeline_.CreatePipelineFunctionName("EndSingleSorterHook"));
+  }
 }
 
 void SortTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
@@ -108,9 +123,20 @@ void SortTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl 
   decls->push_back(builder.Finish(codegen->Const32(0)));
 }
 
+void SortTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                       util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    decls->push_back(GenerateStartTLHookFunction(true));
+    decls->push_back(GenerateStartTLHookFunction(false));
+    decls->push_back(GenerateEndTLSortHookFunction());
+    decls->push_back(GenerateEndTLMergeHookFunction());
+    decls->push_back(GenerateEndSingleSorterHookFunction());
+  }
+}
+
 void SortTranslator::InitializeSorter(FunctionBuilder *function, ast::Expr *sorter_ptr) const {
-  ast::Expr *mem_pool = GetMemoryPool();
-  function->Append(GetCodeGen()->SorterInit(sorter_ptr, mem_pool, compare_func_, sort_row_type_));
+  auto ctx = GetExecutionContext();
+  function->Append(GetCodeGen()->SorterInit(sorter_ptr, ctx, compare_func_, sort_row_type_));
 }
 
 void SortTranslator::TearDownSorter(FunctionBuilder *function, ast::Expr *sorter_ptr) const {
@@ -119,24 +145,198 @@ void SortTranslator::TearDownSorter(FunctionBuilder *function, ast::Expr *sorter
 
 void SortTranslator::InitializeQueryState(FunctionBuilder *function) const {
   InitializeSorter(function, global_sorter_.GetPtr(GetCodeGen()));
-
-  CounterSet(function, num_sort_build_rows_, 0);
-  CounterSet(function, num_sort_iterate_rows_, 0);
 }
 
 void SortTranslator::TearDownQueryState(FunctionBuilder *function) const {
   TearDownSorter(function, global_sorter_.GetPtr(GetCodeGen()));
 }
 
+ast::FunctionDecl *SortTranslator::GenerateStartTLHookFunction(bool is_sort) const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &build_pipeline_;
+
+  auto name = parallel_starttlsort_hook_fn_;
+  selfdriving::ExecutionOperatingUnitType ou_type, ou_merge_type;
+  if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
+    ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
+    ou_merge_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
+  } else {
+    ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+    ou_merge_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+  }
+  auto filter = ou_type;
+  if (!is_sort) {
+    name = parallel_starttlmerge_hook_fn_;
+    filter = ou_merge_type;
+  }
+
+  auto params = GetHookParams(*pipeline, nullptr, nullptr);
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, name, std::move(params), ret_type);
+  {
+    pipeline->InjectStartResourceTracker(&builder, true);
+    builder.Append(
+        codegen->CallBuiltin(ast::Builtin::ExecOUFeatureVectorFilter,
+                             {pipeline->OUFeatureVecPtr(), codegen->Const32(static_cast<uint32_t>(filter))}));
+  }
+  return builder.Finish();
+}
+
+ast::FunctionDecl *SortTranslator::GenerateEndTLSortHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &build_pipeline_;
+  auto params = GetHookParams(*pipeline, nullptr, nullptr);
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_endtlsort_hook_fn_, std::move(params), ret_type);
+  {
+    auto num_tuples = codegen->MakeFreshIdentifier("num_tuples");
+    auto *sorter_size = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {local_sorter_.GetPtr(codegen)});
+    builder.Append(codegen->DeclareVarWithInit(num_tuples, sorter_size));
+
+    selfdriving::ExecutionOperatingUnitType build_ou_type;
+    ast::Expr *cardinality_val;
+    if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
+      cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
+    } else {
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+      cardinality_val = codegen->MakeExpr(num_tuples);
+    }
+
+    // FeatureRecord with the overrideValue
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+                  cardinality_val);
+
+    // End Tracker
+    pipeline->InjectEndResourceTracker(&builder, true);
+  }
+  return builder.Finish();
+}
+
+ast::FunctionDecl *SortTranslator::GenerateEndTLMergeHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &build_pipeline_;
+
+  auto override_value = codegen->MakeIdentifier("overrideValue");
+  auto int32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  auto params = GetHookParams(*pipeline, &override_value, int32_type);
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_endtlmerge_hook_fn_, std::move(params), ret_type);
+  {
+    selfdriving::ExecutionOperatingUnitType build_merge_ou_type;
+    if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
+      build_merge_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP;
+    } else {
+      build_merge_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+    }
+
+    // FeatureRecord with the overrideValue
+    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                  *pipeline, codegen->MakeExpr(override_value));
+    FeatureRecord(&builder, build_merge_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                  *pipeline, codegen->MakeExpr(override_value));
+
+    // End Tracker
+    pipeline->InjectEndResourceTracker(&builder, true);
+  }
+  return builder.Finish();
+}
+
+ast::FunctionDecl *SortTranslator::GenerateEndSingleSorterHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &build_pipeline_;
+
+  auto sorter = codegen->MakeIdentifier("sorter");
+  auto sorter_type = codegen->PointerType(codegen->BuiltinType(ast::BuiltinType::Sorter));
+  auto params = GetHookParams(*pipeline, &sorter, sorter_type);
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_endsinglesorter_hook_fn_, std::move(params), ret_type);
+  {
+    auto num_tuples = codegen->MakeFreshIdentifier("num_tuples");
+    auto *sorter_size = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {codegen->MakeExpr(sorter)});
+    builder.Append(codegen->DeclareVarWithInit(num_tuples, sorter_size));
+
+    selfdriving::ExecutionOperatingUnitType build_ou_type;
+    ast::Expr *cardinality_val;
+    if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP;
+      cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
+    } else {
+      build_ou_type = selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+      cardinality_val = codegen->MakeExpr(num_tuples);
+    }
+
+    // FeatureRecord with the overrideValue
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+                  cardinality_val);
+
+    // End Tracker
+    pipeline->InjectEndResourceTracker(&builder, true);
+  }
+  return builder.Finish();
+}
+
 void SortTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
     InitializeSorter(function, local_sorter_.GetPtr(GetCodeGen()));
   }
+
+  InitializeCounters(pipeline, function);
+}
+
+void SortTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
+    CounterSet(function, num_sort_build_rows_, 0);
+  } else {
+    CounterSet(function, num_sort_iterate_rows_, 0);
+  }
+}
+
+void SortTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  selfdriving::ExecutionOperatingUnitType build_ou_type;
+  ast::Expr *cardinality_val;
+  if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
+    build_ou_type = selfdriving::ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
+  } else {
+    build_ou_type = selfdriving::ExecutionOperatingUnitType::SORT_BUILD;
+    cardinality_val = CounterVal(num_sort_build_rows_);
+  }
+  if (IsBuildPipeline(pipeline)) {
+    FeatureRecord(function, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  CounterVal(num_sort_build_rows_));
+    FeatureRecord(function, build_ou_type, selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  cardinality_val);
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
+  } else {
+    ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SORT_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  CounterVal(num_sort_iterate_rows_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SORT_ITERATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_iterate_rows_));
+  }
+}
+
+void SortTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
 }
 
 void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    TearDownSorter(function, local_sorter_.GetPtr(GetCodeGen()));
+  auto *codegen = GetCodeGen();
+  if (IsBuildPipeline(pipeline) && pipeline.IsParallel()) {
+    ast::Expr *sorter_ptr = local_sorter_.GetPtr(codegen);
+    TearDownSorter(function, sorter_ptr);
   }
 }
 
@@ -218,7 +418,7 @@ void SortTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *func
   if (IsScanPipeline(ctx->GetPipeline())) {
     ScanSorter(ctx, function);
   } else {
-    TERRIER_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
+    NOISEPAGE_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
     InsertIntoSorter(ctx, function);
     CounterAdd(function, num_sort_build_rows_, 1);
   }
@@ -230,6 +430,22 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
 
   if (IsBuildPipeline(pipeline)) {
     if (build_pipeline_.IsParallel()) {
+      if (IsPipelineMetricsEnabled()) {
+        auto *exec_ctx = GetExecutionContext();
+        auto num_hooks = static_cast<uint32_t>(sql::Sorter::HookOffsets::NUM_HOOKS);
+        auto starttlsort = static_cast<uint32_t>(sql::Sorter::HookOffsets::StartTLSortHook);
+        auto starttlmerge = static_cast<uint32_t>(sql::Sorter::HookOffsets::StartTLMergeHook);
+        auto endtlsort = static_cast<uint32_t>(sql::Sorter::HookOffsets::EndTLSortHook);
+        auto endtlmerge = static_cast<uint32_t>(sql::Sorter::HookOffsets::EndTLMergeHook);
+        auto endsinglesorter = static_cast<uint32_t>(sql::Sorter::HookOffsets::EndSingleSorterHook);
+        function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, starttlsort, parallel_starttlsort_hook_fn_));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, starttlmerge, parallel_starttlmerge_hook_fn_));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, endtlsort, parallel_endtlsort_hook_fn_));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, endtlmerge, parallel_endtlmerge_hook_fn_));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, endsinglesorter, parallel_endsinglesorter_hook_fn_));
+      }
+
       // Build pipeline is parallel, so we need to issue a parallel sort. Issue
       // a SortParallel() or a SortParallelTopK() depending on whether a limit
       // was provided in the plan.
@@ -240,24 +456,17 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
       } else {
         function->Append(codegen->SortParallel(sorter_ptr, GetThreadStateContainer(), offset));
       }
+
+      if (IsPipelineMetricsEnabled()) {
+        auto *exec_ctx = GetExecutionContext();
+        function->Append(codegen->ExecCtxClearHooks(exec_ctx));
+      }
     } else {
       function->Append(codegen->SorterSort(sorter_ptr));
+      RecordCounters(pipeline, function);
     }
-
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_sort_build_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
-    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
-  } else {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  CounterVal(num_sort_iterate_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
-    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_iterate_rows_));
+  } else if (!pipeline.IsParallel()) {
+    RecordCounters(pipeline, function);
   }
 
   // TODO(WAN): In theory, we would like to record the true number of unique tuples as the cardinality.
@@ -270,7 +479,7 @@ ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE
     return GetSortRowAttribute(sort_row_var_, attr_idx);
   }
 
-  TERRIER_ASSERT(IsBuildPipeline(context->GetPipeline()), "Pipeline not known to sorter");
+  NOISEPAGE_ASSERT(IsBuildPipeline(context->GetPipeline()), "Pipeline not known to sorter");
   switch (current_row_) {
     case CurrentRow::Lhs:
       return GetSortRowAttribute(lhs_row_, attr_idx);
@@ -283,4 +492,4 @@ ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE
   UNREACHABLE("Impossible output row option");
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -4,10 +4,11 @@
 #include <unordered_map>
 
 #include "common/error/exception.h"
+#include "common/error/error_code.h"
 #include "execution/sql/decimal_magic_numbers.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -835,8 +836,9 @@ int nlz128(uint128_t x) {
 uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t v) {
   if (u1 >= v) {
     // Result will overflow from 128 bits
-    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                              common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+    throw EXECUTION_EXCEPTION(
+        fmt::format("Decimal Overflow from 128 bits"),
+        common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   // Base 2^64
@@ -1373,4 +1375,4 @@ int Decimal<T>::SetMaxmPrecision(std::string input) {
 template class Decimal<int128_t>;
 template class Decimal<int64_t>;
 template class Decimal<int32_t>;
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

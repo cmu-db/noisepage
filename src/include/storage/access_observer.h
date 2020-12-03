@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <unordered_map>
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class DataTable;
 class BlockCompactor;
 class RawBlock;
@@ -58,4 +59,4 @@ class AccessObserver {
   std::unordered_map<RawBlock *, uint64_t> last_touched_;
   BlockCompactor *compactor_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

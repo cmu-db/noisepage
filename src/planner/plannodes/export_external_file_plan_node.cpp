@@ -4,9 +4,27 @@
 #include <string>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+std::unique_ptr<ExportExternalFilePlanNode> ExportExternalFilePlanNode::Builder::Build() {
+  return std::unique_ptr<ExportExternalFilePlanNode>(new ExportExternalFilePlanNode(
+      std::move(children_), format_, file_name_, delimiter_, quote_, escape_, plan_node_id_));
+}
+
+ExportExternalFilePlanNode::ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                                       parser::ExternalFileFormat format, std::string file_name,
+                                                       char delimiter, char quote, char escape,
+                                                       plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), nullptr, plan_node_id),
+      format_(format),
+      file_name_(std::move(file_name)),
+      delimiter_(delimiter),
+      quote_(quote),
+      escape_(escape) {}
 
 common::hash_t ExportExternalFilePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -73,5 +91,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ExportExternalFilePlanN
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(ExportExternalFilePlanNode);
-
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

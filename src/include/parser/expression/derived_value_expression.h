@@ -7,7 +7,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * DerivedValueExpression represents a tuple of values that are derived from nested expressions
  *
@@ -41,7 +41,7 @@ class DerivedValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "DerivedValueExpression should have no children");
+    NOISEPAGE_ASSERT(children.empty(), "DerivedValueExpression should have no children");
     return Copy();
   }
 
@@ -56,7 +56,7 @@ class DerivedValueExpression : public AbstractExpression {
 
   bool operator==(const AbstractExpression &rhs) const override;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override;
@@ -73,4 +73,4 @@ class DerivedValueExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DerivedValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

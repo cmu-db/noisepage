@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // ---------------------------------------------------------
 // Boolean
@@ -408,4 +408,4 @@ bool VarcharType::Equals(const SqlType &that) const {
 
 uint32_t VarcharType::MaxLength() const { return max_len_; }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

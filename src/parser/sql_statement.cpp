@@ -3,7 +3,7 @@
 #include "common/json.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 nlohmann::json TableInfo::ToJson() const {
   nlohmann::json j;
@@ -35,4 +35,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> SQLStatement::FromJson(
 
 DEFINE_JSON_BODY_DECLARATIONS(SQLStatement);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

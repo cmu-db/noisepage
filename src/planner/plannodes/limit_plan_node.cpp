@@ -5,8 +5,19 @@
 
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+std::unique_ptr<LimitPlanNode> LimitPlanNode::Builder::Build() {
+  return std::unique_ptr<LimitPlanNode>(
+      new LimitPlanNode(std::move(children_), std::move(output_schema_), limit_, offset_, plan_node_id_));
+}
+
+LimitPlanNode::LimitPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                             std::unique_ptr<OutputSchema> output_schema, size_t limit, size_t offset,
+                             plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), limit_(limit), offset_(offset) {}
 
 common::hash_t LimitPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -52,4 +63,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> LimitPlanNode::FromJson
 
 DEFINE_JSON_BODY_DECLARATIONS(LimitPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

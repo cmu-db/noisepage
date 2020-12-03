@@ -10,7 +10,7 @@
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /**
  * InsertStatement represents the sql "INSERT ..."
@@ -78,4 +78,4 @@ class InsertStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

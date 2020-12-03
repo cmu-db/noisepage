@@ -6,30 +6,31 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
+#include "optimizer/optimize_result.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 }
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ParseResult;
 class SQLStatement;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class StatsStorage;
 class AbstractCostModel;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 
 /**
  * Static helper methods for accessing some of the TrafficCop's functionality without instantiating an object
@@ -48,7 +49,7 @@ class TrafficCopUtil {
    * @param optimizer_timeout used by optimizer
    * @return physical plan that can be executed
    */
-  static std::unique_ptr<planner::AbstractPlanNode> Optimize(
+  static std::unique_ptr<optimizer::OptimizeResult> Optimize(
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
       catalog::db_oid_t db_oid, common::ManagedPointer<optimizer::StatsStorage> stats_storage,
@@ -62,4 +63,4 @@ class TrafficCopUtil {
   static network::QueryType QueryTypeForStatement(common::ManagedPointer<parser::SQLStatement> statement);
 };
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

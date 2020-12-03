@@ -1,21 +1,20 @@
 #include "settings/settings_manager.h"
 
-#include <gflags/gflags.h>
-
 #include <algorithm>
 
+#include "binder/binder_util.h"
 #include "common/macros.h"
 #include "execution/sql/value_util.h"
+#include "gflags/gflags.h"
 #include "main/db_main.h"
 #include "parser/expression/constant_value_expression.h"
 #include "settings/settings_callbacks.h"
 
-#define __SETTING_GFLAGS_DECLARE__     // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DECLARE__      // NOLINT
+#define __SETTING_GFLAGS_DECLARE__   // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_GFLAGS_DECLARE__    // NOLINT
 
-namespace terrier::settings {
+namespace noisepage::settings {
 
 using ActionContext = common::ActionContext;
 using ActionState = common::ActionState;
@@ -55,10 +54,9 @@ void SettingsManager::ValidateParams() {
   //   execution::sql::Integer(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
   //   execution::sql::Integer(65535)));
 
-#define __SETTING_VALIDATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_VALIDATE__            // NOLINT
+#define __SETTING_VALIDATE__         // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_VALIDATE__          // NOLINT
 }
 
 void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
@@ -212,27 +210,26 @@ common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value
   callback_fn callback = param_map_.find(param)->second.callback_;
   (callback)(old_value, new_value, db_main_.Get(), action_context);
   ActionState action_state = action_context->GetState();
-  TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
-                 "action context should have state of either SUCCESS or FAILURE on completion.");
+  NOISEPAGE_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
+                   "action context should have state of either SUCCESS or FAILURE on completion.");
   return action_state;
 }
 
 // clang-format off
 void SettingsManager::ConstructParamMap(                                                      // NOLINT
-    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {  // NOLINT
+    std::unordered_map<noisepage::settings::Param, noisepage::settings::ParamInfo> &param_map) {  // NOLINT
   /*
    * Populate gflag values to param map.
    * This will expand to a list of code like:
    * param_map.emplace(
-   *     terrier::settings::Param::port,
-   *     terrier::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
+   *     noisepage::settings::Param::port,
+   *     noisepage::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
    *     execution::sql::Integer(FLAGS_port)), "Terrier port (default: 15721)",
    *     parser::ConstantValueExpression(type::TypeID::INTEGER, execution::sql::Integer(15721)),
    *     is_mutable));
    */
 
 #define __SETTING_POPULATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_POPULATE__            // NOLINT
 }  // clang-format on
@@ -251,7 +248,7 @@ Param SettingsManager::GetParam(const std::string &name) const {
 const settings::ParamInfo &SettingsManager::GetParamInfo(const Param &param) const {
   // Search for the parameter's information.
   auto search = param_map_.find(param);
-  TERRIER_ASSERT(search != param_map_.end(), "Mismatch between param_name_map_ and param_map_ keys.");
+  NOISEPAGE_ASSERT(search != param_map_.end(), "Mismatch between param_name_map_ and param_map_ keys.");
   const ParamInfo &info = search->second;
   return info;
 }
@@ -265,21 +262,27 @@ void SettingsManager::SetParameter(const std::string &name,
   // Search for the parameter to set.
   const Param param = GetParam(name);
   const ParamInfo &info = GetParamInfo(param);
-  TERRIER_ASSERT(info.name_ == name, "Inconsistent setting name.");
+  NOISEPAGE_ASSERT(info.name_ == name, "Inconsistent setting name.");
   const type::TypeId param_type = info.value_.GetReturnValueType();
 
   // Get the value to be set.
-  TERRIER_ASSERT(values.size() == 1, "The SettingsManager currently assumes that each setting only has one value.");
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(values.size() == 1, "The SettingsManager currently assumes that each setting only has one value.");
+  NOISEPAGE_ASSERT(
       std::all_of(values.begin(), values.end(),
                   [](const auto &expr) { return expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT; }),
       "Values should be constant value expressions.");
   const auto &value = values[0].CastManagedPointerTo<parser::ConstantValueExpression>();
 
-  // Check types.
+  // Check types. If the type of the value does not match the parameter's type, type casting / promotion is attempted.
   if (value->GetReturnValueType() != param_type) {
-    throw SETTINGS_EXCEPTION(fmt::format("invalid value for parameter \"{}\": \"{}\"", info.name_, value->ToString()),
-                             common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+    try {
+      // The binder has exceptional control flow. If this call succeeds, then the type promotion succeeded.
+      binder::BinderUtil::CheckAndTryPromoteType(value, param_type);
+    } catch (BinderException &e) {
+      // The promotion failed and the type remains mismatched, so a SettingsException is thrown.
+      throw SETTINGS_EXCEPTION(fmt::format("invalid value for parameter \"{}\": \"{}\"", info.name_, value->ToString()),
+                               common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+    }
   }
 
   // TODO(WAN): hook up real action contexts and settings callbacks.
@@ -314,4 +317,4 @@ void SettingsManager::SetParameter(const std::string &name,
   }
 }
 
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

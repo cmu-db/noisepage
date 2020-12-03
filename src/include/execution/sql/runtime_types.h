@@ -7,7 +7,7 @@
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class Timestamp;
 
@@ -446,7 +446,17 @@ class EXPORT Decimal {
    * @param seed The value to seed the hash with.
    * @return The hash value for this decimal instance.
    */
-  hash_t Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_); }
+  hash_t Hash(const hash_t seed) const {
+    uint128_t x = value_;
+    const uint64_t kMul = 0x9ddfea08eb382d69ULL;
+    uint128_t low_mask = 0xFFFFFFFFFFFFFFFF;
+    uint64_t a = ((x&low_mask) ^ (x>>64)) * kMul;
+    a ^= (a >> 47);
+    uint64_t b = ((x>>64) ^ a) * kMul;
+    b ^= (b >> 47);
+    b *= kMul;
+    return b;
+  }
 
   /**
    * @return The hash value of this decimal instance.
@@ -746,4 +756,4 @@ inline Timestamp Date::ConvertToTimestamp() const { return Timestamp(value_ * K_
 /** Converts the provided timestamp into a date. */
 inline Date Timestamp::ConvertToDate() const { return Date(value_ / K_MICRO_SECONDS_PER_DAY); }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

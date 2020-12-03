@@ -4,7 +4,6 @@
 #include <atomic>
 #include <sstream>
 
-#include "brain/operating_unit_recorder.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"
@@ -41,6 +40,7 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/pipeline.h"
+#include "execution/exec/execution_settings.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
@@ -67,9 +67,10 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "self_driving/modeling/operating_unit_recorder.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 // A unique ID generator used to generate globally unique TPL function names and keep track of query ID for minirunners.
@@ -77,14 +78,16 @@ std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
-                                       const CompilationMode mode)
+                                       const CompilationMode mode, const exec::ExecutionSettings &settings)
     : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext(), accessor),
       query_state_var_(codegen_.MakeIdentifier("queryState")),
       query_state_type_(codegen_.MakeIdentifier("QueryState")),
-      query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }) {}
+      query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }),
+      counters_enabled_(settings.GetIsCountersEnabled()),
+      pipeline_metrics_enabled_(settings.GetIsPipelineMetricsEnabled()) {}
 
 ast::FunctionDecl *CompilationContext::GenerateInitFunction() {
   const auto name = codegen_.MakeIdentifier(GetFunctionPrefix() + "_Init");
@@ -154,14 +157,22 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     // Extract and record the translators.
     // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
     // Therefore translator extraction must happen before pipelines are generated.
-    brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
-                                          common::ManagedPointer(codegen_.GetAstContext()),
-                                          common::ManagedPointer(pipeline), query_->GetQueryText());
+    selfdriving::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
+                                                common::ManagedPointer(codegen_.GetAstContext()),
+                                                common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
 
     pipeline->Prepare(query_->GetExecutionSettings());
-    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
+    {
+      util::RegionVector<ast::FunctionDecl *> pipeline_decls(query_->GetContext()->GetRegion());
+      for (auto &[_, op] : ops_) {
+        (void)_;
+        op->DefineTLSDependentHelperFunctions(*pipeline, &pipeline_decls);
+      }
+      main_builder.DeclareAll(pipeline_decls);
+    }
+    pipeline->GeneratePipeline(&main_builder);
   }
 
   // Register the tear-down function.
@@ -187,7 +198,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
   query->SetQueryText(query_text);
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), accessor, mode);
+  CompilationContext ctx(query.get(), accessor, mode, exec_settings);
   ctx.GeneratePlan(plan);
 
   // Done
@@ -195,8 +206,8 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
 }
 
 uint32_t CompilationContext::RegisterPipeline(Pipeline *pipeline) {
-  TERRIER_ASSERT(std::find(pipelines_.begin(), pipelines_.end(), pipeline) == pipelines_.end(),
-                 "Duplicate pipeline in context");
+  NOISEPAGE_ASSERT(std::find(pipelines_.begin(), pipelines_.end(), pipeline) == pipelines_.end(),
+                   "Duplicate pipeline in context");
   pipelines_.push_back(pipeline);
   return pipelines_.size();
 }
@@ -312,6 +323,7 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
     case parser::ExpressionType::COMPARE_LIKE:
+    case parser::ExpressionType::COMPARE_IN:
     case parser::ExpressionType::COMPARE_NOT_LIKE: {
       const auto &comparison = dynamic_cast<const parser::ComparisonExpression &>(expression);
       translator = std::make_unique<ComparisonTranslator>(comparison, this);
@@ -403,4 +415,4 @@ util::RegionVector<ast::FieldDecl *> CompilationContext::QueryParams() const {
 
 ast::Expr *CompilationContext::GetExecutionContextPtrFromQueryState() { return exec_ctx_.Get(&codegen_); }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

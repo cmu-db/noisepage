@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 using SortKey = std::pair<common::ManagedPointer<parser::AbstractExpression>, optimizer::OrderByOrderingType>;
 
@@ -70,10 +70,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * Build the order by plan node
      * @return plan node
      */
-    std::unique_ptr<OrderByPlanNode> Build() {
-      return std::unique_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  std::move(sort_keys_), has_limit_, limit_, offset_));
-    }
+    std::unique_ptr<OrderByPlanNode> Build();
 
    protected:
     /**
@@ -103,15 +100,11 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param has_limit true if operator should perform a limit
    * @param limit number of tuples to limit output to
    * @param offset offset in sort from where to limit from
+   * @param plan_node_id Plan node id
    */
   OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
-                  size_t limit, size_t offset)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        sort_keys_(std::move(sort_keys)),
-        has_limit_(has_limit),
-        limit_(limit),
-        offset_(offset) {}
+                  size_t limit, size_t offset, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -141,7 +134,7 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @return limit for sort
    */
   size_t GetLimit() const {
-    TERRIER_ASSERT(HasLimit(), "OrderBy plan has no limit");
+    NOISEPAGE_ASSERT(HasLimit(), "OrderBy plan has no limit");
     return limit_;
   }
 
@@ -179,4 +172,4 @@ class OrderByPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(OrderByPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

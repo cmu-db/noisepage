@@ -6,7 +6,7 @@
 #include "common/error/exception.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class RuntimeTypesTest : public TplTest {};
 
@@ -870,4 +870,4 @@ TEST_F(RuntimeTypesTest, VarlenComparisons) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

@@ -31,7 +31,7 @@
 #include "test_util/test_harness.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 struct IdxJoinTest : public TerrierTest {
   const uint64_t optimizer_timeout_ = 1000000;
@@ -43,16 +43,16 @@ struct IdxJoinTest : public TerrierTest {
     stmt->SetPhysicalPlan(std::move(*plan));
     auto result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
                                              common::ManagedPointer(&portal));
-    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
     result = tcop_->RunExecutableQuery(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
                                        common::ManagedPointer(&portal));
-    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
   }
 
   void ExecuteCreate(std::unique_ptr<planner::AbstractPlanNode> *plan, network::QueryType qtype) {
     auto result =
         tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), common::ManagedPointer(*plan), qtype);
-    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
   }
 
   void ExecuteSQL(std::string sql, network::QueryType qtype) {
@@ -62,9 +62,10 @@ struct IdxJoinTest : public TerrierTest {
     auto stmt = network::Statement(std::move(sql), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse)));
     auto result = tcop_->BindQuery(common::ManagedPointer(&context_), common::ManagedPointer(&stmt),
                                    common::ManagedPointer(&params));
-    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
 
-    auto plan = tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult());
+    auto plan =
+        tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult())->TakePlanNodeOwnership();
     if (qtype >= network::QueryType::QUERY_CREATE_TABLE && qtype != network::QueryType::QUERY_CREATE_INDEX) {
       ExecuteCreate(&plan, qtype);
     } else if (qtype == network::QueryType::QUERY_CREATE_INDEX) {
@@ -80,13 +81,8 @@ struct IdxJoinTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    settings::SettingsManager::ConstructParamMap(param_map);
-
-    db_main_ = terrier::DBMain::Builder()
+    db_main_ = noisepage::DBMain::Builder()
                    .SetUseGC(true)
-                   .SetSettingsParameterMap(std::move(param_map))
-                   .SetUseSettingsManager(true)
                    .SetUseCatalog(true)
                    .SetUseStatsStorage(true)
                    .SetUseTrafficCop(true)
@@ -97,8 +93,8 @@ struct IdxJoinTest : public TerrierTest {
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
     tcop_ = db_main_->GetTrafficCop();
-    auto oids = tcop_->CreateTempNamespace(network::connection_id_t(0), "terrier");
-    context_.SetDatabaseName("terrier");
+    auto oids = tcop_->CreateTempNamespace(network::connection_id_t(0), "noisepage");
+    context_.SetDatabaseName("noisepage");
     context_.SetDatabaseOid(oids.first);
     context_.SetTempNamespaceOid(oids.second);
     db_oid_ = oids.first;
@@ -153,8 +149,9 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -204,9 +201,11 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -224,7 +223,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   for (auto &feature : pipe0_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT_ITERATE:
+      case selfdriving::ExecutionOperatingUnitType::SORT_ITERATE:
         build_feature = true;
         break;
       default:
@@ -238,13 +237,13 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
   for (auto &feature : pipe1_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT_BUILD:
+      case selfdriving::ExecutionOperatingUnitType::SORT_BUILD:
         iterate_feature = true;
         break;
-      case brain::ExecutionOperatingUnitType::SEQ_SCAN:
+      case selfdriving::ExecutionOperatingUnitType::SEQ_SCAN:
         seq_feature = true;
         break;
-      case brain::ExecutionOperatingUnitType::IDX_SCAN:
+      case selfdriving::ExecutionOperatingUnitType::IDX_SCAN:
         idx_feature = true;
         break;
       default:
@@ -272,8 +271,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -324,9 +324,11 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -353,8 +355,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -404,9 +407,11 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -433,8 +438,9 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -470,9 +476,11 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -499,8 +507,9 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -536,9 +545,11 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -565,8 +576,9 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
-      db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+                      common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list),
+                      db_oid_, db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_)
+                      ->TakePlanNodeOwnership();
 
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
@@ -615,9 +627,11 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -628,4 +642,4 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

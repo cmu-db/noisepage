@@ -11,7 +11,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for creating indexes
@@ -70,11 +70,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * Build the create index plan node
      * @return plan node
      */
-    std::unique_ptr<CreateIndexPlanNode> Build() {
-      return std::unique_ptr<CreateIndexPlanNode>(
-          new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, table_oid_,
-                                  std::move(index_name_), std::move(schema_)));
-    }
+    std::unique_ptr<CreateIndexPlanNode> Build();
 
    protected:
     /**
@@ -109,16 +105,12 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param index_type type of index to create
    * @param unique_index true if index should be unique
    * @param index_name name of index to be created
+   * @param plan_node_id Plan node id
    */
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::string index_name,
-                      std::unique_ptr<catalog::IndexSchema> schema)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        namespace_oid_(namespace_oid),
-        table_oid_(table_oid),
-        index_name_(std::move(index_name)),
-        schema_(std::move(schema)) {}
+                      std::unique_ptr<catalog::IndexSchema> schema, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -174,4 +166,4 @@ class CreateIndexPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(CreateIndexPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -12,7 +12,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 std::vector<ExprSet> ChildStatsDeriver::DeriveInputStats(GroupExpression *gexpr, ExprSet required_cols, Memo *memo) {
   required_cols_ = std::move(required_cols);
@@ -40,10 +40,21 @@ void ChildStatsDeriver::Visit(const LogicalInnerJoin *op) {
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalLeftJoin *op) {}
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalRightJoin *op) {}
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalOuterJoin *op) {}
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalSemiJoin *op) {}
+void ChildStatsDeriver::Visit(const LogicalSemiJoin *op) {
+  PassDownRequiredCols();
+  for (auto &annotated_expr : op->GetJoinPredicates()) {
+    ExprSet expr_set;
+    parser::ExpressionUtil::GetTupleValueExprs(&expr_set, annotated_expr.GetExpr());
+    for (auto &col : expr_set) {
+      PassDownColumn(col);
+    }
+  }
+}
 
 // TODO(boweic): support stats of aggregation
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *op) { PassDownRequiredCols(); }
+void ChildStatsDeriver::Visit(const LogicalAggregateAndGroupBy *op) { PassDownRequiredCols(); }
+
+void ChildStatsDeriver::Visit(const LogicalLimit *op) { PassDownRequiredCols(); }
 
 void ChildStatsDeriver::PassDownRequiredCols() {
   for (auto &col : required_cols_) {
@@ -53,7 +64,7 @@ void ChildStatsDeriver::PassDownRequiredCols() {
 }
 
 void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractExpression> col) {
-  TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "ColumnValue expected");
+  NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "ColumnValue expected");
   auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
   for (size_t idx = 0; idx < gexpr_->GetChildrenGroupsSize(); ++idx) {
     auto child_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(static_cast<int>(idx)));
@@ -66,4 +77,4 @@ void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractEx
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

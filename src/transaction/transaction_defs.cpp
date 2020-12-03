@@ -2,8 +2,8 @@
 
 #include "common/strong_typedef_body.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 
 STRONG_TYPEDEF_BODY(timestamp_t, uint64_t);
 
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

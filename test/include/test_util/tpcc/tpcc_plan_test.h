@@ -16,7 +16,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace tpcc {
 class Database;
@@ -55,6 +55,9 @@ class TpccPlanTest : public TerrierTest {
 
   void CheckOids(const std::vector<catalog::col_oid_t> &lhs, const std::vector<catalog::col_oid_t> &rhs);
 
+  // Check the plan meta data contains meta data for all plan nodes
+  void CheckPlanMetaData(planner::AbstractPlanNode *out_plan, planner::PlanMetaData *plan_meta_data);
+
   // Infrastucture
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
@@ -84,4 +87,4 @@ class TpccPlanTest : public TerrierTest {
   catalog::index_oid_t pk_new_order_;
 };
 
-}  // namespace terrier
+}  // namespace noisepage

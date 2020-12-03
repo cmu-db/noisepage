@@ -13,7 +13,7 @@
 // the childs output schema. But also maybe this node doesnt even need an output schema in the execution layer, so I put
 // it as null_ptr for now
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * This is the plan node when exporting data from the database into an external
@@ -83,10 +83,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
      * Build the export external file scan plan node
      * @return plan node
      */
-    std::unique_ptr<ExportExternalFilePlanNode> Build() {
-      return std::unique_ptr<ExportExternalFilePlanNode>(
-          new ExportExternalFilePlanNode(std::move(children_), format_, file_name_, delimiter_, quote_, escape_));
-    }
+    std::unique_ptr<ExportExternalFilePlanNode> Build();
 
    protected:
     /**
@@ -119,16 +116,11 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    * @param delimiter delimiter character
    * @param quote quote character
    * @param escape escape character
+   * @param plan_node_id Plan node id
    */
   explicit ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                       parser::ExternalFileFormat format, std::string file_name, char delimiter,
-                                      char quote, char escape)
-      : AbstractPlanNode(std::move(children), nullptr),
-        format_(format),
-        file_name_(std::move(file_name)),
-        delimiter_(delimiter),
-        quote_(quote),
-        escape_(escape) {}
+                                      char quote, char escape, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -190,4 +182,4 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ExportExternalFilePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  *  The plan node for dropping triggers
  */
@@ -68,10 +68,7 @@ class DropTriggerPlanNode : public AbstractPlanNode {
      * Build the drop trigger plan node
      * @return plan node
      */
-    std::unique_ptr<DropTriggerPlanNode> Build() {
-      return std::unique_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, trigger_oid_, if_exists_));
-    }
+    std::unique_ptr<DropTriggerPlanNode> Build();
 
    protected:
     /**
@@ -102,15 +99,12 @@ class DropTriggerPlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param trigger_oid OID of the trigger to drop
+   * @param plan_node_id Plan node id
    */
   DropTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                      catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
-        trigger_oid_(trigger_oid),
-        if_exists_(if_exists) {}
+                      catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists,
+                      plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -181,4 +175,4 @@ class DropTriggerPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DropTriggerPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

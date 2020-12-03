@@ -10,7 +10,7 @@
 #include "optimizer/rule.h"
 #include "optimizer/statistics/stats_storage.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace transaction {
 class TransactionContext;
@@ -169,7 +169,7 @@ class OptimizerContext {
                                     group_id_t target_group) {
     auto new_gexpr = MakeGroupExpression(node);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
-    TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
+    NOISEPAGE_ASSERT(ptr, "Root of expr should not fail insertion");
 
     (*gexpr) = ptr;
     return (ptr == new_gexpr);
@@ -186,7 +186,16 @@ class OptimizerContext {
   void ReplaceRewriteExpression(common::ManagedPointer<AbstractOptimizerNode> node, group_id_t target_group) {
     memo_.EraseExpression(target_group);
     UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(node), target_group, false);
-    TERRIER_ASSERT(ret, "Root expr should always be inserted");
+    NOISEPAGE_ASSERT(ret, "Root expr should always be inserted");
+  }
+
+  /**
+   * Registers expr to be deleted on txn_ commit/abort
+   * @param expr Expression to register
+   */
+  void RegisterExprWithTxn(parser::AbstractExpression *expr) {
+    txn_->RegisterCommitAction([=]() { delete expr; });
+    txn_->RegisterAbortAction([=]() { delete expr; });
   }
 
  private:
@@ -201,4 +210,4 @@ class OptimizerContext {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>  // NOLINT
 #include <utility>
 #include <vector>
 
@@ -9,7 +10,7 @@
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_io.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * A DiskLogConsumerTask is responsible for writing serialized log records out to disk by processing buffers in the log
@@ -69,7 +70,7 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
   common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
 
   // Flag used by the serializer thread to signal the disk log consumer task thread to persist the data on disk
-  volatile bool do_persist_;
+  volatile bool force_flush_;
 
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
@@ -96,4 +97,4 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
    */
   uint64_t PersistLogFile();
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

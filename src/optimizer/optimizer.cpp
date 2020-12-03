@@ -17,22 +17,23 @@
 #include "optimizer/rule.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
-std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
-                                                                    catalog::CatalogAccessor *accessor,
-                                                                    StatsStorage *storage, QueryInfo query_info,
-                                                                    std::unique_ptr<AbstractOptimizerNode> op_tree) {
+std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
+                                                         catalog::CatalogAccessor *accessor, StatsStorage *storage,
+                                                         QueryInfo query_info,
+                                                         std::unique_ptr<AbstractOptimizerNode> op_tree) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
+  auto optimize_result = std::make_unique<OptimizeResult>();
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
   UNUSED_ATTRIBUTE bool insert = context_->RecordOptimizerNodeIntoGroup(common::ManagedPointer(op_tree), &gexpr);
-  TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
+  NOISEPAGE_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   group_id_t root_id = gexpr->GetGroupID();
 
@@ -52,11 +53,12 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   }
 
   try {
-    auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs);
-
+    PlanGenerator generator(optimize_result->GetPlanMetaData());
+    auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs, &generator);
+    optimize_result->SetPlanNode(std::move(best_plan));
     // Reset memo after finishing the optimization
     Reset();
-    return best_plan;
+    return optimize_result;
   } catch (Exception &e) {
     Reset();
     throw e;
@@ -65,7 +67,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
     transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, group_id_t id,
-    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
+    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+    PlanGenerator *generator) {
   Group *group = context_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
@@ -76,7 +79,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   // required_input_props is owned by the GroupExpression
   auto required_input_props = gexpr->GetInputProperties(required_props);
-  TERRIER_ASSERT(required_input_props.size() == child_groups.size(), "input properties and group size mismatch");
+  NOISEPAGE_ASSERT(required_input_props.size() == child_groups.size(), "input properties and group size mismatch");
 
   // Firstly derive input/output columns
   InputColumnDeriver deriver(txn, accessor);
@@ -84,7 +87,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   auto &output_cols = output_input_cols_pair.first;
   auto &input_cols = output_input_cols_pair.second;
-  TERRIER_ASSERT(input_cols.size() == required_input_props.size(), "input columns and input properties size mismatch");
+  NOISEPAGE_ASSERT(input_cols.size() == required_input_props.size(),
+                   "input columns and input properties size mismatch");
 
   // Derive chidren plans first because they are useful in the derivation of
   // root plan. Also keep propagate expression to column offset mapping
@@ -93,13 +97,12 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   for (size_t i = 0; i < child_groups.size(); ++i) {
     ExprMap child_expr_map;
     for (unsigned offset = 0; offset < input_cols[i].size(); ++offset) {
-      TERRIER_ASSERT(input_cols[i][offset] != nullptr, "invalid input column found");
+      NOISEPAGE_ASSERT(input_cols[i][offset] != nullptr, "invalid input column found");
       child_expr_map[input_cols[i][offset]] = offset;
     }
 
-    auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i]);
-    TERRIER_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
-
+    auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i], generator);
+    NOISEPAGE_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
     children_plans.emplace_back(std::move(child_plan));
     children_expr_map.push_back(child_expr_map);
   }
@@ -107,9 +110,9 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   // Derive root plan
   auto *op = new OperatorNode(gexpr->Contents(), {}, txn);
 
-  PlanGenerator generator;
-  auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
-                                      std::move(children_plans), std::move(children_expr_map));
+  planner::PlanMetaData::PlanNodeMetaData plan_node_meta_data(context_->GetMemo().GetGroupByID(id)->GetNumRows());
+  auto plan = generator->ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
+                                       std::move(children_plans), std::move(children_expr_map), plan_node_meta_data);
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group " + std::to_string(id.UnderlyingValue()));
 
   delete op;
@@ -163,4 +166,4 @@ void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -5,8 +5,17 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+AbstractJoinPlanNode::AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                           std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                                           common::ManagedPointer<parser::AbstractExpression> predicate,
+                                           plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
+      join_type_(join_type),
+      join_predicate_(predicate) {}
 
 bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractPlanNode::operator==(rhs)) return false;
@@ -64,4 +73,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractJoinPlanNode::F
   return exprs;
 }
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

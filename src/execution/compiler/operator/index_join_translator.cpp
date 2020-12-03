@@ -14,11 +14,11 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
       input_oids_(plan.CollectInputOids()),
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(input_oids_)),
@@ -43,12 +43,12 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
   }
 
   compilation_context->Prepare(*GetPlan().GetChild(0), pipeline);
-  index_size_ = CounterDeclare("index_size");
-  num_scans_index_ = CounterDeclare("num_scans_index");
-  num_loops_ = CounterDeclare("num_loops");
+  index_size_ = CounterDeclare("index_size", pipeline);
+  num_scans_index_ = CounterDeclare("num_scans_index", pipeline);
+  num_loops_ = CounterDeclare("num_loops", pipeline);
 }
 
-void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
+void IndexJoinTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   CounterSet(function, index_size_, 0);
   CounterSet(function, num_scans_index_, 0);
   CounterSet(function, num_loops_, 0);
@@ -127,14 +127,14 @@ void IndexJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionB
     }
     check.EndIf();
 
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, per_loop_num_scans_expr);
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, per_loop_num_scans_expr);
   }
 
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(index_size_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS, pipeline, CounterVal(num_loops_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(index_size_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS, pipeline, CounterVal(num_loops_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_index_));
 }
 
@@ -177,7 +177,7 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->MakeStmt(init_call));
 }
 
-void IndexJoinTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexJoinTranslator::DeclareIndexPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var lo_pr = @indexIteratorGetLoPR(&index_iter)
   // var hi_pr = @indexIteratorGetHiPR(&index_iter)
   ast::Expr *lo_pr_call =
@@ -188,14 +188,14 @@ void IndexJoinTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionB
   builder->Append(GetCodeGen()->DeclareVar(hi_index_pr_, nullptr, hi_pr_call));
 }
 
-void IndexJoinTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexJoinTranslator::DeclareTablePR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var table_pr = @indexIteratorGetTablePR(&index_iter)
   ast::Expr *get_pr_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetTablePR, {GetCodeGen()->AddressOf(index_iter_)});
   builder->Append(GetCodeGen()->DeclareVar(table_pr_, nullptr, get_pr_call));
 }
 
-void IndexJoinTranslator::DeclareSlot(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexJoinTranslator::DeclareSlot(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var slot = @indexIteratorGetSlot(&index_iter)
   ast::Expr *get_slot_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSlot, {GetCodeGen()->AddressOf(index_iter_)});
@@ -230,4 +230,4 @@ void IndexJoinTranslator::FreeIterator(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->MakeStmt(free_call));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler
