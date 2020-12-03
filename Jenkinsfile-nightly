@@ -1,7 +1,4 @@
 def utils // common build functions are loaded from Jenkinsfile-utils into this object
-/**
- * loadUtils conditionally loads the Jenkins utility functions file and stores it in the utils varaible
- */
 String utilsFileName  = 'Jenkinsfile-utils'
 
 
@@ -57,7 +54,7 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
-                    loadUtils()
+                    utils = utils ?: load(utilsFileName)
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false)
                 }
 
@@ -96,7 +93,7 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
-                    loadUtils()
+                    utils = utils ?: load(utilsFileName)
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false, isBuildBenchmarks:true)
                 }
 

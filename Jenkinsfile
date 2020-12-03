@@ -1,13 +1,5 @@
 def utils // common build functions are loaded from Jenkinsfile-utils into this object
-/**
- * loadUtils conditionally loads the Jenkins utility functions file and stores it in the utils varaible
- */
-void loadUtils() {
-    String utilsFileName  = 'Jenkinsfile-utils'
-    if(!utils) {
-        utils = load(utilsFileName)
-    }
-}
+String utilsFileName  = 'Jenkinsfile-utils'
 
 pipeline {
     agent none
@@ -141,7 +133,7 @@ pipeline {
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(os:"macos",useASAN:true)
                         }
 
@@ -176,7 +168,7 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
                         
@@ -215,7 +207,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(isCodeCoverage:true)
                         }
 
@@ -266,7 +258,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
 
@@ -303,7 +295,7 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
 
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(os:"macos",buildType:"Release")
                         }
 
@@ -338,7 +330,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
@@ -377,7 +369,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:"Release", isJumboTest:true)
                         }
 
@@ -417,7 +409,7 @@ pipeline {
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(os:"macos", useASAN:true, isBuildTests:false)
                         }
 
@@ -475,7 +467,7 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         script{
-                            loadUtils()
+                            utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(useASAN:true, isBuildTests:false)
                         }
 
@@ -533,7 +525,7 @@ pipeline {
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
 
                 script{
-                    loadUtils()
+                    utils = utils ?: load(utilsFileName)
                     utils.noisePageBuild(buildType:"Release", isBuildTests:false)
                 }
 
@@ -581,7 +573,7 @@ pipeline {
 
 
                 script{
-                    loadUtils()
+                    utils = utils ?: load(utilsFileName)
                     utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
                 }
             }
