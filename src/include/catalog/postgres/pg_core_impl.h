@@ -147,8 +147,8 @@ class PgCoreImpl {
    * @return            True if successful. False otherwise.
    */
   template <typename ClassOid, typename Ptr>
-  bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid,
-                       const Ptr *pointer, col_oid_t class_col);
+  bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid, const Ptr *pointer,
+                       col_oid_t class_col);
   /**
    * @brief Create a table.
    *
