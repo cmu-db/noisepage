@@ -346,14 +346,14 @@ class EXPORT CatalogAccessor {
    * @param func_context The context object to set to
    * @return False if the given proc_oid is invalid, True if else
    */
-  bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context);
+  bool SetFunctionContextPointer(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context);
 
   /**
    * Gets the proc context pointer column of proc_oid
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
    */
-  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
+  common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
 
   /**
    * Returns the type oid of the given TypeId in pg_type

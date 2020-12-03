@@ -1017,7 +1017,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
 
     auto result UNUSED_ATTRIBUTE =
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())
-            ->SetProcCtxPtr(common::ManagedPointer(txn), proc_oid, nullptr);
+            ->SetFunctionContextPointer(common::ManagedPointer(txn), proc_oid, nullptr);
     NOISEPAGE_ASSERT(result, "Setting to null did not work");
     return 0;  // No additional records processed
   }

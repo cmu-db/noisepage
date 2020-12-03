@@ -278,7 +278,8 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
-  NOISEPAGE_ASSERT(nullptr != ptr_ptr, "GetProcCtxPtr called on an invalid OID or before SetProcCtxPtr.");
+  NOISEPAGE_ASSERT(nullptr != ptr_ptr,
+                   "GetFunctionContext called on an invalid OID or before SetFunctionContextPointer.");
   execution::functions::FunctionContext *ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
 
   delete[] buffer;
@@ -472,7 +473,7 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
       GetProcOid(txn, dbc, PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, func_name, arg_type_oids);
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(arg_types), builtin, is_exec_ctx_required);
-  const auto retval UNUSED_ATTRIBUTE = dbc->SetProcCtxPtr(txn, proc_oid, func_context);
+  const auto retval UNUSED_ATTRIBUTE = dbc->SetFunctionContextPointer(txn, proc_oid, func_context);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 

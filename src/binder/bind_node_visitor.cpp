@@ -704,7 +704,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
     throw BINDER_EXCEPTION("Procedure not registered", common::ErrorCode::ERRCODE_UNDEFINED_FUNCTION);
   }
 
-  auto func_context = catalog_accessor_->GetProcCtxPtr(proc_oid);
+  auto func_context = catalog_accessor_->GetFunctionContext(proc_oid);
 
   expr->SetProcOid(proc_oid);
   expr->SetReturnValueType(func_context->GetFunctionReturnType());

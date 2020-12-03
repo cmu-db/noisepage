@@ -347,9 +347,9 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   return pg_core_.CreateIndexEntry(txn, ns_oid, table_oid, index_oid, name, schema);
 }
 
-bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn,
-                                    const proc_oid_t proc_oid,
-                                    const execution::functions::FunctionContext *func_context) {
+bool DatabaseCatalog::SetFunctionContextPointer(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                proc_oid_t proc_oid,
+                                                const execution::functions::FunctionContext *func_context) {
   NOISEPAGE_ASSERT(
       write_lock_.load() == txn->FinishTime(),
       "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
@@ -363,7 +363,7 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
   return pg_proc_.SetProcCtxPtr(txn, proc_oid, func_context);
 }
 
-common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetProcCtxPtr(
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
     common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
   auto proc_ctx = pg_proc_.GetProcCtxPtr(txn, proc_oid);
   NOISEPAGE_ASSERT(proc_ctx != nullptr, "Dynamically added UDFs are currently not supported.");

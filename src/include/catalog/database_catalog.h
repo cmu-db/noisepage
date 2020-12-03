@@ -180,11 +180,11 @@ class DatabaseCatalog {
   /** @brief Get the OID of the specified procedure. @see PgProcImpl::GetProcOid */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
-  /** @brief Set the procedure context for the specified procedure. @see PgProcImpl::SetProcCtxPtr */
-  bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                     const execution::functions::FunctionContext *func_context);
-  /** @brief Get the procedure context for the specified procedure. @see PgProcImpl::GetProcCtxPtr */
-  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
+  /** @brief Set the procedure context for the specified procedure. @see PgProcImpl::SetFunctionContextPointer */
+  bool SetFunctionContextPointer(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                                 const execution::functions::FunctionContext *func_context);
+  /** @brief Get the procedure context for the specified procedure. @see PgProcImpl::GetFunctionContext */
+  common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
  private:
