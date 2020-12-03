@@ -47,18 +47,18 @@ class CatalogColumnDef {
 
   /** @see ProjectedRow::Set */
   void Set(common::ManagedPointer<storage::ProjectedRow> pr, const storage::ProjectionMap &pm, CatalogType val) const {
-    if constexpr (std::is_pointer_v<CatalogType>) {  // NOLINT
+    if constexpr (std::is_pointer_v<CatalogType>) {
       pr->Set<StorageType, false>(pm.at(oid_), reinterpret_cast<StorageType>(val), false);
-    } else {  // NOLINT
+    } else {  // NOLINT (for some reason, clang-tidy sees this as misleading indentation)
       pr->Set<StorageType, false>(pm.at(oid_), static_cast<StorageType>(val), false);
     }
   }
 
   /** @see ProjectedRow::Set */
   void Set(common::ManagedPointer<storage::ProjectedRow> pr, const uint16_t offset, CatalogType val) const {
-    if constexpr (std::is_pointer_v<CatalogType>) {  // NOLINT
+    if constexpr (std::is_pointer_v<CatalogType>) {
       pr->Set<StorageType, false>(offset, reinterpret_cast<StorageType>(val), false);
-    } else {
+    } else {  // NOLINT (for some reason, clang-tidy won't complain here, but gets VERY confused without this)
       pr->Set<StorageType, false>(offset, static_cast<StorageType>(val), false);
     }
   }
