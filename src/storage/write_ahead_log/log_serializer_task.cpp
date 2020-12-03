@@ -214,6 +214,7 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
 
   num_bytes += WriteValue(record.RecordType());
   num_bytes += WriteValue(record.TxnBegin());
+  //STORAGE_LOG_INFO(fmt::format("Record Expected Begin: {}", record.TxnBegin()));
 
   switch (record.RecordType()) {
     case LogRecordType::REDO: {

@@ -851,6 +851,9 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   });
 
   delete[] buffer;
+  table_cache_.erase(table);
+  table_schema_cache_.erase(table);
+  index_oid_cache_.erase(table);
   return true;
 }
 
@@ -950,11 +953,13 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
  */
 common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
     const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table) {
+  if (table_cache_.find(table) != table_cache_.end()) return table_cache_[table];
   const auto ptr_pair = GetClassPtrKind(txn, table.UnderlyingValue());
   if (ptr_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::SqlTable>(nullptr);
   }
+  table_cache_[table] = reinterpret_cast<storage::SqlTable *>(ptr_pair.first);
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
 
@@ -976,9 +981,11 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
 
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const table_oid_t table) {
+  if (table_schema_cache_.find(table) != table_schema_cache_.end()) return *(table_schema_cache_[table]);
   const auto ptr_pair = GetClassSchemaPtrKind(txn, table.UnderlyingValue());
   NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   NOISEPAGE_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
+  table_schema_cache_[table] = reinterpret_cast<Schema *>(ptr_pair.first);
   return *reinterpret_cast<Schema *>(ptr_pair.first);
 }
 
@@ -991,6 +998,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
     const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
+  if (index_oid_cache_.find(table) != index_oid_cache_.end()) return index_oid_cache_[table];
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -1008,6 +1016,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   // If we found no indexes, return an empty list
   if (index_scan_results.empty()) {
     delete[] buffer;
+    index_oid_cache_[table] = {};
     return {};
   }
 
@@ -1022,6 +1031,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
 
   // Finish
   delete[] buffer;
+  index_oid_cache_[table] = index_oids;
   return index_oids;
 }
 
@@ -1173,6 +1183,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
       });
 
   delete[] buffer;
+  index_cache_.erase(index);
+  index_schema_cache_.erase(index);
   return true;
 }
 
@@ -1250,11 +1262,13 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
+  if (index_cache_.find(index) != index_cache_.end()) return index_cache_[index];
   const auto ptr_pair = GetClassPtrKind(txn, index.UnderlyingValue());
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
   }
+  index_cache_[index] = reinterpret_cast<storage::index::Index *>(ptr_pair.first);
   return common::ManagedPointer(reinterpret_cast<storage::index::Index *>(ptr_pair.first));
 }
 
@@ -1270,9 +1284,11 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
 
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
+  if (index_schema_cache_.find(index) != index_schema_cache_.end()) return *(index_schema_cache_[index]);
   auto ptr_pair = GetClassSchemaPtrKind(txn, index.UnderlyingValue());
   NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   NOISEPAGE_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
+  index_schema_cache_[index] = reinterpret_cast<IndexSchema *>(ptr_pair.first);
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 

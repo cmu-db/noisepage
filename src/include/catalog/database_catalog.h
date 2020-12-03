@@ -534,6 +534,13 @@ class DatabaseCatalog {
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
+  std::unordered_map<table_oid_t, Schema *> table_schema_cache_;
+  std::unordered_map<index_oid_t, IndexSchema *> index_schema_cache_;
+
+  std::unordered_map<table_oid_t, common::ManagedPointer<storage::SqlTable>> table_cache_;
+  std::unordered_map<index_oid_t, common::ManagedPointer<storage::index::Index>> index_cache_;
+  std::unordered_map<table_oid_t, std::vector<index_oid_t>> index_oid_cache_;
+
   DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid), garbage_collector_(garbage_collector) {}
 

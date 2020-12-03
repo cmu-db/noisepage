@@ -139,6 +139,7 @@ class ReplicationTests : public TerrierTest {
   catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn,
                                    common::ManagedPointer<catalog::Catalog> catalog, const std::string &database_name) {
     auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), database_name, true /* bootstrap */);
+    REPLICATION_LOG_INFO(db_oid);
     EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
     return db_oid;
   }
@@ -147,6 +148,7 @@ class ReplicationTests : public TerrierTest {
                                            common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                                            const std::string &namespace_name) {
     auto namespace_oid = db_catalog->CreateNamespace(common::ManagedPointer(txn), namespace_name);
+    REPLICATION_LOG_INFO(namespace_oid);
     EXPECT_TRUE(namespace_oid != catalog::INVALID_NAMESPACE_OID);
     return namespace_oid;
   }
@@ -157,7 +159,6 @@ class ReplicationTests : public TerrierTest {
 
 
 // NOLINTNEXTLINE
-/*
 TEST_F(ReplicationTests, CreateDatabaseTest) {
   replication_logger->set_level(spdlog::level::trace);
 
@@ -193,16 +194,17 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
 
     // Create a database and commit, we should see this one after replication.
     std::string database_name = "testdb";
-    //std::string namespace_name = "testns";
+    std::string namespace_name = "testns";
     auto *txn = primary->GetTransactionLayer()->GetTransactionManager()->BeginTransaction();
     auto db_oid = CreateDatabase(txn, primary->GetCatalogLayer()->GetCatalog(), database_name);
-    //auto db_catalog = primary->GetCatalogLayer()->GetCatalog()->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
-    //EXPECT_TRUE(db_catalog);
-    //CreateNamespace(txn, db_catalog, namespace_name);
+    auto db_catalog = primary->GetCatalogLayer()->GetCatalog()->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
+    EXPECT_TRUE(db_catalog);
+    CreateNamespace(txn, db_catalog, namespace_name);
     primary->GetTransactionLayer()->GetTransactionManager()->Commit(txn, transaction::TransactionUtil::EmptyCallback,
                                                                     nullptr);
 
     // Send message.
+    //DirtySleep(5);
     //replication_manager->ReplicaSend("replica1", ReplicationManager::MessageType::RECOVER,
     //                                 replication_manager->SerializeLogRecords(), true);
 
@@ -231,12 +233,13 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
     //DirtySleep(5);
 
     auto txn = replica1->GetTransactionLayer()->GetTransactionManager()->BeginTransaction();
-    catalog::db_oid_t db_oid{0};
-    //catalog::namespace_oid_t ns_oid{0};
+    catalog::db_oid_t db_oid{2};
+    catalog::namespace_oid_t ns_oid{1001};
+    EXPECT_TRUE(replica1->GetCatalogLayer()->GetCatalog()->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
     EXPECT_EQ(db_oid, replica1->GetCatalogLayer()->GetCatalog()->GetDatabaseOid(common::ManagedPointer(txn), "testdb"));
-    //auto recovered_db_catalog = replica1->GetCatalogLayer()->GetCatalog()->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
-    //EXPECT_TRUE(recovered_db_catalog);
-    //EXPECT_EQ(ns_oid, recovered_db_catalog->GetNamespaceOid(common::ManagedPointer(txn), "testns"));
+    auto recovered_db_catalog = replica1->GetCatalogLayer()->GetCatalog()->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
+    EXPECT_TRUE(recovered_db_catalog);
+    EXPECT_EQ(ns_oid, recovered_db_catalog->GetNamespaceOid(common::ManagedPointer(txn), "testns"));
     replica1->GetTransactionLayer()->GetTransactionManager()->Commit(txn, transaction::TransactionUtil::EmptyCallback,
                                                                      nullptr);
 
@@ -256,9 +259,9 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
 
   UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
   NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
-}*/
+}
 
-
+/*
 // This test inserts some tuples into a single table. It then recreates the test table from
 // the log, and verifies that this new table is the same as the original table
 // NOLINTNEXTLINE
@@ -290,6 +293,6 @@ TEST_F(ReplicationTests, SingleTableTest) {
   auto replication_manager = primary->GetReplicationManager();
   replication_manager->ReplicaConnect("replica1", "localhost", port_replication_replica1);
   RunTest(primary, config);
-}
+}*/
 
 }  // namespace noisepage::replication

@@ -151,6 +151,7 @@ class Catalog {
   storage::ProjectionMap pg_database_all_cols_prm_;
   storage::ProjectedRowInitializer delete_database_entry_pri_;
   storage::ProjectionMap delete_database_entry_prm_;
+  std::unordered_map<db_oid_t, common::ManagedPointer<DatabaseCatalog>> database_catalog_cache_;
 
   /**
    * Atomically updates the next oid counter to the max of the current count and the provided next oid

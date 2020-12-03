@@ -54,6 +54,10 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
 
       // TODO(Gus, PR #468): Future addition of checksums should validate these values in case of data corruption.
       auto num_cols = ReadValue<uint16_t>();
+      if (num_cols < 1) {
+        throw std::runtime_error("Number of columns is below minimum number of columns. possible data corruption");
+      }
+
       if (num_cols > common::Constants::MAX_COL) {
         throw std::runtime_error("Number of columns deserialized exceeds max columns. possible data corrution");
       }
@@ -144,7 +148,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     default:
-      STORAGE_LOG_INFO("UNKNOWN log");
+      //STORAGE_LOG_INFO("UNKNOWN log");
       throw std::runtime_error("Unknown log record type during deserialization: " +
                                std::to_string(static_cast<uint8_t>(record_type)));
   }
