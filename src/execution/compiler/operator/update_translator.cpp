@@ -156,37 +156,37 @@ void UpdateTranslator::GetUpdatePR(noisepage::execution::compiler::FunctionBuild
   // var update_pr = @getTablePR(&updater)
   auto *get_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetTablePR, {GetCodeGen()->AddressOf(updater_)});
   builder->Append(GetCodeGen()->Assign(GetCodeGen()->MakeExpr(update_pr_), get_pr_call));
-
-  const auto &op = GetPlanAs<planner::UpdatePlanNode>();
-  auto *update_pr = GetCodeGen()->MakeExpr(update_pr_);
-  // TODO(WAN): is this a hack?
-  // Set the update_pr from the child so that updates can safely refer to themselves, e.g. UPDATE a = a+1.
-  // @prSet(update_pr, ...)
-  if (op.GetChildrenSize() > 0) {
-    const auto *child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
-
-    for (const auto oid : all_oids_) {
-      const auto &col = table_schema_.GetColumn(oid);
-      const auto idx = table_pm_.find(oid)->second;
-
-      ast::Expr *child_expr = child->GetTableColumn(oid);
-      ast::Expr *set_pr = GetCodeGen()->PRSet(update_pr, col.Type(), col.Nullable(), idx, child_expr, true);
-      builder->Append(GetCodeGen()->MakeStmt(set_pr));
-    }
-  }
 }
 
 void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *context) const {
-  const auto &clauses = GetPlanAs<planner::UpdatePlanNode>().GetSetClauses();
+  const auto &op = GetPlanAs<planner::UpdatePlanNode>();
+  const auto &clauses = op.GetSetClauses();
+  NOISEPAGE_ASSERT(op.GetChildrenSize() > 1, "UpdatePlanNode must have a child");
+  const auto *provider = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
 
+  std::unordered_set<catalog::col_oid_t> set_oids;
   for (const auto &clause : clauses) {
     // @prSet(update_pr, ...)
     const auto &table_col_oid = clause.first;
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
-    const auto &clause_expr = context->DeriveValue(*clause.second, this);
+    const auto &clause_expr = context->DeriveValue(*clause.second, provider);
     auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
                                             table_pm_.find(table_col_oid)->second, clause_expr, true);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
+
+    set_oids.insert(table_col_oid);
+  }
+
+  for (const auto oid : all_oids_) {
+    if (set_clauses.find(oid) == set_clauses.end()) {
+      // For columns not modified by an update clause, copy the original value.
+      const auto &col = table_schema_.GetColumn(oid);
+      const auto idx = table_pm_.find(oid)->second;
+
+      ast::Expr *child_expr = child->GetTableColumn(oid);
+      ast::Expr *set_pr = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), col.Type(), col.Nullable(), idx, child_expr, true);
+      builder->Append(GetCodeGen()->MakeStmt(set_pr));
+    }
   }
 }
 
