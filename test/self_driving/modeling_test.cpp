@@ -16,7 +16,6 @@ namespace noisepage::modelserver {
  */
 class ModelServerTest : public TerrierTest {
  protected:
-
   static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
 
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
