@@ -173,6 +173,18 @@ class PgCoreImpl {
                    common::ManagedPointer<DatabaseCatalog> dbc, table_oid_t table);
 
   /**
+   * @brief Rename a table.
+   *
+   * @param txn         The transaction to rename the table in.
+   * @param dbc         The database catalog that this PgCoreImpl instance resides in.
+   * @param table       The table to be renamed.
+   * @param name        The new name for the table.
+   * @return            True if the rename succeeded. False otherwise.
+   */
+  bool RenameTable(common::ManagedPointer<transaction::TransactionContext> txn,
+                   common::ManagedPointer<DatabaseCatalog> dbc, table_oid_t table, const std::string &name);
+
+  /**
    * @brief Create an index.
    *
    * @param txn         The transaction to create an index in.

@@ -655,6 +655,14 @@ bool PgCoreImpl::DeleteTable(const common::ManagedPointer<transaction::Transacti
   return true;
 }
 
+bool PgCoreImpl::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
+                             const common::ManagedPointer<DatabaseCatalog> dbc, const table_oid_t table,
+                             const std::string &name) {
+  // TODO(John): Implement
+  NOISEPAGE_ASSERT(false, "Not implemented");
+  return false;
+}
+
 bool PgCoreImpl::CreateIndexEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const namespace_oid_t ns_oid, const table_oid_t table_oid,
                                   const index_oid_t index_oid, const std::string &name, const IndexSchema &schema) {

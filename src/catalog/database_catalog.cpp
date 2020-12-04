@@ -229,9 +229,8 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<
 bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table, const std::string &name) {
   if (!TryLock(txn)) return false;
-  // TODO(John): Implement
-  NOISEPAGE_ASSERT(false, "Not implemented");
-  return false;
+
+  return pg_core_.RenameTable(txn, common::ManagedPointer(this), table, name);
 }
 
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -373,8 +372,7 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
 
   if (owned_by_other_txn || newer_committed_version) {
     txn->SetMustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change
-                          // failure
-    // and force the txn to rollback
+                          // failure and force the txn to rollback
     return false;
   }
 

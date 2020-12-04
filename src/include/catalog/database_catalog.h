@@ -57,6 +57,9 @@ class DatabaseCatalog {
                           const std::string &name, const Schema &schema);
   /** @brief Delete the specified table. @see PgCoreImpl::DeleteTable */
   bool DeleteTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+  /** @brief Rename a table. @see PgCoreImpl::RenameTable */
+  bool RenameTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
+                   const std::string &name);
 
   /**
    * @brief Set the location of the underlying storage for the specified table.
@@ -107,19 +110,6 @@ class DatabaseCatalog {
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
   /** @brief Get the index schema for the specified index. */
   const IndexSchema &GetIndexSchema(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
-
-  /**
-   * @brief Rename a table.
-   *
-   * @param txn         The transaction to rename the table in.
-   * @param table       The table to be renamed.
-   * @param name        The new name for the table.
-   * @return            True if the rename succeeded. False otherwise.
-   *
-   * TODO(WAN): if this logic can be pushed to PgCoreImpl, update this comment to match style
-   */
-  bool RenameTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
-                   const std::string &name);
 
   /**
    * @brief Update the schema of the table.
