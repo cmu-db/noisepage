@@ -46,7 +46,6 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   auto teardown_pg_proc = pg_proc_.GetTearDownFn(txn);
 
   auto dbc_nuke = [=]() {
-    // Order matters!
     teardown_pg_core();
     teardown_pg_constraint();
     teardown_pg_proc();
