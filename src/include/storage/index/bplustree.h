@@ -8,7 +8,6 @@
 #include <set>
 #include <shared_mutex>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -29,12 +28,9 @@ namespace noisepage::storage::index {
 #define LEAF_NODE_SIZE_UPPER_THRESHOLD ((int)128)
 #define LEAF_NODE_SIZE_LOWER_THRESHOLD ((int)64)
 
-/*
- * class BPlusTreeBase - Base class of BPlusTree that stores some common members
- */
-
 /**
- *  Base class for BPlusTree that stores common data, inherited by the BPlusTree class
+ *  Base class for BPlusTree that stores common data, inherited by the BPlusTree class. This
+ *  class stores the threshold parameters specific to the B+ Tree.
  */
 class BPlusTreeBase {
  public:
@@ -108,54 +104,28 @@ class BPlusTreeBase {
   ~BPlusTreeBase() = default;
 };
 
-/*
- * class BPlusTree - Lock-free BPlusTree index implementation
- *
- * Template Arguments:
- *
- * template <typename KeyType,
- *           typename ValueType,
- *           typename KeyComparator = std::less<KeyType>,
- *           typename KeyEqualityChecker = std::equal_to<KeyType>,
- *           typename KeyHashFunc = std::hash<KeyType>,
- *           typename ValueEqualityChecker = std::equal_to<ValueType>,
- *           typename ValueHashFunc = std::hash<ValueType>>
- *
- * Explanation:
- *
- *  - KeyType: Key type of the map
- *
- *  - ValueType: Value type of the map. Note that it is possible
- *               that a single key is mapped to multiple values
- *
- *  - KeyComparator: "less than" relation comparator for KeyType
- *                   Returns true if "less than" relation holds
- *                   *** NOTE: THIS OBJECT DO NOT NEED TO HAVE A DEFAULT
- *                   CONSTRUCTOR.
- *                   Please refer to main.cpp, class KeyComparator for more
- *                   information on how to define a proper key comparator
- *
- *  - KeyEqualityChecker: Equality checker for KeyType
- *                        Returns true if two keys are equal
- *
- *  - KeyHashFunc: Hashes KeyType into size_t. This is used in unordered_set
- *
- *  - ValueEqualityChecker: Equality checker for value type
- *                          Returns true for ValueTypes that are equal
- *
- *  - ValueHashFunc: Hashes ValueType into a size_t
- *                   This is used in unordered_set
- *
- * If not specified, then by default all arguments except the first two will
- * be set as the standard operator in C++ (i.e. the operator for primitive types
- * AND/OR overloaded operators for derived types)
- */
-
 /**
  * Implementation of a B+ Tree index using latch crabbing.
  *
+ * Concurrency:
+ *  Each node (leaf and inner) contains one shared latch to gain access to the node.
+ *  Writers are prioritized in this lock. Additionally, to guarantee safety of the root pointer of the
+ *  tree there is an additional latch for the root (root has 2 latches now). Latches are acquired from
+ *  top to bottom. Thus, before accessing a child node pointer, it is ensured that the pointer cannot be
+ *  deleted no matter what (the parent latch is also being held at that point).
  *
+ * Optimistic latch crabbing is used to acquire node latches for reads and writes.
+ *  Read:
+ *    Acquire latches starting from root, in the path to find the key. Release shared latch of parent
+ *    once the latch on current node is obtained and so on...
  *
+ *  Write:
+ *    Happens in 2 phases:
+ *    1) Shared latches acquired throughout the path expect in leaf node (exclusive lock needed here). If the leaf node
+ *    is safe for insertion/deletion (no overflow/underflow), perform the operation else move to step 2.
+ *
+ *    2) Exclusive latches are acquired from root to the corresponding leaf. A queue of locks acquired is maintained.
+ *    If the current node is safe (no overflow/underflow), release all parent locks are released.
  *
  * @tparam KeyType Key type of the map
  * @tparam ValueType Value type of the map. Note that it is possible that a single key is mapped to multiple values
@@ -163,23 +133,14 @@ class BPlusTreeBase {
  *                   Returns true if "less than" relation holds
  * @tparam KeyEqualityChecker Equality checker for KeyType
  *                        Returns true if two keys are equal
- * @tparam KeyHashFunc Hashes KeyType into size_t. This is used in unordered_set
  * @tparam ValueEqualityChecker Equality checker for value type
  *                          Returns true for ValueTypes that are equal
- * @tparam ValueHashFunc Hashes ValueType into a size_t
- *                   This is used in unordered_set
  */
 template <typename KeyType, typename ValueType, typename KeyComparator = std::less<KeyType>,
-    typename KeyEqualityChecker = std::equal_to<KeyType>, typename KeyHashFunc = std::hash<KeyType>,
-    typename ValueEqualityChecker = std::equal_to<ValueType>, typename ValueHashFunc = std::hash<ValueType>>
+    typename KeyEqualityChecker = std::equal_to<KeyType>, typename ValueEqualityChecker = std::equal_to<ValueType>>
 class BPlusTree : public BPlusTreeBase {
  public:
   class BaseNode;
-  class KeyNodePointerPairComparator;
-  class KeyNodePointerPairHashFunc;
-  class KeyNodePointerPairEqualityChecker;
-  class KeyValuePairHashFunc;
-  class KeyValuePairEqualityChecker;
 
   // KeyType-NodeID pair
   using KeyNodePointerPair = std::pair<KeyType, BaseNode *>;
@@ -188,171 +149,12 @@ class BPlusTree : public BPlusTreeBase {
 
   using KeyElementPair = std::pair<KeyType, ValueType>;
 
-  /*
-   * enum class NodeType - Bw-Tree node type
+  /**
+   * enum class NodeType - B+ Tree node type
    */
   enum class NodeType : int {
     InnerType = 0,
-    // Data page type
     LeafType = 1
-  };
-
-  ///////////////////////////////////////////////////////////////////
-  // Comparator, equality checker and hasher for key-NodeID pair
-  ///////////////////////////////////////////////////////////////////
-
-  /**
-   * class KeyNodePointerPairComparator - Compares key-value pair for < relation
-   *
-   * Only key values are compares. However, we should use WrappedKeyComparator
-   * instead of the raw one, since there could be -Inf involved in inner nodes
-   */
-  class KeyNodePointerPairComparator {
-   public:
-    const KeyComparator *key_cmp_obj_p_;
-
-    /**
-     * Default constructor - deleted
-     */
-    KeyNodePointerPairComparator() = delete;
-
-    /**
-     * Constructor - Initialize a key-NodeID pair comparator using
-     *               wrapped key comparator
-     */
-    explicit KeyNodePointerPairComparator(BPlusTree *p_tree_p) : key_cmp_obj_p_{&p_tree_p->key_cmp_obj_} {}
-
-    /**
-     * operator() - Compares whether a key NodeID pair is less than another
-     *
-     * We only compare keys since there should not be duplicated
-     * keys inside an inner node
-     */
-    bool operator()(const KeyNodePointerPair &knp1, const KeyNodePointerPair &knp2) const {
-      // First compare keys for relation
-      return (*key_cmp_obj_p_)(knp1.first, knp2.first);
-    }
-  };
-
-  /**
-   * class KeyNodePointerPairEqualityChecker - Checks KeyNodePointerPair equality
-   *
-   * Only keys are checked since there should not be duplicated keys inside
-   * inner nodes. However we should always use wrapped key eq checker rather
-   * than wrapped raw key eq checker
-   */
-  class KeyNodePointerPairEqualityChecker {
-   public:
-    const KeyEqualityChecker *key_eq_obj_p_;
-
-    /**
-     * Default constructor - deleted
-     */
-    KeyNodePointerPairEqualityChecker() = delete;
-
-    /**
-     * Constructor - Initialize a key node pair eq checker
-     */
-    explicit KeyNodePointerPairEqualityChecker(BPlusTree *p_tree_p) : key_eq_obj_p_{&p_tree_p->key_eq_obj_} {}
-
-    /**
-     * operator() - Compares key-NodeID pair by comparing keys
-     */
-    bool operator()(const KeyNodePointerPair &knp1, const KeyNodePointerPair &knp2) const {
-      return (*key_eq_obj_p_)(knp1.first, knp2.first);
-    }
-  };
-
-  /**
-   * class KeyNodePointerPairHashFunc - Hashes a key-NodeID pair into size_t
-   */
-  class KeyNodePointerPairHashFunc {
-   public:
-    const KeyHashFunc *key_hash_obj_p_;
-
-    /**
-     * Default constructor - deleted
-     */
-    KeyNodePointerPairHashFunc() = delete;
-
-    /**
-     * Constructor - Initialize a key value pair hash function
-     */
-    explicit KeyNodePointerPairHashFunc(BPlusTree *p_tree_p) : key_hash_obj_p_{&p_tree_p->key_hash_obj_} {}
-
-    /**
-     * operator() - Hashes a key-value pair by hashing each part and
-     *              combine them into one size_t
-     *
-     * We use XOR to combine hashes of the key and value together into one
-     * single hash value
-     */
-    size_t operator()(const KeyNodePointerPair &knp) const { return (*key_hash_obj_p_)(knp.first); }
-  };
-
-  ///////////////////////////////////////////////////////////////////
-  // Comparator, equality checker and hasher for key-value pair
-  ///////////////////////////////////////////////////////////////////
-
-  /**
-   * class KeyValuePairComparator - Comparator class for KeyValuePair
-   */
-  class KeyValuePairComparator {
-   public:
-    const KeyComparator *key_cmp_obj_p_;
-
-    /**
-     * Default constructor - deleted
-     */
-    KeyValuePairComparator() = delete;
-
-    /**
-     * Constructor
-     */
-    explicit KeyValuePairComparator(BPlusTree *p_tree_p) : key_cmp_obj_p_{&p_tree_p->key_cmp_obj_} {}
-
-    /**
-     * operator() - Compares key-value pair by comparing each component
-     *              of them
-     *
-     * NOTE: This function only compares keys with KeyType. For +/-Inf
-     * the wrapped raw key comparator will fail
-     */
-    bool operator()(const KeyValuePair &kvp1, const KeyValuePair &kvp2) const {
-      return (*key_cmp_obj_p_)(kvp1.first, kvp2.first);
-    }
-  };
-
-  /**
-   * class KeyValuePairEqualityChecker - Checks KeyValuePair equality
-   */
-  class KeyValuePairEqualityChecker {
-   public:
-    const KeyEqualityChecker *key_eq_obj_p_;
-    const ValueEqualityChecker *value_eq_obj_p_;
-
-    /**
-     * Default constructor - deleted
-     */
-    KeyValuePairEqualityChecker() = delete;
-
-    /**
-     * Constructor - Initialize a key value pair equality checker with
-     *               WrappedKeyEqualityChecker and ValueEqualityChecker
-     */
-    explicit KeyValuePairEqualityChecker(BPlusTree *p_tree_p)
-        : key_eq_obj_p_{&p_tree_p->key_eq_obj_}, value_eq_obj_p_{&p_tree_p->value_eq_obj_} {}
-
-    /**
-     * operator() - Compares key-value pair by comparing each component
-     *              of them
-     *
-     * NOTE: This function only compares keys with KeyType. For +/-Inf
-     * the wrapped raw key comparator will fail
-     */
-    bool operator()(const KeyValuePair &kvp1, const KeyValuePair &kvp2) const {
-      return ((*key_eq_obj_p_)(kvp1.first, kvp2.first)) && ((*value_eq_obj_p_)(kvp1.second, kvp2.second));
-    }
   };
 
   ///////////////////////////////////////////////////////////////////
@@ -364,11 +166,6 @@ class BPlusTree : public BPlusTreeBase {
    *
    * If key1 < key2 return true
    * If not return false
-   *
-   * NOTE: In older version of the implementation this might be defined
-   * as the comparator to wrapped key type. However wrapped key has
-   * been removed from the newest implementation, and this function
-   * compares KeyType specified in template argument.
    */
   bool KeyCmpLess(const KeyType &key1, const KeyType &key2) const { return key_cmp_obj_(key1, key2); }
 
@@ -410,31 +207,14 @@ class BPlusTree : public BPlusTreeBase {
   /**
    * class NodeMetaData - Holds node metadata in an object
    *
-   * Node metadata includes a pointer to the range object, the depth
-   * of the current delta chain (NOTE: If there is a merge node then the
-   * depth is the sum of the length of its two children rather than
-   * the larger one)
-   *
-   * Since we need to query for high key and low key in every step of
-   * traversal down the tree (i.e. on each level we need to verify we
-   * are on the correct node). It would be wasteful if we traverse down the
-   * delta chain down to the bottom everytime to collect these metadata
-   * therefore as an optimization we store them inside each delta node
-   * and leaf/inner node to optimize for performance
-   *
    * NOTE: We do not count node type as node metadata
    */
   class NodeMetaData {
    public:
-    // For all nodes including base node and data node and SMO nodes,
-    // the low key pointer always points to a KeyNodePointerPair structure
-    // inside the base node, which is either the first element of the
-    // node sep list (InnerNode), or a class member (LeafNode)
-    const KeyNodePointerPair *low_key_p_;
 
-    // high key points to the KeyNodePointerPair inside the LeafNode and InnerNode
-    // if there is neither SplitNode nor MergeNode. Otherwise it
-    // points to the item inside split node or merge right sibling branch
+    // Low and High keys in a leaf or inner node. These are explicitly stored so
+    // that the iterator begin and end can fetch the values easily.
+    const KeyNodePointerPair *low_key_p_;
     const KeyNodePointerPair *high_key_p_;
 
     // The type of the node
@@ -449,7 +229,7 @@ class BPlusTree : public BPlusTreeBase {
     // Latch for each node
     std::shared_mutex node_latch_;
 
-    /*
+    /**
      * Constructor
      */
     NodeMetaData(const KeyNodePointerPair *p_low_key_p, const KeyNodePointerPair *p_high_key_p, NodeType p_type,
@@ -461,7 +241,7 @@ class BPlusTree : public BPlusTreeBase {
           item_count_{p_item_count} {}
   };
 
-  /*
+  /**
    * class BaseNode - Generic node class; inherited by leaf, inner
    *                  and delta node
    */
@@ -469,41 +249,36 @@ class BPlusTree : public BPlusTreeBase {
     // We hold its data structure as private to force using member functions
     // for member access
    private:
-    // This holds low key, high key, next node ID, type, depth and item count
+    // This holds low key, high key, type, depth and item count
     NodeMetaData metadata_;
 
    public:
-    /*
+    /**
      * Constructor - Initialize type and metadata
      */
     BaseNode(NodeType p_type, const KeyNodePointerPair *p_low_key_p, const KeyNodePointerPair *p_high_key_p,
              int p_depth, int p_item_count)
         : metadata_{p_low_key_p, p_high_key_p, p_type, p_depth, p_item_count} {}
 
-    /*
-     * Type() - Return the type of node
+    /**
+     * GetType() - Return the type of node
      *
-     * This method does not allow overridding
      */
     NodeType GetType() const { return metadata_.type_; }
 
-    /*
+    /**
      * GetNodeMetaData() - Returns a const reference to node metadata
      *
-     * Please do not override this method
      */
     const NodeMetaData &GetNodeMetaData() const { return metadata_; }
 
-    /*
+    /**
      * IsInnerNode() - Returns true if the node is an inner node
      *
-     * This is useful if we want to collect all seps on an inner node
-     * If the top of delta chain is an inner node then just do not collect
-     * and use the node directly
      */
     bool IsInnerNode() const { return GetType() == NodeType::InnerType; }
 
-    /*
+    /**
      * GetLowKey() - Returns the low key of the current base node
      *
      * NOTE: Since it is defined that for LeafNode the low key is undefined
@@ -512,7 +287,7 @@ class BPlusTree : public BPlusTreeBase {
      */
     const KeyType &GetLowKey() const { return metadata_.low_key_p->first; }
 
-    /*
+    /**
      * GetHighKey() - Returns a reference to the high key of current node
      *
      * This function could be called for all node types including leaf nodes
@@ -520,106 +295,90 @@ class BPlusTree : public BPlusTreeBase {
      */
     const KeyType &GetHighKey() const { return metadata_.high_key_p_->first; }
 
-    /*
-     * GetHighKeyPair() - Returns the pointer to high key node id pair
+    /**
+     * GetHighKeyPair() - Returns the pointer to high key node ptr pair
      */
     const KeyNodePointerPair &GetHighKeyPair() const { return *metadata_.high_key_p_; }
 
-    /*
-     * GetLowKeyPair() - Returns the pointer to low key node id pair
-     *
-     * The return value is nullptr for LeafNode and its delta chain
+    /**
+     * GetLowKeyPair() - Returns the pointer to low key node ptr pair
      */
     const KeyNodePointerPair &GetLowKeyPair() const { return *metadata_.low_key_p_; }
 
-    /*
-     * GetNextNodeID() - Returns the next NodeID of the current node
-     */
-    BaseNode *GetNextNodeID() const { return metadata_.high_key_p_->second; }
-
-    /*
-     * GetLowKeyNodeID() - Returns the NodeID for low key
-     *
-     * NOTE: This function should not be called for leaf nodes
-     * since the low key node ID for leaf node is not defined
-     */
-    BaseNode *GetLowKeyNodeID() const { return metadata_.low_key_p_->second; }
-
-    /*
+    /**
      * GetDepth() - Returns the Height of the Node
      */
     int GetDepth() const { return metadata_.depth_; }
 
-    /*
+    /**
      * GetItemCount() - Returns the item count of the current node
      */
     int GetItemCount() const { return metadata_.item_count_; }
 
-    /*
+    /**
      * GetNodeExclusiveLatch() - Obtain the exclusive lock to the current node
      */
     void GetNodeExclusiveLatch() { metadata_.node_latch_.lock(); }
 
-    /*
+    /**
      * GetNodeSharedLatch() - Obtain the Shared lock to the current node
      */
     void GetNodeSharedLatch() { metadata_.node_latch_.lock_shared(); }
 
-    /*
+    /**
      * ReleaseNodeLatch() - Release the lock to the current node
      */
     void ReleaseNodeLatch() { metadata_.node_latch_.unlock(); }
 
+    /**
+     * ReleaseNodeSharedLatch() - Release shared access to the current node
+     */
     void ReleaseNodeSharedLatch() { metadata_.node_latch_.unlock_shared(); }
 
-    /*
+    /**
      * GetLatchPointer() - Get the Latch Pointer of current node's latch
      */
     std::shared_mutex *GetLatchPointer() { return &(metadata_.node_latch_); }
 
-    /*
+    /**
      * TryExclusiveLock() - Try to get the exclusive lock
      */
     bool TryExclusiveLock() { return metadata_.node_latch_.try_lock(); }
 
-    /*
+    /**
      * TrySharedLock() - Try to get the shared read lock
      */
     bool TrySharedLock() { return metadata_.node_latch_.try_lock_shared(); }
 
-    /*
+    /**
      * SetLowKeyPair() - Sets the low key pair of metadata
      */
     void SetLowKeyPair(const KeyNodePointerPair *p_low_key_p) { metadata_.low_key_p_ = p_low_key_p; }
 
-    /*
+    /**
      * SetHighKeyPair() - Sets the high key pair of metdtata
      */
     void SetHighKeyPair(const KeyNodePointerPair *p_high_key_p) { metadata_.high_key_p_ = p_high_key_p; }
 
-    /*
-      SetType() - Sets the type of metadata
-    */
+    /**
+     * SetType() - Sets the type of metadata
+     */
     void SetType(const NodeType input_type) { metadata_.type_ = input_type; }
 
-    /*
-      SetDepth() - Sets the depth of metadata
-    */
+    /**
+     * SetDepth() - Sets the depth of metadata
+     */
     void SetDepth(const int input_depth) { metadata_.depth_ = input_depth; }
 
-    /*
-      SetItemCount() - Sets the item_count of metadata
-    */
+    /**
+     * SetItemCount() - Sets the item_count of metadata
+     */
     void SetItemCount(const int input_item_count) { metadata_.item_count_ = input_item_count; }
   };
 
-  /*
+  /**
    * class ElasticNode - The base class for elastic node types, i.e. InnerNode
    *                     and LeafNode
-   *
-   * Since for InnerNode and LeafNode, the number of elements is not a compile
-   * time known constant. However, for efficient tree traversal we must
-   * all elements to reduce cache misses with workload that's less predictable
    */
   template <typename ElementType>
   class ElasticNode : public BaseNode {
@@ -639,7 +398,7 @@ class BPlusTree : public BPlusTreeBase {
     ElementType start_[0];
 
    public:
-    /*
+    /**
      * Constructor
      *
      * Note that this constructor uses the low key and high key stored as
@@ -652,7 +411,7 @@ class BPlusTree : public BPlusTreeBase {
           high_key_{*p_high_key},
           end_{start_} {}
 
-    /*
+    /**
      * Copy() - Copy constructs another instance
      */
     static ElasticNode *Copy(const ElasticNode &other) {
@@ -664,30 +423,27 @@ class BPlusTree : public BPlusTreeBase {
       return node_p;
     }
 
-    /*
-      Free elastic node
-    */
+    /**
+     * Free elastic node
+     */
     void FreeElasticNode() {
       ElasticNode *allocation_start = this;
       delete[] reinterpret_cast<char *>(allocation_start);
     }
 
-    /*
-     IntializeEnd() - Make end = start
-    */
-    void InitializeEnd() { end_ = start_; }
-
-    /*
-     SetEnd() - Make end = start + offset
-    */
+    /**
+     * SetEnd() - Make end = start + offset
+     */
     void SetEnd(int offset) { end_ = start_ + offset; }
 
-    /*
+    /**
      * Begin() - Returns a begin iterator to its internal array
      */
     ElementType *Begin() { return start_; }
 
-    /*
+    const ElementType *Begin() const { return start_; }
+
+    /**
      * RBegin() - Returns a reverse begin iterator to its internal array
      */
     ElementType *RBegin() {
@@ -698,16 +454,14 @@ class BPlusTree : public BPlusTreeBase {
       return return_value;
     }
 
-    const ElementType *Begin() const { return start_; }
-
-    /*
+    /**
      * End() - Returns an end iterator that is similar to the one for vector
      */
     ElementType *End() { return end_; }
 
     const ElementType *End() const { return end_; }
 
-    /*
+    /**
      * REnd() - Returns the element before the first element
      *
      * Note that since we returned an invalid pointer into the array, the
@@ -717,7 +471,7 @@ class BPlusTree : public BPlusTreeBase {
 
     const ElementType *REnd() const { return start_ - 1; }
 
-    /*
+    /**
      * PushBack() - Push back an element
      *
      * This function takes an element type and copy-construct it on the array
@@ -732,7 +486,7 @@ class BPlusTree : public BPlusTreeBase {
       end_++;
     }
 
-    /*
+    /**
      * PushBack() - Push back a series of elements
      *
      * The overloaded PushBack() could also push an array of elements
@@ -748,19 +502,11 @@ class BPlusTree : public BPlusTreeBase {
     }
 
    public:
-    /*
-     Print elastic node keys
-   */
-    void PrintElasticNode() {
-      for (ElementType *element_p = Begin(); element_p != End(); element_p++) {
-        // Manually calls destructor when the node is destroyed
-        // std::cout << element_p->first << " ";
-      }
-    }
-    /*
-    insertElementIfPossible - Returns true if inserted and false if node full
-    Inserts at location provided.
-    */
+
+    /**
+     * InsertElementIfPossible - Returns true if inserted and false if node full
+     * Inserts at location provided.
+     */
     bool InsertElementIfPossible(const ElementType &element, ElementType *location) {
       if (GetSize() >= this->GetItemCount()) return false;
       if (end_ - location > 0)
@@ -771,26 +517,26 @@ class BPlusTree : public BPlusTreeBase {
       return true;
     }
 
-    /*
-    SplitNode - Splits the current node and returns a pointer to the new node.
-    Returns nullptr if node is not already full
-    */
+    /**
+     * SplitNode - Splits the current node and returns a pointer to the new node.
+     * Returns nullptr if node is not already full
+     */
     ElasticNode *SplitNode() {
       if (this->GetSize() < this->GetItemCount()) return nullptr;
       ElasticNode *new_node = this->Get(this->GetSize(), this->GetType(), this->GetDepth(), this->GetItemCount(),
                                         *this->GetElasticLowKeyPair(), *this->GetElasticHighKeyPair());
       ElementType *copy_from_location = Begin() + ((this->GetSize()) / 2);
-      // Can be memcopy
-      std::memmove(reinterpret_cast<void *>(new_node->Begin()), reinterpret_cast<void *>(copy_from_location),
+
+      std::memcpy(reinterpret_cast<void *>(new_node->Begin()), reinterpret_cast<void *>(copy_from_location),
                    (end_ - copy_from_location) * sizeof(ElementType));
       new_node->SetEnd((end_ - copy_from_location));
       end_ = copy_from_location;
       return new_node;
     }
 
-    /*
-     MergeNode - Merge a given node's entries to the current node.
-     Returns true if merge successful, false otherwise
+    /**
+     * MergeNode - Merge a given node's entries to the current node.
+     * Returns true if merge successful, false otherwise
      */
     bool MergeNode(ElasticNode *next_node) {
       // Merge the right type
@@ -809,10 +555,10 @@ class BPlusTree : public BPlusTreeBase {
       return true;
     }
 
-    /*
-    Pop Begin - Pops the first element from the list
-    Returns False if empty
-    */
+    /**
+     * Pop Begin - Pops the first element from the list
+     * Returns False if empty
+     */
     bool PopBegin() {
       if (this->GetSize() == 0) return false;
       if (this->GetSize() == 1) {
@@ -825,10 +571,10 @@ class BPlusTree : public BPlusTreeBase {
       return true;
     }
 
-    /*
-    Pop Back - Pops the last element from the list
-    Returns False if empty
-    */
+    /**
+     * Pop Back - Pops the last element from the list
+     * Returns False if empty
+     */
     bool PopEnd() {
       if (this->GetSize() == 0) return false;
       if (this->GetSize() == 1) {
@@ -839,10 +585,10 @@ class BPlusTree : public BPlusTreeBase {
       return true;
     }
 
-    /*
-    Erase - remove the element at index 'i' from the list
-    Returns False if empty
-    */
+    /**
+     * Erase - remove the element at index 'i' from the list
+     * Returns False if empty
+     */
     bool Erase(int i) {
       if (this->GetSize() <= i) return false;
 
@@ -856,74 +602,54 @@ class BPlusTree : public BPlusTreeBase {
       return true;
     }
 
-    /*
-    FindLocation - Returns the start of the first element that compares
-    greater to the key provided
-    */
+    /**
+     * FindLocation - Returns the start of the first element that compares
+     * greater to the key provided
+     */
     ElementType *FindLocation(const KeyType &element, BPlusTree *tree) {
       ElementType *iter = Begin();
       while ((iter != end_) && (!tree->KeyCmpGreater(iter->first, element))) iter++;
       return iter;
     }
 
-    /*
+    /**
      * GetSize() - Returns the size of the embedded list
      *
      * Note that the return type is integer since we use integer to represent
      * the size of a node
      */
     int GetSize() const { return static_cast<int>(End() - Begin()); }
-    /*
+    /**
      * SetElasticLowKeyPair() - Sets the low key of Elastic Node
      */
     void SetElasticLowKeyPair(const KeyNodePointerPair &p_low_key) { low_key_ = p_low_key; }
 
-    /*
+    /**
      * SetElasticHighKeyPair() - Sets the high key of Elastic Node
      */
     void SetElasticHighKeyPair(const KeyNodePointerPair &p_high_key) { high_key_ = p_high_key; }
 
-    /*
+    /**
      * GetElasticLowKeyPair() - Returns a pointer to the low key current Elastic node
      */
     KeyNodePointerPair *GetElasticLowKeyPair() { return &low_key_; }
 
-    /*
+    /**
      * GetElasticHighKeyPair() - Returns a pointer to the high key of current Elastic node
      */
     KeyNodePointerPair *GetElasticHighKeyPair() { return &high_key_; }
 
-    /*
+    /**
      * Get() - Static helper function that constructs a elastic node of
      *         a certain size
-     *
-     * Note that since operator new is only capable of allocating a fixed
-     * sized structure, we need to call malloc() directly to deal with variable
-     * lengthed node. However, after malloc() returns we use placement operator
-     * new to initialize it, such that the node could be freed using operator
-     * delete later on
      */
     static ElasticNode *Get(int size,  // Number of elements
                             NodeType p_type, int p_depth,
                             int p_item_count,  // Usually equal to size
                             const KeyNodePointerPair &p_low_key, const KeyNodePointerPair &p_high_key) {
-      // Allocte memory for
-      //   1. AllocationMeta (chunk)
-      //   2. node meta
-      //   3. ElementType array
-      // basic template + ElementType element size * (node size) + CHUNK_SIZE()
-      // Note: do not make it constant since it is going to be modified
-      // after being returned
+
+      // Allocate space for a new elastic node with size number of elements
       auto *alloc_base = new char[sizeof(ElasticNode) + size * sizeof(ElementType)];
-      // auto elastic_node = reinterpret_cast<ElasticNode *>(alloc_base);
-      // elastic_node->SetLowKeyPair(elastic_node->GetElasticLowKeyPair());
-      // elastic_node->SetHighKeyPair(elastic_node->GetElasticHighKeyPair());
-      // elastic_node->SetItemCount(p_item_count);
-      // elastic_node->SetType(p_type);
-      // elastic_node->SetDepth(p_depth);
-      // elastic_node->SetElasticLowKeyPair(p_low_key);
-      // elastic_node->SetElasticHighKeyPair(p_high_key);
-      // elastic_node->InitializeEnd();
 
       auto elastic_node = reinterpret_cast<ElasticNode *>(alloc_base);
       new (elastic_node) ElasticNode{p_type, p_depth, p_item_count, &p_low_key, &p_high_key};
@@ -931,19 +657,7 @@ class BPlusTree : public BPlusTreeBase {
       return elastic_node;
     }
 
-    /*
-     * GetNodeHeader() - Given low key pointer, returns the node header
-     *
-     * This is useful since only the low key pointer is available from any
-     * type of node
-     */
-    static ElasticNode *GetNodeHeader(const KeyNodePointerPair *low_key_p) {
-      static constexpr size_t low_key_offset = offsetof(ElasticNode, low_key);
-
-      return reinterpret_cast<ElasticNode *>(reinterpret_cast<uint64_t>(low_key_p) - low_key_offset);
-    }
-
-    /*
+    /**
      * At() - Access element with bounds checking under debug mode
      */
     ElementType &At(const int index) {
@@ -961,44 +675,40 @@ class BPlusTree : public BPlusTreeBase {
     }
   };
 
-  /*
-   * class InnerNode - Inner node that holds separators
+  /**
+   * class InnerNode - Inner node that holds pointers to the lower levels
    */
   class InnerNode : public ElasticNode<KeyNodePointerPair> {
    public:
-    /*
-     * Constructor - Deleted
-     *
-     * All construction of InnerNode should be through ElasticNode interface
-     */
+    // Construction of InnerNode should be through the ElasticNode interface
     InnerNode() = delete;
     InnerNode(const InnerNode &) = delete;
     InnerNode(InnerNode &&) = delete;
     InnerNode &operator=(const InnerNode &) = delete;
     InnerNode &operator=(InnerNode &&) = delete;
 
-    /*
+    /**
      * Destructor - Calls destructor of ElasticNode
      */
     ~InnerNode() { this->~ElasticNode<KeyNodePointerPair>(); }
   };
 
-  /*
+  /**
    * class LeafNode - Leaf node that holds data
    *
-   * There are 5 types of delta nodes that could be appended
-   * to a leaf node. 3 of them are SMOs, and 2 of them are data operation
+   * LeafNode contains the values. The values are stored as a list.
    */
   class LeafNode : public ElasticNode<KeyValuePair> {
    public:
+    // Construction of LeafNode should happen through ElasticNode function
     LeafNode() = delete;
     LeafNode(const LeafNode &) = delete;
     LeafNode(LeafNode &&) = delete;
     LeafNode &operator=(const LeafNode &) = delete;
     LeafNode &operator=(LeafNode &&) = delete;
 
-    /*
-     * Destructor - Calls underlying ElasticNode d'tor
+    /**
+     * Destructor - Calls underlying ElasticNode destructor
      */
     ~LeafNode() { this->~ElasticNode<KeyValuePair>(); }
   };
@@ -1009,22 +719,8 @@ class BPlusTree : public BPlusTreeBase {
   // Raw key eq checker
   const KeyEqualityChecker key_eq_obj_;
 
-  // Raw key hasher
-  const KeyHashFunc key_hash_obj_;
-
   // Check whether values are equivalent
   const ValueEqualityChecker value_eq_obj_;
-
-  // Hash ValueType into a size_t
-  const ValueHashFunc value_hash_obj_;
-
-  // The following three are used for std::pair<KeyType, NodeID>
-  const KeyNodePointerPairComparator key_node_id_pair_cmp_obj_;
-  const KeyNodePointerPairEqualityChecker key_node_id_pair_eq_obj_;
-
-  // The following two are used for hashing KeyValuePair
-  const KeyValuePairComparator key_value_pair_cmp_obj_;
-  const KeyValuePairEqualityChecker key_value_pair_eq_obj_;
 
  private:
   BaseNode *root_;
@@ -1033,14 +729,14 @@ class BPlusTree : public BPlusTreeBase {
   std::atomic_uint64_t num_values_;
 
  public:
-  /*
-    Get Root - Returns the current root
-  */
+  /**
+   * Get Root - Returns the current root
+   */
   BaseNode *GetRoot() { return root_; }
 
-  /*
-    Get Element
-  */
+  /**
+   * Get Element Returns a constructed KeyElementPair
+   */
   KeyElementPair GetElement(KeyType key, ValueType value) {
     KeyElementPair p1;
     p1.first = key;
@@ -1048,11 +744,11 @@ class BPlusTree : public BPlusTreeBase {
     return p1;
   }
 
-  /*
-    Tries to find key by Traversing down the BplusTree
-    Returns true if found
-    Returns false if not found
-  */
+  /**
+   * Tries to find key by Traversing down the B+ Tree
+   * Returns true if found
+   * Returns false if not found
+   */
   bool IsPresent(KeyType key) {
     if (root_ == nullptr) {
       return false;
@@ -1086,30 +782,25 @@ class BPlusTree : public BPlusTreeBase {
     return false;
   }
 
-  /*
-    Tries to find key by Traversing down the BplusTree
-    Returns the list of values of the key from leaf if found
-    Returns null if not found
-  */
+  /**
+   * Tries to find key by Traversing down the BplusTree
+   * Returns the list of values of the key from leaf if found in result vector
+   * Returns null if not found
+   */
   void FindValueOfKey(KeyType key, std::vector<ValueType> *result) {
     root_latch_.lock_shared();
 
     if (root_ == nullptr) {
-      root_latch_.unlock();
+      root_latch_.unlock_shared();
       return;
     }
 
     BaseNode *current_node = root_;
     BaseNode *parent = nullptr;
 
-    /*
-        Locking Code
-    */
+    // Get the shared latch of next node, release the root_latch
     current_node->GetNodeSharedLatch();
-    root_latch_.unlock();
-    /*
-      Locking Code End
-    */
+    root_latch_.unlock_shared();
 
     // Traversing Down to the right leaf node
     while (current_node->GetType() != NodeType::LeafType) {
@@ -1127,14 +818,9 @@ class BPlusTree : public BPlusTreeBase {
         current_node = node->GetLowKeyPair().second;
       }
 
-      /*
-        Locking Code
-      */
+      // Get the shared latch for next node and release the parent
       current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeLatch();
-      /*
-        Locking Code End
-      */
+      parent->ReleaseNodeSharedLatch();
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
@@ -1146,67 +832,22 @@ class BPlusTree : public BPlusTreeBase {
           itr_list++;
         }
 
-        current_node->ReleaseNodeLatch();
+        // Release the Leaf shared latch
+        current_node->ReleaseNodeSharedLatch();
         return;
       }
     }
 
-    current_node->ReleaseNodeLatch();
+    // Release the Leaf shared latch
+    current_node->ReleaseNodeSharedLatch();
   }
 
-  void PrintTreeNode(BaseNode *node) {
-    if (node->GetType() != NodeType::LeafType) {
-      auto node_elastic = reinterpret_cast<ElasticNode<KeyValuePair> *>(node);
-      node_elastic->PrintElasticNode();
-    } else {
-      auto node_elastic = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(node);
-      node_elastic->PrintElasticNode();
-    }
-    // std::cout << '\t';
-  }
-
-  /*
-    Traverses Down the root in a BFS manner and prints all the nodes
-  */
-  void PrintTree() {
-    if (root_ == nullptr) return;
-    std::queue<BaseNode *> bfs_queue;
-    std::queue<BaseNode *> all_nodes;
-    bfs_queue.push(root_);
-
-    // print root
-    // std::cout << "Printing Root " << std::endl;
-    if (root_->GetType() != NodeType::LeafType) {
-      auto root_elastic = reinterpret_cast<ElasticNode<KeyValuePair> *>(root_);
-      root_elastic->PrintElasticNode();
-    } else {
-      auto root_elastic = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(root_);
-      root_elastic->PrintElasticNode();
-    }
-
-    while (!bfs_queue.empty()) {
-      BaseNode *node = bfs_queue.front();
-      bfs_queue.pop();
-      all_nodes.push(node);
-      if (node->GetType() != NodeType::LeafType) {
-        // std::cout << "printing children " << std::endl;
-
-        bfs_queue.push(node->GetLowKeyPair().second);
-        PrintTreeNode(node->GetLowKeyPair().second);
-
-        auto current_node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(node);
-        for (KeyNodePointerPair *element_p = current_node->Begin(); element_p != current_node->End(); element_p++) {
-          bfs_queue.push(element_p->second);
-          PrintTreeNode(element_p->second);
-        }
-      }
-    }
-    // std::cout << std::endl;
-  }
-
-  /*
-    Traverses Down the root in a BFS manner and frees all the nodes
-  */
+  /**
+   * Traverses Down the root in a BFS manner and frees all the nodes. Used in
+   * the B+ Tree destructor.
+   * NOTE: This function does not acquire any latches, should be called only when safe
+   * (normally it should be safe since the Tree is being deleted)
+   */
   void FreeTree() {
     if (root_ == nullptr) return;
     std::queue<BaseNode *> bfs_queue;
@@ -1243,13 +884,15 @@ class BPlusTree : public BPlusTreeBase {
     }
   }
 
-  /*
-  StructuralIntegrityVerification - Recursively Tests the structural integrity of the data
-  structure. Verifies whether all the keys in the set are present in the tree. Verifies
-  all keys lie between the given range(This gets pruned as move down the tree). Also verifies
-  the size of each node.
-  Also erases all keys that are found in the tree from the input set
-  */
+  /**
+   * StructuralIntegrityVerification - Recursively Tests the structural integrity of the data
+   * structure. Verifies whether all the keys in the set are present in the tree. Verifies
+   * all keys lie between the given range(This gets pruned as move down the tree). Also verifies
+   * the size of each node.
+   * Also erases all keys that are found in the tree from the input set
+   *
+   * NOTE: This function does not acquire any latches, used by tests
+   */
   bool StructuralIntegrityVerification(KeyType low_key, KeyType high_key, std::set<KeyType> *keys,
                                        BaseNode *current_node) {
     bool return_answer = true;
@@ -1291,13 +934,15 @@ class BPlusTree : public BPlusTreeBase {
     return return_answer;
   }
 
-  /*
-    SiblingForwardCheck - Expects a sorted set of the keys and then finds the
-    the least element and the leaf it is stored in. Traverses the right sibling
-    of the leaf to cover all the elements in the b+ tree and checks with the
-    sorted key set for their order. Verifies if a full scan (ascending) using the siblings
-    is correct or not.
-  */
+  /**
+   * SiblingForwardCheck - Expects a sorted set of the keys and then finds the
+   * the least element and the leaf it is stored in. Traverses the right sibling
+   * of the leaf to cover all the elements in the B+ tree and checks with the
+   * sorted key set for their order. Verifies if a full scan (ascending) using the siblings
+   * is correct or not.
+   *
+   * NOTE: This function does not acquire any latches, used by tests
+   */
   bool SiblingForwardCheck(std::set<KeyType> *keys) {
     KeyType key = *(*keys).begin();
     if (root_ == nullptr) {
@@ -1338,13 +983,15 @@ class BPlusTree : public BPlusTreeBase {
     return true;
   }
 
-  /*
-    SiblingBackwardCheck - Expects a sorted set of the keys and then finds the
-    the highest element and the leaf it is stored in. Traverses the left sibling
-    of the leaf to cover all the elements in the b+ tree and checks with the
-    sorted key set for their order. Verifies if a full scan (descending) using the siblings
-    is correct or not.
-  */
+  /**
+   * SiblingBackwardCheck - Expects a sorted set of the keys and then finds the
+   * the highest element and the leaf it is stored in. Traverses the left sibling
+   * of the leaf to cover all the elements in the b+ tree and checks with the
+   * sorted key set for their order. Verifies if a full scan (descending) using the siblings
+   * is correct or not.
+   *
+   * NOTE: This function does not acquire any latches, used by tests
+   */
   bool SiblingBackwardCheck(std::set<KeyType> *keys) {
     KeyType key = *(*keys).rbegin();
     if (root_ == nullptr) {
@@ -1385,11 +1032,13 @@ class BPlusTree : public BPlusTreeBase {
     return true;
   }
 
-  /*
+  /**
    * This test checks if duplicate keys are correctly handled by the insert wrapper.
-   * For a b+ tree, with each key having multiple values, stored in a map keys_values
+   * For a B+ tree, with each key having multiple values, stored in a map keys_values
    * check if the values_list in the tree have the same values as the map given
    * in the function.
+   *
+   * NOTE: This function does not acquire any latches, used by tests
    */
   bool DuplicateKeyValuesCheck(std::unordered_map<KeyType, std::set<ValueType>> *keys_values) {
     auto itr = (*keys_values).begin();
@@ -1422,11 +1071,13 @@ class BPlusTree : public BPlusTreeBase {
     return true;
   }
 
-  /*
+  /**
    * The check gets a map of keys to vector of values that are whetted and
    * removes any duplicates that might have been tried to be added by a
    * transaction in insert unique. The check ensures that the values list
    * in the B+ tree also have the same keys and the same order.
+   *
+   * NOTE: This function does not acquire any latches, used by tests
    */
   bool DuplicateKeyValueUniqueInsertCheck(std::unordered_map<KeyType, std::vector<ValueType>> *keys_values) {
     auto itr = (*keys_values).begin();
@@ -1451,12 +1102,20 @@ class BPlusTree : public BPlusTreeBase {
     return true;
   }
 
-  /*
-  Returns current heap usage
-  */
+  /**
+   * Returns current heap usage (tries to return the exact heap usage by traversing
+   * the tree).
+   *
+   * NOTE: This function acquires a coarse lock, on the root, and prevents access to
+   * any other thread. Not ideal behavior, but this function is not commonly used. To
+   * get an approximate heap usage, EstimateHeapUsage() should be used.
+   */
   size_t GetHeapUsage() {
     root_latch_.lock();
-    if (root_ == nullptr) return 0;
+    if (root_ == nullptr) {
+      root_latch_.unlock();
+      return 0;
+    }
 
     std::queue<BaseNode *> bfs_queue;
     std::queue<BaseNode *> all_nodes;
@@ -1481,7 +1140,6 @@ class BPlusTree : public BPlusTreeBase {
       all_nodes.pop();
       if (node->GetType() != NodeType::LeafType) {
         auto current_node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(node);
-        // TODO(rohanagg): Little bit wrong
         heap_size += sizeof(BaseNode) + current_node->GetSize() * sizeof(KeyNodePointerPair);
       } else {
         auto current_node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node);
@@ -1494,32 +1152,41 @@ class BPlusTree : public BPlusTreeBase {
         }
       }
     }
+
+    // Unlock the tree
+    root_latch_.unlock();
     return heap_size;
   }
 
-  /*
-    Scan Ascending - Duplicates the Scan Ascending Behaviour in bwtree_index.h
-  */
+  /**
+   * Scan Ascending - Scans keys starting at low key and moves till high key or limit, and populates
+   * the value_list vector with the values found, if they are visible to the transaction.
+   *
+   * @param index_low_key Key to start at
+   * @param index_high_key Key to end at
+   * @param low_key_exists Whether low_key exists in the scan operation
+   * @param num_attrs Number of attributes to compare
+   * @param high_key_exists Whether high_key exists in the scan operation
+   * @param limit Upper bound for the number of elements
+   * @param value_list List of values scanned
+   * @param metadata Index metadata
+   */
   void ScanAscending(KeyType index_low_key, KeyType index_high_key, bool low_key_exists, uint32_t num_attrs,
                      bool high_key_exists, uint32_t limit, std::vector<TupleSlot> *value_list,
                      const IndexMetadata *metadata) {
     root_latch_.lock_shared();
 
     if (root_ == nullptr) {
-      root_latch_.unlock();
+      root_latch_.unlock_shared();
       return;
     }
 
     BaseNode *current_node = root_;
     BaseNode *parent = nullptr;
-    /*
-        Locking Code
-    */
+
+    // Acquire latch on the root, release root_latch
     current_node->GetNodeSharedLatch();
-    root_latch_.unlock();
-    /*
-      Locking Code End
-    */
+    root_latch_.unlock_shared();
 
     // Traversing Down to the correct leaf node
     while (current_node->GetType() != NodeType::LeafType) {
@@ -1543,14 +1210,10 @@ class BPlusTree : public BPlusTreeBase {
       } else {
         current_node = current_node->GetLowKeyPair().second;
       }
-      /*
-        Locking Code
-      */
+
+      // Get shared latch on current node, and release the parent.
       current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeLatch();
-      /*
-        Locking Code End
-      */
+      parent->ReleaseNodeSharedLatch();
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
@@ -1569,14 +1232,12 @@ class BPlusTree : public BPlusTreeBase {
           parent = node;
           node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetHighKeyPair().second);
           current_node = node;
-          /*
-          Locking Code
-          */
+
+          // Get shared latch on current node, and release the parent (here, parent is the previous
+          // node while iterating at the leaf level).
           current_node->GetNodeSharedLatch();
-          parent->ReleaseNodeLatch();
-          /*
-            Locking Code End
-          */
+          parent->ReleaseNodeSharedLatch();
+
           element_p = node->Begin();
         }
       }
@@ -1599,42 +1260,46 @@ class BPlusTree : public BPlusTreeBase {
         parent = node;
         node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetHighKeyPair().second);
         current_node = node;
-        /*
-        Locking Code
-        */
+
+        // Get shared latch on current node, and release the parent (here, parent is the previous
+        // node while iterating at the leaf level).
         current_node->GetNodeSharedLatch();
-        parent->ReleaseNodeLatch();
-        /*
-          Locking Code End
-        */
+        parent->ReleaseNodeSharedLatch();
+
         element_p = node->Begin();
       }
     }
 
-    current_node->ReleaseNodeLatch();
+    // Release the latch on the leaf node
+    current_node->ReleaseNodeSharedLatch();
   }
 
-  /*
-    Scan Descending - Duplicates the Scan Descending Behaviour in bwtree_index.h
-  */
+  /**
+   * Scan Descending - Scan keys starting from high key and moves till low key, and populates a vector
+   * with the values found, if they are visible to the transaction. Since there is a possibility of
+   * deadlock with a ScanAscending and concurrent delete/insert, if shared latch on a node is not
+   * available, the entire operation is forfeited, and false is returned. The caller is expected to
+   * retry the operation till it succeeds, returning true.
+   *
+   * @param index_low_key Key to end at
+   * @param index_high_key Key to start at
+   * @param value_list List to be populated with results
+   * @return true on success, false on failure
+   */
   bool ScanDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list) {
     root_latch_.lock_shared();
 
     if (root_ == nullptr) {
-      root_latch_.unlock();
+      root_latch_.unlock_shared();
       return true;
     }
 
     BaseNode *current_node = root_;
     BaseNode *parent = nullptr;
-    /*
-        Locking Code
-    */
+
+    // Unlock root latch and get shared latch on root node
     current_node->GetNodeSharedLatch();
-    root_latch_.unlock();
-    /*
-      Locking Code End
-    */
+    root_latch_.unlock_shared();
 
     // Traversing Down to the right leaf node
     while (current_node->GetType() != NodeType::LeafType) {
@@ -1654,14 +1319,10 @@ class BPlusTree : public BPlusTreeBase {
       } else {
         current_node = node->GetLowKeyPair().second;
       }
-      /*
-      Locking Code
-      */
+
+      // Unlock parent and get shared latch on current node
       current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeLatch();
-      /*
-      Locking Code End
-      */
+      parent->ReleaseNodeSharedLatch();
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
@@ -1670,22 +1331,22 @@ class BPlusTree : public BPlusTreeBase {
 
     bool reach_end = false;
     if (element_p != node->Begin()) {
-      // if(KeyCmpEqual((element_p - 1)->first, index_low_key)) {
       element_p--;
-      // }
     } else {
       if (node->GetLowKeyPair().second == nullptr) {
-        current_node->ReleaseNodeLatch();
+        current_node->ReleaseNodeSharedLatch();
         reach_end = true;
       } else {
         parent = node;
         node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
         current_node = node;
         if (!(current_node->TrySharedLock())) {
-          parent->ReleaseNodeLatch();
+          // If the shared latch on the current node is node available, abort operation to prevent
+          // deadlock scenarios.
+          parent->ReleaseNodeSharedLatch();
           return false;
         }
-        parent->ReleaseNodeLatch();
+        parent->ReleaseNodeSharedLatch();
         element_p = node->End() - 1;
       }
     }
@@ -1708,40 +1369,48 @@ class BPlusTree : public BPlusTreeBase {
         node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
         current_node = node;
         if (!(current_node->TrySharedLock())) {
-          parent->ReleaseNodeLatch();
+          // If shared latch on current node is not available, abort operation to prevent
+          // deadlock scenarios.
+          parent->ReleaseNodeSharedLatch();
           return false;
         }
-        parent->ReleaseNodeLatch();
+        parent->ReleaseNodeSharedLatch();
         element_p = node->End() - 1;
       }
     }
 
-    current_node->ReleaseNodeLatch();
+    current_node->ReleaseNodeSharedLatch();
     return true;
   }
 
-  /*
-    Scan Limit Descending - Duplicates the Scan Limit Descending Behaviour in bwtree_index.h
-  */
+  /**
+   * Scan keys starting from high key and moves till low key or till limit, and populates a vector
+   * with the values found, if they are visible to the transaction. Since there is a possibility of
+   * deadlock with a ScanAscending and concurrent delete/insert, if shared latch on a node is not
+   * available, the entire operation is forfeited, and false is returned. The caller is expected to
+   * retry the operation till it succeeds, returning true.
+   *
+   * @param index_low_key Key to end at
+   * @param index_high_key Key to start at
+   * @param value_list List to be populated with results
+   * @param limit Upper bound of number of values to return
+   * @return true on success, false on failure
+   */
   bool ScanLimitDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list,
                            uint32_t limit) {
     root_latch_.lock_shared();
 
     if (root_ == nullptr) {
-      root_latch_.unlock();
+      root_latch_.unlock_shared();
       return true;
     }
 
     BaseNode *current_node = root_;
     BaseNode *parent = nullptr;
-    /*
-        Locking Code
-    */
+
+    // Release root latch and get shared latch on the root node
     current_node->GetNodeSharedLatch();
-    root_latch_.unlock();
-    /*
-      Locking Code End
-    */
+    root_latch_.unlock_shared();
 
     // Traversing Down to the right leaf node
     while (current_node->GetType() != NodeType::LeafType) {
@@ -1761,14 +1430,9 @@ class BPlusTree : public BPlusTreeBase {
         current_node = node->GetLowKeyPair().second;
       }
 
-      /*
-      Locking Code
-      */
+      // Unlock parent and get shared latch on current node
       current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeLatch();
-      /*
-      Locking Code End
-      */
+      parent->ReleaseNodeSharedLatch();
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
@@ -1777,22 +1441,22 @@ class BPlusTree : public BPlusTreeBase {
 
     bool reach_end = false;
     if (element_p != node->Begin()) {
-      // if(KeyCmpEqual((element_p - 1)->first, index_low_key)) {
       element_p--;
-      // }
     } else {
       if (node->GetLowKeyPair().second == nullptr) {
-        current_node->ReleaseNodeLatch();
+        current_node->ReleaseNodeSharedLatch();
         reach_end = true;
       } else {
         parent = node;
         node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
         current_node = node;
         if (!(current_node->TrySharedLock())) {
-          parent->ReleaseNodeLatch();
+          // If shared latch on current node is not available, abort operation to prevent
+          // deadlock scenarios.
+          parent->ReleaseNodeSharedLatch();
           return false;
         }
-        parent->ReleaseNodeLatch();
+        parent->ReleaseNodeSharedLatch();
         element_p = node->End() - 1;
       }
     }
@@ -1816,18 +1480,26 @@ class BPlusTree : public BPlusTreeBase {
         node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
         current_node = node;
         if (!(current_node->TrySharedLock())) {
-          parent->ReleaseNodeLatch();
+          // If shared latch on current node is not available, abort operation to prevent
+          // deadlock scenarios.
+          parent->ReleaseNodeSharedLatch();
           return false;
         }
-        parent->ReleaseNodeLatch();
+        parent->ReleaseNodeSharedLatch();
         element_p = node->End() - 1;
       }
     }
 
-    current_node->ReleaseNodeLatch();
+    current_node->ReleaseNodeSharedLatch();
     return true;
   }
 
+  /**
+   * ReleaseAllLocks - This function releases all locks currently held, according to the list
+   * passed.
+   *
+   * NOTE: The function assumes that all the locks being held are exclusive locks.
+   */
   bool ReleaseAllLocks(std::vector<BaseNode *> *node_list, bool got_root_latch) {
     while (!node_list->empty()) {
       (*node_list->rbegin())->ReleaseNodeLatch();
@@ -1851,7 +1523,8 @@ class BPlusTree : public BPlusTreeBase {
    */
   bool Insert(const KeyElementPair element, std::function<bool(const ValueType)> predicate) {
 
-    /* Try Optimistic Insert
+    /*
+     * Try Optimistic Insert
      * Assuming insert will not cause any overflows, get shared latch for all nodes except the
      * leaf node. For the leaf node where insert occurs, get exclusive access.
      */
@@ -1876,15 +1549,13 @@ class BPlusTree : public BPlusTreeBase {
     BaseNode *current_node = root_;
     BaseNode *parent_node = nullptr;
 
-    // Locking Code
+    // Get shared latch on root node
     current_node->GetNodeSharedLatch();
-    // Locking Code End
 
     // Traversing Down and maintaining a stack of pointers
     while (current_node->GetType() != NodeType::LeafType) {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
 
-      // Locking Code
       // Release parent's shared lock
       if (parent_node != nullptr) {
         parent_node->ReleaseNodeSharedLatch();
@@ -1892,7 +1563,6 @@ class BPlusTree : public BPlusTreeBase {
         // Release the exclusive lock on the tree
         root_latch_.unlock();
       }
-      // Locking Code End
 
       // NOTE: FindLocation returns the location of first element that compares greater than
       auto index_pointer = node->FindLocation(element.first, this);
@@ -1907,15 +1577,12 @@ class BPlusTree : public BPlusTreeBase {
         current_node = node->GetLowKeyPair().second;
       }
 
-      // Locking Code
       // Get current node's shared lock
       current_node->GetNodeSharedLatch();
-      // Locking Code End
     }
 
     // Try optimistic insertion into the leaf node, if insertion without splitting is possible.
 
-    // Locking Code
     // Get current node's exclusive lock and release lock on the parent
     current_node->ReleaseNodeSharedLatch();
     current_node->GetNodeExclusiveLatch();
@@ -1924,7 +1591,6 @@ class BPlusTree : public BPlusTreeBase {
     } else {
       root_latch_.unlock();
     }
-    // Locking Code End
 
     // Beyond this we only have exclusive latch on the current_node
 
@@ -1940,27 +1606,16 @@ class BPlusTree : public BPlusTreeBase {
         auto itr_list = (location_greater_key_leaf - 1)->second->begin();
         while (itr_list != (location_greater_key_leaf - 1)->second->end()) {
           if (ValueCmpEqual(*itr_list, element.second) || predicate(*itr_list)) {
-            /*
-              Release all locks if the value is already present
-            */
+            // Release all locks if the value is already present
             current_node->ReleaseNodeLatch();
-            /*
-              Locking Code End
-
-            */
             return false;
           }
           itr_list++;
         }
         (location_greater_key_leaf - 1)->second->push_back(element.second);
 
-        /*
-        Locking Code
-        */
+        // Release the latch, insertion is complete
         current_node->ReleaseNodeLatch();
-        /*
-          Locking Code End
-        */
 
         finished_insertion = true;
       }
@@ -1976,29 +1631,19 @@ class BPlusTree : public BPlusTreeBase {
       if (node->InsertElementIfPossible(key_list_value, node->FindLocation(element.first, this))) {
         // If you can directly insert in the leaf - Insertion is over
         finished_insertion = true;
-        /*
-        Locking Code
-        */
+        // Insertion is done, release the latch
         current_node->ReleaseNodeLatch();
-        /*
-          Locking Code End
-        */
       } else {
         delete value_list;
       }
-      // Otherwise you split the node
+      // Otherwise, split the node
       // Optimistic approach failed
     }
 
     if (!finished_insertion) {
-      // Pessimistic approach failed
-      /*
-      Locking Code
-      */
+      // Optimistic approach failed. Release the latch, and start grabbing
+      // exclusive latches.
       current_node->ReleaseNodeLatch();
-      /*
-        Locking Code End
-      */
     } else {
       return true;
     }
@@ -2009,7 +1654,8 @@ class BPlusTree : public BPlusTreeBase {
      ****************************************
     */
 
-    /* If root is nullptr then we make a Leaf Node.
+    /*
+     * If root is nullptr then make a Leaf Node.
      */
     root_latch_.lock();
     bool got_root_latch = true;
@@ -2026,13 +1672,8 @@ class BPlusTree : public BPlusTreeBase {
 
     current_node = root_;
 
-    /*
-      Locking Code
-    */
+    // Get exclusive access on root node
     current_node->GetNodeExclusiveLatch();
-    /*
-      Locking Code End
-    */
 
     // Stack of pointers
     std::vector<BaseNode *> node_list;
@@ -2041,15 +1682,10 @@ class BPlusTree : public BPlusTreeBase {
     while (current_node->GetType() != NodeType::LeafType) {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
 
-      /*
-        Locking Code
-      */
+      // If the current node is safe, release all latches currently held
       if (node->GetSize() < node->GetItemCount()) {
         got_root_latch = ReleaseAllLocks(&node_list, got_root_latch);
       }
-      /*
-        Locking Code End
-      */
 
       node_list.push_back(current_node);
       // Note that Find Location returns the location of first element
@@ -2064,13 +1700,8 @@ class BPlusTree : public BPlusTreeBase {
         current_node = node->GetLowKeyPair().second;
       }
 
-      /*
-        Locking Code
-      */
+      // Acquire exclusive access on current node
       current_node->GetNodeExclusiveLatch();
-      /*
-        Locking Code End
-      */
     }
 
     finished_insertion = false;
@@ -2085,30 +1716,19 @@ class BPlusTree : public BPlusTreeBase {
         auto itr_list = (location_greater_key_leaf - 1)->second->begin();
         while (itr_list != (location_greater_key_leaf - 1)->second->end()) {
           if (ValueCmpEqual(*itr_list, element.second) || predicate(*itr_list)) {
-            /*
-              Release all locks if the value is already present
-            */
+            // Release all locks if element is already present
             current_node->ReleaseNodeLatch();
             got_root_latch = ReleaseAllLocks(&node_list, got_root_latch);
 
-            /*
-              Locking Code End
-
-            */
             return false;
           }
           itr_list++;
         }
         (location_greater_key_leaf - 1)->second->push_back(element.second);
 
-        /*
-        Locking Code
-        */
+        // Insertion is complete, release all locks
         current_node->ReleaseNodeLatch();
         got_root_latch = ReleaseAllLocks(&node_list, got_root_latch);
-        /*
-          Locking Code End
-        */
 
         finished_insertion = true;
       }
@@ -2146,24 +1766,15 @@ class BPlusTree : public BPlusTreeBase {
         // node_right = splitted
         // splitted_left = node
         if (node->GetElasticHighKeyPair()->second != nullptr) {
-          /*
-            Locking Code
-          */
+          // Get exclusive access on right node to set its links
           node->GetElasticHighKeyPair()->second->GetNodeExclusiveLatch();
-          /*
-            Locking Code End
-          */
+
 
           auto node_next = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(node->GetElasticHighKeyPair()->second);
           node_next->GetElasticLowKeyPair()->second = splitted_node;
 
-          /*
-            Locking Code
-          */
+          // Release exclusive access on right node
           node->GetElasticHighKeyPair()->second->ReleaseNodeLatch();
-          /*
-            Locking Code End
-          */
         }
         splitted_node->GetElasticHighKeyPair()->second = node->GetElasticHighKeyPair()->second;
         node->GetElasticHighKeyPair()->second = splitted_node;
@@ -2212,10 +1823,10 @@ class BPlusTree : public BPlusTreeBase {
       NOISEPAGE_ASSERT(got_root_latch, "Root Latch should be held here");
       auto old_root = root_;
       KeyNodePointerPair p1, p2;
-      p1.first = inner_node_element.first; /*This is a dummy initialization*/
-      p2.first = inner_node_element.first; /*This is a dummy initialization*/
-      p1.second = old_root;                /*This initialization matters*/
-      p2.second = nullptr;                 /*This is a dummy initialization*/
+      p1.first = inner_node_element.first; /* This is a dummy initialization */
+      p2.first = inner_node_element.first; /* This is a dummy initialization */
+      p1.second = old_root;                /* This initialization matters */
+      p2.second = nullptr;                 /* This is a dummy initialization */
       root_ = ElasticNode<KeyNodePointerPair>::Get(inner_node_size_upper_threshold_, NodeType::InnerType,
                                                    root_->GetDepth() + 1, inner_node_size_upper_threshold_, p1, p2);
       auto new_root_node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(root_);
@@ -2943,26 +2554,12 @@ class BPlusTree : public BPlusTreeBase {
   }
 
   explicit BPlusTree(KeyComparator p_key_cmp_obj = KeyComparator{},
-                     KeyEqualityChecker p_key_eq_obj = KeyEqualityChecker{}, KeyHashFunc p_key_hash_obj = KeyHashFunc{},
-                     ValueEqualityChecker p_value_eq_obj = ValueEqualityChecker{},
-                     ValueHashFunc p_value_hash_obj = ValueHashFunc{})
+                     KeyEqualityChecker p_key_eq_obj = KeyEqualityChecker{},
+                     ValueEqualityChecker p_value_eq_obj = ValueEqualityChecker{})
       : BPlusTreeBase(),
         // Key comparator, equality checker and hasher
         key_cmp_obj_{p_key_cmp_obj},
         key_eq_obj_{p_key_eq_obj},
-        key_hash_obj_{p_key_hash_obj},
-
-        // Value equality checker and hasher
-        value_eq_obj_{p_value_eq_obj},
-        value_hash_obj_{p_value_hash_obj},
-
-        // key-node ID pair cmp, equality checker and hasher
-        key_node_id_pair_cmp_obj_{this},
-        key_node_id_pair_eq_obj_{this},
-
-        // key-value pair cmp, equality checker and hasher
-        key_value_pair_cmp_obj_{this},
-        key_value_pair_eq_obj_{this},
 
         // Root and key/value counters
         root_(nullptr),
@@ -2970,8 +2567,7 @@ class BPlusTree : public BPlusTreeBase {
         num_values_(0) {}
 
   /*
-   * Destructor - Destroy BplusTree instance
-   *
+   * Destructor - Destroy BPlusTree instance
    */
   ~BPlusTree() { FreeTree(); }
 };  // class BPlusTree
