@@ -105,6 +105,7 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
 
   // Record each distinct group
   for (auto &track : tracking) {
+    // TODO(wz2): Eventually need to modify track.second to consider num_rows/cardinality
     pipeline_features_.emplace(
         type, ExecutionOperatingUnitFeature(current_translator_->GetTranslatorId(), type, std::get<0>(track.first),
                                             std::get<1>(track.first), std::get<2>(track.first), track.second, 1, 0, 0));
