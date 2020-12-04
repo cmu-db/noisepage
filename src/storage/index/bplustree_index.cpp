@@ -13,7 +13,9 @@ BPlusTreeIndex<KeyType>::BPlusTreeIndex(IndexMetadata metadata)
     : Index(std::move(metadata)), bplustree_{ new BPlusTree<KeyType, TupleSlot> } {}
 
 template <typename KeyType>
-void BPlusTreeIndex<KeyType>::PerformGarbageCollection() {};
+void BPlusTreeIndex<KeyType>::PerformGarbageCollection() {
+    // B+ Tree does not require any garbage collection
+}
 
 template <typename KeyType>
 size_t BPlusTreeIndex<KeyType>::EstimateHeapUsage() const {
@@ -38,7 +40,7 @@ bool BPlusTreeIndex<KeyType>::Insert(common::ManagedPointer<transaction::Transac
   // Register an abort action with the txn context in case of rollback
   txn->RegisterAbortAction([=]() {
     // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
-    const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteWithLock(bplustree_->GetElement(index_key, location));
+    const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteElement(bplustree_->GetElement(index_key, location));
 
     NOISEPAGE_ASSERT(result, "Delete on the index failed.");
   });
@@ -70,7 +72,7 @@ bool BPlusTreeIndex<KeyType>::InsertUnique(common::ManagedPointer<transaction::T
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
       // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
-      const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteWithLock(bplustree_->GetElement(index_key, location));
+      const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteElement(bplustree_->GetElement(index_key, location));
       NOISEPAGE_ASSERT(result, "Delete on the index failed.");
     });
   } else {
@@ -96,7 +98,7 @@ void BPlusTreeIndex<KeyType>::Delete(common::ManagedPointer<transaction::Transac
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() {
       // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
-      const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteWithLock(bplustree_->GetElement(index_key, location));
+      const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteElement(bplustree_->GetElement(index_key, location));
 
       NOISEPAGE_ASSERT(result, "Deferred delete on the index failed.");
     });
