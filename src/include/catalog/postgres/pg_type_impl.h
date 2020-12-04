@@ -83,10 +83,10 @@ class PgTypeImpl {
 
   const db_oid_t db_oid_;
 
-  storage::SqlTable *types_;
-  storage::index::Index *types_oid_index_;
-  storage::index::Index *types_name_index_;  // indexed on namespace OID and name
-  storage::index::Index *types_namespace_index_;
+  common::ManagedPointer<storage::SqlTable> types_;
+  common::ManagedPointer<storage::index::Index> types_oid_index_;
+  common::ManagedPointer<storage::index::Index> types_name_index_;  // indexed on namespace OID and name
+  common::ManagedPointer<storage::index::Index> types_namespace_index_;
   storage::ProjectedRowInitializer pg_type_all_cols_pri_;
   storage::ProjectionMap pg_type_all_cols_prm_;
 };

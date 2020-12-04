@@ -84,13 +84,13 @@ class PgConstraintImpl {
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */
   ///@{
-  storage::SqlTable *constraints_;                         ///< The constraints table.
-  storage::index::Index *constraints_oid_index_;           ///< Indexed on: conoid
-  storage::index::Index *constraints_name_index_;          ///< Indexed on: connamespace, conname
-  storage::index::Index *constraints_namespace_index_;     ///< Indexed on: connamespace
-  storage::index::Index *constraints_table_index_;         ///< Indexed on: conrelid
-  storage::index::Index *constraints_index_index_;         ///< Indexed on: conindid
-  storage::index::Index *constraints_foreigntable_index_;  ///< Indexed on: confrelid
+  common::ManagedPointer<storage::SqlTable> constraints_;                         ///< The constraints table.
+  common::ManagedPointer<storage::index::Index> constraints_oid_index_;           ///< Indexed on: conoid
+  common::ManagedPointer<storage::index::Index> constraints_name_index_;          ///< Indexed on: connamespace, conname
+  common::ManagedPointer<storage::index::Index> constraints_namespace_index_;     ///< Indexed on: connamespace
+  common::ManagedPointer<storage::index::Index> constraints_table_index_;         ///< Indexed on: conrelid
+  common::ManagedPointer<storage::index::Index> constraints_index_index_;         ///< Indexed on: conindid
+  common::ManagedPointer<storage::index::Index> constraints_foreigntable_index_;  ///< Indexed on: confrelid
   ///@}
 };
 

@@ -107,9 +107,9 @@ class PgLanguageImpl {
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */
   ///@{
-  storage::SqlTable *languages_;                 ///< The language table.
-  storage::index::Index *languages_oid_index_;   ///< Indexed on: language OID
-  storage::index::Index *languages_name_index_;  ///< Indexed on: language name, namespace
+  common::ManagedPointer<storage::SqlTable> languages_;                 ///< The language table.
+  common::ManagedPointer<storage::index::Index> languages_oid_index_;   ///< Indexed on: language OID
+  common::ManagedPointer<storage::index::Index> languages_name_index_;  ///< Indexed on: language name, namespace
   ///@}
 
   storage::ProjectedRowInitializer pg_language_all_cols_pri_;

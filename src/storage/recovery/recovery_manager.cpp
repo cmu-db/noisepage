@@ -445,7 +445,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
     NOISEPAGE_ASSERT(IsInsertRecord(redo_record), "Special case on pg_database should only be insert");
 
     // Step 1: Extract inserted values from the PR in redo record
-    storage::SqlTable *pg_database = catalog_->databases_;
+    const auto pg_database = common::ManagedPointer<storage::SqlTable>(catalog_->databases_);
     auto pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, redo_record));
     NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATOID.oid_) != pr_map.end(),
                      "PR Map must contain database oid");
@@ -487,7 +487,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
                    "Special case for delete should be on pg_class or pg_database");
 
   // Step 1: Determine the database oid for the database that is being deleted
-  storage::SqlTable *pg_database = catalog_->databases_;
+  const auto pg_database = common::ManagedPointer<storage::SqlTable>(catalog_->databases_);
   auto pr_init = pg_database->InitializerForProjectedRow({catalog::postgres::PgDatabase::DATOID.oid_});
   auto pr_map = pg_database->ProjectionMapForOids({catalog::postgres::PgDatabase::DATOID.oid_});
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
@@ -690,13 +690,14 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
                              "Setting index schema pointer should succeed, entry should be in pg_class already");
 
             // Step 5: Create and set index pointer in catalog
-            storage::index::Index *index;
+            common::ManagedPointer<storage::index::Index> index;
             if (class_oid < catalog::START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
               index = GetCatalogIndex(catalog::index_oid_t(class_oid), db_catalog);
             } else {
-              index = index::IndexBuilder().SetKeySchema(*index_schema).Build();
+              index = common::ManagedPointer(index::IndexBuilder().SetKeySchema(*index_schema).Build());
             }
-            result = db_catalog->SetIndexPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid), index);
+            result =
+                db_catalog->SetIndexPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid), index.Get());
             NOISEPAGE_ASSERT(result, "Setting index pointer should succeed, entry should be in pg_class already");
 
             // Step 6: Update catalog oid
@@ -730,7 +731,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
   // Step 1: Determine the object oid and type that is being deleted
   auto db_catalog_ptr = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid());
-  storage::SqlTable *pg_class = db_catalog_ptr->pg_core_.classes_;
+  const auto pg_class = common::ManagedPointer<storage::SqlTable>(db_catalog_ptr->pg_core_.classes_);
   std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID.oid_,
                                               catalog::postgres::PgClass::RELKIND.oid_};
   auto pr_init = pg_class->InitializerForProjectedRow(col_oids);
@@ -879,8 +880,8 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
   return table_ptr;
 }
 
-std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::SqlTable *sql_table,
-                                                                      RedoRecord *record) {
+std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(
+    common::ManagedPointer<storage::SqlTable> sql_table, RedoRecord *record) {
   std::vector<catalog::col_oid_t> result;
   for (uint16_t i = 0; i < record->Delta()->NumColumns(); i++) {
     col_id_t col_id = record->Delta()->ColumnIds()[i];
@@ -892,7 +893,7 @@ std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::S
   return result;
 }
 
-storage::index::Index *RecoveryManager::GetCatalogIndex(
+common::ManagedPointer<storage::index::Index> RecoveryManager::GetCatalogIndex(
     const catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog) {
   NOISEPAGE_ASSERT((oid.UnderlyingValue()) < catalog::START_OID, "Oid must be a valid catalog oid");
 
@@ -1009,7 +1010,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
     // An insert into pg_proc is a special case because we need the catalog to actually create the necessary
     // database catalog objects
     NOISEPAGE_ASSERT(IsInsertRecord(redo_record), "Special case on pg_proc should only be insert");
-    storage::SqlTable *pg_proc =
+    common::ManagedPointer<storage::SqlTable> pg_proc =
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->pg_proc_.procs_;
     auto pr_map = pg_proc->ProjectionMapForOids(GetOidsForRedoRecord(pg_proc, redo_record));
     catalog::proc_oid_t proc_oid(*(reinterpret_cast<uint32_t *>(

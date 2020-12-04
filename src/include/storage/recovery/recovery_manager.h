@@ -356,15 +356,16 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   // TODO(John): Currently this is being used to extract values from redo records for catalog tables. You should look at
   // adding constants for col_id_t for catalog tables.
-  std::vector<catalog::col_oid_t> GetOidsForRedoRecord(storage::SqlTable *sql_table, RedoRecord *record);
+  std::vector<catalog::col_oid_t> GetOidsForRedoRecord(common::ManagedPointer<storage::SqlTable> sql_table,
+                                                       RedoRecord *record);
 
   /**
    * @param oid oid of catalog index
    * @param db_catalog database catalog that has given index
    * @return pointer to catalog index
    */
-  storage::index::Index *GetCatalogIndex(catalog::index_oid_t oid,
-                                         const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog);
+  common::ManagedPointer<storage::index::Index> GetCatalogIndex(
+      catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog);
 
   /**
    * Fetches a table's schema. If the table is a catalog table, we return the cached schema, otherwise we go to the

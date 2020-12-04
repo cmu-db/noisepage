@@ -184,9 +184,9 @@ class PgProcImpl {
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */
   ///@{
-  storage::SqlTable *procs_;
-  storage::index::Index *procs_oid_index_;
-  storage::index::Index *procs_name_index_;
+  common::ManagedPointer<storage::SqlTable> procs_;
+  common::ManagedPointer<storage::index::Index> procs_oid_index_;
+  common::ManagedPointer<storage::index::Index> procs_name_index_;
   ///@}
 
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;

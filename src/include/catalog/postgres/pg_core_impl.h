@@ -331,9 +331,9 @@ class PgCoreImpl {
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */
   ///@{
-  storage::SqlTable *namespaces_;
-  storage::index::Index *namespaces_oid_index_;
-  storage::index::Index *namespaces_name_index_;
+  common::ManagedPointer<storage::SqlTable> namespaces_;
+  common::ManagedPointer<storage::index::Index> namespaces_oid_index_;
+  common::ManagedPointer<storage::index::Index> namespaces_name_index_;
   storage::ProjectedRowInitializer pg_namespace_all_cols_pri_;
   storage::ProjectionMap pg_namespace_all_cols_prm_;
   storage::ProjectedRowInitializer delete_namespace_pri_;
@@ -346,10 +346,10 @@ class PgCoreImpl {
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */
   ///@{
-  storage::SqlTable *classes_;
-  storage::index::Index *classes_oid_index_;
-  storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
-  storage::index::Index *classes_namespace_index_;
+  common::ManagedPointer<storage::SqlTable> classes_;
+  common::ManagedPointer<storage::index::Index> classes_oid_index_;
+  common::ManagedPointer<storage::index::Index> classes_name_index_;  // indexed on namespace OID and name
+  common::ManagedPointer<storage::index::Index> classes_namespace_index_;
   storage::ProjectedRowInitializer pg_class_all_cols_pri_;
   storage::ProjectionMap pg_class_all_cols_prm_;
   storage::ProjectedRowInitializer get_class_oid_kind_pri_;
@@ -367,9 +367,9 @@ class PgCoreImpl {
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */
   ///@{
-  storage::SqlTable *indexes_;
-  storage::index::Index *indexes_oid_index_;
-  storage::index::Index *indexes_table_index_;
+  common::ManagedPointer<storage::SqlTable> indexes_;
+  common::ManagedPointer<storage::index::Index> indexes_oid_index_;
+  common::ManagedPointer<storage::index::Index> indexes_table_index_;
   storage::ProjectedRowInitializer get_indexes_pri_;
   storage::ProjectedRowInitializer delete_index_pri_;
   storage::ProjectionMap delete_index_prm_;
@@ -383,9 +383,9 @@ class PgCoreImpl {
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */
   ///@{
-  storage::SqlTable *columns_;
-  storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
-  storage::index::Index *columns_name_index_;  // indexed on class OID and column name
+  common::ManagedPointer<storage::SqlTable> columns_;
+  common::ManagedPointer<storage::index::Index> columns_oid_index_;   // indexed on class OID and column OID
+  common::ManagedPointer<storage::index::Index> columns_name_index_;  // indexed on class OID and column name
   storage::ProjectedRowInitializer pg_attribute_all_cols_pri_;
   storage::ProjectionMap pg_attribute_all_cols_prm_;
   storage::ProjectedRowInitializer get_columns_pri_;
