@@ -42,11 +42,12 @@ class ModelServerTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, PipelineTest) {
+  messenger::messenger_logger->set_level(spdlog::level::info);
+  model_server_logger->set_level(spdlog::level::info);
   char *project_build_path = ::getenv(BUILD_ABS_PATH);
   // This has to be set
   ASSERT_NE(project_build_path, nullptr);
-  messenger::messenger_logger->set_level(spdlog::level::info);
-  model_server_logger->set_level(spdlog::level::info);
+  MODEL_SERVER_LOG_INFO("Running in build directory :{}", project_build_path);
 
   auto primary = BuildDBMain();
   primary->GetNetworkLayer()->GetServer()->RunServer();
