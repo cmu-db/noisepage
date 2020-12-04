@@ -9,7 +9,7 @@ nlohmann::json Schema::Column::ToJson() const {
   j["name"] = name_;
   j["type"] = type_;
   j["attr_length"] = attr_length_;
-  j["type_modifier_"] = type_modifier_;
+  j["type_modifier"] = type_modifier_;
   j["nullable"] = nullable_;
   j["oid"] = oid_;
   j["default_value"] = default_value_->ToJson();
