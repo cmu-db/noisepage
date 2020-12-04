@@ -161,15 +161,13 @@ void UpdateTranslator::GetUpdatePR(noisepage::execution::compiler::FunctionBuild
 void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *context) const {
   const auto &op = GetPlanAs<planner::UpdatePlanNode>();
   const auto &clauses = op.GetSetClauses();
-  NOISEPAGE_ASSERT(op.GetChildrenSize() > 0, "UpdatePlanNode must have a child");
-  const auto *provider = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
 
   std::unordered_set<catalog::col_oid_t> set_oids;
   for (const auto &clause : clauses) {
     // @prSet(update_pr, ...)
     const auto &table_col_oid = clause.first;
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
-    const auto &clause_expr = context->DeriveValue(*clause.second, provider);
+    const auto &clause_expr = context->DeriveValue(*clause.second, this);
     auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
                                             table_pm_.find(table_col_oid)->second, clause_expr, true);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
@@ -183,6 +181,7 @@ void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
       const auto &col = table_schema_.GetColumn(oid);
       const auto idx = table_pm_.find(oid)->second;
 
+      const auto *provider = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
       ast::Expr *child_expr = provider->GetTableColumn(oid);
       ast::Expr *set_pr =
           GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), col.Type(), col.Nullable(), idx, child_expr, true);
