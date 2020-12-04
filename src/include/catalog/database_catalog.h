@@ -127,8 +127,6 @@ class DatabaseCatalog {
    *                    As such, there is no guarantee that the pointer is still valid when this function returns.
    *                    If the caller needs to reference the schema object after this call, the caller should use
    *                    the GetSchema function to obtain the authoritative schema for this table.
-   *
-   * TODO(WAN): if this logic can be pushed to PgCoreImpl, update this comment to match style
    */
   bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema);
 
