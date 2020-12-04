@@ -74,7 +74,9 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
 
   bool UNUSED_ATTRIBUTE retval;
   retval = TryLock(txn);
-  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval,
+                   "Bootstrap operations should not fail to get write-lock: another thread grabbed it early? "
+                   "Check recovery logic (most probable cause).");
 
   pg_core_.Bootstrap(txn, common::ManagedPointer(this));
   pg_type_.Bootstrap(txn, common::ManagedPointer(this));
