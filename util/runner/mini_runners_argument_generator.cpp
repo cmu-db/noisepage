@@ -13,10 +13,10 @@ void MiniRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const MiniRu
                     selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
                     selfdriving::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE,
                     selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS,
-                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY,
-                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE,
-                    selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE,
+                    selfdriving::ExecutionOperatingUnitType::OP_REAL_PLUS_OR_MINUS,
+                    selfdriving::ExecutionOperatingUnitType::OP_REAL_MULTIPLY,
+                    selfdriving::ExecutionOperatingUnitType::OP_REAL_DIVIDE,
+                    selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE,
                     selfdriving::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE};
 
   std::vector<size_t> counts;
