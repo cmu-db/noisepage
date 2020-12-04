@@ -784,7 +784,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
   // Extract to restore
   int original_threads = db_main->GetSettingsManager()->GetInt(settings::Param::num_parallel_execution_threads);
   bool counters = db_main->GetSettingsManager()->GetBool(settings::Param::counters_enable);
-  bool metrics_enabled = db_main->GetSettingsManager()->GetBool(settings::Param::pipeline_metrics_enable);;
+  bool metrics_enabled = db_main->GetSettingsManager()->GetBool(settings::Param::pipeline_metrics_enable);
   for (auto thread : num_threads) {
     NetworkQueriesSetParam<settings::Param::num_parallel_execution_threads, int>(thread);
     NetworkQueriesSetParam<settings::Param::counters_enable, bool>(true);
