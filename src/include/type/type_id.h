@@ -25,7 +25,8 @@ enum class TypeId : uint8_t {
   SMALLINT,
   INTEGER,
   BIGINT,
-  DECIMAL,
+  REAL,     // equivalent to DOUBLE
+  DECIMAL,  // equivalent to NUMERIC
   TIMESTAMP,
   DATE,
   VARCHAR,

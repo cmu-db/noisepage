@@ -174,7 +174,7 @@ class IndexMetadata {
         case type::TypeId::VARCHAR: {
           // Add 4 bytes because we'll prepend a size field. If we're too small, we'll just use a VarlenEntry.
           auto varlen_size =
-              std::max(static_cast<uint16_t>(key.MaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
+              std::max(static_cast<uint16_t>(key.TypeModifier() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
           inlined_attr_sizes.emplace_back(varlen_size);
           break;
         }
@@ -195,7 +195,7 @@ class IndexMetadata {
       switch (key.Type()) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR:
-          return key.MaxVarlenSize() > VarlenEntry::InlineThreshold();
+          return key.TypeModifier() > VarlenEntry::InlineThreshold();
         default:
           break;
       }

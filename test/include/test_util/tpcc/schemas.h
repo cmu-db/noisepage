@@ -287,7 +287,7 @@ class Schemas {
         schema.GetColumn(1).Name(), schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
         parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     customer_secondary_key_schema.emplace_back(
-        schema.GetColumn(5).Name(), schema.GetColumn(5).Type(), schema.GetColumn(5).MaxVarlenSize(),
+        schema.GetColumn(5).Name(), schema.GetColumn(5).Type(), schema.GetColumn(5).TypeModifier(),
         schema.GetColumn(5).Nullable(), parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(5).Oid()));
 
     NOISEPAGE_ASSERT(customer_secondary_key_schema.size() == NUM_CUSTOMER_SECONDARY_INDEX_COLS,

@@ -36,12 +36,14 @@ class TypeUtil {
       case TypeId::PARAMETER_OFFSET:
         return 4;
       case TypeId::BIGINT:
-      case TypeId::DECIMAL:
+      case TypeId::REAL:
       case TypeId::TIMESTAMP:
         return 8;
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
         return storage::VARLEN_COLUMN;
+      case TypeId::DECIMAL:
+        return 16;
       default:
         throw std::runtime_error("Unknown TypeId in noisepage::type::TypeUtil::GetTypeSize().");
     }

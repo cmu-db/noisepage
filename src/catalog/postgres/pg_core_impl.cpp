@@ -1304,10 +1304,8 @@ bool PgCoreImpl::CreateColumn(const common::ManagedPointer<transaction::Transact
     auto delta = common::ManagedPointer(redo->Delta());
     auto &pm = pg_attribute_all_cols_prm_;
     const auto dsrc_varlen = storage::StorageUtil::CreateVarlen(col.StoredExpression()->ToJson().dump());
-    // TODO(Amadou): Figure out what really goes here for varlen. Unclear if it's attribute size (16) or varlen length
-    const auto attlen = (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY)
-                            ? col.MaxVarlenSize()
-                            : col.AttrSize();
+    const auto attlen = col.AttributeLength();
+    const auto atttypmod UNUSED_ATTRIBUTE = col.TypeModifier();
 
     PgAttribute::ATTNUM.Set(delta, pm, col_oid_t(col_oid.UnderlyingValue()));
     PgAttribute::ATTRELID.Set(delta, pm, table_oid_t(class_oid.UnderlyingValue()));

@@ -108,7 +108,7 @@ class IndexKeyTests : public TerrierTest {
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         // pick a random varlen size, meant to hit the {inline (prefix), inline (prefix+content), content} cases
-        auto varlen_size = col.MaxVarlenSize();
+        auto varlen_size = col.TypeModifier();
 
         // generate random varlen content
         auto *varlen_content = new byte[varlen_size];
@@ -553,9 +553,9 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   EXPECT_FALSE(metadata_key_schema[2].Nullable());
   EXPECT_FALSE(metadata_key_schema[3].Nullable());
   EXPECT_FALSE(metadata_key_schema[4].Nullable());
-  EXPECT_EQ(metadata_key_schema[1].MaxVarlenSize(), 8);
-  EXPECT_EQ(metadata_key_schema[2].MaxVarlenSize(), 0);
-  EXPECT_EQ(metadata_key_schema[4].MaxVarlenSize(), 12);
+  EXPECT_EQ(metadata_key_schema[1].TypeModifier(), 8);
+  EXPECT_EQ(metadata_key_schema[2].TypeModifier(), 0);
+  EXPECT_EQ(metadata_key_schema[4].TypeModifier(), 12);
 
   // attr_sizes            {4, VARLEN_COLUMN, VARLEN_COLUMN, 1, VARLEN_COLUMN}
   const auto &attr_sizes = metadata.GetAttributeSizes();
@@ -643,9 +643,9 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   EXPECT_FALSE(metadata_key_schema[2].Nullable());
   EXPECT_FALSE(metadata_key_schema[3].Nullable());
   EXPECT_FALSE(metadata_key_schema[4].Nullable());
-  EXPECT_EQ(metadata_key_schema[1].MaxVarlenSize(), 50);
-  EXPECT_EQ(metadata_key_schema[2].MaxVarlenSize(), 8);
-  EXPECT_EQ(metadata_key_schema[4].MaxVarlenSize(), 90);
+  EXPECT_EQ(metadata_key_schema[1].TypeModifier(), 50);
+  EXPECT_EQ(metadata_key_schema[2].TypeModifier(), 8);
+  EXPECT_EQ(metadata_key_schema[4].TypeModifier(), 90);
 
   // attr_sizes            {4, VARLEN_COLUMN, VARLEN_COLUMN, 1, VARLEN_COLUMN}
   const auto &attr_sizes = metadata.GetAttributeSizes();
