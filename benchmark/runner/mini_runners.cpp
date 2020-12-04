@@ -643,7 +643,6 @@ class MiniRunners : public benchmark::Fixture {
         break;
       }
       case selfdriving::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE: {
-        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t multiply_factor = sizeof(storage::VarlenEntry) / sizeof(uint32_t);
         auto *val = reinterpret_cast<storage::VarlenEntry *>(new uint32_t[num_elem * multiply_factor * 2]);
         for (size_t i = 0; i < num_elem * 2; ++i) {
@@ -651,6 +650,7 @@ class MiniRunners : public benchmark::Fixture {
           val[i] = storage::VarlenEntry::Create(str_val);
         }
         uint32_t ret = 0;
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         for (size_t i = 0; i < num_elem; i++) {
           ret += storage::VarlenEntry::Compare(val[i], val[i + num_elem]);
           DoNotOptimizeAway(ret);
