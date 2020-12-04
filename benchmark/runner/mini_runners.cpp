@@ -718,7 +718,7 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   std::vector<int64_t> row_nums = {1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000};
 
-  bool metrics_enabled = true;
+  bool metrics_enabled = db_main->GetSettingsManager()->GetBool(settings::Param::pipeline_metrics_enable);
   NetworkQueriesSetParam<settings::Param::counters_enable, bool>(false);
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -732,11 +732,10 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
 
         for (int i = 0; i < iters; i++) {
           if (i != iters - 1 && metrics_enabled) {
-            db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+            NetworkQueriesSetParam<settings::Param::pipeline_metrics_enable, bool>(false);
             metrics_enabled = false;
           } else if (i == iters - 1 && !metrics_enabled) {
-            db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
-            db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+            NetworkQueriesSetParam<settings::Param::pipeline_metrics_enable, bool>(true);
             metrics_enabled = true;
           }
 
@@ -785,8 +784,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
   // Extract to restore
   int original_threads = db_main->GetSettingsManager()->GetInt(settings::Param::num_parallel_execution_threads);
   bool counters = db_main->GetSettingsManager()->GetBool(settings::Param::counters_enable);
-
-  bool metrics_enabled = true;
+  bool metrics_enabled = db_main->GetSettingsManager()->GetBool(settings::Param::pipeline_metrics_enable);;
   for (auto thread : num_threads) {
     NetworkQueriesSetParam<settings::Param::num_parallel_execution_threads, int>(thread);
     NetworkQueriesSetParam<settings::Param::counters_enable, bool>(true);
@@ -803,11 +801,10 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
 
           for (int i = 0; i < iters; i++) {
             if (i != iters - 1 && metrics_enabled) {
-              db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+              NetworkQueriesSetParam<settings::Param::pipeline_metrics_enable, bool>(false);
               metrics_enabled = false;
             } else if (i == iters - 1 && !metrics_enabled) {
-              db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
-              db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+              NetworkQueriesSetParam<settings::Param::pipeline_metrics_enable, bool>(true);
               metrics_enabled = true;
             }
 
@@ -2145,8 +2142,8 @@ void InitializeRunnersState() {
   auto block_store = db_main->GetStorageLayer()->GetBlockStore();
   auto catalog = db_main->GetCatalogLayer()->GetCatalog();
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
-  db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
-  db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+  NetworkQueriesSetParam<settings::Param::pipeline_metrics_enable, bool>(true);
+  NetworkQueriesSetParam<settings::Param::pipeline_metrics_interval, int>(0);
 
   // Create the database
   auto txn = txn_manager->BeginTransaction();
