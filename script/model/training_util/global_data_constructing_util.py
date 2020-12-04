@@ -32,7 +32,6 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
-    headers_file = input_path + '/global_model_headers.pickle'
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX = pickle.load(pickle_file)
@@ -228,7 +227,7 @@ def _add_estimation_noise(opunit, x):
         x[tuple_num_index] += np.random.normal(0, tuple_num * 0.3)
         x[tuple_num_index] = max(1, x[tuple_num_index])
     if cardinality > 1000:
-        logging.debug("Adding noise to cardinality (%)".format(x[cardinality_index)
+        logging.debug("Adding noise to cardinality (%)".format(x[cardinality_index]))
         x[cardinality_index] += np.random.normal(0, cardinality * 0.3)
         x[cardinality_index] = max(1, x[cardinality_index])
 
@@ -296,7 +295,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
 
                 if opunit in data_info.MEM_ADJUST_OPUNITS:
                     # Compute the number of "slots" (based on row feature or cardinality feature
-                    num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]]
+                    num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]]
                     if opunit == OpUnit.AGG_BUILD:
                         num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]]
 
