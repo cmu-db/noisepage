@@ -107,10 +107,6 @@ pipeline {
 
                 archiveArtifacts 'script/testing/*.json'
                 junit 'script/testing/*.xml'
-                // This next line can be removed when the loop is removed
-                sh 'rm script/testing/*.json'
-                sh 'rm script/testing/*.xml'
-
             }
             post {
                 cleanup {
