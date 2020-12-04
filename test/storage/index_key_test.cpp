@@ -90,7 +90,7 @@ class IndexKeyTests : public TerrierTest {
         std::memcpy(reference, &bigint, type_size);
         break;
       }
-      case type::TypeId::DECIMAL: {
+      case type::TypeId::REAL: {
         auto decimal = static_cast<int64_t>(rng(*generator));
         std::memcpy(attr, &decimal, type_size);
         decimal ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
@@ -956,7 +956,7 @@ TEST_F(IndexKeyTests, GenericKeyNumericComparisons) {
   NumericComparisons<GenericKey<64>, int32_t>(type::TypeId::INTEGER, true);
   NumericComparisons<GenericKey<64>, uint32_t>(type::TypeId::DATE, true);
   NumericComparisons<GenericKey<64>, int64_t>(type::TypeId::BIGINT, true);
-  NumericComparisons<GenericKey<64>, double>(type::TypeId::DECIMAL, true);
+  NumericComparisons<GenericKey<64>, double>(type::TypeId::REAL, true);
   NumericComparisons<GenericKey<64>, uint64_t>(type::TypeId::TIMESTAMP, true);
 }
 
@@ -1033,7 +1033,7 @@ TEST_F(IndexKeyTests, HashKeyNumericComparisons) {
   UnorderedNumericComparisons<HashKey<8>, int32_t>(type::TypeId::INTEGER, false);
   UnorderedNumericComparisons<HashKey<8>, uint32_t>(type::TypeId::DATE, false);
   UnorderedNumericComparisons<HashKey<8>, int64_t>(type::TypeId::BIGINT, false);
-  UnorderedNumericComparisons<HashKey<8>, double>(type::TypeId::DECIMAL, false);
+  UnorderedNumericComparisons<HashKey<8>, double>(type::TypeId::REAL, false);
   UnorderedNumericComparisons<HashKey<8>, uint64_t>(type::TypeId::TIMESTAMP, false);
 }
 
@@ -1219,7 +1219,7 @@ TEST_F(IndexKeyTests, GenericKeyBuilderTest) {
 
   const std::vector<type::TypeId> generic_key_types{
       type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
-      type::TypeId::BIGINT,  type::TypeId::DECIMAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
+      type::TypeId::BIGINT,  type::TypeId::REAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
       type::TypeId::VARCHAR, type::TypeId::VARBINARY};
 
   for (uint32_t i = 0; i < num_iters; i++) {

@@ -58,11 +58,7 @@ class IndexSchema {
           nullable_(nullable),
           oid_(INVALID_INDEXKEYCOL_OID),
           definition_(definition.Copy()) {
-      NOISEPAGE_ASSERT(attr_length_ == 1 || attr_length_ == 2 || attr_length_ == 4 || attr_length_ == 8,
-                       "This constructor is meant for types without a type modifier (i.e., non-VARLEN, non-DECIMAL).");
-      NOISEPAGE_ASSERT(!ShouldHaveTypeModifier(),
-                       "This constructor is meant for types without a type modifier (i.e., non-VARLEN, non-DECIMAL).");
-      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      Validate();
     }
 
     /**
@@ -82,10 +78,7 @@ class IndexSchema {
           nullable_(nullable),
           oid_(INVALID_INDEXKEYCOL_OID),
           definition_(definition.Copy()) {
-      NOISEPAGE_ASSERT(ShouldHaveTypeModifier(), "This constructor is meant for VARLEN or DECIMAL columns.");
-      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      NOISEPAGE_ASSERT(type_modifier_ >= 0, "Type modifier should have a value.");
-      // TODO(Matt): what are valid upper bounds and default values for type_modifier?
+      Validate();
     }
 
     /**
@@ -99,7 +92,9 @@ class IndexSchema {
           type_modifier_(old_column.type_modifier_),
           nullable_(old_column.nullable_),
           oid_(old_column.oid_),
-          definition_(old_column.definition_->Copy()) {}
+          definition_(old_column.definition_->Copy()) {
+      Validate();
+    }
 
     /**
      * Allows operator= to call Column's custom copy-constructor.
@@ -114,6 +109,7 @@ class IndexSchema {
       nullable_ = col.nullable_;
       oid_ = col.oid_;
       definition_ = col.definition_->Copy();
+      Validate();
       return *this;
     }
 

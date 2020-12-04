@@ -106,8 +106,8 @@ class SchemaReader {
   SchemaReader()
       : type_names_{{"tinyint", type::TypeId::TINYINT}, {"smallint", type::TypeId::SMALLINT},
                     {"int", type::TypeId::INTEGER},     {"bigint", type::TypeId::BIGINT},
-                    {"bool", type::TypeId::BOOLEAN},    {"real", type::TypeId::DECIMAL},
-                    {"decimal", type::TypeId::DECIMAL}, {"varchar", type::TypeId::VARCHAR},
+                    {"bool", type::TypeId::BOOLEAN},    {"real", type::TypeId::REAL},
+                    {"decimal", type::TypeId::REAL}, {"varchar", type::TypeId::VARCHAR},
                     {"varlen", type::TypeId::VARCHAR},  {"date", type::TypeId::DATE}} {}
 
   /**

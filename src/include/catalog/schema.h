@@ -85,7 +85,7 @@ class Schema {
           nullable_(old_column.nullable_),
           oid_(old_column.oid_),
           default_value_(old_column.default_value_->Copy()) {
-      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      Validate();
     }
 
     /**
@@ -101,6 +101,7 @@ class Schema {
       nullable_ = col.nullable_;
       oid_ = col.oid_;
       default_value_ = col.default_value_->Copy();
+      Validate();
       return *this;
     }
 

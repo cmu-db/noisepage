@@ -34,13 +34,13 @@ void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniR
                                                       const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
         if (type == type::TypeId::INTEGER)
           b->push_back({col, 0, row});
-        else if (type == type::TypeId::DECIMAL)
+        else if (type == type::TypeId::REAL)
           b->push_back({0, col, row});
       }
     }
@@ -53,7 +53,7 @@ void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniR
 void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                     const MiniRunnersDataConfig &config) {
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::VARCHAR};
+  auto types = {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::VARCHAR};
   const std::vector<uint32_t> *num_cols;
   for (auto type : types) {
     if (type == type::TypeId::VARCHAR)
@@ -67,7 +67,7 @@ void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRun
         while (car < row) {
           if (type == type::TypeId::INTEGER)
             b->push_back({col, 0, 15, 0, row, car, 0});
-          else if (type == type::TypeId::DECIMAL)
+          else if (type == type::TypeId::REAL)
             b->push_back({0, col, 0, 15, row, car, 0});
           else if (type == type::TypeId::VARCHAR)
             b->push_back({0, col, 0, 5, row, car, 1});
@@ -76,7 +76,7 @@ void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRun
 
         if (type == type::TypeId::INTEGER)
           b->push_back({col, 0, 15, 0, row, row, 0});
-        else if (type == type::TypeId::DECIMAL)
+        else if (type == type::TypeId::REAL)
           b->push_back({0, col, 0, 15, row, row, 0});
         else if (type == type::TypeId::VARCHAR)
           b->push_back({0, col, 0, 5, row, row, 1});
@@ -110,14 +110,14 @@ void MiniRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const MiniRun
           while (car < row) {
             if (type == type::TypeId::INTEGER)
               b->push_back({col, 0, 15, 0, row, car, is_topk});
-            else if (type == type::TypeId::DECIMAL)
+            else if (type == type::TypeId::REAL)
               b->push_back({0, col, 0, 15, row, car, is_topk});
             car *= 2;
           }
 
           if (type == type::TypeId::INTEGER)
             b->push_back({col, 0, 15, 0, row, row, is_topk});
-          else if (type == type::TypeId::DECIMAL)
+          else if (type == type::TypeId::REAL)
             b->push_back({0, col, 0, 15, row, row, is_topk});
         }
       }
@@ -276,7 +276,7 @@ void MiniRunnersArgumentGenerator::GenIdxJoinArguments(OutputArgs *b, const Mini
 
 void MiniRunnersArgumentGenerator::GenInsertArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                       const MiniRunnersDataConfig &config) {
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
   auto &num_rows = config.sweep_insert_row_nums_;
   auto &num_cols = config.sweep_col_nums_;
   for (auto type : types) {
@@ -284,7 +284,7 @@ void MiniRunnersArgumentGenerator::GenInsertArguments(OutputArgs *b, const MiniR
       for (auto row : num_rows) {
         if (type == type::TypeId::INTEGER)
           b->push_back({col, 0, col, row});
-        else if (type == type::TypeId::DECIMAL)
+        else if (type == type::TypeId::REAL)
           b->push_back({0, col, col, row});
       }
     }
