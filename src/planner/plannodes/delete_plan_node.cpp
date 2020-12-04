@@ -13,13 +13,15 @@ namespace noisepage::planner {
 
 std::unique_ptr<DeletePlanNode> DeletePlanNode::Builder::Build() {
   return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::make_unique<OutputSchema>(),
-                                                            database_oid_, table_oid_, std::move(index_oids_)));
+                                                            database_oid_, table_oid_, std::move(index_oids_),
+                                                            plan_node_id_));
 }
 
 DeletePlanNode::DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                               catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                               catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids,
+                               plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       database_oid_(database_oid),
       table_oid_(table_oid),
       index_oids_(std::move(index_oids)) {}

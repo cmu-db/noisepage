@@ -85,10 +85,11 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param table_oid the OID of the target SQL table
    * @param index_oids indexes to delete from
+   * @param plan_node_id Plan node id
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                 std::vector<catalog::index_oid_t> &&index_oids);
+                 std::vector<catalog::index_oid_t> &&index_oids, plan_node_id_t plan_node_id);
 
  public:
   /**

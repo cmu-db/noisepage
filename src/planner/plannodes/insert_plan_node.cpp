@@ -17,9 +17,9 @@ std::unique_ptr<InsertPlanNode> InsertPlanNode::Builder::Build() {
   NOISEPAGE_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
   NOISEPAGE_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
                    "Must have parameter info for each value");
-  return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                            database_oid_, table_oid_, std::move(values_),
-                                                            std::move(parameter_info_), std::move(index_oids_)));
+  return std::unique_ptr<InsertPlanNode>(
+      new InsertPlanNode(std::move(children_), std::move(output_schema_), database_oid_, table_oid_, std::move(values_),
+                         std::move(parameter_info_), std::move(index_oids_), plan_node_id_));
 }
 
 InsertPlanNode::InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
@@ -27,8 +27,8 @@ InsertPlanNode::InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&
                                catalog::table_oid_t table_oid,
                                std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
                                std::vector<catalog::col_oid_t> &&parameter_info,
-                               std::vector<catalog::index_oid_t> &&index_oids)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                               std::vector<catalog::index_oid_t> &&index_oids, plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       database_oid_(database_oid),
       table_oid_(table_oid),
       values_(std::move(values)),
