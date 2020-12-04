@@ -121,7 +121,7 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
   InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARBINARY), "varbinary",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);
 
-  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::HACK_PG_TYPE_VAR_ARRAY), "var_array",
+  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VAR_ARRAY), "var_array",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::COMPOSITE);
 }
 

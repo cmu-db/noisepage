@@ -32,7 +32,7 @@ enum class TypeId : uint8_t {
   VARBINARY,
   PARAMETER_OFFSET,
   VARIADIC,
-  HACK_PG_TYPE_VAR_ARRAY,  ///< pg_type requires a distinct type for var_array.
+  VAR_ARRAY,  ///< pg_type requires a distinct type for var_array.
 };
 
 }  // namespace noisepage::type
