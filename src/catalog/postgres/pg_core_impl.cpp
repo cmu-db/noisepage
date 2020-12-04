@@ -82,8 +82,9 @@ void PgCoreImpl::BootstrapPRIsPgAttribute() {
   pg_attribute_all_cols_prm_ = columns_->ProjectionMapForOids(pg_attribute_all_oids);
 
   const std::vector<col_oid_t> get_columns_oids{PgAttribute::ATTNUM.oid_,     PgAttribute::ATTNAME.oid_,
-                                                PgAttribute::ATTTYPID.oid_,   PgAttribute::ATTLEN.oid_,
+                                                PgAttribute::ATTTYPID.oid_,   PgAttribute::ATTTYPMOD.oid_,
                                                 PgAttribute::ATTNOTNULL.oid_, PgAttribute::ADSRC.oid_};
+  // TODO(Matt): Maybe length should still be read back out from the table rather than relying ton Column's constructor?
   get_columns_pri_ = columns_->InitializerForProjectedRow(get_columns_oids);
   get_columns_prm_ = columns_->ProjectionMapForOids(get_columns_oids);
 
@@ -1305,13 +1306,14 @@ bool PgCoreImpl::CreateColumn(const common::ManagedPointer<transaction::Transact
     auto &pm = pg_attribute_all_cols_prm_;
     const auto dsrc_varlen = storage::StorageUtil::CreateVarlen(col.StoredExpression()->ToJson().dump());
     const auto attlen = col.AttributeLength();
-    const auto atttypmod UNUSED_ATTRIBUTE = col.TypeModifier();
+    const auto atttypmod = col.TypeModifier();
 
     PgAttribute::ATTNUM.Set(delta, pm, col_oid_t(col_oid.UnderlyingValue()));
     PgAttribute::ATTRELID.Set(delta, pm, table_oid_t(class_oid.UnderlyingValue()));
     PgAttribute::ATTNAME.Set(delta, pm, name_varlen);
     PgAttribute::ATTTYPID.Set(delta, pm, type_oid_t(static_cast<uint32_t>(col.Type())));
     PgAttribute::ATTLEN.Set(delta, pm, attlen);
+    PgAttribute::ATTTYPMOD.Set(delta, pm, atttypmod);
     PgAttribute::ATTNOTNULL.Set(delta, pm, !col.Nullable());
     PgAttribute::ADSRC.Set(delta, pm, dsrc_varlen);
   }
@@ -1499,7 +1501,7 @@ Column PgCoreImpl::MakeColumn(storage::ProjectedRow *const pr, const storage::Pr
   const auto col_oid = *PgAttribute::ATTNUM.Get(delta, pr_map);
   const auto col_name = PgAttribute::ATTNAME.Get(delta, pr_map);
   const auto col_type = *PgAttribute::ATTTYPID.Get(delta, pr_map);
-  const auto col_len = *PgAttribute::ATTLEN.Get(delta, pr_map);
+  const auto col_mod = *PgAttribute::ATTTYPMOD.Get(delta, pr_map);
   const auto col_null = !(*PgAttribute::ATTNOTNULL.Get(delta, pr_map));
   const auto *const col_expr = PgAttribute::ADSRC.Get(delta, pr_map);
 
@@ -1515,8 +1517,8 @@ Column PgCoreImpl::MakeColumn(storage::ProjectedRow *const pr, const storage::Pr
   NOISEPAGE_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
 
   const std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
-  Column col = (type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY)
-                   ? Column(name, type, col_len, col_null, *expr)
+  Column col = (type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY || type == type::TypeId::DECIMAL)
+                   ? Column(name, type, col_mod, col_null, *expr)
                    : Column(name, type, col_null, *expr);
 
   col.SetOid(ColOid(col_oid.UnderlyingValue()));

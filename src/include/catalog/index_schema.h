@@ -44,6 +44,8 @@ class IndexSchema {
    */
   class Column {
    public:
+    // TODO(Matt): does having two constructors even make sense anymore?
+
     /**
      * Non-varlen constructor for index key columns.
      * @param name column name (column name or "expr")

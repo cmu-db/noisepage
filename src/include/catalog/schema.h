@@ -35,6 +35,8 @@ class Schema {
    */
   class Column {
    public:
+    // TODO(Matt): does having two constructors even make sense anymore?
+
     /**
      * Instantiates a Column object, primary to be used for building a Schema object (non VARLEN attributes)
      * @param name column name

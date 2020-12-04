@@ -170,6 +170,10 @@ Schema Builder::GetColumnTableSchema() {
                        parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(PgAttribute::ATTLEN.oid_);
 
+  columns.emplace_back("atttypmod", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.back().SetOid(PgAttribute::ATTTYPMOD.oid_);
+
   columns.emplace_back("attnotnull", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PgAttribute::ATTNOTNULL.oid_);
