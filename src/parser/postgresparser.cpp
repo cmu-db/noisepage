@@ -413,6 +413,25 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(ParseResult *
     children.emplace_back(ExprTransform(parse_result, root->rexpr_, nullptr));
   } else if (root->kind_ == AEXPR_OP && root->type_ == T_TypeCast) {
     target_type = ExpressionType::OPERATOR_CAST;
+  } else if (root->kind_ == AEXPR_IN) {
+    // Expression "FOO in (X, Y, ..., Z)". By convention, FOO is the first child and the other children are the IN list.
+    target_type = ExpressionType::COMPARE_IN;
+    children.emplace_back(ExprTransform(parse_result, root->lexpr_, nullptr));
+    auto *in_list = reinterpret_cast<List *>(root->rexpr_);
+    for (auto cell = in_list->head; cell != nullptr; cell = cell->next) {
+      auto node = static_cast<Node *>(cell->data.ptr_value);
+      children.emplace_back(ExprTransform(parse_result, node, nullptr));
+    }
+
+    auto name = (reinterpret_cast<value *>(root->name_->head->data.ptr_value))->val_.str_;
+    // Postgres distinguishes between IN "=" and NOT IN "<>" by the name of the expression. Rewrite NOT IN.
+    if (std::strcmp(name, "<>") == 0) {
+      auto in_expr = std::make_unique<ComparisonExpression>(target_type, std::move(children));
+      std::vector<std::unique_ptr<AbstractExpression>> in_child;
+      in_child.emplace_back(std::move(in_expr));
+      return std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID,
+                                                  std::move(in_child));
+    }
   } else {
     auto name = (reinterpret_cast<value *>(root->name_->head->data.ptr_value))->val_.str_;
     target_type = StringToExpressionType(name);

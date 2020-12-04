@@ -45,7 +45,7 @@ class ResultPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<ResultPlanNode> Build() {
       return std::unique_ptr<ResultPlanNode>(
-          new ResultPlanNode(std::move(children_), std::move(output_schema_), expr_));
+          new ResultPlanNode(std::move(children_), std::move(output_schema_), expr_, plan_node_id_));
     }
 
    protected:
@@ -60,10 +60,11 @@ class ResultPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param tuple the tuple in the storage layer
+   * @param plan_node_id Plan node id
    */
   ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 common::ManagedPointer<parser::AbstractExpression> expr)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(expr) {}
+                 common::ManagedPointer<parser::AbstractExpression> expr, plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), expr_(expr) {}
 
  public:
   /**

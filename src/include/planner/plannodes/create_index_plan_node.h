@@ -105,11 +105,12 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param index_type type of index to create
    * @param unique_index true if index should be unique
    * @param index_name name of index to be created
+   * @param plan_node_id Plan node id
    */
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::string index_name,
-                      std::unique_ptr<catalog::IndexSchema> schema);
+                      std::unique_ptr<catalog::IndexSchema> schema, plan_node_id_t plan_node_id);
 
  public:
   /**
