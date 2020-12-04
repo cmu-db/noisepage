@@ -586,7 +586,11 @@ pipeline {
                 ../benchmark/mini_runners --mini_runner_rows_limit=1000 --rerun=0 --warm_num=1
                 ''', label: 'Mini-trainer input generation'
 
-                sh 'cd build && BUILD_ABS_PATH=`pwd` timeout 10m ninja self_driving_test'
+                sh script: '''
+                cd build
+                export BUILD_ABS_PATH=`pwd`
+                timeout 10m ninja self_driving_test
+                ''', label: 'Running self-driving test'
             }
             post {
                 cleanup {
