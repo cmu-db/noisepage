@@ -1159,7 +1159,6 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   InvokeGC();
   InvokeGC();
 
-  // Simulate an index insert
   {
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
