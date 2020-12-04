@@ -578,7 +578,7 @@ pipeline {
                 sh script: '''
                 mkdir build
                 cd build
-                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF  -DNOISEPAGE_BUILD_SELF_DRIVING_TESTS=ON ..
+                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF  -DNOISEPAGE_BUILD_SELF_DRIVING_TESTS=ON -DNOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE=ON ..
                 ninja mini_runners''', label: 'Self-driving tests (Compile mini_runners)'
 
                 sh script :'''
