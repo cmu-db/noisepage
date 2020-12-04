@@ -104,14 +104,14 @@ _tuple_num_log_transformer = (_tuple_num_log_train_transform, _tuple_num_log_pre
 
 
 def _tuple_num_cardinality_linear_log_train_transform(x, y):
-    # Transform down the target according to the log tuple num value in the input
+    # Transform down the target according to the cardinality * log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
     return y / ((cardinality * np.log2(tuple_num)) + 1)[:, np.newaxis]
 
 
 def _tuple_num_cardinality_linear_log_predict_transform(x, y):
-    # Transform up the target according to the log tuple num value in the input
+    # Transform up the target according to the cardinality * log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
     return y * ((cardinality * np.log2(tuple_num)) + 1)[:, np.newaxis]
@@ -122,13 +122,13 @@ _tuple_num_cardinality_linear_log_transformer = (_tuple_num_cardinality_linear_l
                                                  _tuple_num_cardinality_linear_log_predict_transform)
 
 def _tuple_cardinality_linear_train_transform(x, y):
-    # Transform down the target according to the log tuple num value in the input
+    # Transform down the target according to the log cardinality in the input
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
     return y / (cardinality + 1)[:, np.newaxis]
 
 
 def _tuple_cardinality_linear_predict_transform(x, y):
-    # Transform up the target according to the log tuple num value in the input
+    # Transform up the target according to the log cardinality in the input
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
     return y * (cardinality + 1)[:, np.newaxis]
 
