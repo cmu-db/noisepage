@@ -838,7 +838,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
         case type::TypeId::BIGINT:
           column_id = constant_value_expression->GetInteger().val_;
           break;
-        case type::TypeId::DECIMAL:
+        case type::TypeId::REAL:
           column_id = constant_value_expression->GetReal().val_;
           break;
         default:

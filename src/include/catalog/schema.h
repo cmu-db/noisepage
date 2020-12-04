@@ -122,11 +122,7 @@ class Schema {
     /**
      * @return The maximum length of this column (only valid if it's VARLEN)
      */
-    int32_t TypeModifier() const {
-      NOISEPAGE_ASSERT(ShouldHaveTypeModifier(),
-                       "This attribute has no meaning for non-VARLEN or non-DECIMAL columns.");
-      return type_modifier_;
-    }
+    int32_t TypeModifier() const { return type_modifier_; }
 
     /**
      * @return SQL type for this column

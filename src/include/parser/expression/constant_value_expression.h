@@ -199,7 +199,7 @@ class ConstantValueExpression : public AbstractExpression {
       case type::TypeId::BIGINT: {
         return GetInteger().is_null_;
       }
-      case type::TypeId::DECIMAL: {
+      case type::TypeId::REAL: {
         return GetReal().is_null_;
       }
       case type::TypeId::TIMESTAMP: {

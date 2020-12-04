@@ -752,7 +752,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
         result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::REAL,
                                                            execution::sql::Real(std::stod(val.val_.str_)));
       }
       break;

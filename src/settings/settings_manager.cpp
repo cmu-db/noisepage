@@ -54,9 +54,9 @@ void SettingsManager::ValidateParams() {
   //   execution::sql::Integer(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
   //   execution::sql::Integer(65535)));
 
-#define __SETTING_VALIDATE__         // NOLINT
+#define __SETTING_VALIDATE__  // NOLINT
 #include "settings/settings_defs.h"  // NOLINT
-#undef __SETTING_VALIDATE__          // NOLINT
+#undef __SETTING_VALIDATE__  // NOLINT
 }
 
 void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
@@ -137,7 +137,7 @@ std::string SettingsManager::GetString(Param param) {
 DEFINE_SETTINGS_MANAGER_SET(Bool, bool, type::TypeId::BOOLEAN, execution::sql::BoolVal, false);
 DEFINE_SETTINGS_MANAGER_SET(Int, int32_t, type::TypeId::INTEGER, execution::sql::Integer, true);
 DEFINE_SETTINGS_MANAGER_SET(Int64, int64_t, type::TypeId::BIGINT, execution::sql::Integer, true);
-DEFINE_SETTINGS_MANAGER_SET(Double, double, type::TypeId::DECIMAL, execution::sql::Real, true);
+DEFINE_SETTINGS_MANAGER_SET(Double, double, type::TypeId::REAL, execution::sql::Real, true);
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
                                 common::ManagedPointer<ActionContext> action_context,
@@ -304,7 +304,7 @@ void SettingsManager::SetParameter(const std::string &name,
       SetInt64(param, value->GetInteger().val_, common::ManagedPointer(&action_context),
                SettingsManager::EmptySetterCallback);
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       SetDouble(param, value->GetReal().val_, common::ManagedPointer(&action_context),
                 SettingsManager::EmptySetterCallback);
       break;

@@ -683,10 +683,10 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("prolang", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PgProc::PROLANG.oid_);
 
-  columns.emplace_back("procost", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
+  columns.emplace_back("procost", type::TypeId::REAL, true, parser::ConstantValueExpression(type::TypeId::REAL));
   columns.back().SetOid(PgProc::PROCOST.oid_);
 
-  columns.emplace_back("prorows", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
+  columns.emplace_back("prorows", type::TypeId::REAL, true, parser::ConstantValueExpression(type::TypeId::REAL));
   columns.back().SetOid(PgProc::PROROWS.oid_);
 
   columns.emplace_back("provariadic", type::TypeId::INTEGER, false,

@@ -76,6 +76,8 @@ class TypeUtil {
         return "INTEGER";
       case type::TypeId::BIGINT:
         return "BIGINT";
+      case type::TypeId::REAL:
+        return "REAL";
       case type::TypeId::DECIMAL:
         return "DECIMAL";
       case type::TypeId::TIMESTAMP:
@@ -119,6 +121,9 @@ class TypeUtil {
     }
     if (type_string == "BIGINT") {
       return type::TypeId::BIGINT;
+    }
+    if (type_string == "REAL") {
+      return type::TypeId::REAL;
     }
     if (type_string == "DECIMAL") {
       return type::TypeId::DECIMAL;

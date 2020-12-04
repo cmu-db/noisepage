@@ -18,6 +18,8 @@ STRONG_TYPEDEF_HEADER(date_t, uint32_t);
  */
 STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
 
+// TODO(Matt): reconcile with execution::sql::SqlTypeId
+// TODO(Matt): also what is noisepage::parser::ColumnDefinition::DataType?
 enum class TypeId : uint8_t {
   INVALID = 0,
   BOOLEAN,
