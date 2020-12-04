@@ -18,10 +18,6 @@ namespace noisepage {
 class StorageTestUtil;
 }  // namespace noisepage
 
-namespace noisepage::tpcc {
-class Schemas;
-}  // namespace noisepage::tpcc
-
 namespace noisepage::catalog {
 
 namespace postgres {
@@ -222,7 +218,6 @@ class Schema {
     friend class postgres::Builder;
     friend class postgres::PgCoreImpl;
 
-    friend class tpcc::Schemas;
     friend class noisepage::StorageTestUtil;
   };
 
