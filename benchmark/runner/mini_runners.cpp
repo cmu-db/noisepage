@@ -1005,8 +1005,8 @@ void PrintInitSI(std::stringstream &output, size_t tbl_cols, uint32_t tbl_oid, b
  * @param value Value to insert into PR if from_pr is false
  * @returns TPL for setting a projected row column
  */
-std::string PrintPRSet(type::TypeId type, std::string idx_pr, std::string col, bool from_pr, std::string src_pr,
-                       size_t value) {
+std::string PrintPRSet(type::TypeId type, const std::string &idx_pr, const std::string &col, bool from_pr,
+                       const std::string &src_pr, size_t value) {
   std::stringstream output;
   switch (type) {
     case type::TypeId::INTEGER:
@@ -1081,7 +1081,7 @@ void PrintInsertTupleIntoTable(std::stringstream &output, type::TypeId type, siz
  * @param value INDEX-DELETE target value
  */
 void PrintModifyTupleIntoIndexes(std::stringstream &output, type::TypeId type,
-                                 std::vector<catalog::index_oid_t> idx_oids, size_t key_num, bool is_insert,
+                                 const std::vector<catalog::index_oid_t> &idx_oids, size_t key_num, bool is_insert,
                                  size_t value) {
   for (auto idx : idx_oids) {
     auto oid = static_cast<uint32_t>(idx);
@@ -1596,7 +1596,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
                          tuple_size, num_cols, num_rows, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  int num_iters = 1 + ((num_rows <= settings.warmup_rows_limit_) ? settings.warmup_iterations_num_ : 0);
+  auto num_iters = 1 + ((num_rows <= settings.warmup_rows_limit_) ? settings.warmup_iterations_num_ : 0);
   auto equery = OptimizeSqlStatement(query, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
 

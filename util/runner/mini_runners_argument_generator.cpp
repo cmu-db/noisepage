@@ -378,7 +378,7 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
       num_cols.push_back(col);
     }
   }
-  std::sort(num_cols.begin(), num_cols.end(), std::less<uint32_t>());
+  std::sort(num_cols.begin(), num_cols.end(), std::less<>());
 
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   for (auto thread : num_threads) {
