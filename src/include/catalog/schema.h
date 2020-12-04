@@ -16,17 +16,14 @@
 
 namespace noisepage {
 class StorageTestUtil;
-}
-
-namespace noisepage::tpcc {
-class Schemas;
-}
+}  // namespace noisepage
 
 namespace noisepage::catalog {
 
 namespace postgres {
 class Builder;
-}
+class PgCoreImpl;
+}  // namespace postgres
 
 /**
  * Internal object for representing SQL table schema
@@ -219,8 +216,8 @@ class Schema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
+    friend class postgres::PgCoreImpl;
 
-    friend class tpcc::Schemas;
     friend class noisepage::StorageTestUtil;
   };
 
