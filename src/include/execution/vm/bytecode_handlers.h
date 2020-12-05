@@ -143,6 +143,19 @@ INT_TYPES(BITS);
 #undef BITS
 
 // ---------------------------------------------------------
+// Primitive casts
+// ---------------------------------------------------------
+
+#define GEN_CAST_OP(from_type, to_type, ...)                                          \
+  VM_OP_HOT void OpCast_##from_type##_##to_type(to_type *dest, const from_type src) { \
+    *dest = static_cast<to_type>(src);                                                \
+  }
+
+ALL_TYPE_PAIRS(GEN_CAST_OP)
+
+#undef GEN_CAST_OP
+
+// ---------------------------------------------------------
 // Memory operations
 // ---------------------------------------------------------
 

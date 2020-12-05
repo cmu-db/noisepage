@@ -16,10 +16,10 @@ fun main() -> int {
     // offset of d = 8
     // offset of e = 16
     // offset of f = 24
-    return @offsetOf(Test, a) +
-           @offsetOf(Test, b) +
-           @offsetOf(Test, c) +
-           @offsetOf(Test, d) +
-           @offsetOf(Test, e) +
-           @offsetOf(Test, f)
+    return @intCast(int32, @offsetOf(Test, a) +
+                           @offsetOf(Test, b) +
+                           @offsetOf(Test, c) +
+                           @offsetOf(Test, d) +
+                           @offsetOf(Test, e) +
+                           @offsetOf(Test, f))
 }

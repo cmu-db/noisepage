@@ -146,6 +146,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinSizeOfCall(ast::CallExpr *call);
   void CheckBuiltinOffsetOfCall(ast::CallExpr *call);
   void CheckBuiltinPtrCastCall(ast::CallExpr *call);
+  void CheckBuiltinIntCast(ast::CallExpr *call);
   void CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinTableIterParCall(ast::CallExpr *call);
   void CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin);

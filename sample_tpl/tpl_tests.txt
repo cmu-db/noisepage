@@ -48,6 +48,7 @@ struct-nested-2.tpl,false,10
 struct-padding.tpl,false,1500
 struct-pointer.tpl,false,440
 test.tpl,false,356405
+types.tpl,false,10
 while.tpl,false,10
 types/bigint.tpl,false,0
 types/bools.tpl,false,6

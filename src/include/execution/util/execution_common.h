@@ -56,6 +56,20 @@ using uint128_t = unsigned __int128;
   INT_TYPES(F, __VA_ARGS__)  \
   FLOAT_TYPES(F, __VA_ARGS__)
 
+#define ALL_TYPE_PAIRS_IMPL(type, F, ...) \
+  F(type, bool, __VA_ARGS__)              \
+  F(type, int8_t, __VA_ARGS__)            \
+  F(type, int16_t, __VA_ARGS__)           \
+  F(type, int32_t, __VA_ARGS__)           \
+  F(type, int64_t, __VA_ARGS__)           \
+  F(type, uint8_t, __VA_ARGS__)           \
+  F(type, uint16_t, __VA_ARGS__)          \
+  F(type, uint32_t, __VA_ARGS__)          \
+  F(type, uint64_t, __VA_ARGS__)          \
+  F(type, float, __VA_ARGS__)             \
+  F(type, double, __VA_ARGS__)
+#define ALL_TYPE_PAIRS(F, ...) ALL_TYPES(ALL_TYPE_PAIRS_IMPL, F, __VA_ARGS__)
+
 //===----------------------------------------------------------------------===//
 // Indicate that a statement should not be reached
 //===----------------------------------------------------------------------===//

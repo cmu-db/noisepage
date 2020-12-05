@@ -310,6 +310,7 @@ namespace noisepage::execution::ast {
   /* Generic */                                                         \
   F(SizeOf, sizeOf)                                                     \
   F(OffsetOf, offsetOf)                                                 \
+  F(IntCast, intCast)                                                   \
   F(PtrCast, ptrCast)                                                   \
                                                                         \
   /* Low-level Atomics*/                                                \

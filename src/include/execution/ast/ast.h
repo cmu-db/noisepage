@@ -1535,6 +1535,9 @@ class LitExpr : public Expr {
     return float64_;
   }
 
+  /** @return True if this expression is representable as the given type; false otherwise. */
+  bool IsRepresentable(Type *type) const;
+
   /**
    * Is the given node a literal? Needed as part of the custom AST RTTI infrastructure.
    * @param node The node to check.

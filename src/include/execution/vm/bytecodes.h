@@ -4,41 +4,38 @@
 #include <cstdint>
 
 #include "common/macros.h"
+#include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_operands.h"
 
 namespace noisepage::execution::vm {
 
-// Creates instances of a given opcode for all integer primitive types
-#define CREATE_FOR_INT_TYPES(F, op, ...) \
-  F(op##_##int8_t, __VA_ARGS__)          \
-  F(op##_##int16_t, __VA_ARGS__)         \
-  F(op##_##int32_t, __VA_ARGS__)         \
-  F(op##_##int64_t, __VA_ARGS__)         \
-  F(op##_##uint8_t, __VA_ARGS__)         \
-  F(op##_##uint16_t, __VA_ARGS__)        \
-  F(op##_##uint32_t, __VA_ARGS__)        \
-  F(op##_##uint64_t, __VA_ARGS__)
+/** Given a bytecode operation and a type, invoke the callback providing the typed operation. */
+#define GEN_TYPED_OP(type, F, op, ...) F(op##_##type, __VA_ARGS__)
 
-// Creates instances of a given opcode for primitive boolean types
-#define CREATE_FOR_BOOL_TYPES(F, op, ...) F(op##_bool, __VA_ARGS__)
+/** Creates instances of a given opcode for all integer primitive types. */
+#define CREATE_FOR_INT_TYPES(F, op, ...) INT_TYPES(GEN_TYPED_OP, F, op, __VA_ARGS__)
 
-// Creates instances of a given opcode for all floating-point primitive types
-#define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
-  F(op##_float, __VA_ARGS__)               \
-  F(op##_double, __VA_ARGS__)
+/** Creates instances of a given opcode for all unsigned integer primitive types. */
+#define CREATE_FOR_UINT_TYPES(F, op, ...) FOR_EACH_UNSIGNED_INT_TYPE(GEN_TYPED_OP, F, op, __VA_ARGS__)
 
-// Creates instances of a given opcode for primitive numeric types
-#define CREATE_FOR_NUMERIC_TYPES(F, op, ...) \
-  CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__)   \
-  CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__)
+/** Creates instances of a given opcode for primitive boolean types. */
+#define CREATE_FOR_BOOL_TYPES(F, op, ...) BOOL_TYPES(GEN_TYPED_OP, F, op, __VA_ARGS__)
 
-// Creates instances of a given opcode for *ALL* primitive types
-#define CREATE_FOR_ALL_TYPES(F, op, ...)    \
-  CREATE_FOR_BOOL_TYPES(F, op, __VA_ARGS__) \
-  CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__)  \
-  CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__)
+/** Creates instances of a given opcode for all floating-point primitive types. */
+#define CREATE_FOR_FLOAT_TYPES(F, op, ...) FLOAT_TYPES(GEN_TYPED_OP, F, op, __VA_ARGS__)
+
+/** Creates instances of a given opcode for primitive numeric types. */
+#define CREATE_FOR_NUMERIC_TYPES(F, op, ...) ALL_NUMERIC_TYPES(GEN_TYPED_OP, F, op, __VA_ARGS__)
+
+/** Create instances of a given opcode for all pairs of primitive types. */
+#define GEN_ALL_TYPED_OPS(type1, type2, F, op, ...) F(op##_##type1##_##type2, __VA_ARGS__)
+#define CREATE_FOR_ALL_TYPE_PAIRS(F, op, ...) ALL_TYPE_PAIRS(GEN_ALL_TYPED_OPS, F, op, __VA_ARGS__)
+
+/** Creates instances of a given opcode for *ALL* primitive types. */
+#define CREATE_FOR_ALL_TYPES(F, op, ...) ALL_TYPES(GEN_TYPED_OP, F, op, __VA_ARGS__)
 
 #define GET_BASE_FOR_INT_TYPES(op) (op##_int8_t)
+#define GET_BASE_FOR_UINT_TYPES(op) (op##_uint8_t)
 #define GET_BASE_FOR_FLOAT_TYPES(op) (op##_float)
 #define GET_BASE_FOR_BOOL_TYPES(op) (op##_bool)
 
@@ -63,7 +60,8 @@ namespace noisepage::execution::vm {
   CREATE_FOR_ALL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   CREATE_FOR_ALL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
   CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
-  /* Boolean compliment */                                                                                            \
+  CREATE_FOR_ALL_TYPE_PAIRS(F, Cast, OperandType::Local, OperandType::Local)                                          \
+  /* Boolean complement */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
   F(NotSql, OperandType::Local, OperandType::Local)                                                                   \
                                                                                                                       \

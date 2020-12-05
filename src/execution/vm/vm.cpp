@@ -308,6 +308,22 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 #undef GEN_NEG_OP
 #undef DO_GEN_BIT_OP
 
+  // -------------------------------------------------------
+  // Primitive casting.
+  // NOTE: This blows up into ~121 opcodes :(
+  // -------------------------------------------------------
+
+#define GEN_CAST_OP(from_type, to_type, ...)                 \
+  OP(Cast_##from_type##_##to_type) : {                       \
+    auto *dest = frame->LocalAt<to_type *>(READ_LOCAL_ID()); \
+    auto src = frame->LocalAt<from_type>(READ_LOCAL_ID());   \
+    OpCast_##from_type##_##to_type(dest, src);               \
+    DISPATCH_NEXT();                                         \
+  }
+
+  ALL_TYPE_PAIRS(GEN_CAST_OP)
+#undef GEN_CAST_OP
+
   OP(Not) : {
     auto *dest = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto input = frame->LocalAt<bool>(READ_LOCAL_ID());

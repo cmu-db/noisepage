@@ -2073,6 +2073,39 @@ void Sema::CheckBuiltinPtrCastCall(ast::CallExpr *call) {
   call->SetType(call->Arguments()[0]->GetType());
 }
 
+void Sema::CheckBuiltinIntCast(ast::CallExpr *call) {
+  // This function is expected to be called BEFORE resolving arguments.
+
+  if (!CheckArgCount(call, 2)) {
+    return;
+  }
+
+  // The first argument must be an identifier of a primitive integer type.
+  auto type_expr = call->Arguments()[0]->SafeAs<ast::IdentifierExpr>();
+  if (type_expr == nullptr) {
+    error_reporter_->Report(call->Position(), ErrorMessages::kBadArgToIntCast);
+    return;
+  }
+  ast::Type *type = GetContext()->LookupBuiltinType(type_expr->Name());
+  if (!type->IsIntegerType()) {
+    error_reporter_->Report(call->Position(), ErrorMessages::kBadArgToIntCast1, type_expr->Name());
+    return;
+  }
+
+  // Resolve input expression.
+  ast::Type *resolved_type = Resolve(call->Arguments()[1]);
+  if (resolved_type == nullptr) {
+    return;
+  }
+  if (!resolved_type->IsIntegerType()) {
+    error_reporter_->Report(call->Position(), ErrorMessages::kBadArgToIntCast2, resolved_type);
+    return;
+  }
+
+  // All good: we'll cast from resolve_type to type.
+  call->SetType(type);
+}
+
 void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
   if (!CheckArgCount(call, 4)) {
     return;
@@ -3198,6 +3231,11 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   if (!GetContext()->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
     GetErrorReporter()->Report(call->Function()->Position(), ErrorMessages::kInvalidBuiltinFunction,
                                call->GetFuncName());
+    return;
+  }
+
+  if (builtin == ast::Builtin::IntCast) {
+    CheckBuiltinIntCast(call);
     return;
   }
 

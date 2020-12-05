@@ -70,6 +70,9 @@ namespace sema {
     "sorterInit requires a comparison function of type (*,*)->int32. Received type '%0'", (ast::Type *))              \
   F(BadArgToPtrCast, "ptrCast() expects (compile-time *Type, Expr) arguments. Received type '%0' in position %1",     \
     (ast::Type *, uint32_t))                                                                                          \
+  F(BadArgToIntCast, "@intCast() expects (compile-time intN, Expression).", ())                                       \
+  F(BadArgToIntCast1, "target type '%0' to @intCast() not primitive integer", (ast::Identifier))                      \
+  F(BadArgToIntCast2, "input expression to @intCast() not integer: %0", (ast::Type *))                                \
   F(BadHashArg, "cannot hash type '%0'", (ast::Type *))                                                               \
   F(MissingArrayLength, "missing array length (either compile-time number or '*')", ())                               \
   F(NotASQLAggregate, "'%0' is not a SQL aggregator type", (ast::Type *))                                             \

@@ -1,5 +1,7 @@
 #include "execution/ast/ast.h"
 
+#include <cfloat>
+
 #include "execution/ast/type.h"
 
 namespace noisepage::execution::ast {
@@ -113,6 +115,70 @@ bool IndexExpr::IsMapAccess() const {
   NOISEPAGE_ASSERT(Object() != nullptr, "Object cannot be NULL");
   NOISEPAGE_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
   return Object()->GetType()->IsMapType();
+}
+
+// ---------------------------------------------------------
+// Literal Expressions
+// ---------------------------------------------------------
+
+bool LitExpr::IsRepresentable(ast::Type *type) const {
+  // Integers.
+  if (type->IsIntegerType()) {
+    if (!IsIntegerLiteral()) {
+      return false;
+    }
+    const int64_t val = Int64Val();
+    // clang-format off
+    switch (type->As<ast::BuiltinType>()->GetKind()) {
+      case ast::BuiltinType::Kind::Int8:  return INT8_MIN <= val && val <= INT8_MAX;
+      case ast::BuiltinType::Kind::Int16: return INT16_MIN <= val && val <= INT16_MAX;
+      case ast::BuiltinType::Kind::Int32: return INT32_MIN <= val && val <= INT32_MAX;
+      case ast::BuiltinType::Kind::Int64: return true;
+      case ast::BuiltinType::Kind::Uint8: return 0 <= val && val <= int64_t(UINT8_MAX);
+      case ast::BuiltinType::Kind::Uint16: return 0 <= val && val <= int64_t(UINT16_MAX);
+      case ast::BuiltinType::Kind::Uint32: return 0 <= val && val <= int64_t(UINT32_MAX);
+      case ast::BuiltinType::Kind::Uint64: return 0 <= val;
+      default: UNREACHABLE("Impossible integer kind.");
+    }
+    // clang-format on
+  }
+
+  // Floats.
+  if (type->IsFloatType()) {
+    if (!IsFloatLitExpr()) {
+      return false;
+    }
+    const double val = Float64Val();
+    switch (type->As<ast::BuiltinType>()->GetKind()) {
+      case ast::BuiltinType::Kind::Float32: {
+        const auto tmp = static_cast<float>(val);
+        return FLT_MIN <= val && val <= FLT_MAX && static_cast<double>(tmp) == val;
+      }
+      case ast::BuiltinType::Kind::Float64: {
+        return true;
+      }
+      default: {
+        UNREACHABLE("Impossible float kind.");
+      }
+    }
+  }
+
+  // Strings.
+  if (type->IsStringType() && IsStringLiteral()) {
+    return true;
+  }
+
+  // Booleans.
+  if (type->IsBoolType() && IsBoolLiteral()) {
+    return true;
+  }
+
+  // Nil.
+  if (type->IsPointerType() && IsNilLiteral()) {
+    return true;
+  }
+
+  return false;
 }
 
 // ---------------------------------------------------------
