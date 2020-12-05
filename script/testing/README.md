@@ -55,19 +55,6 @@ If you specify the `--query-mode extended`, you then can also indicate the prepa
 - run the post-suite task (test suite specific) 
 - print out the logs to the stdout
 
-### Adding a new test case
-All test cases should inherit from the `TestCase` class. Anyone is free to modify any attribute from the base class.
-- Mandatory attributes
-  - `test_command` (`List(str)`): the command to run the test case
-- Optional attributes
-  - `test_command_cwd` (`str`): the working directory to run the test command
-  - `test_error_msg` (`str`): the error message to display in case of errors
-- Optional functions
-  - `run_pre_test`: the pre-test tasks required for the test
-    - config the xml file, etc.
-  - `run_post_test`: the post-test tasks required for the test
-    - e.g. parse the output json, etc.
-
 ## How to create a new test type
 The classes in the `util` folder can be used and extend to help you create a new test type.
 
@@ -126,10 +113,3 @@ The classes in the `util` folder can be used and extend to help you create a new
       }
   }
   ```
-
-
-
-
-
-
-### 
