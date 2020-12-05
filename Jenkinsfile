@@ -130,11 +130,10 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(os:"macos",useASAN:true)
+                            utils.noisePageBuild(os:utils.MACOS, useASAN:true)
                         }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
@@ -165,7 +164,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
                         
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -204,7 +202,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -255,7 +252,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -292,11 +288,10 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(os:"macos",buildType:"Release")
+                            utils.noisePageBuild(os:utils.MACOS, buildType:utils.RELEASE_BUILD)
                         }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
@@ -327,11 +322,10 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isJumboTest:true)
                         }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
@@ -366,11 +360,10 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(buildType:"Release", isJumboTest:true)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isJumboTest:true)
                         }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
@@ -406,11 +399,10 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(os:"macos", useASAN:true, isBuildTests:false)
+                            utils.noisePageBuild(os:utils.MACOS, useASAN:true, isBuildTests:false)
                         }
 
                         sh script: '''
@@ -464,7 +456,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -522,11 +513,10 @@ pipeline {
             }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
 
                 script{
                     utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(buildType:"Release", isBuildTests:false)
+                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                 }
 
                 sh script:'''
@@ -569,8 +559,6 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-
 
                 script{
                     utils = utils ?: load(utilsFileName)

@@ -1,5 +1,10 @@
 #!/usr/bin/env groovy
-
+ENABLED = 'ON'
+DISABLED = 'OFF'
+UBUNTU = 'ubuntu'
+MACOS = 'macos'
+DEBUG_BUILD = 'Debug'
+RELEASE_BUILD = 'Release'
 /**
  * noisePageBuild will create a build directory and compile and build the
  * noisepage binary in that directory. The options passed into the method
@@ -9,8 +14,8 @@
 void noisePageBuild(Map args = [:]) {
     Map defaultArgs = [
         useCache: true,
-        buildType: 'Debug',
-        os: 'ubuntu',
+        buildType: DEBUG_BUILD,
+        os: UBUNTU,
         isBuildTests: true,
         useASAN: false,
         isBuildBenchmarks: false,
@@ -23,6 +28,7 @@ void noisePageBuild(Map args = [:]) {
     String buildCmd = generateBuildCmd(config)
     String buildScript = generateBuildScript(compileCmd, buildCmd, config.isRecordTime)
 
+    sh 'echo y | sudo ./script/installation/packages.sh all'
     sh script:buildScript, label: 'Build'
 }
 
@@ -32,42 +38,59 @@ void noisePageBuild(Map args = [:]) {
  * defaultArgs in noisePageBuild.
  */
 String generateCompileCmd(Map config = [:]) {
-    String compileCmd = "cmake -GNinja -DCMAKE_BUILD_TYPE=$config.buildType"
+    Map cmakeArgs = [
+        '-DCMAKE_BUILD_TYPE': config.buildType,
+        '-DNOISEPAGE_UNITY_BUILD': ENABLED,
+        '-DNOISEPAGE_TEST_PARALLELISM': 1,
+        '-DNOISEPAGE_USE_ASAN': DISABLED,
+        '-DNOISEPAGE_USE_JEMALLOC': DISABLED,
+        '-DNOISEPAGE_BUILD_TESTS': ENABLED,
+        '-DNOISEPAGE_GENERATE_COVERAGE': DISABLED,
+        '-DNOISEPAGE_BUILD_BENCHMARKS': DISABLED,
+        '-DNOISEPAGE_USE_JUMBOTESTS': DISABLED
+    ]
 
-    if (config.isCodeCoverage) {
-        compileCmd += ' -DNOISEPAGE_GENERATE_COVERAGE=ON'
-    } else {
-        compileCmd += ' -DNOISEPAGE_UNITY_BUILD=ON'
-    }
-
-    if (config.os != 'macos' && config.useCache) {
+    if (config.os != MACOS && config.useCache) {
+        // currently ccache is only configured for ubuntu images
+        // For more info: https://github.com/cmu-db/noisepage/pull/830
         compileCmd += ' -DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
     }
 
-    if (config.os == 'ubuntu' && config.isBuildTests) {
-        compileCmd += " -DNOISEPAGE_TEST_PARALLELISM=\$(nproc)"
-    }
-
     if (config.useASAN) {
-        compileCmd += ' -DNOISEPAGE_USE_ASAN=ON'
+        cmakeArgs['-DNOISEPAGE_USE_ASAN'] = ENABLED
     }
 
-    if (!config.isBuildBenchmarks) {
-        compileCmd += ' -DNOISEPAGE_BUILD_BENCHMARKS=OFF'
-    }
-
-    if (!config.isBuildTests) {
-        compileCmd += ' -DNOISEPAGE_BUILD_TESTS=OFF'
-    }
-
-    if (config.buildType == 'Release' && !config.isBuildTests && !config.useASAN) {
+    if (config.buildType == RELEASE_BUILD && !config.isBuildTests && !config.useASAN) {
         compileCmd += ' -DNOISEPAGE_USE_JEMALLOC=ON'
     }
 
-    if (config.isJumboTest) {
-        compileCmd += ' -DNOISEPAGE_USE_JUMBOTESTS=ON'
+    if (config.isCodeCoverage) {
+        cmakeArgs['-DNOISEPAGE_GENERATE_COVERAGE'] = ENABLED
+        cmakeArgs['-DNOISEPAGE_UNITY_BUILD'] = DISABLED
+        // unity builds can throw off the accuracy of code coverage
     }
 
+    if (config.isBuildTests) {
+        // Different OS have different commands to get number of cpus
+        if (config.os == UBUNTU) {
+            cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = "\$(nproc)"
+        }
+        else if (config.os == MACOS) {
+            cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = "\$(sysctl -n hw.physicalcpu)"
+        }
+        if (config.isJumboTest) {
+            cmakeArgs['-DNOISEPAGE_USE_JUMBOTESTS'] = ENABLED
+        }
+    } else {
+        cmakeArgs['-DNOISEPAGE_BUILD_TESTS'] = DISABLED
+    }
+
+    if (config.isBuildBenchmarks) {
+        cmakeArgs['-DNOISEPAGE_BUILD_BENCHMARKS'] = DISABLED
+    }
+
+    String compileCmd = 'cmake -GNinja'
+    cmakeArgs.each { arg, value -> compileCmd += " $arg=$value" }
     compileCmd += ' ..'
     return compileCmd
 }

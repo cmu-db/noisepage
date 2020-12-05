@@ -27,13 +27,12 @@ pipeline {
             }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 // The following command compiles and builds the binary without caching and times the whole operation. 
                 // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
                 script{
                     utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(useCache:false, buildType:"Release", isBuildTests:false, isRecordTime:true)
+                    utils.noisePageBuild(useCache:false, buildType:utils.RELEASE_BUILD, isBuildTests:false, isRecordTime:true)
                 }
 
                 sh script: '''
@@ -51,11 +50,10 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
                     utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(buildType:"Release", isBuildTests:false)
+                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                 }
 
                 catchError(stageResult: 'Failure'){
@@ -90,11 +88,10 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 script{
                     utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(buildType:"Release", isBuildTests:false, isBuildBenchmarks:true)
+                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildBenchmarks:true)
                 }
 
                 // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
