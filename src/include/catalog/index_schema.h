@@ -162,9 +162,9 @@ class IndexSchema {
     common::hash_t Hash() const {
       common::hash_t hash = common::HashUtil::Hash(name_);
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(name_));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Type()));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(TypeModifier()));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Nullable()));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_modifier_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
       if (definition_ != nullptr) hash = common::HashUtil::CombineHashes(hash, definition_->Hash());
       return hash;
@@ -177,9 +177,12 @@ class IndexSchema {
      */
     bool operator==(const Column &rhs) const {
       if (name_ != rhs.name_) return false;
-      if (Type() != rhs.Type()) return false;
-      if (TypeModifier() != rhs.TypeModifier()) return false;
-      if (Nullable() != rhs.Nullable()) return false;
+      if (type_ != rhs.type_) return false;
+      if (attr_length_ != rhs.attr_length_) return false;
+      if ((ShouldHaveTypeModifier() != rhs.ShouldHaveTypeModifier()) ||
+          ((ShouldHaveTypeModifier() && rhs.ShouldHaveTypeModifier()) && type_modifier_ != rhs.type_modifier_))
+        return false;
+      if (nullable_ != rhs.nullable_) return false;
       if (oid_ != rhs.oid_) return false;
       if (definition_ == nullptr) return rhs.definition_ == nullptr;
       return rhs.definition_ != nullptr && *definition_ == *rhs.definition_;
