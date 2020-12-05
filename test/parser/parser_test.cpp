@@ -1708,7 +1708,7 @@ TEST_F(ParserTestBase, OldTypeCastTest) {
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::TEXT);");
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::VARCHAR);");
 
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::DECIMAL,
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::REAL,
                                      type::TypeId::VARCHAR, type::TypeId::VARCHAR};
 
   for (size_t i = 0; i < queries.size(); i++) {
