@@ -27,7 +27,6 @@ pipeline {
             }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'echo y | sudo ./script/installation/packages.sh all'
 
                 // The following command compiles and builds the binary without caching and times the whole operation. 
                 // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
@@ -51,7 +50,6 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'echo y | sudo ./script/installation/packages.sh all'
 
                 script{
                     utils = utils ?: load(utilsFileName)
@@ -90,7 +88,6 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'echo y | sudo ./script/installation/packages.sh all'
 
                 script{
                     utils = utils ?: load(utilsFileName)
