@@ -63,6 +63,7 @@ LINUX_TEST_PACKAGES=(\
   "curl" \
   "lcov" \
   "lsof" \
+  "numactl"
 )
 
 # These are the packages that we will install with pip3
