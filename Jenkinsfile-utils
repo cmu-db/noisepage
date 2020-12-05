@@ -62,7 +62,7 @@ String generateCompileCmd(Map config = [:]) {
     }
 
     if (config.buildType == RELEASE_BUILD && !config.isBuildTests && !config.useASAN) {
-        compileCmd['-DNOISEPAGE_USE_JEMALLOC'] = ENABLED
+        compileArgs['-DNOISEPAGE_USE_JEMALLOC'] = ENABLED
     }
 
     if (config.isCodeCoverage) {

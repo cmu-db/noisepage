@@ -30,7 +30,7 @@ pipeline {
 
                 // The following command compiles and builds the binary without caching and times the whole operation. 
                 // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
-                script{
+                script {
                     utils = utils ?: load(utilsFileName)
                     utils.noisePageBuild(useCache:false, buildType:utils.RELEASE_BUILD, isBuildTests:false, isRecordTime:true)
                 }
