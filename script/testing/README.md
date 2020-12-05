@@ -59,18 +59,33 @@ If you specify the `--query-mode extended`, you then can also indicate the prepa
 The classes in the `util` folder can be used and extend to help you create a new test type.
 
 ### Base classes
-- `NoisePageServer`: manage the lifecycle of the NoisePage instance. It create a Python subprocess for the NoisePage process, poll the logs, and terminate or kill it when the test finishes
-- `TestCase`: manage a the life cycle of a test case. A test case is usually a process trigger from command line. The actual test case can be specified as a command string and created and executed in a Python subprocess. The `TestCase` class also provides `run_pre_test` and `run_post_test` functions for you to override for preparation and clean up of each test case.
-- `TestServer`: manage the entire lifecycle of a test. It uses the `NoisePageServer` to manage the database process. One `TestServer` can have a list of `TestCase`s and treats the entire collection as a suite. It also provides the `run_pre_suite` and `run_post_suite` functions for you to override to specify any preparation and cleanup at the suite level.
+- `NoisePageServer`
+  - Manage the lifecycle of the NoisePage instance. It create a Python subprocess for the NoisePage process, poll the logs, and terminate or kill it when the test finishes
+- `TestCase`
+  - Manage a the life cycle of a test case. A test case is usually a process trigger from command line. The actual test case can be specified as a command string and created and executed in a Python subprocess. 
+  - The `TestCase` class also provides `run_pre_test` and `run_post_test` functions for you to override for preparation and clean up of each test case.
+- `TestServer`
+  - Manage the entire lifecycle of a test. It uses the `NoisePageServer` to manage the database process. One `TestServer` can have a list of `TestCase`s and treats the entire collection as a suite. 
+  - It also provides the `run_pre_suite` and `run_post_suite` functions for you to override to specify any preparation and cleanup at the suite level.
 
 ### Step-by-step instructions
 - Create the folder for your test under `noisepage/script/testing/<mytest>`
 - In the folder of your test, create the following files
-  - `run_<mytest>.py`: The entry script for your test, which specifies the command line arguments and options. You can refer to [oltpbench/run_oltpbench.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/run_oltpbench.py) for reference.
-  - `test_<mytest>.py`: The main test class for your test, which should be a subclass of the `TestServer` in `util/test_server.py`. You can refer to [oltpbench/test_oltpbench.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/test_oltpbench.py) for reference.
-  - `test_case_<mytest>.py`: The base test case class for your test, which should be a subclass of the `TestCaseServer` in `util/test_case_server.py`. You can refer to [oltpbench/test_case_oltp.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/test_case_oltp.py) for reference.
-  - [optional] `constants.py`: Contains all the constants the test need to use. Usually you should add the commands you need to run for your test and pre/post_suite tasks and as pre/post_test tasks constants here. It can be imported and used in your `test_<mytest>.py` or `test_case_<mytest>.py`. You can refer to [oltpbench/constants.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/constants.py) for reference.
-  - [optional] `util.py`: Contains all the utility functions the test need to use. You can refer to [oltpbench/util.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/util.py) for reference.
+  - `run_<mytest>.py`
+    - The entry script for your test, which specifies the command line arguments and options.
+    - You can refer to [oltpbench/run_oltpbench.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/run_oltpbench.py) for reference.
+  - `test_<mytest>.py`
+    - The main test class for your test, which should be a subclass of the `TestServer` in `util/test_server.py`.
+    - You can refer to [oltpbench/test_oltpbench.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/test_oltpbench.py) for reference.
+  - `test_case_<mytest>.py`
+    - The base test case class for your test, which should be a subclass of the `TestCaseServer` in `util/test_case_server.py`.
+    - You can refer to [oltpbench/test_case_oltp.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/test_case_oltp.py) for reference.
+  - [optional] `constants.py`
+    - Contains all the constants the test need to use. Usually you should add the commands you need to run for your test and pre/post_suite tasks and as pre/post_test tasks constants here. It can be imported and used in your `test_<mytest>.py` or `test_case_<mytest>.py`.
+    - You can refer to [oltpbench/constants.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/constants.py) for reference.
+  - [optional] `util.py`
+    - Contains all the utility functions the test need to use.
+    - You can refer to [oltpbench/util.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/util.py) for reference.
 - Create a stage for your test in Jenkins pipeline
   - Go to `noisepage/Jenkinsfile`, create a stage at the place of your choice, and create the stage based on the template config as below.
   ```groovy
@@ -93,9 +108,9 @@ The classes in the `util` folder can be used and extend to help you create a new
           stage('My Test Name 2') {
               agent {
                   docker {
-                            image 'noisepage:focal'
-                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
-                        }
+                      image 'noisepage:focal'
+                      args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
+                  }
               }
               environment {
                   <!-- Add environment variables here -->
@@ -108,7 +123,6 @@ The classes in the `util` folder can be used and extend to help you create a new
                       deleteDir()
                   }
               }
-          }
           }
       }
   }
