@@ -30,7 +30,6 @@ void noisePageBuild(Map args = [:]) {
 
     sh script:"echo y | ${config.os == UBUNTU ? 'sudo' : ''} ./script/installation/packages.sh all", label: 'Installing packages'
 
-    sh 'echo y | ./script/installation/packages.sh all'
     sh script:buildScript, label: 'Build'
 }
 
