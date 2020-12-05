@@ -53,7 +53,7 @@ String generateCompileCmd(Map config = [:]) {
     if (config.os != MACOS && config.useCache) {
         // currently ccache is only configured for ubuntu images
         // For more info: https://github.com/cmu-db/noisepage/pull/830
-        compileCmd += ' -DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
+        cmakeArgs['-DCMAKE_CXX_COMPILER_LAUNCHER'] = 'ccache'
     }
 
     if (config.useASAN) {
@@ -61,7 +61,7 @@ String generateCompileCmd(Map config = [:]) {
     }
 
     if (config.buildType == RELEASE_BUILD && !config.isBuildTests && !config.useASAN) {
-        compileCmd += ' -DNOISEPAGE_USE_JEMALLOC=ON'
+        compileCmd['-DNOISEPAGE_USE_JEMALLOC'] = ENABLED
     }
 
     if (config.isCodeCoverage) {
