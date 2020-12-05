@@ -28,7 +28,6 @@ void noisePageBuild(Map args = [:]) {
     String buildCmd = generateBuildCmd(config)
     String buildScript = generateBuildScript(compileCmd, buildCmd, config.isRecordTime)
 
-    sh 'echo y | ./script/installation/packages.sh all'
     sh script:buildScript, label: 'Build'
 }
 

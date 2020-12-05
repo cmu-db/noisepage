@@ -130,6 +130,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -164,6 +165,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -202,6 +204,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -252,6 +255,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -288,6 +292,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -322,6 +327,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -360,6 +366,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -399,6 +406,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -456,6 +464,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -509,10 +518,11 @@ pipeline {
         stage('End-to-End Performance') {
             agent { label 'benchmark' }
             environment {
-                PSS_CREATOR= credentials('pss-creator')
+                PSS_CREATOR = credentials('pss-creator')
             }
             steps {
                 sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh all' 
 
                 script{
                     utils = utils ?: load(utilsFileName)
