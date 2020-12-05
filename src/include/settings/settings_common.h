@@ -135,7 +135,7 @@
   ValidateSetting(noisepage::settings::Param::name, {type::TypeId::BIGINT, execution::sql::Integer(min_value)}, \
                   {type::TypeId::BIGINT, execution::sql::Integer(max_value)});
 
-#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)       \
+#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)    \
   ValidateSetting(noisepage::settings::Param::name, {type::TypeId::REAL, execution::sql::Real(min_value)}, \
                   {type::TypeId::REAL, execution::sql::Real(max_value)});
 

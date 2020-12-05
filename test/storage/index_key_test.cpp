@@ -1219,7 +1219,7 @@ TEST_F(IndexKeyTests, GenericKeyBuilderTest) {
 
   const std::vector<type::TypeId> generic_key_types{
       type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
-      type::TypeId::BIGINT,  type::TypeId::REAL,  type::TypeId::TIMESTAMP, type::TypeId::DATE,
+      type::TypeId::BIGINT,  type::TypeId::REAL,     type::TypeId::TIMESTAMP, type::TypeId::DATE,
       type::TypeId::VARCHAR, type::TypeId::VARBINARY};
 
   for (uint32_t i = 0; i < num_iters; i++) {
