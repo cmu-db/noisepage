@@ -12,7 +12,7 @@ These metrics are non-operational measurements of the DBMS.
 2) Create a sub class of the `BaseArtifactStatsCollector` class.
     - See `collectors/compile_time.py` for a simple example
     - See `collectors/memory_on_start.py` for an example that requires running the DBMS.
-    - See [BaseArtifactStatsCollector](#BaseArtifactStatsCollector) for more details about the base class.
+    - See [BaseArtifactStatsCollector](#BaseArtifactStatsCollector) for more details.
 3) Import the new collector in `/script/testing/artifact_stats/collectors/__init__.py`
 4) Test it out by running `/script/testing/artifact_stats/run_artifact_stats.py` and see if your metric has been added to the artifact stats.
 

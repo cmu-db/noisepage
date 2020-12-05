@@ -23,18 +23,15 @@ class TpccPlanTest;
 
 namespace noisepage::storage {
 class RecoveryManager;
-}
-
-namespace noisepage::tpcc {
-class Schemas;
-}
+}  // namespace noisepage::storage
 
 namespace noisepage::catalog {
 class DatabaseCatalog;
 
 namespace postgres {
 class Builder;
-}
+class PgCoreImpl;
+}  // namespace postgres
 
 /**
  * A schema for an index.  It contains the definitions for the columns in the
@@ -225,7 +222,7 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
-    friend class tpcc::Schemas;
+    friend class postgres::PgCoreImpl;
     friend class noisepage::StorageTestUtil;
   };
 
@@ -408,7 +405,12 @@ class IndexSchema {
   bool operator!=(const IndexSchema &rhs) const { return !operator==(rhs); }
 
  private:
+  friend class Catalog;
   friend class DatabaseCatalog;
+  friend class postgres::Builder;
+  friend class postgres::PgCoreImpl;
+  friend class noisepage::TpccPlanTest;
+
   std::vector<Column> columns_;
   storage::index::IndexType type_;
   std::vector<col_oid_t> indexed_oids_;
@@ -416,10 +418,6 @@ class IndexSchema {
   bool is_primary_;
   bool is_exclusion_;
   bool is_immediate_;
-
-  friend class Catalog;
-  friend class postgres::Builder;
-  friend class noisepage::TpccPlanTest;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema::Column);
