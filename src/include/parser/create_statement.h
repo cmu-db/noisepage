@@ -157,10 +157,12 @@ struct ColumnDefinition {
     } else if (strcmp(str, "bool") == 0) {
       value_type = type::TypeId::BOOLEAN;
     } else if ((strcmp(str, "double") == 0) || (strcmp(str, "float8") == 0) || (strcmp(str, "real") == 0) ||
-               (strcmp(str, "float4") == 0)) {
+               (strcmp(str, "float4") == 0) || (strcmp(str, "numeric") == 0) || (strcmp(str, "decimal") == 0)) {
       value_type = type::TypeId::REAL;
-    } else if ((strcmp(str, "numeric") == 0) || (strcmp(str, "decimal") == 0)) {
-      value_type = type::TypeId::DECIMAL;
+      // TODO(Matt): when we support fixed point DECIMAL properly:
+
+      //    } else if ((strcmp(str, "numeric") == 0) || (strcmp(str, "decimal") == 0)) {
+      //      value_type = type::TypeId::DECIMAL;
     } else if (strcmp(str, "tinyint") == 0) {
       value_type = type::TypeId::TINYINT;
     } else if (strcmp(str, "varbinary") == 0) {
@@ -190,7 +192,9 @@ struct ColumnDefinition {
         return type::TypeId::BIGINT;
 
       case DataType::DECIMAL:
-        return type::TypeId::DECIMAL;
+        // TODO(Matt): when we support fixed point DECIMAL properly:
+
+        //        return type::TypeId::DECIMAL;
       case DataType::DOUBLE:
       case DataType::FLOAT:
         return type::TypeId::REAL;
