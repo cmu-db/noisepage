@@ -478,9 +478,9 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
 
 void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const common::ManagedPointer<DatabaseCatalog> dbc) {
-  constexpr auto REAL = type::TypeId::REAL;  // NOLINT
-  constexpr auto INT = type::TypeId::INTEGER;   // NOLINT
-  constexpr auto VAR = type::TypeId::VARCHAR;   // NOLINT
+  constexpr auto REAL = type::TypeId::REAL;    // NOLINT
+  constexpr auto INT = type::TypeId::INTEGER;  // NOLINT
+  constexpr auto VAR = type::TypeId::VARCHAR;  // NOLINT
 
   auto create_fn = [&](std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
                        execution::ast::Builtin builtin, bool is_exec_ctx_required) {

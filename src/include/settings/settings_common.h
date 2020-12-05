@@ -210,12 +210,12 @@
                                      description, {type::TypeId::BIGINT, execution::sql::Integer(default_value)}, \
                                      is_mutable, min_value, max_value, &callback_fn));
 
-#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)               \
-  param_map.emplace(                                                                                                  \
-      noisepage::settings::Param::name,                                                                               \
-      noisepage::settings::ParamInfo(#name, {type::TypeId::REAL, execution::sql::Real(FLAGS_##name)}, description, \
-                                     {type::TypeId::REAL, execution::sql::Real(default_value)}, is_mutable,        \
-                                     min_value, max_value, &callback_fn));
+#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
+  param_map.emplace(                                                                                                   \
+      noisepage::settings::Param::name,                                                                                \
+      noisepage::settings::ParamInfo(#name, {type::TypeId::REAL, execution::sql::Real(FLAGS_##name)}, description,     \
+                                     {type::TypeId::REAL, execution::sql::Real(default_value)}, is_mutable, min_value, \
+                                     max_value, &callback_fn));
 
 #define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                    \
   param_map.emplace(                                                                                               \
