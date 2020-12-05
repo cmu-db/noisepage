@@ -128,8 +128,8 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_FALSE(seq_scan_2->IsForUpdate());
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> expr_children;
-  expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table1", "col1"));
-  expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table2", "col2"));
+  expr_children.push_back(std::make_unique<parser::ColumnValueExpression>(parser::AliasType("table1"), "col1"));
+  expr_children.push_back(std::make_unique<parser::ColumnValueExpression>(parser::AliasType("table2"), "col2"));
   auto cmp_expression =
       std::make_unique<parser::ComparisonExpression>(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
 
@@ -150,7 +150,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, AggregatePlanTest) {
   parser::AbstractExpression *predicate = new parser::StarExpression();
-  auto cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col1");
+  auto cve = std::make_unique<parser::ColumnValueExpression>(parser::AliasType("tbl"), "col1");
   auto dve = std::make_unique<parser::DerivedValueExpression>(type::TypeId::INTEGER, 0, 0);
   auto gb_term = reinterpret_cast<parser::AbstractExpression *>(dve.get());
   std::vector<std::unique_ptr<parser::AbstractExpression>> children;
@@ -198,13 +198,13 @@ TEST(PlanNodeTest, AggregatePlanTest) {
 
     switch (i) {
       case 0:
-        other_predicate = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
+        other_predicate = std::make_unique<parser::ColumnValueExpression>(parser::AliasType("tbl"), "col");
         break;
       case 1:
         dve_copy = std::make_unique<parser::DerivedValueExpression>(type::TypeId::INTEGER, 0, 1);
         break;
       case 2: {
-        auto o_cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
+        auto o_cve = std::make_unique<parser::ColumnValueExpression>(parser::AliasType("tbl"), "col");
         std::vector<std::unique_ptr<parser::AbstractExpression>> children;
         children.emplace_back(std::move(o_cve));
         delete other_aggr;

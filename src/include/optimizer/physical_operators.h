@@ -66,7 +66,8 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
    * @return a SeqScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                       std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update);
+                       std::vector<AnnotatedExpression> &&predicates, parser::AliasType table_alias,
+                       bool is_for_update);
 
   /**
    * Copy
@@ -96,7 +97,7 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
   /**
    * @return the alias of the table to get from
    */
-  const std::string &GetTableAlias() const { return table_alias_; }
+  const parser::AliasType &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return whether the get operation is used for update
@@ -122,7 +123,7 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
   /**
    * Table alias
    */
-  std::string table_alias_;
+  parser::AliasType table_alias_;
 
   /**
    * Whether the scan is used for update
@@ -323,7 +324,7 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
    * @return a QueryDerivedScan operator
    */
   static Operator Make(
-      std::string table_alias,
+      parser::AliasType table_alias,
       std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
   /**
@@ -339,7 +340,7 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
   /**
    * @return Alias of the table to get from
    */
-  const std::string &GetTableAlias() const { return table_alias_; }
+  const parser::AliasType &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return map from table aliases to expressions
@@ -353,7 +354,7 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
   /**
    * Table aliases
    */
-  std::string table_alias_;
+  parser::AliasType table_alias_;
 
   /**
    * Map from table aliases to expressions

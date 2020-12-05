@@ -13,8 +13,8 @@ namespace noisepage::optimizer {
 void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
                                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
                                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
-                                        const std::unordered_set<std::string> &left_alias,
-                                        const std::unordered_set<std::string> &right_alias) {
+                                        const std::unordered_set<parser::AliasType> &left_alias,
+                                        const std::unordered_set<parser::AliasType> &right_alias) {
   for (auto &expr_unit : join_predicates) {
     auto expr = expr_unit.GetExpr();
     if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL) {
@@ -31,12 +31,12 @@ void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &
         auto r_tv_expr = r_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
 
         // Assign keys based on left and right join tables
-        if (left_alias.find(l_tv_expr->GetTableName()) != left_alias.end() &&
-            right_alias.find(r_tv_expr->GetTableName()) != right_alias.end()) {
+        if (left_alias.find(l_tv_expr->GetTableAlias()) != left_alias.end() &&
+            right_alias.find(r_tv_expr->GetTableAlias()) != right_alias.end()) {
           left_keys->emplace_back(l_expr);
           right_keys->emplace_back(r_expr);
-        } else if (left_alias.find(r_tv_expr->GetTableName()) != left_alias.end() &&
-                   right_alias.find(l_tv_expr->GetTableName()) != right_alias.end()) {
+        } else if (left_alias.find(r_tv_expr->GetTableAlias()) != left_alias.end() &&
+                   right_alias.find(l_tv_expr->GetTableAlias()) != right_alias.end()) {
           left_keys->emplace_back(r_expr);
           right_keys->emplace_back(l_expr);
         }
@@ -46,7 +46,7 @@ void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &
 }
 
 std::vector<parser::AbstractExpression *> OptimizerUtil::GenerateTableColumnValueExprs(
-    catalog::CatalogAccessor *accessor, const std::string &alias, catalog::db_oid_t db_oid,
+    catalog::CatalogAccessor *accessor, const parser::AliasType &alias, catalog::db_oid_t db_oid,
     catalog::table_oid_t tbl_oid) {
   // @note(boweic): we seems to provide all columns here, in case where there are
   // a lot of attributes and we're only visiting a few this is not efficient

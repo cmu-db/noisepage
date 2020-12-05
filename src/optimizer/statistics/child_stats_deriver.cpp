@@ -68,7 +68,7 @@ void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractEx
   auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
   for (size_t idx = 0; idx < gexpr_->GetChildrenGroupsSize(); ++idx) {
     auto child_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(static_cast<int>(idx)));
-    if ((child_group->GetTableAliases().count(tv_expr->GetTableName()) != 0U) &&
+    if ((child_group->GetTableAliases().count(tv_expr->GetTableAlias()) != 0U) &&
         // If we have not derived the column stats yet
         !child_group->HasColumnStats(tv_expr->GetFullName())) {
       output_[idx].insert(col);

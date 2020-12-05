@@ -242,9 +242,9 @@ void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
     }
 
     // Pick the probe if alias matches
-    std::string tv_table_name = tv_expr->GetTableName();
-    NOISEPAGE_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
-    if (probe_table_aliases.count(tv_table_name) != 0U) {
+    auto tv_table_alias = tv_expr->GetTableAlias();
+    NOISEPAGE_ASSERT(!tv_table_alias.Empty(), "Table Name should not be empty");
+    if (probe_table_aliases.count(tv_table_alias) != 0U) {
       probe_table_cols_set.insert(col);
     }
   }
@@ -299,7 +299,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) { Passdown(); }
 
-void InputColumnDeriver::InputBaseTableColumns(const std::string &alias, catalog::db_oid_t db,
+void InputColumnDeriver::InputBaseTableColumns(const parser::AliasType &alias, catalog::db_oid_t db,
                                                catalog::table_oid_t tbl) {
   auto exprs = OptimizerUtil::GenerateTableColumnValueExprs(accessor_, alias, db, tbl);
 
@@ -318,14 +318,14 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Delete *op) {
   const auto &alias = op->GetTableAlias();
   auto db_id = op->GetDatabaseOid();
   auto tbl_id = op->GetTableOid();
-  InputBaseTableColumns(alias, db_id, tbl_id);
+  InputBaseTableColumns(parser::AliasType(alias), db_id, tbl_id);
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Update *op) {
   const auto &alias = op->GetTableAlias();
   auto db_id = op->GetDatabaseOid();
   auto tbl_id = op->GetTableOid();
-  InputBaseTableColumns(alias, db_id, tbl_id);
+  InputBaseTableColumns(parser::AliasType(alias), db_id, tbl_id);
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) { Passdown(); }
@@ -492,12 +492,12 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
     }
 
     // Pick the build or probe side depending on the table
-    std::string tv_table_name = tv_expr->GetTableName();
-    NOISEPAGE_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
-    if (build_table_aliases.count(tv_table_name) != 0U) {
+    auto tv_table_alias = tv_expr->GetTableAlias();
+    NOISEPAGE_ASSERT(!tv_table_alias.Empty(), "Table Name should not be empty");
+    if (build_table_aliases.count(tv_table_alias) != 0U) {
       build_table_cols_set.insert(col);
     } else {
-      NOISEPAGE_ASSERT(probe_table_aliases.count(tv_table_name), "tv_expr should be against probe table");
+      NOISEPAGE_ASSERT(probe_table_aliases.count(tv_table_alias), "tv_expr should be against probe table");
       probe_table_cols_set.insert(col);
     }
   }

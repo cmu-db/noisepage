@@ -54,8 +54,8 @@ class OptimizerUtil {
   static void ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
-                                  const std::unordered_set<std::string> &left_alias,
-                                  const std::unordered_set<std::string> &right_alias);
+                                  const std::unordered_set<parser::AliasType> &left_alias,
+                                  const std::unordered_set<parser::AliasType> &right_alias);
 
   /**
    * Generate all tuple value expressions of a base table
@@ -68,7 +68,7 @@ class OptimizerUtil {
    * table column id mapping
    */
   static std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(catalog::CatalogAccessor *accessor,
-                                                                                 const std::string &alias,
+                                                                                 const parser::AliasType &alias,
                                                                                  catalog::db_oid_t db_oid,
                                                                                  catalog::table_oid_t tbl_oid);
 };

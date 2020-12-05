@@ -767,17 +767,17 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ColumnValueExpressionTest) {
-  auto tve1 = new ColumnValueExpression("table_name", "column_name", parser::AliasType("alias"));
-  auto tve2 = new ColumnValueExpression("table_name", "column_name", parser::AliasType("alias"));
-  auto tve3 = new ColumnValueExpression("table_name2", "column_name", parser::AliasType("alias"));
-  auto tve4 = new ColumnValueExpression("table_name", "column_name2", parser::AliasType("alias"));
-  auto tve6 = new ColumnValueExpression("table_name", "column_name");
+  auto tve1 = new ColumnValueExpression(parser::AliasType("table_name"), "column_name", parser::AliasType("alias"));
+  auto tve2 = new ColumnValueExpression(parser::AliasType("table_name"), "column_name", parser::AliasType("alias"));
+  auto tve3 = new ColumnValueExpression(parser::AliasType("table_name2"), "column_name", parser::AliasType("alias"));
+  auto tve4 = new ColumnValueExpression(parser::AliasType("table_name"), "column_name2", parser::AliasType("alias"));
+  auto tve6 = new ColumnValueExpression(parser::AliasType("table_name"), "column_name");
   auto tve7 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
   auto tve8 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
   auto tve9 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::col_oid_t(3));
   auto tve10 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(4));
   auto tve14 = new ColumnValueExpression(catalog::db_oid_t(4), catalog::table_oid_t(2), catalog::col_oid_t(3));
-  auto tve11 = new ColumnValueExpression("table_name", "column_name");
+  auto tve11 = new ColumnValueExpression(parser::AliasType("table_name"), "column_name");
 
   EXPECT_TRUE(*tve1 == *tve2);
   EXPECT_FALSE(*tve1 == *tve3);
@@ -802,7 +802,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::INVALID);
   EXPECT_EQ(tve1->GetAlias(), parser::AliasType("alias"));
-  EXPECT_EQ(tve1->GetTableName(), "table_name");
+  EXPECT_EQ(tve1->GetTableAlias(), parser::AliasType("table_name"));
   EXPECT_EQ(tve1->GetColumnName(), "column_name");
   // Uninitialized OIDs set to 0; TODO(Ling): change to INVALID_*_OID after catalog completion
   EXPECT_EQ(tve1->GetTableOid(), catalog::INVALID_TABLE_OID);
@@ -810,7 +810,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve1->GetColumnOid(), catalog::INVALID_COLUMN_OID);
 
   EXPECT_EQ(tve11->GetAlias(), parser::AliasType(""));
-  EXPECT_EQ(tve7->GetTableName(), "");
+  EXPECT_EQ(tve7->GetTableAlias(), parser::AliasType(""));
   EXPECT_EQ(tve7->GetColumnName(), "");
   EXPECT_EQ(tve7->GetColumnOid(), catalog::col_oid_t(3));
   EXPECT_EQ(tve7->GetTableOid(), catalog::table_oid_t(2));
@@ -837,8 +837,8 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   // Create expression
-  std::unique_ptr<ColumnValueExpression> original_expr =
-      std::make_unique<ColumnValueExpression>("table_name", "column_name", parser::AliasType("alias"));
+  std::unique_ptr<ColumnValueExpression> original_expr = std::make_unique<ColumnValueExpression>(
+      parser::AliasType("table_name"), "column_name", parser::AliasType("alias"));
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -851,12 +851,12 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<ColumnValueExpression>();
   EXPECT_EQ(*original_expr, *deserialized_expr);
   EXPECT_EQ(original_expr->GetColumnName(), deserialized_expr->GetColumnName());
-  EXPECT_EQ(original_expr->GetTableName(), deserialized_expr->GetTableName());
+  EXPECT_EQ(original_expr->GetTableAlias(), deserialized_expr->GetTableAlias());
   EXPECT_EQ(original_expr->GetAlias(), deserialized_expr->GetAlias());
 
   // Create expression
   std::unique_ptr<ColumnValueExpression> original_expr_2 =
-      std::make_unique<ColumnValueExpression>("table_name", "column_name");
+      std::make_unique<ColumnValueExpression>(parser::AliasType("table_name"), "column_name");
 
   // Serialize expression
   auto json_2 = original_expr_2->ToJson();
@@ -869,11 +869,11 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   EXPECT_EQ(*original_expr_2, *deserialized_expr_2);
   EXPECT_EQ(original_expr_2->GetAlias(), deserialized_expr_2->GetAlias());
   EXPECT_EQ(original_expr_2->GetColumnName(), deserialized_expr_2->GetColumnName());
-  EXPECT_EQ(original_expr_2->GetTableName(), deserialized_expr_2->GetTableName());
+  EXPECT_EQ(original_expr_2->GetTableAlias(), deserialized_expr_2->GetTableAlias());
 
   // Create expression
   std::unique_ptr<ColumnValueExpression> original_expr_3 =
-      std::make_unique<ColumnValueExpression>("table_name", "column_name");
+      std::make_unique<ColumnValueExpression>(parser::AliasType("table_name"), "column_name");
 
   // Serialize expression
   auto json_3 = original_expr_3->ToJson();
@@ -886,7 +886,7 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   EXPECT_EQ(*original_expr_3, *deserialized_expr_3);
   EXPECT_EQ(original_expr_3->GetAlias(), deserialized_expr_3->GetAlias());
   EXPECT_EQ(original_expr_3->GetColumnName(), deserialized_expr_3->GetColumnName());
-  EXPECT_EQ(original_expr_3->GetTableName(), deserialized_expr_3->GetTableName());
+  EXPECT_EQ(original_expr_3->GetTableAlias(), deserialized_expr_3->GetTableAlias());
   EXPECT_EQ(original_expr_3->GetColumnOid(), deserialized_expr_3->GetColumnOid());
   EXPECT_EQ(original_expr_3->GetTableOid(), deserialized_expr_3->GetTableOid());
 }

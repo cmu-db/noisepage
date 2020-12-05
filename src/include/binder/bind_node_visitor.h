@@ -114,6 +114,12 @@ class BindNodeVisitor final : public SqlNodeVisitor {
                               const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
   void ValidateDatabaseName(const std::string &db_name);
+
+  /**
+   * Set the serial number of the table alias to a unique number if it isn't already set
+   * @param node Table Ref to set serial number of
+   */
+  void SetUniqueTableAlias(common::ManagedPointer<parser::TableRef> node);
 };
 
 }  // namespace binder

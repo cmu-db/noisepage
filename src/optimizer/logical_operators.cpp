@@ -40,7 +40,8 @@ bool LeafOperator::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalGet::Copy() const { return new LogicalGet(*this); }
 
 Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                          std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update) {
+                          std::vector<AnnotatedExpression> predicates, parser::AliasType table_alias,
+                          bool is_for_update) {
   auto *get = new LogicalGet();
   get->database_oid_ = database_oid;
   get->table_oid_ = table_oid;
@@ -63,7 +64,7 @@ common::hash_t LogicalGet::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
   return hash;
 }
@@ -120,7 +121,7 @@ common::hash_t LogicalExternalFileGet::Hash() const {
 BaseOperatorNodeContents *LogicalQueryDerivedGet::Copy() const { return new LogicalQueryDerivedGet(*this); }
 
 Operator LogicalQueryDerivedGet::Make(
-    std::string table_alias,
+    parser::AliasType table_alias,
     std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new LogicalQueryDerivedGet();
   get->table_alias_ = std::move(table_alias);
@@ -137,7 +138,7 @@ bool LogicalQueryDerivedGet::operator==(const BaseOperatorNodeContents &r) {
 
 common::hash_t LogicalQueryDerivedGet::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
     hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));

@@ -308,7 +308,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
 
   auto table = node->GetInsertionTable();
   context_->AddRegularTable(catalog_accessor_, db_oid_, table->GetNamespaceName(), table->GetTableName(),
-                            table->GetTableName());
+                            table->GetAlias().GetName());
 
   if (node->GetSelect() != nullptr) {  // INSERT FROM SELECT
     node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -470,7 +470,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
   for (auto &ref : node->GetSelectWith()) {
     // Store CTE table name
-    sherpa_->AddCTETableName(ref->GetAlias());
+    sherpa_->AddCTETableName(ref->GetAlias().GetName());
 
     if (ref->GetSelect() == nullptr) {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -502,7 +502,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       auto num_columns = columns.size();
 
       if (num_aliases > num_columns) {
-        throw BINDER_EXCEPTION(("WITH query " + ref->GetAlias() + " has " + std::to_string(num_columns) +
+        throw BINDER_EXCEPTION(("WITH query " + ref->GetAlias().GetName() + " has " + std::to_string(num_columns) +
                                 " columns available but " + std::to_string(num_aliases) + " specified")
                                    .c_str(),
                                common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
@@ -538,7 +538,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       }
 
       // Add the CTE to the nested_table_alias_map
-      context.AddCTETable(ref->GetAlias(), sel_cols, ref->GetCteColumnAliases());
+      context.AddCTETable(ref->GetAlias().GetName(), sel_cols, ref->GetCteColumnAliases());
 
       // Finally, visit the inductive case
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -699,33 +699,37 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
   //  at this point
   if (expr->GetTableOid() == catalog::INVALID_TABLE_OID) {
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
-    std::string table_name = expr->GetTableName();
+    parser::AliasType table_alias = expr->GetTableAlias();
+    std::string table_alias_name = table_alias.GetName();
     std::string col_name = expr->GetColumnName();
-    if (table_name.empty() && col_name.empty() && expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
+    if (table_alias.Empty() && col_name.empty() && expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
       throw BINDER_EXCEPTION(fmt::format("ORDER BY position \"{}\" is not in select list",
                                          std::to_string(expr->GetColumnOid().UnderlyingValue())),
                              common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
     }
     // Convert all the names to lower cases
-    std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
+    std::transform(table_alias_name.begin(), table_alias_name.end(), table_alias_name.begin(), ::tolower);
     std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
     // Table name not specified in the expression. Loop through all the table in the binder context.
-    if (table_name.empty()) {
+    if (table_alias.Empty()) {
       if (context_ == nullptr || !context_->SetColumnPosTuple(expr)) {
         throw BINDER_EXCEPTION(fmt::format("column \"{}\" does not exist", col_name),
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
     } else {
       // Table name is present
-      if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, common::ManagedPointer(&tuple))) {
+
+      // We need to update the table alias serial number to match that of the corresponding tableref if there is one
+      expr->SetTableAlias(context_->FindTableAlias(expr->GetTableAlias().GetName()));
+      if (context_ != nullptr && context_->GetRegularTableObj(table_alias_name, expr, common::ManagedPointer(&tuple))) {
         if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
           throw BINDER_EXCEPTION(fmt::format("column \"{}\" does not exist", col_name),
                                  common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
         }
         BinderContext::SetColumnPosTuple(col_name, tuple, expr);
-      } else if (context_ == nullptr || !context_->CheckNestedTableColumn(table_name, col_name, expr)) {
-        throw BINDER_EXCEPTION(fmt::format("Invalid table reference {}", expr->GetTableName()),
+      } else if (context_ == nullptr || !context_->CheckNestedTableColumn(table_alias, col_name, expr)) {
+        throw BINDER_EXCEPTION(fmt::format("Invalid table reference {}", expr->GetTableAlias().GetName()),
                                common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
       }
     }
@@ -892,9 +896,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
   ValidateDatabaseName(node->GetDatabaseName());
 
   if (node->GetSelect() != nullptr) {
-    if (node->GetAlias().empty())
+    if (node->GetAlias().Empty())
       throw BINDER_EXCEPTION("Alias not found for query derived table", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
 
+    SetUniqueTableAlias(node);
     // Save the previous context
     auto pre_context = context_;
     node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -904,7 +909,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
 
     // TableRef is not a CTE
     if (node->GetCteType() == parser::CTEType::INVALID) {
-      context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), {});
+      context_->AddNestedTable(node->GetAlias().GetName(), node->GetSelect()->GetSelectColumns(), {});
     }
   } else if (node->GetJoin() != nullptr) {
     // Join
@@ -915,9 +920,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       table->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // Single table
+    SetUniqueTableAlias(node);
     if (sherpa_->GetCTETableNames().count(node->GetTableName()) > 0) {
       // copy cte table's schema for this alias
-      context_->AddCTETableAlias(node->GetTableName(), node->GetAlias());
+      context_->AddCTETableAlias(node->GetTableName(), node->GetAlias().GetName());
     } else {
       // not a CTE, check whether it is a regular table
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
@@ -960,7 +966,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
     } else if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::COLUMN_VALUE) {
       auto column_value_expression = exprs[idx].CastManagedPointerTo<parser::ColumnValueExpression>();
       std::string column_name = column_value_expression->GetColumnName();
-      std::string table_name = column_value_expression->GetTableName();
+      std::string table_name = column_value_expression->GetTableAlias().GetName();
       if (table_name.empty() && !column_name.empty()) {
         for (auto select_expression : select_items) {
           auto abstract_select_expression = select_expression.CastManagedPointerTo<parser::AbstractExpression>();
@@ -988,6 +994,13 @@ void BindNodeVisitor::ValidateDatabaseName(const std::string &db_name) {
       throw BINDER_EXCEPTION("cross-database references are not implemented: ",
                              common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
   }
+}
+void BindNodeVisitor::SetUniqueTableAlias(common::ManagedPointer<parser::TableRef> node) {
+  // We give all TableRefs a unique serial number so that we can differentiate between aliases with the same name
+  if (!node->GetAlias().IsSerialNoValid()) {
+    node->GetAlias().SetSerialNo(sherpa_->GetUniqueTableAliasSerialNumber());
+  }
+  context_->AddTableAliasMapping(node->GetAlias().GetName(), node->GetAlias());
 }
 
 }  // namespace noisepage::binder

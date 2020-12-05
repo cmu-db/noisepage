@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "common/hash_defs.h"
+#include "common/hash_util.h"
+#include "common/json.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
@@ -67,6 +69,12 @@ class AliasType {
   const std::string &GetName() const { return name_; }
 
   /**
+   * Set the name of this alias
+   * @param name name to set alias to
+   */
+  void SetName(const std::string &name) { name_ = std::string(name); }
+
+  /**
    * @return Whether or not the serial number of this alias is valid
    */
   bool IsSerialNoValid() const { return serial_valid_; }
@@ -75,6 +83,15 @@ class AliasType {
    * @return The serial number of this alias
    */
   size_t GetSerialNo() const { return serial_no_; }
+
+  /**
+   * Set the serial number of this alias
+   * @param serial_no serial number to set alias to
+   */
+  void SetSerialNo(size_t serial_no) {
+    serial_no_ = serial_no;
+    serial_valid_ = true;
+  }
 
   /**
    * Equality function
@@ -88,6 +105,8 @@ class AliasType {
     }
     return names_equal && (serial_no_ == other.serial_no_);
   }
+
+  bool operator!=(const AliasType &other) const { return !(*this == other); }
 
   /**
    * @return Whether this alias's name is empty
@@ -107,6 +126,24 @@ class AliasType {
      */
     bool operator()(const AliasType &p, const AliasType &q) const { return p.GetSerialNo() < q.GetSerialNo(); }
   };
+
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["name"] = name_;
+    j["serial_valid"] = serial_valid_;
+    if (serial_valid_) {
+      j["serial_no"] = serial_no_;
+    }
+    return j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+    name_ = j.at("name").get<std::string>();
+    serial_valid_ = j.at("serial_valid").get<bool>();
+    if (serial_valid_) {
+      serial_no_ = j.at("serial_no").get<size_t>();
+    }
+  }
 
  private:
   std::string name_;

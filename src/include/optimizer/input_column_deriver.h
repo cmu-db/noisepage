@@ -265,7 +265,7 @@ class InputColumnDeriver : public OperatorVisitor {
    * @param db DB OID
    * @param tbl Table OID
    */
-  void InputBaseTableColumns(const std::string &alias, catalog::db_oid_t db, catalog::table_oid_t tbl);
+  void InputBaseTableColumns(const parser::AliasType &alias, catalog::db_oid_t db, catalog::table_oid_t tbl);
 
   /**
    * GroupExpression analyzing

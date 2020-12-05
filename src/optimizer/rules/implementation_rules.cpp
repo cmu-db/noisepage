@@ -71,7 +71,7 @@ void LogicalGetToPhysicalSeqScan::Transform(common::ManagedPointer<AbstractOptim
   // Need to copy because SeqScan uses std::move
   auto db_oid = get->GetDatabaseOid();
   auto tbl_oid = get->GetTableOid();
-  auto tbl_alias = std::string(get->GetTableAlias());
+  auto tbl_alias = get->GetTableAlias();
   auto preds = std::vector<AnnotatedExpression>(get->GetPredicates());
   auto is_update = get->GetIsForUpdate();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
@@ -184,7 +184,7 @@ void LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Transform(
     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto get = input->Contents()->GetContentsAs<LogicalQueryDerivedGet>();
 
-  auto tbl_alias = std::string(get->GetTableAlias());
+  auto tbl_alias = get->GetTableAlias();
   std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> expr_map;
   expr_map = get->GetAliasToExprMap();
 

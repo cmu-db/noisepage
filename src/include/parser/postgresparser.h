@@ -124,7 +124,7 @@ class PostgresParser {
 
   // FromTransform helpers
   static std::unique_ptr<JoinDefinition> JoinTransform(ParseResult *parse_result, JoinExpr *root);
-  static std::string AliasTransform(Alias *root);
+  static AliasType AliasTransform(Alias *root);
   static std::unique_ptr<TableRef> RangeVarTransform(ParseResult *parse_result, RangeVar *root);
   static std::unique_ptr<TableRef> RangeSubselectTransform(ParseResult *parse_result, RangeSubselect *root);
 

@@ -53,7 +53,7 @@ bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const
 }
 
 bool IndexUtil::SatisfiesPredicateWithIndex(
-    catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+    catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const parser::AliasType &tbl_alias,
     catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
     planner::IndexScanType *scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
@@ -78,7 +78,7 @@ bool IndexUtil::SatisfiesPredicateWithIndex(
 }
 
 bool IndexUtil::CheckPredicates(
-    const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+    const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const parser::AliasType &tbl_alias,
     const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
     const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
     bool allow_cves, planner::IndexScanType *idx_scan_type,
@@ -126,7 +126,7 @@ bool IndexUtil::CheckPredicates(
           auto lexpr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
           auto rexpr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
           if (lexpr->GetTableOid() == tbl_oid &&
-              (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableName() == tbl_alias)) {
+              (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableAlias() == tbl_alias)) {
             tv_expr = lexpr;
             idx_expr = expr->GetChild(1);
             left_side = true;

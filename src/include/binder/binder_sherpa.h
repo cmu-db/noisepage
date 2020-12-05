@@ -28,7 +28,10 @@ class BinderSherpa {
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
                         const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
                         const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types)
-      : parse_result_(parse_result), parameters_(parameters), desired_parameter_types_(desired_parameter_types) {
+      : parse_result_(parse_result),
+        parameters_(parameters),
+        desired_parameter_types_(desired_parameter_types),
+        unique_table_alias_serial_num_(0) {
     NOISEPAGE_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
     NOISEPAGE_ASSERT((parameters == nullptr && desired_parameter_types == nullptr) ||
                          (parameters != nullptr && desired_parameter_types != nullptr),
@@ -104,11 +107,18 @@ class BinderSherpa {
    */
   const std::unordered_set<std::string> &GetCTETableNames() const { return cte_table_names_; }
 
+  size_t GetUniqueTableAliasSerialNumber() {
+    // TODO(Joe) is it worth handling overflow? It will slow down every query for the sake of addressing an issue that
+    //  is likely to never happen.
+    return unique_table_alias_serial_num_++;
+  }
+
  private:
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
   const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
   std::unordered_set<std::string> cte_table_names_;
+  size_t unique_table_alias_serial_num_;
 };
 }  // namespace noisepage::binder

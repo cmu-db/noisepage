@@ -77,7 +77,7 @@ class IndexUtil {
    * @returns Whether index can be used
    */
   static bool SatisfiesPredicateWithIndex(
-      catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+      catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const parser::AliasType &tbl_alias,
       catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
       planner::IndexScanType *scan_type,
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds);
@@ -97,7 +97,7 @@ class IndexUtil {
    * @returns Whether predicate can be utilized
    */
   static bool CheckPredicates(
-      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const parser::AliasType &tbl_alias,
       const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
       const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
       bool allow_cves, planner::IndexScanType *idx_scan_type,
