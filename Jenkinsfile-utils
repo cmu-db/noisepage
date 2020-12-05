@@ -87,7 +87,7 @@ String generateCompileCmd(Map config = [:]) {
     }
 
     if (config.isBuildBenchmarks) {
-        cmakeArgs['-DNOISEPAGE_BUILD_BENCHMARKS'] = DISABLED
+        cmakeArgs['-DNOISEPAGE_BUILD_BENCHMARKS'] = ENABLED
     }
 
     String compileCmd = 'cmake -GNinja'
