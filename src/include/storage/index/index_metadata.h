@@ -194,8 +194,10 @@ class IndexMetadata {
     return std::any_of(key_cols.begin(), key_cols.end(), [](const auto &key) -> bool {
       switch (key.Type()) {
         case type::TypeId::VARBINARY:
-        case type::TypeId::VARCHAR:
-          return key.TypeModifier() > VarlenEntry::InlineThreshold();
+        case type::TypeId::VARCHAR: {
+          NOISEPAGE_ASSERT(key.TypeModifier() > 0, "Expecting this to be a positive integer.");
+          return static_cast<uint32_t>(key.TypeModifier()) > VarlenEntry::InlineThreshold();
+        }
         default:
           break;
       }

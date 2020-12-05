@@ -123,7 +123,8 @@ class IndexKeyTests : public TerrierTest {
 
         // write the varlen content into a varlen entry, inlining if appropriate
         VarlenEntry varlen_entry{};
-        if (varlen_size <= VarlenEntry::InlineThreshold()) {
+        NOISEPAGE_ASSERT(varlen_size > 0, "Expecting this to be a positive integer.");
+        if (static_cast<uint32_t>(varlen_size) <= VarlenEntry::InlineThreshold()) {
           varlen_entry = VarlenEntry::CreateInline(varlen_content, varlen_size);
         } else {
           varlen_entry = VarlenEntry::Create(varlen_content, varlen_size, false);
