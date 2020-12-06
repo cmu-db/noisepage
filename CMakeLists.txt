@@ -151,7 +151,7 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 #
 # CMake options, specify with -DNOISEPAGE_{option}=On.
 #   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default ON.
-#   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL target. Default ON.
+#   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL (but the Self-Driving test) target. Default ON.
 #   NOISEPAGE_BUILD_SELF_DRIVING_TESTS      : Enable building self-driving end-to-end tests. Default OFF
 #   NOISEPAGE_GENERATE_COVERAGE             : Enable C++ code coverage. Default OFF.
 #   NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE    : Enable verbose unittest failures. Default OFF. Can be very verbose.
@@ -907,6 +907,7 @@ function(add_noisepage_test
     add_dependencies(${TEST_LABEL} ${TEST_NAME})
 endfunction()
 
+# Jumbo tests and self-driving end-to-end tests will be other test targets, so not included in unittests test sources
 file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/binder/*.cpp"
         "test/catalog/*.cpp"

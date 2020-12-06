@@ -522,7 +522,12 @@ pipeline {
             }
         }
         stage('End-to-End Performance') {
-            agent { label 'benchmark' }
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                    args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
+                }
+            }
             steps {
                 sh 'echo $NODE_NAME'
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
@@ -569,7 +574,7 @@ pipeline {
                  }
              }
         }
-        stage('Self-driving end-to-end test') {
+        stage('Self-Driving End-to-End Test') {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
@@ -581,6 +586,8 @@ pipeline {
                 cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF  -DNOISEPAGE_BUILD_SELF_DRIVING_TESTS=ON -DNOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE=ON ..
                 ninja mini_runners''', label: 'Self-driving tests (Compile mini_runners)'
 
+                // mini_runners parameters are arbitrary picked so that it finished within reasonable time (<10min) and
+                // also tests all the opunits
                 sh script :'''
                 cd build/bin
                 ../benchmark/mini_runners --mini_runner_rows_limit=1000 --rerun=0 --warm_num=1

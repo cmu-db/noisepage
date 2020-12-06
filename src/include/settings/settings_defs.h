@@ -333,10 +333,11 @@ SETTING_bool(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Relative path assuming binary locate at PROJECT_ROOT/build/bin/, and model_server.py at PROJECT_ROOT/script/model
 SETTING_string(
     model_server_path,
-    "The python model server script to invoke (default: INVALID_PATH)",
-    "INVALID_PATH",
+    "The python model server script to invoke (default: ../../script/model/model_server.py)",
+    "../../script/model/model_server.py",
     false,
     noisepage::settings::Callbacks::NoOp
 )

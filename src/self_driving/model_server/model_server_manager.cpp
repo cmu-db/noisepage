@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <sys/wait.h>
 #include <thread>  // NOLINT
 
@@ -8,12 +9,16 @@
 #include "self_driving/model_server/model_server_manager.h"
 
 namespace noisepage::modelserver {
+static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
+static constexpr const char *MODEL_TARGET_NAME = "model";
+static constexpr const char *MODEL_IPC_PATH = "/tmp/model-server-ipc";
 
 /**
- * This initializes a connection to the model by openning up a zmq connection
- * @param messenger
- * @return A ConnectionId that should be used only to the calling thread
+ * Use 128 as convention to indicate failure in a subprocess:
+ * https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
  */
+static constexpr const unsigned char MODEL_SERVER_ERROR_BINARY = 128;
+
 common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
     const common::ManagedPointer<messenger::Messenger> &messenger, const std::string &ipc_path,
     messenger::CallbackFn model_server_logic) {
@@ -22,6 +27,8 @@ common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
 
   // Listen for the connection
   messenger->ListenForConnection(destination, MODEL_CONN_ID_NAME, std::move(model_server_logic));
+
+  // TODO(ricky): pass in a cvar so that the messenger could signal that the router has been added.
   while (true) {
     try {
       return messenger->GetConnectionRouter(MODEL_CONN_ID_NAME);
@@ -37,15 +44,15 @@ namespace noisepage::modelserver {
 
 ModelServerManager::ModelServerManager(const std::string &model_bin,
                                        const common::ManagedPointer<messenger::Messenger> &messenger)
-    : messenger_(messenger), thd_(std::thread([this, model_bin] {
+    : messenger_(messenger), thd_(std::thread([this, &model_bin] {
         while (!shut_down_) {
           this->StartModelServer(model_bin);
         }
       })) {
-  /* Model Initialization handling logic */
+  // Model Initialization handling logic
   auto msm_handler = [&](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
                          std::string_view message, uint64_t recv_cb_id) {
-    /* ModelServer connected */
+    // ModelServer connected
     MODEL_SERVER_LOG_TRACE("[PID={},SENDER_ID={}] Messenger RECV: {}, {}", ::getpid(), sender_id, message, recv_cb_id);
 
     Callback cb_id;
@@ -90,43 +97,50 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
     // Wait for the child
     wait_pid = ::waitpid(py_pid_, &status, 0);
 
-    // Oops somehow the ModelServer is now not conncted
-    connected_.store(false);
-
     if (wait_pid < 0) {
       MODEL_SERVER_LOG_ERROR("Failed to wait for the child process...");
       return;
     }
+
+    // waitpid() returns indicating the ModelServer child process no longer active, thus disconnected
+    connected_.store(false);
 
     if (WIFEXITED(status) && WEXITSTATUS(status) == MODEL_SERVER_ERROR_BINARY) {
       MODEL_SERVER_LOG_ERROR("Stop model server");
       shut_down_.store(true);
     }
   } else {
-    // Run the script in in a child
-    std::string ipc_path = IPCPath();
+    // Child process. Run the ModelServer Python script.
+    std::string ipc_path = MODEL_IPC_PATH;
     char exec_name[model_path.size() + 1];
     ::strncpy(exec_name, model_path.data(), sizeof(exec_name));
     char *args[] = {exec_name, ipc_path.data(), nullptr};
     MODEL_SERVER_LOG_TRACE("Inovking ModelServer at :{}", std::string(exec_name));
     if (execvp(args[0], args) < 0) {
       MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
-      /* Shutting down */
+      // Shutting down
       ::_exit(MODEL_SERVER_ERROR_BINARY);
     }
   }
 }
 
-void ModelServerManager::PrintMessage(const std::string &msg) {
+bool ModelServerManager::SendMessage(std::string payload, messenger::CallbackFn cb) {
+  try {
+    messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, cb, 0);
+    return true;
+  } catch (std::exception &e) {
+    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to send message: {}. Error: {}", ::getpid(), payload,
+                          e.what());
+    return false;
+  }
+}
+
+bool ModelServerManager::PrintMessage(const std::string &msg) {
   nlohmann::json j;
   j["cmd"] = "PRINT";
   j["data"]["message"] = msg;
-  try {
-    messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
-  } catch (std::exception &e) {
-    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to PrintMessage {} to the python-ModelServer. Error: {}",
-                          ::getpid(), j.dump(), e.what());
-  }
+
+  return SendMessage(j.dump(), messenger::CallbackFns::Noop);
 }
 
 void ModelServerManager::StopModelServer() {
@@ -135,17 +149,17 @@ void ModelServerManager::StopModelServer() {
     nlohmann::json j;
     j["cmd"] = "QUIT";
     j["data"] = "";
-    try {
-      messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), messenger::CallbackFns::Noop, 0);
-    } catch (std::exception &e) {
-      MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to StopModelServer. Error: {}", ::getpid(), e.what());
+    if (!SendMessage(j.dump(), messenger::CallbackFns::Noop)) {
+      MODEL_SERVER_LOG_WARN("Failed to send QUIT message to ModelServer. Forced shutting down");
+      ::kill(py_pid_, SIGTERM);
     }
   }
   if (thd_.joinable()) thd_.join();
 }
 
-void ModelServerManager::TrainWith(const std::vector<std::string> &methods, const std::string &seq_files_dir,
-                                   const std::string &save_path, ModelServerFuture<std::string> *future) {
+bool ModelServerManager::TrainWith(const std::vector<std::string> &methods, const std::string &seq_files_dir,
+                                   const std::string &save_path,
+                                   common::ManagedPointer<ModelServerFuture<std::string>> future) {
   nlohmann::json j;
   j["cmd"] = "TRAIN";
   j["data"]["methods"] = methods;
@@ -156,27 +170,14 @@ void ModelServerManager::TrainWith(const std::vector<std::string> &methods, cons
   auto callback = [&, future](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
                               std::string_view message, uint64_t recv_cb_id) {
     MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
-    try {
-      nlohmann::json res = nlohmann::json::parse(message);
-      // Deserialize the message result
-      auto result = res.at("result").get<std::string>();
-      future->Done(result);
-    } catch (nlohmann::json::exception &e) {
-      MODEL_SERVER_LOG_WARN("Wrong message format, incorrect result field: {}, {}", message, e.what());
-      future->Fail("WRONG_RESULT_FORMAT");
-    }
+    future->Done(message);
   };
 
-  try {
-    messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), callback, 0);
-  } catch (std::exception &e) {
-    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to invoke TrainWith. Error: {}", ::getpid(), e.what());
-  }
+  return SendMessage(j.dump(), callback);
 }
 
-std::vector<std::vector<double>> ModelServerManager::DoInference(const std::string &opunit,
-                                                                 const std::string &model_path,
-                                                                 const std::vector<std::vector<double>> &features) {
+std::pair<std::vector<std::vector<double>>, bool> ModelServerManager::DoInference(
+    const std::string &opunit, const std::string &model_path, const std::vector<std::vector<double>> &features) {
   nlohmann::json j;
   j["cmd"] = "INFER";
   j["data"]["opunit"] = opunit;
@@ -190,25 +191,15 @@ std::vector<std::vector<double>> ModelServerManager::DoInference(const std::stri
   auto callback = [&](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
                       std::string_view message, uint64_t recv_cb_id) {
     MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
-    try {
-      nlohmann::json res = nlohmann::json::parse(message);
-      // Deserialize the message result
-      auto result = res.at("result").get<std::vector<std::vector<double>>>();
-      future.Done(result);
-    } catch (nlohmann::json::exception &e) {
-      MODEL_SERVER_LOG_WARN("Wrong message format, incorrect result field: {}, {}", message, e.what());
-      future.Fail("WRONG_RESULT_FORMAT");
-    }
+    future.Done(message);
   };
 
-  // Register NOOP at the messenger
-  try {
-    messenger_->SendMessage(router_, MODEL_TARGET_NAME, j.dump(), callback, 0);
-  } catch (std::exception &e) {
-    MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to invoke DoInference. Error: {}", ::getpid(), e.what());
+  // Fail to send the message
+  if (!SendMessage(j.dump(), callback)) {
+    return {{}, false};
   }
 
-  return future.Wait().first;
+  return future.Wait();
 }
 
 }  // namespace noisepage::modelserver

@@ -726,7 +726,7 @@ class DBMain {
      * @param value with ModelServer enable
      * @return self reference for chaining
      */
-    Builder &SetWithModelServer(const bool value) {
+    Builder &SetUseModelServer(const bool value) {
       model_server_enable_ = value;
       return *this;
     }
@@ -788,7 +788,12 @@ class DBMain {
     uint16_t messenger_port_ = 9022;
     std::string messenger_identity_ = "primary";
     bool model_server_enable_ = false;
-    std::string model_server_path_ = "model_server.py";
+    /**
+     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
+     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
+     * in use cases where such assumptions are no longer true.
+     */
+    std::string model_server_path_ = "../../script/model/model_server.py";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -959,9 +964,7 @@ class DBMain {
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
   common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
 
-  /**
-   * @return ManagedPointer to the ModelServerManager, can be nullptr if disabled.
-   */
+  /** @return ManagedPointer to the ModelServerManager, can be nullptr if disabled. */
   common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() const {
     return common::ManagedPointer(model_server_manager_);
   }

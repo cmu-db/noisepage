@@ -27,7 +27,7 @@ class ModelServerTest : public TerrierTest {
                        .SetUseSettingsManager(false)
                        .SetUseMessenger(true)
                        .SetUseCatalog(true)
-                       .SetWithModelServer(true)
+                       .SetUseModelServer(true)
                        .SetUseNetwork(true)
                        .SetUseGC(true)
                        .SetUseExecution(true)
@@ -45,7 +45,7 @@ TEST_F(ModelServerTest, PipelineTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
   char *project_build_path = ::getenv(BUILD_ABS_PATH);
-  // This has to be set
+  // BUILD_ABS_PATH environment vairable has to be set
   ASSERT_NE(project_build_path, nullptr);
   MODEL_SERVER_LOG_INFO("Running in build directory :{}", project_build_path);
 
@@ -69,31 +69,35 @@ TEST_F(ModelServerTest, PipelineTest) {
   std::string msg = "ModelServerTest";
   ms_manager->PrintMessage(msg);
 
-  // Perform a training
-  std::vector<std::string> models{"lr", "gbm"};
+  // Perform a training of the opunit models with {lr, gbm} as training methods.
+  std::vector<std::string> methods{"lr", "gbm"};
   std::string save_path = "/tmp/model_server_test.pickle";
 
   ModelServerFuture<std::string> future;
-  ms_manager->TrainWith(models, std::string(project_build_path) + "/bin", save_path, &future);
+  ms_manager->TrainWith(methods, std::string(project_build_path) + "/bin", save_path,
+                        common::ManagedPointer<ModelServerFuture<std::string>>(&future));
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
-  // Perform inference
+  // Perform inference on the trained opunit model for various opunits
   auto result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", save_path, features);
-  ASSERT_EQ(result.size(), features.size());
+  ASSERT_TRUE(result.second);
+  ASSERT_EQ(result.first.size(), features.size());
   result = ms_manager->DoInference("OP_DECIMAL_COMPARE", save_path, features);
-  ASSERT_EQ(result.size(), features.size());
+  ASSERT_TRUE(result.second);
+  ASSERT_EQ(result.first.size(), features.size());
   result = ms_manager->DoInference("OP_INTEGER_MULTIPLY", save_path, features);
-  ASSERT_EQ(result.size(), features.size());
+  ASSERT_TRUE(result.second);
+  ASSERT_EQ(result.first.size(), features.size());
 
   // Model at another path should not exist
   std::string non_exist_path("/tmp/model_server_test_non_exist.pickle");
   result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", non_exist_path, features);
-  ASSERT_EQ(result.size(), 0);
+  ASSERT_FALSE(result.second);
 
   // Inference with invalid opunit name will fail
   result = ms_manager->DoInference("OP_SUPER_MAGICAL_DIVIDE", non_exist_path, features);
-  ASSERT_EQ(result.size(), 0);
+  ASSERT_FALSE(result.second);
 
   // Quit
   ms_manager->StopModelServer();

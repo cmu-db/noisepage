@@ -149,7 +149,7 @@ class ZmqMessage {
           std::sscanf(payload_.c_str(), "%" SCNu64 "-%" SCNu64 "-", &send_msg_id_, &recv_cb_id_);
       NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
 
-      // Remove the first two '-'
+      // Remove the prefix up to the second '-'
       message_.remove_prefix(message_.find_first_of('-') + 1);
       message_.remove_prefix(message_.find_first_of('-') + 1);
     }
