@@ -55,7 +55,7 @@ void PilotUtil::CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
 
       auto out_plan = trafficcop::TrafficCopUtil::Optimize(
           common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
-          db_main->GetStatsStorage(), std::move(cost_model), forecast->optimizer_timeout_);
+          db_main->GetStatsStorage(), std::move(cost_model), forecast->optimizer_timeout_)->TakePlanNodeOwnership();
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
