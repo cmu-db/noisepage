@@ -40,7 +40,6 @@ from type import OpUnit
 logging_util.init_logging('info')
 
 
-
 class Callback(IntEnum):
     """
     ModelServerManager <==> ModelServer callback Id.
@@ -48,6 +47,7 @@ class Callback(IntEnum):
     """
     NOOP = 0
     CONNECTED = 1
+
 
 class Command(Enum):
     """
@@ -76,7 +76,6 @@ class Command(Enum):
             raise ValueError("Invalid command")
 
 
-
 class Message:
     """
     Message struct for communication with the ModelServer.
@@ -86,7 +85,9 @@ class Message:
 
     Refer to Messenger's documention for the message format
     """
-    def __init__(self, cmd: Optional[Command] = None, data: Optional[Dict] = None) -> None:
+
+    def __init__(self, cmd: Optional[Command] = None,
+                 data: Optional[Dict] = None) -> None:
         self.cmd = cmd
         self.data = data
 
@@ -121,7 +122,7 @@ class ModelServer:
     EXPOSE_ALL = True
     TXN_SAMPLE_INTERVAL = 49
 
-    def __init__(self, end_point:str) -> ModelServer:
+    def __init__(self, end_point: str) -> ModelServer:
         """
         Initialize the ModelServer by connecting to the ZMQ IPC endpoint
         :param end_point:  IPC endpoint
@@ -130,7 +131,8 @@ class ModelServer:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.DEALER)
         self.socket.set_string(zmq.IDENTITY, 'model')
-        logging.debug(f"Python model trying to connect to manager at {end_point}")
+        logging.debug(
+            f"Python model trying to connect to manager at {end_point}")
         self.socket.connect(f"ipc://{end_point}")
         logging.debug(f"Python model connected at {end_point}")
 
@@ -141,7 +143,8 @@ class ModelServer:
         self.cache = dict()
 
         # Notify the ModelServerManager that I am connected
-        self._send_msg(0, 0, ModelServer._make_response(Callback.CONNECTED, ""))
+        self._send_msg(0, 0, ModelServer._make_response(
+            Callback.CONNECTED, "", True, ""))
 
     def cleanup_zmq(self):
         """
@@ -151,8 +154,7 @@ class ModelServer:
         self.socket.close()
         self.context.destroy()
 
-
-    def _send_msg(self, send_id: int, recv_id: int, data:Dict) ->None:
+    def _send_msg(self, send_id: int, recv_id: int, data: Dict) -> None:
         """
         Send a message to the socket.
         :param send_id: id on this end, 0 for now
@@ -165,20 +167,24 @@ class ModelServer:
         self.socket.send_multipart([''.encode('utf-8'), msg.encode('utf-8')])
 
     @staticmethod
-    def _make_response(action: Callback, result: Any) -> Dict:
+    def _make_response(action: Callback, result: Any, success: bool, err: str = "") -> Dict:
         """
         Construct a response to the ModelServerManager
         :param action:  Action callback on the ModelServerManager
         :param result: Any result
+        :param success: True if the action suceeds
+        :param err: Error message
         :return:
         """
         return {
             "action": action,
-            "result": result
+            "result": result,
+            "success": success,
+            "err": err
         }
 
     @staticmethod
-    def _parse_msg(payload:str) -> Tuple[int, int, Message]:
+    def _parse_msg(payload: str) -> Tuple[int, int, Message]:
         logging.debug("PY RECV: " + payload)
         tokens = payload.split('-', 2)
 
@@ -187,7 +193,8 @@ class ModelServer:
             msg_id = int(tokens[0])
             recv_id = int(tokens[1])
         except ValueError as e:
-            logging.error(f"Invalid message payload format: {payload}, ids not int.")
+            logging.error(
+                f"Invalid message payload format: {payload}, ids not int.")
             return -1, -1, None
 
         msg = Message.from_json(tokens[2])
@@ -203,9 +210,10 @@ class ModelServer:
         :return:
         """
         # TODO(ricky): serialize the opunit by name rather than index
-        return [opunit_data.OpUnitData(OpUnit(x[0]), x[1][0], x[1][1]) for x in raw_data]
+        return [opunit_data.OpUnitData(
+            OpUnit(x[0]), x[1][0], x[1][1]) for x in raw_data]
 
-    def _train_model(self, data: Dict) -> str:
+    def _train_model(self, data: Dict) -> Tuple[bool, str]:
         """
         Train a model with the given model name and seq_files directory
         :param data: {
@@ -213,7 +221,7 @@ class ModelServer:
             seq_files: PATH_TO_SEQ_FILES_FOLDER, or None
             data_lists: [(OpUnit, X_List, Y_List)/OpUnitData]
         }
-        :return: the model map
+        :return: if training succeeds, {True and empty string}, else {False, error message}
         """
         ml_models = data["methods"]
         seq_files_dir = data["seq_files"]
@@ -226,11 +234,12 @@ class ModelServer:
             # Exist ok, and Creates parent if ok
             save_dir.mkdir(parents=True, exist_ok=True)
         except PermissionError as e:
-            return "FAIL_PERMISSION_ERROR"
+            return False, "FAIL_PERMISSION_ERROR"
 
         # Create result model metrics in the same directory
         save_file_name = save_path.stem
-        result_path = save_path.with_name(str(save_file_name) + "_metric_results")
+        result_path = save_path.with_name(
+            str(save_file_name) + "_metric_results")
         result_path.mkdir(parents=True, exist_ok=True)
 
         test_ratio = ModelServer.TEST_RATIO
@@ -238,7 +247,8 @@ class ModelServer:
         expose_all = ModelServer.EXPOSE_ALL
         txn_sample_interval = ModelServer.TXN_SAMPLE_INTERVAL
 
-        trainer = MiniTrainer(seq_files_dir, result_path, ml_models, test_ratio, trim, expose_all,txn_sample_interval)
+        trainer = MiniTrainer(seq_files_dir, result_path, ml_models,
+                              test_ratio, trim, expose_all, txn_sample_interval)
         # Perform training from MiniTrainer and input files directory
         model_map = trainer.train()
         self.cache[str(save_path)] = model_map
@@ -247,7 +257,7 @@ class ModelServer:
         with save_path.open(mode='wb') as f:
             pickle.dump(model_map, f)
 
-        return "SUCCESS"
+        return True, ""
 
     def _load_model_map(self, save_path: str) -> Optional[Dict]:
         """
@@ -278,7 +288,7 @@ class ModelServer:
             self.cache[str(save_path)] = model
             return model
 
-    def _infer(self, data:Dict) -> Optional[List]:
+    def _infer(self, data: Dict) -> Tuple[List, bool, str]:
         """
         Do inference on the model, give the data file, and the model_map_path
         :param data: {
@@ -286,7 +296,7 @@ class ModelServer:
             opunit: Opunit integer for the model
             model_path: model path
         }
-        :return: List predictions
+        :return: {List of predictions, if inference succeeds, error message}
         """
         features = data["features"]
         opunit = data["opunit"]
@@ -294,12 +304,12 @@ class ModelServer:
 
         # Parameter validation
         if not isinstance(opunit, str):
-            return []
+            return [], False, "INVALID_OPUNIT"
         try:
             opunit = OpUnit[opunit]
         except KeyError as e:
             logging.error(f"{opunit} is not a valid Opunit name")
-            return []
+            return [], False, "INVALID_OPUNIT"
 
         features = np.array(features)
         logging.debug(f"Using model on {opunit}")
@@ -307,20 +317,21 @@ class ModelServer:
         # Load the model map
         model_map = self._load_model_map(model_path)
         if model_map is None:
-            logging.error(f"Model map at {str(model_path)} has not been trained")
-            return []
+            logging.error(
+                f"Model map at {str(model_path)} has not been trained")
+            return [], False, "MODEL_MAP_NOT_TRAINED"
 
         model = model_map[opunit]
 
         if model is None:
             logging.error(f"Model for {opunit} doesn't exist")
-            return []
+            return [], False, "MODEL_NOT_FOUND"
 
         y_pred = model.predict(features)
 
-        return y_pred.tolist()
+        return y_pred.tolist(), True, ""
 
-    def _execute_cmd(self,cmd: Command, data: Dict) -> Tuple[Dict, Boolean]:
+    def _execute_cmd(self, cmd: Command, data: Dict) -> Tuple[Dict, bool]:
         """
         Execute a command from the ModelServerManager
         :param cmd:
@@ -333,29 +344,35 @@ class ModelServer:
         if cmd == Command.PRINT:
             msg = data["message"]
             logging.info(f"MESSAGE PRINT: {str(msg)}")
-            response = self._make_response(Callback.NOOP, f"MODEL_REPLY_{msg}")
+            response = self._make_response(Callback.NOOP, f"MODEL_REPLY_{msg}", True)
             return response, True
         elif cmd == Command.QUIT:
             # Will not send any message so empty {} is ok
-            return self._make_response(Callback.NOOP, ""), False
+            return self._make_response(Callback.NOOP, "", True), False
         elif cmd == Command.TRAIN:
             try:
-                res = self._train_model(data)
-                response = self._make_response(Callback.NOOP, res)
+                ok, res = self._train_model(data)
+                if ok:
+                    response = self._make_response(Callback.NOOP, res, True)
+                else:
+                    response = self._make_response(Callback.NOOP, "", False, res)
             except ValueError as e:
                 logging.error(f"Model Not found : {e}")
-                response = self._make_response(Callback.NOOP, "FAIL_MODEL_NOT_FOUND")
+                response = self._make_response(
+                    Callback.NOOP, "", False, "FAIL_MODEL_NOT_FOUND")
             except KeyError as e:
                 logging.error(f"Data format wrong for TRAIN: {e}")
-                response = self._make_response(Callback.NOOP, "FAIL_DATA_FORMAT_ERROR")
+                response = self._make_response(
+                    Callback.NOOP, "", False, "FAIL_DATA_FORMAT_ERROR")
             except Exception as e:
                 logging.error(f"Training failed. {e}")
-                response = self._make_response(Callback.NOOP, "FAIL_TRAINING_FAILED")
+                response = self._make_response(
+                    Callback.NOOP, "", False, "FAIL_TRAINING_FAILED")
 
             return response, True
         elif cmd == Command.INFER:
-            result = self._infer(data)
-            response = self._make_response(Callback.NOOP, result)
+            result, ok, err = self._infer(data)
+            response = self._make_response(Callback.NOOP, result, ok, err)
             return response, True
 
     def run_loop(self):
@@ -380,7 +397,8 @@ class ModelServer:
                     logging.info("Shutting down.")
                     break
 
-                # Currently not expecting to invoke any callback on ModelServer side, so second parameter 0
+                # Currently not expecting to invoke any callback on ModelServer
+                # side, so second parameter 0
                 self._send_msg(0, send_id, result)
 
 
@@ -390,5 +408,3 @@ if __name__ == "__main__":
         exit(-1)
     ms = ModelServer(sys.argv[1])
     ms.run_loop()
-
-
