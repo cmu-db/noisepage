@@ -589,6 +589,7 @@ pipeline {
                 sh script: '''
                 cd build
                 export BUILD_ABS_PATH=`pwd`
+                sudo ln -s `whereis python3` /usr/bin/python
                 timeout 10m ninja self_driving_test
                 ''', label: 'Running self-driving test'
             }
