@@ -156,9 +156,9 @@ common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
  */
 class ModelServerManager {
   static constexpr const int INVALID_PID = 0;
+  enum class Callback : uint64_t { NOOP = 0, CONNECTED, DEFAULT };
 
  public:
-  enum class Callback : uint64_t { NOOP = 0, CONNECTED, DEFAULT };
 
   /**
    * Construct a ModelServerManager with the given executable script to the Python ModelServer
