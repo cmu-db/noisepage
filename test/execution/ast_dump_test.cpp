@@ -215,7 +215,7 @@ TEST_F(AstDumpTest, VariableTest) {
       var b: int16 = 999
       var c: int32 = 9999
       var d: int64 = 99999
-      return a + b + c + d
+      return @intCast(int64, a) + @intCast(int64, b) + @intCast(int64, c) + @intCast(int64, d)
     })";
 
   std::vector<std::string> constants = {
@@ -259,12 +259,6 @@ TEST_F(AstDumpTest, TypeTest) {
 
         var boolVar1 : bool = true
         var boolVar2 = @boolToSql(true)
-
-        var intVar1 = @intToSql(5)
-        var intVar2 : int = 5.5 // FloatToInt
-
-        var floatVar1 = @floatToSql(5.5)
-        var floatVar2 : float = intVar2 // IntToFloat
 
         var stringVar = @stringToSql("5555")
 
