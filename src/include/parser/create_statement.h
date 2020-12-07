@@ -81,7 +81,7 @@ struct ColumnDefinition {
    * @param is_unique is unique
    * @param default_expr default expression
    * @param check_expr check expression
-   * @param varlen size of column if varlen
+   * @param type_modifier max length of varlen, or precision of decimal (atttypmod)
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
                    common::ManagedPointer<AbstractExpression> default_expr,
