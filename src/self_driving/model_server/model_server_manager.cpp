@@ -1,4 +1,4 @@
-#include <signal.h>
+#include <csignal.h>
 #include <sys/wait.h>
 #include <thread>  // NOLINT
 
@@ -124,9 +124,9 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
   }
 }
 
-bool ModelServerManager::SendMessage(std::string payload, messenger::CallbackFn cb) {
+bool ModelServerManager::SendMessage(const std::string &payload, messenger::CallbackFn cb) {
   try {
-    messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, cb, 0);
+    messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, std::move(cb), 0);
     return true;
   } catch (std::exception &e) {
     MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to send message: {}. Error: {}", ::getpid(), payload,

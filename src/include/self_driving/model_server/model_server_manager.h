@@ -107,7 +107,7 @@ class ModelServerFuture {
    * Indicate this future fails to retrieve expected results from the asynchronous call to the ModelServer.
    * It could either be an error on the ModelServer, or failure of sending message by the Messenger
    */
-  void Fail(std::string reason) {
+  void Fail(const std::string &reason) {
     {
       std::unique_lock<std::mutex> lock(mtx_);
       done_ = true;
@@ -261,9 +261,10 @@ class ModelServerManager {
   /**
    * Send a marshalled message string in JSON format through the Messenger
    * @param payload serialized JSON message payload
+   * @param cb callback to invoke when receive a reply as a result of this message
    * @return True if message sent successfully
    */
-  bool SendMessage(std::string payload, messenger::CallbackFn);
+  bool SendMessage(const std::string &payload, messenger::CallbackFn cb);
 
   /** Messenger handler */
   common::ManagedPointer<messenger::Messenger> messenger_;
