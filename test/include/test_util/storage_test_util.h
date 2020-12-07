@@ -594,10 +594,10 @@ class StorageTestUtil {
       catalog::Schema::Column col;
       if (random_type == type::TypeId::VARCHAR) {
         col = catalog::Schema::Column("col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
-                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
+                                      parser::ConstantValueExpression(random_type));
       } else {
         col = catalog::Schema::Column("col" + std::to_string(i), random_type, false,
-                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
+                                      parser::ConstantValueExpression(random_type));
       }
       col.SetOid(catalog::col_oid_t(i));
       columns.push_back(col);
