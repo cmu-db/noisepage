@@ -17,11 +17,10 @@ All tests are compatible with python3
 - `test_server.py`: the base `TestServer` class for running all types of tests
 - `test_case.py`: the base `TestCase` class for all types of test cases.
 - `mem_metrics.py`: the `MemoryMetric` class and `MemoryInfo` named tuple to manage the memory related information during the run time of the tests.
-- `periodic_task.py`: the `PeriodicaTask` class to wrap periodic python subprocess tasks with multithreading.
+- `periodic_task.py`: the `PeriodicTask` class provides a general utility in Python which runs a separate thread that will execute a subprocess every `x` seconds until told to stop.
 
 ## OLTP Bench
-`oltpbench` folder contains Python scripts for running an oltp bench test
-- `TestOLTPBench`: the test class for oltp bench tests
+`oltpbench` folder contains Python scripts for running an oltp bench test. Refer to [OLTP Benchmark Testing](https://github.com/cmu-db/noisepage/tree/master/script/testing/oltpbench/README.md) for more details.
 
 ## How to run a test
 To run a test of a certain type, just run the `run_<TEST TYPE>.py` script in the respective folder. For example, if you want to run a junit test, just simply run `python3 junit/run_junit.py`.
@@ -77,7 +76,7 @@ The classes in the `util` folder can be used and extend to help you create a new
   - `test_<mytest>.py`
     - The main test class for your test, which should be a subclass of the `TestServer` in `util/test_server.py`.
     - You can refer to [oltpbench/test_oltpbench.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/test_oltpbench.py) for reference.
-  - `test_case_<mytest>.py`
+  - [optional] `test_case_<mytest>.py`
     - The base test case class for your test, which should be a subclass of the `TestCaseServer` in `util/test_case_server.py`.
     - You can refer to [oltpbench/test_case_oltp.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/test_case_oltp.py) for reference.
   - [optional] `constants.py`
