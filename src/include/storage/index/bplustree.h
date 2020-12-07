@@ -2138,52 +2138,42 @@ class BPlusTree : public BPlusTreeBase {
   }
 
   /**
-   * DeleteElement - Tries to perform optimistic deletion, if not possible, performs
-   * pessimistic deletion and rebalances the tree.
+   * This function tries to perform optimistic deletion of an element, if not possible, performs
+   * pessimistic deletion and rebalances the tree. If the element is not found, it returns false.
+   * @param element Element to be deleted
+   * @return true on success, false on failure
    */
   bool DeleteElement(const KeyElementPair &element) {
     /*
      ****************************
-      First try optimistic delete
+      Try optimistic delete
      ****************************
     */
-    /* If root is nullptr then we return false.
-     */
+    // If root is nullptr then we return false.
     root_latch_.lock();
 
     if (root_ == nullptr) {
       root_latch_.unlock();
       return false;
     }
-    // beyond this point we'll have exclusive_lock on tree lock
+    // Beyond this point we'll have exclusive_lock on tree lock
 
     BaseNode *current_node = root_;
     BaseNode *parent_node = nullptr;
 
-    /*
-      Locking Code
-    */
+    // Get Shared Latch on the root
     current_node->GetNodeSharedLatch();
-    /*
-      Locking Code End
-    */
 
     // Traversing Down
     while (current_node->GetType() != NodeType::LeafType) {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
 
-      /*
-        Locking Code
-        Release parent's shared lock
-      */
+      // Release parent shared latch
       if (parent_node != nullptr) {
         parent_node->ReleaseNodeSharedLatch();
       } else {
         root_latch_.unlock();
       }
-      /*
-        Locking Code End
-      */
 
       // Note that Find Location returns the location of first element
       // that compare greater than
@@ -2199,23 +2189,14 @@ class BPlusTree : public BPlusTreeBase {
         current_node = node->GetLowKeyPair().second;
       }
 
-      /*
-        Locking Code
-        Get current node's shared lock
-      */
+      // Acquire shared latch on the current node
       current_node->GetNodeSharedLatch();
-      /*
-        Locking Code End
-      */
     }
 
     // Now we try deletion from the found leaf node
     // only if without sharing or merge is possible
 
-    /*
-      Locking Code
-      Get current node's exclusive lock and free parent
-    */
+    // Get exclusive lock on the leaf node for deletion
     current_node->ReleaseNodeSharedLatch();
     current_node->GetNodeExclusiveLatch();
     if (parent_node != nullptr) {
@@ -2223,10 +2204,6 @@ class BPlusTree : public BPlusTreeBase {
     } else {
       root_latch_.unlock();
     }
-    /*
-      Locking Code End
-      Beyond this we only have exclusive latch on the current_node
-    */
 
     bool finished_deletion = false;
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
@@ -2238,9 +2215,7 @@ class BPlusTree : public BPlusTreeBase {
         auto itr_list = (location_greater_key_leaf - 1)->second->begin();
         while (itr_list != (location_greater_key_leaf - 1)->second->end()) {
           if (ValueCmpEqual(*itr_list, element.second)) {
-            /*
-              Value fround => Delete element from list if won't trigger rebalance
-            */
+            // Value fround => Delete element from list if won't trigger rebalance
             found_value = true;
             if (((location_greater_key_leaf - 1)->second->size() > 1) ||
                 (node->GetSize() > GetLeafNodeSizeLowerThreshold())) {
@@ -2254,69 +2229,43 @@ class BPlusTree : public BPlusTreeBase {
 
         if (!found_value) {
           // Value not in tree
-          /*
-            Release node lock after value not found to delete
-          */
+          // Release the latch and return
           current_node->ReleaseNodeLatch();
-          /*
-            Locking Code End
-          */
-
           return false;
         }
 
         if (found_value) {
           if (finished_deletion) {
-            /*If now the list is empty delete key-emptylist from the tree*/
+            // If now the list is empty delete key-emptylist from the tree
             bool is_deleted = true;
             if ((location_greater_key_leaf - 1)->second->empty()) {
               delete (location_greater_key_leaf - 1)->second;
               is_deleted = node->Erase((location_greater_key_leaf - 1) - node->Begin());
             }
 
-            /*
-              Release node lock after delete
-            */
+            // Release the latch and return
             current_node->ReleaseNodeLatch();
-            /*
-              Locking Code End
-            */
 
             return is_deleted;
           }
 
           if (!finished_deletion) {
-            // Need to continue with pessimistic
-            /*
-              Release node lock after delete
-            */
+            // Need to continue with pessimistic delete
+            // Release the latch
             current_node->ReleaseNodeLatch();
-            /*
-              Locking Code End
-            */
           }
         }
       } else {
         // Deletion not done yet as key is not present
-        /*
-          Release node lock after key not found to delete
-        */
+        // Release the lock and return
         current_node->ReleaseNodeLatch();
-        /*
-          Locking Code End
-        */
 
         return false;
       }
     } else {
       // Deletion not done yet as key is not present
-      /*
-        Release node lock after key not found to delete
-      */
+      // Release the lock and return
       current_node->ReleaseNodeLatch();
-      /*
-        Locking Code End
-      */
 
       return false;
     }
@@ -2335,7 +2284,7 @@ class BPlusTree : public BPlusTreeBase {
     return is_deleted;
   }
 
-  /*
+  /**
    * Delete() - Remove a key-value pair from the tree
    *
    * This function returns false if the key and value pair does not
@@ -2348,9 +2297,8 @@ class BPlusTree : public BPlusTreeBase {
       return false;
     }
 
-    /*
-      Locking Code
-    */
+    // Get exclusive latch on current node. Crabbing is performed and all parent locks are released
+    // whenever a safe node is encountered.
     current_node->GetNodeExclusiveLatch();
 
     bool condition_for_underflow = true;
@@ -2381,12 +2329,9 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     lock_list->push_back(current_node->GetLatchPointer());
-    /*
-      Locking Code End
-    */
 
     // If delete called on leaf node, just perform deletion
-    // Else, call delete on child and check if child becomes underfull
+    // Else, call delete on child and check if child underflows
     if (current_node->GetType() == NodeType::LeafType) {
       // Leaf Node case => delete element
       auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
@@ -2398,7 +2343,7 @@ class BPlusTree : public BPlusTreeBase {
           auto itr_list = (leaf_position)->second->begin();
           while (itr_list != (leaf_position)->second->end()) {
             if (ValueCmpEqual(*itr_list, element.second)) {
-              /*Delete element from list*/
+              // Delete element from list
               (leaf_position)->second->erase(itr_list);
               element_present = true;
               break;
@@ -2406,51 +2351,42 @@ class BPlusTree : public BPlusTreeBase {
             itr_list++;
           }
 
-          /*Not Found - Return false*/
+          // Not Found - Return false
           if (!element_present) {
-            /*Locking Code*/
+            // Release the lock and return
             RelaseLastLocksDelete(lock_list);
-            /*Locking Code End*/
-
             return false;
           }
 
           if (!leaf_position->second->empty()) {
-            /*Locking Code*/
+            // Release the lock and return
             RelaseLastLocksDelete(lock_list);
-            /*Locking Code End*/
-
             return true;
           }
 
-          /*If now the list is empty delete key-emptylist from the tree*/
+          // If now the list is empty delete key-emptylist from the tree
           delete leaf_position->second;
           bool is_deleted = node->Erase(leaf_position - node->Begin());
           if (is_deleted && node->GetSize() == 0) {
-            // all elements of tree are now deleted
-            node->FreeElasticNode(); /*Important - we need to free node*/
+            // All elements of tree are now deleted
+            node->FreeElasticNode(); // Important - we need to free node
             root_ = nullptr;
           }
 
-          /*Locking Code*/
+          // Release the lock
           RelaseLastLocksDelete(lock_list);
-          /*Locking Code End*/
 
           return is_deleted;
         }
 
         // Key not found
-        /*Locking Code*/
         RelaseLastLocksDelete(lock_list);
-        /*Locking Code End*/
         return false;
       }
 
       if (leaf_position == node->Begin()) {
         // Key not found
-        /*Locking Code*/
         RelaseLastLocksDelete(lock_list);
-        /*Locking Code End*/
         return false;
       }
 
@@ -2469,7 +2405,7 @@ class BPlusTree : public BPlusTreeBase {
       }
       bool is_deleted = Delete(child_pointer, element, lock_list);
 
-      // Now perform any rebalancing or merge on child if it becomes underfull
+      // Now perform any re-balancing or merge on child if it underflows
       if (is_deleted) {
         if (!lock_list->empty()) {
           if (child_pointer->GetType() == NodeType::LeafType) {
@@ -2483,25 +2419,20 @@ class BPlusTree : public BPlusTreeBase {
         if (node->GetSize() == 0) {
           root_ = current_node->GetLowKeyPair().second;
 
-          /*Locking Code*/
+          // Release the lock and free the node
           RelaseLastLocksDelete(lock_list);
-          /*Locking Code End*/
-
           node->FreeElasticNode();
           return true;
         }
 
-        /*Locking Code*/
+        // Release the lock
         RelaseLastLocksDelete(lock_list);
-        /*Locking Code End*/
 
         return true;
       }
 
       // Reached here => not deleted
-      /*Locking Code*/
       RelaseLastLocksDelete(lock_list);
-      /*Locking Code End*/
       return false;
     }
 
@@ -2521,7 +2452,7 @@ class BPlusTree : public BPlusTreeBase {
         num_keys_(0),
         num_values_(0) {}
 
-  /*
+  /**
    * Destructor - Destroy BPlusTree instance
    */
   ~BPlusTree() { FreeTree(); }
