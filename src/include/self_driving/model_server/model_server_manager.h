@@ -159,7 +159,6 @@ class ModelServerManager {
   enum class Callback : uint64_t { NOOP = 0, CONNECTED, DEFAULT };
 
  public:
-
   /**
    * Construct a ModelServerManager with the given executable script to the Python ModelServer
    * @param model_bin Python script path
