@@ -21,7 +21,7 @@
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/optimizer.h"
 #include "parser/expression/constant_value_expression.h"
-#include "self_driving/modeling/forecast/workload_forecast.h"
+#include "self_driving/forecast/workload_forecast.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 

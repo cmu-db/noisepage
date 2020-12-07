@@ -1,4 +1,4 @@
-#include "self_driving/modeling/pilot_util.h"
+#include "self_driving/pilot_util.h"
 
 #include "binder/bind_node_visitor.h"
 #include "common/action_context.h"

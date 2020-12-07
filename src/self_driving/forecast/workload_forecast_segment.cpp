@@ -1,4 +1,4 @@
-#include "self_driving/modeling/forecast/workload_forecast_segment.h"
+#include "self_driving/forecast/workload_forecast_segment.h"
 
 #include <utility>
 

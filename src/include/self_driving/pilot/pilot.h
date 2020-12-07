@@ -18,7 +18,7 @@
 #include "gflags/gflags.h"
 #include "loggers/settings_logger.h"
 #include "parser/expression/constant_value_expression.h"
-#include "self_driving/modeling/forecast/workload_forecast.h"
+#include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "settings/settings_param.h"
 #include "type/type_id.h"
@@ -33,9 +33,9 @@ class Pilot {
   /**
    * Constructor for Pilot
    * @param db_main Managed Pointer to db_main
-   * @param forecast_interval Interval used in the forecastor
+   * @param workload_forecast_interval Interval used in the forecastor
    */
-  Pilot(common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval);
+  Pilot(common::ManagedPointer<DBMain> db_main, uint64_t workload_forecast_interval);
 
   /**
    * WorkloadForecast object performing the query execution and feature gathering
@@ -56,7 +56,7 @@ class Pilot {
   void ExecuteForecast();
   common::ManagedPointer<DBMain> db_main_;
 
-  uint64_t forecast_interval_{10000000};
+  uint64_t workload_forecast_interval_{10000000};
 };
 
 }  // namespace noisepage::selfdriving

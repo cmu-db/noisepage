@@ -3,7 +3,7 @@
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
 
-#include "self_driving/modeling/pilot/pilot.h"
+#include "pilot.h"
 
 namespace noisepage::selfdriving {
 

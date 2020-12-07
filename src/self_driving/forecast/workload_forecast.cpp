@@ -1,4 +1,4 @@
-#include "self_driving/modeling/forecast/workload_forecast.h"
+#include "self_driving/forecast/workload_forecast.h"
 
 #include <map>
 #include <unordered_map>

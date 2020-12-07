@@ -16,12 +16,12 @@
 #include "execution/exec_defs.h"
 #include "gflags/gflags.h"
 #include "parser/expression/constant_value_expression.h"
-#include "self_driving/modeling/forecast/workload_forecast_segment.h"
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
 #include "spdlog/fmt/fmt.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
+#include "workload_forecast_segment.h"
 
 namespace noisepage::selfdriving {
 

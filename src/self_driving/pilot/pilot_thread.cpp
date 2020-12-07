@@ -1,4 +1,4 @@
-#include "self_driving/modeling/pilot/pilot_thread.h"
+#include "self_driving/pilot/pilot_thread.h"
 
 namespace noisepage::selfdriving {
 PilotThread::PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::microseconds pl_period, bool pilot_planning)

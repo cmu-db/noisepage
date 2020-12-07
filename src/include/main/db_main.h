@@ -16,8 +16,8 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
-#include "self_driving/modeling/pilot/pilot.h"
-#include "self_driving/modeling/pilot/pilot_thread.h"
+#include "self_driving/pilot/pilot.h"
+#include "self_driving/pilot/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -394,7 +394,7 @@ class DBMain {
       std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
       std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
-        pilot = std::make_unique<selfdriving::Pilot>(common::ManagedPointer(db_main), pilot_forecast_interval_);
+        pilot = std::make_unique<selfdriving::Pilot>(common::ManagedPointer(db_main), workload_forecast_interval_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
       }
@@ -757,7 +757,7 @@ class DBMain {
     bool use_pilot_thread_ = false;
     bool pilot_planning_ = false;
     uint64_t pilot_interval_ = 1e7;
-    uint64_t pilot_forecast_interval_ = 1e7;
+    uint64_t workload_forecast_interval_ = 1e7;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -811,7 +811,7 @@ class DBMain {
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
       pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
-      pilot_forecast_interval_ = settings_manager->GetInt64(settings::Param::pilot_forecast_interval);
+      workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.

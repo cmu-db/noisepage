@@ -177,8 +177,8 @@ SETTING_int(
 )
 
 SETTING_int64(
-    pilot_forecast_interval,
-    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000)",
+    workload_forecast_interval,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: ns)",
     10000000,
     10000000,
     1000000000000,
