@@ -1,5 +1,5 @@
-#include <csignal>
 #include <sys/wait.h>
+#include <csignal>
 #include <thread>  // NOLINT
 
 #include "common/json.h"
