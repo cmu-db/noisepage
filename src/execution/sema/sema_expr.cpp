@@ -251,12 +251,8 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      // Initially try to fit it as a 32-bit float, otherwise a 64-bit double.
-      if (node->IsRepresentable(GetBuiltinType(ast::BuiltinType::Float32))) {
-        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float32));
-      } else {
-        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float64));
-      }
+      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float64));
+
       break;
     }
     case ast::LitExpr::LitKind::Int: {
