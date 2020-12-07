@@ -50,7 +50,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
     var vpi = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
       var cola = @vpiGetInt(vpi, 0)
-      if (cola >= 495 and cola <= 505) {
+      if (cola >= @intToSql(495) and cola <= @intToSql(505)) {
         count = count + 1
       }
     }

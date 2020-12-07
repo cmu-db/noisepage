@@ -30,7 +30,7 @@ fun int_bustub5() -> Integer {
 fun int_3bustub() -> Integer {
   var x = int_bustub5()
   var y = int_bustub2()
-  return x + 2 * y
+  return x + @intToSql(2) * y
 }
 
 fun main() -> int {

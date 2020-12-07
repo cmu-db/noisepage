@@ -146,7 +146,7 @@ fun main(execCtx: *ExecutionContext) -> int {
 
     setUpState(execCtx, &state)
     execQuery(execCtx, &state)
-    var ret = state.num_matches
+    var ret = @intCast(int32, state.num_matches)
     tearDownState(&state)
 
     return ret

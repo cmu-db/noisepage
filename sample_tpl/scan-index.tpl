@@ -20,8 +20,8 @@ fun main(execCtx: *ExecutionContext) -> int {
 
   col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
   col_oids[1] = @testCatalogLookup(execCtx, "test_1", "colB")
-  test1_oid = @testCatalogLookup(execCtx, "test_1", "")
-  index_oid = @testCatalogIndexLookup(execCtx, "index_1")
+  test1_oid = @intCast(int32, @testCatalogLookup(execCtx, "test_1", ""))
+  index_oid = @intCast(int32, @testCatalogIndexLookup(execCtx, "index_1"))
 
   @indexIteratorInit(&index, execCtx, 2, test1_oid, index_oid, col_oids)
 

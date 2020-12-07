@@ -80,7 +80,7 @@ fun main(execCtx: *ExecutionContext) -> int {
 
     setUpState(execCtx, &state)
     execQuery(execCtx, &state)
-    var ret = state.count
+    var ret = @intCast(int32, state.count)
     tearDownState(execCtx, &state)
 
     return ret

@@ -35,7 +35,7 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
     var vec = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
       var key = @vpiGetInt(vec, 0)
-      if (key < 1000) {
+      if (key < @intToSql(1000)) {
         var hash_val = @hash(key)
         var elem = @ptrCast(*BuildRow, @joinHTInsert(jht, hash_val))
         elem.key = key
@@ -58,7 +58,7 @@ fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
 
     for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
       var key = @vpiGetInt(vec, 0)
-      if (key < 1000) {
+      if (key < @intToSql(1000)) {
         var hash_val = @hash(key)
 
         var iter: HashTableEntryIterator

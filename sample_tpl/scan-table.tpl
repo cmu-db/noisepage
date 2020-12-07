@@ -14,7 +14,7 @@ fun main(execCtx: *ExecutionContext) -> int {
    var vpi = @tableIterGetVPI(&tvi)
    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
      var cola = @vpiGetInt(vpi, 0)
-     if (cola < 500) {
+     if (cola < @intToSql(500)) {
        ret = ret + 1
      }
    }

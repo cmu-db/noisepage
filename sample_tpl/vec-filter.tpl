@@ -26,7 +26,7 @@ fun main(execCtx: *ExecutionContext) -> int {
     @filterManagerRunFilters(&filter, vpi, execCtx)
 
     // Count survivors
-    ret = ret + @vpiSelectedRowCount(vpi)
+    ret = ret + @intCast(int32, @vpiSelectedRowCount(vpi))
   }
   @tableIterClose(&tvi)
   @filterManagerFree(&filter)

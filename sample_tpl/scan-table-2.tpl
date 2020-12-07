@@ -13,7 +13,7 @@ fun main(execCtx: *ExecutionContext) -> int {
         for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
             var cola = @vpiGetInt(vpi, 0)
             var colb = @vpiGetInt(vpi, 1)
-            if (cola >= 50 and colb < 10000) {
+            if (cola >= @intToSql(50) and colb < @intToSql(10000)) {
                 ret = ret + 1
             }
         }

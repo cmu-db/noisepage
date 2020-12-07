@@ -28,21 +28,21 @@ fun test1() -> int32 {
     state.count2 = 500
     state.count = 0
     state.count1 = 42
-    return state.count2
+    return @intCast(int32, state.count2)
 }
 
 fun test2() -> int32 {
     var state: State2
     state.count2 = 500
     state.count1[0] = 42
-    return state.count2
+    return @intCast(int32, state.count2)
 }
 
 fun test3() -> int32 {
     var state: State3
     state.count2 = 500
     state.embed.a = 42
-    return state.count2
+    return @intCast(int32, state.count2)
 }
 
 fun main() -> int32 {

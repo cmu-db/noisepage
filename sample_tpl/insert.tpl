@@ -7,7 +7,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   // Init inserter
   var inserter: StorageInterface
   var empty_table_oid : int32
-  empty_table_oid = @testCatalogLookup(execCtx, "empty_table", "")
+  empty_table_oid = @intCast(int32, @testCatalogLookup(execCtx, "empty_table", ""))
   var col_oids: [1]uint32
   col_oids[0] = @testCatalogLookup(execCtx, "empty_table", "colA")
   @storageInterfaceInit(&inserter, execCtx, empty_table_oid, col_oids, true)
@@ -16,9 +16,9 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   // Init index iterator
   var index : IndexIterator
   var index1_oid : int32
-  index1_oid = @testCatalogIndexLookup(execCtx, "index_1")
+  index1_oid = @intCast(int32, @testCatalogIndexLookup(execCtx, "index_1"))
   var test1_oid : int32
-  test1_oid = @testCatalogLookup(execCtx, "test_1", "")
+  test1_oid = @intCast(int32, @testCatalogLookup(execCtx, "test_1", ""))
   @indexIteratorInit(&index, execCtx, 1, test1_oid, index1_oid, col_oids)
 
   // Set iteration bounds

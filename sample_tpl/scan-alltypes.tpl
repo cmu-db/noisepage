@@ -29,7 +29,7 @@ fun main(execCtx: *ExecutionContext) -> int {
             // var f = @vpiGetReal(vpi, 5)
             // var g = @vpiGetDouble(vpi, 6)
             if ((a == @boolToSql(true))
-                and ((b >= 0) or (c >= 0) or (d >= 0) or (e >= 0))) {
+                and ((b >= @intToSql(0)) or (c >= @intToSql(0)) or (d >= @intToSql(0)) or (e >= @intToSql(0)))) {
                 ret = ret + 1
             }
         }

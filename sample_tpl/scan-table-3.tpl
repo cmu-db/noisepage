@@ -16,7 +16,7 @@ fun main(execCtx: *ExecutionContext) -> int {
             var cola = @vpiGetInt(vpi, 0)
             var colb = @vpiGetInt(vpi, 1)
             var colc = @vpiGetInt(vpi, 2)
-            if ((cola >= 50 and colb < 10000000) or (colc < 500000)) {
+            if ((cola >= @intToSql(50) and colb < @intToSql(10000000)) or (colc < @intToSql(500000))) {
                 ret = ret + 1
             }
         }
