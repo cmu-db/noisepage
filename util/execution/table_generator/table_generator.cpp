@@ -281,9 +281,11 @@ void TableGenerator::CreateTable(TableInsertMeta *metadata) {
   std::vector<catalog::Schema::Column> cols;
   for (const auto &col_meta : metadata->col_meta_) {
     if (col_meta.type_ != type::TypeId::VARCHAR) {
-      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_,
+                        parser::ConstantValueExpression(col_meta.type_));
     } else {
-      cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, DummyCVE());
+      cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_,
+                        parser::ConstantValueExpression(col_meta.type_));
     }
   }
   catalog::Schema tmp_schema(cols);

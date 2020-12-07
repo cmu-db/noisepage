@@ -505,7 +505,7 @@ class StorageTestUtil {
       switch (type) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
-          auto varlen_size = std::uniform_int_distribution(0U, max_varlen_size)(*generator);
+          auto varlen_size = std::uniform_int_distribution(1U, max_varlen_size)(*generator);
           key_cols.emplace_back("", type, varlen_size, is_nullable, parser::ConstantValueExpression(type));
           break;
         }

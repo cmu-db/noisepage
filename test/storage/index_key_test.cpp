@@ -508,7 +508,7 @@ TEST_F(IndexKeyTests, IndexMetadataCompactIntsKeyTest) {
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   // INPUT:
-  //    key_schema            {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
+  //    key_schema            {INTEGER, VARCHAR(8), VARCHAR(1), TINYINT, VARCHAR(12)}
   //    oids                  {20, 21, 22, 23, 24}
   // EXPECT:
   //    identical key schema
@@ -527,7 +527,7 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back("", type::TypeId::VARCHAR, 8, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 0, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", type::TypeId::VARCHAR, 1, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
   key_cols.emplace_back("", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
@@ -555,7 +555,7 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   EXPECT_FALSE(metadata_key_schema[3].Nullable());
   EXPECT_FALSE(metadata_key_schema[4].Nullable());
   EXPECT_EQ(metadata_key_schema[1].TypeModifier(), 8);
-  EXPECT_EQ(metadata_key_schema[2].TypeModifier(), 0);
+  EXPECT_EQ(metadata_key_schema[2].TypeModifier(), 1);
   EXPECT_EQ(metadata_key_schema[4].TypeModifier(), 12);
 
   // attr_sizes            {4, VARLEN_COLUMN, VARLEN_COLUMN, 1, VARLEN_COLUMN}

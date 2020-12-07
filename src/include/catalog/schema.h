@@ -201,20 +201,25 @@ class Schema {
 
    private:
     bool ShouldHaveTypeModifier() const {
-      return (attr_length_ == storage::VARLEN_COLUMN &&
-              (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY)) ||
-             (attr_length_ == 16 && type_ == type::TypeId::DECIMAL);
+      return type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY || type_ == type::TypeId::DECIMAL;
     }
 
     void Validate() const {
       NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      if (!ShouldHaveTypeModifier()) {
+      NOISEPAGE_ASSERT(default_value_ == nullptr || type_ == default_value_->GetReturnValueType(),
+                       "Default value does not have same time as the column.");
+
+      if (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY) {
+        NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
+        NOISEPAGE_ASSERT(type_modifier_ == -1 || type_modifier_ > 0,
+                         "Type modifier should be -1 (no limit), or a positive integer.");
+      } else if (type_ == type::TypeId::DECIMAL) {
+        NOISEPAGE_ASSERT(attr_length_ == 16, "Invalid attribute length.");
+        NOISEPAGE_ASSERT(type_modifier_ > 0, "Type modifier should be a  positive integer.");
+      } else {
         NOISEPAGE_ASSERT(attr_length_ == 1 || attr_length_ == 2 || attr_length_ == 4 || attr_length_ == 8,
                          "Invalid attribute length.");
         NOISEPAGE_ASSERT(type_modifier_ == -1, "Invalid attribute modifier. Should be -1 for types that don't use it.");
-      } else {
-        NOISEPAGE_ASSERT(type_modifier_ >= 0, "Type modifier should have a value.");
-        // TODO(Matt): what are valid upper bounds and default values for type_modifier?
       }
     }
 

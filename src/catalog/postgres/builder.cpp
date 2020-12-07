@@ -718,11 +718,11 @@ Schema Builder::GetProcTableSchema() {
   columns.back().SetOid(PgProc::PROVOLATILE.oid_);
 
   columns.emplace_back("pronargs", type::TypeId::SMALLINT, false,
-                       parser::ConstantValueExpression(type::TypeId::TINYINT));
+                       parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(PgProc::PRONARGS.oid_);
 
   columns.emplace_back("pronargdefaults", type::TypeId::SMALLINT, false,
-                       parser::ConstantValueExpression(type::TypeId::TINYINT));
+                       parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(PgProc::PRONARGDEFAULTS.oid_);
 
   columns.emplace_back("prorettype", type::TypeId::INTEGER, false,

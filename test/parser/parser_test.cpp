@@ -1234,7 +1234,7 @@ TEST_F(ParserTestBase, OldCreateTest) {
   // Check Third column
   column = create_stmt->GetColumns()[2];
   EXPECT_FALSE(column->IsPrimaryKey());
-  EXPECT_EQ(column->GetVarlenSize(), 255);
+  EXPECT_EQ(column->GetTypeModifier(), 255);
 
   // Check Foreign Key Constraint
   column = create_stmt->GetForeignKeys()[0];
@@ -1512,13 +1512,13 @@ TEST_F(ParserTestBase, OldDataTypeTest) {
   column = create_stmt->GetColumns()[1];
   EXPECT_EQ(column->GetColumnName(), "b");
   EXPECT_EQ(column->GetValueType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(column->GetVarlenSize(), 1024);
+  EXPECT_EQ(column->GetTypeModifier(), 1024);
 
   // Check Third column
   column = create_stmt->GetColumns()[2];
   EXPECT_EQ(column->GetColumnName(), "c");
   EXPECT_EQ(column->GetValueType(), type::TypeId::VARBINARY);
-  EXPECT_EQ(column->GetVarlenSize(), 32);
+  EXPECT_EQ(column->GetTypeModifier(), 32);
 }
 
 // NOLINTNEXTLINE

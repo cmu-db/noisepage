@@ -1495,7 +1495,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
   auto type_name = root->type_name_;
 
   // handle varlen
-  size_t varlen = 0;
+  int32_t varlen = -1;
   if (type_name->typmods_ != nullptr) {
     auto node = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
     switch (node->type) {
@@ -1503,7 +1503,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
         auto node_type = reinterpret_cast<A_Const *>(node)->val_.type_;
         switch (node_type) {
           case T_Integer: {
-            varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
+            varlen = static_cast<int32_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
             break;
           }
           default: {
