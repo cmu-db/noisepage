@@ -143,12 +143,12 @@ void LogSerializerTask::HandFilledBufferToWriter() {
     network_buffer->CopyFromBuffer(filled_buffer_);
 
     // Try sychronous replication...
-    replication_manager_->AddLogRecordBuffer(network_buffer);
-    if (replication_manager_->ReplicaSize() > 0) {
+    //replication_manager_->AddLogRecordBuffer(network_buffer);
+    //if (replication_manager_->ReplicaSize() > 0) {
       // Send message.
-      replication_manager_->ReplicaSend("replica1", replication::ReplicationManager::MessageType::RECOVER,
-                                        replication_manager_->SerializeLogRecords(), true);
-    }
+      //replication_manager_->ReplicaSend("replica1", replication::ReplicationManager::MessageType::RECOVER,
+                                        //replication_manager_->SerializeLogRecords(), true);
+    //}
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));

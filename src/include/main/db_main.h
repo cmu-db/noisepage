@@ -410,13 +410,12 @@ class DBMain {
       std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
       if (use_replication_) {
         std::chrono::seconds replication_timeout{10};
-        storage::BlockStore block_store{100, 100};
 
         recovery_manager = std::make_unique<storage::RecoveryManager>(
             common::ManagedPointer<storage::AbstractLogProvider>(
                 static_cast<storage::AbstractLogProvider *>(replication_log_provider.get())),
             catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(), txn_layer->GetDeferredActionManager(),
-            common::ManagedPointer(thread_registry), common::ManagedPointer(&block_store));
+            common::ManagedPointer(thread_registry), common::ManagedPointer(storage_layer->GetBlockStore()));
         replication_manager->SetRecoveryManager(common::ManagedPointer(recovery_manager));
         if (replication_port_ == 15446) {
           replication_manager->StartRecovery();

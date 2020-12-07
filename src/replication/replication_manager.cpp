@@ -28,8 +28,8 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
              uint64_t recv_cb_id) { EventLoop(messenger, sender_id, msg, recv_cb_id); });
   if (port == 15445) {
     port_ = 15445;
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    ReplicaConnect("replica1", "localhost", 15446);
+    //std::this_thread::sleep_for(std::chrono::seconds(5));
+    //ReplicaConnect("replica1", "localhost", 15446);
   } else {
     port_ = 15446;
   }
@@ -111,8 +111,8 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
   nlohmann::json message = nlohmann::json::parse(std::string(msg.substr(3)));
 
   // Get the original replication info.
-  size_t message_size = message["size"];
-  REPLICATION_LOG_INFO(fmt::format("Replication message sent to {} of size {}", replica_name, message_size));
+  //size_t message_size = message["size"];
+  //REPLICATION_LOG_INFO(fmt::format("Replication message sent to {} of size {}", replica_name, message_size));
 
   if (block) {
     // If the caller requested to block until the operation was completed, the thread waits.
@@ -125,7 +125,7 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
 void ReplicationManager::ReplicaAck(const std::string &replica_name) {
   if (port_ == 15445) return;
   std::unique_lock<std::mutex> lock(mutex_);
-  REPLICATION_LOG_INFO("Sending ack to: " + replica_name);
+  //REPLICATION_LOG_INFO("Sending ack to: " + replica_name);
   messenger_->SendMessage(GetReplicaConnection(replica_name), ack_message_identifier_, nullptr,
                           static_cast<uint64_t>(ReplicationManager::MessageType::ACK));
   lock.unlock();
@@ -134,15 +134,15 @@ void ReplicationManager::ReplicaAck(const std::string &replica_name) {
 void ReplicationManager::EventLoop(common::ManagedPointer<noisepage::messenger::Messenger> messenger,
                                    std::string_view &sender_id, std::string_view &msg, uint64_t recv_cb_id) {
   std::string message_type = std::string(msg.substr(0, 3));
-  REPLICATION_LOG_INFO(fmt::format("Message type: {}", message_type));
+  //REPLICATION_LOG_INFO(fmt::format("Message type: {}", message_type));
   if (message_type == heartbeat_message_identifier_) {
-    REPLICATION_LOG_INFO(fmt::format("Heartbeat from: {}", sender_id));
+    //REPLICATION_LOG_INFO(fmt::format("Heartbeat from: {}", sender_id));
   } else if (message_type == ack_message_identifier_) {
     //REPLICATION_LOG_INFO(fmt::format("Ack from: {}", sender_id));
     messenger_->ProcessDefaultMessage(sender_id, msg, recv_cb_id);
     //REPLICATION_LOG_INFO(fmt::format("Ack unlocked!", sender_id));
   } else if (message_type == replication_message_identifier_) {
-    REPLICATION_LOG_INFO(fmt::format("Recover message from: {}", sender_id));
+    // REPLICATION_LOG_INFO(fmt::format("Recover message from: {}", sender_id));
     // Recover from log records first, then send back an acknowledgement.
     RecoverFromSerializedLogRecords(std::string(msg.substr(3)));
     ReplicaAck(std::string(sender_id));
@@ -242,7 +242,7 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
 
   // Get the original replication info.
   size_t message_size = message["size"];
-  REPLICATION_LOG_ERROR("Recovering from log record of size " + std::to_string(message_size));
+  //REPLICATION_LOG_ERROR("Recovering from log record of size " + std::to_string(message_size));
 
   std::unique_ptr<network::ReadBuffer> buffer(new network::ReadBuffer(message_size));
   std::vector<uint8_t> message_content_raw = message["content"];

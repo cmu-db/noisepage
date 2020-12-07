@@ -52,8 +52,8 @@ void RecoveryManager::RecoverFromLogs() {
     // If we have exhausted all the logs, break from the loop
     if (log_record == nullptr) {
       STORAGE_LOG_INFO("[Recovery Manager]: Exhausted all logs!");
-      if (exhausted_timer > 2) {
-        STORAGE_LOG_INFO("[Recovery Manager]: Terminating loop and start processing deferred logs...");
+      if (exhausted_timer > 3) {
+        STORAGE_LOG_INFO("[Recovery Manager]: Terminating loop...");
         break;
       }
       exhausted_timer += 1;
@@ -62,7 +62,7 @@ void RecoveryManager::RecoverFromLogs() {
 
     switch (log_record->RecordType()) {
       case (LogRecordType::ABORT): {
-        STORAGE_LOG_INFO("[Recovery Manager]: Processing ABORT logs");
+        //STORAGE_LOG_INFO("[Recovery Manager]: Processing ABORT logs");
         NOISEPAGE_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
@@ -71,16 +71,16 @@ void RecoveryManager::RecoverFromLogs() {
       }
 
       case (LogRecordType::COMMIT): {
-        STORAGE_LOG_INFO("[Recovery Manager]: Processing COMMIT logs");
+        //STORAGE_LOG_INFO("[Recovery Manager]: Processing COMMIT logs");
         NOISEPAGE_ASSERT(pair.second.empty(), "Commit records should not have any varlen pointers");
         auto *commit_record = log_record->GetUnderlyingRecordBodyAs<CommitRecord>();
 
         // We defer all transactions initially
         // deferred_txns_.insert(log_record->TxnBegin());
         // We defer all transactions initially unless they have no changes (GC txns)
-        STORAGE_LOG_INFO(fmt::format("COMMIT TS: {}", static_cast<uint64_t>(log_record->TxnBegin())));
+        //STORAGE_LOG_INFO(fmt::format("COMMIT TS: {}", static_cast<uint64_t>(log_record->TxnBegin())));
         if (!buffered_changes_map_[log_record->TxnBegin()].empty()) {
-          STORAGE_LOG_INFO("[Recovery Manager]: Adding to deferred txns");
+          //STORAGE_LOG_INFO("[Recovery Manager]: Adding to deferred txns");
           deferred_txns_.insert(log_record->TxnBegin());
         } else {
           buffered_changes_map_.erase(log_record->TxnBegin());
@@ -95,7 +95,7 @@ void RecoveryManager::RecoverFromLogs() {
       }
 
       default:
-        STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs");
+        //STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs");
         //STORAGE_LOG_INFO(fmt::format("Record Actual Begin: {}", log_record->TxnBegin()));
         //STORAGE_LOG_INFO(fmt::format("REDO TS: {}", static_cast<uint64_t>(log_record->TxnBegin())));
         NOISEPAGE_ASSERT(
@@ -131,9 +131,9 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
     NOISEPAGE_ASSERT(
         buffered_record->RecordType() == LogRecordType::REDO || buffered_record->RecordType() == LogRecordType::DELETE,
         "Buffered record must be a redo or delete.");
-
     if (IsSpecialCaseCatalogRecord(buffered_record)) {
       idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
+      //STORAGE_LOG_INFO("Processed Catalog Records");
     } else if (buffered_record->RecordType() == LogRecordType::REDO) {
       ReplayRedoRecord(txn, buffered_record);
       //STORAGE_LOG_INFO("Replaying redo");
@@ -144,10 +144,12 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
   }
 
   // Defer deletes of the log records
+  //STORAGE_LOG_INFO("Deferring deletes...");
   DeferRecordDeletes(txn_id, false);
   buffered_changes_map_.erase(txn_id);
 
   // Commit the txn
+  //STORAGE_LOG_INFO("Committing...");
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   STORAGE_LOG_INFO(
@@ -184,12 +186,13 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::ti
     txns_processed++;
   }
 
+  STORAGE_LOG_INFO(fmt::format("Transactions processed: {}", txns_processed));
+
   // If we actually processed some txns, remove them from the set
   if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
 
   if (deferred_txns_.empty() && !log_provider_.CastManagedPointerTo<storage::ReplicationLogProvider>()->NonBlockingHasMoreRecords()) {
     STORAGE_LOG_INFO("Notifying primary of sync");
-    STORAGE_LOG_INFO(txns_processed);
   }
 
   return txns_processed;
