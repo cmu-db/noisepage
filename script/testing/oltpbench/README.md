@@ -44,11 +44,12 @@ Let the base directory be `noisepage/script/testing/oltpbench`
   - Kill all the lingering processes on the NoisePage port
   - Start the NoisePage DB process
 - Read the test case configs
-- `run_pre_test`: Pre test suite tasks
+- `run_pre_suite`: Pre test suite tasks
+  - Clean the possible residual local [oltpbench](https://github.com/oltpbenchmark/oltpbench) workspace
   - Git clone the [oltpbench](https://github.com/oltpbenchmark/oltpbench) repo
   - [optional] *Checkout to the specified branch*
 - Iterate through all the test cases
-  - `run_pre_case`: Pre test case tasks
+  - `run_pre_test`: Pre test case tasks
     - Create the database and tables for the OLTP benchmark specified
     - Load the data to tables
   - Run the test case command as a subprocess
@@ -56,9 +57,9 @@ Let the base directory be `noisepage/script/testing/oltpbench`
       - Collect `RSS` and `VMS` by default
       - Collect every `5` seconds by default
       - The memory info is stored in a Python dictionary in memory in runtime
-  - `run_post_case`: Post test case tasks
-- `run_pre_test`: Post test case suite
-  - If it is part of the Jenkins nightly build, the result results should be stored
-    - Parse the testing results files by [oltpbench](https://github.com/oltpbenchmark/oltpbench) and format them in JSON
-    - Add the memory info to `incremental_metrics` and compute the average metrics to add to the `metrics` in JSON payload
-    - Send a POST request to the Django API
+  - `run_post_test`: Post test case tasks
+    - If it is part of the Jenkins nightly build, the result results should be stored
+        - Parse the testing results files by [oltpbench](https://github.com/oltpbenchmark/oltpbench) and format them in JSON
+        - Add the memory info to `incremental_metrics` and compute the average metrics to add to the `metrics` in JSON payload
+        - Send a POST request to the Django API
+- `run_post_suite`: Post test case suite
