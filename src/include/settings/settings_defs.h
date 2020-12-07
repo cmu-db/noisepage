@@ -188,7 +188,7 @@ SETTING_int64(
 
 SETTING_int64(
     pilot_interval,
-    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000)",
+    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000, unit: ns)",
     1000000,
     1000000,
     10000000000,
