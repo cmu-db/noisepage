@@ -126,45 +126,43 @@ TEST_F(SemaExprTest, ArithmeticOperationTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
-  // clang-format off
   SemaExprTestCase tests[] = {
       // Test: Compare a primitive int32 with an integer
       // Expectation: Invalid
       {true, "Integers should not be comparable to pointers",
-          Block({
-                    DeclStmt(DeclVar(Ident("i"), IntLit(10))),                           // var i = 10
-                    DeclStmt(DeclVar(Ident("ptr"), PtrType(IdentExpr("int32")))),        // var ptr: *int32
-                    ExprStmt(CmpEq(IdentExpr("i"), IdentExpr("ptr"))),                   // i == ptr
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("i"), IntLit(10))),                     // var i = 10
+           DeclStmt(DeclVar(Ident("ptr"), PtrType(IdentExpr("int32")))),  // var ptr: *int32
+           ExprStmt(CmpEq(IdentExpr("i"), IdentExpr("ptr"))),             // i == ptr
+       })},
 
       // Test: Compare pointers to primitive int32 and float32
       // Expectation: Valid
       {true, "Pointers of different types should not be comparable",
-          Block({
-                    DeclStmt(DeclVar(Ident("ptr1"), PtrType(IdentExpr("int32")))),       // var ptr1: *int32
-                    DeclStmt(DeclVar(Ident("ptr2"), PtrType(IdentExpr("float32")))),     // var ptr2: *float32
-                    ExprStmt(CmpEq(IdentExpr("ptr1"), IdentExpr("ptr"))),                // ptr1 == ptr2
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("ptr1"), PtrType(IdentExpr("int32")))),    // var ptr1: *int32
+           DeclStmt(DeclVar(Ident("ptr2"), PtrType(IdentExpr("float32")))),  // var ptr2: *float32
+           ExprStmt(CmpEq(IdentExpr("ptr1"), IdentExpr("ptr"))),             // ptr1 == ptr2
+       })},
 
       // Test: Compare pointers to the same type
       // Expectation: Valid
       {false, "Pointers to the same type should be comparable",
-          Block({
-                    DeclStmt(DeclVar(Ident("ptr1"), PtrType(IdentExpr("float32")))),     // var ptr1: *float32
-                    DeclStmt(DeclVar(Ident("ptr2"), PtrType(IdentExpr("float32")))),     // var ptr2: *float32
-                    ExprStmt(CmpEq(IdentExpr("ptr1"), IdentExpr("ptr2"))),               // ptr1 == ptr2
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("ptr1"), PtrType(IdentExpr("float32")))),  // var ptr1: *float32
+           DeclStmt(DeclVar(Ident("ptr2"), PtrType(IdentExpr("float32")))),  // var ptr2: *float32
+           ExprStmt(CmpEq(IdentExpr("ptr1"), IdentExpr("ptr2"))),            // ptr1 == ptr2
+       })},
 
       // Test: Compare pointers to the same type, but using a relational op
       // Expectation: Invalid
       {true, "Pointers to the same type should be comparable",
-          Block({
-                    DeclStmt(DeclVar(Ident("ptr1"), PtrType(IdentExpr("float32")))),     // var ptr1: *float32
-                    DeclStmt(DeclVar(Ident("ptr2"), PtrType(IdentExpr("float32")))),     // var ptr2: *float32
-                    ExprStmt(CmpLt(IdentExpr("ptr1"), IdentExpr("ptr2"))),               // ptr1 < ptr2
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("ptr1"), PtrType(IdentExpr("float32")))),  // var ptr1: *float32
+           DeclStmt(DeclVar(Ident("ptr2"), PtrType(IdentExpr("float32")))),  // var ptr2: *float32
+           ExprStmt(CmpLt(IdentExpr("ptr1"), IdentExpr("ptr2"))),            // ptr1 < ptr2
+       })},
   };
-  // clang-format on
 
   for (const auto &test : tests) {
     Sema sema(Ctx());
@@ -176,60 +174,58 @@ TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SemaExprTest, ArrayIndexTest) {
-  // clang-format off
   SemaExprTestCase tests[] = {
       // Test: Perform an array index using an integer literal
       // Expectation: Valid
       {false, "Array indexes can support literal indexes",
-          Block({
-                    DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),    // var arr: []int32
-                    ExprStmt(ArrayIndex(IdentExpr("arr"), IntLit(10))),                    // arr[10]
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),  // var arr: []int32
+           ExprStmt(ArrayIndex(IdentExpr("arr"), IntLit(10))),                  // arr[10]
+       })},
 
       // Test: Perform an array index using an integer variable
       // Expectation: Valid
       {false, "Array indexes can support variable integer indexes",
-          Block({
-                    DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),    // var arr: []int32
-                    DeclStmt(DeclVar(Ident("i"), IntLit(10))),                             // var i = 10
-                    ExprStmt(ArrayIndex(IdentExpr("arr"), IdentExpr("i"))),                // arr[i]
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),  // var arr: []int32
+           DeclStmt(DeclVar(Ident("i"), IntLit(10))),                           // var i = 10
+           ExprStmt(ArrayIndex(IdentExpr("arr"), IdentExpr("i"))),              // arr[i]
+       })},
 
       // Test: Perform an array index using a negative integer.
       // Expectation: Invalid.
       {true, "Array indexes must be non-negative.",
-          Block({
-                    DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),    // var arr: []int32
-                    ExprStmt(ArrayIndex(IdentExpr("arr"), IntLit(-4))),                    // arr[-4]
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),  // var arr: []int32
+           ExprStmt(ArrayIndex(IdentExpr("arr"), IntLit(-4))),                  // arr[-4]
+       })},
 
       // Test: Perform an array index using a negative integer.
       // Expectation: Invalid.
       {true, "Array indexes must be smaller than declared array size.",
-          Block({
-                    DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32"), 4))), // var arr: [4]int32
-                    ExprStmt(ArrayIndex(IdentExpr("arr"), IntLit(4))),                     // arr[4]
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32"), 4))),  // var arr: [4]int32
+           ExprStmt(ArrayIndex(IdentExpr("arr"), IntLit(4))),                      // arr[4]
+       })},
 
       // Test: Perform an array index using an floating-point variable
       // Expectation: Invalid
       {true, "Array indexes must be integer values",
-          Block({
-                    DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),    // var arr: []int32
-                    DeclStmt(DeclVar(Ident("i"), FloatLit(10.0))),                         // var i: float32 = 10.0
-                    ExprStmt(ArrayIndex(IdentExpr("arr"), IdentExpr("i"))),                // arr[i]
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),  // var arr: []int32
+           DeclStmt(DeclVar(Ident("i"), FloatLit(10.0))),                       // var i: float32 = 10.0
+           ExprStmt(ArrayIndex(IdentExpr("arr"), IdentExpr("i"))),              // arr[i]
+       })},
 
       // Test: Perform an array index using a SQL integer
       // Expectation: Invalid
       {true, "Array indexes must be integer values",
-          Block({
-                    DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),    // var arr: []int32
-                    DeclStmt(DeclVar(Ident("i"), IntegerSqlTypeRepr(), nullptr)),          // var i: Integer
-                    ExprStmt(ArrayIndex(IdentExpr("arr"), IdentExpr("i"))),                // arr[i]
-                })},
+       Block({
+           DeclStmt(DeclVar(Ident("arr"), ArrayTypeRepr(IdentExpr("int32")))),  // var arr: []int32
+           DeclStmt(DeclVar(Ident("i"), IntegerSqlTypeRepr(), nullptr)),        // var i: Integer
+           ExprStmt(ArrayIndex(IdentExpr("arr"), IdentExpr("i"))),              // arr[i]
+       })},
   };
-  // clang-format on
 
   for (const auto &test : tests) {
     Sema sema(Ctx());
