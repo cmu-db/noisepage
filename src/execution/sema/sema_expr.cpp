@@ -251,8 +251,8 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
+      // Literal floats default to float64
       node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float64));
-
       break;
     }
     case ast::LitExpr::LitKind::Int: {
