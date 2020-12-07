@@ -588,12 +588,12 @@ pipeline {
 
                 // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
                 // Specifically, the parameters chosen are:
-                // - mini_runner_rows_limit=1000, which sets the maximal number of rows/tuples processed to be 1000
+                // - mini_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
                 // - rerun=0, which skips rerun since we are not testing benchmark performance here
                 // - warm_num=0, which skips the warmup iterations.
                 sh script :'''
                 cd build/bin
-                ../benchmark/mini_runners --mini_runner_rows_limit=1000 --rerun=0 --warm_num=0
+                ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=0
                 ''', label: 'Mini-trainer input generation'
 
                 sh script: '''
