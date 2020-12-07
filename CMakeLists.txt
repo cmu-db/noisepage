@@ -1041,7 +1041,9 @@ set_tests_properties(
 set_tests_properties(
         messenger_test jumbotest_messenger_messenger_test
         PROPERTIES RESOURCE_GROUPS "port15721:1;port15722:1;port15723:1;port9022:1;port9023:1;port9024:1")
-
+set_tests_properties(
+        modeling_test
+        PROPERTIES RESOURCE_GROUPS "port15721:1;port9022:1")
 #######################################################################################################################
 # HEADER Benchmarks.
 #######################################################################################################################
