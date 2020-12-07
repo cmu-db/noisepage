@@ -37,16 +37,19 @@ class PilotUtil {
    * @param db_main pointer to DBMain to access settings & metrics managers, transaction layer, and catalog layer
    * @param forecast pointer to object storing result of workload forecast
    */
-  static void CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
-                                      common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
+  static const std::list<metrics::PipelineMetricRawData::PipelineData>&
+      CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
+                              common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
 
   /**
-   * Executing forecasted queries and collect pipeline features for cost estimation to be used in action selection
-   * @param db_main pointer to DBMain to access settings & metrics managers, transaction layer, and catalog layer
-   * @param forecast pointer to object storing result of workload forecast
+   * Group pipeline features by ou for block inference
+   * To recover the result for each pipeline, also maintain a multimap pipeline_to_ou_position
+   * @param pipeline_to_ou_position list of tuples describing the pipelines associated with each ou sample
+   * @param pipeline_data const reference of the collected pipeline data
+   * @param ou_to_features map from ExecutionOperatingUnitType to a matrix
    */
   static void GroupFeaturesByOU(
-      std::multimap<std::tuple<execution::query_id_t, execution::pipeline_id_t>, uint64_t> *pipeline_to_ou_position,
+      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> *pipeline_to_ou_position,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
 };
