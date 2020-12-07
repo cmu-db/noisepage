@@ -1,4 +1,4 @@
-#include <csignal.h>
+#include <csignal>
 #include <sys/wait.h>
 #include <thread>  // NOLINT
 
