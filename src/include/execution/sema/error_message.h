@@ -59,6 +59,8 @@ namespace sema {
   F(FieldObjectDoesNotExist, "no field with name '%0' exists in composite type '%1'", (ast::Identifier, ast::Type *)) \
   F(InvalidIndexOperation, "invalid operation: type '%0' does not support indexing", (ast::Type *))                   \
   F(InvalidArrayIndexValue, "non-integer array index", ())                                                            \
+  F(NegativeArrayIndexValue, "invalid array index %0. index must be non-negative", (int64_t))                         \
+  F(OutOfBoundsArrayIndexValue, "invalid array index %0. out of bounds for %1-element array", (int64_t, uint64_t))    \
   F(InvalidCastToSqlInt, "invalid cast of %0 to SQL integer", (ast::Type *))                                          \
   F(InvalidCastToSqlDecimal, "invalid cast of %0 to SQL decimal", (ast::Type *))                                      \
   F(InvalidCastToSqlDate, "date creation expects three 32-bit integers, received '%0', '%1', '%2'",                   \

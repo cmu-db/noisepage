@@ -52,6 +52,12 @@ class TestAstBuilder {
 
   VariableDecl *DeclVar(Identifier name, Expr *init) { return DeclVar(name, nullptr, init); }
 
+  VariableDecl *DeclVar(const std::string &n, Expr *init) { return DeclVar(Ident(n), nullptr, init); }
+
+  VariableDecl *DeclVar(const std::string &n, const std::string &type_name, Expr *init) {
+    return DeclVar(Ident(n), IdentExpr(type_name), init);
+  }
+
   VariableDecl *DeclVar(Identifier name, Expr *type_repr, Expr *init) {
     return GetNodeFactory()->NewVariableDecl(empty_, name, type_repr, init);
   }
@@ -93,6 +99,8 @@ class TestAstBuilder {
   Expr *StringSqlTypeRepr() { return BuiltinTypeRepr<BuiltinType::StringVal>(); }
 
   Expr *ArrayTypeRepr(Expr *type) { return GetNodeFactory()->NewArrayType(empty_, nullptr, type); }
+
+  Expr *ArrayTypeRepr(Expr *type, uint32_t len) { return GetNodeFactory()->NewArrayType(empty_, IntLit(len), type); }
 
   Expr *ArrayIndex(Expr *arr, Expr *idx) { return GetNodeFactory()->NewIndexExpr(empty_, arr, idx); }
 

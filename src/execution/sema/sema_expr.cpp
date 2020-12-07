@@ -220,6 +220,20 @@ void Sema::VisitIndexExpr(ast::IndexExpr *node) {
   }
 
   if (auto *arr_type = obj_type->SafeAs<ast::ArrayType>()) {
+    if (auto *index = node->Index()->SafeAs<ast::LitExpr>()) {
+      const int64_t index_val = index->Int64Val();
+      // Check negative array indices.
+      if (index_val < 0) {
+        GetErrorReporter()->Report(index->Position(), ErrorMessages::kNegativeArrayIndexValue, index_val);
+        return;
+      }
+      // Check known out-of-bounds array access.
+      if (arr_type->HasKnownLength() && static_cast<uint64_t>(index_val) >= arr_type->GetLength()) {
+        GetErrorReporter()->Report(index->Position(), ErrorMessages::kOutOfBoundsArrayIndexValue, index_val,
+                                   arr_type->GetLength());
+        return;
+      }
+    }
     node->SetType(arr_type->GetElementType());
   } else {
     node->SetType(obj_type->As<ast::MapType>()->GetValueType());
@@ -237,15 +251,19 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      // Literal floats default to float64
-      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float64));
+      // Initially try to fit it as a 32-bit float, otherwise a 64-bit double.
+      if (node->IsRepresentable(GetBuiltinType(ast::BuiltinType::Float32))) {
+        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float32));
+      } else {
+        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float64));
+      }
       break;
     }
     case ast::LitExpr::LitKind::Int: {
-      // TODO(WAN): get prashanth's blessing
-      // Literal integers default to int32 or int64 depending on their value
-      if (static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= node->Int64Val() &&
-          node->Int64Val() <= static_cast<int64_t>(std::numeric_limits<int>::max())) {
+      // Initially try to fit the literal as a 32-bit signed integer.
+      // If the value is not representable with 32 bits, use 64-bits.
+      // There isn't another option because TPL does not currently support big integers.
+      if (node->IsRepresentable(GetBuiltinType(ast::BuiltinType::Int32))) {
         node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int32));
       } else {
         node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int64));
