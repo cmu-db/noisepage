@@ -10,6 +10,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
+#include "loggers/messenger_logger.h"
 #include "main/db_main.h"
 #include "metrics/metrics_store.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -91,9 +92,9 @@ void PilotUtil::CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
           .get());
   NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= forecast->query_id_to_params_.size(),
                    "Expect at least one pipeline_metrics record for each query");
-  printf("Printing qid and pipeline id to sanity check pipeline metrics recorded");
+  MESSENGER_LOG_INFO("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
-    printf("qid: %u; ppl_id: %u", static_cast<uint>(it->query_id_), static_cast<uint32_t>(it->pipeline_id_));
+    MESSENGER_LOG_INFO(fmt::format("qid: {}; ppl_id: {}", static_cast<uint>(it->query_id_), static_cast<uint32_t>(it->pipeline_id_)));
   }
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, aggregated_data->pipeline_data_, &ou_to_features);
@@ -107,7 +108,7 @@ void PilotUtil::GroupFeaturesByOU(
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features) {
   for (auto &data_it : pipeline_data) {
-    printf("qid: %u; ppl_id: %u", static_cast<uint>(data_it.query_id_), static_cast<uint32_t>(data_it.pipeline_id_));
+    // printf("qid: %u; ppl_id: %u", static_cast<uint>(data_it.query_id_), static_cast<uint32_t>(data_it.pipeline_id_));
     for (auto &ou_it : data_it.features_) {
       pipeline_to_ou_position->insert(std::make_pair(std::make_tuple(data_it.query_id_, data_it.pipeline_id_),
                                                     ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).size()));

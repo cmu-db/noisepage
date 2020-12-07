@@ -13,6 +13,7 @@
 #include "loggers/network_logger.h"
 #include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
+#include "loggers/selfdriving_logger.h"
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
@@ -39,6 +40,7 @@ void LoggersUtil::Initialize() {
     network::InitNetworkLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
+    selfdriving::InitMessengerLogger();
     settings::InitSettingsLogger();
     storage::InitIndexLogger();
     storage::InitStorageLogger();
