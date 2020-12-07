@@ -522,12 +522,7 @@ pipeline {
         //    }
         //}
         //stage('End-to-End Performance') {
-        //    agent {
-        //        docker {
-        //            image 'noisepage:focal'
-        //            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
-        //        }
-        //    }
+        //    agent { label 'benchmark' }
         //    steps {
         //        sh 'echo $NODE_NAME'
         //        sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
@@ -575,7 +570,12 @@ pipeline {
         //     }
         //}
         stage('Self-Driving End-to-End Test') {
-            agent { label 'benchmark' }
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                    args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
+                }
+            }
             steps {
                 sh 'echo $NODE_NAME'
                 sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
@@ -586,17 +586,19 @@ pipeline {
                 cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF  -DNOISEPAGE_BUILD_SELF_DRIVING_TESTS=ON -DNOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE=ON ..
                 ninja mini_runners''', label: 'Self-driving tests (Compile mini_runners)'
 
-                // mini_runners parameters are arbitrary picked so that it finished within reasonable time (<10min) and
-                // also tests all the opunits
+                // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
+                // Specifically, the parameters chosen are:
+                // - mini_runner_rows_limit=1000, which sets the maximal number of rows/tuples processed to be 1000
+                // - rerun=0, which skips rerun since we are not testing benchmark performance here
+                // - warm_num=0, which skips the warmup iterations.
                 sh script :'''
                 cd build/bin
-                ../benchmark/mini_runners --mini_runner_rows_limit=1000 --rerun=0 --warm_num=1
+                ../benchmark/mini_runners --mini_runner_rows_limit=1000 --rerun=0 --warm_num=0
                 ''', label: 'Mini-trainer input generation'
 
                 sh script: '''
                 cd build
                 export BUILD_ABS_PATH=`pwd`
-                sudo ln -s /usr/bin/python3 /usr/bin/python
                 timeout 10m ninja self_driving_test
                 ''', label: 'Running self-driving test'
             }

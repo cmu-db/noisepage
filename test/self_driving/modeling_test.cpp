@@ -71,7 +71,7 @@ TEST_F(ModelServerTest, PipelineTest) {
 
   // Perform a training of the opunit models with {lr, gbm} as training methods.
   std::vector<std::string> methods{"lr", "gbm"};
-  std::string save_path = "/tmp/model_server_test.pickle";
+  std::string save_path = "model_server_test.pickle";
 
   ModelServerFuture<std::string> future;
   ms_manager->TrainWith(methods, std::string(project_build_path) + "/bin", save_path,
@@ -91,7 +91,7 @@ TEST_F(ModelServerTest, PipelineTest) {
   ASSERT_EQ(result.first.size(), features.size());
 
   // Model at another path should not exist
-  std::string non_exist_path("/tmp/model_server_test_non_exist.pickle");
+  std::string non_exist_path("model_server_test_non_exist.pickle");
   result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", non_exist_path, features);
   ASSERT_FALSE(result.second);
 

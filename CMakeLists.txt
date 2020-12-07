@@ -907,7 +907,8 @@ function(add_noisepage_test
     add_dependencies(${TEST_LABEL} ${TEST_NAME})
 endfunction()
 
-# Jumbo tests and self-driving end-to-end tests will be other test targets, so not included in unittests test sources
+# NOTE:Self-driving End-To-End tests are not included below because the test require dependencies to other part of the system, thus could not be run as standalone tests.
+# They will be added to a separate test target: self_driving_test. See NOISEPAGE_SELF_DRIVING_TEST_SOURCES for details
 file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/binder/*.cpp"
         "test/catalog/*.cpp"

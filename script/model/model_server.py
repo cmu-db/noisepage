@@ -219,7 +219,7 @@ class ModelServer:
         :param data: {
             methods: [lr, XXX, ...],
             seq_files: PATH_TO_SEQ_FILES_FOLDER, or None
-            data_lists: [(OpUnit, X_List, Y_List)/OpUnitData]
+            save_path: PATH_TO_SAVE_MODEL_MAP
         }
         :return: if training succeeds, {True and empty string}, else {False, error message}
         """

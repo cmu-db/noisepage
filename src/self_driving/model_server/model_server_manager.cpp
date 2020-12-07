@@ -11,7 +11,7 @@
 namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
 static constexpr const char *MODEL_TARGET_NAME = "model";
-static constexpr const char *MODEL_IPC_PATH = "/tmp/model-server-ipc";
+static constexpr const char *MODEL_IPC_PATH = "model-server-ipc";
 
 /**
  * Use 128 as convention to indicate failure in a subprocess:
