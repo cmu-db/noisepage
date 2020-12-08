@@ -52,24 +52,6 @@
 #include "storage/index/index.h"
 #include "type/type_id.h"
 
-/**
- * Used for grouping together indexes during IndexInsert/IndexDelete
- * based on the (index size, key_size, num_keys).
- */
-using index_op_key_t = std::tuple<size_t, size_t, size_t>;
-
-namespace std {
-template <>
-struct hash<index_op_key_t> {
-  std::size_t operator()(index_op_key_t const &key) const noexcept {
-    noisepage::common::hash_t hash = noisepage::common::HashUtil::Hash(std::get<0>(key));
-    hash = noisepage::common::HashUtil::CombineHashes(hash, noisepage::common::HashUtil::Hash(std::get<1>(key)));
-    hash = noisepage::common::HashUtil::CombineHashes(hash, noisepage::common::HashUtil::Hash(std::get<2>(key)));
-    return hash;
-  }
-};
-}  // namespace std
-
 namespace noisepage::selfdriving {
 
 template <typename IndexPlanNode>
@@ -88,8 +70,6 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
     NOISEPAGE_ASSERT(false, "Recording index operations for non-modiying plan node");
   }
 
-  // Group indexes together
-  std::unordered_map<index_op_key_t, size_t> tracking;
   for (auto &oid : index_oids) {
     auto &index_schema = accessor_->GetIndexSchema(oid);
 
@@ -98,17 +78,14 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
     auto index = accessor_->GetIndex(oid);
 
     std::vector<catalog::indexkeycol_oid_t> keys;
+    size_t num_rows = index->GetSize();
     size_t num_keys = index_schema.GetColumns().size();
     size_t key_size = ComputeKeySize(common::ManagedPointer(&index_schema), false, keys, &num_keys);
-    tracking[std::make_tuple(index->GetSize(), key_size, num_keys)] += 1;
-  }
 
-  // Record each distinct group
-  for (auto &track : tracking) {
-    // TODO(wz2): Eventually need to modify track.second to consider num_rows/cardinality
-    pipeline_features_.emplace(
-        type, ExecutionOperatingUnitFeature(current_translator_->GetTranslatorId(), type, std::get<0>(track.first),
-                                            std::get<1>(track.first), std::get<2>(track.first), track.second, 1, 0, 0));
+    // TODO(wz2): Eventually need to scale cardinality to consider num_rows being inserted/updated/deleted
+    size_t car = 1;
+    pipeline_features_.emplace(type, ExecutionOperatingUnitFeature(current_translator_->GetTranslatorId(), type,
+                                                                   num_rows, key_size, num_keys, car, 1, 0, 0));
   }
 }
 

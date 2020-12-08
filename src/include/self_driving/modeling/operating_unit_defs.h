@@ -111,7 +111,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
 
   /**
    * num_rows: index size
-   * cardinality: number of indexes
+   * cardinality (training): batch number of indexes
+   * cardinality (inference): number of index inserts or deletes
    */
   INDEX_INSERT,
   INDEX_DELETE,

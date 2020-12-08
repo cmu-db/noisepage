@@ -241,7 +241,30 @@ class MiniRunnersArgumentGenerator {
                                       const MiniRunnersDataConfig &config);
 
   /**
-   * Generates arguments for modeling UPDATE/DELETE with index-scans
+   * Generates arguments for modeling UPDATE with index-scans
+   *
+   * Benchmark arguments are as follows:
+   * Arg 0: Number of integers in the index key
+   * Arg 1: Number of bigints in the index key
+   * Arg 2: Number of columns to update
+   * Arg 3: Number of integers in the underlying table
+   * Arg 4: Number of bigints in the underlying table
+   * Arg 5: Number of rows in the underlying table
+   * Arg 6: Lookup size
+   * Arg 7: Special argument used to indicate building an index.
+   *        A value of 0 means to drop the index. A value of -1 is
+   *        a dummy/sentinel value. A value of 1 means to create the
+   *        index. This argument is only used when lookup_size = 0
+   *
+   * @param b Vector to store output argument vectors
+   * @param settings Settings of the mini-runners
+   * @param config MiniRunners data parameters
+   */
+  static void GenUpdateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                      const MiniRunnersDataConfig &config);
+
+  /**
+   * Generates arguments for modeling DELETE with index-scans
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers in the index key
@@ -259,26 +282,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenUpdateDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                            const MiniRunnersDataConfig &config);
-
-  /**
-   * Generates arguments for modeling UPDATE/DELETE with seq-scans
-   *
-   * Benchmark arguments are as follows:
-   * Arg 0: Number of integers to utilize
-   * Arg 1: Number of bigints to utilize
-   * Arg 2: Number of integers in the underlying table
-   * Arg 3: Number of bigints in the underlying table
-   * Arg 4: Number of rows in the underlying table
-   * Arg 5: Cardinality of underlying table
-   *
-   * @param b Vector to store output argument vectors
-   * @param settings Settings of the mini-runners
-   * @param config MiniRunners data parameters
-   */
-  static void GenUpdateDeleteScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                           const MiniRunnersDataConfig &config);
+  static void GenDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                      const MiniRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling CREATE INDEX

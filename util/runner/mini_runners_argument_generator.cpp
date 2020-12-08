@@ -302,8 +302,57 @@ void MiniRunnersArgumentGenerator::GenInsertMixedArguments(OutputArgs *b, const 
   }
 }
 
-void MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                                 const MiniRunnersDataConfig &config) {
+void MiniRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                                           const MiniRunnersDataConfig &config) {
+  auto &idx_key = config.sweep_update_index_col_nums_;
+  ;
+  auto &update_keys = config.sweep_update_col_nums_;
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  for (auto type : types) {
+    for (auto idx_key_size : idx_key) {
+      for (auto update_key : update_keys) {
+        if (idx_key_size + update_key >= 15) continue;
+
+        for (auto row_num : row_nums) {
+          if (row_num > settings.updel_limit_) continue;
+
+          // Special argument used to indicate a build index
+          // We need to do this to prevent update/delete from unintentionally
+          // updating multiple indexes. This way, there will only be 1 index
+          // on the table at a given time.
+          if (type == type::TypeId::INTEGER)
+            b->push_back({idx_key_size, 0, update_key, 15, 0, row_num, 0, 1});
+          else if (type == type::TypeId::BIGINT)
+            b->push_back({0, idx_key_size, update_key, 0, 15, row_num, 0, 1});
+
+          int64_t lookup_size = 1;
+          std::vector<int64_t> lookups;
+          while (lookup_size <= row_num) {
+            lookups.push_back(lookup_size);
+            lookup_size *= 2;
+          }
+
+          for (auto lookup : lookups) {
+            if (type == type::TypeId::INTEGER)
+              b->push_back({idx_key_size, 0, update_key, 15, 0, row_num, lookup, -1});
+            else if (type == type::TypeId::BIGINT)
+              b->push_back({0, idx_key_size, update_key, 0, 15, row_num, lookup, -1});
+          }
+
+          // Special argument used to indicate a drop index
+          if (type == type::TypeId::INTEGER)
+            b->push_back({idx_key_size, 0, update_key, 15, 0, row_num, 0, 0});
+          else if (type == type::TypeId::BIGINT)
+            b->push_back({0, idx_key_size, update_key, 0, 15, row_num, 0, 0});
+        }
+      }
+    }
+  }
+}
+
+void MiniRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                                           const MiniRunnersDataConfig &config) {
   auto &idx_key = config.sweep_index_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
@@ -340,24 +389,6 @@ void MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments(OutputArgs *b, 
           b->push_back({idx_key_size, 0, 15, 0, row_num, 0, 0});
         else if (type == type::TypeId::BIGINT)
           b->push_back({0, idx_key_size, 0, 15, row_num, 0, 0});
-      }
-    }
-  }
-}
-
-void MiniRunnersArgumentGenerator::GenUpdateDeleteScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                                const MiniRunnersDataConfig &config) {
-  auto num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-  for (auto type : types) {
-    for (auto col : num_cols) {
-      for (auto row : row_nums) {
-        // The cardinality of the table does not matter.
-        if (type == type::TypeId::INTEGER)
-          b->push_back({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::DECIMAL)
-          b->push_back({0, col, 0, 15, row, row});
       }
     }
   }

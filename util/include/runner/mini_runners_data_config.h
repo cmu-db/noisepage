@@ -86,6 +86,16 @@ class MiniRunnersDataConfig {
   std::vector<uint32_t> sweep_index_col_nums_ = {1, 2, 4, 8, 15};
 
   /**
+   * Parameter controls number of keys for UPDATE mini-runners
+   */
+  std::vector<uint32_t> sweep_update_index_col_nums_ = {1};
+
+  /**
+   * Parameter controls number of columns to update
+   */
+  std::vector<uint32_t> sweep_update_col_nums_ = {1, 2, 4, 8, 12};
+
+  /**
    * Parameter controls number of keys to be used in mini-runner index lookups (for varchar).
    * Note: This is different than other types due to size concerns.
    */
