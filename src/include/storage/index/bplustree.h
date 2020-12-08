@@ -2443,9 +2443,12 @@ class BPlusTree : public BPlusTreeBase {
                      KeyEqualityChecker p_key_eq_obj = KeyEqualityChecker{},
                      ValueEqualityChecker p_value_eq_obj = ValueEqualityChecker{})
       : BPlusTreeBase(),
-        // Key comparator, equality checker and hasher
+        // Key comparator, equality checker
         key_cmp_obj_{p_key_cmp_obj},
         key_eq_obj_{p_key_eq_obj},
+
+        // Value equality checker
+        value_eq_obj_{p_value_eq_obj},
 
         // Root and key/value counters
         root_(nullptr),
