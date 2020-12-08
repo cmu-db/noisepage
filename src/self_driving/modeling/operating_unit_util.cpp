@@ -76,14 +76,14 @@ std::string OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ExecutionOpera
       return "OP_INTEGER_DIVIDE";
     case ExecutionOperatingUnitType::OP_INTEGER_COMPARE:
       return "OP_INTEGER_COMPARE";
-    case ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS:
-      return "OP_DECIMAL_PLUS_OR_MINUS";
-    case ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY:
-      return "OP_DECIMAL_MULTIPLY";
-    case ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE:
-      return "OP_DECIMAL_DIVIDE";
-    case ExecutionOperatingUnitType::OP_DECIMAL_COMPARE:
-      return "OP_DECIMAL_COMPARE";
+    case ExecutionOperatingUnitType::OP_REAL_PLUS_OR_MINUS:
+      return "OP_REAL_PLUS_OR_MINUS";
+    case ExecutionOperatingUnitType::OP_REAL_MULTIPLY:
+      return "OP_REAL_MULTIPLY";
+    case ExecutionOperatingUnitType::OP_REAL_DIVIDE:
+      return "OP_REAL_DIVIDE";
+    case ExecutionOperatingUnitType::OP_REAL_COMPARE:
+      return "OP_REAL_COMPARE";
     case ExecutionOperatingUnitType::OP_BOOL_COMPARE:
       return "OP_BOOL_COMPARE";
     case ExecutionOperatingUnitType::OP_VARCHAR_COMPARE:

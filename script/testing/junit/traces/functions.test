@@ -1,6 +1,6 @@
 # Initialize the database and table for testing
 statement ok
-CREATE TABLE functions1 (int_val INT, neg_int_val INT,  mod_int_val INT, double_val DECIMAL, neg_double_val DECIMAL, small_double_a_val DECIMAL, small_double_b_val DECIMAL, str_i_val VARCHAR(32), str_a_val VARCHAR(32), str_b_val VARCHAR(32), is_null INT)
+CREATE TABLE functions1 (int_val INT, neg_int_val INT,  mod_int_val INT, double_val DOUBLE, neg_double_val DOUBLE, small_double_a_val DOUBLE, small_double_b_val DOUBLE, str_i_val VARCHAR(32), str_a_val VARCHAR(32), str_b_val VARCHAR(32), is_null INT)
 
 statement ok
 INSERT INTO functions1(int_val, neg_int_val, mod_int_val, double_val, neg_double_val, small_double_a_val, small_double_b_val, str_i_val, str_a_val, str_b_val, is_null) VALUES(123, -123, 3, 12.34, -12.34, 0.5, 3.0, '123456', 'AbCdEf', '  AbCdEf ', 0)

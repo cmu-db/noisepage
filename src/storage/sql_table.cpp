@@ -23,7 +23,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
                    "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
   for (const auto &column : schema.GetColumns()) {
-    attr_sizes.push_back(column.AttrSize());
+    attr_sizes.push_back(column.AttributeLength());
   }
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, NUM_RESERVED_COLUMNS);
@@ -31,7 +31,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
   ColumnMap col_map;
   // Build the map from Schema columns to underlying columns
   for (const auto &column : schema.GetColumns()) {
-    switch (column.AttrSize()) {
+    switch (column.AttributeLength()) {
       case VARLEN_COLUMN:
         col_map[column.Oid()] = {col_id_t(offsets[0]++), column.Type()};
         break;

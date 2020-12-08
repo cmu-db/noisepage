@@ -170,6 +170,10 @@ Schema Builder::GetColumnTableSchema() {
                        parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(PgAttribute::ATTLEN.oid_);
 
+  columns.emplace_back("atttypmod", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.back().SetOid(PgAttribute::ATTTYPMOD.oid_);
+
   columns.emplace_back("attnotnull", type::TypeId::BOOLEAN, false,
                        parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PgAttribute::ATTNOTNULL.oid_);
@@ -683,10 +687,10 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("prolang", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PgProc::PROLANG.oid_);
 
-  columns.emplace_back("procost", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
+  columns.emplace_back("procost", type::TypeId::REAL, true, parser::ConstantValueExpression(type::TypeId::REAL));
   columns.back().SetOid(PgProc::PROCOST.oid_);
 
-  columns.emplace_back("prorows", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
+  columns.emplace_back("prorows", type::TypeId::REAL, true, parser::ConstantValueExpression(type::TypeId::REAL));
   columns.back().SetOid(PgProc::PROROWS.oid_);
 
   columns.emplace_back("provariadic", type::TypeId::INTEGER, false,
@@ -714,11 +718,11 @@ Schema Builder::GetProcTableSchema() {
   columns.back().SetOid(PgProc::PROVOLATILE.oid_);
 
   columns.emplace_back("pronargs", type::TypeId::SMALLINT, false,
-                       parser::ConstantValueExpression(type::TypeId::TINYINT));
+                       parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(PgProc::PRONARGS.oid_);
 
   columns.emplace_back("pronargdefaults", type::TypeId::SMALLINT, false,
-                       parser::ConstantValueExpression(type::TypeId::TINYINT));
+                       parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(PgProc::PRONARGDEFAULTS.oid_);
 
   columns.emplace_back("prorettype", type::TypeId::INTEGER, false,

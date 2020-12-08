@@ -3248,7 +3248,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     int param_idx = 0;
     values1.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
     values1.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::DECIMAL, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::REAL, param_idx++));
     values1.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
     values1.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
     values1.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
@@ -3257,7 +3257,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
 
     values2.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
     values2.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::DECIMAL, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::REAL, param_idx++));
     values2.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
     values2.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
     values2.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
@@ -3293,7 +3293,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
     params.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
-    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real1));
+    params.emplace_back(type::TypeId::REAL, sql::Real(real1));
     params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
     params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint1));
     params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint1));
@@ -3303,7 +3303,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
     params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
     params.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
-    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real2));
+    params.emplace_back(type::TypeId::REAL, sql::Real(real2));
     params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
     params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint2));
     params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint2));
@@ -3340,7 +3340,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Get Table columns
     auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
     auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
+    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::REAL);
     auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
     auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
     auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
@@ -3450,7 +3450,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Get Table columns
     auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
     auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
+    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::REAL);
     auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
     auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
     auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
@@ -3522,10 +3522,10 @@ TEST_F(CompilerTest, TPCHQ1Test) {
     // Read all needed columns
     auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), noisepage::type::TypeId::VARCHAR);
     auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), noisepage::type::TypeId::VARCHAR);
-    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), noisepage::type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), noisepage::type::TypeId::DECIMAL);
-    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), noisepage::type::TypeId::DECIMAL);
-    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), noisepage::type::TypeId::DECIMAL);
+    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), noisepage::type::TypeId::REAL);
+    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), noisepage::type::TypeId::REAL);
+    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), noisepage::type::TypeId::REAL);
+    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), noisepage::type::TypeId::REAL);
     auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), noisepage::type::TypeId::DATE);
     // Make the output schema
     seq_scan_out.AddOutput("l_returnflag", l_returnflag);
