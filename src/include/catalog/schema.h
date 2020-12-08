@@ -213,7 +213,7 @@ class Schema {
                                 .CastManagedPointerTo<parser::ConstantValueExpression>()
                                 ->IsNull()),
                        "Default value does not have same time as the column.");
-      // TODO(Matt): I don't love that last part that NULL default values come out of the parser. Maybe we change that.
+      // TODO(Matt): I don't love that last part that NULL default values come out of the parser woth TypeId::INVALID.
 
       if (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY) {
         NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
