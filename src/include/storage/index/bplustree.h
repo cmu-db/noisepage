@@ -603,16 +603,6 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     /**
-     * FindLocation - Returns the start of the first element that compares
-     * greater to the key provided
-     */
-    ElementType *FindLocation(const KeyType &element, BPlusTree *tree) {
-      ElementType *iter = Begin();
-      while ((iter != end_) && (!tree->KeyCmpGreater(iter->first, element))) iter++;
-      return iter;
-    }
-
-    /**
      * GetSize() - Returns the size of the embedded list
      *
      * Note that the return type is integer since we use integer to represent
@@ -692,6 +682,18 @@ class BPlusTree : public BPlusTreeBase {
      * Destructor - Calls destructor of ElasticNode
      */
     ~InnerNode() { this->~ElasticNode<KeyNodePointerPair>(); }
+
+    /**
+     * FindLocation - Returns the start of the first element that compares
+     * greater to the key provided
+     */
+    KeyNodePointerPair *FindLocation(const KeyType &element, BPlusTree *tree) {
+      BaseNode *dummy_ptr;
+      KeyNodePointerPair dummy_element = std::make_pair(element, dummy_ptr);
+      KeyNodePointerPair *iter = std::lower_bound(this->Begin(), this->End(), dummy_element,
+                                            [tree](const auto &a, const auto &b) { return !tree->KeyCmpGreater(a.first, b.first); });
+      return iter;
+    }
   };
 
   /**
@@ -712,6 +714,18 @@ class BPlusTree : public BPlusTreeBase {
      * Destructor - Calls underlying ElasticNode destructor
      */
     ~LeafNode() { this->~ElasticNode<KeyValuePair>(); }
+
+    /**
+     * FindLocation - Returns the start of the first element that compares
+     * greater to the key provided
+     */
+    KeyValuePair *FindLocation(const KeyType &element, BPlusTree *tree) {
+      std::list<ValueType> *dummy_ptr;
+      KeyValuePair dummy_element = std::make_pair(element, dummy_ptr);
+      KeyValuePair *iter = std::lower_bound(this->Begin(), this->End(), dummy_element,
+                                           [tree](const auto &a, const auto &b) { return !tree->KeyCmpGreater(a.first, b.first); });
+      return iter;
+    }
   };
 
   // Key comparator
@@ -762,7 +776,7 @@ class BPlusTree : public BPlusTreeBase {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(key, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
       if (index_pointer != node->Begin()) {
@@ -808,7 +822,7 @@ class BPlusTree : public BPlusTreeBase {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(key, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
       parent = current_node;
@@ -957,7 +971,7 @@ class BPlusTree : public BPlusTreeBase {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(key, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
       if (index_pointer != node->Begin()) {
@@ -1006,7 +1020,7 @@ class BPlusTree : public BPlusTreeBase {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(key, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
       if (index_pointer != node->Begin()) {
@@ -1198,7 +1212,7 @@ class BPlusTree : public BPlusTreeBase {
         auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
         // Note that Find Location returns the location of first element
         // that compare greater than
-        auto index_pointer = node->FindLocation(index_low_key, this);
+        auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(index_low_key, this);
         // Thus we have to go in the left side of location which will be the
         // pointer of the previous location.
 
@@ -1220,7 +1234,7 @@ class BPlusTree : public BPlusTreeBase {
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
     KeyValuePair *element_p;
     if (low_key_exists) {
-      element_p = node->FindLocation(index_low_key, this);
+      element_p = static_cast<LeafNode *>(node)->FindLocation(index_low_key, this);
       if (element_p != node->Begin()) {
         if (KeyCmpEqual((element_p - 1)->first, index_low_key)) {
           element_p--;
@@ -1307,7 +1321,7 @@ class BPlusTree : public BPlusTreeBase {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(index_high_key, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(index_high_key, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
 
@@ -1328,7 +1342,7 @@ class BPlusTree : public BPlusTreeBase {
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
     KeyValuePair *element_p;
-    element_p = node->FindLocation(index_high_key, this);
+    element_p = static_cast<LeafNode *>(node)->FindLocation(index_high_key, this);
 
     bool reach_end = false;
     if (element_p != node->Begin()) {
@@ -1418,7 +1432,7 @@ class BPlusTree : public BPlusTreeBase {
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(index_high_key, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(index_high_key, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
 
@@ -1438,7 +1452,7 @@ class BPlusTree : public BPlusTreeBase {
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
     KeyValuePair *element_p;
-    element_p = node->FindLocation(index_high_key, this);
+    element_p = static_cast<LeafNode *>(node)->FindLocation(index_high_key, this);
 
     bool reach_end = false;
     if (element_p != node->Begin()) {
@@ -1566,7 +1580,7 @@ class BPlusTree : public BPlusTreeBase {
       }
 
       // NOTE: FindLocation returns the location of first element that compares greater than
-      auto index_pointer = node->FindLocation(element.first, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(element.first, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
       if (index_pointer != node->Begin()) {
@@ -1600,7 +1614,7 @@ class BPlusTree : public BPlusTreeBase {
     // This is the element that has to be inserted into the inner nodes.
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
 
-    auto location_greater_key_leaf = node->FindLocation(element.first, this);
+    auto location_greater_key_leaf = static_cast<LeafNode *>(node)->FindLocation(element.first, this);
     if (location_greater_key_leaf != node->Begin()) {
       if (KeyCmpEqual((location_greater_key_leaf - 1)->first, element.first)) {
         // Key present in tree => insert into value list
@@ -1618,6 +1632,7 @@ class BPlusTree : public BPlusTreeBase {
         // Release the latch, insertion is complete
         current_node->ReleaseNodeLatch();
 
+        num_values_++;
         finished_insertion = true;
       }
     }
@@ -1629,11 +1644,13 @@ class BPlusTree : public BPlusTreeBase {
       KeyValuePair key_list_value;
       key_list_value.first = element.first;
       key_list_value.second = value_list;
-      if (node->InsertElementIfPossible(key_list_value, node->FindLocation(element.first, this))) {
+      if (node->InsertElementIfPossible(key_list_value, static_cast<LeafNode *>(node)->FindLocation(element.first, this))) {
         // If you can directly insert in the leaf - Insertion is over
         finished_insertion = true;
         // Insertion is done, release the latch
         current_node->ReleaseNodeLatch();
+        num_keys_++;
+        num_values_++;
       } else {
         delete value_list;
       }
@@ -1691,7 +1708,7 @@ class BPlusTree : public BPlusTreeBase {
       node_list.push_back(current_node);
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(element.first, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(element.first, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
       if (index_pointer != node->Begin()) {
@@ -1711,7 +1728,7 @@ class BPlusTree : public BPlusTreeBase {
     KeyNodePointerPair inner_node_element;
     node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
 
-    location_greater_key_leaf = node->FindLocation(element.first, this);
+    location_greater_key_leaf = static_cast<LeafNode *>(node)->FindLocation(element.first, this);
     if (location_greater_key_leaf != node->Begin()) {
       if (KeyCmpEqual((location_greater_key_leaf - 1)->first, element.first)) {
         auto itr_list = (location_greater_key_leaf - 1)->second->begin();
@@ -1731,6 +1748,7 @@ class BPlusTree : public BPlusTreeBase {
         current_node->ReleaseNodeLatch();
         got_root_latch = ReleaseAllLocks(&node_list, got_root_latch);
 
+        num_values_++;
         finished_insertion = true;
       }
     }
@@ -1740,7 +1758,7 @@ class BPlusTree : public BPlusTreeBase {
       KeyValuePair key_list_value;
       key_list_value.first = element.first;
       key_list_value.second = value_list;
-      if (node->InsertElementIfPossible(key_list_value, node->FindLocation(element.first, this))) {
+      if (node->InsertElementIfPossible(key_list_value, static_cast<LeafNode *>(node)->FindLocation(element.first, this))) {
         // If you can directly insert in the leaf - Insertion is over
         finished_insertion = true;
         got_root_latch = ReleaseAllLocks(&node_list, got_root_latch);
@@ -1755,9 +1773,9 @@ class BPlusTree : public BPlusTreeBase {
         auto splitted_node_begin = splitted_node->Begin();
         // To decide which leaf to put in the element
         if (KeyCmpGreater(splitted_node_begin->first, element.first)) {
-          node->InsertElementIfPossible(key_list_value, node->FindLocation(element.first, this));
+          node->InsertElementIfPossible(key_list_value, static_cast<LeafNode *>(node)->FindLocation(element.first, this));
         } else {
-          splitted_node->InsertElementIfPossible(key_list_value, splitted_node->FindLocation(element.first, this));
+          splitted_node->InsertElementIfPossible(key_list_value, static_cast<LeafNode *>(splitted_node)->FindLocation(element.first, this));
         }
 
         // Set the siblings correctly
@@ -1787,6 +1805,8 @@ class BPlusTree : public BPlusTreeBase {
       }
 
       current_node->ReleaseNodeLatch();
+      num_keys_++;
+      num_values_++;
     }
 
     while (!finished_insertion && !node_list.empty()) {
@@ -1795,7 +1815,7 @@ class BPlusTree : public BPlusTreeBase {
 
       // If we can insert element now without splitting then we are done
       if (inner_node->InsertElementIfPossible(inner_node_element,
-                                              inner_node->FindLocation(inner_node_element.first, this))) {
+                                              static_cast<InnerNode *>(inner_node)->FindLocation(inner_node_element.first, this))) {
         finished_insertion = true;
       } else {
         // otherwise we have to recursively split again
@@ -1804,10 +1824,10 @@ class BPlusTree : public BPlusTreeBase {
         auto splitted_node_begin = splitted_node->Begin();
         if (KeyCmpGreater(splitted_node_begin->first, inner_node_element.first)) {
           inner_node->InsertElementIfPossible(inner_node_element,
-                                              inner_node->FindLocation(inner_node_element.first, this));
+                                              static_cast<InnerNode *>(inner_node)->FindLocation(inner_node_element.first, this));
         } else {
           splitted_node->InsertElementIfPossible(inner_node_element,
-                                                 splitted_node->FindLocation(inner_node_element.first, this));
+                                                 static_cast<InnerNode *>(splitted_node)->FindLocation(inner_node_element.first, this));
         }
 
         splitted_node->GetElasticLowKeyPair()->second = splitted_node->Begin()->second;
@@ -1832,7 +1852,7 @@ class BPlusTree : public BPlusTreeBase {
                                                    root_->GetDepth() + 1, inner_node_size_upper_threshold_, p1, p2);
       auto new_root_node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(root_);
       new_root_node->InsertElementIfPossible(inner_node_element,
-                                             new_root_node->FindLocation(inner_node_element.first, this));
+                                             static_cast<InnerNode *>(new_root_node)->FindLocation(inner_node_element.first, this));
     }
 
     if (got_root_latch) {
@@ -2177,7 +2197,7 @@ class BPlusTree : public BPlusTreeBase {
 
       // Note that Find Location returns the location of first element
       // that compare greater than
-      auto index_pointer = node->FindLocation(element.first, this);
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(element.first, this);
       // Thus we have to go in the left side of location which will be the
       // pointer of the previous location.
       if (index_pointer != node->Begin()) {
@@ -2207,7 +2227,7 @@ class BPlusTree : public BPlusTreeBase {
 
     bool finished_deletion = false;
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    auto location_greater_key_leaf = node->FindLocation(element.first, this);
+    auto location_greater_key_leaf = static_cast<LeafNode *>(node)->FindLocation(element.first, this);
     if (location_greater_key_leaf != node->Begin()) {
       if (KeyCmpEqual((location_greater_key_leaf - 1)->first, element.first)) {
         // Key present in tree => check if value present & delete from value list
@@ -2335,7 +2355,7 @@ class BPlusTree : public BPlusTreeBase {
     if (current_node->GetType() == NodeType::LeafType) {
       // Leaf Node case => delete element
       auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-      auto leaf_position = node->FindLocation(element.first, this);
+      auto leaf_position = static_cast<LeafNode *>(node)->FindLocation(element.first, this);
       if (leaf_position != node->Begin()) {
         leaf_position -= 1;
         if (KeyCmpEqual(leaf_position->first, element.first)) {
@@ -2393,7 +2413,7 @@ class BPlusTree : public BPlusTreeBase {
     } else {
       // Inner Node case => call delete element on child and check if child becomes underfull
       auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
-      auto child_position = node->FindLocation(element.first, this);
+      auto child_position = static_cast<InnerNode *>(node)->FindLocation(element.first, this);
       BaseNode *child_pointer;
       int index;
       if (child_position != node->Begin()) {
@@ -2437,6 +2457,22 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     return false;
+  }
+
+  /**
+   * Returns the size of the B+ Tree (number of keys stored)
+   * @return The size of the tree
+   */
+  uint64_t GetSize() {
+    return num_keys_;
+  }
+
+  /**
+   * Returns the estimated heap usage of the B+ Tree
+   * @return Estimated heap usage
+   */
+  size_t EstimateHeapUsage() {
+    return GetHeapUsage();
   }
 
   explicit BPlusTree(KeyComparator p_key_cmp_obj = KeyComparator{},

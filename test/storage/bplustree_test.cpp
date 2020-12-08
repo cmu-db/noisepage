@@ -221,7 +221,7 @@ void FindLocationTest() {
     s.insert(k);
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p;
     p.first = k;
-    EXPECT_EQ(node->InsertElementIfPossible(p, node->FindLocation(k, bplustree)), true);
+    EXPECT_EQ(node->InsertElementIfPossible(p, static_cast<BPlusTree<int, TupleSlot>::InnerNode *>(node)->FindLocation(k, bplustree)), true);
   }
   auto iter = node->Begin();
   for (auto &elem : s) {

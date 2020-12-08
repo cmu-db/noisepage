@@ -19,8 +19,7 @@ void BPlusTreeIndex<KeyType>::PerformGarbageCollection() {
 
 template <typename KeyType>
 size_t BPlusTreeIndex<KeyType>::EstimateHeapUsage() const {
-  // TODO (abhijithanilkumar): Correct this
-  return 0;
+  return bplustree_->EstimateHeapUsage();
 }
 
 template <typename KeyType>
@@ -39,7 +38,6 @@ bool BPlusTreeIndex<KeyType>::Insert(common::ManagedPointer<transaction::Transac
       "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BPlusTree itself.");
   // Register an abort action with the txn context in case of rollback
   txn->RegisterAbortAction([=]() {
-    // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
     const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteElement(bplustree_->GetElement(index_key, location));
 
     NOISEPAGE_ASSERT(result, "Delete on the index failed.");
@@ -52,7 +50,6 @@ bool BPlusTreeIndex<KeyType>::InsertUnique(common::ManagedPointer<transaction::T
   NOISEPAGE_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
   KeyType index_key;
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
-  // bool predicate_satisfied = false;
 
   // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
   auto predicate = [txn](const TupleSlot slot) -> bool {
@@ -62,8 +59,7 @@ bool BPlusTreeIndex<KeyType>::InsertUnique(common::ManagedPointer<transaction::T
     return has_conflict || is_visible;
   };
 
-  // FIXME(15-721 project2): perform a non-unique CONDITIONAL insert into the underlying data structure of the
-  // key/value pair
+  // Insert a key-value pair
   const bool result = bplustree_->Insert(bplustree_->GetElement(index_key, location), predicate);
 
   // TERRIER_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
@@ -71,7 +67,6 @@ bool BPlusTreeIndex<KeyType>::InsertUnique(common::ManagedPointer<transaction::T
   if (result) {
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
-      // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
       const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteElement(bplustree_->GetElement(index_key, location));
       NOISEPAGE_ASSERT(result, "Delete on the index failed.");
     });
@@ -97,7 +92,6 @@ void BPlusTreeIndex<KeyType>::Delete(common::ManagedPointer<transaction::Transac
   // Register a deferred action for the GC with txn manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() {
-      // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
       const bool UNUSED_ATTRIBUTE result = bplustree_->DeleteElement(bplustree_->GetElement(index_key, location));
 
       NOISEPAGE_ASSERT(result, "Deferred delete on the index failed.");
@@ -116,7 +110,6 @@ void BPlusTreeIndex<KeyType>::ScanKey(const transaction::TransactionContext &txn
   index_key.SetFromProjectedRow(key, metadata_, metadata_.GetSchema().GetColumns().size());
 
   // Perform lookup in BPlusTree
-  // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
   bplustree_->FindValueOfKey(index_key, &results);
 
   // Avoid resizing our value_list, even if it means over-provisioning
@@ -148,7 +141,6 @@ void BPlusTreeIndex<KeyType>::ScanAscending(const transaction::TransactionContex
 
   std::vector<TupleSlot> results;
 
-  // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
   bplustree_->ScanAscending(index_low_key, index_high_key, low_key_exists, num_attrs, high_key_exists, limit,
                             &results, &metadata_);
 
@@ -166,7 +158,6 @@ void BPlusTreeIndex<KeyType>::ScanDescending(const transaction::TransactionConte
   index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
   index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
-  // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
   bool scan_completed = false;
   std::vector<TupleSlot> results;
 
@@ -190,7 +181,6 @@ void BPlusTreeIndex<KeyType>::ScanLimitDescending(const transaction::Transaction
   index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
   index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
-  // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
   bool scan_completed = false;
   std::vector<TupleSlot> results;
   while (!scan_completed) {
@@ -205,8 +195,7 @@ void BPlusTreeIndex<KeyType>::ScanLimitDescending(const transaction::Transaction
 
 template <typename KeyType>
 uint64_t BPlusTreeIndex<KeyType>::GetSize() const {
-  // TODO (abhijithanilkumar): Implement this
-  return 0;
+  return bplustree_->GetSize();
 }
 
 template class BPlusTreeIndex<CompactIntsKey<8>>;
