@@ -85,10 +85,11 @@ class DropViewPlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param view_oid OID of the view to drop
+   * @param plan_node_id Plan node id
    */
   DropViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                    std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                   catalog::view_oid_t view_oid, bool if_exists);
+                   catalog::view_oid_t view_oid, bool if_exists, plan_node_id_t plan_node_id);
 
  public:
   /**

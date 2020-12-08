@@ -32,6 +32,7 @@ Here's a list of modern features that you might want to make use of:
 * Smart pointers, in particular `unique_ptr`.
 * STL data structures, such as `unordered_set`, `unordered_map`, etc.
 * Threads, deleted member functions, lambdas, etc.
+* `static_assert` and/or `type_traits` such as `std::enable_if`, `std::is_same`.
 
 ### C++ Project Structure
  

@@ -410,9 +410,11 @@ class MiniRunners : public benchmark::Fixture {
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
     binder.BindNameToNode(common::ManagedPointer(stmt_list), params, param_types);
 
-    auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-        common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
-        db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+    auto out_plan =
+        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                             common::ManagedPointer(stmt_list), db_oid, db_main->GetStatsStorage(),
+                                             std::move(cost_model), optimizer_timeout_)
+            ->TakePlanNodeOwnership();
 
     out_plan = checker(common::ManagedPointer(txn), std::move(out_plan));
     if (out_plan->GetPlanNodeType() == planner::PlanNodeType::CREATE_INDEX) {
@@ -607,28 +609,28 @@ class MiniRunners : public benchmark::Fixture {
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_PLUS_OR_MINUS: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_PLUS(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_MULTIPLY: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_MULTIPLY(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_DIVIDE: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_DIVIDE(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_GEQ(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);

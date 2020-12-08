@@ -13,6 +13,9 @@ namespace noisepage {
 /**
  * These tests are adapted from https://github.com/wangziqi2013/BwTree/tree/master/test
  * Please do not use these as a model for other tests within this repository.
+ *
+ * Update 12/8/2020: They have been disabled because they take too long in CI. They've been running on essentially the
+ * same data structure for about 2 years, and we know its issues.
  */
 struct BwTreeTests : public TerrierTest {
   const uint32_t num_threads_ =
@@ -29,7 +32,7 @@ struct BwTreeTests : public TerrierTest {
  * garbage chain or not properly released by the GC.
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
+TEST_F(BwTreeTests, DISABLED_ReproduceNewOrderMemoryLeak) {
   NOISEPAGE_ASSERT(num_threads_ % 2 == 0,
                    "This test requires an even number of threads. This should have been handled when it was assigned.");
 
@@ -89,7 +92,7 @@ TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
  * Modified to have Inserts live on the heap, because that's required according to Ziqi
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, BloomFilter) {
+TEST_F(BwTreeTests, DISABLED_BloomFilter) {
   std::vector<uint32_t *> loose_pointers;
   const uint32_t *buffer[256];
 
@@ -121,7 +124,7 @@ TEST_F(BwTreeTests, BloomFilter) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/stl_test/sorted_small_set_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, SortedSmallSet) {
+TEST_F(BwTreeTests, DISABLED_SortedSmallSet) {
   const uint32_t num_inserts = 100;
   auto *buffer = new uint32_t[num_inserts];
 
@@ -148,7 +151,7 @@ TEST_F(BwTreeTests, SortedSmallSet) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/iterator_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ForwardIterator) {
+TEST_F(BwTreeTests, DISABLED_ForwardIterator) {
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   const int key_num = 1024 * 1024;
 
@@ -188,7 +191,7 @@ TEST_F(BwTreeTests, ForwardIterator) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/iterator_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ReverseIterator) {
+TEST_F(BwTreeTests, DISABLED_ReverseIterator) {
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   const int key_num = 1024 * 1024;
 
@@ -223,7 +226,7 @@ TEST_F(BwTreeTests, ReverseIterator) {
  * Adapted from https://github.com/wangziqi2013/BwTree/blob/master/test/random_pattern_test.cpp
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ConcurrentRandomInsert) {
+TEST_F(BwTreeTests, DISABLED_ConcurrentRandomInsert) {
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024;
   std::atomic<size_t> insert_success_counter = 0;
@@ -271,7 +274,7 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
  * concurrently on the same key
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, ConcurrentMixed) {
+TEST_F(BwTreeTests, DISABLED_ConcurrentMixed) {
   NOISEPAGE_ASSERT(num_threads_ % 2 == 0,
                    "This test requires an even number of threads. This should have been handled when it was assigned.");
 
@@ -321,7 +324,7 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
  * Test Basic Insert/Delete/GetValue with different patterns and multi thread
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, Interleaved) {
+TEST_F(BwTreeTests, DISABLED_Interleaved) {
   const uint32_t basic_test_key_num = 128 * 1024;
 
   common::WorkerPool thread_pool(num_threads_, {});
@@ -483,7 +486,7 @@ TEST_F(BwTreeTests, Interleaved) {
  * This function enters epoch and takes a random delay and exits epoch repeat until desired count has been reached
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeTests, EpochManager) {
+TEST_F(BwTreeTests, DISABLED_EpochManager) {
   common::WorkerPool thread_pool(num_threads_, {});
   thread_pool.Startup();
   auto *const tree = BwTreeTestUtil::GetEmptyTree();

@@ -99,10 +99,12 @@ class DropTriggerPlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param trigger_oid OID of the trigger to drop
+   * @param plan_node_id Plan node id
    */
   DropTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                      catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists);
+                      catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists,
+                      plan_node_id_t plan_node_id);
 
  public:
   /**
