@@ -55,7 +55,7 @@ TEST_F(BinderUtilTest, VarcharToBigInt) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderUtilTest, VarcharToDecimal) {
-  TestCheckAndTryPromoteType<double>(type::TypeId::DECIMAL, "15721.15445", 15721.15445, "1.79769e+310");
+TEST_F(BinderUtilTest, VarcharToReal) {
+  TestCheckAndTryPromoteType<double>(type::TypeId::REAL, "15721.15445", 15721.15445, "1.79769e+310");
 }
 }  // namespace noisepage

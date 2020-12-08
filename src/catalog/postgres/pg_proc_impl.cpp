@@ -364,10 +364,9 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
 
 void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn,
                                 const common::ManagedPointer<DatabaseCatalog> dbc) {
-  const auto DEC = dbc->GetTypeOidForType(type::TypeId::DECIMAL);   // NOLINT
   const auto INT = dbc->GetTypeOidForType(type::TypeId::INTEGER);   // NOLINT
   const auto STR = dbc->GetTypeOidForType(type::TypeId::VARCHAR);   // NOLINT
-  const auto REAL = dbc->GetTypeOidForType(type::TypeId::DECIMAL);  // NOLINT
+  const auto REAL = dbc->GetTypeOidForType(type::TypeId::REAL);     // NOLINT
   const auto DATE = dbc->GetTypeOidForType(type::TypeId::DATE);     // NOLINT
   const auto BOOL = dbc->GetTypeOidForType(type::TypeId::BOOLEAN);  // NOLINT
   const auto VAR = dbc->GetTypeOidForType(type::TypeId::VARIADIC);  // NOLINT
@@ -381,34 +380,34 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   };
 
   // Math functions.
-  create_fn("abs", {"x"}, {DEC}, {DEC}, DEC, true);
+  create_fn("abs", {"x"}, {REAL}, {REAL}, REAL, true);
   create_fn("abs", {"n"}, {INT}, {INT}, INT, true);
-  create_fn("ceil", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("cbrt", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("exp", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("floor", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("log10", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("log2", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("mod", {"a", "b"}, {DEC, DEC}, {DEC, DEC}, DEC, true);
+  create_fn("ceil", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("cbrt", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("exp", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("floor", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("log10", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("log2", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("mod", {"a", "b"}, {REAL, REAL}, {REAL, REAL}, REAL, true);
   create_fn("mod", {"a", "b"}, {INT, INT}, {INT, INT}, INT, true);
-  create_fn("pow", {"x", "y"}, {DEC, DEC}, {DEC, DEC}, DEC, true);
-  create_fn("round", {"x", "n"}, {DEC, INT}, {DEC, INT}, DEC, true);
-  create_fn("round", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("sqrt", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("truncate", {"x"}, {DEC}, {DEC}, DEC, true);
+  create_fn("pow", {"x", "y"}, {REAL, REAL}, {REAL, REAL}, REAL, true);
+  create_fn("round", {"x", "n"}, {REAL, INT}, {REAL, INT}, REAL, true);
+  create_fn("round", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("sqrt", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("truncate", {"x"}, {REAL}, {REAL}, REAL, true);
 
   // Trig functions.
-  create_fn("acos", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("asin", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("atan", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("atan2", {"y", "x"}, {DEC, DEC}, {DEC, DEC}, DEC, true);
-  create_fn("cos", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("cosh", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("cot", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("sin", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("sinh", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("tan", {"x"}, {DEC}, {DEC}, DEC, true);
-  create_fn("tanh", {"x"}, {DEC}, {DEC}, DEC, true);
+  create_fn("acos", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("asin", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("atan", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("atan2", {"y", "x"}, {REAL, REAL}, {REAL, REAL}, REAL, true);
+  create_fn("cos", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("cosh", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("cot", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("sin", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("sinh", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("tan", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("tanh", {"x"}, {REAL}, {REAL}, REAL, true);
 
   // String functions.
   create_fn("ascii", {"s"}, {STR}, {STR}, INT, true);
@@ -479,9 +478,9 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
 
 void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const common::ManagedPointer<DatabaseCatalog> dbc) {
-  auto DEC = type::TypeId::DECIMAL;  // NOLINT
-  auto INT = type::TypeId::INTEGER;  // NOLINT
-  auto VAR = type::TypeId::VARCHAR;  // NOLINT
+  constexpr auto REAL = type::TypeId::REAL;    // NOLINT
+  constexpr auto INT = type::TypeId::INTEGER;  // NOLINT
+  constexpr auto VAR = type::TypeId::VARCHAR;  // NOLINT
 
   auto create_fn = [&](std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
                        execution::ast::Builtin builtin, bool is_exec_ctx_required) {
@@ -490,34 +489,34 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   };
 
   // Math functions.
-  create_fn("abs", DEC, {DEC}, execution::ast::Builtin::Abs, false);
+  create_fn("abs", REAL, {REAL}, execution::ast::Builtin::Abs, false);
   create_fn("abs", INT, {INT}, execution::ast::Builtin::Abs, false);
-  create_fn("ceil", DEC, {DEC}, execution::ast::Builtin::Ceil, false);
-  create_fn("cbrt", DEC, {DEC}, execution::ast::Builtin::Cbrt, false);
-  create_fn("exp", DEC, {DEC}, execution::ast::Builtin::Exp, true);
-  create_fn("floor", DEC, {DEC}, execution::ast::Builtin::Floor, false);
-  create_fn("log10", DEC, {DEC}, execution::ast::Builtin::Log10, false);
-  create_fn("log2", DEC, {DEC}, execution::ast::Builtin::Log2, false);
-  create_fn("mod", DEC, {DEC, DEC}, execution::ast::Builtin::Mod, false);
+  create_fn("ceil", REAL, {REAL}, execution::ast::Builtin::Ceil, false);
+  create_fn("cbrt", REAL, {REAL}, execution::ast::Builtin::Cbrt, false);
+  create_fn("exp", REAL, {REAL}, execution::ast::Builtin::Exp, true);
+  create_fn("floor", REAL, {REAL}, execution::ast::Builtin::Floor, false);
+  create_fn("log10", REAL, {REAL}, execution::ast::Builtin::Log10, false);
+  create_fn("log2", REAL, {REAL}, execution::ast::Builtin::Log2, false);
+  create_fn("mod", REAL, {REAL, REAL}, execution::ast::Builtin::Mod, false);
   create_fn("mod", INT, {INT, INT}, execution::ast::Builtin::Mod, false);
-  create_fn("pow", DEC, {DEC, DEC}, execution::ast::Builtin::Pow, false);
-  create_fn("round", DEC, {DEC}, execution::ast::Builtin::Round, false);
-  create_fn("round", DEC, {DEC, INT}, execution::ast::Builtin::Round2, false);
-  create_fn("sqrt", DEC, {DEC}, execution::ast::Builtin::Sqrt, false);
-  create_fn("truncate", DEC, {DEC}, execution::ast::Builtin::Truncate, false);
+  create_fn("pow", REAL, {REAL, REAL}, execution::ast::Builtin::Pow, false);
+  create_fn("round", REAL, {REAL}, execution::ast::Builtin::Round, false);
+  create_fn("round", REAL, {REAL, INT}, execution::ast::Builtin::Round2, false);
+  create_fn("sqrt", REAL, {REAL}, execution::ast::Builtin::Sqrt, false);
+  create_fn("truncate", REAL, {REAL}, execution::ast::Builtin::Truncate, false);
 
   // Trig functions.
-  create_fn("acos", DEC, {DEC}, execution::ast::Builtin::ACos, false);
-  create_fn("asin", DEC, {DEC}, execution::ast::Builtin::ASin, false);
-  create_fn("atan", DEC, {DEC}, execution::ast::Builtin::ATan, false);
-  create_fn("atan2", DEC, {DEC, DEC}, execution::ast::Builtin::ATan2, false);
-  create_fn("cos", DEC, {DEC}, execution::ast::Builtin::Cos, false);
-  create_fn("cosh", DEC, {DEC}, execution::ast::Builtin::Cosh, false);
-  create_fn("cot", DEC, {DEC}, execution::ast::Builtin::Cot, false);
-  create_fn("sin", DEC, {DEC}, execution::ast::Builtin::Sin, false);
-  create_fn("sinh", DEC, {DEC}, execution::ast::Builtin::Sinh, false);
-  create_fn("tan", DEC, {DEC}, execution::ast::Builtin::Tan, false);
-  create_fn("tanh", DEC, {DEC}, execution::ast::Builtin::Tanh, false);
+  create_fn("acos", REAL, {REAL}, execution::ast::Builtin::ACos, false);
+  create_fn("asin", REAL, {REAL}, execution::ast::Builtin::ASin, false);
+  create_fn("atan", REAL, {REAL}, execution::ast::Builtin::ATan, false);
+  create_fn("atan2", REAL, {REAL, REAL}, execution::ast::Builtin::ATan2, false);
+  create_fn("cos", REAL, {REAL}, execution::ast::Builtin::Cos, false);
+  create_fn("cosh", REAL, {REAL}, execution::ast::Builtin::Cosh, false);
+  create_fn("cot", REAL, {REAL}, execution::ast::Builtin::Cot, false);
+  create_fn("sin", REAL, {REAL}, execution::ast::Builtin::Sin, false);
+  create_fn("sinh", REAL, {REAL}, execution::ast::Builtin::Sinh, false);
+  create_fn("tan", REAL, {REAL}, execution::ast::Builtin::Tan, false);
+  create_fn("tanh", REAL, {REAL}, execution::ast::Builtin::Tanh, false);
 
   // String functions.
   create_fn("ascii", INT, {VAR}, execution::ast::Builtin::ASCII, true);
@@ -552,9 +551,9 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   create_fn("version", VAR, {}, execution::ast::Builtin::Version, true);
 
   create_fn("nprunnersemitint", INT, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitInt, true);
-  create_fn("nprunnersemitreal", DEC, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitReal, true);
+  create_fn("nprunnersemitreal", REAL, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitReal, true);
   create_fn("nprunnersdummyint", INT, {}, execution::ast::Builtin::NpRunnersDummyInt, true);
-  create_fn("nprunnersdummyreal", DEC, {}, execution::ast::Builtin::NpRunnersDummyReal, true);
+  create_fn("nprunnersdummyreal", REAL, {}, execution::ast::Builtin::NpRunnersDummyReal, true);
 }
 
 }  // namespace noisepage::catalog::postgres
