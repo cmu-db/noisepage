@@ -34,6 +34,7 @@ namespace noisepage::common {
 template <class Underlying>
 class SanctionedSharedPtr {
  public:
+  /** A shared pointer. Watch out! */
   typedef std::shared_ptr<Underlying> Ptr;  // NOLINT
 };
 }  // namespace noisepage::common
