@@ -309,6 +309,7 @@ void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
   for (const auto &col_meta : index_meta->cols_) {
     const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
     parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
+    col_expr.SetColumnName(col_meta.table_col_name_);
     if (table_col.Type() != type::TypeId::VARCHAR) {
       index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
     } else {

@@ -1016,14 +1016,11 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   InvokeGC();
 
   int num_iters = 1 + settings.index_model_warmup_iterations_num_;
-  bool metrics_enabled = db_main->GetSettingsManager()->GetBool(settings::Param::pipeline_metrics_enable);
-  for (auto i = 0; i < num_iters; i++) {
-    if (i != num_iters - 1 && metrics_enabled) {
-      DbMainSetParam<settings::Param::pipeline_metrics_enable, bool>(false);
-      metrics_enabled = false;
-    } else if (i == num_iters - 1 && !metrics_enabled) {
-      DbMainSetParam<settings::Param::pipeline_metrics_enable, bool>(true);
-      metrics_enabled = true;
+  for (auto iter = 0; iter < num_iters; iter++) {
+    common::ManagedPointer<metrics::MetricsManager> metrics_manager = nullptr;
+    if (iter == num_iters - 1) {
+      metrics_manager_->RegisterThread();
+      metrics_manager = metrics_manager_;
     }
 
     auto txn = txn_manager_->BeginTransaction();
@@ -1036,7 +1033,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     execution::exec::OutputCallback callback = consumer;
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
                                                                         nullptr, common::ManagedPointer(accessor),
-                                                                        exec_settings, metrics_manager_);
+                                                                        exec_settings, metrics_manager);
 
     // A brief discussion of the features:
     // NUM_ROWS: size of the index
@@ -1081,16 +1078,17 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     } else {
       bool has_more;
       uint32_t col_oids[] = {1};
+      bool done = false;
       execution::sql::TableVectorIterator tvi(exec_ctx.get(), tbl_oid.UnderlyingValue(), col_oids, 1);
+      OpTableVectorIteratorPerformInit(&tvi);
       OpTableVectorIteratorNext(&has_more, &tvi);
-      for (; has_more; OpTableVectorIteratorNext(&has_more, &tvi)) {
+      while (has_more) {
         execution::sql::VectorProjectionIterator *vpi = nullptr;
         OpTableVectorIteratorGetVPI(&vpi, &tvi);
 
         bool vpi_next;
-        bool done = false;
         OpVPIHasNext(&vpi_next, vpi);
-        for (; vpi_next; OpVPIHasNext(&vpi_next, vpi)) {
+        while (vpi_next) {
           execution::sql::Integer value(0);
           if (type == type::TypeId::INTEGER) {
             OpVPIGetInteger(&value, vpi, 0);
@@ -1101,13 +1099,31 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
           if (value.val_ == target) {
             done = true;
             OpVPIGetSlot(&slot, vpi);
+
+            // Do a TableDelete
+            bool result;
+            OpStorageInterfaceTableDelete(&result, &si, &slot);
+            if (!result) {
+              OpAbortTxn(exec_ctx.get());
+            }
             break;
           }
+
+          // Advance VPI
+          OpVPIAdvance(vpi);
+          OpVPIHasNext(&vpi_next, vpi);
         }
 
         if (done) {
           break;
         }
+
+        // Advance TVI
+        OpTableVectorIteratorNext(&has_more, &tvi);
+      }
+
+      if (!done) {
+        throw "Expected tuple to be deleted";
       }
     }
 
@@ -1120,39 +1136,44 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
         if (is_insert) {
           execution::sql::Integer val(0);
           if (type == type::TypeId::INTEGER) {
-            OpPRGetInt(&val, tbl_pr, i);
-            OpPRSetInt(idx_pr, i, &val);
+            OpPRGetInt(&val, tbl_pr, col);
+            OpPRSetInt(idx_pr, col, &val);
           } else if (type == type::TypeId::BIGINT) {
-            OpPRGetBigInt(&val, tbl_pr, i);
-            OpPRSetBigInt(idx_pr, i, &val);
+            OpPRGetBigInt(&val, tbl_pr, col);
+            OpPRSetBigInt(idx_pr, col, &val);
           }
         } else {
           execution::sql::Integer value(target);
           if (type == type::TypeId::INTEGER) {
-            OpPRSetInt(idx_pr, i, &value);
+            OpPRSetInt(idx_pr, col, &value);
           } else if (type == type::TypeId::BIGINT) {
-            OpPRSetBigInt(idx_pr, i, &value);
+            OpPRSetBigInt(idx_pr, col, &value);
           }
         }
+      }
 
-        bool result = true;
-        if (is_insert)
-          OpStorageInterfaceIndexInsert(&result, &si);
-        else
-          OpStorageInterfaceIndexDelete(&si, &slot);
+      bool result = true;
+      if (is_insert)
+        OpStorageInterfaceIndexInsert(&result, &si);
+      else
+        OpStorageInterfaceIndexDelete(&si, &slot);
 
-        if (!result) {
-          OpAbortTxn(exec_ctx.get());
-        }
+      if (!result) {
+        OpAbortTxn(exec_ctx.get());
       }
     }
     OpExecutionContextEndPipelineTracker(exec_ctx.get(), execution::query_id_t(0), execution::pipeline_id_t(1),
                                          &features);
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  }
 
-  if (!metrics_enabled) {
-    DbMainSetParam<settings::Param::pipeline_metrics_enable, bool>(true);
+    // For inserts/deletes, abort the transaction.
+    // If insert, don't want prior inserts to affect next insert.
+    // If delete, need to make sure tuple is still visible
+    txn_manager_->Abort(txn);
+
+    if (iter == num_iters - 1) {
+      metrics_manager_->Aggregate();
+      metrics_manager_->UnregisterThread();
+    }
   }
 
   // Drop the indexes
@@ -1522,10 +1543,12 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
   auto tuple_size = is_first_type ? (int_size * update_keys) : (bigint_size * update_keys);
   auto num_col = is_first_type ? num_integers : num_bigints;
+  auto idx_size = is_first_type ? (int_size * num_col) : (bigint_size * num_col);
 
   std::vector<catalog::Schema::Column> cols;
   {
-    int limit = is_first_type ? tbl_ints : tbl_bigints;
+    auto limit = is_first_type ? tbl_ints : tbl_bigints;
+    limit = std::min(limit, num_col + update_keys);
     for (int j = num_col + 1; j <= limit; j++) {
       query << "col" << j << " = "
             << "col" << j;
@@ -1542,7 +1565,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::UPDATE, car,
                          tuple_size, update_keys, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::IDX_SCAN, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         idx_size, num_col, car, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::vector<parser::ConstantValueExpression> params;
