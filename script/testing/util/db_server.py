@@ -45,7 +45,7 @@ class NoisePageServer:
             db_run_command = f'{self.build_path} {server_args_str}'
             self.db_process = subprocess.Popen(shlex.split(db_run_command), stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE)
-            LOG.info(f'Server start: {self.build_path} [PID={self.db_process.pid}]')
+            LOG.info(f'Server start: {db_run_command} [PID={self.db_process.pid}]')
 
             if not run_check_pids(self.db_process.pid):
                 LOG.info(f'{self.db_process.pid} does not exist. Trying again.')
@@ -133,8 +133,9 @@ def generate_server_args_str(server_args):
     """ Create a server args string to pass to the DBMS """
     server_args_arr = []
     for attribute, value in server_args.items():
-        value = f'={value}' if value else ''
-        arg = f'--{attribute}{value}'
+        value = str(value).lower() if isinstance(value, bool) else value
+        value = f'={value}' if value != None else ''
+        arg = f'-{attribute}{value}'
         server_args_arr.append(arg)
 
     return ' '.join(server_args_arr)
