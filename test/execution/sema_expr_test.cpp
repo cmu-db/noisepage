@@ -88,14 +88,18 @@ TEST_F(SemaExprTest, ArithmeticOperationTest) {
            DeclStmt(DeclVar("c", BinOp<parsing::Token::Type::PLUS>(IdentExpr("a"), IdentExpr("b")))),  // var c = a + b
        })},
 
-      // Test: Mixing primitive and SQL types in arithmetic is invalid.
-      // Expectation: Invalid
-      {true, "Mixing primitive and SQL types in arithmetic is invalid",
-       Block({
-           DeclStmt(DeclVar("a", "Real", nullptr)),                                                    // var a: Real
-           DeclStmt(DeclVar("b", "float64", nullptr)),                                                 // var b: float64
-           DeclStmt(DeclVar("c", BinOp<parsing::Token::Type::PLUS>(IdentExpr("a"), IdentExpr("b")))),  // var c = a + b
-       })},
+      // TODO(WAN): This test actually tests that implicit casting was _removed_. However, #1385.
+      //      // Test: Mixing primitive and SQL types in arithmetic is invalid.
+      //      // Expectation: Invalid
+      //      {true, "Mixing primitive and SQL types in arithmetic is invalid",
+      //       Block({
+      //           DeclStmt(DeclVar("a", "Real", nullptr)),                                                    // var a:
+      //           Real
+      //           DeclStmt(DeclVar("b", "float64", nullptr)),                                                 // var b:
+      //           float64
+      //           DeclStmt(DeclVar("c", BinOp<parsing::Token::Type::PLUS>(IdentExpr("a"), IdentExpr("b")))),  // var c
+      //           = a + b
+      //       })},
 
       // Test: Non-arithmetic types cannot be added.
       // Expectation: Invalid
