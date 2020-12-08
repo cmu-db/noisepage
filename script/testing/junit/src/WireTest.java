@@ -24,7 +24,7 @@ public class WireTest extends TestUtility {
 
     private static final String SQL_CREATE_TABLE =
             "CREATE TABLE tbl (" +
-                    "c1 decimal);";
+                    "c1 double);";
 
     /**
      * Initialize the database and table for testing
@@ -88,10 +88,10 @@ public class WireTest extends TestUtility {
     /**
      * 2 tuples inserted, do a bunch of reads. Extended Query with binary serialization enabled (see TestUtility.java)
      * will switch to binary serialization after 5 query invocations. This ensures we support text and binary format
-     * for decimals
+     * for double precision floats
      */
     @Test
-    public void testDecimal() throws SQLException {
+    public void testDouble() throws SQLException {
         PreparedStatement ps = conn.prepareStatement("INSERT INTO tbl VALUES (?), (?);");
         ps.setDouble(1, 15.445);
         ps.setDouble(2, 15.721);

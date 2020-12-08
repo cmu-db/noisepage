@@ -41,8 +41,8 @@ MINI_MODEL_TARGET_NUM = len(MINI_MODEL_TARGET_LIST)
 # All the opunits of arithmetic operations
 ARITHMETIC_OPUNITS = {OpUnit.OP_INTEGER_PLUS_OR_MINUS, OpUnit.OP_INTEGER_MULTIPLY, OpUnit.OP_INTEGER_DIVIDE,
                       OpUnit.OP_INTEGER_COMPARE,
-                      OpUnit.OP_DECIMAL_PLUS_OR_MINUS, OpUnit.OP_DECIMAL_MULTIPLY, OpUnit.OP_DECIMAL_DIVIDE,
-                      OpUnit.OP_DECIMAL_COMPARE}
+                      OpUnit.OP_REAL_PLUS_OR_MINUS, OpUnit.OP_REAL_MULTIPLY, OpUnit.OP_REAL_DIVIDE,
+                      OpUnit.OP_REAL_COMPARE}
 
 # Operating units that need memory adjustment
 MEM_ADJUST_OPUNITS = {OpUnit.SORT_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.AGG_BUILD}

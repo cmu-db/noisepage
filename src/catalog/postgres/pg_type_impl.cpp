@@ -111,7 +111,8 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
   insert_base_type(type::TypeId::SMALLINT, "smallint", sizeof(int16_t));
   insert_base_type(type::TypeId::INTEGER, "integer", sizeof(int32_t));
   insert_base_type(type::TypeId::BIGINT, "bigint", sizeof(int64_t));
-  insert_base_type(type::TypeId::DECIMAL, "decimal", sizeof(double));
+  insert_base_type(type::TypeId::REAL, "real", sizeof(double));
+  insert_base_type(type::TypeId::DECIMAL, "decimal", sizeof(int128_t));
   insert_base_type(type::TypeId::DATE, "date", sizeof(type::date_t));
   insert_base_type(type::TypeId::TIMESTAMP, "timestamp", sizeof(type::timestamp_t));
 

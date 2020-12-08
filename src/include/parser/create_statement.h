@@ -81,11 +81,11 @@ struct ColumnDefinition {
    * @param is_unique is unique
    * @param default_expr default expression
    * @param check_expr check expression
-   * @param varlen size of column if varlen
+   * @param type_modifier max length of varlen, or precision of decimal (atttypmod)
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
                    common::ManagedPointer<AbstractExpression> default_expr,
-                   common::ManagedPointer<AbstractExpression> check_expr, size_t varlen)
+                   common::ManagedPointer<AbstractExpression> check_expr, int32_t type_modifier)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
@@ -93,7 +93,7 @@ struct ColumnDefinition {
         is_unique_(is_unique),
         default_expr_(default_expr),
         check_expr_(check_expr),
-        varlen_(varlen) {}
+        type_modifier_(type_modifier) {}
 
   /**
    * @param str type string
@@ -157,8 +157,12 @@ struct ColumnDefinition {
     } else if (strcmp(str, "bool") == 0) {
       value_type = type::TypeId::BOOLEAN;
     } else if ((strcmp(str, "double") == 0) || (strcmp(str, "float8") == 0) || (strcmp(str, "real") == 0) ||
-               (strcmp(str, "float4") == 0) || (strcmp(str, "numeric") == 0)) {
-      value_type = type::TypeId::DECIMAL;
+               (strcmp(str, "float4") == 0) || (strcmp(str, "numeric") == 0) || (strcmp(str, "decimal") == 0)) {
+      value_type = type::TypeId::REAL;
+      // TODO(Matt): when we support fixed point DECIMAL properly:
+
+      //    } else if ((strcmp(str, "numeric") == 0) || (strcmp(str, "decimal") == 0)) {
+      //      value_type = type::TypeId::DECIMAL;
     } else if (strcmp(str, "tinyint") == 0) {
       value_type = type::TypeId::TINYINT;
     } else if (strcmp(str, "varbinary") == 0) {
@@ -188,15 +192,15 @@ struct ColumnDefinition {
         return type::TypeId::BIGINT;
 
       case DataType::DECIMAL:
+        // TODO(Matt): when we support fixed point DECIMAL properly:
+
+        //        return type::TypeId::DECIMAL;
       case DataType::DOUBLE:
       case DataType::FLOAT:
-        return type::TypeId::DECIMAL;
+        return type::TypeId::REAL;
 
       case DataType::BOOLEAN:
         return type::TypeId::BOOLEAN;
-
-        // case ADDRESS:
-        //  return type::Type::ADDRESS;
 
       case DataType::TIMESTAMP:
         return type::TypeId::TIMESTAMP;
@@ -245,8 +249,8 @@ struct ColumnDefinition {
   /** @return check expression */
   common::ManagedPointer<AbstractExpression> GetCheckExpression() { return check_expr_; }
 
-  /** @return varlen size */
-  size_t GetVarlenSize() { return varlen_; }
+  /** @return type modifier, max varlen size or precision for DECIMAL */
+  int32_t GetTypeModifier() { return type_modifier_; }
 
   /** @return foreign key sources */
   std::vector<std::string> GetForeignKeySources() { return fk_sources_; }
@@ -281,7 +285,7 @@ struct ColumnDefinition {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_unique_)));
     if (default_expr_ != nullptr) hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
     if (check_expr_ != nullptr) hash = common::HashUtil::CombineHashes(hash, check_expr_->Hash());
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(varlen_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_modifier_));
     hash = common::HashUtil::CombineHashInRange(hash, fk_sources_.begin(), fk_sources_.end());
     hash = common::HashUtil::CombineHashInRange(hash, fk_sinks_.begin(), fk_sinks_.end());
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_sink_table_name_));
@@ -303,7 +307,7 @@ struct ColumnDefinition {
     if (is_primary_ != rhs.is_primary_) return false;
     if (is_not_null_ != rhs.is_not_null_) return false;
     if (is_unique_ != rhs.is_unique_) return false;
-    if (varlen_ != rhs.varlen_) return false;
+    if (type_modifier_ != rhs.type_modifier_) return false;
     if ((!default_expr_ && rhs.default_expr_) || (default_expr_ && default_expr_ != rhs.default_expr_)) return false;
     if ((!check_expr_ && rhs.check_expr_) || (check_expr_ && check_expr_ != rhs.check_expr_)) return false;
     if (fk_sources_.size() != rhs.fk_sources_.size()) return false;
@@ -334,7 +338,7 @@ struct ColumnDefinition {
   const bool is_unique_ = false;
   common::ManagedPointer<AbstractExpression> default_expr_ = nullptr;
   common::ManagedPointer<AbstractExpression> check_expr_ = nullptr;
-  const size_t varlen_ = 0;
+  const int32_t type_modifier_ = -1;
 
   const std::vector<std::string> fk_sources_;
   const std::vector<std::string> fk_sinks_;

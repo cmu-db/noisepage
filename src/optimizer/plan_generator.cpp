@@ -1026,7 +1026,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
     auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
 
     if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
-      cols.emplace_back(col->GetColumnName(), val_type, col->GetVarlenSize(), col->IsNullable(), val);
+      cols.emplace_back(col->GetColumnName(), val_type, col->GetTypeModifier(), col->IsNullable(), val);
     } else {
       cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), val);
     }
