@@ -93,6 +93,57 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
     return {left->GetType(), left, right};
   }
 
+  // TODO(WAN): Legacy implicit casting code since the optimizer does not give us the right plan. #1385
+  {
+    // primitive int <OP> primitive int
+    if (left->GetType()->IsIntegerType() && right->GetType()->IsIntegerType()) {
+      if (left->GetType()->GetSize() < right->GetType()->GetSize()) {
+        auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::IntegralCast);
+        return {right->GetType(), new_left, right};
+      }
+      auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::IntegralCast);
+      return {left->GetType(), left, new_right};
+    }
+
+    // primitive int <OP> SQL int
+    if (left->GetType()->IsIntegerType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+      auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::IntToSqlInt);
+      return {right->GetType(), new_left, right};
+    }
+
+    // SQL int <OP> primitive int
+    if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) && right->GetType()->IsIntegerType()) {
+      auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::IntToSqlInt);
+      return {left->GetType(), left, new_right};
+    }
+
+    // primitive float <OP> SQL real
+    if (left->GetType()->IsFloatType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+      auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::FloatToSqlReal);
+      return {right->GetType(), new_left, right};
+    }
+
+    // SQL real <OP> primitive float
+    if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) && right->GetType()->IsFloatType()) {
+      auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::FloatToSqlReal);
+      return {left->GetType(), left, new_right};
+    }
+
+    // SQL int <OP> SQL real
+    if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) &&
+        right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+      auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlIntToSqlReal);
+      return {right->GetType(), new_left, right};
+    }
+
+    // SQL real <OP> SQL int
+    if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
+        right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+      auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::SqlIntToSqlReal);
+      return {left->GetType(), left, new_right};
+    }
+  }
+
   if (CheckAssignmentConstraints(left->GetType(), &right)) {
     return {left->GetType(), left, right};
   }
@@ -127,6 +178,105 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   //   comparable. Two array values are equal if their corresponding elements
   //   are equal.
 
+  // TODO(WAN): Legacy implicit casting code since the optimizer does not give us the right plan. #1385
+  {
+    // Check for raw pointer comparison.
+    if (left->GetType()->IsPointerType() || right->GetType()->IsPointerType()) {
+      if (!parsing::Token::IsEqualityOp(op)) {
+        GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());
+        return {nullptr, left, right};
+      }
+
+      auto lhs = left->GetType()->GetPointeeType();
+      auto rhs = right->GetType()->GetPointeeType();
+
+      bool same_pointee_type = (lhs != nullptr && lhs == rhs);
+      bool compare_with_nil =
+          (lhs == nullptr && left->GetType()->IsNilType()) || (rhs == nullptr && right->GetType()->IsNilType());
+      if (same_pointee_type || compare_with_nil) {
+        auto *ret_type = ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool);
+        return {ret_type, left, right};
+      }
+
+      // Error
+      GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());
+      return {nullptr, left, right};
+    }
+
+    // If the input types are the same, we don't need to do any work.
+    if (left->GetType() == right->GetType()) {
+      ast::Type *result_type = left->GetType()->IsSqlValueType()
+                                   ? ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean)
+                                   : ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool);
+      return {result_type, left, right};
+    }
+
+    // TODO(pmenon): revisit with a fix for down/up-casting integers #1174
+    // If both input types are integers, we don't need to do any work.
+    if (left->GetType()->IsIntegerType() && right->GetType()->IsIntegerType()) {
+      ast::Type *result_type = ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool);
+      return {result_type, left, right};
+    }
+
+    // Check SQL comparisons separately.
+    if (left->GetType()->IsSqlValueType() || right->GetType()->IsSqlValueType()) {
+      // Primitive bool <cmp> SQL Boolean -> cast left.
+      if (left->GetType()->IsBoolType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
+        auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::BoolToSqlBool);
+        return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), new_left, right};
+      }
+
+      // SQL Boolean <cmp> Primitive bool -> cast right.
+      if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean) && right->GetType()->IsBoolType()) {
+        auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::BoolToSqlBool);
+        return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), left, new_right};
+      }
+
+      // Primitive float <cmp> SQL Float -> cast left.
+      if (left->GetType()->IsFloatType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+        auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::FloatToSqlReal);
+        return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), new_left, right};
+      }
+
+      // SQL Float <cmp> Primitive Float -> cast right.
+      if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) && right->GetType()->IsFloatType()) {
+        auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::FloatToSqlReal);
+        return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), left, new_right};
+      }
+
+      // Primitive int <cmp> SQL Integer -> cast left.
+      if (left->GetType()->IsIntegerType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::IntToSqlInt);
+        return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), new_left, right};
+      }
+
+      // SQL Integer <cmp> Primitive int -> cast right.
+      if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) && right->GetType()->IsIntegerType()) {
+        auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::IntToSqlInt);
+        return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), left, new_right};
+      }
+    }
+
+    // If neither input expression is arithmetic, it's an ill-formed operation.
+    if (!left->GetType()->IsArithmetic() || !right->GetType()->IsArithmetic()) {
+      GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());
+      return {nullptr, left, right};
+    }
+
+    // Primitive int -> primitive float
+    if (left->GetType()->IsIntegerType() && right->GetType()->IsFloatType()) {
+      auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::IntToFloat);
+      return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool), new_left, right};
+    }
+
+    if (left->GetType()->IsFloatType() && right->GetType()->IsIntegerType()) {
+      auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::IntToFloat);
+      return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool), left, new_right};
+    }
+
+    UNREACHABLE("Impossible");
+  }
+
   // Check assignment constraints.
   if (!CheckAssignmentConstraints(right->GetType(), &left)) {
     if (!CheckAssignmentConstraints(left->GetType(), &right)) {
@@ -157,6 +307,63 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
 bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) {
   NOISEPAGE_ASSERT(target_type != nullptr, "Target type cannot be null.");
   NOISEPAGE_ASSERT((*expr)->GetType() != nullptr, "The input Expr must have been type-checked.");
+
+  // TODO(WAN): Legacy implicit casting code since the optimizer does not give us the right plan. #1385
+  {
+    // If the target and expression types are the same, nothing to do
+    if ((*expr)->GetType() == target_type) {
+      return true;
+    }
+
+    // Null pointers
+    if (target_type->IsPointerType() && (*expr)->GetType()->IsNilType()) {
+      return true;
+    }
+
+    // Integer expansion
+    if (target_type->IsIntegerType() && (*expr)->GetType()->IsIntegerType()) {
+      if (target_type->GetSize() > (*expr)->GetType()->GetSize()) {
+        *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
+      }
+      return true;
+    }
+
+    // Float to integer expansion
+    if (target_type->IsIntegerType() && (*expr)->GetType()->IsFloatType()) {
+      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::FloatToInt);
+      return true;
+    }
+
+    // Integer to float expansion
+    if (target_type->IsFloatType() && (*expr)->GetType()->IsIntegerType()) {
+      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntToFloat);
+      return true;
+    }
+
+    // Convert *[N]Type to [*]Type
+    if (auto *target_arr = target_type->SafeAs<ast::ArrayType>()) {
+      if (auto *expr_base = (*expr)->GetType()->GetPointeeType()) {
+        if (auto *expr_arr = expr_base->SafeAs<ast::ArrayType>()) {
+          if (target_arr->HasUnknownLength() && expr_arr->HasKnownLength()) {
+            *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
+            return true;
+          }
+        }
+      }
+    }
+
+    // *T to *U
+    if (target_type->IsPointerType() || (*expr)->GetType()->IsPointerType()) {
+      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
+      return true;
+    }
+
+    // SQL bool to primitive bool
+    if (target_type->IsBoolType() && (*expr)->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
+      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::SqlBoolToBool);
+      return true;
+    }
+  }
 
   // A value 'x' is assignable to a variable of type 'T' if one of the following
   // conditions are met:
