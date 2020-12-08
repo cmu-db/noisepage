@@ -15,7 +15,7 @@ class MiniRunnersDataConfig {
  public:
   /** Distribution of table column types */
   std::vector<std::vector<type::TypeId>> table_type_dists_ = {
-      {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::BIGINT},
+      {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::BIGINT},
       {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
 
   /**

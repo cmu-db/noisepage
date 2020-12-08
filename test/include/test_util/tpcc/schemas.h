@@ -51,11 +51,11 @@ class Schemas {
     warehouse_columns.emplace_back("w_zip", type::TypeId::VARCHAR, 9, false,
                                    parser::ConstantValueExpression(type::TypeId::VARCHAR));
     // signed numeric(4,4)
-    warehouse_columns.emplace_back("w_tax", type::TypeId::DECIMAL, false,
-                                   parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    warehouse_columns.emplace_back("w_tax", type::TypeId::REAL, false,
+                                   parser::ConstantValueExpression(type::TypeId::REAL));
     // signed numeric(12,2)
-    warehouse_columns.emplace_back("w_ytd", type::TypeId::DECIMAL, false,
-                                   parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    warehouse_columns.emplace_back("w_ytd", type::TypeId::REAL, false,
+                                   parser::ConstantValueExpression(type::TypeId::REAL));
 
     NOISEPAGE_ASSERT(warehouse_columns.size() == NUM_WAREHOUSE_TABLE_COLS,
                      "Wrong number of columns for Warehouse table schema.");
@@ -119,11 +119,11 @@ class Schemas {
     district_columns.emplace_back("d_zip", type::TypeId::VARCHAR, 9, false,
                                   parser::ConstantValueExpression(type::TypeId::VARCHAR));
     // signed numeric(4,4)
-    district_columns.emplace_back("d_tax", type::TypeId::DECIMAL, false,
-                                  parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    district_columns.emplace_back("d_tax", type::TypeId::REAL, false,
+                                  parser::ConstantValueExpression(type::TypeId::REAL));
     // signed numeric(12,2)
-    district_columns.emplace_back("d_ytd", type::TypeId::DECIMAL, false,
-                                  parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    district_columns.emplace_back("d_ytd", type::TypeId::REAL, false,
+                                  parser::ConstantValueExpression(type::TypeId::REAL));
     // 10,000,000 unique IDs
     district_columns.emplace_back("d_next_o_id", type::TypeId::INTEGER, false,
                                   parser::ConstantValueExpression(type::TypeId::INTEGER));
@@ -211,17 +211,17 @@ class Schemas {
     customer_columns.emplace_back("c_credit", type::TypeId::VARCHAR, 2, false,
                                   parser::ConstantValueExpression(type::TypeId::VARCHAR));
     // signed numeric(12,2)
-    customer_columns.emplace_back("c_credit_lim", type::TypeId::DECIMAL, false,
-                                  parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    customer_columns.emplace_back("c_credit_lim", type::TypeId::REAL, false,
+                                  parser::ConstantValueExpression(type::TypeId::REAL));
     // signed numeric(4,4)
-    customer_columns.emplace_back("c_discount", type::TypeId::DECIMAL, false,
-                                  parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    customer_columns.emplace_back("c_discount", type::TypeId::REAL, false,
+                                  parser::ConstantValueExpression(type::TypeId::REAL));
     // signed numeric(12,2)
-    customer_columns.emplace_back("c_balance", type::TypeId::DECIMAL, false,
-                                  parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    customer_columns.emplace_back("c_balance", type::TypeId::REAL, false,
+                                  parser::ConstantValueExpression(type::TypeId::REAL));
     // signed numeric(12,2)
-    customer_columns.emplace_back("c_ytd_payment", type::TypeId::DECIMAL, false,
-                                  parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    customer_columns.emplace_back("c_ytd_payment", type::TypeId::REAL, false,
+                                  parser::ConstantValueExpression(type::TypeId::REAL));
     // numeric(4)
     customer_columns.emplace_back("c_payment_cnt", type::TypeId::SMALLINT, false,
                                   parser::ConstantValueExpression(type::TypeId::SMALLINT));
@@ -287,7 +287,7 @@ class Schemas {
         schema.GetColumn(1).Name(), schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
         parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     customer_secondary_key_schema.emplace_back(
-        schema.GetColumn(5).Name(), schema.GetColumn(5).Type(), schema.GetColumn(5).MaxVarlenSize(),
+        schema.GetColumn(5).Name(), schema.GetColumn(5).Type(), schema.GetColumn(5).TypeModifier(),
         schema.GetColumn(5).Nullable(), parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(5).Oid()));
 
     NOISEPAGE_ASSERT(customer_secondary_key_schema.size() == NUM_CUSTOMER_SECONDARY_INDEX_COLS,
@@ -323,8 +323,8 @@ class Schemas {
     history_columns.emplace_back("h_date", type::TypeId::TIMESTAMP, false,
                                  parser::ConstantValueExpression(type::TypeId::TIMESTAMP));
     // signed numeric(6,2)
-    history_columns.emplace_back("h_amount", type::TypeId::DECIMAL, false,
-                                 parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    history_columns.emplace_back("h_amount", type::TypeId::REAL, false,
+                                 parser::ConstantValueExpression(type::TypeId::REAL));
     // variable text, size 24
     history_columns.emplace_back("h_data", type::TypeId::VARCHAR, 24, false,
                                  parser::ConstantValueExpression(type::TypeId::VARCHAR));
@@ -520,8 +520,8 @@ class Schemas {
     order_line_columns.emplace_back("ol_quantity", type::TypeId::TINYINT, false,
                                     parser::ConstantValueExpression(type::TypeId::TINYINT));
     // signed numeric(6,2)
-    order_line_columns.emplace_back("ol_amount", type::TypeId::DECIMAL, false,
-                                    parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    order_line_columns.emplace_back("ol_amount", type::TypeId::REAL, false,
+                                    parser::ConstantValueExpression(type::TypeId::REAL));
     // fixed text, size 24
     order_line_columns.emplace_back("ol_dist_info", type::TypeId::VARCHAR, 24, false,
                                     parser::ConstantValueExpression(type::TypeId::VARCHAR));
@@ -582,8 +582,8 @@ class Schemas {
     item_columns.emplace_back("i_name", type::TypeId::VARCHAR, 24, false,
                               parser::ConstantValueExpression(type::TypeId::VARCHAR));
     // numeric(5,2)
-    item_columns.emplace_back("i_price", type::TypeId::DECIMAL, false,
-                              parser::ConstantValueExpression(type::TypeId::DECIMAL));
+    item_columns.emplace_back("i_price", type::TypeId::REAL, false,
+                              parser::ConstantValueExpression(type::TypeId::REAL));
     // variable text, size 50
     item_columns.emplace_back("i_data", type::TypeId::VARCHAR, 50, false,
                               parser::ConstantValueExpression(type::TypeId::VARCHAR));
