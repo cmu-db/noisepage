@@ -162,7 +162,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
         case type::TypeId::BIGINT:
           builtin = ast::Builtin::GetParamBigInt;
           break;
-        case type::TypeId::DECIMAL:
+        case type::TypeId::REAL:
           builtin = ast::Builtin::GetParamDouble;
           break;
         case type::TypeId::DATE:

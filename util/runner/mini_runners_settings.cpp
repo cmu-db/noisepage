@@ -1,8 +1,9 @@
+#include "runner/mini_runners_settings.h"
+
 #include <cstdlib>
 #include <cstring>
 
 #include "loggers/settings_logger.h"
-#include "runner/mini_runners_settings.h"
 
 namespace noisepage::runner {
 

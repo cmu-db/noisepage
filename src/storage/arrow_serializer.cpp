@@ -86,8 +86,8 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
           type = flatbuf::Type_Timestamp;
           type_offset = flatbuf::CreateTimestamp(*flatbuf_builder, flatbuf::TimeUnit_MICROSECOND).Union();
           break;
-        case type::TypeId::DECIMAL:
-          type = flatbuf::Type_Decimal;
+        case type::TypeId::REAL:
+          type = flatbuf::Type_Decimal;  // TODO(Matt): why isn't this Type_FloatingPoint?
           type_offset = flatbuf::CreateFloatingPoint(*flatbuf_builder, flatbuf::Precision_DOUBLE).Union();
           break;
         default:

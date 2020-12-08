@@ -907,8 +907,10 @@ void PlanGenerator::Visit(const Update *op) {
     if (update_col_offsets.find(col_id) != update_col_offsets.end())
       throw SYNTAX_EXCEPTION("Multiple assignments to same column");
 
+    // We need to EvaluateExpression since column value expressions in the update
+    // clause should refer to column values coming from the child.
     update_col_offsets.insert(col_id);
-    auto upd_value = update->GetUpdateValue()->Copy().release();
+    auto upd_value = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, update->GetUpdateValue()).release();
     builder.AddSetClause(std::make_pair(col_id, common::ManagedPointer(upd_value)));
 
     update_column_names.insert(update->GetColumnName());
@@ -1024,7 +1026,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
     auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
 
     if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
-      cols.emplace_back(col->GetColumnName(), val_type, col->GetVarlenSize(), col->IsNullable(), val);
+      cols.emplace_back(col->GetColumnName(), val_type, col->GetTypeModifier(), col->IsNullable(), val);
     } else {
       cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), val);
     }

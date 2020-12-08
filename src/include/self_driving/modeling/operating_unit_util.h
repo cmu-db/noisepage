@@ -70,8 +70,8 @@ class OperatingUnitUtil {
           case type::TypeId::INTEGER:
           case type::TypeId::BIGINT:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS);
-          case type::TypeId::DECIMAL:
-            return std::make_pair(type, ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS);
+          case type::TypeId::REAL:
+            return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_PLUS_OR_MINUS);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
         }
@@ -83,8 +83,8 @@ class OperatingUnitUtil {
           case type::TypeId::INTEGER:
           case type::TypeId::BIGINT:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY);
-          case type::TypeId::DECIMAL:
-            return std::make_pair(type, ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY);
+          case type::TypeId::REAL:
+            return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_MULTIPLY);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
         }
@@ -96,8 +96,8 @@ class OperatingUnitUtil {
           case type::TypeId::INTEGER:
           case type::TypeId::BIGINT:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_DIVIDE);
-          case type::TypeId::DECIMAL:
-            return std::make_pair(type, ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE);
+          case type::TypeId::REAL:
+            return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_DIVIDE);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
         }
@@ -118,8 +118,8 @@ class OperatingUnitUtil {
           case type::TypeId::INTEGER:
           case type::TypeId::BIGINT:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
-          case type::TypeId::DECIMAL:
-            return std::make_pair(type, ExecutionOperatingUnitType::OP_DECIMAL_COMPARE);
+          case type::TypeId::REAL:
+            return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_COMPARE);
           case type::TypeId::TIMESTAMP:
           case type::TypeId::DATE:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
