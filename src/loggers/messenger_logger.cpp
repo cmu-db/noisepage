@@ -4,7 +4,7 @@
 
 namespace noisepage::messenger {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> messenger_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr messenger_logger = nullptr;
 
 void InitMessengerLogger() {
   if (messenger_logger == nullptr) {
