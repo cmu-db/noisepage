@@ -11,6 +11,7 @@
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 
@@ -206,8 +207,13 @@ class Schema {
 
     void Validate() const {
       NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      NOISEPAGE_ASSERT(default_value_ == nullptr || type_ == default_value_->GetReturnValueType(),
+      NOISEPAGE_ASSERT(default_value_ == nullptr || type_ == default_value_->GetReturnValueType() ||
+                           (default_value_->GetReturnValueType() == type::TypeId::INVALID &&
+                            common::ManagedPointer(default_value_)
+                                .CastManagedPointerTo<parser::ConstantValueExpression>()
+                                ->IsNull()),
                        "Default value does not have same time as the column.");
+      // TODO(Matt): I don't love that last part that NULL default values come out of the parser. Maybe we change that.
 
       if (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY) {
         NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
