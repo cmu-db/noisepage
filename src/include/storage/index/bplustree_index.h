@@ -39,7 +39,7 @@ class BPlusTreeIndex final : public Index {
    * @return type of the index. Note that this is the physical type, not extracted from the underlying schema or other
    * catalog metadata. This is mostly used for debugging purposes.
    */
-  IndexType Type() const final { return IndexType::BWTREE; }
+  IndexType Type() const final { return IndexType::BPLUSTREE; }
 
   /**
    * Invoke garbage collection on the index.
