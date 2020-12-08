@@ -727,7 +727,7 @@ void DbMainSetParam(T value) {
 void NetworkQueriesOutputRunners(pqxx::work *txn) {
   std::ostream null{nullptr};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
   std::vector<int64_t> row_nums = {1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000};
 
   bool metrics_enabled = db_main->GetSettingsManager()->GetBool(settings::Param::pipeline_metrics_enable);
@@ -856,9 +856,9 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
-  auto num_decimals = state.range(1);
+  auto num_reals = state.range(1);
   auto row_num = state.range(2);
-  auto num_col = num_integers + num_decimals;
+  auto num_col = num_integers + num_reals;
 
   std::stringstream output;
   output << "struct OutputStruct {\n";
@@ -927,15 +927,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
     cols.emplace_back(col.str(), type::TypeId::INTEGER, nullptr);
   }
 
-  for (auto i = 0; i < num_decimals; i++) {
+  for (auto i = 0; i < num_reals; i++) {
     std::stringstream col;
     col << "col" << i;
-    cols.emplace_back(col.str(), type::TypeId::DECIMAL, nullptr);
+    cols.emplace_back(col.str(), type::TypeId::REAL, nullptr);
   }
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::DECIMAL);
-  auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
+  auto real_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::REAL);
+  auto tuple_size = int_size * num_integers + real_size * num_reals;
 
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
@@ -1220,7 +1220,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   if (varchar_mix == 1)
     mix_type = type::TypeId::VARCHAR;
   else
-    mix_type = type::TypeId::DECIMAL;
+    mix_type = type::TypeId::REAL;
   size_t tuple_size = int_size * num_integers;
   size_t num_col = num_integers + num_mix;
 
@@ -1399,7 +1399,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
 
 void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto num_ints = state->range(0);
-  auto num_decimals = state->range(1);
+  auto num_reals = state->range(1);
   auto num_cols = state->range(2);
   auto num_rows = state->range(3);
 
@@ -1411,7 +1411,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   // Create temporary table schema
   std::vector<catalog::Schema::Column> cols;
   std::vector<std::pair<type::TypeId, int64_t>> info = {{type::TypeId::INTEGER, num_ints},
-                                                        {type::TypeId::DECIMAL, num_decimals}};
+                                                        {type::TypeId::REAL, num_reals}};
   int col_no = 1;
   for (auto &i : info) {
     for (auto j = 1; j <= i.second; j++) {
@@ -1423,7 +1423,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
             noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
       } else {
         cols.emplace_back(col_name.str(), i.first, false,
-                          noisepage::parser::ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(0.f)));
+                          noisepage::parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(0.f)));
       }
     }
   }
@@ -1470,8 +1470,8 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   }
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::DECIMAL);
-  auto tuple_size = int_size * num_ints + decimal_size * num_decimals;
+  auto real_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::REAL);
+  auto tuple_size = int_size * num_ints + real_size * num_reals;
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1597,9 +1597,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ7_2_UpdateRunners)(benchmark::State &state) {
 
 void MiniRunners::ExecuteDelete(benchmark::State *state) {
   auto num_integers = state->range(0);
-  auto num_decimals = state->range(1);
+  auto num_reals = state->range(1);
   auto tbl_ints = state->range(2);
-  auto tbl_decimals = state->range(3);
+  auto tbl_reals = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
   auto is_build = state->range(6);
@@ -1617,7 +1617,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
       throw "Invalid is_build argument for ExecuteDelete";
     }
 
-    HandleBuildDropIndex(is_build != 0, row, num_integers + num_decimals, type);
+    HandleBuildDropIndex(is_build != 0, row, num_integers + num_reals, type);
     return;
   }
 
@@ -1629,17 +1629,17 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   }
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
-  auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
-  auto num_col = num_integers + num_decimals;
+  auto real_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
+  auto tuple_size = int_size * num_integers + real_size * num_reals;
+  auto num_col = num_integers + num_reals;
 
   std::stringstream query;
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
 
-  auto tbl_col = tbl_ints + tbl_decimals;
-  auto tbl_size = tbl_ints * int_size + tbl_decimals * decimal_size;
+  auto tbl_col = tbl_ints + tbl_reals;
+  auto tbl_size = tbl_ints * int_size + tbl_reals * real_size;
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1680,9 +1680,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ8_2_DeleteRunners)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
-  auto num_decimals = state.range(1);
+  auto num_reals = state.range(1);
   auto tbl_ints = state.range(2);
-  auto tbl_decimals = state.range(3);
+  auto tbl_reals = state.range(3);
   auto row = state.range(4);
   auto car = state.range(5);
   auto is_topk = state.range(6);
@@ -1695,9 +1695,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   }
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::DECIMAL);
-  auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
-  auto num_col = num_integers + num_decimals;
+  auto real_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::REAL);
+  auto tuple_size = int_size * num_integers + real_size * num_reals;
+  auto num_col = num_integers + num_reals;
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1721,9 +1721,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
-  auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::DECIMAL, num_integers, num_decimals);
-  auto tbl_name =
-      ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, table_car);
+  auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::REAL, num_integers, num_reals);
+  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::REAL, tbl_ints, tbl_reals, row, table_car);
   query << "SELECT " << (cols) << " FROM " << tbl_name << " ORDER BY " << (cols);
   if (is_topk == 1) query << " LIMIT " << car;
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
@@ -1965,7 +1964,7 @@ void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
   if (varchar_mix == 1)
     mix_type = type::TypeId::VARCHAR;
   else
-    mix_type = type::TypeId::DECIMAL;
+    mix_type = type::TypeId::REAL;
   size_t tuple_size = int_size * num_integers;
   size_t num_col = num_integers + num_mix;
 

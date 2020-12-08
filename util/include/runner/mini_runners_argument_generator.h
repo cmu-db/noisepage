@@ -37,7 +37,7 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals to scan
+   * Arg 1: Number of reals to scan
    * Arg 2: Number of rows to output
    *
    * @param b Vector to store output argument vectors
@@ -52,12 +52,12 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals or varchars to scan
+   * Arg 1: Number of reals or varchars to scan
    * Arg 2: # integers in the underlying table
-   * Arg 3: # decimals or varchars in the underlying table
+   * Arg 3: # reals or varchars in the underlying table
    * Arg 4: Number of rows in the underlying table
    * Arg 5: Cardinality of underlying table
-   * Arg 6: Whether arg 1 & 3 are for decimals or varchars
+   * Arg 6: Whether arg 1 & 3 are for reals or varchars
    *
    * @param b Vector to store output argument vectors
    * @param settings Settings of the mini-runners
@@ -70,12 +70,12 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals or varchars to scan
+   * Arg 1: Number of reals or varchars to scan
    * Arg 2: # integers in the underlying table
-   * Arg 3: # decimals or varchars in the underlying table
+   * Arg 3: # reals or varchars in the underlying table
    * Arg 4: Number of rows in the underlying table
    * Arg 5: Cardinality of underlying table
-   * Arg 6: Whether arg 1 & 3 are for decimals or varchars
+   * Arg 6: Whether arg 1 & 3 are for reals or varchars
    *
    * @param b Vector to store output argument vectors
    * @param settings Settings of the mini-runners
@@ -124,9 +124,9 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals to scan
+   * Arg 1: Number of reals to scan
    * Arg 2: # integers in the underlying table
-   * Arg 3: # decimals in the underlying table
+   * Arg 3: # reals in the underlying table
    * Arg 4: Number of rows in the underlying table
    * Arg 5: Cardinality of underlying table
    *
