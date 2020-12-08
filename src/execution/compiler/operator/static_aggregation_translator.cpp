@@ -1,4 +1,5 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
+
 #include <utility>
 
 #include "execution/compiler/compilation_context.h"

@@ -316,7 +316,7 @@ class OutputStore {
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::DECIMAL: {
+          case noisepage::type::TypeId::REAL: {
             auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
