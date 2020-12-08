@@ -221,7 +221,9 @@ void FindLocationTest() {
     s.insert(k);
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p;
     p.first = k;
-    EXPECT_EQ(node->InsertElementIfPossible(p, static_cast<BPlusTree<int, TupleSlot>::InnerNode *>(node)->FindLocation(k, bplustree)), true);
+    EXPECT_EQ(node->InsertElementIfPossible(
+                  p, static_cast<BPlusTree<int, TupleSlot>::InnerNode *>(node)->FindLocation(k, bplustree)),
+              true);
   }
   auto iter = node->Begin();
   for (auto &elem : s) {
@@ -432,15 +434,15 @@ void NodeMergeTest() {
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, NodeStructuralTests) {
-BasicNodeInitializationInsertReadAndFreeTest();
-InsertElementInNodeTest();
-InsertElementInNodeRandomTest();
-SplitNodeTest();
-FindLocationTest();
-PopBeginTest();
-PopEndTest();
-NodeElementEraseTest();
-NodeMergeTest();
+  BasicNodeInitializationInsertReadAndFreeTest();
+  InsertElementInNodeTest();
+  InsertElementInNodeRandomTest();
+  SplitNodeTest();
+  FindLocationTest();
+  PopBeginTest();
+  PopEndTest();
+  NodeElementEraseTest();
+  NodeMergeTest();
 }
 
 void BasicBPlusTreeInsertTestNoSplittingOfRoot() {
@@ -500,8 +502,6 @@ void BasicBPlusTreeInsertTestSplittingOfRootOnce() {
   for (KeyPointerType *element_p = noderoot->Begin(); element_p != noderoot->End(); element_p++) i++;
 
   EXPECT_EQ(i, 1);
-
-  // Only freeing these should free us of any ASAN
 
   delete bplustree;
 }
@@ -670,7 +670,6 @@ void BasicBPlusTreeDeleteTestNoSplittingOfRoot() {
     EXPECT_EQ(bplustree->IsPresent(i), false);
   }
   EXPECT_EQ(bplustree->GetRoot() == nullptr, true);
-  /*We should not call free node here*/
 
   delete bplustree;
 }
@@ -752,7 +751,6 @@ void LargeKeyRandomInsertAndRetrievalTest() {
       EXPECT_EQ(bplustree->IsPresent(i), false);
     }
   }
-  // hardcoded - maybe wrong
   EXPECT_EQ(bplustree->GetRoot()->GetDepth(), 7);
 
   delete bplustree;
@@ -984,7 +982,6 @@ void StructuralIntegrityTestWithRandomInsertAndDelete() {
 
   auto iter = keys.begin();
   for (unsigned i = 0; i < 5; i++) {
-    // std::cout<<"Checking"<<*iter<<std::endl;
     EXPECT_EQ(bplustree->IsPresent(*iter), true);
     iter++;
   }
@@ -1028,8 +1025,6 @@ void LargeStructuralIntegrityVerificationTest() {
   // Delete All keys except one - As root empty is not handled by delete yet
   for (int i = 0; i < 999; i++) {
     auto iter = keys.begin();
-    // int k = rand_r(&globalseed) % keys.size();
-    // for(int j = 0; j < k; j++) iter++;
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
     keys.erase(iter);
@@ -1063,8 +1058,6 @@ void LargeStructuralIntegrityVerificationTest() {
   // Delete Again now two keys remaining
   for (int i = 0; i < 999; i++) {
     auto iter = keys.begin();
-    // int k = rand_r(&globalseed) % keys.size();
-    // for(int j = 0; j < k; j++) iter++;
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
     keys.erase(iter);
@@ -1081,13 +1074,11 @@ void LargeStructuralIntegrityVerificationTest() {
   // Check Both still present
   auto iter = keys.begin();
   for (unsigned i = 0; i < 2; i++) {
-    // std::cout<<"Checking"<<*iter<<std::endl;
     EXPECT_EQ(bplustree->IsPresent(*iter), true);
     iter++;
   }
 
   // Free Everything
-
   delete bplustree;
 }
 
@@ -1124,8 +1115,6 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   // Delete All keys except one - As root empty is not handled by delete yet
   for (int i = 0; i < 999; i++) {
     auto iter = keys.rbegin();
-    // int k = rand_r(&globalseed) % keys.size();
-    // for(int j = 0; j < k; j++) iter++;
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
     keys.erase(*iter);
@@ -1160,8 +1149,6 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   // Delete Again now two keys remaining
   for (int i = 0; i < 999; i++) {
     auto iter = keys.rbegin();
-    // int k = rand_r(&globalseed) % keys.size();
-    // for(int j = 0; j < k; j++) iter++;
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
     keys.erase(*iter);
@@ -1178,7 +1165,6 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   // Check Both still present
   auto iter = keys.begin();
   for (unsigned i = 0; i < 2; i++) {
-    // std::cout<<"Checking"<<*iter<<std::endl;
     EXPECT_EQ(bplustree->IsPresent(*iter), true);
     iter++;
   }
@@ -1202,7 +1188,6 @@ void StructuralIntegrityTestWithRandomInsertAndDelete2() {
   bplustree->SetLeafNodeSizeLowerThreshold(2);
   std::set<int> keys;
 
-  // std::cout << "Inserting " << std::endl;
   for (unsigned i = 0; i < 37; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 60;
@@ -1212,34 +1197,20 @@ void StructuralIntegrityTestWithRandomInsertAndDelete2() {
     bplustree->Insert(p1, predicate);
   }
 
-  // bplustree->PrintTree();
-
-  // std::cout << "Deleting " << std::endl;
   auto it = keys.begin();
   for (unsigned i = 0; i < keys.size() / 2; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *(it);
     it++;
-    // keys.erase(keys.begin());
     EXPECT_EQ(bplustree->DeleteElement(p1), true);
-    // std::cout << "-----------------Deleted " << p1.first << std::endl;
-    // bplustree->PrintTree();
   }
-
-  // bplustree->PrintTree();
 
   for (unsigned i = keys.size() / 2; i < keys.size(); i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *(it);
     it++;
-    // std::cout << "Finding " << p1.first << std::endl;
     EXPECT_EQ(bplustree->IsPresent(p1.first), true);
   }
-
-  // EXPECT_EQ(bplustree->StructuralIntegrityVerification(*keys.begin(), *keys.rbegin(),
-  //   keys, bplustree->GetRoot()), true);
-  // All keys found in the tree
-  // EXPECT_EQ(keys.size(), 0);
 
   delete bplustree;
 }
@@ -1258,7 +1229,6 @@ void StructuralIntegrityTestWithRandomInsertAndDelete2Reverse() {
   bplustree->SetLeafNodeSizeLowerThreshold(2);
   std::set<int> keys;
 
-  // std::cout << "Inserting " << std::endl;
   for (unsigned i = 0; i < 37; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 60;
@@ -1268,34 +1238,20 @@ void StructuralIntegrityTestWithRandomInsertAndDelete2Reverse() {
     bplustree->Insert(p1, predicate);
   }
 
-  // bplustree->PrintTree();
-
-  // std::cout << "Deleting " << std::endl;
   auto it = keys.rbegin();
   for (unsigned i = 0; i < keys.size() / 2; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *(it);
     it++;
-    // keys.erase(keys.begin());
     EXPECT_EQ(bplustree->DeleteElement(p1), true);
-    // std::cout << "-----------------Deleted " << p1.first << std::endl;
-    // bplustree->PrintTree();
   }
-
-  // bplustree->PrintTree();
 
   for (unsigned i = keys.size() / 2; i < keys.size(); i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *(it);
     it++;
-    // std::cout << "Finding " << p1.first << std::endl;
     EXPECT_EQ(bplustree->IsPresent(p1.first), true);
   }
-
-  // EXPECT_EQ(bplustree->StructuralIntegrityVerification(*keys.begin(), *keys.rbegin(),
-  //   keys, bplustree->GetRoot()), true);
-  // All keys found in the tree
-  // EXPECT_EQ(keys.size(), 0);
 
   delete bplustree;
 }
@@ -1435,11 +1391,13 @@ TEST_F(BPlusTreeTests, MultiThreadedInsertTest) {
     }
   };
 
-  // run the workload
+  // Run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
     thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
+
+  EXPECT_EQ(tree->GetSize(), key_num);
 
   // Ensure all values are present
   for (int i = 0; i < key_num; i++) {
@@ -1488,11 +1446,13 @@ TEST_F(BPlusTreeTests, MultiThreadedDeleteTest) {
     }
   };
 
-  // run the workload
+  // Run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
     thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
+
+  EXPECT_EQ(tree->GetSize(), deleted_keys);
 
   // Ensure all values are present
   for (int i = deleted_keys; i < key_num; i++) {
@@ -1502,10 +1462,7 @@ TEST_F(BPlusTreeTests, MultiThreadedDeleteTest) {
     EXPECT_EQ(results[0], keys[i]);
   }
 
-  // The root must have split
-  //EXPECT_FALSE(tree->GetRoot()->IsLeaf());
-
   delete tree;
 }
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

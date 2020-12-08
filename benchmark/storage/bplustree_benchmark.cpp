@@ -41,7 +41,6 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, RandomInsert)(benchmark::State &state) {
     auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
 
     auto workload = [&](uint32_t id) {
-
       uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
       uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
@@ -74,7 +73,6 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, SequentialInsert)(benchmark::State &state
     auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
 
     auto workload = [&](uint32_t id) {
-
       uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
       uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
@@ -113,7 +111,6 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, RandomInsertRandomRead)(benchmark::State 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-
       uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
       uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
@@ -154,7 +151,6 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, RandomInsertSequentialRead)(benchmark::St
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-
       uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
       uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
@@ -195,7 +191,6 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, SequentialInsertRandomRead)(benchmark::St
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-
       uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
       uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
@@ -236,7 +231,6 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, SequentialInsertSequentialRead)(benchmark
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-
       uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
       uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
