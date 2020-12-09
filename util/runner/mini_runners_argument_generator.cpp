@@ -305,7 +305,6 @@ void MiniRunnersArgumentGenerator::GenInsertMixedArguments(OutputArgs *b, const 
 void MiniRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                            const MiniRunnersDataConfig &config) {
   auto &idx_key = config.sweep_update_index_col_nums_;
-  ;
   auto &update_keys = config.sweep_update_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
