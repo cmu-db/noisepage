@@ -31,12 +31,15 @@ class NoisePageServer:
         self.db_output_file = db_output_file
         self.db_process = None
 
-    def run_db(self):
+    def run_db(self, is_dry_run=False):
         """ Start the DB server """
         # Allow ourselves to try to restart the DBMS multiple times
         attempt_to_start_time = time.perf_counter()
         server_args_str = generate_server_args_str(self.server_args)
         db_run_command = f'{self.build_path} {server_args_str}'
+        if is_dry_run:
+            LOG.info(f'Server start command: {db_run_command}')
+            return
         for attempt in range(DB_START_ATTEMPTS):
             # Kill any other noisepage processes that our listening on our target port
             # early terminate the run_db if kill_server.py encounter any exceptions
@@ -66,9 +69,9 @@ class NoisePageServer:
         raise RuntimeError(
             f'Failed to start DB after {DB_START_ATTEMPTS} attempts and {round(db_failed_to_start_time - attempt_to_start_time,2)} sec')
 
-    def stop_db(self):
+    def stop_db(self, is_dry_run=False):
         """ Stop the Db server and print it's log file """
-        if not self.db_process:
+        if not self.db_process or is_dry_run:
             LOG.debug('DB has already been stopped.')
             return
 
@@ -86,10 +89,10 @@ class NoisePageServer:
             LOG.info("Stopped DB successfully")
         self.db_process = None
 
-    def restart_db(self):
+    def restart_db(self, is_dry_run=False):
         """ Restart the DB """
-        self.stop_db()
-        self.run_db()
+        self.stop_db(is_dry_run)
+        self.run_db(is_dry_run)
 
     def delete_wal(self):
         """ Check that the WAL exists and delete if it does """

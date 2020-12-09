@@ -110,9 +110,9 @@ class TestServer:
                 # catch the exception from run_db(), stop_db(), and restart_db()
                 # in case the db is unable to start/stop/restart
                 if test_case.db_restart:
-                    self.db_instance.restart_db()
+                    self.db_instance.restart_db(self.is_dry_run)
                 elif not self.db_instance.db_process:
-                    self.db_instance.run_db()
+                    self.db_instance.run_db(self.is_dry_run)
             except:
                 traceback.print_exc(file=sys.stdout)
                 test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
