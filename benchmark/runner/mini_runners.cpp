@@ -965,7 +965,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
 void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert) {
   auto key_num = state->range(0);
-  auto tbl_cols = state->range(1);
+  uint64_t tbl_cols = state->range(1);
   auto num_rows = state->range(2);
   auto type = static_cast<type::TypeId>(state->range(3));
   auto num_index = state->range(4);
@@ -995,7 +995,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     // INSERT a tuple that we will delete for INDEX-DELETE
     std::stringstream query;
     query << "INSERT INTO " << tbl_name << " VALUES (";
-    for (auto i = 0; i < tbl_cols; i++) {
+    for (uint64_t i = 0; i < tbl_cols; i++) {
       query << target;
       if (i != tbl_cols - 1) {
         query << ","
@@ -1015,8 +1015,8 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   InvokeGC();
   InvokeGC();
 
-  int num_iters = 1 + settings.index_model_warmup_iterations_num_;
-  for (auto iter = 0; iter < num_iters; iter++) {
+  int64_t num_iters = 1 + settings.index_model_warmup_iterations_num_;
+  for (int64_t iter = 0; iter < num_iters; iter++) {
     common::ManagedPointer<metrics::MetricsManager> metrics_manager = nullptr;
     if (iter == num_iters - 1) {
       metrics_manager_->RegisterThread();
@@ -1055,7 +1055,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
 
     // Initialize Storage Interface
     uint32_t col_oids[tbl_cols];
-    for (auto i = 0; i < tbl_cols; i++) {
+    for (uint64_t i = 0; i < tbl_cols; i++) {
       col_oids[i] = i + 1;
     }
 
@@ -1065,7 +1065,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     storage::TupleSlot slot;
     if (is_insert) {
       OpStorageInterfaceGetTablePR(&tbl_pr, &si);
-      for (auto i = 0; i < tbl_cols; i++) {
+      for (uint64_t i = 0; i < tbl_cols; i++) {
         execution::sql::Integer value(target);
         if (type == type::TypeId::INTEGER) {
           OpPRSetInt(tbl_pr, i, &value);
@@ -1547,9 +1547,9 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 
   std::vector<catalog::Schema::Column> cols;
   {
-    auto limit = is_first_type ? tbl_ints : tbl_bigints;
-    limit = std::min(limit, num_col + update_keys);
-    for (int j = num_col + 1; j <= limit; j++) {
+    uint64_t limit = is_first_type ? tbl_ints : tbl_bigints;
+    limit = std::min(limit, static_cast<uint64_t>(num_col + update_keys));
+    for (uint64_t j = num_col + 1; j <= limit; j++) {
       query << "col" << j << " = "
             << "col" << j;
       if (j != limit) query << ", ";
