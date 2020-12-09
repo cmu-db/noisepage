@@ -77,7 +77,10 @@ String generateCompileCmd(Map config = [:]) {
             cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = "\$(nproc)"
         }
         else if (config.os == MACOS) {
-            cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = "\$(sysctl -n hw.physicalcpu)"
+            // Currently test parallelization on mac does not work. Blocked on
+            // https://github.com/cmu-db/noisepage/pull/1383
+            //cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = "\$(sysctl -n hw.physicalcpu)"
+            cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = 1
         }
         if (config.isJumboTest) {
             cmakeArgs['-DNOISEPAGE_USE_JUMBOTESTS'] = ENABLED
