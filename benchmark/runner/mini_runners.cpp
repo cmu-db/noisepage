@@ -991,26 +991,6 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
   }
 
-  if (!is_insert) {
-    // INSERT a tuple that we will delete for INDEX-DELETE
-    std::stringstream query;
-    query << "INSERT INTO " << tbl_name << " VALUES (";
-    for (uint64_t i = 0; i < tbl_cols; i++) {
-      query << target;
-      if (i != tbl_cols - 1) {
-        query << ","
-              << "\n";
-      }
-    }
-    query << ")";
-
-    auto settings = GetExecutionSettings(false);
-    auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
-    auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
-                                       PassthroughPlanChecker, nullptr, nullptr, &settings);
-    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
-  }
-
   // Invoke GC to clean some data
   InvokeGC();
   InvokeGC();
@@ -1083,35 +1063,25 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
       OpTableVectorIteratorPerformInit(&tvi);
       OpTableVectorIteratorNext(&has_more, &tvi);
       while (has_more) {
+        // We will delete the first tuple. We need to do this iteration to
+        // ensure that the Tuple is visible to the current transaction.
         execution::sql::VectorProjectionIterator *vpi = nullptr;
         OpTableVectorIteratorGetVPI(&vpi, &tvi);
 
         bool vpi_next;
         OpVPIHasNext(&vpi_next, vpi);
         while (vpi_next) {
-          execution::sql::Integer value(0);
-          if (type == type::TypeId::INTEGER) {
-            OpVPIGetInteger(&value, vpi, 0);
-          } else if (type == type::TypeId::BIGINT) {
-            OpVPIGetBigInt(&value, vpi, 0);
+          done = true;
+          OpVPIGetSlot(&slot, vpi);
+
+          // Do a TableDelete
+          bool result;
+          OpStorageInterfaceTableDelete(&result, &si, &slot);
+          if (!result) {
+            OpAbortTxn(exec_ctx.get());
           }
 
-          if (value.val_ == target) {
-            done = true;
-            OpVPIGetSlot(&slot, vpi);
-
-            // Do a TableDelete
-            bool result;
-            OpStorageInterfaceTableDelete(&result, &si, &slot);
-            if (!result) {
-              OpAbortTxn(exec_ctx.get());
-            }
-            break;
-          }
-
-          // Advance VPI
-          OpVPIAdvance(vpi);
-          OpVPIHasNext(&vpi_next, vpi);
+          break;
         }
 
         if (done) {
