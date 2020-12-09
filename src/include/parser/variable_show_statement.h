@@ -17,7 +17,8 @@ class VariableShowStatement : public SQLStatement {
   /**
    * @param name The name of the parameter to show.
    */
-  VariableShowStatement(std::string name) : SQLStatement(StatementType::VARIABLE_SHOW), name_(name) {}
+  explicit VariableShowStatement(std::string name)
+      : SQLStatement(StatementType::VARIABLE_SHOW), name_(std::move(name)) {}
 
   ~VariableShowStatement() override = default;
 
