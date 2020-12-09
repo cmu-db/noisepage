@@ -36,13 +36,13 @@ class NoisePageServer:
         # Allow ourselves to try to restart the DBMS multiple times
         attempt_to_start_time = time.perf_counter()
         server_args_str = generate_server_args_str(self.server_args)
+        db_run_command = f'{self.build_path} {server_args_str}'
         for attempt in range(DB_START_ATTEMPTS):
             # Kill any other noisepage processes that our listening on our target port
             # early terminate the run_db if kill_server.py encounter any exceptions
             run_kill_server(self.db_port)
 
             # use memory buffer to hold db logs
-            db_run_command = f'{self.build_path} {server_args_str}'
             self.db_process = subprocess.Popen(shlex.split(db_run_command), stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE)
             LOG.info(f'Server start: {db_run_command} [PID={self.db_process.pid}]')
