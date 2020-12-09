@@ -14,6 +14,9 @@ namespace parser {
  */
 class VariableShowStatement : public SQLStatement {
  public:
+  /**
+   * @param name The name of the parameter to show.
+   */
   VariableShowStatement(std::string name) : SQLStatement(StatementType::VARIABLE_SHOW), name_(name) {}
 
   ~VariableShowStatement() override = default;
