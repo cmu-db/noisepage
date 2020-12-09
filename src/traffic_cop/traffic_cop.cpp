@@ -29,6 +29,7 @@
 #include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
+#include "parser/variable_show_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "settings/settings_manager.h"
 #include "storage/recovery/replication_log_provider.h"
@@ -165,6 +166,32 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
     return {ResultType::ERROR, error};
   }
 
+  return {ResultType::COMPLETE, 0u};
+}
+
+TrafficCopResult TrafficCop::ExecuteShowStatement(
+    common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    common::ManagedPointer<network::Statement> statement,
+    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+  NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
+                   "This is a non-transactional operation and we should not be in a transaction.");
+  NOISEPAGE_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SHOW,
+                   "ExecuteSetStatement called with invalid QueryType.");
+
+  const auto &show_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
+
+  std::cout << show_stmt->GetName() << std::endl;
+  NOISEPAGE_ASSERT(show_stmt->GetName() == "transaction_isolation", "Nothing else is supported right now.");
+
+  auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
+  expr->SetAlias("transaction_isolation");
+  std::vector<noisepage::planner::OutputSchema::Column> cols;
+  cols.emplace_back("transaction_isolation", type::TypeId::VARCHAR, std::move(expr));
+  std::vector<network::FieldFormat> format = {network::FieldFormat::text};
+  execution::sql::StringVal dummy_result("snapshot isolation");
+
+  out->WriteRowDescription(cols, format);
+  out->WriteDataRow(reinterpret_cast<const byte *>(&dummy_result), cols, format);
   return {ResultType::COMPLETE, 0u};
 }
 
