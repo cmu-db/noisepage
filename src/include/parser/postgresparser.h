@@ -202,7 +202,7 @@ class PostgresParser {
   static std::unique_ptr<VariableSetStatement> VariableSetTransform(ParseResult *parse_result, VariableSetStmt *root);
   // VARIABLE SHOW statements
   static std::unique_ptr<VariableShowStatement> VariableShowTransform(ParseResult *parse_result,
-                                                                      VariableShowStmt *stmt);
+                                                                      VariableShowStmt *root);
 
   /**
    * Converts the target of an update clause, i.e. one or more column = expression
