@@ -23,6 +23,7 @@ OSX_BUILD_PACKAGES=(\
   "libevent" \
   "libpqxx" \
   "pkg-config" \
+  "python@3.8" \
   "ninja" \
   "tbb" \
   "zeromq" \
