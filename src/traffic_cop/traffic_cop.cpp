@@ -180,18 +180,16 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
 
   const auto &show_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
 
-  std::cout << show_stmt->GetName() << std::endl;
   NOISEPAGE_ASSERT(show_stmt->GetName() == "transaction_isolation", "Nothing else is supported right now.");
 
   auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
   expr->SetAlias("transaction_isolation");
   std::vector<noisepage::planner::OutputSchema::Column> cols;
   cols.emplace_back("transaction_isolation", type::TypeId::VARCHAR, std::move(expr));
-  std::vector<network::FieldFormat> format = {network::FieldFormat::text};
   execution::sql::StringVal dummy_result("snapshot isolation");
 
-  out->WriteRowDescription(cols, format);
-  out->WriteDataRow(reinterpret_cast<const byte *>(&dummy_result), cols, format);
+  out->WriteRowDescription(cols, {network::FieldFormat::text});
+  out->WriteDataRow(reinterpret_cast<const byte *>(&dummy_result), cols, {network::FieldFormat::text});
   return {ResultType::COMPLETE, 0u};
 }
 

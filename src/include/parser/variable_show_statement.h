@@ -25,7 +25,7 @@ class VariableShowStatement : public SQLStatement {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return The name of the variable to show. */
-  std::string GetName() { return name_; }
+  const std::string &GetName() { return name_; }
 
  private:
   const std::string name_;
