@@ -1581,8 +1581,6 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
   query << " WHERE " << predicate;
 
-  std::cout << query.str() << "\n";
-
   auto f = std::bind(&MiniRunners::UpdateIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
   equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
                                 common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
