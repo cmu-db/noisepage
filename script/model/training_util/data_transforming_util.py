@@ -5,23 +5,23 @@ from type import OpUnit, Target, ExecutionFeature
 
 _TRANSFORM_EPSILON = 1
 
-def _tuple_num_linear_train_transform(x, y):
+def _num_linear_train_transform(x, y):
     # Linearly transform down the target according to the tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     return y / tuple_num[:, np.newaxis]
 
 
-def _tuple_num_linear_predict_transform(x, y):
+def _num_linear_predict_transform(x, y):
     # Linearly transform up the target according to the tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     return y * tuple_num[:, np.newaxis]
 
 
 # Transform the target linearly according to the tuple num
-_tuple_num_linear_transformer = (_tuple_num_linear_train_transform, _tuple_num_linear_predict_transform)
+_num_linear_transformer = (_num_linear_train_transform, _num_linear_predict_transform)
 
 
-def _tuple_num_memory_cardinality_linear_train_transform(x, y):
+def _num_memory_cardinality_linear_train_transform(x, y):
     # Linearly transform down the target according to the tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     new_y = y / tuple_num[:, np.newaxis]
@@ -33,7 +33,7 @@ def _tuple_num_memory_cardinality_linear_train_transform(x, y):
     return new_y
 
 
-def _tuple_num_memory_cardinality_linear_predict_transform(x, y):
+def _num_memory_cardinality_linear_predict_transform(x, y):
     # Linearly transform up the target according to the tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     new_y = y * tuple_num[:, np.newaxis]
@@ -45,11 +45,11 @@ def _tuple_num_memory_cardinality_linear_predict_transform(x, y):
 
 
 # Transform the target linearly according to the tuple num
-_tuple_num_memory_cardinality_linear_transformer = (_tuple_num_memory_cardinality_linear_train_transform,
-                                                    _tuple_num_memory_cardinality_linear_predict_transform)
+_num_memory_cardinality_linear_transformer = (_num_memory_cardinality_linear_train_transform,
+                                              _num_memory_cardinality_linear_predict_transform)
 
 
-def _tuple_num_log_cardinality_linear_train_transform(x, y):
+def _num_log_cardinality_linear_train_transform(x, y):
     # Transform down the target in log scale according to the tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     new_y = y / (np.log2(tuple_num) + _TRANSFORM_EPSILON)[:, np.newaxis]
@@ -58,7 +58,7 @@ def _tuple_num_log_cardinality_linear_train_transform(x, y):
     return new_y / cardinality[:, np.newaxis]
 
 
-def _tuple_num_log_cardinality_linear_predict_transform(x, y):
+def _num_log_cardinality_linear_predict_transform(x, y):
     # Transform up the target in log scale according to the tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     new_y = y * (np.log2(tuple_num) + _TRANSFORM_EPSILON)[:, np.newaxis]
@@ -68,50 +68,50 @@ def _tuple_num_log_cardinality_linear_predict_transform(x, y):
 
 
 # Transform the target linearly according to the tuple num
-_tuple_num_log_cardinality_linear_transformer = (_tuple_num_log_cardinality_linear_train_transform,
-                                                 _tuple_num_log_cardinality_linear_predict_transform)
+_num_log_cardinality_linear_transformer = (_num_log_cardinality_linear_train_transform,
+                                           _num_log_cardinality_linear_predict_transform)
 
 
-def _tuple_num_linear_log_train_transform(x, y):
+def _num_linear_log_train_transform(x, y):
     # Transform down the target according to the linear-log (nlogn) tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     return y / (tuple_num * np.log2(tuple_num) + _TRANSFORM_EPSILON)[:, np.newaxis]
 
 
-def _tuple_num_linear_log_predict_transform(x, y):
+def _num_linear_log_predict_transform(x, y):
     # Transform up the target according to the linear-log (nlogn) tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     return y * (tuple_num * np.log2(tuple_num) + _TRANSFORM_EPSILON)[:, np.newaxis]
 
 
 # Transform the target in a linear-log way (nlogn) according to the tuple num
-_tuple_num_linear_log_transformer = (_tuple_num_linear_log_train_transform, _tuple_num_linear_log_predict_transform)
+_num_linear_log_transformer = (_num_linear_log_train_transform, _num_linear_log_predict_transform)
 
 
-def _tuple_num_log_train_transform(x, y):
+def _num_log_train_transform(x, y):
     # Transform down the target according to the log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     return y / (np.log2(tuple_num) + _TRANSFORM_EPSILON)[:, np.newaxis]
 
 
-def _tuple_num_log_predict_transform(x, y):
+def _num_log_predict_transform(x, y):
     # Transform up the target according to the log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     return y * (np.log2(tuple_num) + _TRANSFORM_EPSILON)[:, np.newaxis]
 
 
 # Transform the target in a log scale (logn) according to the tuple num
-_tuple_num_log_transformer = (_tuple_num_log_train_transform, _tuple_num_log_predict_transform)
+_num_log_transformer = (_num_log_train_transform, _num_log_predict_transform)
 
 
-def _tuple_num_cardinality_linear_log_train_transform(x, y):
+def _num_cardinality_linear_log_train_transform(x, y):
     # Transform down the target according to the cardinality * log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
     return y / ((cardinality * np.log2(tuple_num)) + _TRANSFORM_EPSILON)[:, np.newaxis]
 
 
-def _tuple_num_cardinality_linear_log_predict_transform(x, y):
+def _num_cardinality_linear_log_predict_transform(x, y):
     # Transform up the target according to the cardinality * log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
@@ -119,24 +119,24 @@ def _tuple_num_cardinality_linear_log_predict_transform(x, y):
 
 
 # Transform the target in a linear log scale (cardinality * log tuple_num)
-_tuple_num_cardinality_linear_log_transformer = (_tuple_num_cardinality_linear_log_train_transform,
-                                                 _tuple_num_cardinality_linear_log_predict_transform)
+_num_cardinality_linear_log_transformer = (_num_cardinality_linear_log_train_transform,
+                                           _num_cardinality_linear_log_predict_transform)
 
-def _tuple_cardinality_linear_train_transform(x, y):
-    # Transform down the target according to the log cardinality in the input
+def _cardinality_linear_train_transform(x, y):
+    # Transform down the target according to the cardinality in the input
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
     return y / (cardinality + _TRANSFORM_EPSILON)[:, np.newaxis]
 
 
-def _tuple_cardinality_linear_predict_transform(x, y):
-    # Transform up the target according to the log cardinality in the input
+def _cardinality_linear_predict_transform(x, y):
+    # Transform up the target according to the cardinality in the input
     cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
     return y * (cardinality + _TRANSFORM_EPSILON)[:, np.newaxis]
 
 
 # Transform the target in a linear scale (cardinality)
-_tuple_cardinality_linear_transformer = (_tuple_cardinality_linear_train_transform,
-                                         _tuple_cardinality_linear_predict_transform)
+_cardinality_linear_transformer = (_cardinality_linear_train_transform,
+                                   _cardinality_linear_predict_transform)
 
 # Map the opunit to the output (y) transformer it needs for mini-model training
 OPUNIT_Y_TRANSFORMER_MAP = {
@@ -147,46 +147,46 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.TXN_COMMIT: None,
 
     # Execution engine opunits
-    OpUnit.SEQ_SCAN: _tuple_num_linear_transformer,
-    OpUnit.HASHJOIN_BUILD: _tuple_num_linear_transformer,
-    OpUnit.HASHJOIN_PROBE: _tuple_num_linear_transformer,
-    OpUnit.AGG_ITERATE: _tuple_num_linear_transformer,
-    OpUnit.SORT_ITERATE: _tuple_num_linear_transformer,
-    OpUnit.INSERT: _tuple_num_linear_transformer,
-    OpUnit.UPDATE: _tuple_num_linear_transformer,
-    OpUnit.DELETE: _tuple_num_linear_transformer,
-    OpUnit.OP_INTEGER_PLUS_OR_MINUS: _tuple_num_linear_transformer,
-    OpUnit.OP_INTEGER_MULTIPLY: _tuple_num_linear_transformer,
-    OpUnit.OP_INTEGER_DIVIDE: _tuple_num_linear_transformer,
-    OpUnit.OP_INTEGER_COMPARE: _tuple_num_linear_transformer,
-    OpUnit.OP_REAL_PLUS_OR_MINUS: _tuple_num_linear_transformer,
-    OpUnit.OP_REAL_MULTIPLY: _tuple_num_linear_transformer,
-    OpUnit.OP_REAL_DIVIDE: _tuple_num_linear_transformer,
-    OpUnit.OP_REAL_COMPARE: _tuple_num_linear_transformer,
-    OpUnit.OP_VARCHAR_COMPARE: _tuple_num_linear_transformer,
-    OpUnit.OUTPUT: _tuple_num_linear_transformer,
+    OpUnit.SEQ_SCAN: _num_linear_transformer,
+    OpUnit.HASHJOIN_BUILD: _num_linear_transformer,
+    OpUnit.HASHJOIN_PROBE: _num_linear_transformer,
+    OpUnit.AGG_ITERATE: _num_linear_transformer,
+    OpUnit.SORT_ITERATE: _num_linear_transformer,
+    OpUnit.INSERT: _num_linear_transformer,
+    OpUnit.UPDATE: _num_linear_transformer,
+    OpUnit.DELETE: _num_linear_transformer,
+    OpUnit.OP_INTEGER_PLUS_OR_MINUS: _num_linear_transformer,
+    OpUnit.OP_INTEGER_MULTIPLY: _num_linear_transformer,
+    OpUnit.OP_INTEGER_DIVIDE: _num_linear_transformer,
+    OpUnit.OP_INTEGER_COMPARE: _num_linear_transformer,
+    OpUnit.OP_REAL_PLUS_OR_MINUS: _num_linear_transformer,
+    OpUnit.OP_REAL_MULTIPLY: _num_linear_transformer,
+    OpUnit.OP_REAL_DIVIDE: _num_linear_transformer,
+    OpUnit.OP_REAL_COMPARE: _num_linear_transformer,
+    OpUnit.OP_VARCHAR_COMPARE: _num_linear_transformer,
+    OpUnit.OUTPUT: _num_linear_transformer,
 
-    #OpUnit.IDX_SCAN: _tuple_num_log_transformer,
+    #OpUnit.IDX_SCAN: _num_log_transformer,
     # Another possible alternative
-    OpUnit.IDX_SCAN: _tuple_num_log_cardinality_linear_transformer,
-    OpUnit.SORT_BUILD: _tuple_num_linear_log_transformer,
-    OpUnit.CREATE_INDEX: _tuple_num_linear_log_transformer,
-    OpUnit.CREATE_INDEX_MAIN: _tuple_num_linear_log_transformer,
+    OpUnit.IDX_SCAN: _num_log_cardinality_linear_transformer,
+    OpUnit.SORT_BUILD: _num_linear_log_transformer,
+    OpUnit.CREATE_INDEX: _num_linear_log_transformer,
+    OpUnit.CREATE_INDEX_MAIN: _num_linear_log_transformer,
 
-    OpUnit.AGG_BUILD: _tuple_num_memory_cardinality_linear_transformer,
-    OpUnit.SORT_TOPK_BUILD: _tuple_num_memory_cardinality_linear_transformer,
+    OpUnit.AGG_BUILD: _num_memory_cardinality_linear_transformer,
+    OpUnit.SORT_TOPK_BUILD: _num_memory_cardinality_linear_transformer,
 
-    OpUnit.PARALLEL_MERGE_HASHJOIN: _tuple_num_linear_transformer,
-    OpUnit.PARALLEL_MERGE_AGGBUILD: _tuple_num_linear_transformer,
-    OpUnit.PARALLEL_SORT_STEP: _tuple_num_linear_log_transformer,
-    OpUnit.PARALLEL_SORT_MERGE_STEP: _tuple_num_linear_log_transformer,
+    OpUnit.PARALLEL_MERGE_HASHJOIN: _num_linear_transformer,
+    OpUnit.PARALLEL_MERGE_AGGBUILD: _num_linear_transformer,
+    OpUnit.PARALLEL_SORT_STEP: _num_linear_log_transformer,
+    OpUnit.PARALLEL_SORT_MERGE_STEP: _num_linear_log_transformer,
 
-    OpUnit.INDEX_INSERT: _tuple_num_cardinality_linear_log_transformer,
-    OpUnit.INDEX_DELETE: _tuple_cardinality_linear_transformer,
+    OpUnit.INDEX_INSERT: _num_cardinality_linear_log_transformer,
+    OpUnit.INDEX_DELETE: _cardinality_linear_transformer,
 }
 
 
-def _tuple_num_cardinality_linear_train_transform(x):
+def _num_cardinality_linear_train_transform(x):
     # Linearly divide the cardinality by the tuple num
     tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
     new_x = x * 1.0
@@ -224,11 +224,11 @@ OPUNIT_X_TRANSFORMER_MAP = {
     OpUnit.CREATE_INDEX_MAIN: None,
 
     # Transform the opunits for which the ratio between the tuple num and the cardinality impacts the behavior
-    OpUnit.HASHJOIN_BUILD: _tuple_num_cardinality_linear_train_transform,
-    OpUnit.HASHJOIN_PROBE: _tuple_num_cardinality_linear_train_transform,
-    OpUnit.AGG_BUILD: _tuple_num_cardinality_linear_train_transform,
-    OpUnit.SORT_BUILD: _tuple_num_cardinality_linear_train_transform,
-    OpUnit.SORT_TOPK_BUILD: _tuple_num_cardinality_linear_train_transform,
+    OpUnit.HASHJOIN_BUILD: _num_cardinality_linear_train_transform,
+    OpUnit.HASHJOIN_PROBE: _num_cardinality_linear_train_transform,
+    OpUnit.AGG_BUILD: _num_cardinality_linear_train_transform,
+    OpUnit.SORT_BUILD: _num_cardinality_linear_train_transform,
+    OpUnit.SORT_TOPK_BUILD: _num_cardinality_linear_train_transform,
 
     OpUnit.PARALLEL_MERGE_HASHJOIN: None,
     OpUnit.PARALLEL_MERGE_AGGBUILD: None,
