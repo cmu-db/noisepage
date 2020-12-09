@@ -153,7 +153,7 @@ DROP TABLE temp3
 
 # LIKE AND NOT LIKE
 statement ok
-CREATE TABLE like_tbl (int_val INT, double_val DECIMAL,str_i_val VARCHAR(32),str_a_val VARCHAR(32));
+CREATE TABLE like_tbl (int_val INT, double_val DOUBLE,str_i_val VARCHAR(32),str_a_val VARCHAR(32));
 
 statement ok
 INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (1, 2.0, '123456', 'AbCdEf');

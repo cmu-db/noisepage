@@ -609,28 +609,28 @@ class MiniRunners : public benchmark::Fixture {
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_PLUS_OR_MINUS: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_PLUS(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_MULTIPLY: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_MULTIPLY(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_DIVIDE: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_DIVIDE(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
-      case selfdriving::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE: {
+      case selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_GEQ(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);

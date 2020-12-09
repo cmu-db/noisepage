@@ -1039,10 +1039,10 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_FALSE(ctpn->GetSchema()->GetColumns()[1].Nullable());
   EXPECT_TRUE(ctpn->GetSchema()->GetColumns()[2].Nullable());
   EXPECT_TRUE(ctpn->GetSchema()->GetColumns()[3].Nullable());
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].AttrSize(), 4);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].MaxVarlenSize(), 255);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].AttrSize(), 4);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].AttrSize(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].AttributeLength(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].TypeModifier(), 255);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].AttributeLength(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].AttributeLength(), 4);
   EXPECT_EQ(*ctpn->GetSchema()->GetColumns()[3].StoredExpression(),
             parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(14)));
 
