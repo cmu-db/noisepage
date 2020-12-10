@@ -36,6 +36,7 @@ pipeline {
             }
         }
         stage('Check') {
+            when { equals expected: true, actual: false }
             parallel {
                 stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
                     agent { label 'macos' }
@@ -118,6 +119,7 @@ pipeline {
         }
 
         stage('Test') {
+            when { equals expected: true, actual: false }
             parallel {
                 stage('macos-10.14/clang-8.0 (Debug/ASAN/unittest)') {
                     agent { label 'macos' }
