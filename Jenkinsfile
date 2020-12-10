@@ -202,7 +202,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         
                         script{
                             utils = utils ?: load(utilsFileName)
