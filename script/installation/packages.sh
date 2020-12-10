@@ -29,8 +29,9 @@ OSX_BUILD_PACKAGES=(\
   "zeromq" \
 )
 OSX_TEST_PACKAGES=(\
-  "ant" \
+  "ant@1.9" \
   "lsof" \
+  "openjdk@11" \
   "postgresql" \
 )
 
