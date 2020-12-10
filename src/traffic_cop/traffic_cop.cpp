@@ -178,7 +178,8 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
   NOISEPAGE_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SHOW,
                    "ExecuteSetStatement called with invalid QueryType.");
 
-  const auto &show_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
+  const auto &show_stmt UNUSED_ATTRIBUTE =
+      statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
 
   NOISEPAGE_ASSERT(show_stmt->GetName() == "transaction_isolation", "Nothing else is supported right now.");
 
