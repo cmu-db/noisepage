@@ -2,34 +2,50 @@
 
 #include <array>
 
+#include "catalog/catalog_column_def.h"
 #include "catalog/catalog_defs.h"
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
+class Builder;
+class PgAttributeImpl;
 
-constexpr table_oid_t COLUMN_TABLE_OID = table_oid_t(41);
-constexpr index_oid_t COLUMN_OID_INDEX_OID = index_oid_t(42);
-constexpr index_oid_t COLUMN_NAME_INDEX_OID = index_oid_t(43);
+/** The OIDs used by the NoisePage version of pg_attribute. */
+class PgAttribute {
+ private:
+  friend class storage::RecoveryManager;
+  friend class Builder;
+  friend class PgCoreImpl;
 
-/*
- * Column names of the form "ATT[name]_COL_OID" are present in the PostgreSQL
- * catalog specification and columns of the form "ATT_[name]_COL_OID" are
- * noisepage-specific addtions (generally pointers to internal objects).
- */
-constexpr col_oid_t ATTNUM_COL_OID = col_oid_t(1);      // INTEGER (pkey) [col_oid_t]
-constexpr col_oid_t ATTRELID_COL_OID = col_oid_t(2);    // INTEGER (fkey: pg_class) [table_oid_t]
-constexpr col_oid_t ATTNAME_COL_OID = col_oid_t(3);     // VARCHAR
-constexpr col_oid_t ATTTYPID_COL_OID = col_oid_t(4);    // INTEGER (fkey: pg_type) [type_oid_t]
-constexpr col_oid_t ATTLEN_COL_OID = col_oid_t(5);      // SMALLINT
-constexpr col_oid_t ATTNOTNULL_COL_OID = col_oid_t(6);  // BOOLEAN
-// The following columns come from 'pg_attrdef' but are included here for
-// simplicity.  PostgreSQL splits out the table to allow more fine-grained
-// locking during DDL operations which is not an issue in this system
-constexpr col_oid_t ADSRC_COL_OID = col_oid_t(7);  // VARCHAR
+  static constexpr table_oid_t COLUMN_TABLE_OID = table_oid_t(41);
+  static constexpr index_oid_t COLUMN_OID_INDEX_OID = index_oid_t(42);
+  static constexpr index_oid_t COLUMN_NAME_INDEX_OID = index_oid_t(43);
 
-constexpr uint8_t NUM_PG_ATTRIBUTE_COLS = 7;
+  /*
+   * Column names of the form "ATT[name]" are present in the PostgreSQL
+   * catalog specification and columns of the form "ATT_[name]" are
+   * noisepage-specific additions (generally pointers to internal objects).
+   */
+  static constexpr CatalogColumnDef<col_oid_t, uint32_t> ATTNUM{col_oid_t{1}};      // INTEGER (pkey)
+  static constexpr CatalogColumnDef<table_oid_t, uint32_t> ATTRELID{col_oid_t{2}};  // INTEGER (fkey: pg_class)
+  static constexpr CatalogColumnDef<storage::VarlenEntry> ATTNAME{col_oid_t{3}};    // VARCHAR
+  static constexpr CatalogColumnDef<type_oid_t, uint32_t> ATTTYPID{col_oid_t{4}};   // INTEGER (fkey: pg_type)
+  static constexpr CatalogColumnDef<uint16_t> ATTLEN{col_oid_t{5}};                 // SMALLINT
+  static constexpr CatalogColumnDef<int32_t> ATTTYPMOD{col_oid_t{6}};               // INTEGER
+  static constexpr CatalogColumnDef<bool> ATTNOTNULL{col_oid_t{7}};                 // BOOLEAN
+  // The following columns come from 'pg_attrdef' but are included here for
+  // simplicity.  PostgreSQL splits out the table to allow more fine-grained
+  // locking during DDL operations which is not an issue in this system
+  static constexpr CatalogColumnDef<storage::VarlenEntry> ADSRC{col_oid_t{8}};  // VARCHAR
 
-constexpr std::array<col_oid_t, NUM_PG_ATTRIBUTE_COLS> PG_ATTRIBUTE_ALL_COL_OIDS = {
-    ATTNUM_COL_OID, ATTRELID_COL_OID,   ATTNAME_COL_OID, ATTTYPID_COL_OID,
-    ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADSRC_COL_OID};
+  static constexpr uint8_t NUM_PG_ATTRIBUTE_COLS = 8;
+
+  static constexpr std::array<col_oid_t, NUM_PG_ATTRIBUTE_COLS> PG_ATTRIBUTE_ALL_COL_OIDS = {
+      ATTNUM.oid_, ATTRELID.oid_,  ATTNAME.oid_,    ATTTYPID.oid_,
+      ATTLEN.oid_, ATTTYPMOD.oid_, ATTNOTNULL.oid_, ADSRC.oid_};
+};
 
 }  // namespace noisepage::catalog::postgres

@@ -38,7 +38,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        LLVM_DIR="/usr/local/opt/llvm@8"
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }
@@ -121,7 +121,7 @@ pipeline {
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        LLVM_DIR="/usr/local/opt/llvm@8"
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }
@@ -287,7 +287,7 @@ pipeline {
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        LLVM_DIR="/usr/local/opt/llvm@8"
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }
@@ -404,7 +404,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        LLVM_DIR="/usr/local/opt/llvm@8"
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }

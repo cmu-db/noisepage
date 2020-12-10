@@ -23,6 +23,7 @@ OSX_BUILD_PACKAGES=(\
   "libevent" \
   "libpqxx" \
   "pkg-config" \
+  "python@3.8" \
   "ninja" \
   "tbb" \
   "zeromq" \
@@ -171,7 +172,7 @@ install_mac() {
   # Install Homebrew.
   if test ! $(which brew); then
     echo "Installing Homebrew (https://brew.sh/)"
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
   fi
   # Update Homebrew.
   brew update

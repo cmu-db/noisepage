@@ -211,3 +211,41 @@ SELECT a FROM update5;
 statement ok
 DROP TABLE update5
 
+statement ok
+CREATE TABLE update6 (a INT, b INT, c INT);
+
+statement ok
+INSERT INTO update6 VALUES (1, 2, 3);
+
+statement ok
+UPDATE update6 SET a = b + 1, b = a + 1, c = c;
+
+query III rowsort
+SELECT * FROM update6;
+----
+3
+2
+3
+
+statement ok
+UPDATE update6 SET b = a + 1, c = a + b, a = b + 1;
+
+query III rowsort
+SELECT * FROM update6;
+----
+3
+4
+5
+
+statement ok
+UPDATE update6 SET b = a + c;
+
+query III rowsort
+SELECT * FROM update6;
+----
+3
+8
+5
+
+statement ok
+DROP TABLE update6

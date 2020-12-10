@@ -1039,10 +1039,10 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_FALSE(ctpn->GetSchema()->GetColumns()[1].Nullable());
   EXPECT_TRUE(ctpn->GetSchema()->GetColumns()[2].Nullable());
   EXPECT_TRUE(ctpn->GetSchema()->GetColumns()[3].Nullable());
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].AttrSize(), 4);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].MaxVarlenSize(), 255);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].AttrSize(), 4);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].AttrSize(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].AttributeLength(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].TypeModifier(), 255);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].AttributeLength(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].AttributeLength(), 4);
   EXPECT_EQ(*ctpn->GetSchema()->GetColumns()[3].StoredExpression(),
             parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(14)));
 
@@ -1673,7 +1673,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   EXPECT_EQ(ref, info);
 
   auto logical_drop = operator_tree_->Contents()->GetContentsAs<optimizer::LogicalDropNamespace>();
-  EXPECT_EQ(logical_drop->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_EQ(logical_drop->GetNamespaceOID(), catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
@@ -1688,7 +1688,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   EXPECT_TRUE(op->IsPhysical());
   EXPECT_EQ(op->GetName(), "DropNamespace");
   auto dn = op->GetContentsAs<optimizer::DropNamespace>();
-  EXPECT_EQ(dn->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_EQ(dn->GetNamespaceOID(), catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
 
   planner::PlanMetaData plan_meta_data{};
   optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
@@ -1703,7 +1703,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
       std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
   auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
-  EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID);
 }
 
 // NOLINTNEXTLINE
