@@ -457,7 +457,7 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &
             col_nums.emplace_back(dist.second);
           }
 
-          std::string tbl_name = GenerateMixedTableName(final_types, col_nums, row_num, cardinality);
+          std::string tbl_name = GenerateTableName(final_types, col_nums, row_num, cardinality);
           table_metas.emplace_back(tbl_name, row_num, col_metas);
         }
       }

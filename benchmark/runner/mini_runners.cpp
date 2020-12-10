@@ -300,12 +300,7 @@ class MiniRunners : public benchmark::Fixture {
                                  size_t row, size_t car) {
     std::vector<type::TypeId> types = {left_type, right_type};
     std::vector<uint32_t> col_counts = {static_cast<uint32_t>(num_left), static_cast<uint32_t>(num_right)};
-    auto tbl_name = execution::sql::TableGenerator::GenerateMixedTableName(types, col_counts, row, car);
-    if (num_left == 0)
-      tbl_name = execution::sql::TableGenerator::GenerateTableName(right_type, num_right, row, car);
-    else if (num_right == 0)
-      tbl_name = execution::sql::TableGenerator::GenerateTableName(left_type, num_left, row, car);
-    return tbl_name;
+    return execution::sql::TableGenerator::GenerateTableName(types, col_counts, row, car);
   }
 
   std::unique_ptr<planner::AbstractPlanNode> IndexScanChecker(

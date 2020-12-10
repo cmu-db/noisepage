@@ -53,33 +53,22 @@ class TableGenerator {
 
   /**
    * Generate table name
-   * @param type Type
-   * @param col Number of columns
-   * @param row Number of rows
-   * @param car Cardinality
-   * @return table name
-   */
-  static std::string GenerateTableName(type::TypeId type, size_t col, size_t row, size_t car) {
-    std::stringstream table_name;
-    auto type_name = type::TypeUtil::TypeIdToString(type);
-    table_name << type_name << "Col" << col << "Row" << row << "Car" << car;
-    return table_name.str();
-  }
-
-  /**
-   * Generate Mixed Table Name
+   * If a type has no columns, the type is dropped from the name.
+   *
    * @param types Number of types
    * @param cols Number of columns per type
    * @param row Number of rows
    * @param car Cardinality
    * @return table name
    */
-  static std::string GenerateMixedTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
+  static std::string GenerateTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
                                             size_t car) {
     std::stringstream table_name;
     for (size_t idx = 0; idx < cols.size(); idx++) {
-      table_name << type::TypeUtil::TypeIdToString(types[idx]);
-      table_name << "Col" << cols[idx];
+      if (cols[idx] != 0) {
+        table_name << type::TypeUtil::TypeIdToString(types[idx]);
+        table_name << "Col" << cols[idx];
+      }
     }
     table_name << "Row" << row << "Car" << car;
     return table_name.str();
