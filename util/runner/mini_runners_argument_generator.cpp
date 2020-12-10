@@ -235,6 +235,7 @@ void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const Mini
   auto &lookup_sizes = config.sweep_index_lookup_sizes_;
   const std::vector<uint32_t> *key_sizes;
   for (auto type : types) {
+    int64_t tbl_cols = (type == type::TypeId::VARCHAR) ? 5 : 15;
     if (type == type::TypeId::VARCHAR)
       key_sizes = &config.sweep_varchar_index_col_nums_;
     else
@@ -242,14 +243,14 @@ void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const Mini
 
     for (auto key_size : *key_sizes) {
       for (auto idx_size : idx_sizes) {
-        b->push_back({static_cast<int64_t>(type), key_size, idx_size, 0, 1});
+        b->push_back({static_cast<int64_t>(type), tbl_cols, key_size, idx_size, 0, 1});
         for (auto lookup_size : lookup_sizes) {
           if (lookup_size <= idx_size) {
-            b->push_back({static_cast<int64_t>(type), key_size, idx_size, lookup_size, -1});
+            b->push_back({static_cast<int64_t>(type), tbl_cols, key_size, idx_size, lookup_size, -1});
           }
         }
 
-        b->push_back({static_cast<int64_t>(type), key_size, idx_size, 0, 0});
+        b->push_back({static_cast<int64_t>(type), tbl_cols, key_size, idx_size, 0, 0});
       }
     }
   }

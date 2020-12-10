@@ -15,6 +15,9 @@ class MiniRunnersDataConfig {
  public:
   /** Distribution of table column types */
   std::vector<std::vector<type::TypeId>> table_type_dists_ = {
+      {type::TypeId::INTEGER},
+      {type::TypeId::BIGINT},
+      {type::TypeId::VARCHAR},
       {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::BIGINT},
       {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
 
@@ -36,8 +39,7 @@ class MiniRunnersDataConfig {
    * type table_type_dists_[i=0][k]).
    */
   std::vector<std::vector<std::vector<uint32_t>>> table_col_dists_ = {
-      {{0, 15, 0}, {3, 12, 0}, {7, 8, 0}, {11, 4, 0}, {15, 0, 0}, {0, 0, 15}},
-      {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}}};
+      {{15}}, {{15}}, {{5}}, {{0, 15, 0}, {3, 12, 0}, {7, 8, 0}, {11, 4, 0}}, {{1, 4}, {2, 3}, {3, 2}, {4, 1}}};
 
   /**
    * Distribution of row numbers of tables to create.
@@ -49,15 +51,6 @@ class MiniRunnersDataConfig {
    */
   std::vector<uint32_t> table_row_nums_ = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                            2000, 5000, 10000, 20000, 50000, 100000, 200000, 300000, 500000, 1000000};
-
-  /**
-   * Types of pure tables to create for index builds.
-   * A "pure" table is a table where all columns are of the same type.
-   *
-   * The vector stores a pair denoting <number of columns, type>
-   */
-  std::vector<std::pair<uint32_t, type::TypeId>> index_table_types_ = {
-      {15, type::TypeId::INTEGER}, {15, type::TypeId::BIGINT}, {5, type::TypeId::VARCHAR}};
 
   /**
    * Parameter controls number of columns extracted from base tables (for integer, real, and bigint).

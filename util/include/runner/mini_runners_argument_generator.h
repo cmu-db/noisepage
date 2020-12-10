@@ -89,10 +89,11 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Type of the index key columns
-   * Arg 1: Number of columns in the key
-   * Arg 2: Size of the index
-   * Arg 3: Size of lookup
-   * Arg 4: Special argument used to indicate building an index.
+   * Arg 1: Number of columns in base table
+   * Arg 2: Number of columns in the key
+   * Arg 3: Size of the index
+   * Arg 4: Size of lookup
+   * Arg 5: Special argument used to indicate building an index.
    *        A value of 0 means to drop the index. A value of -1 is
    *        a dummy/sentinel value. A value of 1 means to create the
    *        index. This argument is only used when lookup_size = 0
