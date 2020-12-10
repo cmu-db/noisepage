@@ -433,7 +433,7 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &
               std::stringstream col_name;
               col_name << type_name << j;
               if (col_metas.empty()) {
-                col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
+                col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 0, cardinality - 1);
               } else {
                 col_metas.emplace_back(col_name.str(), types[col_idx], false, 0);
               }
