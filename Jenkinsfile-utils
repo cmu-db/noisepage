@@ -2,7 +2,6 @@
 ENABLED = 'ON'
 DISABLED = 'OFF'
 UBUNTU = 'ubuntu'
-MACOS = 'macos'
 DEBUG_BUILD = 'Debug'
 RELEASE_BUILD = 'Release'
 /**
@@ -28,7 +27,7 @@ void noisePageBuild(Map args = [:]) {
     String buildCmd = generateBuildCmd(config)
     String buildScript = generateBuildScript(compileCmd, buildCmd, config.isRecordTime)
 
-    sh script:"echo y | ${config.os == UBUNTU ? 'sudo' : ''} ./script/installation/packages.sh all", label: 'Installing packages'
+    sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
     sh script:buildScript, label: 'Build'
 }
@@ -51,7 +50,7 @@ String generateCompileCmd(Map config = [:]) {
         '-DNOISEPAGE_USE_JUMBOTESTS': DISABLED
     ]
 
-    if (config.os != MACOS && config.useCache) {
+    if (config.useCache) {
         // currently ccache is only configured for ubuntu images
         // For more info: https://github.com/cmu-db/noisepage/pull/830
         cmakeArgs['-DCMAKE_CXX_COMPILER_LAUNCHER'] = 'ccache'
@@ -74,14 +73,9 @@ String generateCompileCmd(Map config = [:]) {
     if (config.isBuildTests) {
         // Different OS have different commands to get number of cpus
         if (config.os == UBUNTU) {
-            cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = "\$(nproc)"
+            cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = config.os == UBUNTU ? "\$(nproc)" : 1
         }
-        else if (config.os == MACOS) {
-            // Currently test parallelization on mac does not work. Blocked on
-            // https://github.com/cmu-db/noisepage/pull/1383
-            //cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = "\$(sysctl -n hw.physicalcpu)"
-            cmakeArgs['-DNOISEPAGE_TEST_PARALLELISM'] = 1
-        }
+
         if (config.isJumboTest) {
             cmakeArgs['-DNOISEPAGE_USE_JUMBOTESTS'] = ENABLED
         }
