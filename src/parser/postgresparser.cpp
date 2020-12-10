@@ -155,6 +155,10 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       result = VariableSetTransform(parse_result, reinterpret_cast<VariableSetStmt *>(node));
       break;
     }
+    case T_VariableShowStmt: {
+      result = VariableShowTransform(parse_result, reinterpret_cast<VariableShowStmt *>(node));
+      break;
+    }
     case T_ViewStmt: {
       result = CreateViewTransform(parse_result, reinterpret_cast<ViewStmt *>(node));
       break;
@@ -2054,6 +2058,14 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   }
   bool is_set_default = root->kind_ == VariableSetKind::VAR_SET_DEFAULT;
   auto result = std::make_unique<VariableSetStatement>(name, std::move(values), is_set_default);
+  return result;
+}
+
+// Postgres.VariableShowStmt -> noisepage.VariableShowStatement
+std::unique_ptr<VariableShowStatement> PostgresParser::VariableShowTransform(ParseResult *parse_result,
+                                                                             VariableShowStmt *root) {
+  std::string name = root->name_;
+  auto result = std::make_unique<VariableShowStatement>(name);
   return result;
 }
 
