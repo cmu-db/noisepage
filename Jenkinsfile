@@ -590,11 +590,11 @@ pipeline {
                 // Specifically, the parameters chosen are:
                 // - mini_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
                 // - rerun=0, which skips rerun since we are not testing benchmark performance here
-                // - warm_num=0, which skips the warmup iterations.
+                // - warm_num=1, which also tests the warm up phase for the mini_runners.
                 // With the current set of parameters, the input generation process will finish under 10min
                 sh script :'''
                 cd build/bin
-                ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=0
+                ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=1
                 ''', label: 'Mini-trainer input generation'
 
                 sh script: '''
