@@ -53,17 +53,22 @@ For more configurations, there are 2 ways
   - *In theory, if the same config are conflicting between config files and command line options, the config from __command line option should prevail__*
 
 ## Test workflow
-- Start the NoisePage DB process as a Python subprocess
-  - Try to locate the NoisePage binary
-  - Kill all the lingering processes on the NoisePage port
-  - Start the NoisePage DB process
-- Read the test case configs
-- `run_pre_suite`: Pre test suite tasks
+- Start by invoking `run_oltpbench.py`
+  - Load the config file passed in and start an instance of the database with any server_args specified in the config
+  - Create a test suite for the whole config file and runs the test suite
+  - Create a `TestOLTPBench` object for the test execution
+    - Pass command line options and configs in to the constructor
+    - Try to locate the NoisePage binary
+  - Run the test suite by calling `.run()` function of `TestOLTPBench`
+- Run pre suite tasks: `.run_pre_suite()` function of `TestOLTPBench`
   - Clean the possible residual local [oltpbench](https://github.com/oltpbenchmark/oltpbench) workspace
-  - Git clone the [oltpbench](https://github.com/oltpbenchmark/oltpbench) repo
+  - Download and install the [oltpbench](https://github.com/oltpbenchmark/oltpbench) from GitHub
   - [optional] *Checkout to the specified branch*
 - Iterate through all the test cases
-  - `run_pre_test`: Pre test case tasks
+  - (Re)start the NoisePage DB process as a Python subprocess
+    - Kill all the lingering processes on the NoisePage port
+    - Start the NoisePage DB process
+  - Run pre test case tasks: `.run_pre_test()` function of `TestCaseOLTPBench`
     - Create the database and tables for the OLTP benchmark specified
     - Load the data to tables
   - Run the test case command as a subprocess
@@ -71,12 +76,12 @@ For more configurations, there are 2 ways
       - Collect `RSS` and `VMS` by default
       - Collect every `5` seconds by default
       - The memory info is stored in a Python dictionary in memory in runtime
-  - `run_post_test`: Post test case tasks
+  - Run post test case tasks: `.run_post_test()` function of `TestCaseOLTPBench`
     - If it is part of the Jenkins nightly build, the result results should be stored
         - Parse the testing results files by [oltpbench](https://github.com/oltpbenchmark/oltpbench) and format them in JSON
         - Add the memory info to `incremental_metrics` and compute the average metrics to add to the `metrics` in JSON payload
         - Send a POST request to the Django API
-- `run_post_suite`: Post test case suite
+- Run post suite tasks: `.run_post_suite()` function of `TestOLTPBench`
 
 ## Dependencies
 
