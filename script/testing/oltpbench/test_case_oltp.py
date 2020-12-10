@@ -133,8 +133,11 @@ class TestCaseOLTPBench(TestCase):
         """
         Create the directory for the result output files if not exists.
         """
+        LOG.info(f'{self.test_result_dir} EXISTS: {os.path.exists(self.test_result_dir)}')
         if not os.path.exists(self.test_result_dir):
             os.makedirs(self.test_result_dir)
+            LOG.info(f'{self.test_result_dir} EXISTS: {os.path.exists(self.test_result_dir)}')
+
 
     def create_and_load_db(self):
         """
@@ -148,8 +151,8 @@ class TestCaseOLTPBench(TestCase):
             LOAD=self.db_load)
         error_msg = "Error: unable to create and load the database"
         rc, stdout, stderr = run_command(cmd,
-                                         error_msg=error_msg,
-                                         cwd=self.test_command_cwd)
+                                        error_msg=error_msg,
+                                        cwd=self.test_command_cwd)
         if rc != ErrorCode.SUCCESS:
             LOG.error(stderr)
             raise RuntimeError(error_msg)
