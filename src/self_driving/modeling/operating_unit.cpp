@@ -46,7 +46,7 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
           break;
         }
         case selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS: {
-          feature.UpdateNumConcurrent(mode, val);
+          feature.UpdateNumLoops(mode, val);
           did_find = true;
           break;
         }
