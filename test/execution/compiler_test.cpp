@@ -2688,6 +2688,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     planner::SetClause clause3{table_schema1.GetColumn("colC").Oid(), col3};
     planner::SetClause clause4{table_schema1.GetColumn("colD").Oid(), col4};
 
+    std::vector<catalog::index_oid_t> indexes = accessor->GetIndexOids(table_oid1);
     update_node = builder.SetTableOid(table_oid1)
                       .AddChild(std::move(seq_scan1))
                       .AddSetClause(clause1)
@@ -2695,6 +2696,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                       .AddSetClause(clause3)
                       .AddSetClause(clause4)
                       .SetIndexedUpdate(true)
+                      .SetIndexOids(std::move(indexes))
                       .Build();
   }
   // Execute update
@@ -2713,8 +2715,13 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
 
     auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
     auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{
-        selfdriving::ExecutionOperatingUnitType::UPDATE, selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-        selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, selfdriving::ExecutionOperatingUnitType::SEQ_SCAN};
+        selfdriving::ExecutionOperatingUnitType::INSERT,
+        selfdriving::ExecutionOperatingUnitType::DELETE,
+        selfdriving::ExecutionOperatingUnitType::INDEX_INSERT,
+        selfdriving::ExecutionOperatingUnitType::INDEX_DELETE,
+        selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+        selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+        selfdriving::ExecutionOperatingUnitType::SEQ_SCAN};
     EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
@@ -2878,8 +2885,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     EXPECT_EQ(pipeline->units_.size(), 1);
 
     auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-    auto exp_vec0 =
-        std::vector<selfdriving::ExecutionOperatingUnitType>{selfdriving::ExecutionOperatingUnitType::INSERT};
+    auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{
+        selfdriving::ExecutionOperatingUnitType::INSERT, selfdriving::ExecutionOperatingUnitType::INDEX_INSERT};
     EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
@@ -3319,8 +3326,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     EXPECT_EQ(pipeline->units_.size(), 1);
 
     auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-    auto exp_vec0 =
-        std::vector<selfdriving::ExecutionOperatingUnitType>{selfdriving::ExecutionOperatingUnitType::INSERT};
+    auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{
+        selfdriving::ExecutionOperatingUnitType::INSERT, selfdriving::ExecutionOperatingUnitType::INDEX_INSERT};
     EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 

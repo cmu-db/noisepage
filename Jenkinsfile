@@ -34,32 +34,6 @@ pipeline {
         }
         stage('Check') {
             parallel {
-                stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
-                    agent { label 'macos' }
-                    environment {
-                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR="/usr/local/opt/llvm@8"
-                        CC="${LLVM_DIR}/bin/clang"
-                        CXX="${LLVM_DIR}/bin/clang++"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | ./script/installation/packages.sh build', label: 'Installing packages'
-                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja ..'
-                        sh 'cd build && timeout 20m ninja check-format'
-                        sh 'cd build && timeout 20m ninja check-lint'
-                        sh 'cd build && timeout 20m ninja check-censored'
-                        sh 'cd build && ninja check-clang-tidy'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-
                 stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
                     agent {
                         docker {
@@ -116,44 +90,6 @@ pipeline {
 
         stage('Test') {
             parallel {
-                stage('macos-10.14/clang-8.0 (Debug/ASAN/unittest)') {
-                    agent { label 'macos' }
-                    environment {
-                        ASAN_OPTIONS="detect_container_overflow=0"
-                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR="/usr/local/opt/llvm@8"
-                        CC="${LLVM_DIR}/bin/clang"
-                        CXX="${LLVM_DIR}/bin/clang++"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
-
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF ..
-                        ninja''', label: 'Compiling'
-
-                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
-                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
-                        sh 'cd build && gtimeout 1h ninja unittest'
-                        sh 'cd build && gtimeout 1h ninja check-tpl'
-                        sh script: 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
-                        sh script: 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
-                    }
-                    post {
-                        always {
-                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
-                        }
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent {
                         docker {
@@ -282,44 +218,6 @@ pipeline {
                     }
                 }
 
-                stage('macos-10.14/clang-8.0 (Release/unittest)') {
-                    agent { label 'macos' }
-                    environment {
-                        ASAN_OPTIONS="detect_container_overflow=0"
-                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                        LLVM_DIR="/usr/local/opt/llvm@8"
-                        CC="${LLVM_DIR}/bin/clang"
-                        CXX="${LLVM_DIR}/bin/clang++"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | ./script/installation/packages.sh all'
-
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF ..
-                        ninja''', label: 'Compiling'
-
-                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
-                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
-                        sh 'cd build && gtimeout 1h ninja unittest'
-                        sh 'cd build && gtimeout 1h ninja check-tpl'
-                        sh script: 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
-                        sh script: 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
-                    }
-                    post {
-                        always {
-                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
-                        }
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-
                 stage('ubuntu-20.04/gcc-9.3 (Release/jumbotests)') {
                     agent {
                         docker {
@@ -400,66 +298,6 @@ pipeline {
 
         stage('End-to-End Debug') {
             parallel{
-                stage('macos-10.14/clang-8.0 (Debug/e2etest/oltpbench)') {
-                    agent { label 'macos' }
-                    environment {
-                        ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/opt/llvm@8"
-                        CC="${LLVM_DIR}/bin/clang"
-                        CXX="${LLVM_DIR}/bin/clang++"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
-
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON ..
-                        ninja noisepage''', label: 'Compiling'
-
-                        sh script: '''
-                        cd build
-                        gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug
-                        ''', label:'OLTPBench (TATP)'
-
-                        sh script: '''
-                        cd build
-                        gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
-                        ''', label: 'OLTPBench (No WAL)'
-
-                        sh script: '''
-                        cd build
-                        gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug
-                        ''', label:'OLTPBench (Smallbank)'
-
-                        sh script: '''
-                        cd build
-                        gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
-                        ''', label: 'OLTPBench (YCSB)'
-
-                        sh script: '''
-                        cd build
-                        gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
-                        ''', label: 'OLTPBench (NOOP)'
-
-                        // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
-                        sh script: '''
-                        cd build
-                        gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug
-                        ''', label: 'OLTPBench (TPCC)'
-
-                        sh script: '''
-                        cd build
-                        gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
-                        ''', label: 'OLTPBench (No Parallel)'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
                 stage('ubuntu-20.04/gcc-9.3 (Debug/e2etest/oltpbench)') {
                     agent {
                         docker {
