@@ -20,6 +20,10 @@ namespace noisepage::binder {
 class BinderContext;
 }
 
+namespace noisepage::execution::sql {
+class TableGenerator;
+}  // namespace noisepage::execution::sql
+
 namespace noisepage::parser {
 
 /**
@@ -166,6 +170,7 @@ class ColumnValueExpression : public AbstractExpression {
 
  private:
   friend class binder::BinderContext;
+  friend class execution::sql::TableGenerator;
   /** @param database_oid Database OID to be assigned to this expression */
   void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
   /** @param table_oid Table OID to be assigned to this expression */
