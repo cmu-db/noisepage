@@ -289,9 +289,9 @@ pipeline {
             }
         }
 
-        stage('End-to-End Debug') {
+        stage('End-to-End') {
             parallel {
-                stage('ubuntu-20.04/gcc-9.3 (Debug/e2etest/oltpbench)') {
+                stage('Debug') {
                     agent {
                         docker {
                             image 'noisepage:focal'
@@ -337,10 +337,59 @@ pipeline {
                         timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug
                         ''', label: 'OLTPBench (TPCC)'
 
-                        sh script: ''' 
+                        sh script: '''
                         cd build
                         timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
-                        ''', label: 'OLTPBench (No Parallel)' 
+                        ''', label: 'OLTPBench (No Parallel)'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage('Performance') {
+                    agent { label 'benchmark' }
+                    environment {
+                        PSS_CREATOR = credentials('pss-creator')
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
+                        }
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TATP)'
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TATP No WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TATP RamDisk WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TPCC HDD WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TPCC No WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TPCC RamDisk WAL)'
                     }
                     post {
                         cleanup {
@@ -350,55 +399,7 @@ pipeline {
                 }
             }
         }
-        stage('End-to-End Performance') {
-            agent { label 'benchmark' }
-            environment {
-                PSS_CREATOR = credentials('pss-creator')
-            }
-            steps {
-                sh 'echo $NODE_NAME'
 
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
-                }
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (TATP)'
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (TATP No WAL)'
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (TATP RamDisk WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (TPCC HDD WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (TPCC No WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (TPCC RamDisk WAL)'
-            }
-             post {
-                 cleanup {
-                     deleteDir()
-                 }
-             }
-        }
         stage('Microbenchmark') {
             agent { label 'benchmark' }
             steps {
