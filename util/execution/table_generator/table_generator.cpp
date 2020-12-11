@@ -442,19 +442,11 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &
             num_cols += col_dist[col_idx];
           }
 
-          std::vector<std::pair<type::TypeId, uint32_t>> dists;
-          for (size_t i = 0; i < col_dist.size(); i++) {
-            dists.emplace_back(types[i], col_dist[i]);
-          }
-          dists.erase(std::remove_if(dists.begin(), dists.end(),
-                                     [](std::pair<type::TypeId, uint32_t> item) { return item.second == 0; }),
-                      dists.end());
-
           std::vector<type::TypeId> final_types;
           std::vector<uint32_t> col_nums;
-          for (auto dist : dists) {
-            final_types.emplace_back(dist.first);
-            col_nums.emplace_back(dist.second);
+          for (size_t i = 0; i < col_dist.size(); i++) {
+            final_types.emplace_back(types[i]);
+            col_nums.emplace_back(col_dist[i]);
           }
 
           std::string tbl_name = GenerateTableName(final_types, col_nums, row_num, cardinality);
