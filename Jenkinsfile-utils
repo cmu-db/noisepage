@@ -85,7 +85,7 @@ String generateCompileCmd(Map config = [:]) {
         cmakeArgs['-DNOISEPAGE_BUILD_TESTS'] = DISABLED
     }
 
-    if (config.isBuildBenchmarks) {
+    if (config.isBuildBenchmarks || config.isBuildSelfDrivingTests) {
         cmakeArgs['-DNOISEPAGE_BUILD_BENCHMARKS'] = ENABLED
     }
 
