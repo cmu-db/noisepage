@@ -824,7 +824,8 @@ void PlanGenerator::Visit(const Insert *op) {
   builder.SetDatabaseOid(op->GetDatabaseOid());
   builder.SetTableOid(op->GetTableOid());
 
-  std::vector<catalog::index_oid_t> indexes(op->GetIndexes());
+  auto tbl_oid = op->GetTableOid();
+  std::vector<catalog::index_oid_t> indexes = accessor_->GetIndexOids(tbl_oid);
   builder.SetIndexOids(std::move(indexes));
 
   auto values = op->GetValues();
@@ -848,11 +849,14 @@ void PlanGenerator::Visit(const InsertSelect *op) {
   NOISEPAGE_ASSERT(children_plans_.size() == 1, "InsertSelect needs 1 child plan");
   auto output_schema = std::make_unique<planner::OutputSchema>();
 
+  auto tbl_oid = op->GetTableOid();
+  std::vector<catalog::index_oid_t> indexes = accessor_->GetIndexOids(tbl_oid);
   output_plan_ = planner::InsertPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetPlanNodeId(GetNextPlanNodeID())
                      .SetDatabaseOid(op->GetDatabaseOid())
                      .SetTableOid(op->GetTableOid())
+                     .SetIndexOids(std::move(indexes))
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
 }
@@ -862,11 +866,14 @@ void PlanGenerator::Visit(const Delete *op) {
   NOISEPAGE_ASSERT(children_plans_.size() == 1, "Delete should have 1 child plan");
   auto output_schema = std::make_unique<planner::OutputSchema>();
 
+  auto tbl_oid = op->GetTableOid();
+  std::vector<catalog::index_oid_t> indexes = accessor_->GetIndexOids(tbl_oid);
   output_plan_ = planner::DeletePlanNode::Builder()
                      .SetPlanNodeId(GetNextPlanNodeID())
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
                      .SetTableOid(op->GetTableOid())
+                     .SetIndexOids(std::move(indexes))
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
 }
@@ -922,6 +929,13 @@ void PlanGenerator::Visit(const Update *op) {
     }
   }
 
+  std::vector<catalog::index_oid_t> index_oids;
+  if (indexed_update) {
+    // Since an indexed_update will delete the tuple, we will have to codegen
+    // IndexDelete and IndexInsert for all indexes.
+    index_oids = accessor_->GetIndexOids(op->GetTableOid());
+  }
+
   // Empty OutputSchema for update
   auto output_schema = std::make_unique<planner::OutputSchema>();
 
@@ -932,6 +946,7 @@ void PlanGenerator::Visit(const Update *op) {
                      .SetTableOid(op->GetTableOid())
                      .SetIndexedUpdate(indexed_update)
                      .SetUpdatePrimaryKey(false)
+                     .SetIndexOids(std::move(index_oids))
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
 }

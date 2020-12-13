@@ -30,7 +30,8 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
     compilation_context->Prepare(*clause.second);
   }
 
-  for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
+  auto &index_oids = GetPlanAs<planner::UpdatePlanNode>().GetIndexOids();
+  for (auto &index_oid : index_oids) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
       compilation_context->Prepare(*index_col.StoredExpression());
@@ -72,7 +73,7 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     // For indexed updates, we need to re-insert into the table, and then delete-and-insert into every index.
     // var insert_slot = @tableInsert(&updater_)
     GenTableInsert(function);
-    const auto &indexes = GetCodeGen()->GetCatalogAccessor()->GetIndexOids(op.GetTableOid());
+    const auto &indexes = GetPlanAs<planner::UpdatePlanNode>().GetIndexOids();
     for (const auto &index_oid : indexes) {
       GenIndexDelete(function, context, index_oid);
       GenIndexInsert(context, function, index_oid);
@@ -90,10 +91,22 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 }
 
 void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
-                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
-  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
-                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  if (GetPlanAs<planner::UpdatePlanNode>().GetIndexOids().empty()) {
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  } else {
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  }
+
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 

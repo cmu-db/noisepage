@@ -27,7 +27,7 @@ Hi! Welcome to CMU DB.
    - **Account** [Sign up](https://github.com/join) for a GitHub account.
    - **Fork** Visit the [NoisePage repository](https://github.com/cmu-db/noisepage). Click the `Fork` button in the top right and fork the repository. You should be able to see the forked repository at `https://github.com/YOUR_GITHUB_USERNAME/noisepage`.
    - **SSH key** You should add a [SSH key](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account) to your GitHub account.  
-2. **OS** Make sure you are running [Ubuntu 20.04](https://releases.ubuntu.com/20.04/) or macOS 10.14+. If not, the recommended approach is to dual boot or to use a VM.
+2. **OS** Make sure you are running [Ubuntu 20.04](https://releases.ubuntu.com/20.04/). If not, the recommended approach is to dual boot or to use a VM.
 3. **IDE** We officially only support [CLion](https://www.jetbrains.com/clion/).
    - You can download CLion for free with the generous [Jetbrains educational license](https://www.jetbrains.com/community/education/#students).
    - More setup instructions are available [here](https://github.com/cmu-db/noisepage/tree/master/docs/tech_clion.md). This includes general CMake build flags.
@@ -35,7 +35,9 @@ Hi! Welcome to CMU DB.
    - The default CLion cloned repository location is `~/CLionProjects/noisepage`.
    - Go to the folder: `cd ~/CLionProjects/noisepage/script/installation`
    - Install all the necessary packages: `sudo bash ./packages.sh`
-5. **macOS** If you are on a Mac, you should add this to your `~/.zshrc`:
+5. **macOS** As of December 2020, we no longer officially support macOS. All Mac instructions are outdated.
+
+   If you are on a Mac, you should add this to your `~/.zshrc`:
    ```
    export PATH="/usr/local/opt/llvm@8/bin:$PATH"
    export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/

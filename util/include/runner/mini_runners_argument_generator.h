@@ -37,7 +37,7 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals to scan
+   * Arg 1: Number of reals to scan
    * Arg 2: Number of rows to output
    *
    * @param b Vector to store output argument vectors
@@ -52,12 +52,12 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals or varchars to scan
+   * Arg 1: Number of reals or varchars to scan
    * Arg 2: # integers in the underlying table
-   * Arg 3: # decimals or varchars in the underlying table
+   * Arg 3: # reals or varchars in the underlying table
    * Arg 4: Number of rows in the underlying table
    * Arg 5: Cardinality of underlying table
-   * Arg 6: Whether arg 1 & 3 are for decimals or varchars
+   * Arg 6: Whether arg 1 & 3 are for reals or varchars
    *
    * @param b Vector to store output argument vectors
    * @param settings Settings of the mini-runners
@@ -70,12 +70,12 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals or varchars to scan
+   * Arg 1: Number of reals or varchars to scan
    * Arg 2: # integers in the underlying table
-   * Arg 3: # decimals or varchars in the underlying table
+   * Arg 3: # reals or varchars in the underlying table
    * Arg 4: Number of rows in the underlying table
    * Arg 5: Cardinality of underlying table
-   * Arg 6: Whether arg 1 & 3 are for decimals or varchars
+   * Arg 6: Whether arg 1 & 3 are for reals or varchars
    *
    * @param b Vector to store output argument vectors
    * @param settings Settings of the mini-runners
@@ -89,10 +89,11 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Type of the index key columns
-   * Arg 1: Number of columns in the key
-   * Arg 2: Size of the index
-   * Arg 3: Size of lookup
-   * Arg 4: Special argument used to indicate building an index.
+   * Arg 1: Number of columns in base table
+   * Arg 2: Number of columns in the key
+   * Arg 3: Size of the index
+   * Arg 4: Size of lookup
+   * Arg 5: Special argument used to indicate building an index.
    *        A value of 0 means to drop the index. A value of -1 is
    *        a dummy/sentinel value. A value of 1 means to create the
    *        index. This argument is only used when lookup_size = 0
@@ -124,9 +125,9 @@ class MiniRunnersArgumentGenerator {
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers to scan
-   * Arg 1: Number of decimals to scan
+   * Arg 1: Number of reals to scan
    * Arg 2: # integers in the underlying table
-   * Arg 3: # decimals in the underlying table
+   * Arg 3: # reals in the underlying table
    * Arg 4: Number of rows in the underlying table
    * Arg 5: Cardinality of underlying table
    *
@@ -241,7 +242,30 @@ class MiniRunnersArgumentGenerator {
                                       const MiniRunnersDataConfig &config);
 
   /**
-   * Generates arguments for modeling UPDATE/DELETE with index-scans
+   * Generates arguments for modeling UPDATE with index-scans
+   *
+   * Benchmark arguments are as follows:
+   * Arg 0: Number of integers in the index key
+   * Arg 1: Number of bigints in the index key
+   * Arg 2: Number of columns to update
+   * Arg 3: Number of integers in the underlying table
+   * Arg 4: Number of bigints in the underlying table
+   * Arg 5: Number of rows in the underlying table
+   * Arg 6: Lookup size
+   * Arg 7: Special argument used to indicate building an index.
+   *        A value of 0 means to drop the index. A value of -1 is
+   *        a dummy/sentinel value. A value of 1 means to create the
+   *        index. This argument is only used when lookup_size = 0
+   *
+   * @param b Vector to store output argument vectors
+   * @param settings Settings of the mini-runners
+   * @param config MiniRunners data parameters
+   */
+  static void GenUpdateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                      const MiniRunnersDataConfig &config);
+
+  /**
+   * Generates arguments for modeling DELETE with index-scans
    *
    * Benchmark arguments are as follows:
    * Arg 0: Number of integers in the index key
@@ -259,8 +283,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenUpdateDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                            const MiniRunnersDataConfig &config);
+  static void GenDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                      const MiniRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling CREATE INDEX
@@ -301,6 +325,23 @@ class MiniRunnersArgumentGenerator {
    */
   static void GenCreateIndexMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                            const MiniRunnersDataConfig &config);
+
+  /**
+   * Generates arguments for modeling index insert/delete into indexes
+   *
+   * Benchmark arguments are as follows:
+   * Arg 0: Number of keys in the index key
+   * Arg 1: Number of columns in the underlying table
+   * Arg 2: Number of rows in the underlying table
+   * Arg 3: Type of the key
+   * Arg 4: Number of indexes to create
+   *
+   * @param b Vector to store output argument vectors
+   * @param settings Settings of the mini-runners
+   * @param config MiniRunners data parameters
+   */
+  static void GenIndexInsertDeleteArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                            const MiniRunnersDataConfig &config);
 
  private:
   /**
