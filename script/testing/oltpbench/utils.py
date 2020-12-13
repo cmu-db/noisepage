@@ -34,6 +34,9 @@ def parse_command_line_args():
     aparser.add_argument("--disable-mem-info",
                          action='store_true',
                          help="Disable collecting the memory info")
+    aparser.add_argument("--dry-run",
+                         action='store_true',
+                         help="Start and stop DB server without running the OLTPBench tests")
 
     args = vars(aparser.parse_args())
 
