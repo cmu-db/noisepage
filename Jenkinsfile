@@ -348,54 +348,55 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-        stage('End-to-End Performance') {
-            agent { label 'benchmark' }
-            steps {
-                sh 'echo $NODE_NAME'
-                
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
+                stage('Performance') {
+                    agent { label 'benchmark' }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
+                        }
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release
+                        ''', label: 'OLTPBench (TATP)'
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release
+                        ''', label: 'OLTPBench (TATP No WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release
+                        ''', label: 'OLTPBench (TATP RamDisk WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release
+                        ''', label: 'OLTPBench (TPCC HDD WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release
+                        ''', label: 'OLTPBench (TPCC No WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release
+                        ''', label: 'OLTPBench (TPCC RamDisk WAL)'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
                 }
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release
-                ''', label: 'OLTPBench (TATP)'
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release
-                ''', label: 'OLTPBench (TATP No WAL)'
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release
-                ''', label: 'OLTPBench (TATP RamDisk WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release
-                ''', label: 'OLTPBench (TPCC HDD WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release
-                ''', label: 'OLTPBench (TPCC No WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release
-                ''', label: 'OLTPBench (TPCC RamDisk WAL)'
             }
-             post {
-                 cleanup {
-                     deleteDir()
-                 }
-             }
         }
+
         stage('Self-Driving End-to-End Test') {
             agent {
                 docker {
