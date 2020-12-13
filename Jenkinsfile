@@ -36,6 +36,8 @@ pipeline {
             }
         }
         stage('Check') {
+            when { equals expected: true, actual: false }
+
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
                     agent {
@@ -92,6 +94,8 @@ pipeline {
         }
 
         stage('Test') {
+            when { equals expected: true, actual: false }
+
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent {
@@ -290,6 +294,7 @@ pipeline {
         }
 
         stage('End-to-End') {
+            when { equals expected: true, actual: false }
             parallel {
                 stage('Debug') {
                     agent {
@@ -407,10 +412,18 @@ pipeline {
             steps {
                 sh 'echo $NODE_NAME'
 
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
-                }
+                sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+
+                sh script: '''
+                mkdir build
+                cd build
+                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF  -DNOISEPAGE_BUILD_SELF_DRIVING_TESTS=ON ..
+                ninja mini_runners''', label: 'Self-driving tests (Compile mini_runners)'
+
+                // script{
+                //     utils = utils ?: load(utilsFileName)
+                //     utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
+                // }
 
                 // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
                 // Specifically, the parameters chosen are:
