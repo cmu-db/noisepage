@@ -104,6 +104,11 @@ void RecoveryManager::RecoverFromLogs() {
         buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
         //STORAGE_LOG_INFO(fmt::format("REDO buffer size: {}", buffered_changes_map_[log_record->TxnBegin()].size()));
     }
+
+    if (log_record != nullptr) {
+      log_committed = true;
+      log_committed_cv_.notify_one();
+    }
   }
 
   // Process all deferred txns
@@ -181,18 +186,22 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::ti
   auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
-    STORAGE_LOG_INFO("[Recovery Manager]: Processing committed txn");
+    //STORAGE_LOG_INFO("[Recovery Manager]: Processing committed txn");
     ProcessCommittedTransaction(*it);
     txns_processed++;
   }
 
-  STORAGE_LOG_INFO(fmt::format("Transactions processed: {}", txns_processed));
+  //STORAGE_LOG_INFO(fmt::format("Transactions processed: {}", txns_processed));
 
   // If we actually processed some txns, remove them from the set
-  if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
+  if (txns_processed > 0) {
+    deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
+  }
 
   if (deferred_txns_.empty() && !log_provider_.CastManagedPointerTo<storage::ReplicationLogProvider>()->NonBlockingHasMoreRecords()) {
-    STORAGE_LOG_INFO("Notifying primary of sync");
+    //STORAGE_LOG_INFO("Notifying primary of sync");
+    //log_committed = true;
+    //log_committed_cv_.notify_one();
   }
 
   return txns_processed;

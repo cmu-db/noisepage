@@ -8,6 +8,7 @@
 #include "metrics/metrics_store.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "loggers/storage_logger.h"
 
 namespace noisepage::storage {
 
@@ -143,12 +144,16 @@ void LogSerializerTask::HandFilledBufferToWriter() {
     network_buffer->CopyFromBuffer(filled_buffer_);
 
     // Try sychronous replication...
-    //replication_manager_->AddLogRecordBuffer(network_buffer);
-    //if (replication_manager_->ReplicaSize() > 0) {
+    replication_manager_->AddLogRecordBuffer(network_buffer);
+    if (replication_manager_->ReplicaSize() > 0) {
       // Send message.
-      //replication_manager_->ReplicaSend("replica1", replication::ReplicationManager::MessageType::RECOVER,
-                                        //replication_manager_->SerializeLogRecords(), true);
-    //}
+      replication_manager_->ReplicaSend("replica1", replication::ReplicationManager::MessageType::RECOVER,
+                                        replication_manager_->SerializeLogRecords(), true);
+      // Return buffer to log manager
+      network_buffer->ClearBuffer();
+      empty_buffer_queue_->Enqueue(network_buffer);
+      //std::this_thread::sleep_for(std::chrono::milliseconds{500});
+    }
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
@@ -192,6 +197,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
       }
 
       default:
+        //STORAGE_LOG_INFO("Serializing REDO");
         // Any record that is not a commit record is always serialized.`
         num_bytes += SerializeRecord(record);
     }

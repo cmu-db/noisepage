@@ -130,7 +130,16 @@ class LogManager : public common::DedicatedThreadOwner {
     return false;
   }
 
+  void NotifyOfSync() { replica_synced_ = true; }
+
+  void BlockUntilSync() {
+    replica_synced_ = false;
+    while (!replica_synced_) std::this_thread::yield();
+  }
+
  private:
+  bool replica_synced_;
+
   // Flag to tell us when the log manager is running or during termination
   bool run_log_manager_;
 

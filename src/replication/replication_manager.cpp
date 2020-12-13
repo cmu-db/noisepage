@@ -28,8 +28,8 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
              uint64_t recv_cb_id) { EventLoop(messenger, sender_id, msg, recv_cb_id); });
   if (port == 15445) {
     port_ = 15445;
-    //std::this_thread::sleep_for(std::chrono::seconds(5));
-    //ReplicaConnect("replica1", "localhost", 15446);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    ReplicaConnect("replica1", "localhost", 15446);
   } else {
     port_ = 15446;
   }
@@ -195,7 +195,6 @@ common::ManagedPointer<noisepage::messenger::ConnectionId> ReplicationManager::G
     const std::string &replica_name) {
   if (!replicas_.count(replica_name)) {
     if (port_ == 15446) {
-      REPLICATION_LOG_INFO("hahahahah");
       ReplicaConnect("primary", "localhost", 15445);
     }
   }
@@ -236,6 +235,7 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
     REPLICATION_LOG_ERROR("Invalid log record size.");
     return;
   }
+  recovery_manager_->log_committed = false;
 
   // Parse the message.
   nlohmann::json message = nlohmann::json::parse(log_record);
@@ -255,6 +255,11 @@ void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &log_
 
   // Pass to log provider for recovery.
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
+  //REPLICATION_LOG_INFO("Waiting on recovery.");
+  {
+    std::unique_lock<std::mutex> lk(mutex_);
+    recovery_manager_->log_committed_cv_.wait(lk, [this] { return recovery_manager_->log_committed; }); 
+  }
   //recovery_manager_->StartRecovery();
   //REPLICATION_LOG_INFO("Recovered from logs");
 }

@@ -59,6 +59,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
       }
 
       if (num_cols > common::Constants::MAX_COL) {
+        STORAGE_LOG_INFO(num_cols);
         throw std::runtime_error("Number of columns deserialized exceeds max columns. possible data corrution");
       }
 
@@ -148,7 +149,8 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     default:
-      //STORAGE_LOG_INFO("UNKNOWN log");
+      STORAGE_LOG_INFO("UNKNOWN log");
+      return {nullptr, {}};
       throw std::runtime_error("Unknown log record type during deserialization: " +
                                std::to_string(static_cast<uint8_t>(record_type)));
   }

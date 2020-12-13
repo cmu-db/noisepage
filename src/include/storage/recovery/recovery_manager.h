@@ -108,6 +108,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   void WaitForRecoveryToFinish();
 
+  std::condition_variable log_committed_cv_;
+  bool log_committed = false;
+
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;

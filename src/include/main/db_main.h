@@ -377,9 +377,13 @@ class DBMain {
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         if (use_replication_) {
+          const uint64_t num_log_buffers_ = 100;
+          const std::chrono::microseconds log_serialization_interval_{10};
+          const std::chrono::milliseconds log_persist_interval_{20};
+          const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
           log_manager = std::make_unique<storage::LogManager>(
-              wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
-              std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
+              wal_file_path_, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+              log_persist_threshold_,
               common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry),
               common::ManagedPointer(replication_manager));
         } else {
@@ -807,8 +811,10 @@ class DBMain {
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
-    uint64_t record_buffer_segment_size_ = 1e5;
-    uint64_t record_buffer_segment_reuse_ = 1e4;
+    //uint64_t record_buffer_segment_size_ = 1e5;
+    //uint64_t record_buffer_segment_reuse_ = 1e4;
+    uint64_t record_buffer_segment_size_ = 1e6;
+    uint64_t record_buffer_segment_reuse_ = 1e6;
     std::string wal_file_path_ = "wal.log";
     uint64_t wal_num_buffers_ = 100;
     int32_t wal_serialization_interval_ = 100;
@@ -819,7 +825,8 @@ class DBMain {
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
-    uint64_t block_store_reuse_ = 1e3;
+    //uint64_t block_store_reuse_ = 1e3;
+    uint64_t block_store_reuse_ = 1e4;
     int32_t gc_interval_ = 1000;
     bool use_gc_thread_ = false;
     bool use_stats_storage_ = false;
