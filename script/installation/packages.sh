@@ -69,12 +69,16 @@ LINUX_TEST_PACKAGES=(\
 # These are the packages that we will install with pip3
 # We will install these for both build and test.
 PYTHON_PACKAGES=(\
-  "pyarrow" \
-  "pandas" \
-  "requests" \
-  "psutil" \
   "distro"  \
+  "lightgbm" \
+  "pandas" \
+  "psutil" \
   "PTable"
+  "pyarrow" \
+  "pyzmq" \
+  "requests" \
+  "sklearn" \
+  "tqdm" \
 )
 
 
