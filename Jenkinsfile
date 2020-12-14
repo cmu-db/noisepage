@@ -36,8 +36,6 @@ pipeline {
             }
         }
         stage('Check') {
-            when { equals expected: true, actual: false }
-
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
                     agent {
@@ -94,8 +92,6 @@ pipeline {
         }
 
         stage('Test') {
-            when { equals expected: true, actual: false }
-
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent {
@@ -294,7 +290,6 @@ pipeline {
         }
 
         stage('End-to-End') {
-            when { equals expected: true, actual: false }
             parallel {
                 stage('Debug') {
                     agent {
