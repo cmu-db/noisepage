@@ -45,7 +45,7 @@ class ModelServerTest : public TerrierTest {
    * @param unit_type OpUnit
    * @return  string representation of the opunit
    */
-  static const std::string OpUnitToString(selfdriving::ExecutionOperatingUnitType unit_type) {
+  static std::string OpUnitToString(selfdriving::ExecutionOperatingUnitType unit_type) {
     return selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(unit_type);
   }
 };
