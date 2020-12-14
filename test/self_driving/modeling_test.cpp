@@ -83,7 +83,7 @@ TEST_F(ModelServerTest, PipelineTest) {
   auto result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->DoInference("OP_DECIMAL_COMPARE", save_path, features);
+  result = ms_manager->DoInference("OP_REAL_COMPARE", save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
   result = ms_manager->DoInference("OP_INTEGER_MULTIPLY", save_path, features);
