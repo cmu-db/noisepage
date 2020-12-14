@@ -35,7 +35,7 @@ def generate_test_suite(args):
     wal_enable = test_suite_json.get('server_args', {}).get(
         'wal_enable', constants.OLTPBENCH_DEFAULT_WAL_ENABLE)
     # read server commandline args in config files
-    server_args = get_server_args(test_suite_json)
+    server_args = test_suite_json.get('server_args')
     if (server_args):
         args['server_args'] = server_args
 
@@ -47,8 +47,7 @@ def generate_test_suite(args):
     args["continue_on_error"] = test_suite_json.get(
         "continue_on_error", constants.OLTPBENCH_DEFAULT_CONTINUE_ON_ERROR)
 
-    publish_env, publish_username, publish_password = get_test_result_publish_data(
-        args)
+    publish_env, publish_username, publish_password = get_test_result_publish_data(args)
     for oltp_testcase in test_suite_json.get("testcases", []):
         oltp_testcase_base = oltp_testcase.get("base")
         oltp_testcase_base["server_data"] = server_metadata
@@ -95,25 +94,6 @@ def load_test_suite(configfile_path):
             'Unable to load {PATH}. Check if it is valid JSON.'.format(
                 PATH=configfile_path))
     return test_suite_json
-
-
-def get_server_args(test_suite_json):
-    """ Create a server args string to pass to the DBMS """
-    server_args_json = test_suite_json.get('server_args')
-
-    if server_args_json:
-        server_args = ''
-        for attribute, value in server_args_json.items():
-            server_args = '{SERVER_ARGS} -{ATTRIBUTE}={VALUE}'.format(
-                SERVER_ARGS=server_args, ATTRIBUTE=attribute, VALUE=value)
-
-            #Delete the logfile before each run
-            if attribute == 'wal_file_path':
-                previous_logfile_path = str(value)
-                if os.path.exists(previous_logfile_path):
-                    os.remove(previous_logfile_path)
-
-        return server_args
 
 
 def get_server_metadata(test_suite_json, max_connection_threads, wal_enable):

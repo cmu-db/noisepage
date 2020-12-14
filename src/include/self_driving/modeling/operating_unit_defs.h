@@ -106,9 +106,16 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * LIMIT
    * num_rows:
    * cardinality:
-   * This gets dropped right now... :(
    */
   LIMIT,
+
+  /**
+   * num_rows: index size
+   * cardinality (training): batch number of indexes
+   * cardinality (inference): number of index inserts or deletes
+   */
+  INDEX_INSERT,
+  INDEX_DELETE,
 
   PARALLEL_MERGE_HASHJOIN,
   PARALLEL_MERGE_AGGBUILD,
@@ -129,10 +136,10 @@ enum class ExecutionOperatingUnitType : uint32_t {
   OP_INTEGER_MULTIPLY,
   OP_INTEGER_DIVIDE,
   OP_INTEGER_COMPARE,
-  OP_DECIMAL_PLUS_OR_MINUS,
-  OP_DECIMAL_MULTIPLY,
-  OP_DECIMAL_DIVIDE,
-  OP_DECIMAL_COMPARE,
+  OP_REAL_PLUS_OR_MINUS,
+  OP_REAL_MULTIPLY,
+  OP_REAL_DIVIDE,
+  OP_REAL_COMPARE,
   OP_BOOL_COMPARE,
   OP_VARCHAR_COMPARE
 };

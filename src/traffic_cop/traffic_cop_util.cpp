@@ -4,6 +4,7 @@
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/optimize_result.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
@@ -17,7 +18,7 @@
 
 namespace noisepage::trafficcop {
 
-std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
+std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     const common::ManagedPointer<transaction::TransactionContext> txn,
     const common::ManagedPointer<catalog::CatalogAccessor> accessor,
     const common::ManagedPointer<parser::ParseResult> query, const catalog::db_oid_t db_oid,
@@ -134,6 +135,8 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
     }
     case parser::StatementType::VARIABLE_SET:
       return network::QueryType::QUERY_SET;
+    case parser::StatementType::VARIABLE_SHOW:
+      return network::QueryType::QUERY_SHOW;
     case parser::StatementType::PREPARE:
       return network::QueryType::QUERY_PREPARE;
     case parser::StatementType::EXECUTE:

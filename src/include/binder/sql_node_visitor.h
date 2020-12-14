@@ -21,6 +21,7 @@ class UpdateStatement;
 class CopyStatement;
 class AnalyzeStatement;
 class VariableSetStatement;
+class VariableShowStatement;
 class JoinDefinition;
 class TableRef;
 
@@ -140,6 +141,12 @@ class SqlNodeVisitor {
    * @param node node to be visited
    */
   virtual void Visit(common::ManagedPointer<parser::VariableSetStatement> node) {}
+
+  /**
+   * Visitor pattern for VariableShowStatement
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::VariableShowStatement> node) {}
 
   /**
    * Visitor pattern for AggregateExpression

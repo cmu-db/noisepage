@@ -12,13 +12,14 @@ namespace noisepage::planner {
 
 std::unique_ptr<OrderByPlanNode> OrderByPlanNode::Builder::Build() {
   return std::unique_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
-                                                              std::move(sort_keys_), has_limit_, limit_, offset_));
+                                                              std::move(sort_keys_), has_limit_, limit_, offset_,
+                                                              plan_node_id_));
 }
 
 OrderByPlanNode::OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                  std::unique_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys,
-                                 bool has_limit, size_t limit, size_t offset)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                                 bool has_limit, size_t limit, size_t offset, plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       sort_keys_(std::move(sort_keys)),
       has_limit_(has_limit),
       limit_(limit),

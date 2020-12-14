@@ -153,10 +153,9 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
             for idx, feature in enumerate(features):
                 if feature == 'LIMIT':
                     continue
-                x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
 
                 opunit = OpUnit[feature]
-
+                x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
                 if x_loc[data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]] == 0:
                     logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
                     continue

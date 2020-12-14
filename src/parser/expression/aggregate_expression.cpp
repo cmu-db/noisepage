@@ -37,7 +37,7 @@ void AggregateExpression::DeriveReturnValueType() {
       this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
       break;
     case ExpressionType::AGGREGATE_AVG:
-      this->SetReturnValueType(type::TypeId::DECIMAL);
+      this->SetReturnValueType(type::TypeId::REAL);
       break;
     default:
       throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));

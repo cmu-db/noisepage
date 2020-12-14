@@ -15,11 +15,13 @@ from oltpbench import constants
 
 class TestOLTPBench(TestServer):
     """ Class to run OLTP Bench tests """
+
     def __init__(self, args):
         TestServer.__init__(self, args)
 
     def run_pre_suite(self):
-        self.install_oltp()
+        if not self.is_dry_run:
+            self.install_oltp()
 
     def install_oltp(self):
         self.clean_oltp()

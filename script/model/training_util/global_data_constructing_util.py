@@ -218,7 +218,7 @@ def _add_estimation_noise(opunit, x):
     """
     if opunit not in data_info.OUS_USING_CAR_EST:
         return
-    tuple_num_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]
+    tuple_num_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]
     cardinality_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]
     tuple_num = x[tuple_num_index]
     cardinality = x[cardinality_index]
