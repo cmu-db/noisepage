@@ -1,10 +1,8 @@
 #include "loggers/settings_logger.h"
 
-#include <memory>
-
 namespace noisepage::settings {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> settings_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr settings_logger = nullptr;
 
 void InitSettingsLogger() {
   if (settings_logger == nullptr) {
