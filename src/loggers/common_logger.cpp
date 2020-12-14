@@ -1,10 +1,8 @@
 #include "loggers/common_logger.h"
 
-#include <memory>
-
 namespace noisepage::common {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> common_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr common_logger = nullptr;
 
 void InitCommonLogger() {
   if (common_logger == nullptr) {

@@ -19,7 +19,7 @@
 #include "loggers/transaction_logger.h"
 
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink = nullptr;  // NOLINT
+noisepage::common::SanctionedSharedPtr<spdlog::sinks::stdout_sink_mt>::Ptr default_sink = nullptr;
 #endif
 
 namespace noisepage {
