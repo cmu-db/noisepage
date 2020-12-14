@@ -45,7 +45,7 @@ class ModelServerTest : public TerrierTest {
    * @param unit_type OpUnit
    * @return  string representation of the opunit
    */
-  static const std::string opunit_string(selfdriving::ExecutionOperatingUnitType unit_type) {
+  static const std::string OpUnitToString(selfdriving::ExecutionOperatingUnitType unit_type) {
     return selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(unit_type);
   }
 };
@@ -91,21 +91,21 @@ TEST_F(ModelServerTest, PipelineTest) {
 
   // Perform inference on the trained opunit model for various opunits
   auto result = ms_manager->DoInference(
-      opunit_string(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), save_path, features);
+      OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->DoInference(opunit_string(selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE), save_path,
+  result = ms_manager->DoInference(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE), save_path,
                                    features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->DoInference(opunit_string(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY),
+  result = ms_manager->DoInference(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY),
                                    save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
 
   // Model at another path should not exist
   std::string non_exist_path("model_server_test_non_exist.pickle");
-  result = ms_manager->DoInference(opunit_string(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS),
+  result = ms_manager->DoInference(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS),
                                    non_exist_path, features);
   ASSERT_FALSE(result.second);
 
