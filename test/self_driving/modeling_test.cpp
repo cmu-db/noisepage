@@ -5,6 +5,7 @@
 #include "loggers/model_server_logger.h"
 #include "main/db_main.h"
 #include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/modeling/operating_unit_util.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::modelserver {
@@ -38,6 +39,15 @@ class ModelServerTest : public TerrierTest {
 
     return db_main;
   }
+
+  /**
+   * Wrapper to hide long chain of function name resolution
+   * @param unit_type OpUnit
+   * @return  string representation of the opunit
+   */
+  static const std::string opunit_string(selfdriving::ExecutionOperatingUnitType unit_type) {
+    return selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(unit_type);
+  }
 };
 
 // NOLINTNEXTLINE
@@ -45,7 +55,7 @@ TEST_F(ModelServerTest, PipelineTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
   char *project_build_path = ::getenv(BUILD_ABS_PATH);
-  // BUILD_ABS_PATH environment vairable has to be set
+  // BUILD_ABS_PATH environment variable has to be set
   ASSERT_NE(project_build_path, nullptr);
   MODEL_SERVER_LOG_INFO("Running in build directory :{}", project_build_path);
 
@@ -80,19 +90,23 @@ TEST_F(ModelServerTest, PipelineTest) {
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
-  auto result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", save_path, features);
+  auto result = ms_manager->DoInference(
+      opunit_string(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->DoInference("OP_REAL_COMPARE", save_path, features);
+  result = ms_manager->DoInference(opunit_string(selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE), save_path,
+                                   features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->DoInference("OP_INTEGER_MULTIPLY", save_path, features);
+  result = ms_manager->DoInference(opunit_string(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY),
+                                   save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
 
   // Model at another path should not exist
   std::string non_exist_path("model_server_test_non_exist.pickle");
-  result = ms_manager->DoInference("OP_INTEGER_PLUS_OR_MINUS", non_exist_path, features);
+  result = ms_manager->DoInference(opunit_string(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS),
+                                   non_exist_path, features);
   ASSERT_FALSE(result.second);
 
   // Inference with invalid opunit name will fail
