@@ -1,18 +1,22 @@
 # Testing Scripts
 
 ## Folder structure
-- `util`(compatible with python3): all the common utilities for running all kinds of tests
-- `junit`(compatible with python3): entry script to fire a junit test (and many other supporting configs)
-- `micro_bench`(compatible with python3): entry script to run the microbenchmark tests
-- `oltpbench`(compatible with python3): entry script to fire an oltp bench test
+All tests are compatible with python3
+- `util`: all the common utilities for running all kinds of tests
+- `junit`: entry script to fire a junit test (and many other supporting configs)
+- `micro_bench`: entry script to run the microbenchmark tests
+- `oltpbench`: entry script to fire an oltp bench test
+- `artifact_stats`: entry script to collect the artifact stats
 
 ## Util
 `util` folder contains a list of common Python scripts
+- `common`: functions that can be used in many different settings
+- `constants`: all the constants used in the any file under the `util` or across the different tests
+- `NoisePageServer`: A class that can start, stop, or restart an instance of the DBMS
 - `TestServer`: the base class for running all types of tests
 - `TestCase`: the base class for all types of tests
 - `TestJUnit`: the test class for junit tests
 - `TestOLTPBench`: the test class for oltp bench tests
-- `constants`: all the constants used in the any file under the `util`
 
 ## OLTP Bench
 `oltpbench` folder contains Python scripts for running an oltp bench test

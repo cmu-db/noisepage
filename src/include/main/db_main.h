@@ -18,6 +18,7 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "replication/replication_manager.h"
+#include "self_driving/model_server/model_server_manager.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -413,8 +414,6 @@ class DBMain {
 
       std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
       if (use_replication_) {
-        std::chrono::seconds replication_timeout{10};
-
         recovery_manager = std::make_unique<storage::RecoveryManager>(
             common::ManagedPointer<storage::AbstractLogProvider>(
                 static_cast<storage::AbstractLogProvider *>(replication_log_provider.get())),
@@ -465,6 +464,13 @@ class DBMain {
                                            network_port_, connection_thread_count_, uds_file_directory_);
       }
 
+      std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
+      if (model_server_enable_) {
+        NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
+        model_server_manager =
+            std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+      }
+
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -479,6 +485,7 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
       db_main->replication_manager_ = std::move(replication_manager);
       db_main->recovery_manager_ = std::move(recovery_manager);
@@ -792,6 +799,24 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value with ModelServer enable
+     * @return self reference for chaining
+     */
+    Builder &SetUseModelServer(const bool value) {
+      model_server_enable_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value model_server_path
+     * @return self reference for chaining
+     */
+    Builder &SetModelServerPath(const std::string &value) {
+      model_server_path_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -811,10 +836,8 @@ class DBMain {
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
-    //uint64_t record_buffer_segment_size_ = 1e5;
-    //uint64_t record_buffer_segment_reuse_ = 1e4;
-    uint64_t record_buffer_segment_size_ = 1e6;
-    uint64_t record_buffer_segment_reuse_ = 1e6;
+    uint64_t record_buffer_segment_size_ = 1e5;
+    uint64_t record_buffer_segment_reuse_ = 1e4;
     std::string wal_file_path_ = "wal.log";
     uint64_t wal_num_buffers_ = 100;
     int32_t wal_serialization_interval_ = 100;
@@ -825,8 +848,7 @@ class DBMain {
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
-    //uint64_t block_store_reuse_ = 1e3;
-    uint64_t block_store_reuse_ = 1e4;
+    uint64_t block_store_reuse_ = 1e3;
     int32_t gc_interval_ = 1000;
     bool use_gc_thread_ = false;
     bool use_stats_storage_ = false;
@@ -847,6 +869,13 @@ class DBMain {
     std::string replication_hosts_path_ = "../../build-support/data/replication.conf";
     std::chrono::seconds replication_timeout_{10};
     bool use_synchronous_replication_ = false;
+    bool model_server_enable_ = false;
+    /**
+     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
+     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
+     * in use cases where such assumptions are no longer true.
+     */
+    std::string model_server_path_ = "../../script/model/model_server.py";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -908,6 +937,8 @@ class DBMain {
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
       replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
+      model_server_enable_ = settings_manager->GetBool(settings::Param::model_server_enable);
+      model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);
 
       return settings_manager;
     }
@@ -1030,6 +1061,11 @@ class DBMain {
     return common::ManagedPointer(recovery_manager_);
   }
 
+  /** @return ManagedPointer to the ModelServerManager, can be nullptr if disabled. */
+  common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() const {
+    return common::ManagedPointer(model_server_manager_);
+  }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -1047,6 +1083,7 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<replication::ReplicationManager> replication_manager_;
   std::unique_ptr<storage::RecoveryManager> recovery_manager_;

@@ -30,6 +30,10 @@ common::hash_t UpdatePlanNode::Hash() const {
     }
   }
 
+  for (const auto &index_oid : index_oids_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid));
+  }
+
   return hash;
 }
 
@@ -57,6 +61,10 @@ bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
     if (sets_[idx].second != nullptr && *sets_[idx].second != *other.sets_[idx].second) return false;
   }
 
+  if (index_oids_.size() != other.index_oids_.size()) return false;
+  for (int i = 0; i < static_cast<int>(index_oids_.size()); i++) {
+    if (index_oids_[i] != other.index_oids_[i]) return false;
+  }
   return true;
 }
 
@@ -72,6 +80,7 @@ nlohmann::json UpdatePlanNode::ToJson() const {
     sets.emplace_back(set.first, set.second->ToJson());
   }
   j["sets"] = sets;
+  j["index_oids"] = index_oids_;
   return j;
 }
 
@@ -91,6 +100,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> UpdatePlanNode::FromJso
     exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
                  std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
+  index_oids_ = j.at("index_oids").get<std::vector<catalog::index_oid_t>>();
   return exprs;
 }
 

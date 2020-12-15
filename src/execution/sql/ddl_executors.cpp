@@ -57,7 +57,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     for (const auto &parser_col : primary_key_info.primary_key_cols_) {
       const auto &table_col = schema.GetColumn(parser_col);
       if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
-        key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
+        key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.TypeModifier(), table_col.Nullable(),
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
 
       } else {
@@ -79,7 +79,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     for (const auto &unique_col : unique_constraint.unique_cols_) {
       const auto &table_col = schema.GetColumn(unique_col);
       if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
-        key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
+        key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.TypeModifier(), table_col.Nullable(),
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
 
       } else {

@@ -17,21 +17,23 @@ std::unique_ptr<InsertPlanNode> InsertPlanNode::Builder::Build() {
   NOISEPAGE_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
   NOISEPAGE_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
                    "Must have parameter info for each value");
-  return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                            database_oid_, table_oid_, std::move(values_),
-                                                            std::move(parameter_info_)));
+  return std::unique_ptr<InsertPlanNode>(
+      new InsertPlanNode(std::move(children_), std::move(output_schema_), database_oid_, table_oid_, std::move(values_),
+                         std::move(parameter_info_), std::move(index_oids_), plan_node_id_));
 }
 
 InsertPlanNode::InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                                catalog::table_oid_t table_oid,
                                std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                               std::vector<catalog::col_oid_t> &&parameter_info)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                               std::vector<catalog::col_oid_t> &&parameter_info,
+                               std::vector<catalog::index_oid_t> &&index_oids, plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       database_oid_(database_oid),
       table_oid_(table_oid),
       values_(std::move(values)),
-      parameter_info_(std::move(parameter_info)) {}
+      parameter_info_(std::move(parameter_info)),
+      index_oids_(std::move(index_oids)) {}
 
 common::hash_t InsertPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -52,6 +54,10 @@ common::hash_t InsertPlanNode::Hash() const {
     for (const auto &val : vals) {
       hash = common::HashUtil::CombineHashes(hash, val->Hash());
     }
+  }
+
+  for (const auto &index_oid : index_oids_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid));
   }
 
   return hash;
@@ -86,6 +92,11 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   for (int i = 0; i < static_cast<int>(parameter_info_.size()); i++) {
     if (parameter_info_[i] != other.parameter_info_[i]) return false;
   }
+
+  if (index_oids_.size() != other.index_oids_.size()) return false;
+  for (int i = 0; i < static_cast<int>(index_oids_.size()); i++) {
+    if (index_oids_[i] != other.index_oids_[i]) return false;
+  }
   return true;
 }
 
@@ -106,6 +117,7 @@ nlohmann::json InsertPlanNode::ToJson() const {
   }
   j["values"] = values;
   j["parameter_info"] = parameter_info_;
+  j["index_oids"] = index_oids_;
   return j;
 }
 
@@ -131,6 +143,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> InsertPlanNode::FromJso
   }
 
   parameter_info_ = j.at("parameter_info").get<std::vector<catalog::col_oid_t>>();
+  index_oids_ = j.at("index_oids").get<std::vector<catalog::index_oid_t>>();
   return exprs;
 }
 

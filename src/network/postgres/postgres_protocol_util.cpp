@@ -21,9 +21,8 @@ type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const Po
     case PostgresValueType::BIGINT:
       return type::TypeId::BIGINT;
     case PostgresValueType::REAL:
-      return type::TypeId::DECIMAL;
     case PostgresValueType::DOUBLE:
-      return type::TypeId::DECIMAL;
+      return type::TypeId::REAL;
 
     case PostgresValueType::BPCHAR:
     case PostgresValueType::BPCHAR2:
@@ -71,8 +70,11 @@ PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(con
     case type::TypeId::BIGINT:
       return PostgresValueType::BIGINT;
 
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       return PostgresValueType::DOUBLE;
+
+    case type::TypeId::DECIMAL:
+      return PostgresValueType::DECIMAL;
 
     case type::TypeId::TIMESTAMP:
       return PostgresValueType::TIMESTAMPS;

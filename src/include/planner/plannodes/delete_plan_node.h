@@ -46,10 +46,13 @@ class DeletePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param delete_stmt the SQL DELETE statement
+     * @param index_oids vector of index oids to insert into
      * @return builder object
      */
-    Builder &SetFromDeleteStatement(parser::DeleteStatement *delete_stmt) { return *this; }
+    Builder &SetIndexOids(std::vector<catalog::index_oid_t> &&index_oids) {
+      index_oids_ = index_oids;
+      return *this;
+    }
 
     /**
      * Build the delete plan node
@@ -67,6 +70,11 @@ class DeletePlanNode : public AbstractPlanNode {
      * the table to be deleted
      */
     catalog::table_oid_t table_oid_;
+
+    /**
+     * vector of indexes to delete from
+     */
+    std::vector<catalog::index_oid_t> index_oids_;
   };
 
  private:
@@ -76,9 +84,12 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid the OID of the target SQL table
+   * @param index_oids indexes to delete from
+   * @param plan_node_id Plan node id
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid);
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                 std::vector<catalog::index_oid_t> &&index_oids, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -99,6 +110,11 @@ class DeletePlanNode : public AbstractPlanNode {
    * @return OID of the table to be deleted
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return indexes to delete from
+   */
+  const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
 
   /** @return the type of this plan node */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DELETE; }
@@ -123,6 +139,11 @@ class DeletePlanNode : public AbstractPlanNode {
    * Table to be deleted
    */
   catalog::table_oid_t table_oid_;
+
+  /**
+   * Indexes to delete from
+   */
+  std::vector<catalog::index_oid_t> index_oids_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(DeletePlanNode);

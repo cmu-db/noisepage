@@ -21,7 +21,7 @@ TEST_F(PostgresProtocolUtilTests, TypeConversionTest) {
       type::TypeId::SMALLINT,
       type::TypeId::INTEGER,
       type::TypeId::BIGINT,
-      type::TypeId::DECIMAL,
+      type::TypeId::REAL,
       type::TypeId::TIMESTAMP,
       type::TypeId::DATE,
       type::TypeId::VARCHAR,

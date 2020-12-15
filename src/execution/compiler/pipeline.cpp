@@ -344,7 +344,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
     ast::Expr *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
     builder.Append(codegen_->TLSClear(codegen_->ExecCtxGetTLS(exec_ctx)));
 
-    auto call = codegen_->CallBuiltin(ast::Builtin::CheckTrackersStopped, {exec_ctx});
+    auto call = codegen_->CallBuiltin(ast::Builtin::EnsureTrackersStopped, {exec_ctx});
     builder.Append(codegen_->MakeStmt(call));
   }
   return builder.Finish();

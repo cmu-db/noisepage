@@ -25,7 +25,7 @@ class SampleOutput {
     // Sample output formats
     auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
     planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, pred->Copy()};
+    planner::OutputSchema::Column real_col{"dummy", type::TypeId::REAL, pred->Copy()};
     planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
     planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, pred->Copy()};
 
@@ -62,7 +62,7 @@ class SampleOutput {
   void InitTPCHOutput() {
     auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
     planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, pred->Copy()};
+    planner::OutputSchema::Column real_col{"dummy", type::TypeId::REAL, pred->Copy()};
     planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
     planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, pred->Copy()};
     // Q1 (two strings, 7 reals, 1 int)
