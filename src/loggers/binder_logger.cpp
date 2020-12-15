@@ -1,10 +1,8 @@
 #include "loggers/binder_logger.h"
 
-#include <memory>
-
 namespace noisepage::binder {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> binder_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr binder_logger = nullptr;
 
 void InitBinderLogger() {
   if (binder_logger == nullptr) {
