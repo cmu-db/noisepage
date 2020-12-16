@@ -427,11 +427,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           }
 
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-          if (ret_type != expected_ret_type) {
-            throw BINDER_EXCEPTION("BindNodeVisitor tried to cast, but cast result type does not match the schema.",
-                                   common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
-          }
           if (is_cast_expression) {
+            if (ret_type != expected_ret_type) {
+              throw BINDER_EXCEPTION("BindNodeVisitor tried to cast, but cast result type does not match the schema.",
+                                     common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
+            }
             auto child = ins_val->GetChild(0)->Copy();
             ins_val = common::ManagedPointer(child);
             // The child should have the expected return type from the CAST parent.
