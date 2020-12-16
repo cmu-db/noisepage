@@ -16,6 +16,7 @@
 #include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "execution/functions/function_context.h"
+#include "execution/sql/value_util.h"
 #include "loggers/binder_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
@@ -441,26 +442,30 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
 
           ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
           values[i] = ins_val;
+
+          // if we have constant values of variable types being inserted into fixed size columns,
+          // we need to resolve that
           if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
             auto const_val = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>();
             bool is_variable = const_val->GetReturnValueType() == type::TypeId::VARCHAR ||
                                const_val->GetReturnValueType() == type::TypeId::VARBINARY;
             if (is_variable && !const_val->IsNull() && ins_col.TypeModifier() != -1 &&
-              const_val->GetStringVal().GetLength() > static_cast<size_t>(ins_col.TypeModifier())) {
-
+                const_val->GetStringVal().GetLength() > static_cast<size_t>(ins_col.TypeModifier())) {
+              // postgres truncates off trailing spaces from the end of the varchar only to the max size of the col
+              // if it is still too large it throws an error
+              // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c
+              // issue #1380
               size_t num_trailing_spaces = 0;
-              for (size_t idx = const_val->GetStringVal().GetLength() - 1; idx < const_val->GetStringVal().GetLength()
-                       && idx >= static_cast<size_t>(ins_col.TypeModifier()); idx--) {
+              for (size_t idx = const_val->GetStringVal().GetLength() - 1;
+                   idx < const_val->GetStringVal().GetLength() && idx >= static_cast<size_t>(ins_col.TypeModifier());
+                   idx--) {
                 if (const_val->GetStringVal().GetContent()[idx] == ' ')
                   num_trailing_spaces++;
                 else
                   break;
               }
-
               size_t true_len = const_val->GetStringVal().GetLength() - num_trailing_spaces;
               if (true_len > static_cast<size_t>(ins_col.TypeModifier())) {
-                // from https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c
-                // issue 1380
                 throw BINDER_EXCEPTION(
                     fmt::format("value too long for type character varying({})", ins_col.TypeModifier()),
                     common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
@@ -468,14 +473,15 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
                 const char *data = const_val->GetStringVal().GetContent();
                 auto str_val = execution::sql::StringVal(data, true_len);
                 auto const_ret_type = const_val->GetReturnValueType();
-                if (true_len <= execution::sql::StringVal::InlineThreshold()) {
-                  const_val->SetValue(const_ret_type, str_val);
-                } else {
-                  auto data UNUSED_ATTRIBUTE = str_val.val_.Content();
-                  std::unique_ptr<byte[]> content(nullptr);
-                  const_val->SetValue(const_ret_type, str_val, std::move(content));
-                }
 
+                // we need to reallocate the buffer to fit the new truncated size
+                auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(str_val);
+                // if we can inline the new value we do and free the buffer, otherwise we use it.
+                if (true_len <= execution::sql::StringVal::InlineThreshold()) {
+                  const_val->SetValue(const_ret_type, resized_str_val.first);
+                } else {
+                  const_val->SetValue(const_ret_type, resized_str_val.first, std::move(resized_str_val.second));
+                }
               }
             }
           }
