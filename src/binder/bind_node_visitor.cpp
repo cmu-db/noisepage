@@ -442,16 +442,41 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
           values[i] = ins_val;
           if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-            auto const_val UNUSED_ATTRIBUTE = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>();
+            auto const_val = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>();
             bool is_variable = const_val->GetReturnValueType() == type::TypeId::VARCHAR ||
                                const_val->GetReturnValueType() == type::TypeId::VARBINARY;
             if (is_variable && !const_val->IsNull() && ins_col.TypeModifier() != -1 &&
-                const_val->GetStringVal().GetLength() > static_cast<size_t>(ins_col.TypeModifier())) {
-              // from https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c
-              // issue 1380
-              throw BINDER_EXCEPTION(
-                  fmt::format("value too long for type character varying({})", ins_col.TypeModifier()),
-                  common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
+              const_val->GetStringVal().GetLength() > static_cast<size_t>(ins_col.TypeModifier())) {
+
+              size_t num_trailing_spaces = 0;
+              for (size_t idx = const_val->GetStringVal().GetLength() - 1; idx < const_val->GetStringVal().GetLength()
+                       && idx >= static_cast<size_t>(ins_col.TypeModifier()); idx--) {
+                if (const_val->GetStringVal().GetContent()[idx] == ' ')
+                  num_trailing_spaces++;
+                else
+                  break;
+              }
+
+              size_t true_len = const_val->GetStringVal().GetLength() - num_trailing_spaces;
+              if (true_len > static_cast<size_t>(ins_col.TypeModifier())) {
+                // from https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c
+                // issue 1380
+                throw BINDER_EXCEPTION(
+                    fmt::format("value too long for type character varying({})", ins_col.TypeModifier()),
+                    common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
+              } else {
+                const char *data = const_val->GetStringVal().GetContent();
+                auto str_val = execution::sql::StringVal(data, true_len);
+                auto const_ret_type = const_val->GetReturnValueType();
+                if (true_len <= execution::sql::StringVal::InlineThreshold()) {
+                  const_val->SetValue(const_ret_type, str_val);
+                } else {
+                  auto data UNUSED_ATTRIBUTE = str_val.val_.Content();
+                  std::unique_ptr<byte[]> content(nullptr);
+                  const_val->SetValue(const_ret_type, str_val, std::move(content));
+                }
+
+              }
             }
           }
         }
