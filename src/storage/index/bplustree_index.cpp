@@ -145,10 +145,8 @@ void BPlusTreeIndex<KeyType>::ScanAscending(const transaction::TransactionContex
   if (low_key_exists) index_low_key.SetFromProjectedRow(*low_key, metadata_, num_attrs);
   if (high_key_exists) index_high_key.SetFromProjectedRow(*high_key, metadata_, num_attrs);
 
-  std::vector<TupleSlot> results;
-
-  bplustree_->ScanAscending(index_low_key, index_high_key, low_key_exists, num_attrs, high_key_exists, limit, &results,
-                            &metadata_, predicate);
+  bplustree_->ScanAscending(index_low_key, index_high_key, low_key_exists, num_attrs, high_key_exists, limit,
+                            value_list, &metadata_, predicate);
 }
 
 template <typename KeyType>
@@ -190,10 +188,9 @@ void BPlusTreeIndex<KeyType>::ScanLimitDescending(const transaction::Transaction
   index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
   bool scan_completed = false;
-  std::vector<TupleSlot> results;
   while (!scan_completed) {
-    results.clear();
-    scan_completed = bplustree_->ScanLimitDescending(index_low_key, index_high_key, &results, limit, predicate);
+    value_list->clear();
+    scan_completed = bplustree_->ScanLimitDescending(index_low_key, index_high_key, value_list, limit, predicate);
   }
 }
 
