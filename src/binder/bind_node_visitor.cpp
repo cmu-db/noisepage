@@ -427,11 +427,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           }
 
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
+          if (ret_type != expected_ret_type) {
+            throw BINDER_EXCEPTION("BindNodeVisitor tried to cast, but cast result type does not match the schema.",
+                                   common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
+          }
           if (is_cast_expression) {
-            if (ret_type != expected_ret_type) {
-              throw BINDER_EXCEPTION("BindNodeVisitor tried to cast, but cast result type does not match the schema.",
-                                     common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
-            }
             auto child = ins_val->GetChild(0)->Copy();
             ins_val = common::ManagedPointer(child);
             // The child should have the expected return type from the CAST parent.
@@ -441,6 +441,19 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
 
           ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
           values[i] = ins_val;
+          if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+            auto const_val UNUSED_ATTRIBUTE = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>();
+            bool is_variable = const_val->GetReturnValueType() == type::TypeId::VARCHAR ||
+                               const_val->GetReturnValueType() == type::TypeId::VARBINARY;
+            if (is_variable && !const_val->IsNull() && ins_col.TypeModifier() != -1 &&
+                const_val->GetStringVal().GetLength() > ins_col.TypeModifier()) {
+              // from https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c
+              // issue 1380
+              throw BINDER_EXCEPTION(
+                  fmt::format("value too long for type character varying({})", ins_col.TypeModifier()),
+                  common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
+            }
+          }
         }
       }
     }

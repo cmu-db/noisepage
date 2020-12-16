@@ -128,6 +128,47 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, InsertStatementInvalidVarCharLength) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string insert_sql = "INSERT INTO a VALUES (1, 'thisNeedsToBeMoreThan20Characters');";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(insert_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, InsertStatementBasic) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "INSERT INTO a VALUES (1, 'abc');";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
+  auto insert_stmt = statement.CastManagedPointerTo<parser::InsertStatement>();
+  EXPECT_EQ(insert_stmt->GetType(), parser::StatementType::INSERT);
+
+  // right dimensions of inserted values
+  EXPECT_EQ(1, insert_stmt->GetValues()->size());
+  EXPECT_EQ(2, insert_stmt->GetValues()->at(0).size());
+
+  // a1
+  EXPECT_EQ(parser::ExpressionType::VALUE_CONSTANT, insert_stmt->GetValues()->at(0)[0]->GetExpressionType());
+  EXPECT_EQ(type::TypeId::INTEGER, insert_stmt->GetValues()->at(0)[0]->GetReturnValueType());
+  auto const_val = insert_stmt->GetValues()->at(0)[0].CastManagedPointerTo<parser::ConstantValueExpression>();
+  EXPECT_FALSE(const_val->IsNull());
+  EXPECT_EQ(1, const_val->GetInteger().val_);
+
+  // a2
+  EXPECT_EQ(parser::ExpressionType::VALUE_CONSTANT, insert_stmt->GetValues()->at(0)[1]->GetExpressionType());
+  EXPECT_EQ(type::TypeId::VARCHAR, insert_stmt->GetValues()->at(0)[1]->GetReturnValueType());
+  const_val = insert_stmt->GetValues()->at(0)[1].CastManagedPointerTo<parser::ConstantValueExpression>();
+  EXPECT_FALSE(const_val->IsNull());
+  EXPECT_EQ("abc", std::string(const_val->GetStringVal().GetContent()));
+}
+
+// NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Test regular table name
   BINDER_LOG_DEBUG("Parsing sql query");
