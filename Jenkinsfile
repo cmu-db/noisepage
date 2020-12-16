@@ -62,7 +62,6 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            args '--cap-add=ALL'
                         }
                     }
                     environment {
