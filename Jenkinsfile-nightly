@@ -57,7 +57,7 @@ pipeline {
                 cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja noisepage''', label: 'Compiling'
 
-                sh script: 'sudo lsof -i -P -n | grep LISTEN', label: 'Check ports.'
+                sh script: 'sudo lsof -i -P -n | grep -q LISTEN', label: 'Check ports.'
 
                 catchError(stageResult: 'Failure'){
                     sh script:'''
@@ -78,7 +78,7 @@ pipeline {
                     ''', label: 'OLTPBench (No WAL)'
                 }
 
-                sh script: 'sudo lsof -i -P -n | grep LISTEN', label: 'Check ports.'
+                sh script: 'sudo lsof -i -P -n | grep -q LISTEN', label: 'Check ports.'
 
                 archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
             }
@@ -101,7 +101,7 @@ pipeline {
                 cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja''', label: 'Compiling'
 
-                sh script: 'sudo lsof -i -P -n | grep LISTEN', label: 'Check ports.'
+                sh script: 'sudo lsof -i -P -n | grep -q LISTEN', label: 'Check ports.'
 
                 script { // TODO: This script block is temporary to get some initial data into microbenchmarks
                     def iterations = 4
@@ -123,7 +123,7 @@ pipeline {
 
                 }
 
-                sh script: 'sudo lsof -i -P -n | grep LISTEN', label: 'Check ports.'
+                sh script: 'sudo lsof -i -P -n | grep -q LISTEN', label: 'Check ports.'
 
             }
             post {
