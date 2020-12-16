@@ -71,7 +71,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'sudo sh ./script/testing/lsof.sh', label: 'Check ports.'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN', label: 'Check ports.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
