@@ -119,7 +119,7 @@ ast::Expr *CodeGen::ConstNull(type::TypeId type) const {
     case type::TypeId::VARCHAR:
       dummy_expr = StringToSql("");
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       dummy_expr = FloatToSql(0.0);
       break;
     case type::TypeId::VARBINARY:
@@ -490,7 +490,7 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
       break;
     case type::TypeId::DATE:
@@ -529,7 +529,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
       break;
     case type::TypeId::DATE:

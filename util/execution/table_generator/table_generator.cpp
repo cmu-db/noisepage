@@ -155,7 +155,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
       break;
     }
     case type::TypeId::BIGINT:
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(col_meta, num_rows));
       break;
     }
@@ -234,11 +234,11 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
         if (col_meta.type_ == other.type_) {
           column_data.emplace_back(column_data[col_meta.clone_idx_]);
         } else if (col_meta.type_ == type::TypeId::INTEGER &&
-                   (other.type_ == type::TypeId::BIGINT || other.type_ == type::TypeId::DECIMAL)) {
+                   (other.type_ == type::TypeId::BIGINT || other.type_ == type::TypeId::REAL)) {
           auto copy = CloneColumnData<int64_t, int32_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
           alloc_buffers.emplace_back(copy);
-        } else if ((col_meta.type_ == type::TypeId::BIGINT || col_meta.type_ == type::TypeId::DECIMAL) &&
+        } else if ((col_meta.type_ == type::TypeId::BIGINT || col_meta.type_ == type::TypeId::REAL) &&
                    other.type_ == type::TypeId::INTEGER) {
           auto copy = CloneColumnData<int32_t, int64_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
@@ -281,9 +281,11 @@ void TableGenerator::CreateTable(TableInsertMeta *metadata) {
   std::vector<catalog::Schema::Column> cols;
   for (const auto &col_meta : metadata->col_meta_) {
     if (col_meta.type_ != type::TypeId::VARCHAR) {
-      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_,
+                        parser::ConstantValueExpression(col_meta.type_));
     } else {
-      cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, DummyCVE());
+      cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_,
+                        parser::ConstantValueExpression(col_meta.type_));
     }
   }
   catalog::Schema tmp_schema(cols);
@@ -309,6 +311,7 @@ void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
   for (const auto &col_meta : index_meta->cols_) {
     const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
     parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
+    col_expr.SetColumnName(col_meta.table_col_name_);
     if (table_col.Type() != type::TypeId::VARCHAR) {
       index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
     } else {
@@ -365,7 +368,7 @@ void TableGenerator::GenerateTestTables() {
        TABLE_ALLTYPES_SIZE,
        {// {"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         // {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
-        // {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        // {"real_col", type::TypeId::REAL, false, Dist::Serial, 0, 0},
         {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
         {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
@@ -377,7 +380,7 @@ void TableGenerator::GenerateTestTables() {
        0,
        {{"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
-        {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        {"real_col", type::TypeId::REAL, false, Dist::Serial, 0, 0},
         {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
         {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
@@ -430,7 +433,7 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &
               std::stringstream col_name;
               col_name << type_name << j;
               if (col_metas.empty()) {
-                col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
+                col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 0, cardinality - 1);
               } else {
                 col_metas.emplace_back(col_name.str(), types[col_idx], false, 0);
               }
@@ -439,22 +442,14 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &
             num_cols += col_dist[col_idx];
           }
 
-          std::vector<std::pair<type::TypeId, uint32_t>> dists;
-          for (size_t i = 0; i < col_dist.size(); i++) {
-            dists.emplace_back(types[i], col_dist[i]);
-          }
-          dists.erase(std::remove_if(dists.begin(), dists.end(),
-                                     [](std::pair<type::TypeId, uint32_t> item) { return item.second == 0; }),
-                      dists.end());
-
           std::vector<type::TypeId> final_types;
           std::vector<uint32_t> col_nums;
-          for (auto dist : dists) {
-            final_types.emplace_back(dist.first);
-            col_nums.emplace_back(dist.second);
+          for (size_t i = 0; i < col_dist.size(); i++) {
+            final_types.emplace_back(types[i]);
+            col_nums.emplace_back(col_dist[i]);
           }
 
-          std::string tbl_name = GenerateMixedTableName(final_types, col_nums, row_num, cardinality);
+          std::string tbl_name = GenerateTableName(final_types, col_nums, row_num, cardinality);
           table_metas.emplace_back(tbl_name, row_num, col_metas);
         }
       }
@@ -466,32 +461,9 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &
   }
 }
 
-void TableGenerator::GenerateMiniRunnerIndexTables(const runner::MiniRunnersSettings &settings,
-                                                   const runner::MiniRunnersDataConfig &config) {
-  std::vector<TableInsertMeta> table_metas;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto &types = config.index_table_types_;
-  for (auto row_num : row_nums) {
-    for (auto type_pair : types) {
-      auto type = type_pair.second;
-      uint32_t column_num = type_pair.first;
-
-      auto table_name = GenerateTableIndexName(type, row_num);
-      std::vector<ColumnInsertMeta> col_metas;
-      for (uint32_t j = 1; j <= column_num; j++) {
-        std::stringstream col_name;
-        col_name << "col" << j;
-        col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
-      }
-
-      auto meta = TableInsertMeta(table_name, row_num, col_metas);
-      CreateTable(&meta);
-    }
-  }
-}
-
-void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
-  auto table_name = GenerateTableIndexName(type, row_num);
+void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
+  auto table_name = GenerateTableName({type}, {tbl_cols}, row_num, row_num);
+  auto type_name = type::TypeUtil::TypeIdToString(type);
 
   // Create Index Schema
   std::stringstream idx_name;
@@ -504,9 +476,10 @@ void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, in
   idx_meta_cols.reserve(key_num);
   for (uint32_t j = 1; j <= key_num; j++) {
     std::stringstream col_name;
-    col_name << "col" << j;
+    col_name << type_name << j;
 
     index_strs.push_back(col_name.str());
+    std::transform(index_strs.back().begin(), index_strs.back().end(), index_strs.back().begin(), ::tolower);
     idx_meta_cols.emplace_back(index_strs.back().c_str(), type, false, index_strs.back().c_str());
   }
 
@@ -514,8 +487,8 @@ void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, in
   CreateIndex(&index_meta);
 }
 
-bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
-  auto table_name = GenerateTableIndexName(type, row_num);
+bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
+  auto table_name = GenerateTableName({type}, {tbl_cols}, row_num, row_num);
   auto accessor = exec_ctx_->GetAccessor();
   auto table_oid = accessor->GetTableOid(table_name);
   auto index_oids = accessor->GetIndexOids(table_oid);

@@ -122,6 +122,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     return FinishSimpleQueryCommand(out, connection);
   }
 
+  // TODO(WAN): as found by Poojita, some SET TRANSACTION ... and SHOW TRANSACTION ... should be transactional.
   // Set statements are manually handled here. They are not transactional, so handle them before transactional logic.
   if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
     if (postgres_interpreter->ExplicitTransactionBlock()) {
@@ -137,6 +138,15 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     } else {
       out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
     }
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
+  // TODO(WAN): this is a temporary hack to unblock Ziqi's oltpbench work. #1188
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SHOW)) {
+    auto show_result = t_cop->ExecuteShowStatement(connection, common::ManagedPointer(statement), out);
+    NOISEPAGE_ASSERT(show_result.type_ == trafficcop::ResultType::COMPLETE,
+                     "TODO this should be fixed to handle failure.");
+    out->WriteCommandComplete(network::QueryType::QUERY_SHOW, 0);
     return FinishSimpleQueryCommand(out, connection);
   }
 
@@ -358,9 +368,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     t_cop->BeginTransaction(connection);
   }
 
-  // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  // TODO(Matt): maybe this check against SET eventually encompasses a class of non-transactional query types
-  if (NetworkUtil::TransactionalQueryType(query_type) || query_type == QueryType::QUERY_SET) {
+  if (NetworkUtil::TransactionalQueryType(query_type) || NetworkUtil::SkipBindQueryType(query_type)) {
     // Don't bind or optimize this statement
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
@@ -524,6 +532,11 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
       out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
     }
     return Transition::PROCEED;
+  }
+
+  // Show statements are manually handled here.
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SHOW)) {
+    NOISEPAGE_ASSERT(false, "SHOW not yet implemented.");
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.

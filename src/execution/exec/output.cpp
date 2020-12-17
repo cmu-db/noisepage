@@ -52,7 +52,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
           }
           break;
         }
-        case type::TypeId::DECIMAL: {
+        case type::TypeId::REAL: {
           auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_)
             ss << "NULL";

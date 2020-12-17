@@ -155,6 +155,10 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       result = VariableSetTransform(parse_result, reinterpret_cast<VariableSetStmt *>(node));
       break;
     }
+    case T_VariableShowStmt: {
+      result = VariableShowTransform(parse_result, reinterpret_cast<VariableShowStmt *>(node));
+      break;
+    }
     case T_ViewStmt: {
       result = CreateViewTransform(parse_result, reinterpret_cast<ViewStmt *>(node));
       break;
@@ -752,7 +756,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
         result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::REAL,
                                                            execution::sql::Real(std::stod(val.val_.str_)));
       }
       break;
@@ -1495,7 +1499,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
   auto type_name = root->type_name_;
 
   // handle varlen
-  size_t varlen = 0;
+  int32_t varlen = -1;
   if (type_name->typmods_ != nullptr) {
     auto node = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
     switch (node->type) {
@@ -1503,7 +1507,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
         auto node_type = reinterpret_cast<A_Const *>(node)->val_.type_;
         switch (node_type) {
           case T_Integer: {
-            varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
+            varlen = static_cast<int32_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
             break;
           }
           default: {
@@ -2054,6 +2058,14 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   }
   bool is_set_default = root->kind_ == VariableSetKind::VAR_SET_DEFAULT;
   auto result = std::make_unique<VariableSetStatement>(name, std::move(values), is_set_default);
+  return result;
+}
+
+// Postgres.VariableShowStmt -> noisepage.VariableShowStatement
+std::unique_ptr<VariableShowStatement> PostgresParser::VariableShowTransform(ParseResult *parse_result,
+                                                                             VariableShowStmt *root) {
+  std::string name = root->name_;
+  auto result = std::make_unique<VariableShowStatement>(name);
   return result;
 }
 

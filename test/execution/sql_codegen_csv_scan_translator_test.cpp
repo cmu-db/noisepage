@@ -38,7 +38,7 @@ TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
     auto col2 = expr_maker.CVE(catalog::col_oid_t(1), type::TypeId::SMALLINT);
     auto col3 = expr_maker.CVE(catalog::col_oid_t(2), type::TypeId::INTEGER);
     auto col4 = expr_maker.CVE(catalog::col_oid_t(3), type::TypeId::BIGINT);
-    auto col5 = expr_maker.CVE(catalog::col_oid_t(4), type::TypeId::DECIMAL);
+    auto col5 = expr_maker.CVE(catalog::col_oid_t(4), type::TypeId::REAL);
     auto col6 = expr_maker.CVE(catalog::col_oid_t(5), type::TypeId::VARCHAR);
 
     seq_scan_out.AddOutput("col1", col1);

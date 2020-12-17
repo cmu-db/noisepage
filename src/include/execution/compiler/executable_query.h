@@ -43,6 +43,7 @@ class AbstractPlanNode;
 namespace runner {
 class MiniRunners;
 class MiniRunners_SEQ0_OutputRunners_Benchmark;
+class MiniRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 }  // namespace runner
 
 }  // namespace noisepage
@@ -199,6 +200,7 @@ class ExecutableQuery {
   friend class noisepage::runner::MiniRunners;
   friend class noisepage::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
   friend class noisepage::selfdriving::PilotUtil;
+  friend class noisepage::runner::MiniRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 };
 
 }  // namespace noisepage::execution::compiler
