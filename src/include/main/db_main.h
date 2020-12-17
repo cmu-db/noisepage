@@ -7,7 +7,6 @@
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
-#include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "messenger/messenger.h"
