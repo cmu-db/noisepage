@@ -231,3 +231,32 @@ SELECT * from insert12
 statement ok
 DROP TABLE insert12
 
+# Test inserting varchar to fixed length cols
+# #1380 fixed
+statement ok
+CREATE TABLE insert13 (c1 varchar(5))
+
+statement ok
+INSERT INTO insert13 (c1) VALUES ('abc')
+
+statement ok
+INSERT INTO insert13 (c1) VALUES ('abc  ')
+
+statement ok
+INSERT INTO insert13 (c1) VALUES ('abc   ')
+
+statement ok
+INSERT INTO insert13 (c1) VALUES ('abc       ')
+
+#im not sure how to check for an error here
+#there is a binder test and i have checked manually
+#statement err
+#INSERT INTO insert13 (c1) VALUES ('abcdefg')
+
+query I nosort
+SELECT * from insert13
+----
+4 values hashing to 50884bef6a52aaac3e6ac59d164acdcc
+
+statement ok
+DROP TABLE insert13

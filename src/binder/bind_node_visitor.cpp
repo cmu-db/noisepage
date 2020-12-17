@@ -441,7 +441,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           }
 
           ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-          values[i] = ins_val;
 
           // if we have constant values of variable types being inserted into fixed size columns,
           // we need to resolve that
@@ -482,9 +481,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
                 } else {
                   const_val->SetValue(const_ret_type, resized_str_val.first, std::move(resized_str_val.second));
                 }
+                ins_val = const_val.CastManagedPointerTo<parser::AbstractExpression>();
               }
             }
           }
+          values[i] = ins_val;
+
         }
       }
     }
