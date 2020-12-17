@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
@@ -91,10 +92,27 @@ class BinderSherpa {
    */
   void CheckDesiredType(common::ManagedPointer<parser::AbstractExpression> expr) const;
 
+  /**
+   * Adds a cte table name to the list of table names
+   * @param cte_table_name the cte table name to add
+   */
+  void AddCTETableName(std::string cte_table_name) {
+    cte_table_names_.insert(cte_table_name);
+  }
+
+  /**
+   * Gets the set of available cte table names
+   * @return Set of available cte table names
+   */
+  const std::unordered_set<std::string> &GetCTETableNames() const {
+    return cte_table_names_;
+  }
+
  private:
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
   const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
+  std::unordered_set<std::string> cte_table_names_;
 };
 }  // namespace noisepage::binder

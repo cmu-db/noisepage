@@ -103,7 +103,7 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
 }
 
 void ChildPropertyDeriver::Visit(const CteScan *op) {
-  // No properties for operator
+  // This doesn't create any new properties so just send down the requested properties
   std::vector<PropertySet *> child_input_properties{};
   auto provided_prop = requirements_->Copy();
   for (size_t i = 0; i < gexpr_->GetChildrenGroupsSize(); i++) {

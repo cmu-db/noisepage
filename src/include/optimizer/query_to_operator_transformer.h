@@ -9,8 +9,8 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "parser/parser_defs.h"
 #include "optimizer/abstract_optimizer_node.h"
+#include "parser/parser_defs.h"
 
 namespace noisepage {
 

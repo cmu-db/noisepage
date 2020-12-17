@@ -375,6 +375,7 @@ class EXPORT CatalogAccessor {
 
   /**
    * Registers a temporary table in this accessor
+   * @warning For use in the execution engine only, such that cached modules function correctly
    * @param table_oid The temporary oid of this table
    * @param table The temp table being registered
    */

@@ -157,6 +157,9 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   std::vector<Pipeline *> execution_order;
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
+    if(pipeline->IsPrepared()){
+      continue;
+    }
     // Extract and record the translators.
     // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
     // Therefore translator extraction must happen before pipelines are generated.

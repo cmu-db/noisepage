@@ -24,12 +24,13 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
       GetCodeGen(), plan.GetCTETableName() + "val", iter_cte_type);
   cte_scan_ptr_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
       GetCodeGen(), plan.GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
-
-  pipeline->LinkNestedPipeline(&build_pipeline_);
-  pipeline->LinkNestedPipeline(&base_pipeline_);
   pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   compilation_context->Prepare(*(plan.GetChild(1)), &base_pipeline_);
   compilation_context->Prepare(*(plan.GetChild(0)), &build_pipeline_);
+
+  pipeline->LinkSourcePipeline(&base_pipeline_);
+  pipeline->LinkSourcePipeline(&build_pipeline_);
+  pipeline->LinkNestedPipeline(&build_pipeline_, this);
 }
 
 void IndCteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -40,6 +41,7 @@ void IndCteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) c
 
 void IndCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   if (&context->GetPipeline() == &base_pipeline_) {
+    // we are in the base case
     DeclareInsertPR(function);
     GetInsertPR(function);
     FillPRFromChild(context, function, 1);
@@ -49,14 +51,13 @@ void IndCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, Funct
   }
 
   if (&context->GetPipeline() != &build_pipeline_) {
-    auto calls = base_pipeline_.CallRunPipelineFunction();
-    for (auto call : calls) {
-      function->Append(call);
-    }
+    // in the consumer pipeline, run the inductive loop
     GenInductiveLoop(context, function);
     context->Push(function);
     return;
   }
+
+  // we are in the inductive case here
 
   // Declare & Get table PR
   DeclareInsertPR(function);
@@ -67,7 +68,6 @@ void IndCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, Funct
 
   // Insert into table
   GenTableInsert(function);
-  context->Push(function);
 }
 
 void IndCteScanLeaderTranslator::DeclareIndCteScanIterator(FunctionBuilder *builder) const {
@@ -187,10 +187,8 @@ void IndCteScanLeaderTranslator::GenInductiveLoop(WorkContext *context, Function
             nullptr);
   {
     PopulateReadCteScanIterator(builder);
-    auto calls = build_pipeline_.CallRunPipelineFunction();
-    for (auto call : calls) {
-      builder->Append(call);
-    }
+    // call the nested inductive function
+    build_pipeline_.CallNestedRunPipelineFunction(context, this, builder);
   }
   loop.EndLoop();
 

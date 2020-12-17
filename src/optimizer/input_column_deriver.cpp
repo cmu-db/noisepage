@@ -119,6 +119,11 @@ void InputColumnDeriver::Visit(const CteScan *op) {
 
   PT2 child_cols;
 
+  // the CTE scan node contains a mapping from CVE's into the CTE table to expressions that
+  // represent the CVE's INSIDE the CTE, so the outputs of this node would be these requested CVE's while
+  // the inputs to this node would be their corresponding expressions for each child of the CTE
+  // recall that in the case of inductive (recursive/iterative) CTE's we have two children here
+
   child_cols.reserve(gexpr_->GetChildrenGroupsSize());
   for (size_t i = 0; i < gexpr_->GetChildrenGroupsSize(); i++) {
     auto child_exprs = op->GetChildExpressions()[i];

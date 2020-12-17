@@ -20,7 +20,7 @@ class TransactionContext;
 namespace catalog {
 class CatalogAccessor;
 class Schema;
-}
+}  // namespace catalog
 
 namespace planner {
 class OutputSchema;

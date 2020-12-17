@@ -785,9 +785,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   OP(IndCteScanAccumulate) : {
-    auto table_oid = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto accum_result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
-    OpIndCteScanAccumulate(table_oid, iter);
+    OpIndCteScanAccumulate(accum_result, iter);
     DISPATCH_NEXT();
   }
 

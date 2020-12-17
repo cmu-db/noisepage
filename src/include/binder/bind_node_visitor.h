@@ -102,7 +102,6 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   /** Catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;
-  std::vector<std::string> cte_table_name_;
 
   static void InitTableRef(common::ManagedPointer<parser::TableRef> node);
 

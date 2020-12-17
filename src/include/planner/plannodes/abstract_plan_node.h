@@ -244,7 +244,6 @@ class AbstractPlanNode {
    * Should only be called from Optimizer::ElectCTELeader
    */
   void MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> *adoption_list);
-
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(AbstractPlanNode);

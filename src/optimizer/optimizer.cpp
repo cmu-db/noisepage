@@ -105,12 +105,6 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
       auto current_cte = dynamic_cast<planner::CteScanPlanNode *>(plan.Get());
 
       std::vector<planner::OutputSchema::Column> table_columns;
-      for (auto &col : context_->GetCTESchema(table_oid).GetColumns()) {
-        table_columns.emplace_back(col.Name(), col.Type(),
-                                   std::make_unique<parser::ColumnValueExpression>(
-                                       current_cte->GetCTETableName(), col.Name(), catalog::INVALID_DATABASE_OID,
-                                       table_oid, col.Oid(), col.Type()));
-      }
       auto new_output_schema = std::make_unique<planner::OutputSchema>(std::move(table_columns));
 
       auto builder = planner::CteScanPlanNode::Builder();
