@@ -165,7 +165,7 @@ TEST_F(BinderCorrectnessTest, InsertStatementTrailingSpaces) {
   EXPECT_EQ(type::TypeId::VARCHAR, insert_stmt->GetValues()->at(0)[1]->GetReturnValueType());
   const_val = insert_stmt->GetValues()->at(0)[1].CastManagedPointerTo<parser::ConstantValueExpression>();
   EXPECT_FALSE(const_val->IsNull());
-  EXPECT_EQ("longerThan20        ", std::string(const_val->GetStringVal().GetContent()));
+  EXPECT_EQ("longerThan20        ", std::string(const_val->GetStringVal().StringView()));
 }
 
 // NOLINTNEXTLINE
@@ -196,7 +196,8 @@ TEST_F(BinderCorrectnessTest, InsertStatementBasic) {
   EXPECT_EQ(type::TypeId::VARCHAR, insert_stmt->GetValues()->at(0)[1]->GetReturnValueType());
   const_val = insert_stmt->GetValues()->at(0)[1].CastManagedPointerTo<parser::ConstantValueExpression>();
   EXPECT_FALSE(const_val->IsNull());
-  EXPECT_EQ("abc", std::string(const_val->GetStringVal().GetContent()));
+  std::string content(const_val->GetStringVal().StringView());
+  EXPECT_EQ(content, "abc");
 }
 
 // NOLINTNEXTLINE

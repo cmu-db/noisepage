@@ -469,19 +469,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
                     fmt::format("value too long for type character varying({})", ins_col.TypeModifier()),
                     common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
               }
-
-              const char *data = const_val->GetStringVal().GetContent();
-              auto str_val = execution::sql::StringVal(data, true_len);
               auto const_ret_type = const_val->GetReturnValueType();
 
               // we need to reallocate the buffer to fit the new truncated size
-              auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(str_val);
-              // if we can inline the new value we do and free the buffer, otherwise we use it.
-              if (true_len <= execution::sql::StringVal::InlineThreshold()) {
-                const_val->SetValue(const_ret_type, resized_str_val.first);
-              } else {
-                const_val->SetValue(const_ret_type, resized_str_val.first, std::move(resized_str_val.second));
-              }
+              auto *data = const_val->GetStringVal().GetContent();
+
+              auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(common::ManagedPointer(data), true_len);
+              const_val->SetValue(const_ret_type, resized_str_val.first, std::move(resized_str_val.second));
               ins_val = const_val.CastManagedPointerTo<parser::AbstractExpression>();
             }
           }
