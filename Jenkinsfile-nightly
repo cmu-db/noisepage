@@ -16,6 +16,35 @@ pipeline {
     }
 
     stages {
+        stage('Artifact Stats') {
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+
+                // The following command compiles and builds the binary without caching and times the whole operation. 
+                // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
+                sh script:'''
+                mkdir build
+                cd build
+                /usr/bin/time -o /tmp/compiletime.txt -f %e sh -c "cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
+                ninja noisepage"''', label: 'Timed Compile & Build'
+
+                sh script: '''
+                cd build
+                python3 ../script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                ''', label: 'Artifact Stats'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
         stage('Performance') {
             agent { label 'benchmark' }
             steps {
@@ -68,16 +97,26 @@ pipeline {
                 cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja''', label: 'Compiling'
 
-                // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
-                //  # of Threads: 4
-                //  WAL Path: Ramdisk
-                sh script:'''
-                cd script/testing
-                python3 microbench/run_microbench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label:'Microbenchmark'
+                script { // TODO: This script block is temporary to get some initial data into microbenchmarks
+                    def iterations = 4
+                    for(int i = 0;i < iterations; i++){
+                        // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
+                        //  # of Threads: 4
+                        //  WAL Path: Ramdisk
+                        sh script:'''
+                        cd script/testing
+                        python3 microbench/run_microbench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label:'Microbenchmark'
 
-                archiveArtifacts 'script/testing/*.json'
-                junit 'script/testing/*.xml'
+                        archiveArtifacts 'script/testing/*.json'
+                        junit 'script/testing/*.xml'
+                        // This next line can be removed when the loop is removed
+                        sh 'rm script/testing/*.json'
+                        sh 'rm script/testing/*.xml'
+                    }
+
+                }
+
             }
             post {
                 cleanup {

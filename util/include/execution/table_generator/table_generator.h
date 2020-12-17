@@ -10,7 +10,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
-#include "runner/mini_runners_config.h"
+#include "runner/mini_runners_data_config.h"
 #include "runner/mini_runners_settings.h"
 #include "transaction/transaction_context.h"
 
@@ -358,10 +358,6 @@ class TableGenerator {
   void FillIndex(common::ManagedPointer<storage::index::Index> index, const catalog::IndexSchema &index_schema,
                  const IndexInsertMeta &index_meta, common::ManagedPointer<storage::SqlTable> table,
                  const catalog::Schema &table_schema);
-
-  noisepage::parser::ConstantValueExpression DummyCVE() {
-    return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
-  }
 };
 
 }  // namespace noisepage::execution::sql

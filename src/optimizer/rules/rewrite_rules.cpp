@@ -224,11 +224,13 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Abst
     if (join_predicate.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
       semi_join = true;
       // Construct a new annotated expression and set its expression type to equal
-      auto new_join_expr = join_predicate.GetExpr()->Copy();
+      auto new_join_expr = join_predicate.GetExpr()->Copy().release();
       new_join_expr->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
+      context->GetOptimizerContext()->RegisterExprWithTxn(new_join_expr);
+
       auto table_alias = join_predicate.GetTableAliasSet();
-      auto semi_join_predicate = AnnotatedExpression(
-          common::ManagedPointer<parser::AbstractExpression>(new_join_expr.release()), std::move(table_alias));
+      auto semi_join_predicate = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(new_join_expr),
+                                                     std::move(table_alias));
       semi_join_predicates.push_back(semi_join_predicate);
     } else {
       semi_join_predicates.push_back(join_predicate);

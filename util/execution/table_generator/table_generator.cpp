@@ -94,6 +94,8 @@ storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *
         *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
             storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
         rotate_counter++;
+        // TODO(lin): For some reason std::shuffle on VarlenEntry (I believe implemented with std::swap) is super
+        //  slow. We can add the shuffling here similar to other data types if we find a more efficient way.
       }
       break;
     }
@@ -153,7 +155,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
       break;
     }
     case type::TypeId::BIGINT:
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(col_meta, num_rows));
       break;
     }
@@ -232,11 +234,11 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
         if (col_meta.type_ == other.type_) {
           column_data.emplace_back(column_data[col_meta.clone_idx_]);
         } else if (col_meta.type_ == type::TypeId::INTEGER &&
-                   (other.type_ == type::TypeId::BIGINT || other.type_ == type::TypeId::DECIMAL)) {
+                   (other.type_ == type::TypeId::BIGINT || other.type_ == type::TypeId::REAL)) {
           auto copy = CloneColumnData<int64_t, int32_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
           alloc_buffers.emplace_back(copy);
-        } else if ((col_meta.type_ == type::TypeId::BIGINT || col_meta.type_ == type::TypeId::DECIMAL) &&
+        } else if ((col_meta.type_ == type::TypeId::BIGINT || col_meta.type_ == type::TypeId::REAL) &&
                    other.type_ == type::TypeId::INTEGER) {
           auto copy = CloneColumnData<int32_t, int64_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
@@ -279,9 +281,11 @@ void TableGenerator::CreateTable(TableInsertMeta *metadata) {
   std::vector<catalog::Schema::Column> cols;
   for (const auto &col_meta : metadata->col_meta_) {
     if (col_meta.type_ != type::TypeId::VARCHAR) {
-      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_,
+                        parser::ConstantValueExpression(col_meta.type_));
     } else {
-      cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, DummyCVE());
+      cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_,
+                        parser::ConstantValueExpression(col_meta.type_));
     }
   }
   catalog::Schema tmp_schema(cols);
@@ -363,7 +367,7 @@ void TableGenerator::GenerateTestTables() {
        TABLE_ALLTYPES_SIZE,
        {// {"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         // {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
-        // {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        // {"real_col", type::TypeId::REAL, false, Dist::Serial, 0, 0},
         {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
         {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
@@ -375,7 +379,7 @@ void TableGenerator::GenerateTestTables() {
        0,
        {{"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
-        {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        {"real_col", type::TypeId::REAL, false, Dist::Serial, 0, 0},
         {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
         {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},

@@ -36,12 +36,14 @@ class TypeUtil {
       case TypeId::PARAMETER_OFFSET:
         return 4;
       case TypeId::BIGINT:
-      case TypeId::DECIMAL:
+      case TypeId::REAL:
       case TypeId::TIMESTAMP:
         return 8;
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
         return storage::VARLEN_COLUMN;
+      case TypeId::DECIMAL:
+        return 16;
       default:
         throw std::runtime_error("Unknown TypeId in noisepage::type::TypeUtil::GetTypeSize().");
     }
@@ -74,6 +76,8 @@ class TypeUtil {
         return "INTEGER";
       case type::TypeId::BIGINT:
         return "BIGINT";
+      case type::TypeId::REAL:
+        return "REAL";
       case type::TypeId::DECIMAL:
         return "DECIMAL";
       case type::TypeId::TIMESTAMP:
@@ -91,6 +95,55 @@ class TypeUtil {
             ("No string conversion for TypeId value " + std::to_string(static_cast<int>(type_id))).c_str());
       }
     }
+  }
+
+  /**
+   * This function should act as the inverse of TypeIdToString, used for converting the recorded type back to Types
+   * @param type_string string representation of the type, expected to be one of the returns in TypeIdToString
+   * @return a type::TypeId type
+   * @throw Conversion_Exception if the string is not one of the expected values
+   */
+  static type::TypeId TypeIdFromString(const std::string &type_string) {
+    if (type_string == "INVALID") {
+      return type::TypeId::INVALID;
+    }
+    if (type_string == "BOOLEAN") {
+      return type::TypeId::BOOLEAN;
+    }
+    if (type_string == "TINYINT") {
+      return type::TypeId::TINYINT;
+    }
+    if (type_string == "SMALLINT") {
+      return type::TypeId::SMALLINT;
+    }
+    if (type_string == "INTEGER") {
+      return type::TypeId::INTEGER;
+    }
+    if (type_string == "BIGINT") {
+      return type::TypeId::BIGINT;
+    }
+    if (type_string == "REAL") {
+      return type::TypeId::REAL;
+    }
+    if (type_string == "DECIMAL") {
+      return type::TypeId::DECIMAL;
+    }
+    if (type_string == "TIMESTAMP") {
+      return type::TypeId::TIMESTAMP;
+    }
+    if (type_string == "DATE") {
+      return type::TypeId::DATE;
+    }
+    if (type_string == "VARCHAR") {
+      return type::TypeId::VARCHAR;
+    }
+    if (type_string == "VARBINARY") {
+      return type::TypeId::VARBINARY;
+    }
+    if (type_string == "PARAMETER_OFFSET") {
+      return type::TypeId::PARAMETER_OFFSET;
+    }
+    throw CONVERSION_EXCEPTION(("No type conversion for string value " + type_string).c_str());
   }
 };
 

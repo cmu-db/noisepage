@@ -9,7 +9,7 @@ namespace noisepage::execution::compiler {
 
 CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                  CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::CTE_SCAN),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
@@ -26,7 +26,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode 
 
   std::vector<uint16_t> attr_sizes;
   for (const auto &column : plan.GetTableSchema()->GetColumns()) {
-    attr_sizes.push_back(column.AttrSize());
+    attr_sizes.push_back(column.AttributeLength());
   }
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, 0);

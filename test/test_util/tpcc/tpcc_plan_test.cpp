@@ -10,6 +10,7 @@
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog_accessor.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/optimize_result.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
@@ -107,7 +108,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   delete transformer;
 
   auto optimizer = new optimizer::Optimizer(std::make_unique<optimizer::TrivialCostModel>(), task_execution_timeout_);
-  std::unique_ptr<planner::AbstractPlanNode> out_plan;
+  std::unique_ptr<optimizer::OptimizeResult> optimize_result;
   if (stmt_type == parser::StatementType::SELECT) {
     auto sel_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
@@ -133,7 +134,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     }
 
     auto query_info = optimizer::QueryInfo(parser::StatementType::SELECT, std::move(output), property_set);
-    out_plan = optimizer->BuildPlanTree(txn_, accessor_, stats_storage_.Get(), query_info, std::move(plan));
+    optimize_result = optimizer->BuildPlanTree(txn_, accessor_, stats_storage_.Get(), query_info, std::move(plan));
     delete property_set;
   } else if (stmt_type == parser::StatementType::INSERT) {
     auto ins_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::InsertStatement>();
@@ -146,11 +147,11 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
 
     auto property_set = new optimizer::PropertySet();
     auto query_info = optimizer::QueryInfo(stmt_type, {}, property_set);
-    out_plan = optimizer->BuildPlanTree(txn_, accessor_, stats_storage_.Get(), query_info, std::move(plan));
+    optimize_result = optimizer->BuildPlanTree(txn_, accessor_, stats_storage_.Get(), query_info, std::move(plan));
     delete property_set;
-
+    common::ManagedPointer<planner::AbstractPlanNode> out_plan = optimize_result->GetPlanNode();
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
-    auto insert = reinterpret_cast<planner::InsertPlanNode *>(out_plan.get());
+    auto insert = reinterpret_cast<planner::InsertPlanNode *>(out_plan.Get());
     EXPECT_EQ(insert->GetDatabaseOid(), db_);
     EXPECT_EQ(insert->GetTableOid(), tbl_oid);
     EXPECT_EQ(insert->GetParameterInfo(), col_oids);
@@ -165,12 +166,21 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   } else {
     auto property_set = new optimizer::PropertySet();
     auto query_info = optimizer::QueryInfo(stmt_type, {}, property_set);
-    out_plan = optimizer->BuildPlanTree(txn_, accessor_, stats_storage_.Get(), query_info, std::move(plan));
+    optimize_result = optimizer->BuildPlanTree(txn_, accessor_, stats_storage_.Get(), query_info, std::move(plan));
     delete property_set;
   }
-
+  std::unique_ptr<planner::AbstractPlanNode> out_plan = optimize_result->TakePlanNodeOwnership();
+  common::ManagedPointer<planner::PlanMetaData> plan_meta_data = optimize_result->GetPlanMetaData();
+  CheckPlanMetaData(out_plan.get(), plan_meta_data.Get());
   delete optimizer;
   return out_plan;
+}
+
+void TpccPlanTest::CheckPlanMetaData(planner::AbstractPlanNode *out_plan, planner::PlanMetaData *plan_meta_data) {
+  plan_meta_data->GetPlanNodeMetaData(out_plan->GetPlanNodeId());
+  for (auto child_plan : out_plan->GetChildren()) {
+    CheckPlanMetaData(child_plan.Get(), plan_meta_data);
+  }
 }
 
 void TpccPlanTest::OptimizeUpdate(const std::string &query, catalog::table_oid_t tbl_oid,

@@ -115,12 +115,13 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param scan_has_limit flag to indicate if scan limit is set
    * @param scan_offset offset for scan
    * @param scan_has_offset flag to indicate if scan offset is set
+   * @param plan_node_id Plan node id
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                        catalog::db_oid_t database_oid, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
-                       bool scan_has_offset);
+                       bool scan_has_offset, plan_node_id_t plan_node_id);
 
  public:
   /**

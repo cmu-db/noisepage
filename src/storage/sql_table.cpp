@@ -23,7 +23,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
                    "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
   for (const auto &column : schema.GetColumns()) {
-    attr_sizes.push_back(column.AttrSize());
+    attr_sizes.push_back(column.AttributeLength());
   }
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, NUM_RESERVED_COLUMNS);

@@ -12,7 +12,7 @@ namespace noisepage::execution::compiler {
 
 IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                        CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::CTE_SCAN),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),

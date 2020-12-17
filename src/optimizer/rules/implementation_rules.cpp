@@ -901,7 +901,7 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
       auto &col = tbl_schema.GetColumn(cve->GetColumnOid());
       name = cve->GetColumnName();
       nullable = col.Nullable();
-      if (is_var) varlen_size = col.MaxVarlenSize();
+      if (is_var) varlen_size = col.TypeModifier();
     } else {
       // TODO(Matt): derive a unique name
       // TODO(wz2): Derive nullability/varlen from non ColumnValue

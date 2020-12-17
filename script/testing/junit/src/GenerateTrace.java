@@ -44,7 +44,10 @@ public class GenerateTrace {
                 statement = conn.createStatement();
                 statement.execute(line);
                 label = Constants.STATEMENT_OK;
-            } catch (Throwable e){
+            } catch (SQLException e) {
+                System.err.println("Error executing SQL Statement: '" + line + "'; " + e.getMessage());
+                label = Constants.STATEMENT_ERROR;
+            } catch (Throwable e) {
                 label = Constants.STATEMENT_ERROR;
             }
 
@@ -145,6 +148,7 @@ public class GenerateTrace {
             }
         }
         writer.close();
+        br.close();
     }
 
     public static void writeToFile(FileWriter writer, String str) throws IOException {

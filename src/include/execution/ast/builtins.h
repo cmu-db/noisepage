@@ -332,6 +332,11 @@ namespace noisepage::execution::ast {
   F(OffsetOf, offsetOf)                                                 \
   F(PtrCast, ptrCast)                                                   \
                                                                         \
+  /* Low-level Atomics*/                                                \
+  F(AtomicAnd, atomicAnd)                                               \
+  F(AtomicOr, atomicOr)                                                 \
+  F(AtomicCompareExchange, atomicCompareExchange)                       \
+                                                                        \
   /* Parameter calls */                                                 \
   F(GetParamBool, getParamBool)                                         \
   F(GetParamTinyInt, getParamTinyInt)                                   \
@@ -389,7 +394,7 @@ namespace noisepage::execution::ast {
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
                                                                         \
   F(RegisterThreadWithMetricsManager, registerThreadWithMetricsManager) \
-  F(CheckTrackersStopped, checkTrackersStopped)                         \
+  F(EnsureTrackersStopped, ensureTrackersStopped)                       \
   F(AggregateMetricsThread, aggregateMetricsThread)                     \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \

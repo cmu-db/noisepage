@@ -82,13 +82,14 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param scan_has_limit Whether or not a limit exists for this scan
    * @param scan_offset The offset into a table for this scan
    * @param scan_has_offset Whether or not this scan has an offset
+   * @param plan_node_id Plan node id
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate,
                   std::vector<catalog::col_oid_t> &&column_oids, bool is_for_update, catalog::db_oid_t database_oid,
                   catalog::table_oid_t table_oid, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
-                  bool scan_has_offset);
+                  bool scan_has_offset, plan_node_id_t plan_node_id);
 
  public:
   /**

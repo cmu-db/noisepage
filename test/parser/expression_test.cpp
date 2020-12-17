@@ -139,9 +139,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_bi_3;
 
   // constant double/decimalGetDecimal
-  auto expr_d_1 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1)));
-  auto expr_d_2 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1)));
-  auto expr_d_3 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(32768)));
+  auto expr_d_1 = new ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(1)));
+  auto expr_d_2 = new ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(1)));
+  auto expr_d_3 = new ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(32768)));
 
   EXPECT_TRUE(*expr_d_1 == *expr_d_2);
   EXPECT_EQ(expr_d_1->Hash(), expr_d_2->Hash());
@@ -420,7 +420,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 
   EXPECT_FALSE(*agg_expr_1 == *agg_expr_7);
   EXPECT_NE(agg_expr_1->Hash(), agg_expr_7->Hash());
-  EXPECT_EQ(agg_expr_7->GetReturnValueType(), type::TypeId::DECIMAL);
+  EXPECT_EQ(agg_expr_7->GetReturnValueType(), type::TypeId::REAL);
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_8;
@@ -638,18 +638,18 @@ TEST(ExpressionTests, OperatorExpressionTest) {
 
   std::vector<std::unique_ptr<AbstractExpression>> children;
   children.emplace_back(
-      std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1))));
+      std::make_unique<ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(static_cast<double>(1))));
   children.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT, execution::sql::Integer(32768)));
   std::vector<std::unique_ptr<AbstractExpression>> children_cp;
   children_cp.emplace_back(
-      std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1))));
+      std::make_unique<ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(static_cast<double>(1))));
   children_cp.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT, execution::sql::Integer(32768)));
 
   auto op_expr_2 = new OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children));
   op_expr_2->DeriveReturnValueType();
-  EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TypeId::DECIMAL);
+  EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TypeId::REAL);
   op_expr_2->DeriveExpressionName();
   EXPECT_EQ(op_expr_2->GetExpressionName(), "");
 
