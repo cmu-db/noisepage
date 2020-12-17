@@ -486,7 +486,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
             }
           }
           values[i] = ins_val;
-
         }
       }
     }
