@@ -1,13 +1,11 @@
 #pragma once
 
-#include <memory>
-
 #include "loggers/loggers_util.h"
 
 #ifdef NOISEPAGE_USE_LOGGING
 
 namespace noisepage::optimizer {
-extern std::shared_ptr<spdlog::logger> optimizer_logger;  // NOLINT
+extern common::SanctionedSharedPtr<spdlog::logger>::Ptr optimizer_logger;
 
 void InitOptimizerLogger();
 }  // namespace noisepage::optimizer

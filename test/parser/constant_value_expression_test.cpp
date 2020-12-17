@@ -187,7 +187,7 @@ TEST_F(CVETests, DecimalTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-    ConstantValueExpression value(type::TypeId::DECIMAL, execution::sql::Real(data));
+    ConstantValueExpression value(type::TypeId::REAL, execution::sql::Real(data));
     EXPECT_FALSE(value.IsNull());
     EXPECT_EQ(data, value.Peek<double>());
 
@@ -398,7 +398,7 @@ TEST_F(CVETests, BigIntJsonTest) {
 TEST_F(CVETests, DecimalJsonTest) {
   auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-  ConstantValueExpression value(type::TypeId::DECIMAL, execution::sql::Real(data));
+  ConstantValueExpression value(type::TypeId::REAL, execution::sql::Real(data));
   EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();

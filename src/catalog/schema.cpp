@@ -8,8 +8,8 @@ nlohmann::json Schema::Column::ToJson() const {
   nlohmann::json j;
   j["name"] = name_;
   j["type"] = type_;
-  j["attr_size"] = attr_size_;
-  j["max_varlen_size"] = max_varlen_size_;
+  j["attr_length"] = attr_length_;
+  j["type_modifier"] = type_modifier_;
   j["nullable"] = nullable_;
   j["oid"] = oid_;
   j["default_value"] = default_value_->ToJson();
@@ -19,8 +19,8 @@ nlohmann::json Schema::Column::ToJson() const {
 std::vector<std::unique_ptr<parser::AbstractExpression>> Schema::Column::FromJson(const nlohmann::json &j) {
   name_ = j.at("name").get<std::string>();
   type_ = j.at("type").get<type::TypeId>();
-  attr_size_ = j.at("attr_size").get<uint16_t>();
-  max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
+  attr_length_ = j.at("attr_length").get<uint16_t>();
+  type_modifier_ = j.at("type_modifier").get<int32_t>();
   nullable_ = j.at("nullable").get<bool>();
   oid_ = j.at("oid").get<col_oid_t>();
   auto deserialized = parser::DeserializeExpression(j.at("default_value"));

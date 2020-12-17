@@ -505,7 +505,7 @@ class StorageTestUtil {
       switch (type) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
-          auto varlen_size = std::uniform_int_distribution(0U, max_varlen_size)(*generator);
+          auto varlen_size = std::uniform_int_distribution(1U, max_varlen_size)(*generator);
           key_cols.emplace_back("", type, varlen_size, is_nullable, parser::ConstantValueExpression(type));
           break;
         }
@@ -582,7 +582,7 @@ class StorageTestUtil {
   static catalog::Schema *RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
     std::vector<type::TypeId> possible_attr_types{type::TypeId::BOOLEAN, type::TypeId::SMALLINT, type::TypeId::INTEGER,
-                                                  type::TypeId::DECIMAL};
+                                                  type::TypeId::REAL};
     if (allow_varlen) possible_attr_types.push_back(type::TypeId::VARCHAR);
 
     std::vector<catalog::Schema::Column> columns;
@@ -594,10 +594,10 @@ class StorageTestUtil {
       catalog::Schema::Column col;
       if (random_type == type::TypeId::VARCHAR) {
         col = catalog::Schema::Column("col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
-                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
+                                      parser::ConstantValueExpression(random_type));
       } else {
         col = catalog::Schema::Column("col" + std::to_string(i), random_type, false,
-                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
+                                      parser::ConstantValueExpression(random_type));
       }
       col.SetOid(catalog::col_oid_t(i));
       columns.push_back(col);

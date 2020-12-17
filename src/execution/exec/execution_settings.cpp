@@ -1,4 +1,5 @@
 #include "execution/exec/execution_settings.h"
+
 #include "settings/settings_manager.h"
 
 namespace noisepage::execution::exec {

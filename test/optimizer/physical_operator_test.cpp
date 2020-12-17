@@ -1045,7 +1045,6 @@ TEST(OperatorTests, InsertTest) {
   catalog::db_oid_t database_oid(123);
   catalog::table_oid_t table_oid(789);
   catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
-  std::vector<catalog::index_oid_t> indexes = {catalog::index_oid_t(4), catalog::index_oid_t(5)};
   parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)),
       new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9))};
@@ -1054,21 +1053,18 @@ TEST(OperatorTests, InsertTest) {
 
   // Check that all of our GET methods work as expected
   Operator op1 = Insert::Make(database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values),
-                              std::vector<catalog::index_oid_t>(indexes))
+                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values))
                      .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::INSERT);
   EXPECT_EQ(op1.GetContentsAs<Insert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<Insert>()->GetTableOid(), table_oid);
   EXPECT_EQ(op1.GetContentsAs<Insert>()->GetValues(), values);
   EXPECT_EQ(op1.GetContentsAs<Insert>()->GetColumns(), (std::vector<catalog::col_oid_t>(columns, std::end(columns))));
-  EXPECT_EQ(op1.GetContentsAs<Insert>()->GetIndexes(), indexes);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   Operator op2 = Insert::Make(database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values),
-                              std::vector<catalog::index_oid_t>(indexes))
+                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values))
                      .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1080,8 +1076,7 @@ TEST(OperatorTests, InsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
   Operator op3 =
       Insert::Make(database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values),
-                   std::vector<catalog::index_oid_t>(indexes))
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
@@ -1108,28 +1103,23 @@ TEST(OperatorTests, InsertSelectTest) {
 
   catalog::db_oid_t database_oid(123);
   catalog::table_oid_t table_oid(789);
-  std::vector<catalog::index_oid_t> index_oids{721};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = InsertSelect::Make(database_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op1 = InsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::INSERTSELECT);
   EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetTableOid(), table_oid);
-  EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetIndexes(), index_oids);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = InsertSelect::Make(database_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op2 = InsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = InsertSelect::Make(other_database_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op3 = InsertSelect::Make(other_database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1298,7 +1288,7 @@ TEST(OperatorTests, HashGroupByTest) {
   parser::AbstractExpression *expr_b_7 =
       new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
 
-  // columns: vector of shared_ptr of AbstractExpression
+  // columns: vector of ManagedPointer of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
@@ -1403,7 +1393,7 @@ TEST(OperatorTests, SortGroupByTest) {
   parser::AbstractExpression *expr_b_7 =
       new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
 
-  // columns: vector of shared_ptr of AbstractExpression
+  // columns: vector of ManagedPointer of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
