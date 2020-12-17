@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -27,7 +28,7 @@ class RecoveryBenchmark;
 
 namespace noisepage::replication {
 class ReplicationTests;
-}  // namespace replication
+}  // namespace noisepage::replication
 
 namespace noisepage::transaction {
 class TransactionManager;
