@@ -102,7 +102,7 @@ class CteScanPlanNode : public SeqScanPlanNode {
       }
       return std::unique_ptr<CteScanPlanNode>(
           new CteScanPlanNode(std::move(cte_table_name_), std::move(children_), std::move(output_schema_), is_leader_,
-                              table_oid_, std::move(table_schema_), cte_type_, std::move(col_oids), scan_predicate_));
+                              table_oid_, std::move(table_schema_), cte_type_, std::move(col_oids), scan_predicate_, plan_node_id_));
     }
 
    private:
@@ -122,10 +122,10 @@ class CteScanPlanNode : public SeqScanPlanNode {
   CteScanPlanNode(std::string &&cte_table_name, std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, bool is_leader, catalog::table_oid_t table_oid,
                   catalog::Schema table_schema, parser::CTEType cte_type, std::vector<catalog::col_oid_t> &&column_oids,
-                  common::ManagedPointer<parser::AbstractExpression> scan_predicate)
+                  common::ManagedPointer<parser::AbstractExpression> scan_predicate, plan_node_id_t plan_node_id)
       : SeqScanPlanNode(std::move(children), std::move(output_schema), scan_predicate, std::move(column_oids), false,
                         catalog::MakeTempOid<catalog::db_oid_t>(catalog::INVALID_DATABASE_OID.UnderlyingValue()),
-                        table_oid, 0, false, 0, false),
+                        table_oid, 0, false, 0, false, plan_node_id),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         cte_type_(cte_type),

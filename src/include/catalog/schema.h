@@ -94,7 +94,7 @@ class Schema {
           default_value_(default_value.Copy()) {
       // TODO(Rohan,Gautam,Preetansh): We need to manually set the max varlen size here
       //  as we cannot get this from Output schema for now
-      type_modifier_ = 128;
+      type_modifier_ = -1;
     }
 
     /**

@@ -110,6 +110,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
       auto builder = planner::CteScanPlanNode::Builder();
       builder.SetLeader(true)
           .SetScanPredicate(current_cte->GetScanPredicate())
+          .SetPlanNodeId(current_cte->GetPlanNodeId())
           .SetCTEType(current_cte->GetCTEType())
           .SetCTETableName(std::string(current_cte->GetCTETableName()))
           .SetOutputSchema(std::move(new_output_schema))

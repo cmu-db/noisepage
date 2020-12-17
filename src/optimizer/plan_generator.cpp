@@ -1171,6 +1171,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     if (children_plans_.size() == 2) {
       output_plan_ = planner::CteScanPlanNode::Builder()
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                         .SetPlanNodeId(GetNextPlanNodeID())
                          .SetTableSchema(cte_scan->GetTableSchema())
                          .SetTableOid(cte_scan->GetTableOid())
                          .SetCTEType(cte_scan->GetCTEType())
@@ -1182,6 +1183,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     } else {
       output_plan_ = planner::CteScanPlanNode::Builder()
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                         .SetPlanNodeId(GetNextPlanNodeID())
                          .SetTableSchema(cte_scan->GetTableSchema())
                          .SetTableOid(cte_scan->GetTableOid())
                          .SetCTEType(cte_scan->GetCTEType())
@@ -1203,6 +1205,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
 
     output_plan_ = planner::CteScanPlanNode::Builder()
                        .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                       .SetPlanNodeId(GetNextPlanNodeID())
                        .SetTableSchema(cte_scan->GetTableSchema())
                        .SetTableOid(cte_scan->GetTableOid())
                        .SetCTEType(cte_scan->GetCTEType())
