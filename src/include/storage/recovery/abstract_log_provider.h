@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "loggers/storage_logger.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_record.h"
 
@@ -25,13 +24,7 @@ class AbstractLogProvider {
    * provided.
    */
   std::pair<LogRecord *, std::vector<byte *>> GetNextRecord() {
-    bool hasMoreRecords = HasMoreRecords();
-    if (hasMoreRecords) {
-      auto next = ReadNextRecord();
-      return next;
-    } else {
-      return std::make_pair(nullptr, std::vector<byte *>());
-    }
+    return HasMoreRecords() ? ReadNextRecord() : std::make_pair(nullptr, std::vector<byte *>());
   }
 
  protected:
