@@ -470,12 +470,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
                     common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
               }
 
-              const char *data = const_val->GetStringVal().GetContent();
-              auto str_val = execution::sql::StringVal(data, true_len);
               auto const_ret_type = const_val->GetReturnValueType();
 
               // we need to reallocate the buffer to fit the new truncated size
-              auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(str_val);
+              const char *data = const_val->GetStringVal().GetContent();
+              auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(common::ManagedPointer(data), true_len);
               // if we can inline the new value we do and free the buffer, otherwise we use it.
               if (true_len <= execution::sql::StringVal::InlineThreshold()) {
                 const_val->SetValue(const_ret_type, resized_str_val.first);
