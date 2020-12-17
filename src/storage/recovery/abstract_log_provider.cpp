@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "storage/projected_row.h"
-#include "loggers/storage_logger.h"
 
 namespace noisepage::storage {
 
@@ -19,7 +18,6 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
 
   switch (record_type) {
     case (storage::LogRecordType::COMMIT): {
-      //STORAGE_LOG_INFO("COMMIT log");
       auto txn_commit = ReadValue<transaction::timestamp_t>();
       auto oldest_active_txn = ReadValue<transaction::timestamp_t>();
       NOISEPAGE_ASSERT(oldest_active_txn != transaction::INVALID_TXN_TIMESTAMP,
@@ -34,12 +32,10 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     case (storage::LogRecordType::ABORT): {
-      //STORAGE_LOG_INFO("ABORT log");
       return {storage::AbortRecord::Initialize(buf, txn_begin, nullptr, nullptr), varlen_contents};
     }
 
     case (storage::LogRecordType::DELETE): {
-      //STORAGE_LOG_INFO("DELETE log");
       auto database_oid = ReadValue<catalog::db_oid_t>();
       auto table_oid = ReadValue<catalog::table_oid_t>();
       auto tuple_slot = ReadValue<storage::TupleSlot>();
@@ -47,21 +43,14 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     case (storage::LogRecordType::REDO): {
-      //STORAGE_LOG_INFO("REDO log");
       auto database_oid = ReadValue<catalog::db_oid_t>();
       auto table_oid = ReadValue<catalog::table_oid_t>();
       auto tuple_slot = ReadValue<storage::TupleSlot>();
 
       // TODO(Gus, PR #468): Future addition of checksums should validate these values in case of data corruption.
       auto num_cols = ReadValue<uint16_t>();
-      if (num_cols < 1) {
-        throw std::runtime_error("Number of columns is below minimum number of columns. possible data corruption");
-      }
-
-      if (num_cols > common::Constants::MAX_COL) {
-        STORAGE_LOG_INFO(num_cols);
-        throw std::runtime_error("Number of columns deserialized exceeds max columns. possible data corrution");
-      }
+      NOISEPAGE_ASSERT(num_cols > 0, "Too few columns deserialized. Data corruption?");
+      NOISEPAGE_ASSERT(num_cols <= common::Constants::MAX_COL, "Too many columns deserialized. Data corruption?");
 
       // Read in col_ids
       // IDs read individually since we can't guarantee memory layout of vector
@@ -149,8 +138,6 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     }
 
     default:
-      STORAGE_LOG_INFO("UNKNOWN log");
-      return {nullptr, {}};
       throw std::runtime_error("Unknown log record type during deserialization: " +
                                std::to_string(static_cast<uint8_t>(record_type)));
   }
