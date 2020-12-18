@@ -472,7 +472,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
               auto const_ret_type = const_val->GetReturnValueType();
 
               // we need to reallocate the buffer to fit the new truncated size
-              auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(common::ManagedPointer(const_val->GetStringVal().GetContent()), true_len);
+              auto data = common::ManagedPointer(const_val->GetStringVal().GetContent());
+              auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(data, true_len);
               const_val->SetValue(const_ret_type, resized_str_val.first, std::move(resized_str_val.second));
               ins_val = const_val.CastManagedPointerTo<parser::AbstractExpression>();
             }
