@@ -1,3 +1,0 @@
-repository='https://github.com/s-yata/madoka.git'
-module=''
-tag='origin'

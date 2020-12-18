@@ -1,3 +1,0 @@
-repository='https://github.com/lemire/fast_float.git'
-module=''
-tag='origin'

@@ -1,3 +1,0 @@
-repository='https://github.com/gabime/spdlog.git'
-module=''
-tag='origin'
