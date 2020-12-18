@@ -1236,7 +1236,7 @@ class BPlusTree : public BPlusTreeBase {
         }
         if (element_p == node->End()) {
           if (node->GetHighKeyPair().second == nullptr) {
-            current_node->ReleaseNodeLatch();
+            current_node->ReleaseNodeSharedLatch();
             return;
           }
           parent = node;
