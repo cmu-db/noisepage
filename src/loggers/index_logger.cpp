@@ -1,10 +1,8 @@
 #include "loggers/index_logger.h"
 
-#include <memory>
-
 namespace noisepage::storage {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> index_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr index_logger = nullptr;
 
 void InitIndexLogger() {
   if (index_logger == nullptr) {

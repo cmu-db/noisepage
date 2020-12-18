@@ -10,6 +10,7 @@
 #include "loggers/index_logger.h"
 #include "loggers/messenger_logger.h"
 #include "loggers/metrics_logger.h"
+#include "loggers/model_server_logger.h"
 #include "loggers/network_logger.h"
 #include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
@@ -18,7 +19,7 @@
 #include "loggers/transaction_logger.h"
 
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink = nullptr;  // NOLINT
+noisepage::common::SanctionedSharedPtr<spdlog::sinks::stdout_sink_mt>::Ptr default_sink = nullptr;
 #endif
 
 namespace noisepage {
@@ -37,6 +38,7 @@ void LoggersUtil::Initialize() {
     messenger::InitMessengerLogger();
     metrics::InitMetricsLogger();
     network::InitNetworkLogger();
+    modelserver::InitModelServerLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
     settings::InitSettingsLogger();

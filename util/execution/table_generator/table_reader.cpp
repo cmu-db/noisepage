@@ -160,7 +160,7 @@ void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_o
       std::memcpy(insert_offset, &val, sizeof(int64_t));
       break;
     }
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       auto val = field->get<double>();
       std::memcpy(insert_offset, &val, sizeof(double));
       break;
