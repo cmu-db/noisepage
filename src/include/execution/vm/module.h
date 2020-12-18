@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 
+#include "common/sanctioned_shared_pointer.h"
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
@@ -41,6 +42,8 @@ class Module {
    * @param llvm_module The compiled code.
    */
   Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module);
+  //TODO(Wuwen): Delete this line. Only for demo
+  ~Module()  = default;
 
   /**
    * This class cannot be copied or moved.
@@ -76,7 +79,8 @@ class Module {
    * @return True if the function was found and the output parameter was set.
    */
   template <typename Ret, typename... ArgTypes>
-  bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> *func);
+  bool GetFunction(const std::string &name, ExecutionMode exec_mode,
+                   std::function<Ret(ArgTypes...)> *func, const common::SanctionedSharedPtr<vm::Module>::Ptr &module = nullptr, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region = nullptr);
 
   /**
    * Return the raw function implementation for the function in this module with the given function
@@ -102,7 +106,7 @@ class Module {
  private:
   friend class VM;                            // For the VM to access raw bytecode.
   friend class test::BytecodeTrampolineTest;  // For the tests to check private methods.
-  friend class CompilationManager; // For handling the JIT compilation of the module.
+  friend class CompilationManager;            // For handling the JIT compilation of the module.
 
   // This class encapsulates the ability to asynchronously JIT compile a module.
   class AsyncCompileTask;
@@ -149,14 +153,14 @@ class Module {
 
   // Compile this module into machine code. This is a non-blocking call that
   // triggers a compilation in the background.
-  void CompileToMachineCodeAsync();
+  void CompileToMachineCodeAsync(const common::SanctionedSharedPtr<vm::Module>::Ptr &module, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region);
 
   // Gets the flag that indicates if the JIT compilation has occurred.
   std::once_flag GetCompiledFlag();
 
  private:
   // The module containing all TBC (i.e., bytecode) for the TPL program.
-  std::shared_ptr<BytecodeModule> bytecode_module_; // TODO make sure to make this not shared
+  std::unique_ptr<BytecodeModule> bytecode_module_;  // TODO make sure to make this not shared
 
   // The module containing compiled machine code for the TPL program.
   std::unique_ptr<LLVMEngine::CompiledModule> jit_module_;
@@ -195,7 +199,7 @@ inline void CopyAll(uint8_t *buffer, const HeadT &head, const RestT &... rest) {
 
 template <typename Ret, typename... ArgTypes>
 inline bool Module::GetFunction(const std::string &name, const ExecutionMode exec_mode,
-                                std::function<Ret(ArgTypes...)> *func) {
+                                std::function<Ret(ArgTypes...)> *func, const common::SanctionedSharedPtr<vm::Module>::Ptr &module, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) {
   // Lookup function
   const FunctionInfo *func_info = bytecode_module_->LookupFuncInfoByName(name);
 
@@ -212,8 +216,8 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
 
   switch (exec_mode) {
     case ExecutionMode::Adaptive: {
-      //TODO(kjobanputra): call into compilation manager here with new module
-      CompileToMachineCodeAsync();
+      // TODO(kjobanputra): call into compilation manager here with new module
+      CompileToMachineCodeAsync(module, context_region);
       FALLTHROUGH;
     }
     case ExecutionMode::Interpret: {

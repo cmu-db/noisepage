@@ -23,21 +23,21 @@ namespace noisepage::execution::compiler {
 //===----------------------------------------------------------------------===//
 
 ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fn,
-                                    std::unique_ptr<vm::Module> module)
-    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {}
+                                    common::SanctionedSharedPtr<vm::Module>::Ptr module)
+    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(module) {}
 
 ExecutableQuery::Fragment::~Fragment() = default;
 
-void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) const {
+void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode,
+                                    const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) const {
   using Function = std::function<void(void *)>;
-  mode = vm::ExecutionMode::Adaptive;
   auto exec_ctx = *reinterpret_cast<exec::ExecutionContext **>(query_state);
   if (exec_ctx->GetTxn()->MustAbort()) {
     return;
   }
   for (const auto &func_name : functions_) {
     Function func;
-    if (!module_->GetFunction(func_name, mode, &func)) {
+    if (!module_->GetFunction(func_name, mode, &func, module_, context_region)) {
       throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name),
                                 common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
@@ -45,7 +45,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
       func(query_state);
     } catch (const AbortException &e) {
       for (const auto &teardown_name : teardown_fn_) {
-        if (!module_->GetFunction(teardown_name, mode, &func)) {
+        if (!module_->GetFunction(teardown_name, mode, &func, module_, context_region)) {
           throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name),
                                     common::ErrorCode::ERRCODE_INTERNAL_ERROR);
         }
@@ -81,7 +81,7 @@ ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const ex
     : plan_(plan),
       exec_settings_(exec_settings),
       errors_region_(std::make_unique<util::Region>("errors_region")),
-      context_region_(std::make_unique<util::Region>("context_region")),
+      context_region_(std::make_shared<util::Region>("context_region")),
       errors_(std::make_unique<sema::ErrorReporter>(errors_region_.get())),
       ast_context_(std::make_unique<ast::Context>(context_region_.get(), errors_.get())),
       query_state_size_(0),
@@ -132,13 +132,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 }
 
 // Needed because we forward-declare classes used as template types to std::unique_ptr<>
-ExecutableQuery::~ExecutableQuery(){
-  for (auto &fragment: fragments_) {
-    compilation_manager_->transferModule(fragment->GetModule());
-  }
-  compilation_manager_->transferContext(std::move(context_region_));
-
-};
+ExecutableQuery::~ExecutableQuery(){};
 
 void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
                             std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units) {
@@ -168,7 +162,7 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
 
   // Now run through fragments.
   for (const auto &fragment : fragments_) {
-    fragment->Run(query_state.get(), mode);
+    fragment->Run(query_state.get(), mode, context_region_);
   }
 
   // We do not currently re-use ExecutionContexts. However, this is unset to help ensure

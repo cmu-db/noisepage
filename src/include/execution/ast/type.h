@@ -576,7 +576,6 @@ class FunctionType : public Type {
    */
   const util::RegionVector<Field> &GetParams() const { return params_; }
 
-
   /**
    * @return The number of parameters to the function.
    */

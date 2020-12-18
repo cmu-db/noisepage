@@ -12,7 +12,7 @@ class CompilationManager::AsyncCompileTask : public tbb::task {
  public:
   // Construct an asynchronous compilation task to compile the the module
 
-  explicit AsyncCompileTask(Module *module) : module_(module){}
+  explicit AsyncCompileTask(Module *module) : module_(module) {}
 
   // Execute
   tbb::task *execute() override {
@@ -37,7 +37,7 @@ class CompilationManager::AsyncCompileTask : public tbb::task {
         module_->functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
       }
 
-      //handle_to_machine_code_[*module_] = module_->jit_module_;
+      // handle_to_machine_code_[*module_] = module_->jit_module_;
     });
     // Done. There's no next task, so return null.
     return nullptr;
@@ -53,13 +53,8 @@ void CompilationManager::addModule(Module *module) {
   tbb::task::enqueue(*compile_task);
 }
 
-void CompilationManager::transferModule(std::unique_ptr<Module> &&module) {
-  module_.push_back(std::move(module));
-}
+void CompilationManager::transferModule(std::unique_ptr<Module> &&module) { module_.push_back(std::move(module)); }
 
-void CompilationManager::transferContext(std::unique_ptr<util::Region> region) {
-  region_.push_back(std::move(region));
-}
+void CompilationManager::transferContext(std::unique_ptr<util::Region> region) { region_.push_back(std::move(region)); }
 
 }  // namespace noisepage::execution::vm
-

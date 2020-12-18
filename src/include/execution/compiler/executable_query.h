@@ -7,10 +7,11 @@
 
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/sanctioned_shared_pointer.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/exec_defs.h"
-#include "execution/vm/vm_defs.h"
 #include "execution/vm/compilation_manager.h"
+#include "execution/vm/vm_defs.h"
 
 namespace noisepage {
 namespace selfdriving {
@@ -68,7 +69,7 @@ class ExecutableQuery {
      * @param module The module that contains the functions.
      */
     Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
-             std::unique_ptr<vm::Module> module);
+             common::SanctionedSharedPtr<vm::Module>::Ptr module);
 
     /**
      * Destructor.
@@ -80,14 +81,12 @@ class ExecutableQuery {
      * @param query_state The query state.
      * @param mode The execution mode to run the query with.
      */
-    void Run(std::byte query_state[], vm::ExecutionMode mode) const;
+    void Run(std::byte query_state[], vm::ExecutionMode mode, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) const;
 
     /**
      * @return True if this fragment is compiled and executable.
      */
     bool IsCompiled() const { return module_ != nullptr; }
-
-    std::unique_ptr<vm::Module> GetModule() { return std::move(module_);}
 
    private:
     // The functions that must be run (in the provided order) to execute this
@@ -97,7 +96,7 @@ class ExecutableQuery {
     std::vector<std::string> teardown_fn_;
 
     // The module.
-    std::unique_ptr<vm::Module> module_;
+    common::SanctionedSharedPtr<vm::Module>::Ptr module_;
   };
 
   /**
@@ -116,8 +115,6 @@ class ExecutableQuery {
    * Destructor.
    */
   ~ExecutableQuery();
-
-
 
   /**
    * Setup the compiled query using the provided fragments.
@@ -175,7 +172,7 @@ class ExecutableQuery {
   // The execution settings used for code generation.
   const exec::ExecutionSettings &exec_settings_;
   std::unique_ptr<util::Region> errors_region_;
-  std::unique_ptr<util::Region> context_region_;
+  common::SanctionedSharedPtr<util::Region>::Ptr context_region_;
   // The AST error reporter.
   std::unique_ptr<sema::ErrorReporter> errors_;
   // The AST context used to generate the TPL AST.
@@ -204,7 +201,6 @@ class ExecutableQuery {
   static std::atomic<query_id_t> query_identifier;
   common::ManagedPointer<const std::string> query_text_;
   common::ManagedPointer<vm::CompilationManager> compilation_manager_;
-
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::MiniRunners;

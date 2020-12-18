@@ -9,6 +9,7 @@
 #include "common/action_context.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
+#include "execution/vm/compilation_manager.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "network/connection_handle_factory.h"
@@ -23,7 +24,6 @@
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
-#include "execution/vm/compilation_manager.h"
 
 namespace noisepage {
 
@@ -414,11 +414,11 @@ class DBMain {
                          "TrafficCopLayer needs the CatalogLayer.");
         NOISEPAGE_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
         NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
-        // TODO(Wuwen): a managed pointer of execution layer is passed to the traffic_cop for easy access, but we might want a better way
+        // TODO(Wuwen): a managed pointer of execution layer is passed to the traffic_cop for easy access, but we might
+        // want a better way
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
-            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), execution_layer->GetCompilationManager(), optimizer_timeout_,
-            use_query_cache_, execution_mode_);
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_, use_query_cache_, execution_mode_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
@@ -788,7 +788,7 @@ class DBMain {
     bool use_traffic_cop_ = false;
     uint64_t optimizer_timeout_ = 5000;
     bool use_query_cache_ = true;
-    execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
+    execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Adaptive;
     uint16_t network_port_ = 15721;
     std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
@@ -848,6 +848,7 @@ class DBMain {
       execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
+      execution_mode_ = execution::vm::ExecutionMode::Adaptive;
 
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);

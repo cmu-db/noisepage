@@ -22,7 +22,9 @@ namespace noisepage::execution::vm {
 class Module::AsyncCompileTask : public tbb::task {
  public:
   // Construct an asynchronous compilation task to compile the the module
-  explicit AsyncCompileTask(Module *module) : module_(module) {}
+  explicit AsyncCompileTask(common::SanctionedSharedPtr<vm::Module>::Ptr module,
+                            common::SanctionedSharedPtr<util::Region>::Ptr context_region)
+      : module_(module), context_region_(context_region) {}
 
   // Execute
   tbb::task *execute() override {
@@ -33,7 +35,8 @@ class Module::AsyncCompileTask : public tbb::task {
   }
 
  private:
-  Module *module_;
+  common::SanctionedSharedPtr<vm::Module>::Ptr module_;
+  common::SanctionedSharedPtr<util::Region>::Ptr context_region_;
 };
 
 // ---------------------------------------------------------
@@ -285,8 +288,9 @@ void Module::CompileToMachineCode() {
   });
 }
 
-void Module::CompileToMachineCodeAsync() {
-  auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(this);
+void Module::CompileToMachineCodeAsync(const common::SanctionedSharedPtr<vm::Module>::Ptr &module,
+                                       const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) {
+  auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(module, context_region);
   tbb::task::enqueue(*compile_task);
 }
 

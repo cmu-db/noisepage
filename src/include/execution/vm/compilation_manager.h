@@ -26,12 +26,11 @@ class CompilationManager {
 
  private:
   class AsyncCompileTask;
-  //std::unordered_map <Module, std::unique_ptr<LLVMEngine::CompiledModule>> handle_to_machine_code_;
+  // std::unordered_map <Module, std::unique_ptr<LLVMEngine::CompiledModule>> handle_to_machine_code_;
 
   // TODO(Wuwen): implement a better data structure.
   std::vector<std::unique_ptr<Module>> module_;
   std::vector<std::unique_ptr<ast::Context>> context_;
   std::vector<std::unique_ptr<util::Region>> region_;
-
 };
-}
+}  // namespace noisepage::execution::vm
