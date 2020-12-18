@@ -455,11 +455,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
               // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c
               // issue #1380
               size_t num_trailing_spaces = 0;
-              const char *data = const_val->GetStringVal().GetContent();
               for (size_t idx = const_val->GetStringVal().GetLength() - 1;
                    idx < const_val->GetStringVal().GetLength() && idx >= static_cast<size_t>(ins_col.TypeModifier());
                    idx--) {
-                if (data[idx] == ' ')
+                if (const_val->GetStringVal().GetContent()[idx] == ' ')
                   num_trailing_spaces++;
                 else
                   break;
@@ -473,7 +472,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
               auto const_ret_type = const_val->GetReturnValueType();
 
               // we need to reallocate the buffer to fit the new truncated size
-              std::string str(data, true_len);
+              std::string str(const_val->GetStringVal().GetContent(), true_len);
               auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(str);
               const_val->SetValue(const_ret_type, resized_str_val.first, std::move(resized_str_val.second));
               ins_val = const_val.CastManagedPointerTo<parser::AbstractExpression>();
