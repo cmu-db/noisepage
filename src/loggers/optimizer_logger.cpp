@@ -1,10 +1,8 @@
 #include "loggers/optimizer_logger.h"
 
-#include <memory>
-
 namespace noisepage::optimizer {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> optimizer_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr optimizer_logger = nullptr;
 
 void InitOptimizerLogger() {
   if (optimizer_logger == nullptr) {

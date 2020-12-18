@@ -62,6 +62,8 @@ class OpUnit(enum.IntEnum):
     PARALLEL_MERGE_AGGBUILD = 35,
     PARALLEL_SORT_STEP = 36,
     PARALLEL_SORT_MERGE_STEP = 37
+    INDEX_INSERT = 38
+    INDEX_DELETE = 39
 
     # Networking opunits
     BIND_COMMAND = 40,
