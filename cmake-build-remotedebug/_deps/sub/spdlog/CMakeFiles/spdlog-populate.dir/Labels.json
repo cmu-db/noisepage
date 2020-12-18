@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/CMakeFiles/spdlog-populate"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/CMakeFiles/spdlog-populate.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/CMakeFiles/spdlog-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-install.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-download.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-update.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-build.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/spdlog/spdlog-populate-prefix/src/spdlog-populate-stamp/spdlog-populate-test.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"spdlog-populate"
+		],
+		"name" : "spdlog-populate"
+	}
+}

@@ -1,0 +1,342 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "lib/libnoisepage_benchmark_util.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries",
+			"target_compile_options",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1058,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 1062,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 1060,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 1061,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk  "
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Werror"
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fvisibility=hidden"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-march=native"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-mcx16"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-ggdb"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-O0"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fno-omit-frame-pointer"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fno-optimize-sibling-calls"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-Wno-braced-scalar-init"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fsanitize-blacklist=/Users/ejeppinger/CLionProjects/terrier/build-support/data/asan_sanitize_blocklist.txt"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fcolor-diagnostics"
+				},
+				{
+					"fragment" : "-std=c++17"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 2,
+					"define" : "GFLAGS_IS_A_DLL=0"
+				},
+				{
+					"backtrace" : 2,
+					"define" : "NOISEPAGE_USE_LOGGING"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 4,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/benchmark/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/test/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/util/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/src/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/count/count/../include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/cppzmq"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/build/gflags/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/ips4o/ips4o"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/ips4o"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/madoka"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/nlohmann_json/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/xbyak"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/googlebenchmark/src/../include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/googletest/googlemock/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/googletest/googletest/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/usr/local/Cellar/llvm@8/8.0.1_3/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/usr/local/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/spdlog/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/fast_float/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/usr/local/Cellar/zeromq/4.3.3/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/third_party/libpg_query/../src/postgres/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/third_party/libpg_query/.."
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "noisepage_test_util_static::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "util_static::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "noisepage_static::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "noisepage_objlib::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "count::@b2899c0f81f1c29a2bcb"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "gflags_static::@e06f7489cb4b79568cb3"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "benchmark::@a29f19c0536ad9ab0437"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "madoka::@57c14fbc420456498753"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "xxHash::@3d256d7ad4554cf99f51"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "pg_query::@dab728fafae0456c43a6"
+		}
+	],
+	"id" : "noisepage_benchmark_util::@6890427a1f51a3e7e1df",
+	"name" : "noisepage_benchmark_util",
+	"nameOnDisk" : "libnoisepage_benchmark_util.a",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2
+			]
+		},
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				3,
+				4
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "benchmark/benchmark_util/benchmark_config.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "benchmark/benchmark_util/benchmark_main.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "benchmark/benchmark_util/data_table_benchmark_util.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "benchmark/include/benchmark_util/benchmark_config.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "benchmark/include/benchmark_util/data_table_benchmark_util.h",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

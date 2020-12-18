@@ -1,0 +1,347 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "bin/gen_opt_bc"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"target_link_libraries",
+			"target_compile_options",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 721,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 724,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 722,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 723,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk  "
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Werror"
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Wall"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"define" : "gen_opt_bc_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 4,
+					"path" : "/usr/local/Cellar/llvm@8/8.0.1_3/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"id" : "gen_opt_bc::@6890427a1f51a3e7e1df",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-g",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMCore.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMipo.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMMCJIT.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86CodeGen.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86Desc.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86Info.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMSupport.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86CodeGen.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86AsmParser.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86AsmPrinter.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86Desc.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86Disassembler.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86Info.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86Utils.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMIRReader.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMAsmParser.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMInstrumentation.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMLinker.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMVectorize.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMExecutionEngine.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMRuntimeDyld.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMAsmPrinter.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMGlobalISel.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMSelectionDAG.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMCodeGen.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMBitWriter.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMScalarOpts.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMAggressiveInstCombine.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMInstCombine.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMTransformUtils.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMTarget.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMAnalysis.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMProfileData.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMObject.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMBitReader.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMCore.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86AsmPrinter.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMX86Utils.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMMCParser.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMMCDisassembler.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMMC.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMBinaryFormat.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMDebugInfoCodeView.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMDebugInfoMSF.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMSupport.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-lz",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-lcurses",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-lm",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/usr/local/Cellar/llvm@8/8.0.1_3/lib/libLLVMDemangle.a",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "gen_opt_bc",
+	"nameOnDisk" : "gen_opt_bc",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "util/execution/gen_opt_bc.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "EXECUTABLE"
+}

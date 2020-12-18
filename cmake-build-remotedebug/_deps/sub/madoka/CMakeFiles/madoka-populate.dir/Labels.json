@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/CMakeFiles/madoka-populate"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/CMakeFiles/madoka-populate.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/CMakeFiles/madoka-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-install.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-download.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-update.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-build.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/madoka/madoka-populate-prefix/src/madoka-populate-stamp/madoka-populate-test.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"madoka-populate"
+		],
+		"name" : "madoka-populate"
+	}
+}

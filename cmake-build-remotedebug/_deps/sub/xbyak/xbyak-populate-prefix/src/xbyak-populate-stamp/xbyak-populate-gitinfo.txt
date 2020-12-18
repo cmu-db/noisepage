@@ -1,0 +1,3 @@
+repository='https://github.com/herumi/xbyak.git'
+module=''
+tag='origin'

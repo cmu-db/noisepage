@@ -1,0 +1,248 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "libhack_bytecode_handlers_ir.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 761,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 762,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk  "
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fvisibility=hidden"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-march=native"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-mcx16"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-ggdb"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-O0"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fno-omit-frame-pointer"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fno-optimize-sibling-calls"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-Wno-braced-scalar-init"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fsanitize-blacklist=/Users/ejeppinger/CLionProjects/terrier/build-support/data/asan_sanitize_blocklist.txt"
+				},
+				{
+					"backtrace" : 2,
+					"fragment" : "-fcolor-diagnostics"
+				},
+				{
+					"fragment" : "-std=c++17"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 2,
+					"define" : "GFLAGS_IS_A_DLL=0"
+				},
+				{
+					"backtrace" : 2,
+					"define" : "NOISEPAGE_USE_LOGGING"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/src/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/count/count/../include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/cppzmq"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/build/gflags/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/ips4o/ips4o"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/ips4o"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/madoka"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/nlohmann_json/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/xbyak"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/usr/local/Cellar/llvm@8/8.0.1_3/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/usr/local/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/spdlog/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/fast_float/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/usr/local/Cellar/zeromq/4.3.3/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/third_party/libpg_query/../src/postgres/include"
+				},
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/third_party/libpg_query/.."
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "noisepage_static::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "noisepage_objlib::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "count::@b2899c0f81f1c29a2bcb"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "gflags_static::@e06f7489cb4b79568cb3"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "madoka::@57c14fbc420456498753"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "xxHash::@3d256d7ad4554cf99f51"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "pg_query::@dab728fafae0456c43a6"
+		}
+	],
+	"id" : "hack_bytecode_handlers_ir::@6890427a1f51a3e7e1df",
+	"name" : "hack_bytecode_handlers_ir",
+	"nameOnDisk" : "libhack_bytecode_handlers_ir.a",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "util/execution/bytecode_handlers_ir.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

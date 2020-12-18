@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/CMakeFiles/xbyak-populate"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/CMakeFiles/xbyak-populate.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/CMakeFiles/xbyak-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-install.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-download.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-update.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-build.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/sub/xbyak/xbyak-populate-prefix/src/xbyak-populate-stamp/xbyak-populate-test.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"xbyak-populate"
+		],
+		"name" : "xbyak-populate"
+	}
+}

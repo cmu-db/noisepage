@@ -1,0 +1,365 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "lib/libnoisepage_static.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"add_dependencies",
+			"target_compile_options",
+			"target_link_libraries"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 648,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 734,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 650,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 649,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "gen_opt_bc::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "noisepage_objlib::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "noisepage_static::@6890427a1f51a3e7e1df",
+	"name" : "noisepage_static",
+	"nameOnDisk" : "libnoisepage_static.a",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Object Libraries",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_39_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_38_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_37_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_36_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_35_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_34_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_33_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_32_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_31_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_30_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_29_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_28_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_27_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_26_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_25_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_24_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_23_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_22_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_21_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_20_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_19_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_18_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_17_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_16_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_15_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_14_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_13_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_12_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_11_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_10_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_9_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_8_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_7_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_6_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_5_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_4_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_3_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_2_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_1_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "cmake-build-remotedebug/CMakeFiles/noisepage_objlib.dir/Unity/unity_0_cxx.cxx.o",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

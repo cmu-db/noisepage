@@ -1,0 +1,3 @@
+repository='https://github.com/ips4o/ips4o.git'
+module=''
+tag='origin'

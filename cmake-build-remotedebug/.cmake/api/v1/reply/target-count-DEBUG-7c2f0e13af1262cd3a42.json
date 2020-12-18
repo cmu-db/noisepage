@@ -1,0 +1,119 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "_deps/build/count/count/libcount.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"cmake-build-remotedebug/_deps/src/count/count/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 10,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-fPIC -fvisibility=hidden -std=c++17 -Wall -Werror -march=native -O3 -DNDEBUG -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk  "
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/count/count/.."
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/count/count/../include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3
+			]
+		}
+	],
+	"id" : "count::@b2899c0f81f1c29a2bcb",
+	"name" : "count",
+	"nameOnDisk" : "libcount.a",
+	"paths" : 
+	{
+		"build" : "_deps/build/count/count",
+		"source" : "cmake-build-remotedebug/_deps/src/count/count"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-remotedebug/_deps/src/count/count/c.cc",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-remotedebug/_deps/src/count/count/empirical_data.cc",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-remotedebug/_deps/src/count/count/hll.cc",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-remotedebug/_deps/src/count/count/hll_data.cc",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

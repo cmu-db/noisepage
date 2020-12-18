@@ -1,0 +1,3 @@
+repository='https://github.com/pmenon/libcount.git'
+module=''
+tag='origin'

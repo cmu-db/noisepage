@@ -1,0 +1,177 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "_deps/build/googlebenchmark/src/libbenchmark_main.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries",
+			"add_definitions",
+			"cxx_feature_check",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"cmake-build-remotedebug/_deps/src/googlebenchmark/src/CMakeLists.txt",
+			"cmake-build-remotedebug/_deps/src/googlebenchmark/cmake/CXXFeatureCheck.cmake",
+			"cmake-build-remotedebug/_deps/src/googlebenchmark/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 57,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 67,
+				"parent" : 0
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 2,
+				"line" : 258,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 61,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 2,
+				"line" : 256,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 61,
+				"parent" : 6
+			},
+			{
+				"command" : 3,
+				"file" : 2,
+				"line" : 267,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 61,
+				"parent" : 8
+			},
+			{
+				"command" : 4,
+				"file" : 2,
+				"line" : 273,
+				"parent" : 3
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 3,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-fPIC -fvisibility=hidden -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk  "
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "HAVE_POSIX_REGEX"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "HAVE_STD_REGEX"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "HAVE_STEADY_CLOCK"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 10,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/googlebenchmark/include"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/googlebenchmark/src"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/_deps/src/googlebenchmark/src/../include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "benchmark::@a29f19c0536ad9ab0437"
+		}
+	],
+	"id" : "benchmark_main::@a29f19c0536ad9ab0437",
+	"name" : "benchmark_main",
+	"nameOnDisk" : "libbenchmark_main.a",
+	"paths" : 
+	{
+		"build" : "_deps/build/googlebenchmark/src",
+		"source" : "cmake-build-remotedebug/_deps/src/googlebenchmark/src"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "cmake-build-remotedebug/_deps/src/googlebenchmark/src/benchmark_main.cc",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

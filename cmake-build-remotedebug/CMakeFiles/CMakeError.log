@@ -1,0 +1,13 @@
+Performing C++ SOURCE FILE Test HAVE_CXX_FLAG_WD654 failed with the following output:
+Change Dir: /Users/ejeppinger/CLionProjects/terrier/cmake-build-remotedebug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/local/bin/ninja cmTC_b5d92 && [1/2] Building CXX object CMakeFiles/cmTC_b5d92.dir/src.cxx.o
+FAILED: CMakeFiles/cmTC_b5d92.dir/src.cxx.o 
+/usr/local/Cellar/llvm@8/8.0.1_3/bin/clang++    -fPIC -fvisibility=hidden -DHAVE_CXX_FLAG_WD654  -wd654 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk   -wd654 -o CMakeFiles/cmTC_b5d92.dir/src.cxx.o -c src.cxx
+clang-8: error: unknown argument: '-wd654'
+clang-8: error: unknown argument: '-wd654'
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+int main() { return 0; }
