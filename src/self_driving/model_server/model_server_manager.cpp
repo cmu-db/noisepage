@@ -1,7 +1,4 @@
-#include "self_driving/model_server/model_server_manager.h"
-
 #include <sys/wait.h>
-
 #include <csignal>
 #include <thread>  // NOLINT
 
@@ -9,6 +6,7 @@
 #include "loggers/model_server_logger.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
+#include "self_driving/model_server/model_server_manager.h"
 
 namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
