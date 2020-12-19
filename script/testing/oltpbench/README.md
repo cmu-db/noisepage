@@ -57,17 +57,19 @@ For more configurations, there are 2 ways
 - Via config files
   - You can refer to the [config files](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#config-files) section below for more details
 - Via command line options
-  - You can use `-h` or `--help` command line option for more details
-  - *In theory, if the same config are conflicting between config files and command line options, the config from __command line option should prevail__*
+comments  - You can use `-h` or `--help` command line option for more details
 
 ## Test workflow
+Preparation steps of the test
 - Start by invoking `run_oltpbench.py`
   - Load the config file passed in and start an instance of the database with any server_args specified in the config
   - Create a test suite for the whole config file and runs the test suite
-  - Create a `TestOLTPBench` object for the test execution
+  - Create a `TestOLTPBench` object for the test execution, since the `TestOLTPBench` is a subclass of the `TestServer` class, it will a list of tasks as the preparation for the actual test, the most important two of which are as follow
     - Pass command line options and configs in to the constructor
     - Try to locate the NoisePage binary
   - Run the test suite by calling `.run()` function of `TestOLTPBench`
+
+The actual test workflow
 - Run pre suite tasks: `.run_pre_suite()` function of `TestOLTPBench`
   - Clean the possible residual local [oltpbench](https://github.com/oltpbenchmark/oltpbench) workspace
   - Download and install the [oltpbench](https://github.com/oltpbenchmark/oltpbench) from GitHub
