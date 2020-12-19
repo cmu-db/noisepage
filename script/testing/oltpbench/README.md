@@ -73,7 +73,6 @@ The actual test workflow
 - Run pre suite tasks: `.run_pre_suite()` function of `TestOLTPBench`
   - Clean the possible residual local [oltpbench](https://github.com/oltpbenchmark/oltpbench) workspace
   - Download and install the [oltpbench](https://github.com/oltpbenchmark/oltpbench) from GitHub
-  - [optional] *Checkout to the specified branch*
 - Iterate through all the test cases
   - (Re)start the NoisePage DB process as a Python subprocess
     - Start the DB if its not running
@@ -128,7 +127,7 @@ Let the base directory be `noisepage/script/testing/oltpbench`
 - `utils.py`: defines a list of utility functions specifically used by OLTP bench tests
 
 ## Config files
-To run a OLTPBench test, you should run the `run_oltpbench.py --config-file=config.json`. 
+A config file is necessary to specify a test for OLTP Benchmark.
 
 ### Fields
 In the configuration file, those information are required:
@@ -136,9 +135,12 @@ In the configuration file, those information are required:
 - The benchmarks and options in each test case, required by the oltpbench's workload descriptor file
   - The `run_oltpbench` script will run all test cases in the configuration file sequentially. 
   - The `loop` key in the configuration file is used to duplicate the test case with different options.
-  - The `server_args` filed in the configuration specify the server command line args.
+  - The `server_args` object in the configuration specifies the command line arguments passed to the server when running the binary.
 
 ### Example:
+The following example shows a oltpbenchmark test with 2 testcases
+- The first testcase has the base testcase of terminal `1` but it will be looped for different configurations of the terminals from `1` to `2` to `4`
+- The second testcase only has the base testcase whose terminal configuration is `8`
 
 ```json
 {
