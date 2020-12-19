@@ -1,6 +1,14 @@
 # OLTP Benchmark Testing
 This folder include the necessary files for running oltpbench testings.
 
+## Table of contents
+- [OLTP benchmark types](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#oltp-benchmark-types)
+- [How to run it?](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#how-to-run-it)
+- [Test workflow](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#test-workflow)
+- [Dependencies](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#dependencies)
+- [File structures](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#file-structures)
+- [Config files](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#config-files)
+
 ## OLTP benchmark types
 Currently we run the following OLTP benchmarks
 - TATP
@@ -44,10 +52,10 @@ Currently there are 3 types of the OLTP benchmark testing
     --build-type=release
   ```
 
-### Advanced options
+### OLTPBench test options
 For more configurations, there are 2 ways
 - Via config files
-  - You can refer to the [config files](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/README.md#config-files) section below for more details
+  - You can refer to the [config files](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#config-files) section below for more details
 - Via command line options
   - You can use `-h` or `--help` command line option for more details
   - *In theory, if the same config are conflicting between config files and command line options, the config from __command line option should prevail__*
@@ -66,8 +74,10 @@ For more configurations, there are 2 ways
   - [optional] *Checkout to the specified branch*
 - Iterate through all the test cases
   - (Re)start the NoisePage DB process as a Python subprocess
-    - Kill all the lingering processes on the NoisePage port
-    - Start the NoisePage DB process
+    - Start the DB if its not running
+      - *Kill all the lingering processes on the NoisePage port before starting the NoisePage DB process*
+    - Restart it if `db_restart` was passed into the test_case config
+    - Otherwise, leave it running
   - Run pre test case tasks: `.run_pre_test()` function of `TestCaseOLTPBench`
     - Create the database and tables for the OLTP benchmark specified
     - Load the data to tables
@@ -77,7 +87,7 @@ For more configurations, there are 2 ways
       - Collect every `5` seconds by default
       - The memory info is stored in a Python dictionary in memory in runtime
   - Run post test case tasks: `.run_post_test()` function of `TestCaseOLTPBench`
-    - If it is part of the Jenkins nightly build, the result results should be stored
+    - If `publish-results`, `publish-username`, and `publish-password` arguments are supplied, the result results should be stored
         - Parse the testing results files by [oltpbench](https://github.com/oltpbenchmark/oltpbench) and format them in JSON
         - Add the memory info to `incremental_metrics` and compute the average metrics to add to the `metrics` in JSON payload
         - Send a POST request to the Django API
@@ -87,6 +97,7 @@ For more configurations, there are 2 ways
 
 ### External dependencies
 - [oltpbench](https://github.com/oltpbenchmark/oltpbench): for executing the OLTP benchmark of your choice
+- [NoisePage Stats](https://github.com/cmu-db/noisepage-stats): for the result reporting API and storage
 
 ### Internal dependencies
 Let the base directory be `noisepage/script/testing`
@@ -108,7 +119,7 @@ Let the base directory be `noisepage/script/testing/oltpbench`
   - End-to-end performance
   - Nightly
 
-  For more details, check the [config files](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/README.md#config-files) section below for more details
+  For more details, check the [config files](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench#config-files) section below for more details
 - `run_oltpbench.py`: entry point to run the OLTP bench tests
 - `test_oltpbench.py`: defines the `TestOLTPBench` class which manage the lifecycle of a test suite
 - `test_case_oltp.py`: defines the `TestOLTPBench` class which manage the lifecycle of a test case
