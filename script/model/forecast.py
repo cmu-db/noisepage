@@ -220,7 +220,8 @@ class DataLoader:
             data = self._aggregate_data(data, INTERVAL_MS)
             self.train_raw_data, self.test_raw_data = self._split_data(data)
             LOG.info(
-                f"Loaded data successfully: num_test={len(self.test_raw_data)}, num_train={len(self.train_raw_data)}, seq_len={self.seq_len}, horizon={self.horizon_len}")
+                f"Loaded data successfully: num_test={len(self.test_raw_data)}, num_train={len(self.train_raw_data)}, "
+                f"seq_len={self.seq_len}, horizon={self.horizon_len}")
 
     def _normalize_data(self, data: np.ndarray) -> np.ndarray:
         norm_data = self.scaler.fit_transform(data.reshape(-1, 1))
