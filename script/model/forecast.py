@@ -198,6 +198,9 @@ class DataLoader:
         """
         :param query_trace_file: Where to process the query trace
         :param test: If the Loader is for testing
+        :param eval_size:  Number of data points used for evaluation(testing)
+        :param seq_len: Length of a sequence
+        :param horizon_len: Horizon length
         """
         self.query_trace_file = query_trace_file
 
