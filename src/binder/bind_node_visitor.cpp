@@ -475,11 +475,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
                   // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c#L470
                   throw BINDER_EXCEPTION(fmt::format("value too long for type character varying({})", max_length),
                                          common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
-                } else {
-                  // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varbit.c#L510
-                  throw BINDER_EXCEPTION(fmt::format("bit string too long for type bit varying({})", max_length),
-                                         common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
                 }
+                // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varbit.c#L510
+                throw BINDER_EXCEPTION(fmt::format("bit string too long for type bit varying({})", max_length),
+                                       common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
               }
 
               // truncate if we need to
