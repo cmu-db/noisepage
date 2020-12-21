@@ -449,7 +449,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
             bool is_varchar = const_val->GetReturnValueType() == type::TypeId::VARCHAR;
             bool is_varbinary = const_val->GetReturnValueType() == type::TypeId::VARBINARY;
             bool is_variable = is_varchar || is_varbinary;
-            size_t max_length = static_cast<size_t>(ins_col.TypeModifier());
+            auto max_length = static_cast<size_t>(ins_col.TypeModifier());
             size_t current_length = is_variable ? const_val->GetStringVal().GetLength() : 0;
 
             // if we have a fixed length variable column type and a value that is being inserted into that column is
