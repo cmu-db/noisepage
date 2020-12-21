@@ -53,7 +53,7 @@ void Pilot::ExecuteForecast() {
 
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(db_main_, common::ManagedPointer(forecast_));
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>> pipeline_to_prediction;
-  // PilotUtil::InferenceWithFeatures(db_main_, pipeline_data, &pipeline_to_prediction);
+  PilotUtil::InferenceWithFeatures(db_main_, pipeline_data, &pipeline_to_prediction);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
   if (!oldval) {

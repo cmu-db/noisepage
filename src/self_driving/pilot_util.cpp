@@ -15,6 +15,7 @@
 #include "metrics/metrics_store.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
+#include "self_driving/model_server/model_server_manager.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 
@@ -36,9 +37,13 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
 
   execution::query_id_t qid;
   catalog::db_oid_t db_oid;
-
+  //  auto i = 0;
   for (auto &it : forecast->query_id_to_params_) {
     qid = it.first;
+    //    i++;
+    //    if (i == 5){
+    //      break;
+    //    }
     for (auto &params : forecast->query_id_to_params_[qid]) {
       txn = txn_manager->BeginTransaction();
 
@@ -88,8 +93,8 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
       metrics_manager->AggregatedMetrics()
           .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
           .get());
-  NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= forecast->query_id_to_params_.size(),
-                   "Expect at least one pipeline_metrics record for each query");
+  //  NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= forecast->query_id_to_params_.size(),
+  //                   "Expect at least one pipeline_metrics record for each query");
   SELFDRIVING_LOG_INFO("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
     SELFDRIVING_LOG_INFO(fmt::format("qid: {}; ppl_id: {}", static_cast<uint>(it->query_id_), static_cast<uint32_t>(it->pipeline_id_)));
@@ -97,6 +102,48 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
 
   return aggregated_data->pipeline_data_;
 }
+
+void PilotUtil::InferenceWithFeatures
+    (common::ManagedPointer<DBMain> db_main,
+     const std::list<metrics::PipelineMetricRawData::PipelineData>& pipeline_data,
+     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>* pipeline_to_prediction) {
+  std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> ou_to_features;
+  std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> pipeline_to_ou_position;
+
+  PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_data, &ou_to_features);
+  auto ms_manager = db_main->GetModelServerManager();
+  while (!ms_manager->ModelServerStarted()) {
+  }
+  modelserver::ModelServerFuture<std::string> future;
+  std::vector<std::string> models{"lr", "gbm"};
+
+  std::string model_save_path = "/Users/jiaojie/myterrier/terrier/script/model/trained_model/mini_model_map.pickle";
+
+  // std::string model_save_path = "/Users/jiaojie/myterrier/terrier/script/model/terrier_ms_trained";
+
+  //  ms_manager->TrainWith(models, "/Users/jiaojie/myterrier/terrier/script/model/mini_runner_input",
+  //                        model_save_path, &future);
+  //  auto res = future.Wait();
+  //  // Do inference through model server, get cost
+  //
+  //  NOISEPAGE_ASSERT(res.second, "ms Training failed");  // Training succeeds
+  //
+  std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
+  for (auto &ou_map_it : ou_to_features) {
+    auto res = ms_manager->DoInference(
+        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), model_save_path,
+        ou_map_it.second);
+    if (res.second) {
+      SELFDRIVING_LOG_ERROR("");
+      throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
+    }
+
+    inference_result.emplace(ou_map_it.first, res.first);
+  }
+
+
+}
+
 
 void PilotUtil::GroupFeaturesByOU(
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> *pipeline_to_ou_position,
@@ -107,6 +154,7 @@ void PilotUtil::GroupFeaturesByOU(
     for (auto &ou_it : data_it.features_) {
       if (ou_to_features->find(ou_it.GetExecutionOperatingUnitType()) == ou_to_features->end()) {
         pipeline_to_ou_position->emplace_back(std::make_tuple(data_it.query_id_, data_it.pipeline_id_, 0));
+        ou_to_features->emplace(ou_it.GetExecutionOperatingUnitType(), std::vector<std::vector<double>>());
       } else {
         pipeline_to_ou_position->emplace_back(
             std::make_tuple(data_it.query_id_, data_it.pipeline_id_,
