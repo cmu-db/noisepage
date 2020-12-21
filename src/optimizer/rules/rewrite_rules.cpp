@@ -501,10 +501,11 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
       // (outer_relation.a = (expr))
       correlated_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
-      if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      } else {
+      // See https://github.com/cmu-db/noisepage/issues/1404
+      if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
         new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
+      } else {
+        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
       }
     }
   }

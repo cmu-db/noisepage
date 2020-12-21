@@ -164,15 +164,16 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
       // (outer_relation.a = (expr))
       ancestor_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
-      // If the sub-query depth level of the first child is less than the current expression
-      // the first child is outer_relation.a and the second child is a (expr)
-      // The second child expression shall be evaluated as a part of the new aggregation before the new filter
-      if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      } else {
-        // Otherwise, the first child is a (expr) and the second child is outer_relation.a
-        // The first child expression shall be evaluated as a part of the new aggregation before the new filter
+      // See https://github.com/cmu-db/noisepage/issues/1404
+      // If the sub-query depth level of the first child is greater than the current expression
+      // the first child is a (expr) and the second child is outer_relation.a
+      // The first child expression shall be evaluated as a part of the new aggregation before the new filter
+      if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
         new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
+      } else {
+        // Otherwise, the first child is outer_relation.a and the second child is a (expr)
+        // The second child expression shall be evaluated as a part of the new aggregation before the new filter
+        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
       }
     }
   }
