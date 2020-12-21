@@ -71,8 +71,6 @@ LINUX_TEST_PACKAGES=(\
 PYTHON_PACKAGES=(\
   "distro"  \
   "lightgbm" \
-  "matplotlib" \
-  "numpy" \
   "pandas" \
   "psutil" \
   "PTable"
@@ -80,7 +78,6 @@ PYTHON_PACKAGES=(\
   "pyzmq" \
   "requests" \
   "sklearn" \
-  "torch" \
   "tqdm" \
 )
 
