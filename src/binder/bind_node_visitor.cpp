@@ -446,34 +446,48 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           // we need to resolve that
           if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
             auto const_val = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>();
-            bool is_variable = const_val->GetReturnValueType() == type::TypeId::VARCHAR ||
-                               const_val->GetReturnValueType() == type::TypeId::VARBINARY;
-            if (is_variable && !const_val->IsNull() && ins_col.TypeModifier() != -1 &&
-                const_val->GetStringVal().GetLength() > static_cast<size_t>(ins_col.TypeModifier())) {
+            bool is_varchar = const_val->GetReturnValueType() == type::TypeId::VARCHAR;
+            bool is_varbinary = const_val->GetReturnValueType() == type::TypeId::VARBINARY;
+            bool is_variable = is_varchar || is_varbinary;
+            size_t max_length = static_cast<size_t>(ins_col.TypeModifier());
+            size_t current_length = is_variable ? const_val->GetStringVal().GetLength() : 0;
+
+            // if we have a fixed length variable column type and a value that is being inserted into that column is
+            // larger than that column, we throw an error or truncate if possible, issue #1380
+            if (is_variable && !const_val->IsNull() && ins_col.TypeModifier() != -1 && current_length > max_length) {
               // postgres truncates off trailing spaces from the end of the varchar only to the max size of the col
               // if it is still too large it throws an error
-              // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c
-              // issue #1380
-              size_t num_trailing_spaces = 0;
-              for (size_t idx = const_val->GetStringVal().GetLength() - 1;
-                   idx < const_val->GetStringVal().GetLength() && idx >= static_cast<size_t>(ins_col.TypeModifier());
-                   idx--) {
-                if (const_val->GetStringVal().GetContent()[idx] == ' ')
-                  num_trailing_spaces++;
-                else
-                  break;
+              // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c#L463
+              size_t true_length = current_length;
+              if (is_varchar) {
+                size_t num_trailing_spaces = 0;
+                for (size_t idx = current_length - 1; idx < current_length && idx >= max_length; idx--) {
+                  if (const_val->GetStringVal().GetContent()[idx] == ' ')
+                    num_trailing_spaces++;
+                  else
+                    break;
+                }
+                true_length = current_length - num_trailing_spaces;
               }
-              size_t true_len = const_val->GetStringVal().GetLength() - num_trailing_spaces;
-              if (true_len > static_cast<size_t>(ins_col.TypeModifier())) {
-                throw BINDER_EXCEPTION(
-                    fmt::format("value too long for type character varying({})", ins_col.TypeModifier()),
-                    common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
+
+              if (true_length > max_length) {
+                if (is_varchar) {
+                  // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varchar.c#L470
+                  throw BINDER_EXCEPTION(fmt::format("value too long for type character varying({})", max_length),
+                                         common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
+                } else {
+                  // https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/varbit.c#L510
+                  throw BINDER_EXCEPTION(fmt::format("bit string too long for type bit varying({})", max_length),
+                                         common::ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION);
+                }
               }
+
+              // truncate if we need to
               auto const_ret_type = const_val->GetReturnValueType();
 
               // we need to reallocate the buffer to fit the new truncated size
               auto resized_str_val = execution::sql::ValueUtil::CreateStringVal(
-                  common::ManagedPointer(const_val->GetStringVal().GetContent()), true_len);
+                  common::ManagedPointer(const_val->GetStringVal().GetContent()), true_length);
               const_val->SetValue(const_ret_type, resized_str_val.first, std::move(resized_str_val.second));
               ins_val = const_val.CastManagedPointerTo<parser::AbstractExpression>();
             }

@@ -313,6 +313,9 @@ std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop
                             common::ErrorCode::ERRCODE_SYNTAX_ERROR);
     error.AddField(common::ErrorField::POSITION, std::to_string(e.GetCursorPos()));
     result.emplace<common::ErrorData>(std::move(error));
+  } catch (const BinderException &e) {
+    common::ErrorData error(common::ErrorSeverity::ERROR, std::string(e.what()), e.code_);
+    result.emplace<common::ErrorData>(std::move(error));
   }
   return result;
 }

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "binder/sql_node_visitor.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "loggers/parser_logger.h"
 #include "parser/expression/abstract_expression.h"
@@ -93,7 +94,13 @@ struct ColumnDefinition {
         is_unique_(is_unique),
         default_expr_(default_expr),
         check_expr_(check_expr),
-        type_modifier_(type_modifier) {}
+        type_modifier_(type_modifier) {
+    if ((type_ == DataType::VARCHAR || type_ == DataType::VARBINARY) && type_modifier_ == 0) {
+      throw BINDER_EXCEPTION(
+          fmt::format("length for type {} must be at least 1", type_ == DataType::VARCHAR ? "varchar" : "varbinary"),
+          common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+    }
+  }
 
   /**
    * @param str type string
