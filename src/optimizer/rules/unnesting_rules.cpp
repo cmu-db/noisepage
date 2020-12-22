@@ -141,42 +141,11 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
                                                UNUSED_ATTRIBUTE OptimizationContext *context) const {
   UNUSED_ATTRIBUTE auto single_join = input->Contents()->GetContentsAs<LogicalSingleJoin>();
   NOISEPAGE_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
-  // From LOGICALSINGLEJOIN -> LOGICALFILTER -> LOGICALAGGREGATEANDGROUPBY
-  //  to LOGICALFILTER -> LOGICALINNERJOIN -> LOGICALFILTER -> LOGICALAGGREGATEANDGROUPBY
-  auto &memo = context->GetOptimizerContext()->GetMemo();
   auto filter_expr = input->GetChildren()[1];
   auto agg_expr = filter_expr->GetChildren()[0];
-  auto agg_group_id = agg_expr->GetChildren()[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
-  const auto &agg_group_aliases_set = memo.GetGroupByID(agg_group_id)->GetTableAliases();
   auto &filter_predicates = filter_expr->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
-  std::vector<AnnotatedExpression> correlated_predicates;
-  std::vector<AnnotatedExpression> normal_predicates;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
-
-  // loop over all predicates check each of them if they refer table not contained in agg
-  // from RewritePullFilterThroughAggregation
-  for (auto &predicate : filter_predicates) {
-    if (OptimizerUtil::IsSubset(agg_group_aliases_set, predicate.GetTableAliasSet())) {
-      normal_predicates.emplace_back(predicate);
-    } else {
-      // Correlated predicate, predicate in nested query references column in outer query
-      correlated_predicates.emplace_back(predicate);
-      auto root_expr = predicate.GetExpr();
-      // See https://github.com/cmu-db/noisepage/issues/1404
-      // The higher the depth of an expression the deeper/more nested it is.
-      // If the sub-query depth level of the left side of the predicate is greater than the current expression then the
-      // left side doesn't references the outer query (i.e. the right side references the outer query).
-      // The left side shall be evaluated as a part of the new aggregation before the new filter
-      if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
-      } else {
-        // Otherwise, the right side of the predicate doesn't references the outer query (i.e. the left side references
-        // the outer query). The right side shall be evaluated as a part of the new aggregation before the new filter
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      }
-    }
-  }
 
   // Create a new agg node
   auto aggregation = agg_expr->Contents()->GetContentsAs<LogicalAggregateAndGroupBy>();
@@ -194,33 +163,25 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   // Create a new inner join node from single join
   std::vector<std::unique_ptr<AbstractOptimizerNode>> inner_node;
   inner_node.emplace_back(input->GetChildren()[0]->Copy());
-  if (!normal_predicates.empty()) {
-    std::vector<std::unique_ptr<AbstractOptimizerNode>> child_node;
-    child_node.emplace_back(std::move(new_aggr));
-    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(normal_predicates))
-                                                     .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                                 std::move(child_node), context->GetOptimizerContext()->GetTxn());
-    inner_node.emplace_back(std::move(filter));
-  } else {
-    inner_node.emplace_back(std::move(new_aggr));
-  }
+
+  inner_node.emplace_back(std::move(new_aggr));
   auto new_inner = std::make_unique<OperatorNode>(
       LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(inner_node),
       context->GetOptimizerContext()->GetTxn());
 
   std::unique_ptr<OperatorNode> output;
-  // Create new filter nodes
-  // Construct a top filter if any
-  if (!correlated_predicates.empty()) {
-    std::vector<std::unique_ptr<AbstractOptimizerNode>> root_node;
-    root_node.emplace_back(std::move(new_inner));
-    output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(correlated_predicates))
-                                                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                            std::move(root_node), context->GetOptimizerContext()->GetTxn());
-
-  } else {
-    output = std::move(new_inner);
+  // Construct a top filter
+  std::vector<AnnotatedExpression> new_filter_predicates;
+  new_filter_predicates.reserve(filter_predicates.size());
+  for (auto &predicate : filter_predicates) {
+    new_filter_predicates.emplace_back(predicate);
   }
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> root_node;
+  root_node.emplace_back(std::move(new_inner));
+  output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(new_filter_predicates))
+                                              .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                          std::move(root_node), context->GetOptimizerContext()->GetTxn());
+
   transformed->emplace_back(std::move(output));
 }
 
