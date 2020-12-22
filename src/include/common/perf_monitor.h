@@ -61,8 +61,12 @@ class PerfMonitor {
     // uint64_t branch_misses_;
     /**
      * Bus cycles, which can be different from total cycles.
+     *
+     * TODO(wz2): Dated Nov 5th, 2020 on dev4. Recording {cycle,instr,cache-ref,cache-miss,bus,ref-cpu} causes all
+     * the counters to get zeroed. This counter currently isn't exposed to the rest of the system so it is disabled
+     * pending further investigation. Possibly might be related to limited intel performance counters per core.
      */
-    uint64_t bus_cycles_;
+    // uint64_t bus_cycles_;
     /**
      * Total cycles; not affected by CPU frequency scaling.
      */
@@ -80,7 +84,7 @@ class PerfMonitor {
       this->cache_misses_ -= rhs.cache_misses_;
       // this->branch_instructions_ -= rhs.branch_instructions_;
       // this->branch_misses_ -= rhs.branch_misses_;
-      this->bus_cycles_ -= rhs.bus_cycles_;
+      // this->bus_cycles_ -= rhs.bus_cycles_;
       this->ref_cpu_cycles_ -= rhs.ref_cpu_cycles_;
       return *this;
     }
@@ -225,10 +229,7 @@ class PerfMonitor {
         bytes_read = read(event_files_[3], &counters.cache_misses_, sizeof(uint64_t));
         NOISEPAGE_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
 
-        bytes_read = read(event_files_[4], &counters.bus_cycles_, sizeof(uint64_t));
-        NOISEPAGE_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-
-        bytes_read = read(event_files_[5], &counters.ref_cpu_cycles_, sizeof(uint64_t));
+        bytes_read = read(event_files_[4], &counters.ref_cpu_cycles_, sizeof(uint64_t));
         NOISEPAGE_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
       } else {  // NOLINT
         // Read all of the counters out with a single syscall.
@@ -243,7 +244,7 @@ class PerfMonitor {
   /**
    * Number of currently enabled HW perf events. Update this if more are added.
    */
-  static constexpr uint8_t NUM_HW_EVENTS = 6;
+  static constexpr uint8_t NUM_HW_EVENTS = 5;
 
  private:
   // set the first file descriptor to -1. Since event_files[0] is always passed into group_fd on
@@ -258,8 +259,8 @@ class PerfMonitor {
 
   bool running_ = false;
   static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
-      PERF_COUNT_HW_CPU_CYCLES,   PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_CACHE_REFERENCES,
-      PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BUS_CYCLES,   PERF_COUNT_HW_REF_CPU_CYCLES};
+      PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES,
+      PERF_COUNT_HW_REF_CPU_CYCLES};
 #endif
 };
 }  // namespace noisepage::common

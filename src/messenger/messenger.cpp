@@ -148,7 +148,10 @@ class ZmqMessage {
       UNUSED_ATTRIBUTE int check =
           std::sscanf(payload_.c_str(), "%" SCNu64 "-%" SCNu64 "-", &send_msg_id_, &recv_cb_id_);
       NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
-      message_.remove_prefix(message_.find_last_of('-') + 1);
+
+      // Remove the prefix up to the second '-'
+      message_.remove_prefix(message_.find_first_of('-') + 1);
+      message_.remove_prefix(message_.find_first_of('-') + 1);
     }
   }
 
@@ -409,6 +412,7 @@ void Messenger::RunTask() {
     // Run the server loop.
     ServerLoop();
   } catch (zmq::error_t &err) {
+    MESSENGER_LOG_TRACE(fmt::format("[PID={}] ServerLoop exited with {}", ::getpid(), err.what()));
     Terminate();
   }
 }
@@ -516,9 +520,8 @@ void Messenger::ServerLoop() {
         bool has_custom_serverloop = poll_items.server_callbacks_[i] != nullptr;
         MESSENGER_LOG_TRACE("[PID={}] Messenger RECV-FR {} (custom serverloop: {}): {}", ::getpid(), msg.GetRoutingId(),
                             has_custom_serverloop, msg.GetRawPayload());
-        if (!has_custom_serverloop) {
-          ProcessMessage(msg);
-        } else {
+        ProcessMessage(msg);
+        if (has_custom_serverloop) {
           auto &server_callback = poll_items.server_callbacks_[i];
           (*server_callback)(common::ManagedPointer(this), msg.GetRoutingId(), msg.GetMessage(),
                              msg.GetMessageIdSender());

@@ -10,9 +10,9 @@
 namespace noisepage::planner {
 
 std::unique_ptr<IndexJoinPlanNode> IndexJoinPlanNode::Builder::Build() {
-  return std::unique_ptr<IndexJoinPlanNode>(
-      new IndexJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_, index_oid_,
-                            table_oid_, scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_), index_size_));
+  return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(
+      std::move(children_), std::move(output_schema_), join_type_, join_predicate_, index_oid_, table_oid_, scan_type_,
+      std::move(lo_index_cols_), std::move(hi_index_cols_), index_size_, plan_node_id_));
 }
 
 IndexJoinPlanNode::IndexJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
@@ -22,8 +22,8 @@ IndexJoinPlanNode::IndexJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNod
                                      IndexScanType scan_type,
                                      std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_cols,
                                      std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols,
-                                     uint64_t index_size)
-    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
+                                     uint64_t index_size, plan_node_id_t plan_node_id)
+    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate, plan_node_id),
       index_oid_(index_oid),
       table_oid_(table_oid),
       scan_type_(scan_type),

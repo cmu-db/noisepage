@@ -37,7 +37,10 @@ class MiniTrainer:
         self.expose_all = expose_all
         self.txn_sample_interval = txn_sample_interval
 
-    def _train_specific_model(self, data, y_transformer_idx, method_idx):
+    def get_model_map(self):
+        return self.model_map
+
+    def train_specific_model(self, data, y_transformer_idx, method_idx):
         methods = self.ml_models
         method = methods[method_idx]
         label = method if y_transformer_idx == 0 else method + " transform"
@@ -50,7 +53,7 @@ class MiniTrainer:
         regressor.train(data.x, data.y)
         self.model_map[data.opunit] = regressor
 
-    def _train_data(self, data, summary_file):
+    def train_data(self, data, summary_file):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
                                                                             test_size=self.test_ratio,
                                                                             random_state=0)
@@ -161,9 +164,9 @@ class MiniTrainer:
             data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.txn_sample_interval,
                                                          self.model_map, self.stats_map, self.trim)
             for data in data_list:
-                best_y_transformer, best_method = self._train_data(data, summary_file)
+                best_y_transformer, best_method = self.train_data(data, summary_file)
                 if self.expose_all:
-                    self._train_specific_model(data, best_y_transformer, best_method)
+                    self.train_specific_model(data, best_y_transformer, best_method)
 
         return self.model_map
 

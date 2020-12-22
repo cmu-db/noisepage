@@ -30,13 +30,13 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
 
   // Check if 'pg_catalog is explicitly set'
   for (auto &ns : search_path_)
-    if (ns == postgres::NAMESPACE_CATALOG_NAMESPACE_OID) return;
+    if (ns == postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID) return;
 
-  search_path_.emplace(search_path_.begin(), postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
+  search_path_.emplace(search_path_.begin(), postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID);
 }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) const {
-  if (name.empty()) return catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  if (name.empty()) return catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID;
   NormalizeObjectName(&name);
   return dbc_->GetNamespaceOid(txn_, name);
 }
@@ -177,8 +177,8 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, languag
                                             namespace_oid_t procns, const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
-                                            const std::string &src, bool is_aggregate) {
+                                            const std::vector<postgres::PgProc::ArgModes> &arg_modes,
+                                            type_oid_t rettype, const std::string &src, bool is_aggregate) {
   return dbc_->CreateProcedure(txn_, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype,
                                src, is_aggregate);
 }
@@ -196,12 +196,9 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return catalog::INVALID_PROC_OID;
 }
 
-bool CatalogAccessor::SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context) {
-  return dbc_->SetProcCtxPtr(txn_, proc_oid, func_context);
-}
-
-common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetProcCtxPtr(proc_oid_t proc_oid) {
-  return dbc_->GetProcCtxPtr(txn_, proc_oid);
+bool CatalogAccessor::SetFunctionContextPointer(proc_oid_t proc_oid,
+                                                const execution::functions::FunctionContext *func_context) {
+  return dbc_->SetFunctionContextPointer(txn_, proc_oid, func_context);
 }
 
 common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetFunctionContext(proc_oid_t proc_oid) {

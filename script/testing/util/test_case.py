@@ -7,6 +7,7 @@ from util.mem_metrics import MemoryMetrics
 
 class TestCase:
     """Class of a test case, could be part of a test suite"""
+
     def __init__(self, args):
         """ Locations and misc. variable initialization """
         # clean up the command line args

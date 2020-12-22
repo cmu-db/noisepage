@@ -16,6 +16,35 @@ pipeline {
     }
 
     stages {
+        stage('Artifact Stats') {
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+
+                // The following command compiles and builds the binary without caching and times the whole operation. 
+                // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
+                sh script:'''
+                mkdir build
+                cd build
+                /usr/bin/time -o /tmp/compiletime.txt -f %e sh -c "cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
+                ninja noisepage"''', label: 'Timed Compile & Build'
+
+                sh script: '''
+                cd build
+                python3 ../script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                ''', label: 'Artifact Stats'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
         stage('Performance') {
             agent { label 'benchmark' }
             steps {
@@ -27,6 +56,8 @@ pipeline {
                 cd build
                 cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja noisepage''', label: 'Compiling'
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                 catchError(stageResult: 'Failure'){
                     sh script:'''
@@ -46,6 +77,8 @@ pipeline {
                     timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                     ''', label: 'OLTPBench (No WAL)'
                 }
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                 archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
             }
@@ -68,6 +101,8 @@ pipeline {
                 cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja''', label: 'Compiling'
 
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
                 script { // TODO: This script block is temporary to get some initial data into microbenchmarks
                     def iterations = 4
                     for(int i = 0;i < iterations; i++){
@@ -87,6 +122,8 @@ pipeline {
                     }
 
                 }
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
             }
             post {

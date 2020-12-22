@@ -16,3 +16,4 @@
 #include "parser/transaction_statement.h"
 #include "parser/update_statement.h"
 #include "parser/variable_set_statement.h"
+#include "parser/variable_show_statement.h"

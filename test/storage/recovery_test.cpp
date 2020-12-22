@@ -309,7 +309,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropTableTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
 
   // Create database, table, then drop the table
@@ -341,7 +341,7 @@ TEST_F(RecoveryTests, DropTableTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropIndexTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
   std::string index_name = "testindex";
 
@@ -508,7 +508,7 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
 
   // Begin T0, create database, create table foo, and commit
@@ -565,7 +565,7 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
 
   // Begin T0, create database, create table foo, and commit

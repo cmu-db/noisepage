@@ -29,6 +29,7 @@
 #include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
+#include "parser/variable_show_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "settings/settings_manager.h"
 #include "storage/recovery/replication_log_provider.h"
@@ -129,7 +130,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
   out->WriteCommandComplete(query_type, 0);
 }
 
-std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
+std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<parser::ParseResult> query) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
@@ -165,6 +166,31 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
     return {ResultType::ERROR, error};
   }
 
+  return {ResultType::COMPLETE, 0u};
+}
+
+TrafficCopResult TrafficCop::ExecuteShowStatement(
+    common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    common::ManagedPointer<network::Statement> statement,
+    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+  NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
+                   "This is a non-transactional operation and we should not be in a transaction.");
+  NOISEPAGE_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SHOW,
+                   "ExecuteSetStatement called with invalid QueryType.");
+
+  const auto &show_stmt UNUSED_ATTRIBUTE =
+      statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
+
+  NOISEPAGE_ASSERT(show_stmt->GetName() == "transaction_isolation", "Nothing else is supported right now.");
+
+  auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
+  expr->SetAlias("transaction_isolation");
+  std::vector<noisepage::planner::OutputSchema::Column> cols;
+  cols.emplace_back("transaction_isolation", type::TypeId::VARCHAR, std::move(expr));
+  execution::sql::StringVal dummy_result("snapshot isolation");
+
+  out->WriteRowDescription(cols, {network::FieldFormat::text});
+  out->WriteDataRow(reinterpret_cast<const byte *>(&dummy_result), cols, {network::FieldFormat::text});
   return {ResultType::COMPLETE, 0u};
 }
 
@@ -299,7 +325,7 @@ TrafficCopResult TrafficCop::BindQuery(
                    "Not in a valid txn. This should have been caught before calling this function.");
 
   try {
-    if (statement->PhysicalPlan() == nullptr || !UseQueryCache()) {
+    if (statement->OptimizeResult() == nullptr || !UseQueryCache()) {
       // it's not cached, bind it
       binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
       if (parameters != nullptr && !parameters->empty()) {
@@ -340,7 +366,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
-  const auto physical_plan = portal->PhysicalPlan();
+  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
                        query_type == network::QueryType::QUERY_CREATE_INDEX ||
                        query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
@@ -382,7 +408,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type = portal->GetStatement()->GetQueryType();
-  const auto physical_plan = portal->PhysicalPlan();
+  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
                        query_type == network::QueryType::QUERY_CREATE_INDEX ||
                        query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
