@@ -56,6 +56,8 @@ pipeline {
                     utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                 }
 
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
                 catchError(stageResult: 'Failure'){
                     sh script:'''
                     cd build
@@ -74,6 +76,8 @@ pipeline {
                     timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                     ''', label: 'OLTPBench (No WAL)'
                 }
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                 archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
             }
@@ -94,6 +98,8 @@ pipeline {
                     utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildBenchmarks:true)
                 }
 
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
                 // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
                 //  # of Threads: 4
                 //  WAL Path: Ramdisk
@@ -104,6 +110,8 @@ pipeline {
 
                 archiveArtifacts 'script/testing/*.json'
                 junit 'script/testing/*.xml'
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
             }
             post {
                 cleanup {
