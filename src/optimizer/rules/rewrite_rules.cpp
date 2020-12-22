@@ -503,13 +503,13 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
       // See https://github.com/cmu-db/noisepage/issues/1404
       // The higher the depth of an expression the deeper/more nested it is.
       // If the sub-query depth level of the left side of the predicate is greater than the current expression then the
-      // left side references the outer query.
+      // left side doesn't references the outer query (i.e. the right side references the outer query).
       // The left side shall be evaluated as a part of the new aggregation before the new filter
       if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
         new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
       } else {
-        // Otherwise, the right side of the predicate references the outer query
-        // The right side shall be evaluated as a part of the new aggregation before the new filter
+        // Otherwise, the right side of the predicate doesn't references the outer query (i.e. the left side references
+        // the outer query). The right side shall be evaluated as a part of the new aggregation before the new filter
         new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
       }
     }
