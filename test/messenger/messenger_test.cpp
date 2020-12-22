@@ -289,7 +289,7 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     // Send "replica1" to the primary to let them know who we are.
     messenger->SendMessage(common::ManagedPointer(&con_primary), "replica1", CallbackFns::Noop,
-                           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+                           static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
 
     // Send "KILLME" to the primary and expect "QUIT" as a reply.
     volatile bool reply_primary_quit = false;
