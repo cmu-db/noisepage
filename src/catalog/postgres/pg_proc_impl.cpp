@@ -219,8 +219,13 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   // Clean up the procedure context.
   if (ctx_ptr != nullptr) {
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-      deferred_action_manager->RegisterDeferredAction(
-          [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }); });
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        deferred_action_manager->RegisterDeferredAction([=]() {
+          deferred_action_manager->RegisterDeferredAction([=]() {
+            delete ctx_ptr;
+          }, transaction::DafId::MEMORY_DEALLOCATION);
+        }, transaction::DafId::MEMORY_DEALLOCATION);
+      }, transaction::DafId::MEMORY_DEALLOCATION);
     });
   }
 

@@ -54,7 +54,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   // No new transactions can see these object but there may be deferred index
   // and other operation.  Therefore, we need to defer the deallocation on delete
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction(dbc_nuke);
+    deferred_action_manager->RegisterDeferredAction(dbc_nuke, transaction::DafId::MEMORY_DEALLOCATION);
   });
 }
 
