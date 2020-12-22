@@ -497,19 +497,19 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
     if (OptimizerUtil::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
       normal_predicates.emplace_back(predicate);
     } else {
-      // Correlated predicate, already in the form of
-      // (outer_relation.a = (expr))
+      // Correlated predicate, predicate in nested query references column in outer query
       correlated_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
       // See https://github.com/cmu-db/noisepage/issues/1404
-      // If the sub-query depth level of the first child is greater than the current expression
-      // the first child is a (expr) and the second child is outer_relation.a
-      // The first child expression shall be evaluated as a part of the new aggregation before the new filter
+      // The higher the depth of an expression the deeper/more nested it is.
+      // If the sub-query depth level of the left side of the predicate is greater than the current expression then the
+      // left side references the outer query.
+      // The left side shall be evaluated as a part of the new aggregation before the new filter
       if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
         new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
       } else {
-        // Otherwise, the first child is outer_relation.a and the second child is a (expr)
-        // The second child expression shall be evaluated as a part of the new aggregation before the new filter
+        // Otherwise, the right side of the predicate references the outer query
+        // The right side shall be evaluated as a part of the new aggregation before the new filter
         new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
       }
     }
