@@ -42,7 +42,7 @@ void LoggersUtil::Initialize() {
     modelserver::InitModelServerLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
-    selfdriving::InitMessengerLogger();
+    selfdriving::InitSelfDrivingLogger();
     settings::InitSettingsLogger();
     storage::InitIndexLogger();
     storage::InitStorageLogger();

@@ -1,15 +1,13 @@
 #pragma once
 
-#include <memory>
-
 #include "loggers/loggers_util.h"
 
 #ifdef NOISEPAGE_USE_LOGGING
 
 namespace noisepage::selfdriving {
-extern std::shared_ptr<spdlog::logger> selfdriving_logger;  // NOLINT
+extern common::SanctionedSharedPtr<spdlog::logger>::Ptr selfdriving_logger;
 
-void InitMessengerLogger();
+void InitSelfDrivingLogger();
 }  // namespace noisepage::selfdriving
 
 #define SELFDRIVING_LOG_TRACE(...) ::noisepage::selfdriving::selfdriving_logger->trace(__VA_ARGS__);

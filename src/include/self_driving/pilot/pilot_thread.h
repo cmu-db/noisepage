@@ -3,7 +3,7 @@
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
 
-#include "pilot.h"
+#include "self_driving/pilot/pilot.h"
 
 namespace noisepage::selfdriving {
 
@@ -18,7 +18,7 @@ class PilotThread {
    * @param pilot_period Sleep time between Pilot invocations
    * @param pilot_planning if the pilot is enabled
    */
-  PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::microseconds pilot_period, bool pilot_planning);
+  PilotThread(common::ManagedPointer<selfdriving::Pilot> pilot, std::chrono::microseconds pilot_period, bool pilot_planning);
 
   ~PilotThread() { StopPilot(); }
 

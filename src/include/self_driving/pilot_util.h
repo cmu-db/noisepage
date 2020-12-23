@@ -38,7 +38,7 @@ class PilotUtil {
    * @param forecast pointer to object storing result of workload forecast
    */
   static const std::list<metrics::PipelineMetricRawData::PipelineData>&
-      CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
+      CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot> pilot,
                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
 
   /**
@@ -52,6 +52,10 @@ class PilotUtil {
       std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> *pipeline_to_ou_position,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
+
+  static void InferenceWithFeatures(common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
+                                    const std::list<metrics::PipelineMetricRawData::PipelineData>& pipeline_data,
+                                    std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>* pipeline_to_prediction);
 };
 
 }  // namespace noisepage::selfdriving

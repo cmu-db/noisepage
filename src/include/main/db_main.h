@@ -392,14 +392,6 @@ class DBMain {
                                                                       common::ManagedPointer(metrics_manager));
       }
 
-      std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
-      std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
-      if (use_pilot_thread_) {
-        pilot = std::make_unique<selfdriving::Pilot>(common::ManagedPointer(db_main), workload_forecast_interval_);
-        pilot_thread = std::make_unique<selfdriving::PilotThread>(
-            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
-      }
-
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
       if (use_stats_storage_) {
         stats_storage = std::make_unique<optimizer::StatsStorage>();
@@ -440,6 +432,22 @@ class DBMain {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
         model_server_manager =
             std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+      }
+
+      std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
+      std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
+      if (use_pilot_thread_) {
+        NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
+        pilot = std::make_unique<selfdriving::Pilot>
+            (common::ManagedPointer(catalog_layer->GetCatalog()),
+             common::ManagedPointer(metrics_thread),
+             common::ManagedPointer(model_server_manager),
+             common::ManagedPointer(settings_manager),
+             common::ManagedPointer(stats_storage),
+             common::ManagedPointer(txn_layer->GetTransactionManager()),
+             workload_forecast_interval_);
+        pilot_thread = std::make_unique<selfdriving::PilotThread>(
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);

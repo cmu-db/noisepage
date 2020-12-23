@@ -15,41 +15,39 @@
 #include "metrics/metrics_store.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
-#include "self_driving/model_server/model_server_manager.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 
 namespace noisepage::selfdriving {
 
 const std::list<metrics::PipelineMetricRawData::PipelineData>&
-    PilotUtil::CollectPipelineFeatures(common::ManagedPointer<DBMain> db_main,
+    PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot> pilot,
                                        common::ManagedPointer<selfdriving::WorkloadForecast> forecast) {
-  auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
-  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
+  auto txn_manager = pilot->txn_manager_;
+  auto catalog = pilot->catalog_;
   transaction::TransactionContext *txn;
-  auto metrics_manager = db_main->GetMetricsManager();
+  auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
 
   execution::exec::ExecutionSettings exec_settings{};
-  exec_settings.UpdateFromSettingsManager(db_main->GetSettingsManager());
+  exec_settings.UpdateFromSettingsManager(pilot->settings_manager_);
 
   execution::exec::NoOpResultConsumer consumer;
   execution::exec::OutputCallback callback = consumer;
 
   execution::query_id_t qid;
   catalog::db_oid_t db_oid;
-  //  auto i = 0;
+  auto i = 0;
   for (auto &it : forecast->query_id_to_params_) {
     qid = it.first;
-    //    i++;
-    //    if (i == 5){
-    //      break;
-    //    }
+    i++;
+    if (i == 5){
+      break;
+    }
     for (auto &params : forecast->query_id_to_params_[qid]) {
       txn = txn_manager->BeginTransaction();
 
       auto stmt_list = parser::PostgresParser::BuildParseTree(forecast->query_id_to_text_[qid]);
       db_oid = static_cast<catalog::db_oid_t>(forecast->query_id_to_dboid_[qid]);
-      // std::cout << "1.1. Got DB oid \n" << std::flush;
       std::unique_ptr<catalog::CatalogAccessor> accessor =
           catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
@@ -62,30 +60,24 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
 
       auto out_plan = trafficcop::TrafficCopUtil::Optimize(
           common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
-          db_main->GetStatsStorage(), std::move(cost_model), forecast->optimizer_timeout_)->TakePlanNodeOwnership();
+          pilot->stats_storage_, std::move(cost_model), forecast->optimizer_timeout_)->TakePlanNodeOwnership();
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, db_main->GetMetricsManager());
+          common::ManagedPointer(accessor), exec_settings, metrics_manager);
 
       exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
       execution::compiler::ExecutableQuery::query_identifier.store(qid);
       auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                          execution::compiler::CompilationMode::OneShot);
-      // std::cout << qid << ";\n " << std::flush;
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-      // std::cout << "5. Run query succ \n" << std::flush;
-
       std::this_thread::sleep_for(std::chrono::seconds(1));
-
       txn_manager->Abort(txn);
-      // std::cout << "6. Transaction Aborted \n" << std::flush;
     }
   }
 
   // retrieve the features
-
   metrics_manager->Aggregate();
 
   // Commented out since currently not performing any actions on aggregated data
@@ -104,44 +96,25 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
 }
 
 void PilotUtil::InferenceWithFeatures
-    (common::ManagedPointer<DBMain> db_main,
+    (common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
      const std::list<metrics::PipelineMetricRawData::PipelineData>& pipeline_data,
      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>* pipeline_to_prediction) {
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> ou_to_features;
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> pipeline_to_ou_position;
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_data, &ou_to_features);
-  auto ms_manager = db_main->GetModelServerManager();
-  while (!ms_manager->ModelServerStarted()) {
-  }
-  modelserver::ModelServerFuture<std::string> future;
-  std::vector<std::string> models{"lr", "gbm"};
-
-  std::string model_save_path = "/Users/jiaojie/myterrier/terrier/script/model/trained_model/mini_model_map.pickle";
-
-  // std::string model_save_path = "/Users/jiaojie/myterrier/terrier/script/model/terrier_ms_trained";
-
-  //  ms_manager->TrainWith(models, "/Users/jiaojie/myterrier/terrier/script/model/mini_runner_input",
-  //                        model_save_path, &future);
-  //  auto res = future.Wait();
-  //  // Do inference through model server, get cost
-  //
-  //  NOISEPAGE_ASSERT(res.second, "ms Training failed");  // Training succeeds
-  //
+  NOISEPAGE_ASSERT(ms_manager->ModelServerStarted(), "Model Server should have been started");
+  std::string project_build_path = getenv(Pilot::SAVE_PATH);
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
     auto res = ms_manager->DoInference(
-        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), model_save_path,
-        ou_map_it.second);
-    if (res.second) {
-      SELFDRIVING_LOG_ERROR("");
+        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
+        project_build_path + Pilot::SAVE_PATH, ou_map_it.second);
+    if (!res.second) {
       throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
     }
-
     inference_result.emplace(ou_map_it.first, res.first);
   }
-
-
 }
 
 
@@ -161,7 +134,9 @@ void PilotUtil::GroupFeaturesByOU(
                             ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).size()));
       }
 
-      ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).push_back(ou_it.GetAllAttributes());
+      auto predictors = ou_it.GetAllAttributes();
+      predictors.insert(predictors.begin(), data_it.execution_mode_);
+      ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).push_back(predictors);
     }
   }
 }
