@@ -43,6 +43,7 @@ class Pilot {
  public:
   /**
    * Constructor for Pilot
+   * @param catalog catalog
    * @param metrics_thread metrics thread for metrics manager
    * @param model_server_manager model server manager
    * @param settings_manager settings manager
