@@ -1,6 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <tuple>
+#include <unordered_set>
 #include <vector>
 
 #include "optimizer/rule.h"
@@ -119,5 +122,21 @@ class DependentSingleJoinToInnerJoin : public Rule {
                  std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
+
+/**
+ * Given predicates associated with some aggregate, this function will extract the predicates that are correlated with
+ * an outer query, as well as the columns from those predicates that aren't correlated.
+ * @param predicates vector of predicates associated with an aggregate
+ * @param child_group_aliases_set the table alias set of the predicate's child node
+ * @return
+ *      correlated_predicates - predicates which are correlated to an outer query
+ *      normal_predicates - predicates which are not correlated to an outer query
+ *      new_group_cols - columns from correlated predicates which are not correlated to an outer query. These will be
+ * used as group by columns in the nested aggregate
+ */
+std::tuple<std::vector<AnnotatedExpression>, std::vector<AnnotatedExpression>,
+           std::vector<common::ManagedPointer<parser::AbstractExpression>>>
+ExtractCorrelatedPredicatesWithAggregate(const std::vector<AnnotatedExpression> &predicates,
+                                         const std::unordered_set<std::string> &child_group_aliases_set);
 
 };  // namespace noisepage::optimizer

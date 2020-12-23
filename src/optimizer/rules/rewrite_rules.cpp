@@ -1,5 +1,7 @@
 #include "optimizer/rules/rewrite_rules.h"
 
+#include <optimizer/rules/unnesting_rules.h>
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -490,30 +492,8 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
   const auto &child_group_aliases_set = memo.GetGroupByID(child_group_id)->GetTableAliases();
   auto &predicates = filter_expr->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
-  std::vector<AnnotatedExpression> correlated_predicates;
-  std::vector<AnnotatedExpression> normal_predicates;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
-  for (auto &predicate : predicates) {
-    if (OptimizerUtil::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
-      normal_predicates.emplace_back(predicate);
-    } else {
-      // Correlated predicate, predicate in nested query references column in outer query
-      correlated_predicates.emplace_back(predicate);
-      auto root_expr = predicate.GetExpr();
-      // See https://github.com/cmu-db/noisepage/issues/1404
-      // The higher the depth of an expression the deeper/more nested it is.
-      // If the sub-query depth level of the left side of the predicate is greater than the current expression then the
-      // left side doesn't references the outer query (i.e. the right side references the outer query).
-      // The left side shall be evaluated as a part of the new aggregation before the new filter
-      if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
-      } else {
-        // Otherwise, the right side of the predicate doesn't references the outer query (i.e. the left side references
-        // the outer query). The right side shall be evaluated as a part of the new aggregation before the new filter
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      }
-    }
-  }
+  auto [correlated_predicates, normal_predicates, new_groupby_cols] =
+      ExtractCorrelatedPredicatesWithAggregate(predicates, child_group_aliases_set);
 
   if (correlated_predicates.empty()) {
     // No need to pull
