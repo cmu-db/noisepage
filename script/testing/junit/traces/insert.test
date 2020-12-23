@@ -236,26 +236,34 @@ statement ok
 CREATE TABLE insert13 (c1 integer, c2 double)
 
 statement ok
-INSERT INTO insert13 (c2, c1) VALUES (2.0, 1)
+INSERT INTO insert13 (c2, c1) VALUES (2.0, 1), (4.0, 2), (8.0, 3)
 
-query IR nosort
+query IR rowsort
 SELECT * FROM insert13
 ----
 1
 2.0
+2
+4.0
+3
+8.0
 
 statement ok
-INSERT INTO insert13 (c2) VALUES (4.0)
+INSERT INTO insert13 (c2) VALUES (16.0),(32.0),(64.0)
 
-query R nosort
+query R rowsort
 SELECT c2 FROM insert13 WHERE c1 IS NULL
 ----
-4.0
+16.0
+32.0
+64.0
 
-query R nosort
+query R rowsort
 SELECT c2 FROM insert13 WHERE c1 IS NOT NULL
 ----
 2.0
+4.0
+8.0
 
 statement ok
 DROP TABLE insert13
