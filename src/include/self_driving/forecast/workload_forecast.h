@@ -51,7 +51,6 @@ class WorkloadForecast {
   std::unordered_map<execution::query_id_t, std::vector<type::TypeId>> query_id_to_param_types_;
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
   std::unordered_map<std::string, execution::query_id_t> query_text_to_id_;
-  // map id to a vector of execution times
   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
   uint64_t num_sample_{5};
 

@@ -36,13 +36,8 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
 
   execution::query_id_t qid;
   catalog::db_oid_t db_oid;
-  auto i = 0;
   for (auto &it : forecast->query_id_to_params_) {
     qid = it.first;
-    i++;
-    if (i == 5){
-      break;
-    }
     for (auto &params : forecast->query_id_to_params_[qid]) {
       txn = txn_manager->BeginTransaction();
 
@@ -104,7 +99,7 @@ void PilotUtil::InferenceWithFeatures
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_data, &ou_to_features);
   NOISEPAGE_ASSERT(ms_manager->ModelServerStarted(), "Model Server should have been started");
-  std::string project_build_path = getenv(Pilot::SAVE_PATH);
+  std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
     auto res = ms_manager->DoInference(

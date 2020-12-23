@@ -6,7 +6,6 @@
 #include "common/action_context.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "main/db_main.h"
 #include "parser/expression/constant_value_expression.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/pilot_util.h"
@@ -28,11 +27,11 @@ Pilot::Pilot(
   forecast_ = nullptr;
   while (!ms_manager_->ModelServerStarted()) {
   }
+
   modelserver::ModelServerFuture<std::string> future;
   std::vector<std::string> models{"lr", "gbm"};
   std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
-
-  ms_manager_->TrainWith(models,  project_build_path + "/../script/model/mini_data_dev4",
+  ms_manager_->TrainWith(models,  std::string(project_build_path) + "/../script/model/mini_data_dev4",
                          project_build_path + Pilot::SAVE_PATH, common::ManagedPointer<modelserver::ModelServerFuture<std::string>>(&future));
 
   auto wait_res = future.Wait();
@@ -52,7 +51,6 @@ void Pilot::PerformPlanning() {
 
 void Pilot::ExecuteForecast() {
   NOISEPAGE_ASSERT(forecast_ != nullptr, "Need forecast_ initialized.");
-
   bool oldval = settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
   bool oldcounter = settings_manager_->GetBool(settings::Param::counters_enable);
   uint64_t oldintv = settings_manager_->GetInt64(settings::Param::pipeline_metrics_interval);
