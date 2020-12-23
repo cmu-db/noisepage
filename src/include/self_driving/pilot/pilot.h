@@ -23,12 +23,12 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/expression/constant_value_expression.h"
 #include "self_driving/forecast/workload_forecast.h"
-#include "self_driving/modeling/operating_unit.h"
 #include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/modeling/operating_unit.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
-#include "type/type_id.h"
 #include "transaction/transaction_manager.h"
+#include "type/type_id.h"
 
 namespace noisepage::selfdriving {
 
@@ -46,14 +46,11 @@ class Pilot {
    * @param db_main Managed Pointer to db_main
    * @param workload_forecast_interval Interval used in the forecastor
    */
-  Pilot(
-      common::ManagedPointer<catalog::Catalog> catalog,
-      common::ManagedPointer<metrics::MetricsThread> metrics_thread,
-      common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
-      common::ManagedPointer<settings::SettingsManager> settings_manager,
-      common::ManagedPointer<optimizer::StatsStorage> stats_storage,
-      common::ManagedPointer<transaction::TransactionManager> txn_manager,
-      uint64_t workload_forecast_interval);
+  Pilot(common::ManagedPointer<catalog::Catalog> catalog, common::ManagedPointer<metrics::MetricsThread> metrics_thread,
+        common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+        common::ManagedPointer<settings::SettingsManager> settings_manager,
+        common::ManagedPointer<optimizer::StatsStorage> stats_storage,
+        common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
 
   /**
    * WorkloadForecast object performing the query execution and feature gathering
@@ -80,7 +77,6 @@ class Pilot {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   uint64_t workload_forecast_interval_{10000000};
   friend class noisepage::selfdriving::PilotUtil;
-
 };
 
 }  // namespace noisepage::selfdriving

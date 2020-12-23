@@ -20,9 +20,8 @@
 
 namespace noisepage::selfdriving {
 
-const std::list<metrics::PipelineMetricRawData::PipelineData>&
-    PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot> pilot,
-                                       common::ManagedPointer<selfdriving::WorkloadForecast> forecast) {
+const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
+    common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast) {
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
   transaction::TransactionContext *txn;
@@ -53,9 +52,11 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
       // Creating exec_ctx
       std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
 
-      auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-          common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
-          pilot->stats_storage_, std::move(cost_model), forecast->optimizer_timeout_)->TakePlanNodeOwnership();
+      auto out_plan =
+          trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                               common::ManagedPointer(stmt_list), db_oid, pilot->stats_storage_,
+                                               std::move(cost_model), forecast->optimizer_timeout_)
+              ->TakePlanNodeOwnership();
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
@@ -80,20 +81,22 @@ const std::list<metrics::PipelineMetricRawData::PipelineData>&
       metrics_manager->AggregatedMetrics()
           .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
           .get());
-  //  NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= forecast->query_id_to_params_.size(),
-  //                   "Expect at least one pipeline_metrics record for each query");
+  NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= forecast->query_id_to_params_.size(),
+                   "Expect at least one pipeline_metrics record for each query");
   SELFDRIVING_LOG_INFO("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
-    SELFDRIVING_LOG_INFO(fmt::format("qid: {}; ppl_id: {}", static_cast<uint>(it->query_id_), static_cast<uint32_t>(it->pipeline_id_)));
+    SELFDRIVING_LOG_INFO(
+        fmt::format("qid: {}; ppl_id: {}", static_cast<uint>(it->query_id_), static_cast<uint32_t>(it->pipeline_id_)));
   }
 
   return aggregated_data->pipeline_data_;
 }
 
-void PilotUtil::InferenceWithFeatures
-    (common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
-     const std::list<metrics::PipelineMetricRawData::PipelineData>& pipeline_data,
-     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>* pipeline_to_prediction) {
+void PilotUtil::InferenceWithFeatures(
+    common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
+    const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
+    std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
+        *pipeline_to_prediction) {
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> ou_to_features;
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> pipeline_to_ou_position;
 
@@ -102,16 +105,15 @@ void PilotUtil::InferenceWithFeatures
   std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
-    auto res = ms_manager->DoInference(
-        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
-        project_build_path + Pilot::SAVE_PATH, ou_map_it.second);
+    auto res =
+        ms_manager->DoInference(selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
+                                project_build_path + Pilot::SAVE_PATH, ou_map_it.second);
     if (!res.second) {
       throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
     }
     inference_result.emplace(ou_map_it.first, res.first);
   }
 }
-
 
 void PilotUtil::GroupFeaturesByOU(
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> *pipeline_to_ou_position,
@@ -124,9 +126,8 @@ void PilotUtil::GroupFeaturesByOU(
         pipeline_to_ou_position->emplace_back(std::make_tuple(data_it.query_id_, data_it.pipeline_id_, 0));
         ou_to_features->emplace(ou_it.GetExecutionOperatingUnitType(), std::vector<std::vector<double>>());
       } else {
-        pipeline_to_ou_position->emplace_back(
-            std::make_tuple(data_it.query_id_, data_it.pipeline_id_,
-                            ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).size()));
+        pipeline_to_ou_position->emplace_back(std::make_tuple(
+            data_it.query_id_, data_it.pipeline_id_, ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).size()));
       }
 
       auto predictors = ou_it.GetAllAttributes();

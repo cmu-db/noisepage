@@ -37,9 +37,8 @@ class PilotUtil {
    * @param db_main pointer to DBMain to access settings & metrics managers, transaction layer, and catalog layer
    * @param forecast pointer to object storing result of workload forecast
    */
-  static const std::list<metrics::PipelineMetricRawData::PipelineData>&
-      CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot> pilot,
-                              common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
+  static const std::list<metrics::PipelineMetricRawData::PipelineData> &CollectPipelineFeatures(
+      common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
 
   /**
    * Group pipeline features by ou for block inference
@@ -53,9 +52,11 @@ class PilotUtil {
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
 
-  static void InferenceWithFeatures(common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
-                                    const std::list<metrics::PipelineMetricRawData::PipelineData>& pipeline_data,
-                                    std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>* pipeline_to_prediction);
+  static void InferenceWithFeatures(
+      common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
+      const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
+      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
+          *pipeline_to_prediction);
 };
 
 }  // namespace noisepage::selfdriving

@@ -16,9 +16,9 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/pilot/pilot.h"
 #include "self_driving/pilot/pilot_thread.h"
-#include "self_driving/model_server/model_server_manager.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -438,14 +438,11 @@ class DBMain {
       std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
         NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
-        pilot = std::make_unique<selfdriving::Pilot>
-            (common::ManagedPointer(catalog_layer->GetCatalog()),
-             common::ManagedPointer(metrics_thread),
-             common::ManagedPointer(model_server_manager),
-             common::ManagedPointer(settings_manager),
-             common::ManagedPointer(stats_storage),
-             common::ManagedPointer(txn_layer->GetTransactionManager()),
-             workload_forecast_interval_);
+        pilot = std::make_unique<selfdriving::Pilot>(
+            common::ManagedPointer(catalog_layer->GetCatalog()), common::ManagedPointer(metrics_thread),
+            common::ManagedPointer(model_server_manager), common::ManagedPointer(settings_manager),
+            common::ManagedPointer(stats_storage), common::ManagedPointer(txn_layer->GetTransactionManager()),
+            workload_forecast_interval_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
       }
