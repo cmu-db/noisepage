@@ -157,7 +157,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   std::vector<Pipeline *> execution_order;
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
-    if(pipeline->IsPrepared()){
+    if (pipeline->IsPrepared()) {
       continue;
     }
     // Extract and record the translators.

@@ -529,7 +529,7 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
     builder->RegisterStep(init_fn);
     builder->RegisterStep(run_fn);
     builder->RegisterStep(teardown);
-  }else{
+  } else {
     // we have to manually declare these, in the other case, RegisterStep did the equivalent
     builder->DeclareFunction(init_fn);
     builder->DeclareFunction(run_fn);

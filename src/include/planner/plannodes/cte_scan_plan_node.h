@@ -102,7 +102,8 @@ class CteScanPlanNode : public SeqScanPlanNode {
       }
       return std::unique_ptr<CteScanPlanNode>(
           new CteScanPlanNode(std::move(cte_table_name_), std::move(children_), std::move(output_schema_), is_leader_,
-                              table_oid_, std::move(table_schema_), cte_type_, std::move(col_oids), scan_predicate_, plan_node_id_));
+                              table_oid_, std::move(table_schema_), cte_type_, std::move(col_oids), scan_predicate_,
+                              plan_node_id_));
     }
 
    private:
