@@ -379,7 +379,6 @@ void Pipeline::CallNestedRunPipelineFunction(WorkContext *ctx, const OperatorTra
   function->Append(codegen_->Call(GetRunPipelineFunctionName(), params_vec));
   function->Append(codegen_->Call(GetTeardownPipelineFunctionName(),
                                   {compilation_context_->GetQueryState()->GetStatePointer(codegen_), p_state_ptr}));
-  return;
 }
 
 ast::Identifier Pipeline::GetInitPipelineFunctionName() const {
@@ -450,7 +449,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
           arg = builder.GetParameterByPosition(i++);
         }
       }
-      builder.Append(codegen_->Call(GetWorkFunctionName(), std::move(args)));
+      builder.Append(codegen_->Call(GetWorkFunctionName(), args));
     }
 
     // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
