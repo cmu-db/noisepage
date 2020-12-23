@@ -57,7 +57,6 @@ std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(transaction::Transactio
   try {
     PlanGenerator generator(optimize_result->GetPlanMetaData());
     auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs, &generator);
-    optimize_result->SetPlanNode(std::move(best_plan));
 
     // Assign CTE Schema to each CTE Node
     for (auto &table : context_->GetCTETables()) {
@@ -66,6 +65,7 @@ std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(transaction::Transactio
       ElectCTELeader(common::ManagedPointer(best_plan), table, &ldr);
     }
 
+    optimize_result->SetPlanNode(std::move(best_plan));
     // Reset memo after finishing the optimization
     Reset();
     return optimize_result;
