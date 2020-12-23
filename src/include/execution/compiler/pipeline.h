@@ -284,7 +284,6 @@ class Pipeline {
 
   void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 
-
   void CollectDependencies(std::vector<const Pipeline *> *deps) const;
 
   ast::Identifier GetInitPipelineFunctionName() const;

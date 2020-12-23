@@ -916,9 +916,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
         throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()),
                                common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
-      } else {
-        context_->AddRegularTable(catalog_accessor_, node, db_oid_);
       }
+      context_->AddRegularTable(catalog_accessor_, node, db_oid_);
     }
   }
 }

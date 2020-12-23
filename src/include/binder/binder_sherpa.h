@@ -96,17 +96,13 @@ class BinderSherpa {
    * Adds a cte table name to the list of table names
    * @param cte_table_name the cte table name to add
    */
-  void AddCTETableName(std::string cte_table_name) {
-    cte_table_names_.insert(cte_table_name);
-  }
+  void AddCTETableName(const std::string &cte_table_name) { cte_table_names_.insert(cte_table_name); }
 
   /**
    * Gets the set of available cte table names
    * @return Set of available cte table names
    */
-  const std::unordered_set<std::string> &GetCTETableNames() const {
-    return cte_table_names_;
-  }
+  const std::unordered_set<std::string> &GetCTETableNames() const { return cte_table_names_; }
 
  private:
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;

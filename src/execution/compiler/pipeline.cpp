@@ -521,7 +521,6 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   auto run_fn = GenerateRunPipelineFunction();
   auto teardown = GenerateTearDownPipelineFunction();
 
-
   // Register the main init, run, tear-down functions as steps, in that order only if this isn't nested
   // if this is nested, we don't want to register these things as steps as a nested pipeline's functions
   // will be called by other pipeline functions

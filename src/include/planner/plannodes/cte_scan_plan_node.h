@@ -100,10 +100,9 @@ class CteScanPlanNode : public SeqScanPlanNode {
       for (auto &col : table_schema_.GetColumns()) {
         col_oids.push_back(col.Oid());
       }
-      return std::unique_ptr<CteScanPlanNode>(
-          new CteScanPlanNode(std::move(cte_table_name_), std::move(children_), std::move(output_schema_), is_leader_,
-                              table_oid_, std::move(table_schema_), cte_type_, std::move(col_oids), scan_predicate_,
-                              plan_node_id_));
+      return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(
+          std::move(cte_table_name_), std::move(children_), std::move(output_schema_), is_leader_, table_oid_,
+          std::move(table_schema_), cte_type_, std::move(col_oids), scan_predicate_, plan_node_id_));
     }
 
    private:
@@ -224,9 +223,7 @@ class CteScanPlanNode : public SeqScanPlanNode {
    * node operator
    * @param schema output schema for plan node
    */
-  void SetTableSchema(catalog::Schema schema) {
-    table_schema_ = std::move(schema);
-  }
+  void SetTableSchema(catalog::Schema schema) { table_schema_ = std::move(schema); }
 
  private:
   std::string cte_table_name_;
