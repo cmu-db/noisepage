@@ -41,6 +41,20 @@ class PilotUtil {
       common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
 
   /**
+   * Perform inference through model server manager with collected pipeline metrics
+   * To recover the result for each pipeline, also maintain a multimap pipeline_to_ou_position
+   * @param ms_manager model server manager
+   * @param pipeline_data collected pipeline metrics after executing the forecasted queries
+   * @param pipeline_to_prediction list of tuples of query id, pipeline id and result of prediction
+   */
+  static void InferenceWithFeatures(
+      common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
+      const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
+      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
+          *pipeline_to_prediction);
+
+ private:
+  /**
    * Group pipeline features by ou for block inference
    * To recover the result for each pipeline, also maintain a multimap pipeline_to_ou_position
    * @param pipeline_to_ou_position list of tuples describing the pipelines associated with each ou sample
@@ -48,15 +62,10 @@ class PilotUtil {
    * @param ou_to_features map from ExecutionOperatingUnitType to a matrix
    */
   static void GroupFeaturesByOU(
-      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, uint64_t>> *pipeline_to_ou_position,
+      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
+                           std::vector<std::tuple<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
-
-  static void InferenceWithFeatures(
-      common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
-      const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
-      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
-          *pipeline_to_prediction);
 };
 
 }  // namespace noisepage::selfdriving
