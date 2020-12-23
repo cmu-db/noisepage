@@ -34,7 +34,7 @@ class PilotUtil {
  public:
   /**
    * Executing forecasted queries and collect pipeline features for cost estimation to be used in action selection
-   * @param db_main pointer to DBMain to access settings & metrics managers, transaction layer, and catalog layer
+   * @param pilot pointer to the pilot to access settings, metrics, and transaction managers, and catalog 
    * @param forecast pointer to object storing result of workload forecast
    */
   static const std::list<metrics::PipelineMetricRawData::PipelineData> &CollectPipelineFeatures(

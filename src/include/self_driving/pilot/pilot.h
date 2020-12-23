@@ -43,7 +43,11 @@ class Pilot {
  public:
   /**
    * Constructor for Pilot
-   * @param db_main Managed Pointer to db_main
+   * @param metrics_thread metrics thread for metrics manager
+   * @param model_server_manager model server manager
+   * @param settings_manager settings manager
+   * @param stats_storage stats_storage
+   * @param txn_manager transaction manager
    * @param workload_forecast_interval Interval used in the forecastor
    */
   Pilot(common::ManagedPointer<catalog::Catalog> catalog, common::ManagedPointer<metrics::MetricsThread> metrics_thread,
