@@ -106,10 +106,17 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * LIMIT
    * num_rows:
    * cardinality:
-   * This gets dropped right now... :(
    */
   LIMIT,
   CTE_SCAN,
+
+  /**
+   * num_rows: index size
+   * cardinality (training): batch number of indexes
+   * cardinality (inference): number of index inserts or deletes
+   */
+  INDEX_INSERT,
+  INDEX_DELETE,
 
   PARALLEL_MERGE_HASHJOIN,
   PARALLEL_MERGE_AGGBUILD,

@@ -25,7 +25,8 @@ enum class StatementType {
   ANALYZE = 15,
   VARIABLE_SET = 16,
   CREATE_FUNC = 17,
-  EXPLAIN = 18
+  EXPLAIN = 18,
+  VARIABLE_SHOW = 19,
 };
 
 enum class FKConstrMatchType { SIMPLE = 0, PARTIAL = 1, FULL = 2 };

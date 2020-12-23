@@ -19,10 +19,13 @@ def run_command(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=None,
-                printable=True):
+                printable=True,
+                silent_start=False):
     """
     General purpose wrapper for running a subprocess
     """
+    if not silent_start:
+        LOG.info(f'Running subproccess: {command}')
     p = subprocess.Popen(shlex.split(command),
                          stdout=stdout,
                          stderr=stderr,
@@ -39,7 +42,7 @@ def run_command(command,
     return rc, p.stdout, p.stderr
 
 
-def run_as_root(command, printable=True):
+def run_as_root(command, printable=True, silent_start=False):
     """
     General purpose wrapper for running a subprocess as root user
     """
@@ -49,7 +52,8 @@ def run_as_root(command, printable=True):
                        stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE,
                        cwd=None,
-                       printable=printable)
+                       printable=printable,
+                       silent_start=silent_start)
 
 
 def print_file(filename):
@@ -165,7 +169,7 @@ def run_check_pids(pid):
 
     cmd = "python3 {SCRIPT} {PID}".format(SCRIPT=constants.FILE_CHECK_PIDS,
                                           PID=pid)
-    rc, stdout, _ = run_as_root(cmd, printable=False)
+    rc, stdout, _ = run_as_root(cmd, printable=False, silent_start=True)
 
     if rc != constants.ErrorCode.SUCCESS:
         LOG.error(
@@ -200,7 +204,7 @@ def run_collect_mem_info(pid):
     cmd = "python3 {SCRIPT} {PID}".format(
         SCRIPT=constants.FILE_COLLECT_MEM_INFO, PID=pid)
 
-    rc, stdout, _ = run_as_root(cmd, printable=False)
+    rc, stdout, _ = run_as_root(cmd, printable=False, silent_start=True)
 
     if rc != constants.ErrorCode.SUCCESS:
         LOG.error(

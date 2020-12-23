@@ -155,6 +155,10 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       result = VariableSetTransform(parse_result, reinterpret_cast<VariableSetStmt *>(node));
       break;
     }
+    case T_VariableShowStmt: {
+      result = VariableShowTransform(parse_result, reinterpret_cast<VariableShowStmt *>(node));
+      break;
+    }
     case T_ViewStmt: {
       result = CreateViewTransform(parse_result, reinterpret_cast<ViewStmt *>(node));
       break;
@@ -2060,6 +2064,7 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   return result;
 }
 
+<<<<<<< HEAD
 // Postgres.SelectStmt.withClause -> noisepage.TableRef
 std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
   // Postgres parses 'SELECT;' to nullptr
@@ -2120,6 +2125,14 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
     }
   }
   return ctes;
+}
+
+// Postgres.VariableShowStmt -> noisepage.VariableShowStatement
+std::unique_ptr<VariableShowStatement> PostgresParser::VariableShowTransform(ParseResult *parse_result,
+                                                                             VariableShowStmt *root) {
+  std::string name = root->name_;
+  auto result = std::make_unique<VariableShowStatement>(name);
+  return result;
 }
 
 }  // namespace noisepage::parser

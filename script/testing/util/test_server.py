@@ -26,6 +26,7 @@ class TestServer:
         db_port = args.get("db_port", constants.DEFAULT_DB_PORT)
         build_type = args.get("build_type", "")
         server_args = args.get("server_args", {})
+        self.is_dry_run = args.get("dry_run",False)
 
         self.db_instance = NoisePageServer(db_host, db_port, build_type, server_args, db_output_file)
 
@@ -92,8 +93,7 @@ class TestServer:
             self.run_pre_suite()
 
             test_suite_ret_vals = self.run_test_suite(test_suite)
-            test_suite_result = self.determine_test_suite_result(
-                test_suite_ret_vals)
+            test_suite_result = self.determine_test_suite_result(test_suite_ret_vals)
         except:
             traceback.print_exc(file=sys.stdout)
             test_suite_result = constants.ErrorCode.ERROR
@@ -110,26 +110,27 @@ class TestServer:
                 # catch the exception from run_db(), stop_db(), and restart_db()
                 # in case the db is unable to start/stop/restart
                 if test_case.db_restart:
-                    self.db_instance.restart_db()
+                    self.db_instance.restart_db(self.is_dry_run)
                 elif not self.db_instance.db_process:
-                    self.db_instance.run_db()
+                    self.db_instance.run_db(self.is_dry_run)
             except:
                 traceback.print_exc(file=sys.stdout)
                 test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
                 # early termination in case of db is unable to start/stop/restart
                 break
 
-            try:
-                test_case_ret_val = self.run_test(test_case)
-                print_file(test_case.test_output_file)
-                test_suite_ret_vals[test_case] = test_case_ret_val
-            except:
-                print_file(test_case.test_output_file)
-                if not self.continue_on_error:
-                    raise
-                else:
-                    traceback.print_exc(file=sys.stdout)
-                    test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
+            if not self.is_dry_run:
+                try:
+                    test_case_ret_val = self.run_test(test_case)
+                    print_file(test_case.test_output_file)
+                    test_suite_ret_vals[test_case] = test_case_ret_val
+                except:
+                    print_file(test_case.test_output_file)
+                    if not self.continue_on_error:
+                        raise
+                    else:
+                        traceback.print_exc(file=sys.stdout)
+                        test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
         return test_suite_ret_vals
 
     def determine_test_suite_result(self, test_suite_ret_vals):

@@ -161,6 +161,9 @@ void PostgresPacketWriter::WriteCommandComplete(const QueryType query_type, cons
     case QueryType::QUERY_SET:
       WriteCommandComplete("SET");
       break;
+    case QueryType::QUERY_SHOW:
+      WriteCommandComplete("SHOW");
+      break;
     default:
       WriteCommandComplete("This QueryType needs a completion message!");
       break;
