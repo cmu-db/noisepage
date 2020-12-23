@@ -2064,7 +2064,6 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   return result;
 }
 
-<<<<<<< HEAD
 // Postgres.SelectStmt.withClause -> noisepage.TableRef
 std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
   // Postgres parses 'SELECT;' to nullptr
