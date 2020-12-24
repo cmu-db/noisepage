@@ -37,7 +37,9 @@ namespace noisepage::selfdriving {
  */
 class Pilot {
  protected:
+  /** @return Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH) */
   static constexpr const char *SAVE_PATH = "/../script/model/terrier_ms_trained/mini_model_test.pickle";
+  /** @return Name of the environment variable to be set as the absolute path of build directory */
   static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
 
  public:

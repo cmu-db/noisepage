@@ -133,6 +133,9 @@ class ExecutionOperatingUnitFeature {
         num_loops_(other.num_loops_),
         num_concurrent_(other.num_concurrent_) {}
 
+  /**
+   * Returns a vector of doubles consisting of 7 features starting with num_rows
+   */
   std::vector<double> GetAllAttributes() const {
     std::vector<double> all_attributes;
     all_attributes.push_back(num_rows_);
