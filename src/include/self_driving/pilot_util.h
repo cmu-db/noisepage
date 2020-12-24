@@ -36,7 +36,7 @@ class PilotUtil {
    * @param pipeline_to_prediction list of tuples of query id, pipeline id and result of prediction
    */
   static void InferenceWithFeatures(
-      common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
+      common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
           *pipeline_to_prediction);

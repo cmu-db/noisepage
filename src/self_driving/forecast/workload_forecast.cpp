@@ -73,11 +73,11 @@ void WorkloadForecast::LoadQueryText() {
   execution::query_id_t query_id;
   size_t pos, colnum;
   std::string type_string;
-  std::vector<type::TypeId> param_types;
   std::vector<std::string> val_vec(num_cols, "");
 
   // Read data, line by line
   while (std::getline(query_text_file, line)) {
+    std::vector<type::TypeId> param_types;
     colnum = 0;
     parse_succ = true;
     val_vec.assign(num_cols, "");

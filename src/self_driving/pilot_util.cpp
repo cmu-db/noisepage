@@ -103,7 +103,7 @@ void PilotUtil::InferenceWithFeatures(
       pipeline_to_ou_position;
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_data, &ou_to_features);
-  NOISEPAGE_ASSERT(ms_manager->ModelServerStarted(), "Model Server should have been started");
+  NOISEPAGE_ASSERT(model_server_manager->ModelServerStarted(), "Model Server should have been started");
   std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
