@@ -21,25 +21,14 @@ Pilot::Pilot(common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval)
     : catalog_(catalog),
       metrics_thread_(metrics_thread),
-      ms_manager_(model_server_manager),
+      model_server_manager_(model_server_manager),
       settings_manager_(settings_manager),
       stats_storage_(stats_storage),
       txn_manager_(txn_manager),
       workload_forecast_interval_(workload_forecast_interval) {
   forecast_ = nullptr;
-  while (!ms_manager_->ModelServerStarted()) {
+  while (!model_server_manager_->ModelServerStarted()) {
   }
-
-  modelserver::ModelServerFuture<std::string> future;
-  std::vector<std::string> models{"lr", "gbm"};
-  std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
-  ms_manager_->TrainWith(models, std::string(project_build_path) + "/../script/model/mini_data_dev4",
-                         project_build_path + Pilot::SAVE_PATH,
-                         common::ManagedPointer<modelserver::ModelServerFuture<std::string>>(&future));
-
-  auto wait_res = future.Wait();
-  // Do inference through model server, get cost
-  NOISEPAGE_ASSERT(wait_res.second, "Model Server Training failed");  // Training succeeds
 }
 
 void Pilot::PerformPlanning() {
@@ -76,7 +65,7 @@ void Pilot::ExecuteForecast() {
                                                           common::ManagedPointer(forecast_));
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
       pipeline_to_prediction;
-  PilotUtil::InferenceWithFeatures(ms_manager_, pipeline_data, &pipeline_to_prediction);
+  PilotUtil::InferenceWithFeatures(model_server_manager_, pipeline_data, &pipeline_to_prediction);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
   if (!oldval) {

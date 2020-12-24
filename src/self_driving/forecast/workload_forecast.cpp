@@ -34,10 +34,12 @@ void WorkloadForecast::CreateSegments() {
 
   uint64_t curr_time = query_timestamp_to_id_.begin()->first;
 
+  // We assume the traces are sorted by timestamp in increasing order
   for (auto &it : query_timestamp_to_id_) {
     if (it.first > curr_time + forecast_interval_) {
       forecast_segments_.emplace_back(std::move(curr_segment));
       curr_time = it.first;
+      curr_segment = std::unordered_map<execution::query_id_t, uint64_t>();
     }
     curr_segment[it.second] += 1;
   }
@@ -56,7 +58,7 @@ void WorkloadForecast::LoadQueryText() {
   // Parse qid and query text, assuming they are the first two columns, with query text wrapped in quotations marks
 
   // Create an input filestream
-  std::ifstream query_text_file(metrics::QueryTraceMetricRawData::FILES[0]);
+  std::ifstream query_text_file(std::string(metrics::QueryTraceMetricRawData::FILES[0]).c_str());
   // Make sure the file is open
   if (!query_text_file.is_open())
     throw PILOT_EXCEPTION(fmt::format("Could not open file {}", metrics::QueryTraceMetricRawData::FILES[0]),
@@ -132,7 +134,7 @@ void WorkloadForecast::LoadQueryTrace() {
   uint8_t num_cols = std::count(feat_cols.begin(), feat_cols.end(), ',') + 1;
 
   // Create an input filestream
-  std::ifstream trace_file(metrics::QueryTraceMetricRawData::FILES[1]);
+  std::ifstream trace_file(std::string(metrics::QueryTraceMetricRawData::FILES[1]).c_str());
   // Make sure the file is open
   if (!trace_file.is_open())
     throw PILOT_EXCEPTION(fmt::format("Could not open file {}", metrics::QueryTraceMetricRawData::FILES[1]),

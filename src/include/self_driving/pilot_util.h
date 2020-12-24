@@ -63,7 +63,7 @@ class PilotUtil {
    */
   static void GroupFeaturesByOU(
       std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
-                           std::vector<std::tuple<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
+                           std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
 };

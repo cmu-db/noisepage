@@ -97,13 +97,13 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
 }
 
 void PilotUtil::InferenceWithFeatures(
-    common::ManagedPointer<modelserver::ModelServerManager> ms_manager,
+    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
         *pipeline_to_prediction) {
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> ou_to_features;
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
-                       std::vector<std::tuple<ExecutionOperatingUnitType, uint64_t>>>>
+                       std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>>
       pipeline_to_ou_position;
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_data, &ou_to_features);
@@ -112,7 +112,7 @@ void PilotUtil::InferenceWithFeatures(
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
     auto res =
-        ms_manager->DoInference(selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
+        model_server_manager->DoInference(selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
                                 project_build_path + Pilot::SAVE_PATH, ou_map_it.second);
     if (!res.second) {
       throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
@@ -125,19 +125,18 @@ void PilotUtil::InferenceWithFeatures(
 
 void PilotUtil::GroupFeaturesByOU(
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
-                         std::vector<std::tuple<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
+                         std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features) {
-  std::vector<std::tuple<ExecutionOperatingUnitType, uint64_t>> ou_positions;
   for (auto &data_it : pipeline_data) {
-    // printf("qid: %u; ppl_id: %u", static_cast<uint>(data_it.query_id_), static_cast<uint32_t>(data_it.pipeline_id_));
+    std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>> ou_positions;
     for (auto &ou_it : data_it.features_) {
       if (ou_to_features->find(ou_it.GetExecutionOperatingUnitType()) == ou_to_features->end()) {
-        ou_positions.push_back(std::make_tuple(ou_it.GetExecutionOperatingUnitType(), 0));
+        ou_positions.emplace_back(ou_it.GetExecutionOperatingUnitType(), 0);
         ou_to_features->emplace(ou_it.GetExecutionOperatingUnitType(), std::vector<std::vector<double>>());
       } else {
-        ou_positions.push_back(std::make_tuple(ou_it.GetExecutionOperatingUnitType(),
-                                               ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).size()));
+        ou_positions.emplace_back(ou_it.GetExecutionOperatingUnitType(),
+                                  ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).size());
       }
       auto predictors = ou_it.GetAllAttributes();
       predictors.insert(predictors.begin(), data_it.execution_mode_);
