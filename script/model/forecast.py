@@ -16,6 +16,8 @@ from util.common import run_command
 from util.db_server import NoisePageServer
 from xml.etree import ElementTree
 from typing import Dict, List, Optional, Tuple
+from functools import cached_property
+from abc import ABC, abstractmethod
 import torch.nn as nn
 import torch
 from sklearn.preprocessing import MinMaxScaler
@@ -58,46 +60,86 @@ DEFAULT_OLTP_SERVER_ARGS = {
 # Default query_trace file name
 DEFAULT_QUERY_TRACE_FILE = "query_trace.csv"
 
-# Interval duration for aggregation in MS
-INTERVAL_MS = 500000
+# Interval duration for aggregation in microseconds
+INTERVAL_MICRO_SEC = 500000
 
-# Number of MS per second
-MS_PER_SEC = 1000000
+# Number of Microseconds per second
+MICRO_SEC_PER_SEC = 1000000
 
 # First 35 seconds are for loading
-LOAD_PHASE_NUM_DATA = int(MS_PER_SEC / INTERVAL_MS * 35)
+LOAD_PHASE_NUM_DATA = int(MICRO_SEC_PER_SEC / INTERVAL_MICRO_SEC * 35)
 
 # Number of data points in a sequence
-SEQ_LEN = 10 * MS_PER_SEC // INTERVAL_MS
+SEQ_LEN = 10 * MICRO_SEC_PER_SEC // INTERVAL_MICRO_SEC
 
 # Number of data points for the horizon
-HORIZON_LEN = 30 * MS_PER_SEC // INTERVAL_MS
+HORIZON_LEN = 30 * MICRO_SEC_PER_SEC // INTERVAL_MICRO_SEC
 
 # Number of data points for testing set
 EVAL_DATA_SIZE = 2 * SEQ_LEN + HORIZON_LEN
 
+argp = argparse.ArgumentParser(description="Query Load Forecaster")
 
-def plot_ts(series: List[Tuple], interval_sec: float) -> None:
-    """
-    Utility function for plotting
-    :param series: List of tuple of (Label:str, X:List[int], Data:List[Numerical]):
-        e.g. [("Train", x_labels, data)]
-    :param interval_sec: Interval seconds (used only in descriptive manner)
-    :return:
-    """
-    plt.title(f'Time series Query Count per {interval_sec} seconds')
-    plt.ylabel(f'Query Count / {interval_sec}')
-    plt.xlabel('Time')
-    plt.grid(True)
-    plt.autoscale(axis='x', tight=True)
+# Generation stage related options
+argp.add_argument(
+    "--gen_data",
+    default=False,
+    action="store_true",
+    help="If specified, OLTP benchmark would be downloaded and built to generate the query trace data")
+argp.add_argument(
+    "--tpcc_weight",
+    type=str,
+    default=DEFAULT_TPCC_WEIGHTS,
+    help="Workload weights for the TPCC")
+argp.add_argument(
+    "--tpcc_rates",
+    nargs="+",
+    default=DEFAULT_WORKLOAD_PATTERN,
+    help="Rate array for the TPCC workload")
+argp.add_argument(
+    "--pattern_iter",
+    type=int,
+    default=DEFAULT_ITER_NUM,
+    help="Number of iterations the DEFAULT_WORKLOAD_PATTERN should be run")
+argp.add_argument("--trace_file", default=DEFAULT_QUERY_TRACE_FILE,
+                  help="Path to the query trace file", metavar="FILE")
 
-    for serie in series:
-        label, x, data = serie
-        plt.plot(x, data, label=label)
-    plt.legend()
+# Model specific
+argp.add_argument("--seq_len", type=int, default=SEQ_LEN,
+                  help="Length of one sequence in number of data points")
+argp.add_argument(
+    "--horizon_len",
+    type=int,
+    default=HORIZON_LEN,
+    help="Length of the horizon in number of data points, "
+         "aka, how many further in the a sequence is used for prediction"
+)
+
+# Training stage related options
+argp.add_argument("--model_save_path", metavar="FILE",
+                  help="Where the model trained will be stored")
+argp.add_argument(
+    "--eval_size",
+    type=int,
+    default=EVAL_DATA_SIZE,
+    help="Length of the evaluation data set length in number of data points")
+argp.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+argp.add_argument("--epochs", type=int, default=10,
+                  help="Number of epochs for training")
+
+# Testing stage related options
+argp.add_argument(
+    "--model_load_path",
+    default="model.pickle",
+    metavar="FILE",
+    help="Where the model should be loaded from")
+argp.add_argument(
+    "--test_file",
+    help="Path to the test query trace file",
+    metavar="FILE")
 
 
-def gen_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
+def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
     """
      Modify a OLTP config file to follow a certain pattern in its duration.
 
@@ -162,7 +204,7 @@ def gen_oltp_trace(
     test_case.run_pre_test()
 
     rates = tpcc_rates * pattern_iter
-    gen_forecast_data(test_case.xml_config, rates)
+    config_forecast_data(test_case.xml_config, rates)
 
     # Run the actual test
     ret_val, _, stderr = run_command(test_case.test_command,
@@ -184,35 +226,94 @@ def gen_oltp_trace(
     return True
 
 
+class QueryCluster:
+    """
+    Represents query traces from a single cluster. For queries in the same cluster, they will be aggregated
+    into a single time-series to be used as training input for training. The time-series predicted by the model will
+    then be converted to different query traces for a query cluster
+    """
+
+    def __init__(self, traces: Dict):
+        """
+        NOTE(ricky): I believe this per-cluster query representation will change once we have clustering component added.
+        For now, it simply takes a map of time-series data for each query id.
+
+        :param traces: Map of (id -> timeseries) for each query id
+        """
+        self.traces = traces
+        self._aggregate()
+
+    def _aggregate(self) -> None:
+        """
+        Aggregate time-series of multiple queries in the same cluster into one time-series
+        It stores the aggregated times-eries at self.timeseries, and the ratio map of queries in the
+        same cluster at self.ratio_map
+        """
+        cnt_map = {}
+        total_cnt = 0
+        all_series = []
+        for qid, timeseries in self.traces.items():
+            cnt = sum(timeseries)
+            all_series.append(timeseries)
+            total_cnt += cnt
+
+            cnt_map[qid] = cnt
+
+        # Sum all timeseries element-wise
+        self.timeseries = np.array([sum(x) for x in zip(*all_series)])
+
+        # Compute distribution of each query id in the cluster
+        self.ratio_map = {}
+        for qid, cnt in cnt_map.items():
+            self.ratio_map[qid] = cnt / total_cnt
+
+
+    def get_timeseries(self) -> np.ndarray:
+        """
+        Get the aggregate time-series for this cluster
+        :return: Time-series for the cluster
+        """
+        return self.timeseries
+
+    def segregate(self, timeseries: List[float]) -> Dict:
+        """
+        From an aggregated time-series, segregate it into multiple time-series, one for each query in the cluster.
+        :param timeseries: Aggregated time-series
+        :return: Time-series for each query id, dict{query id: time-series}
+        """
+        result = {}
+        for qid, ratio in self.ratio_map.items():
+            result[qid] = list([x * ratio for x in timeseries])
+        return result
+
+
 class DataLoader:
+    # Hardcoded query_id column index in the query_trace file
+    QID_IDX = 0
     # Hardcoded timestamp column index in the query_trace file
     TS_IDX = 1
 
-    def __init__(
-            self,
-            query_trace_file: str = DEFAULT_QUERY_TRACE_FILE,
-            test: bool = False,
-            eval_size: int = EVAL_DATA_SIZE,
-            seq_len: int = SEQ_LEN,
-            horizon_len: int = HORIZON_LEN) -> None:
+    def __init__(self,
+                 interval_us: int ,
+                 query_trace_file: str,
+                 ) -> None:
         """
-        :param query_trace_file: Where to process the query trace
-        :param test: If the Loader is for testing
-        :param eval_size:  Number of data points used for evaluation(testing)
-        :param seq_len: Length of a sequence
-        :param horizon_len: Horizon length
+        A Dataloader represents a query trace file. The format of the CSV is hardcoded as class attributes, e.g QID_IDX
+        The loader transforms the timestamps in the original file into time-series for each query id.
+        :param interval_us: Interval for the time-series
+        :param query_trace_file: Query trace CSV file
         """
         self.query_trace_file = query_trace_file
+        self.interval_us = interval_us
 
-        self.seq_len = seq_len
-        self.horizon_len = horizon_len
-        self.scaler = MinMaxScaler(feature_range=(-1, 1))
-        self.test_mode = test
-        self.eval_data_size = eval_size
+        data = self._load_data()
+        self._to_timeseries(data)
 
-        self._load_data()
-
-    def _load_data(self) -> None:
+    def _load_data(self) -> np.ndarray:
+        """
+        Load data from csv
+        :return: Loaded 2D numpy array of [query_id, timestamp]
+        """
         LOG.info(f"Loading data from {self.query_trace_file}")
         # Load data from the files
         with open(self.query_trace_file, newline='') as csvfile:
@@ -220,47 +321,105 @@ class DataLoader:
             data = np.array(
                 [[int(r['query_id']), int(r[' timestamp'])] for r in reader])
 
-            data = self._aggregate_data(data, INTERVAL_MS)
-            self.train_raw_data, self.test_raw_data = self._split_data(data)
-            LOG.info(
-                f"Loaded data successfully: num_test={len(self.test_raw_data)}, num_train={len(self.train_raw_data)}, "
-                f"seq_len={self.seq_len}, horizon={self.horizon_len}")
+            if len(data) == 0:
+                raise ValueError("Empty trace file")
 
-    def _normalize_data(self, data: np.ndarray) -> np.ndarray:
-        norm_data = self.scaler.fit_transform(data.reshape(-1, 1))
-        return norm_data
+            return data
 
-    def _aggregate_data(self, data: np.ndarray,
-                        interval_ms: int) -> Optional[np.ndarray]:
+    def _to_timeseries(self, data: np.ndarray) -> None:
         """
-        Aggregate multiple time-series data points into one bucket to generate a new time-series
-        data set.
-        It assumes the original time-series data has a Timestamp value, and the generated time-series
-        will be the number of data points fall into an interval for each interval in the original dataset
-
-        :param data: Time-series data with TIMESTAMP column
-        :param interval_ms: Interval duratoin in MS
-        :return:
+        Convert the 2D array with query id and timestamps into a map of time-series for each query id
+        :param data: Laoded 2D numpy array of [query_id, timestamp]
+        :return: None
         """
+        # Query trace file is sorted by timestamps
         start_t = data[0][self.TS_IDX]
         end_t = data[-1][self.TS_IDX]
 
         if end_t - start_t <= 1:
-            return None
+            raise ValueError("Empty data set with start timestamp >= end timestamp.")
 
         # Number of data points in the new time-series
-        num_buckets = (end_t - start_t - 1) // interval_ms + 1
+        num_buckets = (end_t - start_t - 1) // self.interval_us + 1
 
-        new_data = np.zeros(num_buckets)
-
+        # Iterate through the timestamps
+        self.ts_data = {}
         for i in range(len(data)):
             t = data[i][self.TS_IDX]
-            bi = (t - start_t) // interval_ms
+            qid = data[i][self.QID_IDX]
 
-            new_data[bi] += 1
+            # Initialize a new query's time-series
+            if self.ts_data.get(qid) is None:
+                self.ts_data[qid] = np.zeros(num_buckets)
 
-        new_data = new_data[LOAD_PHASE_NUM_DATA:]
-        return new_data
+            # Bucket index
+            bi = (t - start_t) // self.interval_us
+            self.ts_data[qid][bi] += 1
+
+    def get_ts_data(self) -> Dict:
+        return self.ts_data
+
+    def get_transformers(self) -> Tuple[MinMaxScaler, MinMaxScaler]:
+        """
+        Get the transformers for the dataset. These should be used by the ForecastModel to normalize the dataset.
+        :return: (x transformer, y transformer)
+        """
+        all_ts = []
+        for _, ts in self.ts_data.items():
+            all_ts = np.append(all_ts, ts)
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        all_ts = all_ts.reshape(-1, 1)
+        scaler.fit(all_ts)
+
+        # Time-series data shares the same transformer
+        return scaler, scaler
+
+
+class ForecastModel(ABC):
+    """
+    Interface for all the forecasting models
+    """
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def fit(self, train_seqs: List[Tuple[np.ndarray, np.ndarray]]) -> None:
+        """
+        Fit the model with sequences
+        :param train_seqs: List of training sequences and the expected output label in a certain horizon
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def test(self, test_seq: np.ndarray) -> float:
+        """
+        Test a fitted model with a sequence.
+        :param test_seq:  1D Test sequence
+        :return: Predicted value at certain horizon
+        """
+        pass
+
+
+class ForecastTrainer:
+    """
+    A wrapper around various ForecastModels, that prepares training and evaluation data.
+    """
+    def __init__(self, data: np.ndarray, test_mode: bool = False, eval_size: int = EVAL_DATA_SIZE, seq_len : int = SEQ_LEN, horizon_len: int = HORIZON_LEN) -> None:
+
+        """
+        :param data:  1D time-series data for a query cluster
+        :param test_mode: True If the Loader is for testing
+        :param eval_size: Number of data points used for evaluation(testing)
+        :param seq_len: Length of a sequence
+        :param horizon_len: Horizon length
+        """
+        self.seq_len = seq_len
+        self.horizon_len = horizon_len
+        self.test_mode = test_mode
+        self.eval_data_size = eval_size
+
+        self.train_raw_data, self.test_raw_data = self._split_data(data)
 
     def _split_data(self, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -282,7 +441,8 @@ class DataLoader:
 
         return train_raw_data, test_raw_data
 
-    def create_seqs(self) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+    @cached_property
+    def train_seqs(self) -> List[Tuple[np.ndarray, np.ndarray]]:
         """
         Create training sequences.  Each training sample consists of:
          - A list of data points as input
@@ -291,9 +451,8 @@ class DataLoader:
         """
         seq_len = self.seq_len
         horizon = self.horizon_len
-        train_norm_data = self._normalize_data(self.train_raw_data)
+        input_data = self.train_raw_data
 
-        input_data = torch.FloatTensor(train_norm_data).view(-1)
         seqs = []
         for i in range(len(input_data) - seq_len - horizon):
             seq = input_data[i:i + seq_len]
@@ -303,38 +462,65 @@ class DataLoader:
             label = input_data[label_i: label_i + 1]
 
             seqs.append((seq, label))
+        return seqs
+
+    @cached_property
+    def test_seqs(self) -> List[np.ndarray]:
+        """
+        Generate a list of test sequence for evaluation
+        :return:  Test sequences for evaluation
+        """
+        input_data = self.test_raw_data
+
+        seqs = []
+        for i in range(len(input_data)-self.seq_len):
+            seq = input_data[i:i + self.seq_len]
+            if self.x_transformer:
+                seq = self.x_transformer.transform(seq)
+            seqs.append(seq)
 
         return seqs
 
-    def get_test_input(self) -> List[float]:
+    def train(self, models: List[ForecastModel]) -> None:
         """
-        Get the test input (normalized)
-        :return: test time-series data
+        :param models:  A list of ForecastModels to fit
+        :return:
         """
-        test_input_norm = self._normalize_data(self.test_raw_data)
-        test_input_list = test_input_norm.tolist()
-        return test_input_list
+        train_seqs = self.train_seqs
+        for model in models:
+            model.fit(train_seqs)
 
-    def stat_util(self) -> None:
-        trace_start_ms = self.data[0][1]
-        trace_end_ms = self.data[-1][1]
-        trace_nsample = len(self.data)
+    def eval(self, model: ForecastModel) -> np.ndarray:
+        """
+        Evaluate a model on the test dataset
+        :param model: Model to evaluate
+        :return: Test results
+        """
+        test_data = self.test_seqs
 
-        print(
-            f"{trace_nsample} samples from {trace_start_ms} to {trace_end_ms}\n"
-            f"{(trace_end_ms - trace_start_ms) / 1000000}seconds")
+        results = []
+        for seq in test_data:
+            pred = model.test(seq)
+            np.append(results, pred)
+
+        return results
 
 
-class LSTM(nn.Module):
+class LSTM(nn.Module, ForecastModel):
     """
-    A simple LSTM that serves as a placeholder for the training model
+    A simple LSTM model
     """
 
-    def __init__(self, input_size=1, hidden_layer_size=100, output_size=1):
+    def __init__(self, input_size:int =1, hidden_layer_size:int =100, output_size:int =1, lr:float = 0.001, epochs:int=10, normalize:bool=True,
+                 x_transformer=None, y_transformer=None):
         """
         :param input_size: One data point that is fed into the LSTM each time
         :param hidden_layer_size:
         :param output_size: One output data point
+        :param lr: learning rate while fitting
+        :param epochs: number of epochs for fitting
+        :param x_transformer: To transform the seq input
+        :param y_transformer: To transform the label
         """
         super().__init__()
         self.hidden_layer_size = hidden_layer_size
@@ -345,6 +531,12 @@ class LSTM(nn.Module):
 
         self.hidden_cell = (torch.zeros(1, 1, self.hidden_layer_size),
                             torch.zeros(1, 1, self.hidden_layer_size))
+
+        self.epochs = epochs
+        self.lr = lr
+
+        self.x_transformer = x_transformer
+        self.y_transformer = y_transformer
 
     def forward(self, input_seq: torch.FloatTensor) -> float:
         """
@@ -357,8 +549,7 @@ class LSTM(nn.Module):
         predictions = self.linear(lstm_out.view(len(input_seq), -1))
         return predictions[-1]
 
-    def do_train(self, data_loader: DataLoader,
-                 lr: float = 0.0001, epochs: int = 10) -> None:
+    def fit(self, train_seqs: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         """
         Perform training on the time series trace data.
 
@@ -366,11 +557,12 @@ class LSTM(nn.Module):
         :param lr: learing rate
         :param epochs: number of epochs
         """
-        train_seqs = data_loader.create_seqs()
+        epochs = self.epochs
+        lr = self.lr
 
         # Training specifics
         loss_function = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         LOG.info(f"Training with {len(train_seqs)} samples, {epochs} epochs:")
         for i in range(epochs):
             for seq, labels in train_seqs:
@@ -378,6 +570,13 @@ class LSTM(nn.Module):
 
                 self.hidden_cell = (torch.zeros(1, 1, self.hidden_layer_size),
                                     torch.zeros(1, 1, self.hidden_layer_size))
+                if self.x_transformer:
+                    # Reshape to 2D ndarray required by MinMaxScaler API
+                    seq = self.x_transformer.transform(seq.reshape(-1, 1))
+                    labels = self.y_transformer.transform(labels.reshape(1, -1))
+
+                seq = torch.FloatTensor(seq).view(-1)
+                labels = torch.FloatTensor(labels).view(-1)
 
                 y_pred = self(seq)
 
@@ -386,94 +585,33 @@ class LSTM(nn.Module):
                 optimizer.step()
 
             if i % 25 == 0:
-                LOG.info(f'epoch: {i+1:3} loss: {single_loss.item():10.8f}')
+                LOG.info(f'[LSTM FIT]epoch: {i+1:3} loss: {single_loss.item():10.8f}')
 
-        LOG.info(f'epoch: {epochs:3} loss: {single_loss.item():10.10f}')
+        LOG.info(f'[LSTM FIT]epoch: {epochs:3} loss: {single_loss.item():10.10f}')
 
-    def do_test(self, data_loader: DataLoader) -> List[float]:
+    def test(self, seq: np.ndarray) -> float:
         """
         Perform inference on a dataset. Returns a list of prediction results
         :param data_loader: DataLoader for the test input
         :return: Prediction results
         """
-        self.eval()
-        test_input_list = data_loader.get_test_input()
-        test_outputs = []
-        for i in range(len(test_input_list)):
-            # To tensor
-            seq = torch.FloatTensor(test_input_list[i:i + data_loader.seq_len])
-            with torch.no_grad():
-                model.hidden = (torch.zeros(1, 1, model.hidden_layer_size),
-                                torch.zeros(1, 1, model.hidden_layer_size))
-                test_outputs.append(model(seq).item())
+        # To tensor
+        if self.x_transformer:
+            seq = self.x_transformer.transform(seq.reshape(-1, 1))
+        seq = torch.FloatTensor(seq).view(-1)
 
-        # Inverse Normalize the data
-        test_outputs = data_loader.scaler.inverse_transform(
-            np.array(test_outputs).reshape(-1, 1))
-        return test_outputs
+        with torch.no_grad():
+            model.hidden = (torch.zeros(1, 1, model.hidden_layer_size),
+                            torch.zeros(1, 1, model.hidden_layer_size))
+            pred = model(seq)
+
+        if self.y_transformer:
+            pred = self.y_transformer.inverse_transform(pred.reshape(1, -1))
+
+        return pred.item()
 
 
 if __name__ == "__main__":
-    argp = argparse.ArgumentParser(description="Query Load Forecaster")
-
-    # Generation stage related options
-    argp.add_argument(
-        "--gen_data",
-        default=False,
-        action="store_true",
-        help="If specified, OLTP benchmark would be downloaded and built to generate the query trace data")
-    argp.add_argument(
-        "--tpcc_weight",
-        type=str,
-        default=DEFAULT_TPCC_WEIGHTS,
-        help="Workload weights for the TPCC")
-    argp.add_argument(
-        "--tpcc_rates",
-        nargs="+",
-        default=DEFAULT_WORKLOAD_PATTERN,
-        help="Rate array for the TPCC workload")
-    argp.add_argument(
-        "--pattern_iter",
-        type=int,
-        default=DEFAULT_ITER_NUM,
-        help="Number of iterations the DEFAULT_WORKLOAD_PATTERN should be run")
-    argp.add_argument("--trace_file", default=DEFAULT_QUERY_TRACE_FILE,
-                      help="Path to the query trace file", metavar="FILE")
-
-    # Model specific
-    argp.add_argument("--seq_len", type=int, default=SEQ_LEN,
-                      help="Length of one sequence in number of data points")
-    argp.add_argument(
-        "--horizon_len",
-        type=int,
-        default=HORIZON_LEN,
-        help="Length of the horizon in number of data points, "
-        "aka, how many further in the a sequence is used for prediction"
-    )
-
-    # Training stage related options
-    argp.add_argument("--model_save_path", metavar="FILE",
-                      help="Where the model trained will be stored")
-    argp.add_argument(
-        "--eval_size",
-        type=int,
-        default=EVAL_DATA_SIZE,
-        help="Length of the evaluation data set length in number of data points")
-    argp.add_argument("--lr", type=float, default=0.001, help="Learning rate")
-    argp.add_argument("--epochs", type=int, default=10,
-                      help="Number of epochs for training")
-
-    # Testing stage related options
-    argp.add_argument(
-        "--model_load_path",
-        default="model.pickle",
-        metavar="FILE",
-        help="Where the model should be loaded from")
-    argp.add_argument(
-        "--test_file",
-        help="Path to the test query trace file",
-        metavar="FILE")
-
     args = argp.parse_args()
 
     if args.test_file is None:
@@ -484,37 +622,49 @@ if __name__ == "__main__":
                 tpcc_weight=args.tpcc_weight,
                 tpcc_rates=args.tpcc_rates,
                 pattern_iter=args.pattern_iter)
-            data_loader = DataLoader(
-                DEFAULT_QUERY_TRACE_FILE,
-                eval_size=args.eval_size,
-                seq_len=args.seq_len,
-                horizon_len=args.horizon_len)
+
+            trace_file = DEFAULT_QUERY_TRACE_FILE
         else:
-            data_loader = DataLoader(
-                args.trace_file,
-                eval_size=args.eval_size,
-                seq_len=args.seq_len,
-                horizon_len=args.horizon_len)
+            trace_file = args.trace_file
+
+        data_loader = DataLoader(query_trace_file=trace_file, interval_us=INTERVAL_MICRO_SEC)
+        x_transformer, y_transformer = data_loader.get_transformers()
+
+        # FIXME: Assuming all the queries in the current trace file are from the same cluster for now
+        cluster_trace = QueryCluster(data_loader.get_ts_data())
+
+        # Aggregated time-series from the cluster
+        train_timeseries = cluster_trace.get_timeseries()
 
         # Perform training on the trace file
-        model = LSTM()
-        model.do_train(data_loader, lr=args.lr, epochs=args.epochs)
+        lstm_model = LSTM(lr=args.lr, epochs=args.epochs, x_transformer=x_transformer, y_transformer=y_transformer)
+        trainer = ForecastTrainer(train_timeseries, seq_len=args.seq_len, eval_size=args.eval_size, horizon_len=args.horizon_len)
+        trainer.train([lstm_model])
 
+        # Save the model
         if args.model_save_path:
-            torch.save(model.state_dict(), args.model_save_path)
+            with open(args.model_save_path, "wb") as f:
+                pickle.dump(lstm_model, f)
     else:
         # Do inference on a trained model
-        model = LSTM()
-        model.load_state_dict(torch.load(args.model_load_path))
+        data_loader = DataLoader(query_trace_file=args.test_file, interval_us=INTERVAL_MICRO_SEC)
 
-        data_loader = DataLoader(
-            args.test_file,
-            test=True,
-            eval_size=args.eval_size,
-            seq_len=args.seq_len,
-            horizon_len=args.horizon_len)
-        result = model.do_test(data_loader)
+        with open(args.model_load_path, "rb") as f:
+            model = pickle.load(f)
+        x_transformer, y_transformer = data_loader.get_transformers()
+        model.x_transformer = x_transformer
+        model.y_transformer = y_transformer
 
-        print("Test Result (first 10):")
-        print(result[:10])
-        print("...")
+        # FIXME: Assuming all the queries in the current trace file are from the same cluster for now
+        timeseries = data_loader.get_ts_data()
+        cluster_trace = QueryCluster(timeseries)
+
+        # Aggregated time-series from the cluster
+        test_timeseries = cluster_trace.get_timeseries()
+
+        pred = model.test(test_timeseries[:args.seq_len])
+
+        query_pred = cluster_trace.segregate([pred])
+        for qid, ts in query_pred.items():
+            LOG.info(f"[Query: {qid} @idx={args.seq_len+args.horizon_len}] "
+                     f"actual={timeseries[qid][args.seq_len+args.horizon_len]},pred={ts[0]:.1f}")
