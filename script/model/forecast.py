@@ -2,63 +2,38 @@
 """
 TODO(ricky):
 The modeling scripts should be under a project, with __init__
-What should be the best dependency between the modeling scripts and testing package?
+The testing package doesn't use relative import, neither does it use full absolute importing.
+So it is hard to import the dependency without this path trick. It would require changes to almost
+all python files under model if we want to create the dependency properly.
+Option A: set PYTHONPATH to noisepage/script, and all Python files under it use absolute imports
+Option B: make packages use relative imports
 """
 import sys
 from pathlib import Path
 sys.path.insert(0, str((Path.cwd() / '..' / 'testing').absolute()))
 
-from oltpbench.test_case_oltp import TestCaseOLTPBench
-from oltpbench.run_oltpbench import TestOLTPBench
-from oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
-from util.constants import LOG, ErrorCode
-from util.common import run_command
-from util.db_server import NoisePageServer
-from xml.etree import ElementTree
-from typing import Dict, List, Optional, Tuple
-from functools import cached_property
-from abc import ABC, abstractmethod
-import torch.nn as nn
-import torch
-from sklearn.preprocessing import MinMaxScaler
-import numpy as np
-import matplotlib.pyplot as plt
-import pickle
-import logging
-import csv
 import argparse
+import csv
+import logging
+import pickle
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+import torch
+import torch.nn as nn
+from abc import ABC, abstractmethod
+from functools import cached_property
+from typing import Dict, List, Optional, Tuple
+from util.constants import LOG
+from self_driving.forecast import gen_oltp_trace
+from self_driving.constants import (
+    DEFAULT_TPCC_TIME_SEC,
+    DEFAULT_TPCC_WEIGHTS,
+    DEFAULT_QUERY_TRACE_FILE,
+    DEFAULT_OLTP_SERVER_ARGS,
+    DEFAULT_OLTP_TEST_CASE,
+    DEFAULT_WORKLOAD_PATTERN,
+    DEFAULT_ITER_NUM)
 
-
-# Default pattern: High -> Low  ...
-DEFAULT_TPCC_RATE = 10000
-DEFAULT_WORKLOAD_PATTERN = [DEFAULT_TPCC_RATE, DEFAULT_TPCC_RATE // 10]
-
-# Default time, runs 30 second for a work phase
-DEFAULT_TPCC_TIME_SEC = 30
-
-# Run the workload pattern for 30 iterations
-DEFAULT_ITER_NUM = 1
-
-# Load the workload pattern - based on the tpcc.json in
-# testing/oltpbench/config
-DEFAULT_TPCC_WEIGHTS = "45,43,4,4,4"
-DEFAULT_OLTP_TEST_CASE = {
-    "benchmark": "tpcc",
-    "query_mode": "extended",
-    "terminals": 4,
-    "scale_factor": 4,
-    "weights": DEFAULT_TPCC_WEIGHTS
-}
-
-# Enable query trace collection, it will produce a query_trace.csv at CWD
-DEFAULT_OLTP_SERVER_ARGS = {
-    "server_args": {
-        'query_trace_metrics_enable': None
-    }
-}
-
-# Default query_trace file name
-DEFAULT_QUERY_TRACE_FILE = "query_trace.csv"
 
 # Interval duration for aggregation in microseconds
 INTERVAL_MICRO_SEC = 500000
@@ -139,93 +114,6 @@ argp.add_argument(
     metavar="FILE")
 
 
-def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
-    """
-     Modify a OLTP config file to follow a certain pattern in its duration.
-
-    :param xml_config_file:
-    :param rate_pattern:
-    :return:
-    """
-    xml = ElementTree.parse(xml_config_file)
-    root = xml.getroot()
-    works = root.find("works")
-    works.clear()
-
-    # Set the work pattern
-    for rate in rate_pattern:
-        work = ElementTree.Element("work")
-
-        # NOTE: rate has to be before weights... This is what the OLTP expects
-        elems = [
-            ("time", str(DEFAULT_TPCC_TIME_SEC)),
-            ("rate", str(rate)),
-            ("weights", DEFAULT_TPCC_WEIGHTS)
-        ]
-
-        for name, text in elems:
-            elem = ElementTree.Element(name)
-            elem.text = text
-            work.append(elem)
-
-        works.append(work)
-
-    # Write back result
-    xml.write(xml_config_file)
-
-
-def gen_oltp_trace(
-        tpcc_weight: str, tpcc_rates: List[int], pattern_iter: int) -> bool:
-    """
-    Generates the trace by running OLTP TPCC benchmark on the built database
-    :param tpcc_weight:  Weight for the TPCC workload
-    :param tpcc_rates: Arrival rates for each phase in a pattern
-    :param pattern_iter:  Number of patterns
-    :return: True when data generation succeeds
-    """
-    # Remove the old query_trace/query_text.csv
-    Path(DEFAULT_QUERY_TRACE_FILE).unlink(missing_ok=True)
-
-    # Server is running when this returns
-    oltp_server = TestOLTPBench(DEFAULT_OLTP_SERVER_ARGS)
-    db_server = oltp_server.db_instance
-    db_server.run_db()
-
-    # Download the OLTP repo and build it
-    oltp_server.run_pre_suite()
-
-    # Load the workload pattern - based on the tpcc.json in
-    # testing/oltpbench/config
-    test_case_config = DEFAULT_OLTP_TEST_CASE
-    test_case_config["weights"] = tpcc_weight
-    test_case = TestCaseOLTPBench(test_case_config)
-
-    # Prep the test case build the result dir
-    test_case.run_pre_test()
-
-    rates = tpcc_rates * pattern_iter
-    config_forecast_data(test_case.xml_config, rates)
-
-    # Run the actual test
-    ret_val, _, stderr = run_command(test_case.test_command,
-                                     test_case.test_error_msg,
-                                     cwd=test_case.test_command_cwd)
-    if ret_val != ErrorCode.SUCCESS:
-        LOG.error(stderr)
-        return False
-
-    # Clean up, disconnect the DB
-    db_server.stop_db()
-    db_server.delete_wal()
-
-    if not Path(DEFAULT_QUERY_TRACE_FILE).exists():
-        LOG.error(
-            f"Missing {DEFAULT_QUERY_TRACE_FILE} at CWD after running OLTP TPCC")
-        return False
-
-    return True
-
-
 class QueryCluster:
     """
     Represents query traces from a single cluster. For queries in the same cluster, they will be aggregated
@@ -235,8 +123,8 @@ class QueryCluster:
 
     def __init__(self, traces: Dict):
         """
-        NOTE(ricky): I believe this per-cluster query representation will change once we have clustering component added.
-        For now, it simply takes a map of time-series data for each query id.
+        NOTE(ricky): I believe this per-cluster query representation will change once we have clustering component
+        added. For now, it simply takes a map of time-series data for each query id.
 
         :param traces: Map of (id -> timeseries) for each query id
         """
@@ -267,7 +155,6 @@ class QueryCluster:
         for qid, cnt in cnt_map.items():
             self.ratio_map[qid] = cnt / total_cnt
 
-
     def get_timeseries(self) -> np.ndarray:
         """
         Get the aggregate time-series for this cluster
@@ -294,7 +181,7 @@ class DataLoader:
     TS_IDX = 1
 
     def __init__(self,
-                 interval_us: int ,
+                 interval_us: int,
                  query_trace_file: str,
                  ) -> None:
         """
@@ -337,7 +224,8 @@ class DataLoader:
         end_t = data[-1][self.TS_IDX]
 
         if end_t - start_t <= 1:
-            raise ValueError("Empty data set with start timestamp >= end timestamp.")
+            raise ValueError(
+                "Empty data set with start timestamp >= end timestamp.")
 
         # Number of data points in the new time-series
         num_buckets = (end_t - start_t - 1) // self.interval_us + 1
@@ -379,6 +267,7 @@ class ForecastModel(ABC):
     """
     Interface for all the forecasting models
     """
+
     def __init__(self):
         pass
 
@@ -405,8 +294,14 @@ class ForecastTrainer:
     """
     A wrapper around various ForecastModels, that prepares training and evaluation data.
     """
-    def __init__(self, data: np.ndarray, test_mode: bool = False, eval_size: int = EVAL_DATA_SIZE, seq_len : int = SEQ_LEN, horizon_len: int = HORIZON_LEN) -> None:
 
+    def __init__(
+            self,
+            data: np.ndarray,
+            test_mode: bool = False,
+            eval_size: int = EVAL_DATA_SIZE,
+            seq_len: int = SEQ_LEN,
+            horizon_len: int = HORIZON_LEN) -> None:
         """
         :param data:  1D time-series data for a query cluster
         :param test_mode: True If the Loader is for testing
@@ -473,7 +368,7 @@ class ForecastTrainer:
         input_data = self.test_raw_data
 
         seqs = []
-        for i in range(len(input_data)-self.seq_len):
+        for i in range(len(input_data) - self.seq_len):
             seq = input_data[i:i + self.seq_len]
             if self.x_transformer:
                 seq = self.x_transformer.transform(seq)
@@ -511,8 +406,15 @@ class LSTM(nn.Module, ForecastModel):
     A simple LSTM model
     """
 
-    def __init__(self, input_size:int =1, hidden_layer_size:int =100, output_size:int =1, lr:float = 0.001, epochs:int=10, normalize:bool=True,
-                 x_transformer=None, y_transformer=None):
+    def __init__(
+            self,
+            input_size: int = 1,
+            hidden_layer_size: int = 100,
+            output_size: int = 1,
+            lr: float = 0.001,
+            epochs: int = 10,
+            x_transformer = None,
+            y_transformer = None):
         """
         :param input_size: One data point that is fed into the LSTM each time
         :param hidden_layer_size:
@@ -552,10 +454,8 @@ class LSTM(nn.Module, ForecastModel):
     def fit(self, train_seqs: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         """
         Perform training on the time series trace data.
-
-        :param data_loader: Dataloader
-        :param lr: learing rate
-        :param epochs: number of epochs
+        :param train_seqs: Training sequences of (seq, label)
+        :return: None
         """
         epochs = self.epochs
         lr = self.lr
@@ -573,7 +473,8 @@ class LSTM(nn.Module, ForecastModel):
                 if self.x_transformer:
                     # Reshape to 2D ndarray required by MinMaxScaler API
                     seq = self.x_transformer.transform(seq.reshape(-1, 1))
-                    labels = self.y_transformer.transform(labels.reshape(1, -1))
+                    labels = self.y_transformer.transform(
+                        labels.reshape(1, -1))
 
                 seq = torch.FloatTensor(seq).view(-1)
                 labels = torch.FloatTensor(labels).view(-1)
@@ -585,14 +486,16 @@ class LSTM(nn.Module, ForecastModel):
                 optimizer.step()
 
             if i % 25 == 0:
-                LOG.info(f'[LSTM FIT]epoch: {i+1:3} loss: {single_loss.item():10.8f}')
+                LOG.info(
+                    f'[LSTM FIT]epoch: {i+1:3} loss: {single_loss.item():10.8f}')
 
-        LOG.info(f'[LSTM FIT]epoch: {epochs:3} loss: {single_loss.item():10.10f}')
+        LOG.info(
+            f'[LSTM FIT]epoch: {epochs:3} loss: {single_loss.item():10.10f}')
 
     def test(self, seq: np.ndarray) -> float:
         """
         Perform inference on a dataset. Returns a list of prediction results
-        :param data_loader: DataLoader for the test input
+        :param seq: Sequence for testing
         :return: Prediction results
         """
         # To tensor
@@ -627,18 +530,29 @@ if __name__ == "__main__":
         else:
             trace_file = args.trace_file
 
-        data_loader = DataLoader(query_trace_file=trace_file, interval_us=INTERVAL_MICRO_SEC)
+        data_loader = DataLoader(
+            query_trace_file=trace_file,
+            interval_us=INTERVAL_MICRO_SEC)
         x_transformer, y_transformer = data_loader.get_transformers()
 
-        # FIXME: Assuming all the queries in the current trace file are from the same cluster for now
+        # FIXME: Assuming all the queries in the current trace file are from
+        # the same cluster for now
         cluster_trace = QueryCluster(data_loader.get_ts_data())
 
         # Aggregated time-series from the cluster
         train_timeseries = cluster_trace.get_timeseries()
 
         # Perform training on the trace file
-        lstm_model = LSTM(lr=args.lr, epochs=args.epochs, x_transformer=x_transformer, y_transformer=y_transformer)
-        trainer = ForecastTrainer(train_timeseries, seq_len=args.seq_len, eval_size=args.eval_size, horizon_len=args.horizon_len)
+        lstm_model = LSTM(
+            lr=args.lr,
+            epochs=args.epochs,
+            x_transformer=x_transformer,
+            y_transformer=y_transformer)
+        trainer = ForecastTrainer(
+            train_timeseries,
+            seq_len=args.seq_len,
+            eval_size=args.eval_size,
+            horizon_len=args.horizon_len)
         trainer.train([lstm_model])
 
         # Save the model
@@ -647,7 +561,9 @@ if __name__ == "__main__":
                 pickle.dump(lstm_model, f)
     else:
         # Do inference on a trained model
-        data_loader = DataLoader(query_trace_file=args.test_file, interval_us=INTERVAL_MICRO_SEC)
+        data_loader = DataLoader(
+            query_trace_file=args.test_file,
+            interval_us=INTERVAL_MICRO_SEC)
 
         with open(args.model_load_path, "rb") as f:
             model = pickle.load(f)
@@ -655,7 +571,8 @@ if __name__ == "__main__":
         model.x_transformer = x_transformer
         model.y_transformer = y_transformer
 
-        # FIXME: Assuming all the queries in the current trace file are from the same cluster for now
+        # FIXME: Assuming all the queries in the current trace file are from
+        # the same cluster for now
         timeseries = data_loader.get_ts_data()
         cluster_trace = QueryCluster(timeseries)
 
@@ -666,5 +583,6 @@ if __name__ == "__main__":
 
         query_pred = cluster_trace.segregate([pred])
         for qid, ts in query_pred.items():
-            LOG.info(f"[Query: {qid} @idx={args.seq_len+args.horizon_len}] "
-                     f"actual={timeseries[qid][args.seq_len+args.horizon_len]},pred={ts[0]:.1f}")
+            LOG.info(
+                f"[Query: {qid} @idx={args.seq_len+args.horizon_len}] "
+                f"actual={timeseries[qid][args.seq_len+args.horizon_len]},pred={ts[0]:.1f}")
