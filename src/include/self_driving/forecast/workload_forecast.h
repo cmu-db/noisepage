@@ -7,21 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/action_context.h"
-#include "common/error/exception.h"
-#include "common/macros.h"
-#include "common/managed_pointer.h"
-#include "common/shared_latch.h"
-#include "execution/exec/execution_context.h"
-#include "execution/exec_defs.h"
-#include "gflags/gflags.h"
 #include "parser/expression/constant_value_expression.h"
 #include "self_driving/forecast/workload_forecast_segment.h"
-#include "settings/settings_callbacks.h"
-#include "settings/settings_manager.h"
-#include "spdlog/fmt/fmt.h"
-#include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
 
 namespace noisepage::selfdriving {
 

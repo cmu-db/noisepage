@@ -5,15 +5,12 @@
 #include <utility>
 #include <vector>
 
-#include "binder/bind_node_visitor.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
-#include "common/macros.h"
-#include "execution/compiler/compilation_context.h"
-#include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
-#include "main/db_main.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace noisepage::selfdriving {
 

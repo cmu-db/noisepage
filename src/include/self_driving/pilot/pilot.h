@@ -60,6 +60,12 @@ class Pilot {
         common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
 
   /**
+   * Performs Pilot Logic, load and execute the predict queries while extracting pipeline features
+   */
+  void PerformPlanning();
+
+ private:
+  /**
    * WorkloadForecast object performing the query execution and feature gathering
    */
   std::unique_ptr<selfdriving::WorkloadForecast> forecast_;
@@ -69,12 +75,6 @@ class Pilot {
    */
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
-  /**
-   * Performs Pilot Logic, load and execute the predict queries while extracting pipeline features
-   */
-  void PerformPlanning();
-
- private:
   void ExecuteForecast();
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<metrics::MetricsThread> metrics_thread_;
