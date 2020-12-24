@@ -10,9 +10,9 @@
 #include <utility>
 #include <vector>
 
-#include "common/macros.h"
 #include "catalog/catalog.h"
 #include "common/action_context.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
 #include "self_driving/forecast/workload_forecast.h"
@@ -41,7 +41,8 @@ class SettingsManager;
 namespace transaction {
 class TransactionManager;
 }
-}
+
+}  // namespace noisepage
 
 namespace noisepage::selfdriving {
 class PilotUtil;
