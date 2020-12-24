@@ -4,12 +4,14 @@
 #include <utility>
 
 #include "common/action_context.h"
-#include "common/macros.h"
-#include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
+#include "messenger/messenger.h"
+#include "metrics/metrics_thread.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "self_driving/forecast/workload_forecast.h"
+#include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/pilot_util.h"
-#include "settings/settings_param.h"
+#include "settings/settings_manager.h"
 
 namespace noisepage::selfdriving {
 

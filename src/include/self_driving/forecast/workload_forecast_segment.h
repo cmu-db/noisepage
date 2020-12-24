@@ -6,7 +6,6 @@
 #include <utility>
 
 #include "execution/exec_defs.h"
-#include "parser/expression/constant_value_expression.h"
 
 namespace noisepage::selfdriving {
 /**

@@ -10,10 +10,12 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
 #include "loggers/selfdriving_logger.h"
-#include "metrics/metrics_store.h"
+#include "metrics/metrics_thread.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
+#include "messenger/messenger.h"
+#include "self_driving/model_server/model_server_manager.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 

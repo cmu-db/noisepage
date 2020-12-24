@@ -10,19 +10,41 @@
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
-#include "messenger/messenger.h"
-#include "metrics/metrics_thread.h"
-#include "optimizer/statistics/stats_storage.h"
 #include "self_driving/forecast/workload_forecast.h"
-#include "self_driving/model_server/model_server_manager.h"
-#include "settings/settings_manager.h"
-#include "transaction/transaction_manager.h"
+
+namespace noisepage {
+namespace messenger {
+class Messenger;
+}
+
+namespace metrics {
+class MetricsThread;
+}
+
+namespace modelserver {
+class ModelServerManager;
+}
+
+namespace optimizer {
+class StatsStorage;
+}
+
+namespace settings {
+class SettingsManager;
+}
+
+namespace transaction {
+class TransactionManager;
+}
+}
 
 namespace noisepage::selfdriving {
+class PilotUtil;
 
 /**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
