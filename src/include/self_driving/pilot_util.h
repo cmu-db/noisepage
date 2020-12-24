@@ -6,23 +6,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "binder/bind_node_visitor.h"
-#include "common/action_context.h"
-#include "common/error/exception.h"
-#include "common/macros.h"
-#include "common/managed_pointer.h"
-#include "execution/compiler/compilation_context.h"
-#include "execution/compiler/executable_query.h"
-#include "execution/exec/execution_context.h"
-#include "execution/exec/execution_settings.h"
-#include "execution/exec_defs.h"
-#include "main/db_main.h"
 #include "metrics/metrics_store.h"
-#include "optimizer/cost_model/trivial_cost_model.h"
-#include "optimizer/optimizer.h"
 #include "parser/expression/constant_value_expression.h"
 #include "self_driving/forecast/workload_forecast.h"
-#include "traffic_cop/traffic_cop_util.h"
+#include "self_driving/pilot/pilot.h"
 #include "transaction/transaction_manager.h"
 
 namespace noisepage::selfdriving {

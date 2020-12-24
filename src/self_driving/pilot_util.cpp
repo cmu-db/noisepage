@@ -1,9 +1,8 @@
 #include "self_driving/pilot_util.h"
 
 #include "binder/bind_node_visitor.h"
-#include "common/action_context.h"
 #include "common/error/exception.h"
-#include "common/macros.h"
+#include "common/error/error_code.h"
 #include "common/managed_pointer.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
@@ -11,10 +10,10 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
 #include "loggers/selfdriving_logger.h"
-#include "main/db_main.h"
 #include "metrics/metrics_store.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 
@@ -123,9 +122,9 @@ void PilotUtil::GroupFeaturesByOU(
                          std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features) {
-  for (auto &data_it : pipeline_data) {
+  for (const auto &data_it : pipeline_data) {
     std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>> ou_positions;
-    for (auto &ou_it : data_it.features_) {
+    for (const auto &ou_it : data_it.features_) {
       if (ou_to_features->find(ou_it.GetExecutionOperatingUnitType()) == ou_to_features->end()) {
         ou_positions.emplace_back(ou_it.GetExecutionOperatingUnitType(), 0);
         ou_to_features->emplace(ou_it.GetExecutionOperatingUnitType(), std::vector<std::vector<double>>());

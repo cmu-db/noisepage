@@ -12,23 +12,15 @@
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
-#include "common/error/exception.h"
-#include "common/shared_latch.h"
-#include "execution/exec/execution_settings.h"
+#include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
-#include "gflags/gflags.h"
-#include "loggers/settings_logger.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "optimizer/statistics/stats_storage.h"
-#include "parser/expression/constant_value_expression.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/modeling/operating_unit.h"
 #include "settings/settings_manager.h"
-#include "settings/settings_param.h"
 #include "transaction/transaction_manager.h"
-#include "type/type_id.h"
 
 namespace noisepage::selfdriving {
 

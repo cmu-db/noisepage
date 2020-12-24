@@ -6,10 +6,10 @@
 #include "common/action_context.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "parser/expression/constant_value_expression.h"
+#include "execution/exec_defs.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/pilot_util.h"
-#include "settings/settings_manager.h"
+#include "settings/settings_param.h"
 
 namespace noisepage::selfdriving {
 

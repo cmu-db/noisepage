@@ -8,7 +8,7 @@
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/exec_defs.h"
-#include "metrics/metrics_store.h"
+#include "metrics/query_trace_metric.h"
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
