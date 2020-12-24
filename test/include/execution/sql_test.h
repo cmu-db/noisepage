@@ -64,10 +64,6 @@ class SqlBasedTest : public TplTest {
     table_generator.GenerateTestTables();
   }
 
-  parser::ConstantValueExpression DummyCVE() {
-    return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
-  }
-
   std::unique_ptr<noisepage::catalog::CatalogAccessor> MakeAccessor() {
     return catalog_->GetAccessor(common::ManagedPointer(test_txn_), test_db_oid_, DISABLED);
   }

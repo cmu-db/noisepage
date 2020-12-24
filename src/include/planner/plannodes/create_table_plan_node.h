@@ -574,13 +574,15 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param foreign_keys foreign keys meta-data
    * @param con_uniques unique constraints
    * @param con_checks check constraints
+   * @param plan_node_id Plan node id
    */
   CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
                       std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
                       common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
                       PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
-                      std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks);
+                      std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks,
+                      plan_node_id_t plan_node_id);
 
  public:
   /**

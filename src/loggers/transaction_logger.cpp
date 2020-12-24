@@ -1,10 +1,8 @@
 #include "loggers/transaction_logger.h"
 
-#include <memory>
-
 namespace noisepage::transaction {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> transaction_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr transaction_logger = nullptr;
 
 void InitTransactionLogger() {
   if (transaction_logger == nullptr) {

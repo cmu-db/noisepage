@@ -108,6 +108,15 @@
                 "terminals": 32,
                 "client_time": 600
             }
+        },
+        {
+            "base": {
+                "benchmark": "ycsb",
+                "weights": "100,0,0,0,0,0",
+                "query_mode": "extended",
+                "terminals": 32,
+                "client_time": 600
+            }
         }
     ]
 }

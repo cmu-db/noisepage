@@ -1,10 +1,8 @@
 #include "loggers/catalog_logger.h"
 
-#include <memory>
-
 namespace noisepage::catalog {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> catalog_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr catalog_logger = nullptr;
 
 void InitCatalogLogger() {
   if (catalog_logger == nullptr) {

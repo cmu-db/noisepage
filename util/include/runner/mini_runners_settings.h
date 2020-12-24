@@ -20,9 +20,19 @@ class MiniRunnersSettings {
   int64_t warmup_iterations_num_ = 5;
 
   /**
+   * Number of index warmup iterations
+   */
+  int64_t index_model_warmup_iterations_num_ = 2;
+
+  /**
    * Number of rerun iterations
    */
   int64_t rerun_iterations_ = 10;
+
+  /**
+   * Batch size for modeling index inserts/deletes
+   */
+  int64_t index_model_batch_size_ = 7;
 
   /**
    * Limit on the max number of rows / tuples processed

@@ -108,11 +108,13 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @param having_clause_predicate unique pointer to possible having clause predicate
    * @param aggregate_terms vector of aggregate terms for the aggregation
    * @param aggregate_strategy aggregation strategy to be used
+   * @param plan_node_id Plan node id
    */
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, std::vector<GroupByTerm> groupby_terms,
                     common::ManagedPointer<parser::AbstractExpression> having_clause_predicate,
-                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy);
+                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy,
+                    plan_node_id_t plan_node_id);
 
  public:
   /**

@@ -1,0 +1,22 @@
+# test attypmod on VARCHAR
+statement ok
+CREATE TABLE t (a VARCHAR);
+
+query I nosort
+SELECT atttypmod FROM pg_attribute WHERE attrelid IN (SELECT reloid FROM pg_class WHERE relname = 't');
+----
+-1
+
+statement ok
+DROP TABLE t;
+
+statement ok
+CREATE TABLE t (a VARCHAR(55));
+
+query I nosort
+SELECT atttypmod FROM pg_attribute WHERE attrelid IN (SELECT reloid FROM pg_class WHERE relname = 't');
+----
+55
+
+statement ok
+DROP TABLE t;

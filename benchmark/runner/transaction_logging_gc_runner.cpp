@@ -42,7 +42,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
   const double select = static_cast<double>(state.range(5)) / 100;
 
   // scale up num_txns by the number of threads since it counts for all threads
-  const uint32_t num_txns = (log2(num_thread) + 1) * 2000000 / txn_interval;
+  const uint32_t num_txns = (log2(num_thread) + 1) * 3000000 / txn_interval;
 
   uint64_t abort_count = 0;
   const std::vector<double> insert_update_select_ratio = {insert, update, select};
@@ -68,7 +68,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 100);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 49);
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
@@ -165,8 +165,8 @@ static void UNUSED_ATTRIBUTE TransactionArguments(benchmark::internal::Benchmark
   for (uint32_t txn_length : txn_lengths)
     for (uint32_t txn_interval : txn_intervals)
       for (uint32_t num_thread : num_threads)
-        for (uint32_t insert = 0; insert <= 50; insert += 10)
-          for (uint32_t update = insert; update <= insert; update += 10) {
+        for (uint32_t insert = 0; insert <= 50; insert += 25)
+          for (uint32_t update = insert; update <= 50; update += 25) {
             b->Args({txn_length, txn_interval, num_thread, insert, update, 100 - insert - update});
           }
 }
