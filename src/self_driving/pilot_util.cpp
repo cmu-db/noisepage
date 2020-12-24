@@ -1,8 +1,8 @@
 #include "self_driving/pilot_util.h"
 
 #include "binder/bind_node_visitor.h"
-#include "common/error/exception.h"
 #include "common/error/error_code.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
