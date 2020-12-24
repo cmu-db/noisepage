@@ -31,7 +31,7 @@ class PilotUtil {
   /**
    * Perform inference through model server manager with collected pipeline metrics
    * To recover the result for each pipeline, also maintain a multimap pipeline_to_ou_position
-   * @param ms_manager model server manager
+   * @param model_server_manager model server manager
    * @param pipeline_data collected pipeline metrics after executing the forecasted queries
    * @param pipeline_to_prediction list of tuples of query id, pipeline id and result of prediction
    */
