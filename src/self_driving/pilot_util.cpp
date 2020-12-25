@@ -93,7 +93,7 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
 }
 
 void PilotUtil::InferenceWithFeatures(
-    std::string model_save_path, common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+    const std::string &model_save_path, common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
         *pipeline_to_prediction) {
