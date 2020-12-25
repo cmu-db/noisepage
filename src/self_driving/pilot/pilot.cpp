@@ -15,13 +15,14 @@
 
 namespace noisepage::selfdriving {
 
-Pilot::Pilot(common::ManagedPointer<catalog::Catalog> catalog,
+Pilot::Pilot(std::string model_save_path, common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<metrics::MetricsThread> metrics_thread,
              common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
              common::ManagedPointer<settings::SettingsManager> settings_manager,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage,
              common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval)
-    : catalog_(catalog),
+    : model_save_path_(model_save_path),
+      catalog_(catalog),
       metrics_thread_(metrics_thread),
       model_server_manager_(model_server_manager),
       settings_manager_(settings_manager),
@@ -67,7 +68,7 @@ void Pilot::ExecuteForecast() {
                                                           common::ManagedPointer(forecast_));
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
       pipeline_to_prediction;
-  PilotUtil::InferenceWithFeatures(model_server_manager_, pipeline_data, &pipeline_to_prediction);
+  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_data, &pipeline_to_prediction);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
   if (!oldval) {

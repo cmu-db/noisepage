@@ -52,8 +52,6 @@ class PilotUtil;
  */
 class Pilot {
  protected:
-  /** @return Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH) */
-  static constexpr const char *SAVE_PATH = "/../script/model/terrier_model_server_trained/mini_model_test.pickle";
   /** @return Name of the environment variable to be set as the absolute path of build directory */
   static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
 
@@ -68,7 +66,8 @@ class Pilot {
    * @param txn_manager transaction manager
    * @param workload_forecast_interval Interval used in the forecastor
    */
-  Pilot(common::ManagedPointer<catalog::Catalog> catalog, common::ManagedPointer<metrics::MetricsThread> metrics_thread,
+  Pilot(std::string save_path, common::ManagedPointer<catalog::Catalog> catalog,
+        common::ManagedPointer<metrics::MetricsThread> metrics_thread,
         common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
         common::ManagedPointer<settings::SettingsManager> settings_manager,
         common::ManagedPointer<optimizer::StatsStorage> stats_storage,
@@ -91,6 +90,8 @@ class Pilot {
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
   void ExecuteForecast();
+
+  std::string model_save_path_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<metrics::MetricsThread> metrics_thread_;
   common::ManagedPointer<modelserver::ModelServerManager> model_server_manager_;

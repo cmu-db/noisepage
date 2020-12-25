@@ -93,7 +93,7 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
 }
 
 void PilotUtil::InferenceWithFeatures(
-    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+    std::string model_save_path, common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
         *pipeline_to_prediction) {
@@ -109,7 +109,7 @@ void PilotUtil::InferenceWithFeatures(
   for (auto &ou_map_it : ou_to_features) {
     auto res = model_server_manager->DoInference(
         selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
-        project_build_path + Pilot::SAVE_PATH, ou_map_it.second);
+        project_build_path + model_save_path, ou_map_it.second);
     if (!res.second) {
       throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
     }
