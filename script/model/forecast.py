@@ -12,19 +12,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str((Path.cwd() / '..' / 'testing').absolute()))
 
-import argparse
-import csv
-import logging
-import pickle
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-import torch
-import torch.nn as nn
-from abc import ABC, abstractmethod
-from functools import cached_property
-from typing import Dict, List, Optional, Tuple
-from util.constants import LOG
-from self_driving.forecast import gen_oltp_trace
 from self_driving.constants import (
     DEFAULT_TPCC_TIME_SEC,
     DEFAULT_TPCC_WEIGHTS,
@@ -33,6 +20,19 @@ from self_driving.constants import (
     DEFAULT_OLTP_TEST_CASE,
     DEFAULT_WORKLOAD_PATTERN,
     DEFAULT_ITER_NUM)
+from self_driving.forecast import gen_oltp_trace
+from util.constants import LOG
+from typing import Dict, List, Optional, Tuple
+from functools import cached_property
+from abc import ABC, abstractmethod
+import torch.nn as nn
+import torch
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+import pickle
+import logging
+import csv
+import argparse
 
 
 # Interval duration for aggregation in microseconds
@@ -40,9 +40,6 @@ INTERVAL_MICRO_SEC = 500000
 
 # Number of Microseconds per second
 MICRO_SEC_PER_SEC = 1000000
-
-# First 35 seconds are for loading
-LOAD_PHASE_NUM_DATA = int(MICRO_SEC_PER_SEC / INTERVAL_MICRO_SEC * 35)
 
 # Number of data points in a sequence
 SEQ_LEN = 10 * MICRO_SEC_PER_SEC // INTERVAL_MICRO_SEC
@@ -413,8 +410,8 @@ class LSTM(nn.Module, ForecastModel):
             output_size: int = 1,
             lr: float = 0.001,
             epochs: int = 10,
-            x_transformer = None,
-            y_transformer = None):
+            x_transformer=None,
+            y_transformer=None):
         """
         :param input_size: One data point that is fed into the LSTM each time
         :param hidden_layer_size:

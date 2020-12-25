@@ -75,7 +75,8 @@ PYTHON_PACKAGES=(\
   "numpy" \
   "pandas" \
   "psutil" \
-  "PTable"
+  "psycopg2" \
+  "PTable" \
   "pyarrow" \
   "pyzmq" \
   "requests" \

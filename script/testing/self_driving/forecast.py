@@ -6,10 +6,11 @@ The forecast scripts generates metrics traces needed for workload forecasting.
 from oltpbench.test_case_oltp import TestCaseOLTPBench
 from oltpbench.run_oltpbench import TestOLTPBench
 from oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
-from util.constants import LOG, ErrorCode
+from util.constants import (LOG, ErrorCode, DEFAULT_DB_HOST, DEFAULT_DB_PORT)
 from util.common import run_command
 from util.db_server import NoisePageServer
 from self_driving.constants import (
+    DEFAULT_DB_USER,
     DEFAULT_TPCC_TIME_SEC,
     DEFAULT_TPCC_WEIGHTS,
     DEFAULT_QUERY_TRACE_FILE,
@@ -17,6 +18,7 @@ from self_driving.constants import (
     DEFAULT_OLTP_TEST_CASE,
     DEFAULT_WORKLOAD_PATTERN)
 
+import psycopg2 as psql
 from pathlib import Path
 from xml.etree import ElementTree
 from typing import Dict, List, Optional, Tuple
@@ -89,6 +91,9 @@ def gen_oltp_trace(
     rates = tpcc_rates * pattern_iter
     config_forecast_data(test_case.xml_config, rates)
 
+    # Turn on query trace metrics tracing
+    turn_on_metrics_trace()
+
     # Run the actual test
     ret_val, _, stderr = run_command(test_case.test_command,
                                      test_case.test_error_msg,
@@ -107,3 +112,24 @@ def gen_oltp_trace(
         return False
 
     return True
+
+
+def turn_on_metrics_trace() -> None:
+    """
+    Turn on query trace.
+    :return:  None
+    """
+    try:
+        conn = psql.connect(port=DEFAULT_DB_PORT, host=DEFAULT_DB_HOST, user=DEFAULT_DB_USER)
+        conn.set_session(autocommit=True)
+    except Exception as e:
+        LOG.error(f"Unable to connect to server: {e}")
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SET query_trace_metrics_enable='true'
+        """
+    )
+    conn.close()
