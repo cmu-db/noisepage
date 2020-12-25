@@ -441,14 +441,14 @@ pipeline {
                         // enough trace could be generated for training and testing.
                         sh script :'''
                         cd script/model
-                        ./forecast --gen_data --pattern_iter=3 --model_save_path="model.pickle"
+                        ./forecast.py --gen_data --pattern_iter=3 --model_save_path="model.pickle"
                         ''', label: 'Generate trace and perform training'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
                         cd script/model
-                        ./forecast --test_file="query_trace.csv" --model_load_path="model.pickle"
+                        ./forecast.py --test_file="query_trace.csv" --model_load_path="model.pickle"
                         ''', label: 'Perform inference on the trained model'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
