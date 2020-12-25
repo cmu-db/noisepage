@@ -58,6 +58,7 @@ class Pilot {
  public:
   /**
    * Constructor for Pilot
+   * @param model_save_path model save path
    * @param catalog catalog
    * @param metrics_thread metrics thread for metrics manager
    * @param model_server_manager model server manager
@@ -66,7 +67,7 @@ class Pilot {
    * @param txn_manager transaction manager
    * @param workload_forecast_interval Interval used in the forecastor
    */
-  Pilot(std::string save_path, common::ManagedPointer<catalog::Catalog> catalog,
+  Pilot(std::string model_save_path, common::ManagedPointer<catalog::Catalog> catalog,
         common::ManagedPointer<metrics::MetricsThread> metrics_thread,
         common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
         common::ManagedPointer<settings::SettingsManager> settings_manager,
