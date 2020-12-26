@@ -418,9 +418,9 @@ pipeline {
             }
         }
 
-        stage('Self-Driving End-to-End Test') {
+        stage('Self-Driving') {
             parallel {
-                stage('Workload Forecasting Test'){
+                stage('Workload Forecasting'){
                     agent {
                         docker {
                             image 'noisepage:focal'
@@ -440,15 +440,15 @@ pipeline {
                         // --pattern_iter determines how many times a sequence of TPCC phases is run. Set to 3 so that
                         // enough trace could be generated for training and testing.
                         sh script :'''
-                        cd script/model
-                        ./forecast.py --gen_data --pattern_iter=3 --model_save_path="model.pickle"
+                        cd script/forecasting
+                        ./forecaster.py --gen_data --pattern_iter=3 --model_save_path="model.pickle"
                         ''', label: 'Generate trace and perform training'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
-                        cd script/model
-                        ./forecast.py --test_file="query_trace.csv" --model_load_path="model.pickle"
+                        cd script/forecasting
+                        ./forecaster.py --test_file="query_trace.csv" --model_load_path="model.pickle"
                         ''', label: 'Perform inference on the trained model'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -459,7 +459,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Modeling Test'){
+                stage('Modeling'){
                     agent {
                         docker {
                             image 'noisepage:focal'
