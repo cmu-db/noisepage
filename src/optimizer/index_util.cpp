@@ -176,7 +176,8 @@ bool IndexUtil::CheckPredicates(
   if (open_highs.empty() && open_lows.empty()) return false;
 
   // Check predicate open/close ordering
-  planner::IndexScanType scan_type = planner::IndexScanType::AscendingClosed;
+  // TODO(Deepayan): Check that this initialization gets around Exact initalization issues
+  planner::IndexScanType scan_type = planner::IndexScanType::Dummy;
   if (open_highs.size() == open_lows.size() && open_highs.size() == schema.GetColumns().size()) {
     // Generally on multi-column indexes, exact would result in comparing against unspecified attribute.
     // Only try to do an exact key lookup if potentially all attributes are specified.
@@ -196,14 +197,23 @@ bool IndexUtil::CheckPredicates(
       // A range is defined but we are doing exact scans, so make ascending closed
       // If already doing ascending closed, ascending open then it would be a matter of
       // picking the right low/high key at the plan_generator stage of processing.
-      if (open_highs[oid] != open_lows[oid] && scan_type == planner::IndexScanType::Exact)
-        scan_type = planner::IndexScanType::AscendingClosed;
+      if (open_highs[oid] != open_lows[oid]) {
+        if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::Dummy)
+          scan_type = planner::IndexScanType::AscendingClosedLimit;
+        else if (scan_type == planner::IndexScanType::AscendingClosedLimit)
+          scan_type = planner::IndexScanType::AscendingClosed;
+        else if (scan_type == planner::IndexScanType::AscendingOpenHighLimit)
+          scan_type = planner::IndexScanType::AscendingOpenHigh;
+      }
     } else if (open_highs.find(oid) != open_highs.end()) {
-      if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::AscendingClosed ||
-          scan_type == planner::IndexScanType::AscendingOpenHigh) {
+      if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::Dummy)
+        scan_type = planner::IndexScanType::AscendingOpenHighLimit;
+      else if (scan_type == planner::IndexScanType::AscendingClosed ||
+               scan_type == planner::IndexScanType::AscendingClosedLimit ||
+               scan_type == planner::IndexScanType::AscendingOpenHigh ||
+               scan_type == planner::IndexScanType::AscendingOpenHighLimit)
         scan_type = planner::IndexScanType::AscendingOpenHigh;
-
-      } else {
+      else {
         // OpenHigh scan is not compatible with an OpenLow scan
         // Revert to a sequential scan
         break;
@@ -211,7 +221,10 @@ bool IndexUtil::CheckPredicates(
       bounds->insert(std::make_pair(
           oid, std::vector<planner::IndexExpression>{open_highs[oid], planner::IndexExpression(nullptr)}));
     } else if (open_lows.find(oid) != open_lows.end()) {
-      if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::AscendingClosed ||
+      if (scan_type == planner::IndexScanType::Exact ||
+          scan_type == planner::IndexScanType::Dummy ||
+          scan_type == planner::IndexScanType::AscendingClosed ||
+          scan_type == planner::IndexScanType::AscendingClosedLimit ||
           scan_type == planner::IndexScanType::AscendingOpenLow) {
         scan_type = planner::IndexScanType::AscendingOpenLow;
       } else {
@@ -232,6 +245,12 @@ bool IndexUtil::CheckPredicates(
     // data.  For now, this check is sufficient for what the optimizer is doing.
     return false;
   }
+
+  // Lower scan type to valid type
+  // Note: if scan type could be exact, it would have already been set by this point
+  // TODO(Deepayan): It may be possible to get away with being more lenient here on the index scan type to push down
+  // limits but needs further investigation
+  if (scan_type == planner::IndexScanType::Dummy) scan_type = planner::IndexScanType::AscendingClosed;
 
   *idx_scan_type = scan_type;
   return !bounds->empty();

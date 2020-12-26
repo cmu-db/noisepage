@@ -141,9 +141,12 @@ enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL =
 using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 /** Type of index scan. */
 enum class IndexScanType : uint8_t {
+  Dummy,
   Exact,
   AscendingClosed,
+  AscendingClosedLimit,
   AscendingOpenHigh,
+  AscendingOpenHighLimit,
   AscendingOpenLow,
   AscendingOpenBoth,
 

@@ -63,7 +63,8 @@ class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
   void DeclareIterator(FunctionBuilder *builder) const;
   void SetOids(FunctionBuilder *builder) const;
   void FillKey(WorkContext *context, FunctionBuilder *builder, ast::Identifier pr,
-               const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) const;
+               const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs,
+               const bool flag = false) const;
   void FreeIterator(FunctionBuilder *builder) const;
   void DeclareIndexPR(FunctionBuilder *builder) const;
   void DeclareTablePR(FunctionBuilder *builder) const;

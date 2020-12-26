@@ -60,6 +60,9 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteCombineConsecutiveFilter());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoGet());
 
+  AddRule(RuleSetName::CLAUSE_PUSH_DOWN, new SetLimitInGet());
+  AddRule(RuleSetName::CLAUSE_PUSH_DOWN, new SetLimitInLogicalInnerJoin());
+
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestSingleJoinToInnerJoin());

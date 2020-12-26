@@ -84,7 +84,8 @@ BaseOperatorNodeContents *IndexScan::Copy() const { return new IndexScan(*this);
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                          std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                          planner::IndexScanType scan_type,
-                         std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds) {
+                         std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
+                         bool limit_exists, uint32_t limit) {
   auto *scan = new IndexScan();
   scan->database_oid_ = database_oid;
   scan->tbl_oid_ = tbl_oid;
@@ -93,6 +94,8 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tb
   scan->predicates_ = std::move(predicates);
   scan->scan_type_ = scan_type;
   scan->bounds_ = std::move(bounds);
+  scan->limit_exists_ = limit_exists;
+  scan->limit_ = limit;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(scan));
 }
 
@@ -279,13 +282,14 @@ BaseOperatorNodeContents *InnerIndexJoin::Copy() const { return new InnerIndexJo
 Operator InnerIndexJoin::Make(
     catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
-    std::vector<AnnotatedExpression> join_predicates) {
+    std::vector<AnnotatedExpression> join_predicates,
+    bool limit_exists, uint32_t limit) {
   auto *join = new InnerIndexJoin();
   join->tbl_oid_ = tbl_oid;
   join->idx_oid_ = idx_oid;
   join->join_keys_ = std::move(join_keys);
-  join->join_predicates_ = std::move(join_predicates);
-  join->scan_type_ = scan_type;
+  join->limit_exists_ = limit_exists;
+  join->limit_ = limit;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 

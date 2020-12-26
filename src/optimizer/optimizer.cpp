@@ -126,6 +126,7 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
   context_->AddOptimizationContext(root_context);
 
   // Perform rewrite first
+  task_stack->Push(new TopDownRewrite(root_group_id, root_context, RuleSetName::CLAUSE_PUSH_DOWN));
   task_stack->Push(new TopDownRewrite(root_group_id, root_context, RuleSetName::PREDICATE_PUSH_DOWN));
   task_stack->Push(new BottomUpRewrite(root_group_id, root_context, RuleSetName::UNNEST_SUBQUERY, false));
   ExecuteTaskStack(task_stack, root_group_id, root_context);

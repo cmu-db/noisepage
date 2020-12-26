@@ -158,4 +158,60 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   transformed->emplace_back(std::move(new_parent_join));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// SetLimitInGet
+///////////////////////////////////////////////////////////////////////////////
+SetLimitInGet::SetLimitInGet() {
+  type_ = RuleType::SET_LIMIT_IN_GET;
+
+  match_pattern_ = new Pattern(OpType::LOGICALLIMIT);
+  auto child = new Pattern(OpType::LOGICALGET);
+
+  match_pattern_->AddChild(child);
+}
+
+bool SetLimitInGet::Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+RulePromise SetLimitInGet::Promise(GroupExpression *group_expr) const { return RulePromise::LOGICAL_PROMISE; }
+
+void SetLimitInGet::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                              std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalGet>();
+  size_t limit = input->Contents()->GetContentsAs<LogicalLimit>()->GetLimit();
+  get->SetLimit(limit);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// SetLimitInGet
+///////////////////////////////////////////////////////////////////////////////
+SetLimitInLogicalInnerJoin::SetLimitInLogicalInnerJoin() {
+  type_ = RuleType::SET_LIMIT_IN_LOGICAL_INNER_JOIN;
+
+  match_pattern_ = new Pattern(OpType::LOGICALLIMIT);
+  auto child = new Pattern(OpType::LOGICALINNERJOIN);
+
+  match_pattern_->AddChild(child);
+}
+
+bool SetLimitInLogicalInnerJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+RulePromise SetLimitInLogicalInnerJoin::Promise(GroupExpression *group_expr) const { return RulePromise::LOGICAL_PROMISE; }
+
+void SetLimitInLogicalInnerJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                              std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto join = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalInnerJoin>();
+  size_t limit = input->Contents()->GetContentsAs<LogicalLimit>()->GetLimit();
+  join->SetLimit(limit);
+}
+
 }  // namespace noisepage::optimizer
