@@ -7,6 +7,8 @@
 
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
+#include "planner/plannodes/plan_meta_data.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage {
@@ -51,7 +53,7 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * Constructor
    */
-  PlanGenerator();
+  explicit PlanGenerator(common::ManagedPointer<planner::PlanMetaData> plan_meta_data);
 
   /**
    * Converts an operator node into a plan node.
@@ -64,6 +66,7 @@ class PlanGenerator : public OperatorVisitor {
    * @param output_cols Columns output by the Operator
    * @param children_plans Children plan nodes
    * @param children_expr_map Vector of children expression -> col offset mapping
+   * @param plan_node_meta_data Metadata for plan node to be generated
    * @returns Output plan node
    */
   std::unique_ptr<planner::AbstractPlanNode> ConvertOpNode(
@@ -71,7 +74,7 @@ class PlanGenerator : public OperatorVisitor {
       PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
-      std::vector<ExprMap> &&children_expr_map);
+      std::vector<ExprMap> &&children_expr_map, const planner::PlanMetaData::PlanNodeMetaData &plan_node_meta_data);
 
   /**
    * Visitor function for a TableFreeScan operator
@@ -372,6 +375,11 @@ class PlanGenerator : public OperatorVisitor {
                           common::ManagedPointer<parser::AbstractExpression> having_predicate);
 
   /**
+   * @returns the next plan node id and increase the counter
+   */
+  planner::plan_node_id_t GetNextPlanNodeID() { return plan_id_counter_++; }
+
+  /**
    * The required output property. Note that we have previously enforced
    * properties so this is fulfilled by the current operator
    */
@@ -413,6 +421,21 @@ class PlanGenerator : public OperatorVisitor {
    * Transaction Context executing under
    */
   transaction::TransactionContext *txn_;
+
+  /**
+   * Plan node counter, used to generate plan node ids
+   */
+  planner::plan_node_id_t plan_id_counter_;
+
+  /**
+   * Plan meta data
+   */
+  common::ManagedPointer<planner::PlanMetaData> plan_meta_data_;
+
+  /**
+   * Plan node meta data
+   */
+  planner::PlanMetaData::PlanNodeMetaData plan_node_meta_data_;
 };
 
 }  // namespace optimizer

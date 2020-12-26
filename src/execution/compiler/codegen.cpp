@@ -45,7 +45,7 @@ CodeGen::CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor)
       num_cached_scopes_(0),
       scope_(nullptr),
       accessor_(accessor),
-      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()) {
+      pipeline_operating_units_(std::make_unique<selfdriving::PipelineOperatingUnits>()) {
   for (auto &scope : scope_cache_) {
     scope = std::make_unique<Scope>(nullptr);
   }
@@ -119,7 +119,7 @@ ast::Expr *CodeGen::ConstNull(type::TypeId type) const {
     case type::TypeId::VARCHAR:
       dummy_expr = StringToSql("");
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       dummy_expr = FloatToSql(0.0);
       break;
     case type::TypeId::VARBINARY:
@@ -490,7 +490,7 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
       break;
     case type::TypeId::DATE:
@@ -529,7 +529,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
       break;
     case type::TypeId::DATE:
@@ -787,11 +787,10 @@ ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows
   return call;
 }
 
-ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(ast::Expr *ouvec, pipeline_id_t pipeline_id,
-                                                     feature_id_t feature_id,
-                                                     brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                                     brain::ExecutionOperatingUnitFeatureUpdateMode mode,
-                                                     ast::Expr *value) {
+ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(
+    ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
+    selfdriving::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+    selfdriving::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value) {
   ast::Expr *call =
       CallBuiltin(ast::Builtin::ExecOUFeatureVectorRecordFeature,
                   {ouvec, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),

@@ -44,7 +44,10 @@ public class GenerateTrace {
                 statement = conn.createStatement();
                 statement.execute(line);
                 label = Constants.STATEMENT_OK;
-            } catch (Throwable e){
+            } catch (SQLException e) {
+                System.err.println("Error executing SQL Statement: '" + line + "'; " + e.getMessage());
+                label = Constants.STATEMENT_ERROR;
+            } catch (Throwable e) {
                 label = Constants.STATEMENT_ERROR;
             }
 
@@ -66,7 +69,17 @@ public class GenerateTrace {
                         System.out.println(colTypeName + " column invalid");
                     }
                 }
-                String query_sort = Constants.QUERY + " " + typeString + " nosort";
+
+                String sortOption;
+                if (line.contains("ORDER BY")) {
+                    // These rows are already sorted by the SQL and need to match exactly
+                    sortOption = "nosort";
+                } else {
+                    // Need to create a canonical ordering...
+                    sortOption = "rowsort";
+                    mog.sortMode = "rowsort";
+                }
+                String query_sort = Constants.QUERY + " " + typeString + " " + sortOption;
                 writeToFile(writer, query_sort);
                 writeToFile(writer, line);
                 writeToFile(writer, Constants.SEPARATION);
@@ -135,6 +148,7 @@ public class GenerateTrace {
             }
         }
         writer.close();
+        br.close();
     }
 
     public static void writeToFile(FileWriter writer, String str) throws IOException {

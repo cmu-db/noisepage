@@ -8,8 +8,10 @@ import signal
 import errno
 import psutil
 import datetime
-from util.constants import LOG
 from util import constants
+from util.constants import LOG
+from util.mem_metrics import MemoryInfo
+from collections import namedtuple
 
 
 def run_command(command,
@@ -17,10 +19,13 @@ def run_command(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=None,
-                printable=True):
+                printable=True,
+                silent_start=False):
     """
     General purpose wrapper for running a subprocess
     """
+    if not silent_start:
+        LOG.info(f'Running subproccess: {command}')
     p = subprocess.Popen(shlex.split(command),
                          stdout=stdout,
                          stderr=stderr,
@@ -37,7 +42,7 @@ def run_command(command,
     return rc, p.stdout, p.stderr
 
 
-def run_as_root(command, printable=True):
+def run_as_root(command, printable=True, silent_start=False):
     """
     General purpose wrapper for running a subprocess as root user
     """
@@ -47,7 +52,8 @@ def run_as_root(command, printable=True):
                        stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE,
                        cwd=None,
-                       printable=printable)
+                       printable=printable,
+                       silent_start=silent_start)
 
 
 def print_file(filename):
@@ -132,6 +138,29 @@ def check_pid_exists(pid):
     return psutil.pid_exists(pid)
 
 
+def collect_mem_info(pid):
+    """
+    Collect the memory info of the process if the pid exists.
+
+    Precondition:
+    Looks like collecting the mem info for the process belongs to the same user
+    does not require escalated privilege.
+    """
+    if not psutil.pid_exists(pid):
+        return None
+    p = psutil.Process(pid)
+    return p.memory_info()
+
+
+def update_mem_info(pid, interval, mem_info_dict):
+    """
+    Update the mem_info dict by appending the memory info of the given pid at
+    the current time in seconds.
+    """
+    curr = len(mem_info_dict) * interval
+    mem_info_dict[curr] = run_collect_mem_info(pid)
+
+
 def run_check_pids(pid):
     """ 
     Fork a subprocess with sudo privilege to check if the given pid exists,
@@ -140,7 +169,7 @@ def run_check_pids(pid):
 
     cmd = "python3 {SCRIPT} {PID}".format(SCRIPT=constants.FILE_CHECK_PIDS,
                                           PID=pid)
-    rc, stdout, _ = run_as_root(cmd, printable=False)
+    rc, stdout, _ = run_as_root(cmd, printable=False, silent_start=True)
 
     if rc != constants.ErrorCode.SUCCESS:
         LOG.error(
@@ -164,3 +193,27 @@ def run_kill_server(port):
     if rc != constants.ErrorCode.SUCCESS:
         raise Exception(
             "Error occured in run_kill_server for [PORT={}]".format(port))
+
+
+def run_collect_mem_info(pid):
+    """ 
+    Fork a subprocess with sudo privilege to collect the memory info for the
+    given pid.
+    """
+
+    cmd = "python3 {SCRIPT} {PID}".format(
+        SCRIPT=constants.FILE_COLLECT_MEM_INFO, PID=pid)
+
+    rc, stdout, _ = run_as_root(cmd, printable=False, silent_start=True)
+
+    if rc != constants.ErrorCode.SUCCESS:
+        LOG.error(
+            "Error occured in run_collect_mem_info for [PID={}]".format(pid))
+        return False
+
+    res_str = stdout.readline().decode("utf-8").rstrip("\n")
+    rss, vms = res_str.split(constants.MEM_INFO_SPLITTER)
+    rss = int(rss) if rss else None
+    vms = int(vms) if vms else None
+    mem_info = MemoryInfo(rss, vms)
+    return mem_info

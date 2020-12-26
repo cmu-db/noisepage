@@ -14,14 +14,15 @@
 namespace noisepage::execution::compiler {
 DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DELETE),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DELETE),
       deleter_(GetCodeGen()->MakeFreshIdentifier("deleter")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   // Prepare the child.
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 
-  for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
+  auto &index_oids = GetPlanAs<planner::DeletePlanNode>().GetIndexOids();
+  for (auto &index_oid : index_oids) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
       compilation_context->Prepare(*index_col.StoredExpression());
@@ -43,7 +44,7 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 
   // Delete from every index
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
-  const auto &indexes = GetCodeGen()->GetCatalogAccessor()->GetIndexOids(op.GetTableOid());
+  const auto &indexes = op.GetIndexOids();
   for (const auto &index_oid : indexes) {
     GenIndexDelete(function, context, index_oid);
   }
@@ -52,10 +53,10 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 }
 
 void DeleteTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_deletes_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_deletes_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_deletes_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_deletes_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_deletes_));
 }
 

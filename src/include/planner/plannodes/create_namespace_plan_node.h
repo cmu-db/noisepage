@@ -57,9 +57,11 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    * @param output_schema schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
    * @param namespace_name name of the namespace
+   * @param plan_node_id Plan node id
    */
   CreateNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                          std::unique_ptr<OutputSchema> output_schema, std::string namespace_name);
+                          std::unique_ptr<OutputSchema> output_schema, std::string namespace_name,
+                          plan_node_id_t plan_node_id);
 
  public:
   /**

@@ -7,10 +7,10 @@ Otherwise the script exits with error code 1.
 '''
 import json
 import os
+from os import environ, getenv
 import re
 import sys
 import urllib.request
-
 
 def get_pr_num():
     match = re.match(r'.*terrier_PR-([^@/]*).*', os.getcwd())
@@ -18,6 +18,8 @@ def get_pr_num():
         return int(match.groups()[0])
     return None
 
+def is_correct_build_folder():
+    return getenv('JOB_NAME').startswith('terrier/')
 
 def check_labels_polite(pr_num):
     api_url = r'https://api.github.com/repos/cmu-db/noisepage/issues/{}/labels'
@@ -37,6 +39,10 @@ def check_labels_impolite(pr_num):
 
 
 if __name__ == '__main__':
+    if not is_correct_build_folder():
+        print('This build originated from a jenkins subfolder. Skipping ci-label check')
+        sys.exit(0)
+
     pr_num = get_pr_num()
     # If we can't find a PR number, allow the build to go on.
     if pr_num is None:

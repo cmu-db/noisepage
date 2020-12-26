@@ -19,7 +19,7 @@ namespace noisepage::execution::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SEQ_SCAN),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::SEQ_SCAN),
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
@@ -130,12 +130,14 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto col_index = GetColOidIndex(cve->GetColumnOid());
       auto const_val = translator->DeriveValue(nullptr, nullptr);
-      builder.Append(codegen->VPIFilter(exec_ctx,                        // The execution context
-                                        vector_proj,                     // The vector projection
-                                        predicate->GetExpressionType(),  // Comparison type
-                                        col_index,                       // Column index
-                                        const_val,                       // Constant value
-                                        tid_list));                      // TID list
+      auto cmp_type = predicate->GetExpressionType();
+      cmp_type = cmp_type == parser::ExpressionType::COMPARE_IN ? parser::ExpressionType::COMPARE_EQUAL : cmp_type;
+      builder.Append(codegen->VPIFilter(exec_ctx,     // The execution context
+                                        vector_proj,  // The vector projection
+                                        cmp_type,     // Comparison type
+                                        col_index,    // Column index
+                                        const_val,    // Constant value
+                                        tid_list));   // TID list
     } else if (parser::ExpressionUtil::IsColumnCompareWithParam(*predicate)) {
       // TODO(WAN): temporary hacky implementation, poke Prashanth...
       auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -160,7 +162,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
         case type::TypeId::BIGINT:
           builtin = ast::Builtin::GetParamBigInt;
           break;
-        case type::TypeId::DECIMAL:
+        case type::TypeId::REAL:
           builtin = ast::Builtin::GetParamDouble;
           break;
         case type::TypeId::DATE:
@@ -277,10 +279,10 @@ void SeqScanTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBui
 }
 
 void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SEQ_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::SEQ_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
 }
 

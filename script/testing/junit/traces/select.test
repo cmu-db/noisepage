@@ -153,7 +153,7 @@ DROP TABLE temp3
 
 # LIKE AND NOT LIKE
 statement ok
-CREATE TABLE like_tbl (int_val INT, double_val DECIMAL,str_i_val VARCHAR(32),str_a_val VARCHAR(32));
+CREATE TABLE like_tbl (int_val INT, double_val DOUBLE,str_i_val VARCHAR(32),str_a_val VARCHAR(32));
 
 statement ok
 INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (1, 2.0, '123456', 'AbCdEf');
@@ -1175,3 +1175,107 @@ SELECT tb.* FROM t, tt tb;
 40
 50
 50
+
+query T
+SELECT true;
+----
+t
+
+query T
+SELECT '2020-11-07'::date;
+----
+2020-11-07
+
+statement ok
+CREATE TABLE foo (a date);
+
+statement ok
+INSERT INTO foo VALUES ('2020-11-07'::date);
+
+statement ok
+INSERT INTO foo VALUES ('2020-11-08'::date);
+
+query T rowsort
+select * from foo where a > '2020-11-07'::date;
+----
+2020-11-08
+
+query T rowsort
+SELECT * FROM foo WHERE a >= '2020-11-07'::date;
+----
+2020-11-07
+2020-11-08
+
+statement ok
+DROP TABLE foo;
+
+statement ok
+DROP TABLE IF EXISTS t;
+
+statement ok
+CREATE TABLE t (a INT PRIMARY KEY);
+
+statement ok
+INSERT INTO t VALUES (1);
+
+statement error
+INSERT INTO t VALUES (1);
+
+statement ok
+DROP TABLE t;
+
+statement ok
+DROP TABLE tt;
+
+statement ok
+CREATE TABLE t (a INT, b VARCHAR(32));
+
+statement ok
+INSERT INTO t VALUES (1, 'a'), (2, 'nananananabanana'), (3, 'catdogelephantfishgiraffehorse'), (4, 'd');
+
+query I rowsort
+SELECT a FROM t WHERE a IN (1);
+----
+1
+
+query I rowsort
+SELECT a FROM t WHERE a IN (2,3);
+----
+2
+3
+
+query I rowsort
+SELECT a FROM t WHERE a NOT IN (2,3);
+----
+1
+4
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('a','nananananabanana');
+----
+1
+2
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('nananananabanana','catdogelephantfishgiraffehorse');
+----
+2
+3
+
+query I rowsort
+SELECT a FROM t WHERE b NOT IN ('a');
+----
+2
+3
+4
+
+query I rowsort
+SELECT a FROM t WHERE b IN ('a','nananananabanana','catdogelephantfishgiraffehorse','d');
+----
+1
+2
+3
+4
+
+statement ok
+DROP TABLE t;

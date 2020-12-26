@@ -13,7 +13,8 @@ TEST(TypeUtilTests, GetTypeSizeTest) {
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::INTEGER), 4);
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::DATE), 4);
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::BIGINT), 8);
-  EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::DECIMAL), 8);
+  EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::REAL), 8);
+  EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::DECIMAL), 16);
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::TIMESTAMP), 8);
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::VARCHAR), storage::VARLEN_COLUMN);
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::VARBINARY), storage::VARLEN_COLUMN);
@@ -31,12 +32,13 @@ TEST(TypeUtilTests, TypeIdToStringTest) {
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::SMALLINT), "SMALLINT");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::INTEGER), "INTEGER");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::BIGINT), "BIGINT");
+  EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::REAL), "REAL");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::DECIMAL), "DECIMAL");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::TIMESTAMP), "TIMESTAMP");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::DATE), "DATE");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::VARCHAR), "VARCHAR");
   EXPECT_EQ(TypeUtil::TypeIdToString(TypeId::VARBINARY), "VARBINARY");
-  EXPECT_THROW(TypeUtil::TypeIdToString(TypeId(12)), ConversionException);
+  EXPECT_THROW(TypeUtil::TypeIdToString(TypeId(52)), ConversionException);
 }
 
 }  // namespace noisepage::type

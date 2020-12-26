@@ -246,7 +246,7 @@ TypeId GetTypeId(type::TypeId frontend_type) {
     case type::TypeId::BIGINT:
       execution_type_id = execution::sql::TypeId::BigInt;
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       execution_type_id = execution::sql::TypeId::Double;
       break;
     case type::TypeId::TIMESTAMP:

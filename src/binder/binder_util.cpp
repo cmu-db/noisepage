@@ -90,13 +90,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::TINYINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("tinyint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type tinyint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("tinyint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -105,13 +112,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::SMALLINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("smallint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type smallint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("smallint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -120,13 +134,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::INTEGER: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("integer out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type integer: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("integer out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -135,13 +156,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::BIGINT: {
+            size_t size;
             int64_t int_val;
             try {
-              int_val = std::stol(std::string(str_view));
+              int_val = std::stol(std::string(str_view), &size);
             } catch (const std::out_of_range &e) {
               throw BINDER_EXCEPTION(fmt::format("bigint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+
+            if (size != str_view.size()) {
+              throw BINDER_EXCEPTION(fmt::format("invalid input format for type bigint: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
+
             if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION(fmt::format("bigint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
@@ -149,16 +177,16 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             value->SetValue(type::TypeId::BIGINT, execution::sql::Integer(int_val));
             break;
           }
-          case type::TypeId::DECIMAL: {
+          case type::TypeId::REAL: {
             {
               double double_val;
               try {
                 double_val = std::stod(std::string(str_view));
               } catch (std::exception &e) {
-                throw BINDER_EXCEPTION(fmt::format("decimal out of range, string to convert was {}", str_view),
+                throw BINDER_EXCEPTION(fmt::format("real out of range, string to convert was {}", str_view),
                                        common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
               }
-              value->SetValue(type::TypeId::DECIMAL, execution::sql::Real(double_val));
+              value->SetValue(type::TypeId::REAL, execution::sql::Real(double_val));
               break;
             }
           }
@@ -231,7 +259,7 @@ void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::Constant
       throw BINDER_EXCEPTION(fmt::format("bigint out of range. number to convert was {}", int_val),
                              common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       if (IsRepresentable<double>(int_val)) {
         value->SetValue(desired_type, execution::sql::Real(static_cast<double>(int_val)));
         return;

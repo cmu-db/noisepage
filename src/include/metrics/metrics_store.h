@@ -22,6 +22,7 @@
 #include "metrics/pipeline_metric.h"
 #include "metrics/query_trace_metric.h"
 #include "metrics/transaction_metric.h"
+#include "parser/expression/constant_value_expression.h"
 
 namespace noisepage::metrics {
 
@@ -144,7 +145,7 @@ class MetricsStore {
    * @param resource_metrics Metrics
    */
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                          std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                          std::vector<selfdriving::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     if (!ComponentEnabled(MetricsComponent::EXECUTION_PIPELINE))
       METRICS_LOG_WARN("RecordPipelineData() called without pipepline metrics enabled.");
@@ -180,25 +181,31 @@ class MetricsStore {
 
   /**
    * Record queries generated
+   * @param db_oid database oid
    * @param query_id id of the query
    * @param query_text text of the query
+   * @param param parameter associated with this query
    * @param timestamp time of query generation
    */
-  void RecordQueryText(const execution::query_id_t query_id, const std::string &query_text, const uint64_t timestamp) {
+  void RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
+                       common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
+                       const uint64_t timestamp) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     NOISEPAGE_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
-    query_trace_metric_->RecordQueryText(query_id, query_text, timestamp);
+    query_trace_metric_->RecordQueryText(db_oid, query_id, query_text, param, timestamp);
   }
 
   /**
    * Record query execution history
    * @param query_id id of the query
    * @param timestamp time of the query execution
+   * @param param parameter associated with this query
    */
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp) {
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
+                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     NOISEPAGE_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
-    query_trace_metric_->RecordQueryTrace(query_id, timestamp);
+    query_trace_metric_->RecordQueryTrace(query_id, timestamp, param);
   }
 
   /**

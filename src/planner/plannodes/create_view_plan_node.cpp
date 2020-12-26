@@ -11,16 +11,16 @@
 namespace noisepage::planner {
 
 std::unique_ptr<CreateViewPlanNode> CreateViewPlanNode::Builder::Build() {
-  return std::unique_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
-                                                                    database_oid_, namespace_oid_,
-                                                                    std::move(view_name_), std::move(view_query_)));
+  return std::unique_ptr<CreateViewPlanNode>(
+      new CreateViewPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_,
+                             std::move(view_name_), std::move(view_query_), plan_node_id_));
 }
 
 CreateViewPlanNode::CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                        std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                                        catalog::namespace_oid_t namespace_oid, std::string view_name,
-                                       std::unique_ptr<parser::SelectStatement> view_query)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                                       std::unique_ptr<parser::SelectStatement> view_query, plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       database_oid_(database_oid),
       namespace_oid_(namespace_oid),
       view_name_(std::move(view_name)),
