@@ -67,7 +67,7 @@ class TestServer:
                             test_case.mem_metrics.mem_info_dict)
 
         # run the actual test
-        with open(test_case.test_output_file, "w+") as test_output_fd:
+        with open(test_case.test_output_file, "a+") as test_output_fd:
             ret_val, _, _ = run_command(test_case.test_command,
                                         test_case.test_error_msg,
                                         stdout=test_output_fd,
