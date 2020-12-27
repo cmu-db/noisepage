@@ -81,8 +81,6 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
       metrics_manager->AggregatedMetrics()
           .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
           .get());
-  //  NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= forecast->query_id_to_params_.size(),
-  //                   "Expect at least one pipeline_metrics record for each query");
   SELFDRIVING_LOG_INFO("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
     SELFDRIVING_LOG_INFO(
@@ -115,8 +113,6 @@ void PilotUtil::InferenceWithFeatures(
     }
     inference_result.emplace(ou_map_it.first, res.first);
   }
-
-  // PilotUtil::ParseInferenceResult(pipeline_to_ou_position, inference_result, pipeline_to_prediction);
 }
 
 void PilotUtil::GroupFeaturesByOU(
