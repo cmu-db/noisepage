@@ -15,7 +15,9 @@
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
+#include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/pilot/pilot.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 

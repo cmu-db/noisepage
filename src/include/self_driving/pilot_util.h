@@ -10,11 +10,20 @@
 
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
-#include "self_driving/forecast/workload_forecast.h"
-#include "self_driving/pilot/pilot.h"
-#include "transaction/transaction_manager.h"
+
+namespace noisepage {
+namespace modelserver {
+class ModelServerManager;
+}
+
+namespace transaction {
+class TransactionManager;
+}
+}
 
 namespace noisepage::selfdriving {
+class WorkloadForecast;
+class Pilot;
 
 /**
  * Utility class for helper functions
