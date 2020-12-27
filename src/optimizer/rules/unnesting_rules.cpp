@@ -150,8 +150,11 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   const auto &agg_group_aliases_set = memo.GetGroupByID(agg_group_id)->GetTableAliases();
   auto &filter_predicates = filter_expr->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
-  auto [correlated_predicates, normal_predicates, new_groupby_cols] =
-      ExtractCorrelatedPredicatesWithAggregate(filter_predicates, agg_group_aliases_set);
+  std::vector<AnnotatedExpression> correlated_predicates;
+  std::vector<AnnotatedExpression> normal_predicates;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
+  ExtractCorrelatedPredicatesWithAggregate(filter_predicates, agg_group_aliases_set, &correlated_predicates,
+                                           &normal_predicates, &new_groupby_cols);
 
   // Create a new agg node
   auto aggregation = agg_expr->Contents()->GetContentsAs<LogicalAggregateAndGroupBy>();
@@ -199,19 +202,16 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   transformed->emplace_back(std::move(output));
 }
 
-std::tuple<std::vector<AnnotatedExpression>, std::vector<AnnotatedExpression>,
-           std::vector<common::ManagedPointer<parser::AbstractExpression>>>
-ExtractCorrelatedPredicatesWithAggregate(const std::vector<AnnotatedExpression> &predicates,
-                                         const std::unordered_set<std::string> &child_group_aliases_set) {
-  std::vector<AnnotatedExpression> correlated_predicates;
-  std::vector<AnnotatedExpression> normal_predicates;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
+void ExtractCorrelatedPredicatesWithAggregate(
+    const std::vector<AnnotatedExpression> &predicates, const std::unordered_set<std::string> &child_group_aliases_set,
+    std::vector<AnnotatedExpression> *correlated_predicates, std::vector<AnnotatedExpression> *normal_predicates,
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> *new_groupby_cols) {
   for (auto &predicate : predicates) {
     if (OptimizerUtil::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
-      normal_predicates.emplace_back(predicate);
+      normal_predicates->emplace_back(predicate);
     } else {
       // Correlated predicate, predicate in nested query references column in outer query
-      correlated_predicates.emplace_back(predicate);
+      correlated_predicates->emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
       // See https://github.com/cmu-db/noisepage/issues/1404
       // The higher the depth of an expression the deeper/more nested it is.
@@ -219,16 +219,14 @@ ExtractCorrelatedPredicatesWithAggregate(const std::vector<AnnotatedExpression> 
       // left side doesn't references the outer query (i.e. the right side references the outer query).
       // The left side shall be evaluated as a part of the new aggregation before the new filter
       if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
+        new_groupby_cols->emplace_back(root_expr->GetChild(0).Get());
       } else {
         // Otherwise, the right side of the predicate doesn't references the outer query (i.e. the left side references
         // the outer query). The right side shall be evaluated as a part of the new aggregation before the new filter
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
+        new_groupby_cols->emplace_back(root_expr->GetChild(1).Get());
       }
     }
   }
-
-  return {correlated_predicates, normal_predicates, new_groupby_cols};
 }
 
 }  // namespace noisepage::optimizer

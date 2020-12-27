@@ -1,7 +1,5 @@
 #include "optimizer/rules/rewrite_rules.h"
 
-#include <optimizer/rules/unnesting_rules.h>
-
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -18,6 +16,7 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
+#include "optimizer/rules/unnesting_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
@@ -492,8 +491,11 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
   const auto &child_group_aliases_set = memo.GetGroupByID(child_group_id)->GetTableAliases();
   auto &predicates = filter_expr->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
-  auto [correlated_predicates, normal_predicates, new_groupby_cols] =
-      ExtractCorrelatedPredicatesWithAggregate(predicates, child_group_aliases_set);
+  std::vector<AnnotatedExpression> correlated_predicates;
+  std::vector<AnnotatedExpression> normal_predicates;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
+  ExtractCorrelatedPredicatesWithAggregate(predicates, child_group_aliases_set, &correlated_predicates,
+                                           &normal_predicates, &new_groupby_cols);
 
   if (correlated_predicates.empty()) {
     // No need to pull
