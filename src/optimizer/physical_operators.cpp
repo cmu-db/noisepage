@@ -287,7 +287,9 @@ Operator InnerIndexJoin::Make(
   auto *join = new InnerIndexJoin();
   join->tbl_oid_ = tbl_oid;
   join->idx_oid_ = idx_oid;
+  join->scan_type_ = scan_type;
   join->join_keys_ = std::move(join_keys);
+  join->join_predicates_ = std::move(join_predicates);
   join->limit_exists_ = limit_exists;
   join->limit_ = limit;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
