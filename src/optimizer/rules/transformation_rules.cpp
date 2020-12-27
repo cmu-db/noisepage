@@ -192,9 +192,13 @@ void SetLimitInGet::Transform(common::ManagedPointer<AbstractOptimizerNode> inpu
 SetLimitInLogicalInnerJoin::SetLimitInLogicalInnerJoin() {
   type_ = RuleType::SET_LIMIT_IN_LOGICAL_INNER_JOIN;
 
-  match_pattern_ = new Pattern(OpType::LOGICALLIMIT);
   auto child = new Pattern(OpType::LOGICALINNERJOIN);
+  auto left_get = new Pattern(OpType::LEAF);
+  auto right_get = new Pattern(OpType::LEAF);
+  child->AddChild(left_get);
+  child->AddChild(right_get);
 
+  match_pattern_ = new Pattern(OpType::LOGICALLIMIT);
   match_pattern_->AddChild(child);
 }
 

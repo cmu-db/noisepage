@@ -544,10 +544,12 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
     if (!idx_scan->GetBounds().empty()) {
       std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
       child.emplace_back(children[0]->Copy());
+      bool scan_limit_exists = idx_scan->GetLimitExists();
+      auto scan_limit = idx_scan->GetLimit();
 
       auto result = std::make_unique<OperatorNode>(
           InnerIndexJoin::Make(idx_scan->GetTableOID(), idx_scan->GetIndexOID(), idx_scan->GetIndexScanType(),
-                               idx_scan->GetBounds(), join_preds)
+                               idx_scan->GetBounds(), join_preds, scan_limit_exists, scan_limit)
               .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
           std::move(child), context->GetOptimizerContext()->GetTxn());
       transformed->emplace_back(std::move(result));
