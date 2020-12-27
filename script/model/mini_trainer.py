@@ -67,7 +67,6 @@ class MiniTrainer:
 
         # Test the prediction with/without the target transformer
         y_transformers = [None, data_transforming_util.OPUNIT_Y_TRANSFORMER_MAP[data.opunit]]
-        #y_transformers = [None]
         # modeling_transformer = data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]
         # if modeling_transformer is not None:
         #    transformers.append(modeling_transformer)
