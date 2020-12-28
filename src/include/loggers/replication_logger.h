@@ -7,7 +7,7 @@
 #ifdef NOISEPAGE_USE_LOGGING
 
 namespace noisepage::replication {
-extern std::shared_ptr<spdlog::logger> replication_logger;  // NOLINT
+extern common::SanctionedSharedPtr<spdlog::logger>::Ptr replication_logger;
 
 void InitReplicationLogger();
 }  // namespace noisepage::replication
