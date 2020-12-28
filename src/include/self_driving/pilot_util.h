@@ -19,7 +19,8 @@ class ModelServerManager;
 namespace transaction {
 class TransactionManager;
 }
-}
+
+}  // namespace noisepage
 
 namespace noisepage::selfdriving {
 class WorkloadForecast;
