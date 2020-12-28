@@ -26,6 +26,7 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
       listen_destination, network_identity,
       [this](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id, std::string_view msg,
              uint64_t recv_cb_id) { EventLoop(messenger, sender_id, msg, recv_cb_id); });
+  // TODO(WAN): another hack
   if (port == 15445) {
     port_ = 15445;
     std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -97,6 +98,7 @@ void ReplicationManager::ReplicaConnect(const std::string &replica_name, const s
 
 void ReplicationManager::ReplicaSend(const std::string &replica_name, const ReplicationManager::MessageType type,
                                      const std::string &msg, bool block) {
+  // TODO(WAN): yet another hack
   if (port_ == 15446) return;
   std::unique_lock<std::mutex> lock(mutex_);
   bool completed = false;
