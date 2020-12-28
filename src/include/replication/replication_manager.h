@@ -28,7 +28,7 @@ class Replica {
 
   messenger::ConnectionDestination replica_info_;
   messenger::ConnectionId connection_;
-  uint64_t last_heartbeat_;  //< Time (unix epoch) that the replica heartbeat was last successful.
+  uint64_t last_heartbeat_;  ///< Time (unix epoch) that the replica heartbeat was last successful.
 };
 
 /**
@@ -91,9 +91,9 @@ class ReplicationManager {
   common::ManagedPointer<messenger::ConnectionId> GetReplicaConnection(const std::string &replica_name);
 
   common::ManagedPointer<messenger::Messenger> messenger_;
-  std::string identity_;                               //< The identity of this replica.
-  uint16_t port_;                                      //< The port that replication runs on.
-  std::unordered_map<std::string, Replica> replicas_;  //< Replica Name -> Connection ID.
+  std::string identity_;                               ///< The identity of this replica.
+  uint16_t port_;                                      ///< The port that replication runs on.
+  std::unordered_map<std::string, Replica> replicas_;  ///< Replica Name -> Connection ID.
   std::mutex mutex_;
   std::condition_variable cvar_;
 };

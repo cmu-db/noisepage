@@ -322,18 +322,13 @@ void LogicalInsertToPhysicalInsert::Transform(common::ManagedPointer<AbstractOpt
   const auto insert_op = input->Contents()->GetContentsAs<LogicalInsert>();
   NOISEPAGE_ASSERT(input->GetChildren().empty(), "LogicalInsert should have 0 children");
 
-  // TODO(wz2): For now any insert will update all indexes
-  auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
-  auto tbl_oid = insert_op->GetTableOid();
-  auto indexes = accessor->GetIndexOids(tbl_oid);
-
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   std::vector<catalog::col_oid_t> cols(insert_op->GetColumns());
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> vals = *(insert_op->GetValues());
-  auto result = std::make_unique<OperatorNode>(Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetTableOid(),
-                                                            std::move(cols), std::move(vals), std::move(indexes))
-                                                   .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                               std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto result = std::make_unique<OperatorNode>(
+      Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetTableOid(), std::move(cols), std::move(vals))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
 }
 
@@ -362,18 +357,12 @@ void LogicalInsertSelectToPhysicalInsertSelect::Transform(
   const auto insert_op = input->Contents()->GetContentsAs<LogicalInsertSelect>();
   NOISEPAGE_ASSERT(input->GetChildren().size() == 1, "LogicalInsertSelect should have 1 child");
 
-  // For now, insert any tuple will modify indexes
-  auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
-  auto tbl_oid = insert_op->GetTableOid();
-  auto indexes = accessor->GetIndexOids(tbl_oid);
-
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto op = std::make_unique<OperatorNode>(
-      InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetTableOid(), std::move(indexes))
-          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-      std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto op = std::make_unique<OperatorNode>(InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetTableOid())
+                                               .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                           std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
 
@@ -901,7 +890,7 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
       auto &col = tbl_schema.GetColumn(cve->GetColumnOid());
       name = cve->GetColumnName();
       nullable = col.Nullable();
-      if (is_var) varlen_size = col.MaxVarlenSize();
+      if (is_var) varlen_size = col.TypeModifier();
     } else {
       // TODO(Matt): derive a unique name
       // TODO(wz2): Derive nullability/varlen from non ColumnValue

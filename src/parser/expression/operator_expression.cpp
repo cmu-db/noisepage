@@ -35,7 +35,8 @@ void OperatorExpression::DeriveReturnValueType() {
     return t1->GetReturnValueType() < t2->GetReturnValueType();
   });
   const auto &type = (*max_type_child)->GetReturnValueType();
-  NOISEPAGE_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
+  NOISEPAGE_ASSERT(type <= type::TypeId::REAL, "Invalid operand type in Operator Expression.");
+  // TODO(Matt): What is this assertion doing? Why is order of the enum important?
   this->SetReturnValueType(type);
 }
 

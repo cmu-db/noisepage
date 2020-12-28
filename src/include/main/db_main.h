@@ -17,6 +17,7 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "replication/replication_manager.h"
+#include "self_driving/model_server/model_server_manager.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -433,6 +434,13 @@ class DBMain {
                                            network_port_, connection_thread_count_, uds_file_directory_);
       }
 
+      std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
+      if (model_server_enable_) {
+        NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
+        model_server_manager =
+            std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+      }
+
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -447,6 +455,7 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
       db_main->replication_manager_ = std::move(replication_manager);
 
@@ -714,6 +723,24 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value with ModelServer enable
+     * @return self reference for chaining
+     */
+    Builder &SetUseModelServer(const bool value) {
+      model_server_enable_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value model_server_path
+     * @return self reference for chaining
+     */
+    Builder &SetModelServerPath(const std::string &value) {
+      model_server_path_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -764,6 +791,13 @@ class DBMain {
     uint16_t messenger_port_ = 9022;
     uint16_t replication_port_ = 15445;
     std::string replication_hosts_path_ = "replication.conf";
+    bool model_server_enable_ = false;
+    /**
+     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
+     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
+     * in use cases where such assumptions are no longer true.
+     */
+    std::string model_server_path_ = "../../script/model/model_server.py";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -825,6 +859,8 @@ class DBMain {
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
       replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
+      model_server_enable_ = settings_manager->GetBool(settings::Param::model_server_enable);
+      model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);
 
       return settings_manager;
     }
@@ -937,6 +973,11 @@ class DBMain {
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
   common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
 
+  /** @return ManagedPointer to the ModelServerManager, can be nullptr if disabled. */
+  common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() const {
+    return common::ManagedPointer(model_server_manager_);
+  }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -954,6 +995,7 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<replication::ReplicationManager> replication_manager_;
 };

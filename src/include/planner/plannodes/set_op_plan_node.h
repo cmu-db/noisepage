@@ -47,7 +47,7 @@ class SetOpPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<SetOpPlanNode> Build() {
       return std::unique_ptr<SetOpPlanNode>(
-          new SetOpPlanNode(std::move(children_), std::move(output_schema_), set_op_));
+          new SetOpPlanNode(std::move(children_), std::move(output_schema_), set_op_, plan_node_id_));
     }
 
    protected:
@@ -62,10 +62,11 @@ class SetOpPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param set_op the set pperation of this node
+   * @param plan_node_id Plan node id
    */
   SetOpPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                SetOpType set_op)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), set_op_(set_op) {}
+                SetOpType set_op, plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), set_op_(set_op) {}
 
  public:
   /**

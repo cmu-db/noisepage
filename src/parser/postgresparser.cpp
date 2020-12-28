@@ -155,6 +155,10 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       result = VariableSetTransform(parse_result, reinterpret_cast<VariableSetStmt *>(node));
       break;
     }
+    case T_VariableShowStmt: {
+      result = VariableShowTransform(parse_result, reinterpret_cast<VariableShowStmt *>(node));
+      break;
+    }
     case T_ViewStmt: {
       result = CreateViewTransform(parse_result, reinterpret_cast<ViewStmt *>(node));
       break;
@@ -413,6 +417,25 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(ParseResult *
     children.emplace_back(ExprTransform(parse_result, root->rexpr_, nullptr));
   } else if (root->kind_ == AEXPR_OP && root->type_ == T_TypeCast) {
     target_type = ExpressionType::OPERATOR_CAST;
+  } else if (root->kind_ == AEXPR_IN) {
+    // Expression "FOO in (X, Y, ..., Z)". By convention, FOO is the first child and the other children are the IN list.
+    target_type = ExpressionType::COMPARE_IN;
+    children.emplace_back(ExprTransform(parse_result, root->lexpr_, nullptr));
+    auto *in_list = reinterpret_cast<List *>(root->rexpr_);
+    for (auto cell = in_list->head; cell != nullptr; cell = cell->next) {
+      auto node = static_cast<Node *>(cell->data.ptr_value);
+      children.emplace_back(ExprTransform(parse_result, node, nullptr));
+    }
+
+    auto name = (reinterpret_cast<value *>(root->name_->head->data.ptr_value))->val_.str_;
+    // Postgres distinguishes between IN "=" and NOT IN "<>" by the name of the expression. Rewrite NOT IN.
+    if (std::strcmp(name, "<>") == 0) {
+      auto in_expr = std::make_unique<ComparisonExpression>(target_type, std::move(children));
+      std::vector<std::unique_ptr<AbstractExpression>> in_child;
+      in_child.emplace_back(std::move(in_expr));
+      return std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID,
+                                                  std::move(in_child));
+    }
   } else {
     auto name = (reinterpret_cast<value *>(root->name_->head->data.ptr_value))->val_.str_;
     target_type = StringToExpressionType(name);
@@ -733,7 +756,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
         result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::REAL,
                                                            execution::sql::Real(std::stod(val.val_.str_)));
       }
       break;
@@ -1476,7 +1499,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
   auto type_name = root->type_name_;
 
   // handle varlen
-  size_t varlen = 0;
+  int32_t varlen = -1;
   if (type_name->typmods_ != nullptr) {
     auto node = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
     switch (node->type) {
@@ -1484,7 +1507,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
         auto node_type = reinterpret_cast<A_Const *>(node)->val_.type_;
         switch (node_type) {
           case T_Integer: {
-            varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
+            varlen = static_cast<int32_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
             break;
           }
           default: {
@@ -2035,6 +2058,14 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   }
   bool is_set_default = root->kind_ == VariableSetKind::VAR_SET_DEFAULT;
   auto result = std::make_unique<VariableSetStatement>(name, std::move(values), is_set_default);
+  return result;
+}
+
+// Postgres.VariableShowStmt -> noisepage.VariableShowStatement
+std::unique_ptr<VariableShowStatement> PostgresParser::VariableShowTransform(ParseResult *parse_result,
+                                                                             VariableShowStmt *root) {
+  std::string name = root->name_;
+  auto result = std::make_unique<VariableShowStatement>(name);
   return result;
 }
 

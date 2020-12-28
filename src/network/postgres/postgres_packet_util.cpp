@@ -64,7 +64,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       return {type, execution::sql::Integer(static_cast<int32_t>(std::stoll(string)))};
     case type::TypeId::BIGINT:
       return {type, execution::sql::Integer(static_cast<int64_t>(std::stoll(string)))};
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       return {type, execution::sql::Real(std::stod(string))};
     case type::TypeId::VARCHAR: {
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
@@ -126,7 +126,7 @@ parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
       NOISEPAGE_ASSERT(size == 8, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int64_t>())};
     }
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       NOISEPAGE_ASSERT(size == 8, "Unexpected size for this type.");
       return {type, execution::sql::Real(read_buffer->ReadValue<double>())};
     }

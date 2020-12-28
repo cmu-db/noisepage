@@ -151,7 +151,8 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 #
 # CMake options, specify with -DNOISEPAGE_{option}=On.
 #   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default ON.
-#   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL target. Default ON.
+#   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL (but the Self-Driving test) target. Default ON.
+#   NOISEPAGE_BUILD_SELF_DRIVING_TESTS      : Enable building self-driving end-to-end tests. Default OFF
 #   NOISEPAGE_GENERATE_COVERAGE             : Enable C++ code coverage. Default OFF.
 #   NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE    : Enable verbose unittest failures. Default OFF. Can be very verbose.
 #   NOISEPAGE_UNITY_BUILD                   : Enable unity (aka jumbo) builds. Default OFF.
@@ -183,6 +184,10 @@ option(NOISEPAGE_BUILD_BENCHMARKS
 option(NOISEPAGE_BUILD_TESTS
         "Enable building tests as part of the ALL target."
         ON)
+
+option(NOISEPAGE_BUILD_SELF_DRIVING_TESTS
+        "Enable building self-driving tests as part of the ALL target."
+        OFF)
 
 option(NOISEPAGE_GENERATE_COVERAGE
         "Enable C++ code coverage."
@@ -521,8 +526,7 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
-# TODO(Joe) fast_float doesn't have any git tags so I'm using the most recent version. It's probably worth monitoring the repo in case they create a tag for some official release so we can update this
-add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git f3b7466)
+add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git v0.1.0)
 
 # Handle other dependencies.
 
@@ -811,6 +815,16 @@ add_custom_target(jumbotests
         -T Test                             # Run tests and log it to Testing/*/Test.xml.
         --timeout 3000                      # 3000 second timeout per test.
         USES_TERMINAL)
+add_custom_target(self_driving_test         # For now, this target is specifically used for self-driving pipeline
+        ctest
+        --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
+        ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails.
+        -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
+        -L self_driving_test                # Run all tests that have a label like this. See footgun warning above.
+        --no-compress-output                # Output verbosely so that it can be logged.
+        -T Test                             # Run tests and log it to Testing/*/Test.xml.
+        --timeout 3000                      # 3000 second timeout per test.
+        USES_TERMINAL)
 
 unset(UNITTEST_OUTPUT_ON_FAILURE)
 
@@ -893,6 +907,8 @@ function(add_noisepage_test
     add_dependencies(${TEST_LABEL} ${TEST_NAME})
 endfunction()
 
+# NOTE:Self-driving End-To-End tests are not included below because the test require dependencies to other part of the system, thus could not be run as standalone tests.
+# They will be added to a separate test target: self_driving_test. See NOISEPAGE_SELF_DRIVING_TEST_SOURCES for details
 file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/binder/*.cpp"
         "test/catalog/*.cpp"
@@ -927,6 +943,26 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
 
     add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} unittest ${EXCLUDE_OR_NOT} NO_UNITY)
 endforeach ()
+
+
+file(GLOB_RECURSE NOISEPAGE_SELF_DRIVING_TEST_SOURCES
+        "test/self_driving/*.cpp"
+        )
+
+foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_SELF_DRIVING_TEST_SOURCES})
+    file(RELATIVE_PATH NOISEPAGE_TEST_CPP_REL "${PROJECT_SOURCE_DIR}/test" ${NOISEPAGE_TEST_CPP})
+    get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
+    get_filename_component(NOISEPAGE_TEST ${NOISEPAGE_TEST_CPP} NAME_WE)
+
+    if (NOT ${NOISEPAGE_BUILD_SELF_DRIVING_TESTS})
+        set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
+    else ()
+        set(EXCLUDE_OR_NOT "NO_EXCLUDE")
+    endif ()
+
+    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} self_driving_test ${EXCLUDE_OR_NOT} NO_UNITY)
+endforeach ()
+
 
 function(add_jumbotest
         FOLDER_PATH     # The folder to jumbo together.
@@ -978,7 +1014,7 @@ endfunction()
 # Be careful that your prefixes are really unique, otherwise a test will be run multiple times.
 
 add_jumbotest("test/binder" "")
-add_jumbotest("test/catalog" "")
+add_jumbotest("test/catalog" "catalog_sql_test;")
 add_jumbotest("test/common" "bitmap_test;concurrent_bitmap_test;rusage_monitor_test;")
 add_jumbotest("test/execution" "ast;compiler_test;index_create_test;index_iterator_test;sql;storage_interface_test;util;vm;")
 add_jumbotest("test/integration" "")
@@ -997,6 +1033,7 @@ add_jumbotest("test/type" "")
 # Read up on CTest resource groups: https://cmake.org/cmake/help/latest/manual/ctest.1.html#resource-allocation
 # All tests that try to launch the server on port 15721 must declare that here.
 set_tests_properties(
+        catalog_sql_test jumbotest_catalog_catalog_sql_test
         metrics_test jumbotest_metrics_metrics_test
         network_test jumbotest_network_network_test
         traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
@@ -1004,7 +1041,9 @@ set_tests_properties(
 set_tests_properties(
         messenger_test jumbotest_messenger_messenger_test
         PROPERTIES RESOURCE_GROUPS "port15721:1;port15722:1;port15723:1;port9022:1;port9023:1;port9024:1")
-
+set_tests_properties(
+        modeling_test
+        PROPERTIES RESOURCE_GROUPS "port15721:1;port9022:1")
 #######################################################################################################################
 # HEADER Benchmarks.
 #######################################################################################################################

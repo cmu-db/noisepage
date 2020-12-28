@@ -199,7 +199,7 @@ class ConstantValueExpression : public AbstractExpression {
       case type::TypeId::BIGINT: {
         return GetInteger().is_null_;
       }
-      case type::TypeId::DECIMAL: {
+      case type::TypeId::REAL: {
         return GetReal().is_null_;
       }
       case type::TypeId::TIMESTAMP: {
@@ -231,6 +231,9 @@ class ConstantValueExpression : public AbstractExpression {
 
   /** @return A string representation of this ConstantValueExpression. */
   std::string ToString() const;
+
+  /** @return A ConstantValueExpression from input string and type. */
+  static ConstantValueExpression FromString(const std::string &val_string, type::TypeId type_id);
 
   /**
    * @return expression serialized to json

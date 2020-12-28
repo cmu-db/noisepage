@@ -24,6 +24,10 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messeng
                                   [this](common::ManagedPointer<messenger::Messenger> messenger,
                                          const messenger::ZmqMessage &msg) { EventLoop(messenger, msg); });
   BuildReplicaList(replication_hosts_path);
+
+  // TODO(WAN): development purposes
+  replication_logger->set_level(spdlog::level::trace);
+
   for (const auto &replica : replicas_) {
     ReplicaHeartbeat(replica.first);
   }
@@ -105,7 +109,7 @@ void ReplicationManager::EventLoop(common::ManagedPointer<noisepage::messenger::
                                    const noisepage::messenger::ZmqMessage &msg) {
   switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
     case MessageType::HEARTBEAT:
-      REPLICATION_LOG_INFO(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
+      REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
       break;
     default:
       break;
@@ -121,10 +125,12 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
     auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
     if (0 == replica.last_heartbeat_) {
       replica.last_heartbeat_ = epoch_now_ms.count();
+      REPLICATION_LOG_TRACE(
+          fmt::format("Replica {}: heartbeat initialized at {}.", replica_name, replica.last_heartbeat_));
     }
   }
 
-  REPLICATION_LOG_INFO(fmt::format("Replica {}: heartbeat start.", replica_name));
+  REPLICATION_LOG_TRACE(fmt::format("Replica {}: heartbeat start.", replica_name));
   try {
     messenger_->SendMessage(
         GetReplicaConnection(replica_name), "",
@@ -133,21 +139,21 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
           auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
           auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
           replica.last_heartbeat_ = epoch_now_ms.count();
-          REPLICATION_LOG_INFO(fmt::format("Replica {}: last heartbeat {}, heartbeat {} OK.", replica_name,
-                                           replica.last_heartbeat_, epoch_now_ms.count()));
+          REPLICATION_LOG_TRACE(fmt::format("Replica {}: last heartbeat {}, heartbeat {} OK.", replica_name,
+                                            replica.last_heartbeat_, epoch_now_ms.count()));
         },
         static_cast<uint64_t>(MessageType::HEARTBEAT));
   } catch (const MessengerException &e) {
-    REPLICATION_LOG_INFO(
+    REPLICATION_LOG_TRACE(
         fmt::format("Replica {}: last heartbeat {}, heartbeat failed.", replica_name, replica.last_heartbeat_));
     auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
     auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
     if (epoch_now_ms.count() - replica.last_heartbeat_ >= REPLICATION_CARDIAC_ARREST_MS) {
-      REPLICATION_LOG_INFO(fmt::format("Replica {}: last heartbeat {}, declared dead {}.", replica_name,
+      REPLICATION_LOG_WARN(fmt::format("Replica {}: last heartbeat {}, declared dead {}.", replica_name,
                                        replica.last_heartbeat_, epoch_now_ms.count()));
     }
   }
-  REPLICATION_LOG_INFO(fmt::format("Replica {}: heartbeat end.", replica_name));
+  REPLICATION_LOG_TRACE(fmt::format("Replica {}: heartbeat end.", replica_name));
 }
 
 common::ManagedPointer<noisepage::messenger::ConnectionId> ReplicationManager::GetReplicaConnection(

@@ -93,6 +93,81 @@
 
 namespace noisepage::messenger {
 
+///** An abstraction around ZeroMQ messages which explicitly have the sender specified. */
+// class ZmqMessage {
+// public:
+//  /**
+//   * Build a new ZmqMessage from the supplied information.
+//   * @param send_msg_id     The ID of the message on the sender side.
+//   * @param recv_cb_id      The ID of the message on the receiver side.
+//   * @param sender_id       The identity of the sender.
+//   * @param message         The contents of the message.
+//   * @return A ZmqMessage encapsulating the given message.
+//   */
+//  static ZmqMessage Build(uint64_t send_msg_id, uint64_t recv_cb_id, const std::string &sender_id,
+//                          std::string_view message) {
+//    return ZmqMessage{sender_id, fmt::format("{}-{}-{}", send_msg_id, recv_cb_id, message)};
+//  }
+//
+//  /**
+//   * Parse the given payload into a ZmqMessage.
+//   * @param routing_id      The message's routing ID.
+//   * @param message         The message received.
+//   * @return A ZmqMessage encapsulating the given message.
+//   */
+//  static ZmqMessage Parse(const std::string &routing_id, const std::string &message) {
+//    return ZmqMessage{routing_id, message};
+//  }
+//
+//  /** @return The ID of this message (sender side). */
+//  uint64_t GetMessageIdSender() const { return send_msg_id_; }
+//
+//  /** @return The ID of this message (receiver side). */
+//  uint64_t GetCallbackIdReceiver() const { return recv_cb_id_; }
+//
+//  /** @return The routing ID of this message. */
+//  std::string_view GetRoutingId() const { return std::string_view(routing_id_); }
+//
+//  /** @return The message itself. */
+//  std::string_view GetMessage() const { return message_; }
+//
+//  /** @return The raw payload of the message. */
+//  std::string_view GetRawPayload() const { return std::string_view(payload_); }
+//
+// private:
+//  friend Messenger;
+//
+//  /** Construct a new ZmqMessage with the given routing ID and payload. Payload of form ID-MESSAGE. */
+//  ZmqMessage(std::string routing_id, std::string payload)
+//      : routing_id_(std::move(routing_id)), payload_(std::move(payload)), message_(payload_) {
+//    if (payload_.empty()) {
+//      send_msg_id_ = 0;
+//      recv_cb_id_ = 0;
+//    } else {
+//      // TODO(WAN): atoi, stoull, from_chars, etc? Error checking in general.
+//      UNUSED_ATTRIBUTE int check =
+//          std::sscanf(payload_.c_str(), "%" SCNu64 "-%" SCNu64 "-", &send_msg_id_, &recv_cb_id_);
+//      NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
+//
+//      // Remove the prefix up to the second '-'
+//      message_.remove_prefix(message_.find_first_of('-') + 1);
+//      message_.remove_prefix(message_.find_first_of('-') + 1);
+//    }
+//  }
+//
+//  /** The routing ID of the message. */
+//  std::string routing_id_;
+//  /** The payload in the message, of form ID-MESSAGE.  */
+//  std::string payload_;
+//
+//  /** The cached id of the message (sender side). */
+//  uint64_t send_msg_id_;
+//  /** The cached id of the message (receiver side). */
+//  uint64_t recv_cb_id_;
+//  /** The cached actual message. */
+//  std::string_view message_;
+//};
+
 ZmqMessage ZmqMessage::Build(uint64_t source_cb_id, uint64_t dest_cb_id, const std::string &routing_id,
                              std::string_view message) {
   return ZmqMessage{routing_id, fmt::format("{}-{}-{}", source_cb_id, dest_cb_id, message)};
@@ -112,7 +187,10 @@ ZmqMessage::ZmqMessage(std::string routing_id, std::string payload)
     UNUSED_ATTRIBUTE int check =
         std::sscanf(payload_.c_str(), "%" SCNu64 "-%" SCNu64 "-", &source_cb_id_, &dest_cb_id_);
     NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
-    message_.remove_prefix(message_.find_last_of('-') + 1);
+
+    // Remove the prefix up to the second '-'
+    message_.remove_prefix(message_.find_first_of('-') + 1);
+    message_.remove_prefix(message_.find_first_of('-') + 1);
   }
 }
 
@@ -276,19 +354,13 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
   socket_->set(zmq::sockopt::linger, 0);             // Discard all pending messages immediately on socket close.
   socket_->connect(target.GetDestination());
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
-  MESSENGER_LOG_INFO(fmt::format("[PID={}] Registered (but haven't opened!) a new connection to {} ({}) as {}.",
+  MESSENGER_LOG_TRACE(fmt::format("[PID={}] Registered (but haven't opened!) a new connection to {} ({}) as {}.",
                                  ::getpid(), target_name_, target.GetDestination(), routing_id_.c_str()));
   // Add the new socket to the list of sockets that will be polled by the server loop.
   messenger->polled_sockets_->AddPollItem(socket_.get(), nullptr);
 }
 
 ConnectionId::~ConnectionId() = default;
-
-ConnectionId::ConnectionId(ConnectionId &&other) {
-  this->socket_ = std::move(other.socket_);
-  this->routing_id_ = std::move(other.routing_id_);
-  this->target_name_ = std::move(other.target_name_);
-}
 
 ConnectionRouter::ConnectionRouter(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                                    const std::string &identity, CallbackFn callback)
@@ -368,6 +440,7 @@ void Messenger::RunTask() {
     // Run the server loop.
     ServerLoop();
   } catch (zmq::error_t &err) {
+    MESSENGER_LOG_TRACE(fmt::format("[PID={}] ServerLoop exited with {}", ::getpid(), err.what()));
     Terminate();
   }
 }
@@ -391,7 +464,7 @@ ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message,
-                            CallbackFn callback, uint64_t remote_cb_id) {
+                            CallbackFn callback, uint64_t recv_cb_id) {
   // Note that a ConnectionId cannot be used from multiple threads. This is an inherent ZeroMQ limitation.
   // If you need another thread to connect to the same ConnectionDestination, just get a new ConnectionId.
   // This allows us to avoid taking latches around the socket that the ConnectionId wraps.
@@ -403,14 +476,14 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, 
   callbacks_mutex_.unlock();
 
   // Build and send the message.
-  ZmqMessage msg = ZmqMessage::Build(send_msg_id, remote_cb_id, connection_id->routing_id_, message);
+  ZmqMessage msg = ZmqMessage::Build(send_msg_id, recv_cb_id, connection_id->routing_id_, message);
   ZmqUtil::SendMsgPayload(common::ManagedPointer(connection_id->socket_), msg);
   MESSENGER_LOG_TRACE(
       fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), connection_id->target_name_, msg.GetRawPayload()));
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, const std::string &recv_id,
-                            const std::string &message, CallbackFn callback, uint64_t remote_cb_id) {
+                            const std::string &message, CallbackFn callback, uint64_t recv_cb_id) {
   uint64_t send_msg_id = GetNextSendMessageId();
 
   // Register the callback that will be invoked when a response to this message is received.
@@ -421,7 +494,7 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, 
   // Build and send the message. Note that ConnectionRouter is a ROUTER socket.
   zmq::message_t router_data(recv_id.data(), recv_id.size());
   if (router_id->socket_->send(router_data, zmq::send_flags::sndmore).has_value()) {
-    ZmqMessage reply = ZmqMessage::Build(send_msg_id, remote_cb_id, router_id->identity_, message);
+    ZmqMessage reply = ZmqMessage::Build(send_msg_id, recv_cb_id, router_id->identity_, message);
     ZmqUtil::SendMsgIdentity(common::ManagedPointer(router_id->socket_.get()), router_id->identity_);
     ZmqUtil::SendMsgPayload(common::ManagedPointer(router_id->socket_.get()), reply);
     MESSENGER_LOG_TRACE(fmt::format("[PID={}] Messenger ({}) SENT-TO {}: {} ", ::getpid(), router_id->identity_,

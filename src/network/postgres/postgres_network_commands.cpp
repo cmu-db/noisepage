@@ -27,7 +27,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   trafficcop::TrafficCopResult result;
 
   const auto query_type = portal->GetStatement()->GetQueryType();
-  const auto physical_plan = portal->PhysicalPlan();
+  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::DMLQueryType(query_type)) {
@@ -101,7 +101,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   const auto statement = std::make_unique<network::Statement>(
       std::move(query_text), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse_result)));
 
-  // TODO(Matt:) Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
+  // TODO(Matt): Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult. It's not clear to me how the binder would
   // handle that though since you pass the ParseResult in for binding. Maybe bind ParseResult once?
 
@@ -122,6 +122,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     return FinishSimpleQueryCommand(out, connection);
   }
 
+  // TODO(WAN): as found by Poojita, some SET TRANSACTION ... and SHOW TRANSACTION ... should be transactional.
   // Set statements are manually handled here. They are not transactional, so handle them before transactional logic.
   if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
     if (postgres_interpreter->ExplicitTransactionBlock()) {
@@ -137,6 +138,15 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     } else {
       out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
     }
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
+  // TODO(WAN): this is a temporary hack to unblock Ziqi's oltpbench work. #1188
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SHOW)) {
+    auto show_result = t_cop->ExecuteShowStatement(connection, common::ManagedPointer(statement), out);
+    NOISEPAGE_ASSERT(show_result.type_ == trafficcop::ResultType::COMPLETE,
+                     "TODO this should be fixed to handle failure.");
+    out->WriteCommandComplete(network::QueryType::QUERY_SHOW, 0);
     return FinishSimpleQueryCommand(out, connection);
   }
 
@@ -168,14 +178,15 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement), nullptr);
     if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
       // Binding succeeded, optimize to generate a physical plan and then execute
-      auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+      auto optimize_result = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
 
-      statement->SetPhysicalPlan(std::move(physical_plan));
+      statement->SetOptimizeResult(std::move(optimize_result));
 
       const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
 
       if (query_type == network::QueryType::QUERY_SELECT) {
-        out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+        out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(),
+                                 portal->ResultFormats());
       }
 
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
@@ -357,9 +368,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     t_cop->BeginTransaction(connection);
   }
 
-  // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  // TODO(Matt): maybe this check against SET eventually encompasses a class of non-transactional query types
-  if (NetworkUtil::TransactionalQueryType(query_type) || query_type == QueryType::QUERY_SET) {
+  if (NetworkUtil::TransactionalQueryType(query_type) || NetworkUtil::SkipBindQueryType(query_type)) {
     // Don't bind or optimize this statement
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
@@ -386,10 +395,11 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   const auto bind_result = t_cop->BindQuery(connection, statement, common::ManagedPointer(&params));
   if (LIKELY(bind_result.type_ == trafficcop::ResultType::COMPLETE)) {
     // Binding succeeded, optimize to generate a physical plan
-    if (statement->PhysicalPlan() == nullptr || !t_cop->UseQueryCache()) {
+    if (statement->OptimizeResult() == nullptr || !t_cop->UseQueryCache()) {
       // it's not cached, optimize it
-      auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
-      statement->SetPhysicalPlan(std::move(physical_plan));
+      auto optimize_result = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+
+      statement->SetOptimizeResult(std::move(optimize_result));
     }
 
     postgres_interpreter->SetPortal(portal_name,
@@ -445,7 +455,8 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
       out->WriteError({common::ErrorSeverity::ERROR, "Portal does not exist for Describe message.",
                        common::ErrorCode::ERRCODE_PROTOCOL_VIOLATION});
     } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
-      out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+      out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(),
+                               portal->ResultFormats());
     } else {
       out->WriteNoData();
     }
@@ -523,6 +534,11 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     return Transition::PROCEED;
   }
 
+  // Show statements are manually handled here.
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SHOW)) {
+    NOISEPAGE_ASSERT(false, "SHOW not yet implemented.");
+  }
+
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::TransactionalQueryType(query_type)) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
@@ -546,7 +562,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     common::thread_context.metrics_store_->RecordExecuteCommandData(portal_name.size(), resource_metrics);
   }
 
-  if (portal->PhysicalPlan() != nullptr) {
+  if (portal->OptimizeResult() != nullptr) {
     ExecutePortal(connection, portal, out, t_cop, postgres_interpreter->ExplicitTransactionBlock());
     if (connection->TransactionState() == NetworkTransactionStateType::FAIL) {
       postgres_interpreter->SetWaitingForSync();
