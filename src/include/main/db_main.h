@@ -376,22 +376,11 @@ class DBMain {
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
-        if (use_replication_) {
-          const uint64_t num_log_buffers_ = 100;
-          const std::chrono::microseconds log_serialization_interval_{10};
-          const std::chrono::milliseconds log_persist_interval_{20};
-          const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
-          log_manager = std::make_unique<storage::LogManager>(
-              wal_file_path_, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-              log_persist_threshold_,
-              common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry),
-              common::ManagedPointer(replication_manager));
-        } else {
-          log_manager = std::make_unique<storage::LogManager>(
-              wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
-              std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
-              common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry), nullptr);
-        }
+        log_manager = std::make_unique<storage::LogManager>(
+            wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
+            std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
+            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry),
+            common::ManagedPointer(replication_manager));
         log_manager->Start();
       }
 

@@ -11,10 +11,13 @@
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_task.h"
-#include "replication/replication_manager.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
+
+namespace noisepage::replication {
+class ReplicationManager;
+}  // namespace noisepage::replication
 
 namespace noisepage::storage {
 
@@ -125,7 +128,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
   std::condition_variable *disk_log_writer_thread_cv_;
 
-  // Replication manager to provide logs for
+  // TODO(WAN): Does the replication manager even belong here?
+  /** The replication manager is provided with logs before they are serialized to disk. */
   common::ManagedPointer<replication::ReplicationManager> replication_manager_;
 
   /**
