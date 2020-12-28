@@ -1,3 +1,6 @@
+def utils // common build functions are loaded from Jenkinsfile-utils into this object
+String utilsFileName  = 'Jenkinsfile-utils'
+
 pipeline {
     agent none
     options {
@@ -99,22 +102,23 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
-                        ninja''', label: 'Compiling'
-
+                        
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
+                        }
+                        
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_interval=0" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
                         always {
@@ -139,21 +143,22 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
-
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON ..
-                        ninja''', label: 'Compiling'
+                        
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(isCodeCoverage:true)
+                        }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja unittest'
                         sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -191,21 +196,22 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
-                        ninja''', label: 'Compiling'
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(useASAN:true, isJumboTest:true)
+                        }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
                         always {
@@ -227,21 +233,22 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
-                        ninja''', label: 'Compiling'
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isJumboTest:true)
+                        }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
                         always {
@@ -267,21 +274,22 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
-                        ninja''', label: 'Compiling'
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isJumboTest:true)
+                        }
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
                         always {
@@ -296,9 +304,9 @@ pipeline {
             }
         }
 
-        stage('End-to-End Debug') {
-            parallel{
-                stage('ubuntu-20.04/gcc-9.3 (Debug/e2etest/oltpbench)') {
+        stage('End-to-End') {
+            parallel {
+                stage('Debug') {
                     agent {
                         docker {
                             image 'noisepage:focal'
@@ -307,13 +315,13 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
 
-                        sh script: '''
-                        mkdir build
-                        cd build
-                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON ..
-                        ninja noisepage''', label: 'Compiling'
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(useASAN:true, isBuildTests:false)
+                        }
+
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
                         cd build
@@ -350,6 +358,61 @@ pipeline {
                         cd build
                         timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
                         ''', label: 'OLTPBench (No Parallel)'
+
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage('Performance') {
+                    agent { label 'benchmark' }
+                    environment {
+                        //Do not change.
+                        //Performance Storage Service(Django) authentication information. The credentials can only be changed on Jenkins webpage
+                        PSS_CREATOR = credentials('pss-creator')
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
+                        }
+
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TATP)'
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TATP No WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TATP RamDisk WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TPCC HDD WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TPCC No WAL)'
+
+                        sh script:'''
+                        cd build
+                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label: 'OLTPBench (TPCC RamDisk WAL)'
                     }
                     post {
                         cleanup {
@@ -359,54 +422,7 @@ pipeline {
                 }
             }
         }
-        stage('End-to-End Performance') {
-            agent { label 'benchmark' }
-            steps {
-                sh 'echo $NODE_NAME'
-                sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
 
-                sh script:'''
-                mkdir build
-                cd build
-                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON ..
-                ninja noisepage''', label: 'Compiling'
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release
-                ''', label: 'OLTPBench (TATP)'
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release
-                ''', label: 'OLTPBench (TATP No WAL)'
-
-                sh script:'''
-                cd build
-                timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release
-                ''', label: 'OLTPBench (TATP RamDisk WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release
-                ''', label: 'OLTPBench (TPCC HDD WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release
-                ''', label: 'OLTPBench (TPCC No WAL)'
-
-                sh script:'''
-                cd build
-                timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release
-                ''', label: 'OLTPBench (TPCC RamDisk WAL)'
-            }
-             post {
-                 cleanup {
-                     deleteDir()
-                 }
-             }
-        }
         stage('Self-Driving End-to-End Test') {
             agent {
                 docker {
@@ -416,13 +432,11 @@ pipeline {
             }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
-                sh script: '''
-                mkdir build
-                cd build
-                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF  -DNOISEPAGE_BUILD_SELF_DRIVING_TESTS=ON ..
-                ninja mini_runners''', label: 'Self-driving tests (Compile mini_runners)'
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
+                }
 
                 // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
                 // Specifically, the parameters chosen are:
@@ -435,11 +449,15 @@ pipeline {
                 ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=1
                 ''', label: 'Mini-trainer input generation'
 
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
                 sh script: '''
                 cd build
                 export BUILD_ABS_PATH=`pwd`
                 timeout 10m ninja self_driving_test
                 ''', label: 'Running self-driving test'
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
             }
             post {
                 cleanup {
@@ -451,13 +469,11 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
-                sh script: '''
-                mkdir build
-                cd build
-                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
-                ninja all''', label: 'Microbenchmark (Compile)'
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
+                }
             }
             post {
                 cleanup {
