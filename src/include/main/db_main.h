@@ -487,6 +487,7 @@ class DBMain {
       db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
       db_main->replication_manager_ = std::move(replication_manager);
+      db_main->replication_log_provider_ = std::move(replication_log_provider);
       db_main->recovery_manager_ = std::move(recovery_manager);
 
       return db_main;
@@ -1076,6 +1077,8 @@ class DBMain {
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<replication::ReplicationManager> replication_manager_;
+  // TODO(WAN): remove bad hacks
+  std::unique_ptr<storage::ReplicationLogProvider> replication_log_provider_;
   std::unique_ptr<storage::RecoveryManager> recovery_manager_;
 };
 

@@ -27,11 +27,9 @@
 namespace noisepage::storage {
 
 void RecoveryManager::StartRecovery() {
-  STORAGE_LOG_INFO("[Recovery]:?????");
   NOISEPAGE_ASSERT(recovery_task_ == nullptr, "Recovery already started");
   recovery_task_ =
       thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
-  STORAGE_LOG_INFO("[Recovery]: Task registered");
 }
 
 void RecoveryManager::WaitForRecoveryToFinish() {
@@ -43,26 +41,15 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 
 void RecoveryManager::RecoverFromLogs() {
   // Replay logs until the log provider no longer gives us logs
-  int exhausted_timer = 0;
   while (true) {
-    //STORAGE_LOG_INFO("[Recovery Manager]: Grabbing next log record...");
     auto pair = log_provider_->GetNextRecord();
     auto *log_record = pair.first;
 
     // If we have exhausted all the logs, break from the loop
-    if (log_record == nullptr) {
-      STORAGE_LOG_INFO("[Recovery Manager]: Exhausted all logs!");
-      if (exhausted_timer > 3) {
-        STORAGE_LOG_INFO("[Recovery Manager]: Terminating loop...");
-        break;
-      }
-      exhausted_timer += 1;
-      continue;
-    }
+    if (log_record == nullptr) break;
 
     switch (log_record->RecordType()) {
       case (LogRecordType::ABORT): {
-        //STORAGE_LOG_INFO("[Recovery Manager]: Processing ABORT logs");
         NOISEPAGE_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
@@ -71,16 +58,11 @@ void RecoveryManager::RecoverFromLogs() {
       }
 
       case (LogRecordType::COMMIT): {
-        //STORAGE_LOG_INFO("[Recovery Manager]: Processing COMMIT logs");
         NOISEPAGE_ASSERT(pair.second.empty(), "Commit records should not have any varlen pointers");
         auto *commit_record = log_record->GetUnderlyingRecordBodyAs<CommitRecord>();
 
-        // We defer all transactions initially
-        // deferred_txns_.insert(log_record->TxnBegin());
         // We defer all transactions initially unless they have no changes (GC txns)
-        //STORAGE_LOG_INFO(fmt::format("COMMIT TS: {}", static_cast<uint64_t>(log_record->TxnBegin())));
         if (!buffered_changes_map_[log_record->TxnBegin()].empty()) {
-          //STORAGE_LOG_INFO("[Recovery Manager]: Adding to deferred txns");
           deferred_txns_.insert(log_record->TxnBegin());
         } else {
           buffered_changes_map_.erase(log_record->TxnBegin());
@@ -95,16 +77,14 @@ void RecoveryManager::RecoverFromLogs() {
       }
 
       default:
-        //STORAGE_LOG_INFO("[Recovery Manager]: Processing REDO/DELETE logs");
-        //STORAGE_LOG_INFO(fmt::format("Record Actual Begin: {}", log_record->TxnBegin()));
-        //STORAGE_LOG_INFO(fmt::format("REDO TS: {}", static_cast<uint64_t>(log_record->TxnBegin())));
         NOISEPAGE_ASSERT(
             log_record->RecordType() == LogRecordType::REDO || log_record->RecordType() == LogRecordType::DELETE,
             "We should only buffer changes for redo or delete records");
         buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
-        //STORAGE_LOG_INFO(fmt::format("REDO buffer size: {}", buffered_changes_map_[log_record->TxnBegin()].size()));
+        // STORAGE_LOG_INFO(fmt::format("REDO buffer size: {}", buffered_changes_map_[log_record->TxnBegin()].size()));
     }
 
+    // TODO(WAN): clion analyzes this to always true, what is this doing?
     if (log_record != nullptr) {
       log_committed = true;
       log_committed_cv_.notify_one();
@@ -138,23 +118,18 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
         "Buffered record must be a redo or delete.");
     if (IsSpecialCaseCatalogRecord(buffered_record)) {
       idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
-      //STORAGE_LOG_INFO("Processed Catalog Records");
     } else if (buffered_record->RecordType() == LogRecordType::REDO) {
       ReplayRedoRecord(txn, buffered_record);
-      //STORAGE_LOG_INFO("Replaying redo");
     } else {
       ReplayDeleteRecord(txn, buffered_record);
-      //STORAGE_LOG_INFO("Replaying delete");
     }
   }
 
   // Defer deletes of the log records
-  //STORAGE_LOG_INFO("Deferring deletes...");
   DeferRecordDeletes(txn_id, false);
   buffered_changes_map_.erase(txn_id);
 
   // Commit the txn
-  //STORAGE_LOG_INFO("Committing...");
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   STORAGE_LOG_INFO(
@@ -186,23 +161,12 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::ti
   auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
-    //STORAGE_LOG_INFO("[Recovery Manager]: Processing committed txn");
     ProcessCommittedTransaction(*it);
     txns_processed++;
   }
 
-  //STORAGE_LOG_INFO(fmt::format("Transactions processed: {}", txns_processed));
-
   // If we actually processed some txns, remove them from the set
-  if (txns_processed > 0) {
-    deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
-  }
-
-  if (deferred_txns_.empty() && !log_provider_.CastManagedPointerTo<storage::ReplicationLogProvider>()->NonBlockingHasMoreRecords()) {
-    //STORAGE_LOG_INFO("Notifying primary of sync");
-    //log_committed = true;
-    //log_committed_cv_.notify_one();
-  }
+  if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
 
   return txns_processed;
 }
