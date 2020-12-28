@@ -3,10 +3,10 @@
 Main script for workload forecasting.
 Example usage:
 - Generate data (runs OLTP benchmark on the built database) and perform training, and save the trained model
-    ./forecaster --gen_data --model_save_path=model.pickle
+    ./forecaster --gen_data --models=LSTM --model_save_path=model.pickle
 
-- Use the trained models to generate predictions.
-    ./forecaster --model_load_path=model.pickle --test_file=test_query.csv
+- Use the trained models (LSTM) to generate predictions.
+    ./forecaster --model_load_path=model.pickle --test_file=test_query.csv --test_model=LSTM
 
 
 TODO:
@@ -15,25 +15,25 @@ TODO:
     - API and interaction with Pilot
 """
 
-import sys
-from pathlib import Path
-sys.path.insert(0, str((Path.cwd() / '..' / 'testing').absolute()))
-
-import argparse
-import pickle
-import numpy as np
-from functools import cached_property
-from typing import List, Tuple
-from util.constants import LOG
-from self_driving.forecast import gen_oltp_trace
+from data_loader import DataLoader
+from cluster import QueryCluster
+from models import ForecastModel, get_models
 from self_driving.constants import (
     DEFAULT_TPCC_WEIGHTS,
     DEFAULT_QUERY_TRACE_FILE,
     DEFAULT_WORKLOAD_PATTERN,
     DEFAULT_ITER_NUM)
-from models import LSTM, ForecastModel
-from cluster import QueryCluster
-from data_loader import DataLoader
+from self_driving.forecast import gen_oltp_trace
+from util.constants import LOG
+from typing import List, Tuple, Dict, Optional
+from functools import lru_cache
+import numpy as np
+import pickle
+import json
+import argparse
+import sys
+from pathlib import Path
+sys.path.insert(0, str((Path.cwd() / '..' / 'testing').absolute()))
 
 
 # Interval duration for aggregation in microseconds
@@ -78,6 +78,9 @@ argp.add_argument("--trace_file", default=DEFAULT_QUERY_TRACE_FILE,
                   help="Path to the query trace file", metavar="FILE")
 
 # Model specific
+argp.add_argument("--models", nargs='+', type=str, help="Models to use")
+argp.add_argument("--models_config", type=str, metavar="FILE",
+                  help="Models and init arguments JSON config file")
 argp.add_argument("--seq_len", type=int, default=SEQ_LEN,
                   help="Length of one sequence in number of data points")
 argp.add_argument(
@@ -110,6 +113,11 @@ argp.add_argument(
     "--test_file",
     help="Path to the test query trace file",
     metavar="FILE")
+argp.add_argument(
+    "--test_model",
+    type=str,
+    help="Model to be used for forecasting"
+)
 
 
 class Forecaster:
@@ -119,24 +127,48 @@ class Forecaster:
 
     def __init__(
             self,
-            data: np.ndarray,
+            trace_file: str,
+            interval_us: int = INTERVAL_MICRO_SEC,
             test_mode: bool = False,
             eval_size: int = EVAL_DATA_SIZE,
             seq_len: int = SEQ_LEN,
             horizon_len: int = HORIZON_LEN) -> None:
         """
-        :param data:  1D time-series data for a query cluster
+        Initializer
+        :param trace_file: trace file for the forecaster
+        :param interval_us: number of microseconds for the time-series interval
         :param test_mode: True If the Loader is for testing
         :param eval_size: Number of data points used for evaluation(testing)
         :param seq_len: Length of a sequence
         :param horizon_len: Horizon length
         """
-        self.seq_len = seq_len
-        self.horizon_len = horizon_len
-        self.test_mode = test_mode
-        self.eval_data_size = eval_size
+        self._seq_len = seq_len
+        self._horizon_len = horizon_len
+        self._test_mode = test_mode
+        self._eval_data_size = eval_size
 
-        self.train_raw_data, self.test_raw_data = self._split_data(data)
+        self._data_loader = DataLoader(
+            query_trace_file=trace_file,
+            interval_us=interval_us)
+
+        self._make_clusters()
+
+    def _make_clusters(self) -> None:
+        """
+        Extract data from the DataLoader and put them into different clusters.
+        :return: None
+        """
+        # FIXME:
+        # Assuming all the queries in the current trace file are from
+        # the same cluster for now. A future TODO would have a clustering
+        # process that separates traces into multiple clusters
+        self._clusters = [QueryCluster(self._data_loader.get_ts_data())]
+        self._cluster_data = []
+        for cluster in self._clusters:
+            # Aggregated time-series from the cluster
+            data = cluster.get_timeseries()
+            train_raw_data, test_raw_data = self._split_data(data)
+            self._cluster_data.append((train_raw_data, test_raw_data))
 
     def _split_data(self, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -144,12 +176,15 @@ class Forecaster:
         :param data: All the raw data
         :return: traing, test raw data set
         """
-        if self.test_mode:
-            self.test_set_size = len(data)
+        if self._test_mode:
+            self._test_set_size = len(data)
         else:
-            self.test_set_size = self.eval_data_size
+            self._test_set_size = self._eval_data_size
+            if self._test_set_size > len(data):
+                raise ValueError(
+                    "Eval data size is too small. Not enough data points.")
 
-        split_idx = len(data) - self.test_set_size
+        split_idx = len(data) - self._test_set_size
         # First part as the training set
         train_raw_data = data[:split_idx]
 
@@ -158,17 +193,18 @@ class Forecaster:
 
         return train_raw_data, test_raw_data
 
-    @cached_property
-    def train_seqs(self) -> List[Tuple[np.ndarray, np.ndarray]]:
+    @lru_cache(maxsize=32)
+    def _cluster_train_seqs(
+            self, cluster_id: int) -> List[Tuple[np.ndarray, np.ndarray]]:
         """
         Create training sequences.  Each training sample consists of:
          - A list of data points as input
          - A label (target) value in some horizon
         :return: training sequences
         """
-        seq_len = self.seq_len
-        horizon = self.horizon_len
-        input_data = self.train_raw_data
+        seq_len = self._seq_len
+        horizon = self._horizon_len
+        input_data, _test_data = self._cluster_data[cluster_id]
 
         seqs = []
         for i in range(len(input_data) - seq_len - horizon):
@@ -181,50 +217,79 @@ class Forecaster:
             seqs.append((seq, label))
         return seqs
 
-    @cached_property
-    def test_seqs(self) -> List[np.ndarray]:
+    @lru_cache(maxsize=32)
+    def _cluster_test_seqs(self, cluster_id: int) -> List[np.ndarray]:
         """
         Generate a list of test sequence for evaluation
         :return:  Test sequences for evaluation
         """
-        input_data = self.test_raw_data
+        _train_data, input_data = self._cluster_data[cluster_id]
 
         seqs = []
-        for i in range(len(input_data) - self.seq_len):
-            seq = input_data[i:i + self.seq_len].reshape(-1, 1)
+        for i in range(len(input_data) - self._seq_len):
+            seq = input_data[i:i + self._seq_len].reshape(-1, 1)
             seqs.append(seq)
 
         return seqs
 
-    def train(self, models: List[ForecastModel]) -> None:
+    def train(self, models: Dict) -> None:
         """
-        :param models:  A list of ForecastModels to fit
+        :param models:  A Dict of models {name -> ForecastModels} to fit
         :return:
         """
-        train_seqs = self.train_seqs
-        for model in models:
-            model.fit(train_seqs)
 
-    def eval(self, model: ForecastModel) -> np.ndarray:
+        for cid in range(len(self._cluster_data)):
+            train_seqs = self._cluster_train_seqs(cid)
+            for _, model in models.items():
+                model.fit(train_seqs)
+
+    def eval(self, cid: int, model: ForecastModel) -> Dict:
         """
         Evaluate a model on the test dataset
         :param model: Model to evaluate
-        :return: Test results
+        :return: Each query's prediction stored in a Dict  {query_id: prediction}
         """
-        test_data = self.test_seqs
+        test_data = self._cluster_test_seqs(cid)
 
         results = []
         for seq in test_data:
             pred = model.predict(seq)
-            np.append(results, pred)
+            results.append(pred)
 
-        return results
+        # Conver the aggregated prediction to each query's prediction
+        query_pred = self._clusters[cid].segregate(results)
+
+        return query_pred
+
+
+def init_models(model_names: Optional[List[str]],
+                models_config: Optional[str]) -> List[ForecastModel]:
+    """
+    Load models from
+    :param model_names: List of model names
+    :param models_config: JSON model config file
+    :return:
+    """
+    # Initialize training models
+    if model_names is None or len(model_names) < 1:
+        raise ValueError("At least 1 model needs to be used.")
+
+    model_args = dict([(model_name, {}) for model_name in model_names])
+    if models_config is not None:
+        with open(models_config, 'r') as f:
+            custom_config = json.load(f)
+            # Simple and non-recursive merging of options
+            model_args.update(custom_config)
+    models = get_models(model_args)
+    return models
 
 
 if __name__ == "__main__":
     args = argp.parse_args()
 
     if args.test_file is None:
+        # Load models
+        models = init_models(args.models, args.models_config)
 
         # Generate OLTP trace file
         if args.gen_data:
@@ -237,56 +302,38 @@ if __name__ == "__main__":
         else:
             trace_file = args.trace_file
 
-        data_loader = DataLoader(
-            query_trace_file=trace_file,
-            interval_us=INTERVAL_MICRO_SEC)
-        x_transformer, y_transformer = data_loader.get_transformers()
-
-        # FIXME: Assuming all the queries in the current trace file are from
-        # the same cluster for now
-        cluster_trace = QueryCluster(data_loader.get_ts_data())
-
-        # Aggregated time-series from the cluster
-        train_timeseries = cluster_trace.get_timeseries()
-
-        # Perform training on the trace file
-        lstm_model = LSTM(
-            lr=args.lr,
-            epochs=args.epochs,
-            x_transformer=x_transformer,
-            y_transformer=y_transformer)
-        trainer = Forecaster(
-            train_timeseries,
+        forecaster = Forecaster(
+            trace_file=trace_file,
+            interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,
             eval_size=args.eval_size,
             horizon_len=args.horizon_len)
-        trainer.train([lstm_model])
+
+        forecaster.train(models)
 
         # Save the model
         if args.model_save_path:
             with open(args.model_save_path, "wb") as f:
-                pickle.dump(lstm_model, f)
+                pickle.dump(models, f)
     else:
         # Do inference on a trained model
-        data_loader = DataLoader(
-            query_trace_file=args.test_file,
-            interval_us=INTERVAL_MICRO_SEC)
-
         with open(args.model_load_path, "rb") as f:
-            model = pickle.load(f)
+            models = pickle.load(f)
 
-        # FIXME: Assuming all the queries in the current trace file are from
+        forecaster = Forecaster(
+            trace_file=args.test_file,
+            test_mode=True,
+            interval_us=INTERVAL_MICRO_SEC,
+            seq_len=args.seq_len,
+            eval_size=args.eval_size,
+            horizon_len=args.horizon_len)
+
+        # FIXME:
+        # Assuming all the queries in the current trace file are from
         # the same cluster for now
-        timeseries = data_loader.get_ts_data()
-        cluster_trace = QueryCluster(timeseries)
+        query_pred = forecaster.eval(0, models[args.test_model])
 
-        # Aggregated time-series from the cluster
-        test_timeseries = cluster_trace.get_timeseries()
-
-        pred = model.predict(test_timeseries[:args.seq_len].reshape(1, -1))
-
-        query_pred = cluster_trace.segregate([pred])
+        # TODO:
+        # How are we evaluating the prediction, and where would it be consumed?
         for qid, ts in query_pred.items():
-            LOG.info(
-                f"[Query: {qid} @idx={args.seq_len+args.horizon_len}] "
-                f"actual={timeseries[qid][args.seq_len+args.horizon_len]},pred={ts[0]:.1f}")
+            LOG.info(f"[Query: {qid}] pred={ts[:10]}")

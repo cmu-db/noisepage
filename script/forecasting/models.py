@@ -10,7 +10,25 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import List, Optional, Tuple
+from sklearn.preprocessing import MinMaxScaler
+from typing import List, Optional, Tuple, Dict
+
+
+def get_models(model_args: Dict) -> Dict:
+    """
+    Retrieve a list of models based on names and init kwargs
+    :param model_args:  dict of {
+        <model_class_name>:  <kwargs dict>
+    }
+    :return: map of initialized model indexed by its class name
+    """
+    model_map = {}
+    for name, kwargs in model_args.items():
+        model_class = globals()[name]
+        model = model_class(**kwargs)
+        model_map[name] = model
+
+    return model_map
 
 
 class ForecastModel(ABC):
@@ -18,9 +36,9 @@ class ForecastModel(ABC):
     Interface for all the forecasting models
     """
 
-    def __init__(self, x_transformer=None, y_transformer=None):
-        self.x_transformer = x_transformer
-        self.y_transformer = y_transformer
+    def __init__(self):
+        self._x_transformer = None
+        self._y_transformer = None
         pass
 
     def fit(self, train_seqs: List[Tuple[np.ndarray, np.ndarray]]) -> None:
@@ -29,15 +47,21 @@ class ForecastModel(ABC):
         :param train_seqs: List of training sequences and the expected output label in a certain horizon
         :return:
         """
-        if self.x_transformer or self.y_transformer:
+        data = []
+        for seq, _label in train_seqs:
+            data = np.append(data, seq)
+        data = data.reshape(-1, 1)
+        self._x_transformer, self._y_transformer = self._get_transformers(data)
+
+        if self._x_transformer or self._y_transformer:
             def norm_data(x):
                 seq, label = x
-                if self.x_transformer:
-                    seq = self.x_transformer.transform(seq)
-                if self.y_transformer:
-                    label = self.y_transformer.transform(label)
+                if self._x_transformer:
+                    seq = self._x_transformer.transform(seq)
+                if self._y_transformer:
+                    label = self._y_transformer.transform(label)
                 return seq, label
-
+            # Use Map to save memory copy
             train_seqs = list(map(norm_data, train_seqs))
 
         self._do_fit(train_seqs)
@@ -52,7 +76,7 @@ class ForecastModel(ABC):
             would have been done if needed
         :return:
         """
-        raise NotImplemented("Should be implemented by child classes")
+        raise NotImplementedError("Should be implemented by child classes")
 
     def predict(self, test_seq: np.ndarray) -> float:
         """
@@ -61,8 +85,8 @@ class ForecastModel(ABC):
         :return: Predicted value at certain horizon
         """
 
-        if self.x_transformer:
-            test_seq = self.x_transformer.transform(test_seq)
+        if self._x_transformer:
+            test_seq = self._x_transformer.transform(test_seq)
 
         return self._do_predict(test_seq)
 
@@ -74,7 +98,17 @@ class ForecastModel(ABC):
         :param test_seq:  1D Test sequence
         :return: Predicted value at certain horizon
         """
-        raise NotImplemented("Should be implemented by child classes")
+        raise NotImplementedError("Should be implemented by child classes")
+
+    @abstractmethod
+    def _get_transformers(self, data: np.ndarray) -> Tuple:
+        """
+        Get the transformers
+        :param data: Training data
+        :return: A tuple of x and y transformers
+        """
+        raise NotImplementedError(
+            "Each model should have its own transformers")
 
 
 class LSTM(nn.Module, ForecastModel):
@@ -89,8 +123,7 @@ class LSTM(nn.Module, ForecastModel):
             output_size: int = 1,
             lr: float = 0.001,
             epochs: int = 10,
-            x_transformer=None,
-            y_transformer=None):
+    ):
         """
         :param input_size: One data point that is fed into the LSTM each time
         :param hidden_layer_size:
@@ -101,22 +134,19 @@ class LSTM(nn.Module, ForecastModel):
         :param y_transformer: To transform the label
         """
         nn.Module.__init__(self)
-        ForecastModel.__init__(
-            self,
-            x_transformer=x_transformer,
-            y_transformer=y_transformer)
+        ForecastModel.__init__(self)
 
-        self.hidden_layer_size = hidden_layer_size
+        self._hidden_layer_size = hidden_layer_size
 
-        self.lstm = nn.LSTM(input_size, hidden_layer_size)
+        self._lstm = nn.LSTM(input_size, hidden_layer_size)
 
-        self.linear = nn.Linear(hidden_layer_size, output_size)
+        self._linear = nn.Linear(hidden_layer_size, output_size)
 
-        self.hidden_cell = (torch.zeros(1, 1, self.hidden_layer_size),
-                            torch.zeros(1, 1, self.hidden_layer_size))
+        self._hidden_cell = (torch.zeros(1, 1, self._hidden_layer_size),
+                             torch.zeros(1, 1, self._hidden_layer_size))
 
-        self.epochs = epochs
-        self.lr = lr
+        self._epochs = epochs
+        self._lr = lr
 
     def forward(self, input_seq: torch.FloatTensor) -> float:
         """
@@ -124,9 +154,9 @@ class LSTM(nn.Module, ForecastModel):
         :param input_seq:  1D FloatTensor
         :return: A single value prediction
         """
-        lstm_out, self.hidden_cell = self.lstm(
-            input_seq.view(len(input_seq), 1, -1), self.hidden_cell)
-        predictions = self.linear(lstm_out.view(len(input_seq), -1))
+        lstm_out, self._hidden_cell = self._lstm(
+            input_seq.view(len(input_seq), 1, -1), self._hidden_cell)
+        predictions = self._linear(lstm_out.view(len(input_seq), -1))
         return predictions[-1]
 
     def _do_fit(self, train_seqs: List[Tuple[np.ndarray, np.ndarray]]) -> None:
@@ -135,8 +165,8 @@ class LSTM(nn.Module, ForecastModel):
         :param train_seqs: Training sequences of (seq, label)
         :return: None
         """
-        epochs = self.epochs
-        lr = self.lr
+        epochs = self._epochs
+        lr = self._lr
 
         # Training specifics
         loss_function = nn.MSELoss()
@@ -146,8 +176,10 @@ class LSTM(nn.Module, ForecastModel):
             for seq, labels in train_seqs:
                 optimizer.zero_grad()
 
-                self.hidden_cell = (torch.zeros(1, 1, self.hidden_layer_size),
-                                    torch.zeros(1, 1, self.hidden_layer_size))
+                self._hidden_cell = (
+                    torch.zeros(
+                        1, 1, self._hidden_layer_size), torch.zeros(
+                        1, 1, self._hidden_layer_size))
 
                 seq = torch.FloatTensor(seq).view(-1)
                 labels = torch.FloatTensor(labels).view(-1)
@@ -175,8 +207,20 @@ class LSTM(nn.Module, ForecastModel):
         seq = torch.FloatTensor(seq).view(-1)
 
         with torch.no_grad():
-            self.hidden = (torch.zeros(1, 1, self.hidden_layer_size),
-                           torch.zeros(1, 1, self.hidden_layer_size))
+            self._hidden = (torch.zeros(1, 1, self._hidden_layer_size),
+                            torch.zeros(1, 1, self._hidden_layer_size))
             pred = self(seq)
 
         return pred.item()
+
+    def _get_transformers(self, data: np.ndarray) -> Tuple:
+        """
+        Get the transformers
+        :param data: Training data
+        :return:  A tuple of x and y transformers
+        """
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        scaler.fit(data)
+
+        # Time-series data shares the same transformer
+        return scaler, scaler

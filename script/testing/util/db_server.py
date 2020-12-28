@@ -3,7 +3,8 @@ import os
 import subprocess
 import time
 import shlex
-from util.constants import (DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN, DIR_REPO,
+import psycopg2 as psql
+from util.constants import (DEFAULT_DB_USER, DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN, DIR_REPO,
                             DB_START_ATTEMPTS, DEFAULT_DB_WAL_FILE)
 from util.constants import LOG
 from util.common import run_check_pids, run_kill_server, print_pipe
@@ -107,6 +108,46 @@ class NoisePageServer:
         LOG.info("************ DB Logs Start ************")
         print_pipe(self.db_process)
         LOG.info("************* DB Logs End *************")
+
+    def execute(self, sql, autocommit=True, expect_result=True, user=DEFAULT_DB_USER):
+        """
+        Opens up a connection at the DB, and execute a SQL.
+
+        WARNING: this is a really simple (and barely thought-through) client execution interface. Users might need to
+        extend this with more arguments or error checking. Only SET SQl command has been tested.
+
+        :param sql: SQL to be execute
+        :param autocommit: If the connection should be set to autocommit. For SQL that should not run in transactions,
+            this should be set to True, e.g. SET XXX
+        :param expect_result: True if results rows are fetched and returned
+        :param user: User of this connection
+        :return: None if error or not expecting results, rows fetched when expect_result is True
+        """
+        try:
+            with psql.connect(port=self.db_port, host=self.db_host, user=user) as conn:
+                conn.set_session(autocommit=autocommit)
+                with conn.cursor() as cursor:
+                    cursor.execute(sql)
+
+                    if expect_result:
+                        rows = cursor.fetchall()
+                        return rows
+
+                    return None
+        except Exception as e:
+            LOG.error(f"Executing SQL = {sql} failed: ")
+            # Re-raise this
+            raise e
+
+    def turn_on_metrics_trace(self):
+        """
+        Turn on query trace.
+        :return:  None
+        """
+        self.execute(
+            """
+            SET query_trace_metrics_enable='true'
+            """, expect_result=False)
 
 
 def get_build_path(build_type):

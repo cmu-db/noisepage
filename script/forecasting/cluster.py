@@ -9,6 +9,7 @@ TODO: clustering implementation
 from typing import Dict, List
 import numpy as np
 
+
 class QueryCluster:
     """
     Represents query traces from a single cluster. For queries in the same cluster, they will be aggregated
@@ -23,19 +24,19 @@ class QueryCluster:
 
         :param traces: Map of (id -> timeseries) for each query id
         """
-        self.traces = traces
+        self._traces = traces
         self._aggregate()
 
     def _aggregate(self) -> None:
         """
         Aggregate time-series of multiple queries in the same cluster into one time-series
-        It stores the aggregated times-eries at self.timeseries, and the ratio map of queries in the
-        same cluster at self.ratio_map
+        It stores the aggregated times-eries at self._timeseries, and the ratio map of queries in the
+        same cluster at self._ratio_map
         """
         cnt_map = {}
         total_cnt = 0
         all_series = []
-        for qid, timeseries in self.traces.items():
+        for qid, timeseries in self._traces.items():
             cnt = sum(timeseries)
             all_series.append(timeseries)
             total_cnt += cnt
@@ -43,19 +44,19 @@ class QueryCluster:
             cnt_map[qid] = cnt
 
         # Sum all timeseries element-wise
-        self.timeseries = np.array([sum(x) for x in zip(*all_series)])
+        self._timeseries = np.array([sum(x) for x in zip(*all_series)])
 
         # Compute distribution of each query id in the cluster
-        self.ratio_map = {}
+        self._ratio_map = {}
         for qid, cnt in cnt_map.items():
-            self.ratio_map[qid] = cnt / total_cnt
+            self._ratio_map[qid] = cnt / total_cnt
 
     def get_timeseries(self) -> np.ndarray:
         """
         Get the aggregate time-series for this cluster
         :return: Time-series for the cluster
         """
-        return self.timeseries
+        return self._timeseries
 
     def segregate(self, timeseries: List[float]) -> Dict:
         """
@@ -64,6 +65,6 @@ class QueryCluster:
         :return: Time-series for each query id, dict{query id: time-series}
         """
         result = {}
-        for qid, ratio in self.ratio_map.items():
+        for qid, ratio in self._ratio_map.items():
             result[qid] = list([x * ratio for x in timeseries])
         return result

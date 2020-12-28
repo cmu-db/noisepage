@@ -28,8 +28,8 @@ class DataLoader:
         :param interval_us: Interval for the time-series
         :param query_trace_file: Query trace CSV file
         """
-        self.query_trace_file = query_trace_file
-        self.interval_us = interval_us
+        self._query_trace_file = query_trace_file
+        self._interval_us = interval_us
 
         data = self._load_data()
         self._to_timeseries(data)
@@ -39,9 +39,9 @@ class DataLoader:
         Load data from csv
         :return: Loaded 2D numpy array of [query_id, timestamp]
         """
-        LOG.info(f"Loading data from {self.query_trace_file}")
+        LOG.info(f"Loading data from {self._query_trace_file}")
         # Load data from the files
-        with open(self.query_trace_file, newline='') as csvfile:
+        with open(self._query_trace_file, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             data = np.array(
                 [[int(r['query_id']), int(r[' timestamp'])] for r in reader])
@@ -54,48 +54,34 @@ class DataLoader:
     def _to_timeseries(self, data: np.ndarray) -> None:
         """
         Convert the 2D array with query id and timestamps into a map of time-series for each query id
-        :param data: Laoded 2D numpy array of [query_id, timestamp]
+        :param data: Loaded 2D numpy array of [query_id, timestamp]
         :return: None
         """
         # Query trace file is sorted by timestamps
-        start_t = data[0][self.TS_IDX]
-        end_t = data[-1][self.TS_IDX]
+        start_timestamp = data[0][self.TS_IDX]
+        end_timestamp = data[-1][self.TS_IDX]
 
-        if end_t - start_t <= 1:
+        if end_timestamp - start_timestamp <= 1:
             raise ValueError(
                 "Empty data set with start timestamp >= end timestamp.")
 
         # Number of data points in the new time-series
-        num_buckets = (end_t - start_t - 1) // self.interval_us + 1
+        num_buckets = (end_timestamp - start_timestamp -
+                       1) // self._interval_us + 1
 
         # Iterate through the timestamps
-        self.ts_data = {}
+        self._ts_data = {}
         for i in range(len(data)):
             t = data[i][self.TS_IDX]
             qid = data[i][self.QID_IDX]
 
             # Initialize a new query's time-series
-            if self.ts_data.get(qid) is None:
-                self.ts_data[qid] = np.zeros(num_buckets)
+            if self._ts_data.get(qid) is None:
+                self._ts_data[qid] = np.zeros(num_buckets)
 
             # Bucket index
-            bi = (t - start_t) // self.interval_us
-            self.ts_data[qid][bi] += 1
+            bi = (t - start_timestamp) // self._interval_us
+            self._ts_data[qid][bi] += 1
 
     def get_ts_data(self) -> Dict:
-        return self.ts_data
-
-    def get_transformers(self) -> Tuple[MinMaxScaler, MinMaxScaler]:
-        """
-        Get the transformers for the dataset. These should be used by the ForecastModel to normalize the dataset.
-        :return: (x transformer, y transformer)
-        """
-        all_ts = []
-        for _, ts in self.ts_data.items():
-            all_ts = np.append(all_ts, ts)
-        scaler = MinMaxScaler(feature_range=(-1, 1))
-        all_ts = all_ts.reshape(-1, 1)
-        scaler.fit(all_ts)
-
-        # Time-series data shares the same transformer
-        return scaler, scaler
+        return self._ts_data
