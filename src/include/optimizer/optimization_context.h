@@ -19,7 +19,8 @@ class OptimizationContext {
   /**
    * Constructor
    * @param context OptimizerContext containing optimization context
-   * @param required_prop Properties required to satisfy. acquires ownership
+   * @param required_props Properties required to satisfy. acquires ownership
+   * @param optional_props Set of properties expressions in group can optionally attempt satisfying
    * @param cost_upper_bound Upper cost bound
    */
   OptimizationContext(OptimizerContext *context, PropertySet *required_props,

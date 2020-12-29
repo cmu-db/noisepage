@@ -19,6 +19,7 @@ class PropertySort : public Property {
    * Constructor for PropertySort
    * @param sort_columns vector of AbstractExpressions representing sort columns
    * @param sort_ascending Whether each sort_column is ascending or descending
+   * @param required Whether the sort property needs to be satisfied at the active level
    */
   PropertySort(std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
                std::vector<catalog::OrderByOrderingType> sort_ascending, bool required = true)
