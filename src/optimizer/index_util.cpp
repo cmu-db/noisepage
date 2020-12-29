@@ -252,14 +252,24 @@ bool IndexUtil::CheckPredicates(
     return false;
   }
 
-  // Lower scan type to valid type
-  // Note: if scan type could be exact, it would have already been set by this point
-  // TODO(dpatra): It may be possible to get away with being more lenient here on the index scan type to push down
-  // limits but needs further investigation
-  if (scan_type == planner::IndexScanType::Dummy) scan_type = planner::IndexScanType::AscendingClosedLimit;
+  if (bounds->empty()) return false;
+
+  // Scan may be uninitialized if all bound columns are equality checks, but not all index columns are bound so is not exact
+  if (open_lows.size() == open_highs.size() && scan_type == planner::IndexScanType::Dummy) {
+    if (bounds->size() == open_lows.size()) scan_type = planner::IndexScanType::AscendingClosedLimit;
+    else scan_type = planner::IndexScanType::AscendingClosed;
+  }
+
+  NOISEPAGE_ASSERT(scan_type != planner::IndexScanType::Dummy, "Dummy scan should never exist if any predicate is satisfied");
+
+  // Lower scan type allowance if not all predicates are satisfied
+  if (scan_type == planner::IndexScanType::AscendingClosedLimit && bounds->size() != predicates.size())
+    scan_type = planner::IndexScanType::AscendingClosed;
+  else if (scan_type == planner::IndexScanType::AscendingOpenHighLimit && bounds->size() != predicates.size())
+    scan_type = planner::IndexScanType::AscendingOpenHigh;
 
   *idx_scan_type = scan_type;
-  return !bounds->empty();
+  return true;
 }
 
 bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
