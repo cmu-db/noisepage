@@ -1,0 +1,792 @@
+statement ok
+CREATE TABLE foo (var1 INT, var2 INT, var3 INT);
+
+statement ok
+
+
+statement ok
+INSERT INTO foo VALUES (0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1), (0,1,2), (0,2,0), (0,2,1), (0,2,2), (1,0,0), (1,0,1), (1,0,2), (1,1,0), (1,1,1), (1,1,2), (1,2,0), (1,2,1), (1,2,2), (2,0,0), (2,0,1), (2,0,2), (2,1,0), (2,1,1), (2,1,2), (2,2,0), (2,2,1), (2,2,2);
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+CREATE INDEX ind ON foo (var1, var2, var3);
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+-- Predicates + Sort exist
+
+statement ok
+-- At least one predicate satisfied and sort not satisfied
+
+query III nosort
+SELECT * FROM foo WHERE var1 >= 1 ORDER BY var3 LIMIT 17;
+----
+1
+0
+0
+1
+1
+0
+1
+2
+0
+2
+0
+0
+2
+1
+0
+2
+2
+0
+2
+2
+1
+1
+0
+1
+2
+0
+1
+2
+1
+1
+1
+1
+1
+1
+2
+1
+1
+1
+2
+1
+2
+2
+2
+2
+2
+2
+0
+2
+1
+0
+2
+
+statement ok
+
+
+statement ok
+DROP INDEX ind;
+
+statement ok
+CREATE INDEX ind ON foo (var1, var3);
+
+statement ok
+
+
+statement ok
+-- No predicates satisfied
+
+query III nosort
+SELECT * FROM foo WHERE var2 >= 1 ORDER BY var2 LIMIT 17;
+----
+0
+1
+2
+0
+1
+1
+1
+1
+0
+2
+1
+0
+2
+1
+1
+2
+1
+2
+1
+1
+1
+1
+1
+2
+0
+1
+0
+2
+2
+2
+0
+2
+0
+0
+2
+1
+0
+2
+2
+1
+2
+0
+1
+2
+1
+1
+2
+2
+2
+2
+0
+
+statement ok
+
+
+statement ok
+-- At least one predicate satisfied and sort satisfied
+
+statement ok
+-- Predicate must be checked
+
+query III nosort
+SELECT * FROM foo WHERE var1 >= 1 AND var3 >= 1 ORDER BY var1, var3 LIMIT 11;
+----
+1
+0
+1
+1
+1
+1
+1
+2
+1
+1
+0
+2
+1
+1
+2
+1
+2
+2
+2
+0
+1
+2
+1
+1
+2
+2
+1
+2
+1
+2
+2
+0
+2
+
+query III nosort
+SELECT * FROM foo WHERE var1 >= 1 AND var2 >= 1 ORDER BY var1, var3 LIMIT 11;
+----
+1
+1
+0
+1
+2
+0
+1
+1
+1
+1
+2
+1
+1
+1
+2
+1
+2
+2
+2
+1
+0
+2
+2
+0
+2
+2
+1
+2
+1
+1
+2
+1
+2
+
+query III nosort
+SELECT * FROM foo WHERE var1 >= 1 AND var3 >= 1 ORDER BY var2 LIMIT 11;
+----
+1
+0
+1
+1
+0
+2
+2
+0
+1
+2
+0
+2
+1
+1
+2
+2
+1
+1
+2
+1
+2
+1
+1
+1
+1
+2
+1
+1
+2
+2
+2
+2
+1
+
+query III nosort
+SELECT * FROM foo WHERE var1 >= 1 AND var3 >= 1 ORDER BY var3 LIMIT 11;
+----
+1
+0
+1
+1
+1
+1
+1
+2
+1
+2
+0
+1
+2
+1
+1
+2
+2
+1
+2
+1
+2
+1
+0
+2
+2
+0
+2
+1
+1
+2
+2
+2
+2
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+-- Sort exists
+
+statement ok
+-- Sort not satisfied
+
+query III nosort
+SELECT * FROM foo ORDER BY var2 LIMIT 26;
+----
+1
+0
+0
+1
+0
+1
+1
+0
+2
+0
+0
+2
+0
+0
+0
+0
+0
+1
+2
+0
+2
+2
+0
+1
+2
+0
+0
+1
+1
+1
+0
+1
+0
+0
+1
+1
+0
+1
+2
+1
+1
+0
+1
+1
+2
+2
+1
+0
+2
+1
+1
+2
+1
+2
+0
+2
+2
+0
+2
+1
+0
+2
+0
+2
+2
+0
+2
+2
+1
+2
+2
+2
+1
+2
+0
+1
+2
+1
+
+query III nosort
+SELECT * FROM foo ORDER BY var3 LIMIT 26;
+----
+1
+0
+0
+2
+2
+0
+1
+2
+0
+1
+1
+0
+0
+0
+0
+2
+1
+0
+0
+2
+0
+0
+1
+0
+2
+0
+0
+1
+1
+1
+0
+0
+1
+0
+1
+1
+0
+2
+1
+1
+0
+1
+1
+2
+1
+2
+0
+1
+2
+1
+1
+2
+2
+1
+0
+2
+2
+0
+0
+2
+2
+0
+2
+0
+1
+2
+2
+2
+2
+1
+1
+2
+1
+0
+2
+2
+1
+2
+
+statement ok
+
+
+statement ok
+-- Sort satisfied
+
+query III nosort
+SELECT * FROM foo ORDER BY var1, var3 LIMIT 26;
+----
+0
+1
+0
+0
+0
+0
+0
+2
+0
+0
+1
+1
+0
+0
+1
+0
+2
+1
+0
+0
+2
+0
+2
+2
+0
+1
+2
+1
+2
+0
+1
+0
+0
+1
+1
+0
+1
+1
+1
+1
+0
+1
+1
+2
+1
+1
+0
+2
+1
+2
+2
+1
+1
+2
+2
+1
+0
+2
+0
+0
+2
+2
+0
+2
+2
+1
+2
+0
+1
+2
+1
+1
+2
+1
+2
+2
+2
+2
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+-- Predicates exist
+
+statement ok
+-- Predicates not satisfied
+
+query III rowsort
+SELECT * FROM foo WHERE var2 >= 1 LIMIT 17;
+----
+0
+1
+0
+0
+1
+1
+0
+1
+2
+0
+2
+0
+0
+2
+1
+0
+2
+2
+1
+1
+0
+1
+1
+1
+1
+1
+2
+1
+2
+0
+1
+2
+1
+1
+2
+2
+2
+1
+0
+2
+1
+1
+2
+1
+2
+2
+2
+0
+2
+2
+1
+
+statement ok
+
+
+statement ok
+-- Predicates satisfied
+
+statement ok
+-- Predicate must be checked
+
+query III rowsort
+SELECT * FROM foo WHERE var1 >= 1 AND var3 >= 1 LIMIT 11;
+----
+1
+0
+1
+1
+0
+2
+1
+1
+1
+1
+1
+2
+1
+2
+1
+1
+2
+2
+2
+0
+1
+2
+0
+2
+2
+1
+1
+2
+1
+2
+2
+2
+1
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+-- Neither predicates nor sort exist
+
+query III rowsort
+SELECT * FROM foo LIMIT 26;
+----
+0
+0
+0
+0
+0
+1
+0
+0
+2
+0
+1
+0
+0
+1
+1
+0
+1
+2
+0
+2
+0
+0
+2
+1
+0
+2
+2
+1
+0
+0
+1
+0
+1
+1
+0
+2
+1
+1
+0
+1
+1
+1
+1
+1
+2
+1
+2
+0
+1
+2
+1
+1
+2
+2
+2
+0
+0
+2
+0
+1
+2
+0
+2
+2
+1
+0
+2
+1
+1
+2
+1
+2
+2
+2
+0
+2
+2
+1
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+DROP INDEX ind;
+
+statement ok
+DROP TABLE foo;
+
