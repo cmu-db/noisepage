@@ -496,7 +496,7 @@ class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
    */
   static Operator Make(catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
                        std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
-                       std::vector<AnnotatedExpression> join_predicates,bool limit_exists = false, uint32_t limit = 0);
+                       std::vector<AnnotatedExpression> join_predicates, bool limit_exists = false, uint32_t limit = 0);
 
   /**
    * Copy

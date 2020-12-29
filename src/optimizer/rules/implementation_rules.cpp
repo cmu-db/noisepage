@@ -526,8 +526,9 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
   auto child_get = LogicalGet::Make(r_child->GetDatabaseOid(), r_child->GetTableOid(), join_preds,
                                     r_child->GetTableAlias(), r_child->GetIsForUpdate());
   if (limit_exists) child_get.GetContentsAs<LogicalGet>()->SetLimit(limit);
-  auto new_child = std::make_unique<OperatorNode>(child_get.RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                                  std::move(empty), context->GetOptimizerContext()->GetTxn());
+  auto new_child = std::make_unique<OperatorNode>(
+      child_get.RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(empty), context->GetOptimizerContext()->GetTxn());
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> transform;
   LogicalGetToPhysicalIndexScan idx_scan_transform;

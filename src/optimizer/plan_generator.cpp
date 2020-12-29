@@ -243,11 +243,13 @@ void PlanGenerator::Visit(const IndexScan *op) {
     if (type == planner::IndexScanType::Exact) {
       // Exact lookup
       builder.AddIndexColumn(bound.first, bound.second[0]);
-    } else if (type == planner::IndexScanType::AscendingClosed || type == planner::IndexScanType::AscendingClosedLimit) {
+    } else if (type == planner::IndexScanType::AscendingClosed ||
+               type == planner::IndexScanType::AscendingClosedLimit) {
       // Range lookup, so use lo and hi
       builder.AddLoIndexColumn(bound.first, bound.second[0]);
       builder.AddHiIndexColumn(bound.first, bound.second[1]);
-    } else if (type == planner::IndexScanType::AscendingOpenHigh || type == planner::IndexScanType::AscendingOpenHighLimit) {
+    } else if (type == planner::IndexScanType::AscendingOpenHigh ||
+               type == planner::IndexScanType::AscendingOpenHighLimit) {
       // Open high scan, so use only lo
       builder.AddLoIndexColumn(bound.first, bound.second[0]);
     } else if (type == planner::IndexScanType::AscendingOpenLow) {
@@ -547,7 +549,8 @@ void PlanGenerator::Visit(const InnerIndexJoin *op) {
 
       builder.AddLoIndexColumn(bound.first, common::ManagedPointer(key));
       builder.AddHiIndexColumn(bound.first, common::ManagedPointer(key));
-    } else if (type == planner::IndexScanType::AscendingClosed || type == planner::IndexScanType::AscendingClosedLimit) {
+    } else if (type == planner::IndexScanType::AscendingClosed ||
+               type == planner::IndexScanType::AscendingClosedLimit) {
       // Range lookup, so use lo and hi
       auto lkey = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[0]).release();
       auto hkey = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[1]).release();
@@ -556,7 +559,8 @@ void PlanGenerator::Visit(const InnerIndexJoin *op) {
 
       builder.AddLoIndexColumn(bound.first, common::ManagedPointer(lkey));
       builder.AddHiIndexColumn(bound.first, common::ManagedPointer(hkey));
-    } else if (type == planner::IndexScanType::AscendingOpenHigh || type == planner::IndexScanType::AscendingOpenHighLimit) {
+    } else if (type == planner::IndexScanType::AscendingOpenHigh ||
+               type == planner::IndexScanType::AscendingOpenHighLimit) {
       // Open high scan, so use only lo
       auto key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[0]).release();
       RegisterPointerCleanup<parser::AbstractExpression>(key, true, true);

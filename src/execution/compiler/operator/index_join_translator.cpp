@@ -67,7 +67,6 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   DeclareIndexPR(function);
   // @prSet(lo_index_pr, ...)
   FillKey(context, function, lo_index_pr_, op.GetLoIndexColumns());
-  //FillKey(context, function, lo_index_pr_, op.GetLoIndexColumns());
   // @prSet(hi_index_pr, ...)
   FillKey(context, function, hi_index_pr_, op.GetHiIndexColumns());
 

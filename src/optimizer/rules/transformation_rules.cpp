@@ -202,13 +202,15 @@ SetLimitInLogicalInnerJoin::SetLimitInLogicalInnerJoin() {
   match_pattern_->AddChild(child);
 }
 
-bool SetLimitInLogicalInnerJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const {
+bool SetLimitInLogicalInnerJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                       OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-RulePromise SetLimitInLogicalInnerJoin::Promise(GroupExpression *group_expr) const { return RulePromise::LOGICAL_PROMISE; }
+RulePromise SetLimitInLogicalInnerJoin::Promise(GroupExpression *group_expr) const
+  { return RulePromise::LOGICAL_PROMISE; }
 
 void SetLimitInLogicalInnerJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                               std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,

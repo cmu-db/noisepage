@@ -53,19 +53,29 @@ class IndexUtil {
   /**
    * Checks whether a given index can be used to satisfy a property.
    * For an index to fulfill the sort property, the columns sorted
-   * on must be in the same order and in the same direction.
+   * on must be in the same order and in the same direction as the index columns.
+   * However, if an intermediate column is in a bound, then the index may be used.
    *
    * @param accessor CatalogAccessor
    * @param prop PropertySort to satisfy
    * @param tbl_oid OID of the table that the index is built on
    * @param idx_oid OID of index to use to satisfy
+   * @param bounds bounds for IndexScan
    * @returns TRUE if the specified index can fulfill sort property
+   * TODO(dpatra): We should combine this function and the following function
+   * to check both sorts and predicates at once.
    */
-  static bool SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
-                                     catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid);
+  static bool SatisfiesSortWithIndex(
+      catalog::CatalogAccessor *accessor, const PropertySort *prop,
+      catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid,
+      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds = nullptr);
 
   /**
-   * Checks whether a set of predicates can be satisfied with an index
+   * Checks whether a set of predicates can be satisfied with an index.
+   * For an index to satisfy a subset of the predicates, the predicates must be in
+   * the same order as the index columns and start from the first column in
+   * the index schema.
+   *
    * @param accessor CatalogAccessor
    * @param tbl_oid OID of the table
    * @param tbl_alias Name of the table
@@ -75,6 +85,8 @@ class IndexUtil {
    * @param scan_type IndexScanType to utilize
    * @param bounds Relevant bounds for the index scan
    * @returns Whether index can be used
+   * TODO(dpatra): We should combine this function and the previous function
+   * to check both sorts and predicates at once.
    */
   static bool SatisfiesPredicateWithIndex(
       catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
@@ -85,7 +97,7 @@ class IndexUtil {
  private:
   /**
    * Check whether predicate can take part in index computation
-   * @param schema Index Schema
+   * @param index_schema Index Schema
    * @param tbl_oid Table OID
    * @param tbl_alias Table name
    * @param lookup map from col_oid_t to indexkeycol_oid_t
@@ -97,7 +109,7 @@ class IndexUtil {
    * @returns Whether predicate can be utilized
    */
   static bool CheckPredicates(
-      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+      const catalog::IndexSchema &index_schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
       const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
       const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
       bool allow_cves, planner::IndexScanType *idx_scan_type,
@@ -105,16 +117,16 @@ class IndexUtil {
 
   /**
    * Retrieves the catalog::col_oid_t equivalent for the index
-   * @requires SatisfiesBaseColumnRequirement(schema)
+   * @requires SatisfiesBaseColumnRequirement(index_schema)
    * @param accessor CatalogAccessor to use
    * @param tbl_oid Table the index belongs to
-   * @param schema Schema
+   * @param index_schema Schema
    * @param key_map Mapping from col_oid_t to indexkeycol_oid_t
    * @param col_oids Vector to place col_oid_t translations
    * @returns TRUE if conversion successful
    */
   static bool ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
-                                         const catalog::IndexSchema &schema,
+                                         const catalog::IndexSchema &index_schema,
                                          std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> *key_map,
                                          std::vector<catalog::col_oid_t> *col_oids);
 
@@ -122,11 +134,11 @@ class IndexUtil {
    * Checks whether a Index satisfies the "base column" requirement.
    * The base column requirement (as defined from Peloton) is where
    * the index is built only on base table columns.
-   * @param schema IndexSchema to evaluate
+   * @param index_schema IndexSchema to evaluate
    * @returns TRUE if the "base column" requirement is met
    */
-  static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &schema) {
-    for (auto &column : schema.GetColumns()) {
+  static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &index_schema) {
+    for (auto &column : index_schema.GetColumns()) {
       auto recast = const_cast<parser::AbstractExpression *>(column.StoredExpression().Get());
       if (!IsBaseColumn(common::ManagedPointer(recast))) {
         return false;
