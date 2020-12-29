@@ -80,7 +80,7 @@ class MessengerTests : public TerrierTest {
   }
 
   /** A dirty hack that sleeps for a little while so that sockets can clean up. */
-  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(5)); }
+  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(10)); }
 };
 
 // NOLINTNEXTLINE
@@ -136,6 +136,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     done[0] = true;
     spin_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
+    primary->ForceShutdown();
   };
 
   VoidFn replica1_fn = [=]() {
@@ -183,6 +184,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     done[1] = true;
     spin_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
+    replica1->ForceShutdown();
   };
 
   VoidFn replica2_fn = [=]() {
@@ -230,6 +232,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     done[2] = true;
     spin_until_done();
     MESSENGER_LOG_TRACE("Replica 2 exit.");
+    replica2->ForceShutdown();
   };
 
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn, replica2_fn});
@@ -239,7 +242,6 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   }
 
   DirtySleep();
-
   {
     UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(init)), 3 * sizeof(bool));
     NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
@@ -308,6 +310,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     done[0] = true;
     spin_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
+    primary->ForceShutdown();
   };
 
   VoidFn replica1_fn = [=]() {
@@ -350,6 +353,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     done[1] = true;
     spin_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
+    replica1->ForceShutdown();
   };
 
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn});

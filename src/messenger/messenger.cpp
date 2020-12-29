@@ -191,7 +191,7 @@ namespace noisepage::messenger {
 class ZmqUtil {
  private:
   /** @return True if there are more parts of the same multipart message to be received. */
-  static bool HasMoreMessagePartsToReceive(common::ManagedPointer<zmq::socket_t> socket) {
+  static bool HasMoreMessagePartsToReceive(const common::ManagedPointer<zmq::socket_t> socket) {
     return socket->get(zmq::sockopt::rcvmore) > 0;
   }
 
@@ -203,7 +203,7 @@ class ZmqUtil {
   static constexpr int MAX_ROUTING_ID_LEN = 255;
 
   /** @return The routing ID of the socket. */
-  static std::string GetRoutingId(common::ManagedPointer<zmq::socket_t> socket) {
+  static std::string GetRoutingId(const common::ManagedPointer<zmq::socket_t> socket) {
     return socket->get(zmq::sockopt::routing_id);
   }
 
@@ -211,7 +211,7 @@ class ZmqUtil {
    * @return    The next string to be read off the socket.
    * @warning   Socket must be effectively latched!
    */
-  static std::string Recv(common::ManagedPointer<zmq::socket_t> socket, zmq::recv_flags flags) {
+  static std::string Recv(const common::ManagedPointer<zmq::socket_t> socket, zmq::recv_flags flags) {
     zmq::message_t message;
     auto received = socket->recv(message, flags);
     if (!received.has_value()) {
@@ -224,7 +224,7 @@ class ZmqUtil {
    * @return    The next ZmqMessage (identity and payload) read off the socket.
    * @warning   Socket must be effectively latched!
    */
-  static ZmqMessage RecvMsg(common::ManagedPointer<zmq::socket_t> socket) {
+  static ZmqMessage RecvMsg(const common::ManagedPointer<zmq::socket_t> socket) {
     std::string identity = Recv(socket, zmq::recv_flags::none);
     NOISEPAGE_ASSERT(HasMoreMessagePartsToReceive(socket), "Bad multipart message.");
     std::string delimiter = Recv(socket, zmq::recv_flags::none);
@@ -238,9 +238,9 @@ class ZmqUtil {
    * @return    Send the specified identity over the socket. ROUTER sockets must send this before SendMsgPayload().
    * @warning   Socket must be effectively latched!
    */
-  static void SendMsgIdentity(common::ManagedPointer<zmq::socket_t> socket, const std::string &identity) {
+  static void SendMsgIdentity(const common::ManagedPointer<zmq::socket_t> socket, const std::string &identity) {
     zmq::message_t identity_msg(identity.data(), identity.size());
-    bool ok = socket->send(identity_msg, zmq::send_flags::sndmore | zmq::send_flags::dontwait).has_value();
+    bool ok = socket->send(identity_msg, zmq::send_flags::sndmore).has_value();
 
     if (!ok) {
       throw MESSENGER_EXCEPTION(fmt::format("Unable to send on socket: {}", ZmqUtil::GetRoutingId(socket)));
@@ -251,13 +251,13 @@ class ZmqUtil {
    * @return    Send the specified ZmqMessage (delimiter and payload) over the socket.
    * @warning   Socket must be effectively latched!
    */
-  static void SendMsgPayload(common::ManagedPointer<zmq::socket_t> socket, const ZmqMessage &msg) {
+  static void SendMsgPayload(const common::ManagedPointer<zmq::socket_t> socket, const ZmqMessage &msg) {
     zmq::message_t delimiter_msg("", 0);
     zmq::message_t payload_msg(msg.GetRawPayload().data(), msg.GetRawPayload().size());
     bool ok = true;
 
-    ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore | zmq::send_flags::dontwait).has_value();
-    ok = ok && socket->send(payload_msg, zmq::send_flags::none | zmq::send_flags::dontwait).has_value();
+    ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore).has_value();
+    ok = ok && socket->send(payload_msg, zmq::send_flags::none).has_value();
 
     if (!ok) {
       throw MESSENGER_EXCEPTION(fmt::format("Unable to send on socket: {}", ZmqUtil::GetRoutingId(socket)));
@@ -275,6 +275,7 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
   // Create a new DEALER socket and connect to the server.
   socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_DEALER);
   socket_->set(zmq::sockopt::routing_id, identity);  // Socket identity.
+  socket_->set(zmq::sockopt::immediate, true);       // Only queue messages to completed connections.
   socket_->set(zmq::sockopt::linger, 0);             // Discard all pending messages immediately on socket close.
   socket_->connect(target.GetDestination());
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));

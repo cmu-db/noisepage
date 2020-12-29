@@ -92,11 +92,10 @@ class ConnectionId {
   /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
   ~ConnectionId();
 
-  /** Move constructor. */
-  ConnectionId(ConnectionId &&other);
-
  private:
   friend Messenger;
+  friend ZmqUtil;
+
   /**
    * Create a new ConnectionId that is connected to the specified target.
    * @param messenger   The messenger that owns this connection ID.
@@ -118,7 +117,7 @@ class ConnectionId {
 class ConnectionRouter {
  public:
   /**
-   * Create a new ConnectionRouter that listens for incoming connnections.
+   * Create a new ConnectionRouter that listens for incoming connections.
    * @param messenger   The messenger that owns this connection router.
    * @param target      The target to listen on.
    * @param identity    The routing ID (name) that the router should have.
