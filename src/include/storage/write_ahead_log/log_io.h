@@ -6,6 +6,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cerrno>
 #include <cstring>
 #include <string>
@@ -93,6 +94,14 @@ class BufferedLogWriter {
   explicit BufferedLogWriter(const char *log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)) {}
 
+  /** Move constructor. */
+  BufferedLogWriter(BufferedLogWriter &&other) noexcept {
+    out_ = other.out_;
+    memcpy(buffer_, other.buffer_, common::Constants::LOG_BUFFER_SIZE);
+    buffer_size_ = other.buffer_size_;
+    serialize_refcount_.store(other.serialize_refcount_.load());
+  }
+
   /**
    * Must call before object is destructed
    */
@@ -149,11 +158,41 @@ class BufferedLogWriter {
    */
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
+  /**
+   * Mark that the BufferedLogWriter is now ready for serialization.
+   *
+   * Currently, BufferedLogWriter is used to serialize both over the disk and over the network.
+   * To avoid copying, we refcount the serialization usages of the BufferedLogWriter.
+   * This function initializes the refcount.
+   */
+  void PrepareForSerialization() {
+    NOISEPAGE_ASSERT(serialize_refcount_.load() == 0, "This buffer is already being serialized.");
+    serialize_refcount_.store(NUM_SERIALIZERS);
+  }
+
+  /**
+   * Mark one successful serialization of the buffered log.
+   *
+   * This should be called exactly once for each serializer of this log. See PrepareForSerialization() for more info.
+   * @return True if the current log has been completely serialized, meaning that no serializers are left and that
+   *         it is safe to now reuse this BufferedLogWriter.
+   */
+  bool MarkSerialized() {
+    auto count = serialize_refcount_.fetch_sub(1);
+    NOISEPAGE_ASSERT(serialize_refcount_.load() >= 0, "This buffer was serialized too many times?");
+    return count == 1;
+  }
+
  private:
+  /** The number of callers of MarkSerialized(). See also PrepareForSerialization(). */
+  static constexpr int NUM_SERIALIZERS = 2;
+
   int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   uint32_t buffer_size_ = 0;
+  /**  */
+  std::atomic<int8_t> serialize_refcount_ = 0;
 
   bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
 

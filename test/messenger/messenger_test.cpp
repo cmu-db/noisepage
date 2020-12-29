@@ -79,8 +79,8 @@ class MessengerTests : public TerrierTest {
     return db_main;
   }
 
-  /** A dirty hack that sleeps for a little while so that sockets can clean up. */
-  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(10)); }
+  /** A dirty hack that sleeps for a little while so that sockets can wake up and clean up. */
+  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(2)); }
 };
 
 // NOLINTNEXTLINE
@@ -128,6 +128,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     init[0] = true;
     spin_until_init();
+    DirtySleep();
 
     while (!(done[1] && done[2])) {
     }
@@ -145,6 +146,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     init[1] = true;
     spin_until_init();
+    DirtySleep();
 
     // Set up a connection to the primary.
     auto messenger = replica1->GetMessengerLayer()->GetMessenger();
@@ -193,6 +195,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     init[2] = true;
     spin_until_init();
+    DirtySleep();
 
     // Set up a connection to the primary.
     auto messenger = replica2->GetMessengerLayer()->GetMessenger();
@@ -289,8 +292,6 @@ TEST_F(MessengerTests, BasicListenTest) {
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
     primary->GetNetworkLayer()->GetServer()->RunServer();
-    init[0] = true;
-    spin_until_init();
 
     ConnectionDestination dest_listen = Messenger::GetEndpointIPC("listen", port_listen);
     primary->GetMessengerLayer()->GetMessenger()->ListenForConnection(
@@ -302,6 +303,10 @@ TEST_F(MessengerTests, BasicListenTest) {
                                    CallbackFns::Noop, msg.GetSourceCallbackId());
           }
         });
+
+    init[0] = true;
+    spin_until_init();
+    DirtySleep();
 
     while (!done[1]) {
     }
@@ -318,6 +323,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     replica1->GetNetworkLayer()->GetServer()->RunServer();
     init[1] = true;
     spin_until_init();
+    DirtySleep();
 
     // Set up a connection to the primary via the listen endpoint.
     auto messenger = replica1->GetMessengerLayer()->GetMessenger();

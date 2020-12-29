@@ -265,6 +265,8 @@ class Messenger : public common::DedicatedThreadTask {
   static constexpr const char *MESSENGER_DEFAULT_IPC = "/tmp/noisepage-ipc-{}";
   static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
   static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::seconds(2);
+  /** The maximum timeout that a send or recv operation is allowed to block for. */
+  static constexpr const std::chrono::milliseconds MESSENGER_SNDRCV_TIMEOUT = std::chrono::seconds(1);
 
   /** @return The next ID to be used when sending messages. */
   uint64_t GetNextSendMessageId();

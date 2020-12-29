@@ -58,7 +58,7 @@ void LogManager::PersistAndStop() {
   NOISEPAGE_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file
-  for (auto buf : buffers_) {
+  for (auto &buf : buffers_) {
     buf.Close();
   }
   // Clear buffer queues

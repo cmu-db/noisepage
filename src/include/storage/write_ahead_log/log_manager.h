@@ -117,7 +117,7 @@ class LogManager : public common::DedicatedThreadOwner {
     if (new_num_buffers >= num_buffers_) {
       // Add in new buffers
       for (size_t i = 0; i < new_num_buffers - num_buffers_; i++) {
-        buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
+        buffers_.emplace_back(log_file_path_.c_str());
         empty_buffer_queue_.Enqueue(&buffers_[num_buffers_ + i]);
       }
       num_buffers_ = new_num_buffers;

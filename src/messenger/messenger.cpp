@@ -277,6 +277,8 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
   socket_->set(zmq::sockopt::routing_id, identity);  // Socket identity.
   socket_->set(zmq::sockopt::immediate, true);       // Only queue messages to completed connections.
   socket_->set(zmq::sockopt::linger, 0);             // Discard all pending messages immediately on socket close.
+  socket_->set(zmq::sockopt::sndtimeo, static_cast<int>(Messenger::MESSENGER_SNDRCV_TIMEOUT.count()));
+  socket_->set(zmq::sockopt::rcvtimeo, static_cast<int>(Messenger::MESSENGER_SNDRCV_TIMEOUT.count()));
   socket_->connect(target.GetDestination());
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
   MESSENGER_LOG_TRACE(fmt::format("[PID={}] Registered (but haven't opened!) a new connection to {} ({}) as {}.",
@@ -294,6 +296,8 @@ ConnectionRouter::ConnectionRouter(common::ManagedPointer<Messenger> messenger, 
   socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_ROUTER);
   socket_->set(zmq::sockopt::router_mandatory, true);
   socket_->set(zmq::sockopt::routing_id, identity.c_str());
+  socket_->set(zmq::sockopt::sndtimeo, static_cast<int>(Messenger::MESSENGER_SNDRCV_TIMEOUT.count()));
+  socket_->set(zmq::sockopt::rcvtimeo, static_cast<int>(Messenger::MESSENGER_SNDRCV_TIMEOUT.count()));
   socket_->bind(target.GetDestination());
   MESSENGER_LOG_INFO(
       fmt::format("[PID={}] Messenger ({}) listening: {}", ::getpid(), identity, target.GetDestination()));
