@@ -282,8 +282,7 @@ BaseOperatorNodeContents *InnerIndexJoin::Copy() const { return new InnerIndexJo
 Operator InnerIndexJoin::Make(
     catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
-    std::vector<AnnotatedExpression> join_predicates,
-    bool limit_exists, uint32_t limit) {
+    std::vector<AnnotatedExpression> join_predicates, bool limit_exists, uint32_t limit) {
   auto *join = new InnerIndexJoin();
   join->tbl_oid_ = tbl_oid;
   join->idx_oid_ = idx_oid;

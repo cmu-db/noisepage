@@ -247,8 +247,8 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
   std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
 
   /**
-  * Whether limit exists
-  */
+   * Whether limit exists
+   */
   bool limit_exists_;
 
   /**
@@ -572,8 +572,8 @@ class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
   std::vector<AnnotatedExpression> join_predicates_;
 
   /**
-* Whether limit exists
-*/
+   * Whether limit exists
+   */
   bool limit_exists_;
 
   /**

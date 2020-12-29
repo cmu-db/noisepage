@@ -209,12 +209,13 @@ bool SetLimitInLogicalInnerJoin::Check(common::ManagedPointer<AbstractOptimizerN
   return true;
 }
 
-RulePromise SetLimitInLogicalInnerJoin::Promise(GroupExpression *group_expr) const
-  { return RulePromise::LOGICAL_PROMISE; }
+RulePromise SetLimitInLogicalInnerJoin::Promise(GroupExpression *group_expr) const {
+  return RulePromise::LOGICAL_PROMISE;
+}
 
 void SetLimitInLogicalInnerJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
-                              std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                           std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto join = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalInnerJoin>();
   size_t limit = input->Contents()->GetContentsAs<LogicalLimit>()->GetLimit();
   join->SetLimit(limit);

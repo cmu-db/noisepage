@@ -144,7 +144,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
 
         // There is an index that satisfies predicates for at least one column
         if (sort_exists) {
-          if (sort_possible && IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
+          if (sort_possible &&
+              IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index, &bounds)) {
             // Index also satisfies sort properties so can potentially push down limit and sort
             auto op = std::make_unique<OperatorNode>(
                 IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
@@ -526,9 +527,9 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
   auto child_get = LogicalGet::Make(r_child->GetDatabaseOid(), r_child->GetTableOid(), join_preds,
                                     r_child->GetTableAlias(), r_child->GetIsForUpdate());
   if (limit_exists) child_get.GetContentsAs<LogicalGet>()->SetLimit(limit);
-  auto new_child = std::make_unique<OperatorNode>(
-      child_get.RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-      std::move(empty), context->GetOptimizerContext()->GetTxn());
+  auto new_child =
+      std::make_unique<OperatorNode>(child_get.RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(empty), context->GetOptimizerContext()->GetTxn());
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> transform;
   LogicalGetToPhysicalIndexScan idx_scan_transform;

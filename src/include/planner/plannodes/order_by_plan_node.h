@@ -41,8 +41,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key,
-                        catalog::OrderByOrderingType ordering) {
+    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key, catalog::OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }

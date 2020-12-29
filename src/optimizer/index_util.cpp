@@ -14,8 +14,8 @@
 namespace noisepage::optimizer {
 
 bool IndexUtil::SatisfiesSortWithIndex(
-    catalog::CatalogAccessor *accessor, const PropertySort *prop,
-    catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid,
+    catalog::CatalogAccessor *accessor, const PropertySort *prop, catalog::table_oid_t tbl_oid,
+    catalog::index_oid_t idx_oid,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
   auto &index_schema = accessor->GetIndexSchema(idx_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
@@ -216,9 +216,9 @@ bool IndexUtil::CheckPredicates(
       if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::Dummy) {
         scan_type = planner::IndexScanType::AscendingOpenHighLimit;
       } else if (scan_type == planner::IndexScanType::AscendingClosed ||
-               scan_type == planner::IndexScanType::AscendingClosedLimit ||
-               scan_type == planner::IndexScanType::AscendingOpenHigh ||
-               scan_type == planner::IndexScanType::AscendingOpenHighLimit) {
+                 scan_type == planner::IndexScanType::AscendingClosedLimit ||
+                 scan_type == planner::IndexScanType::AscendingOpenHigh ||
+                 scan_type == planner::IndexScanType::AscendingOpenHighLimit) {
         scan_type = planner::IndexScanType::AscendingOpenHigh;
       } else {
         // OpenHigh scan is not compatible with an OpenLow scan
@@ -228,8 +228,7 @@ bool IndexUtil::CheckPredicates(
       bounds->insert(std::make_pair(
           oid, std::vector<planner::IndexExpression>{open_highs[oid], planner::IndexExpression(nullptr)}));
     } else if (open_lows.find(oid) != open_lows.end()) {
-      if (scan_type == planner::IndexScanType::Exact ||
-          scan_type == planner::IndexScanType::Dummy ||
+      if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::Dummy ||
           scan_type == planner::IndexScanType::AscendingClosed ||
           scan_type == planner::IndexScanType::AscendingClosedLimit ||
           scan_type == planner::IndexScanType::AscendingOpenLow) {

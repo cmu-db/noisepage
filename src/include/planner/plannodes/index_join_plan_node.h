@@ -119,7 +119,6 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      */
     bool scan_has_limit_{false};
 
-
     IndexScanType scan_type_;
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};

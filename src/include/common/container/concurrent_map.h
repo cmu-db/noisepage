@@ -157,7 +157,7 @@ class ConcurrentMap {
    *         True for Insertion, False for No Insertion.
    */
   template <typename... Args>
-  std::pair<Iterator, bool> Emplace(Args &&... args) {
+  std::pair<Iterator, bool> Emplace(Args &&...args) {
     auto result = map_.emplace(std::move(args)...);
     return {Iterator(result.first), result.second};
   }
