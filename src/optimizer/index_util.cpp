@@ -176,7 +176,6 @@ bool IndexUtil::CheckPredicates(
   if (open_highs.empty() && open_lows.empty()) return false;
 
   // Check predicate open/close ordering
-  // TODO(Deepayan): Check that this initialization gets around Exact initalization issues
   planner::IndexScanType scan_type = planner::IndexScanType::Dummy;
   if (open_highs.size() == open_lows.size() && open_highs.size() == schema.GetColumns().size()) {
     // Generally on multi-column indexes, exact would result in comparing against unspecified attribute.
@@ -248,7 +247,7 @@ bool IndexUtil::CheckPredicates(
 
   // Lower scan type to valid type
   // Note: if scan type could be exact, it would have already been set by this point
-  // TODO(Deepayan): It may be possible to get away with being more lenient here on the index scan type to push down
+  // TODO(dpatra): It may be possible to get away with being more lenient here on the index scan type to push down
   // limits but needs further investigation
   if (scan_type == planner::IndexScanType::Dummy) scan_type = planner::IndexScanType::AscendingClosed;
 

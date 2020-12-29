@@ -458,7 +458,7 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
       else if (scan_type == planner::IndexScanType::AscendingOpenBoth)
         asc_type = storage::index::ScanType::OpenBoth;
       break;
-    // TODO(Deepayan): These cases are currently unreachable
+    // TODO(dpatra): These cases are currently unreachable
     case planner::IndexScanType::Descending:
       builtin = ast::Builtin::IndexIteratorScanDescending;
       break;

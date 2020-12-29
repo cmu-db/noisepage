@@ -66,9 +66,7 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   // var hi_index_pr = @indexIteratorGetHiPR(&index_iter)
   DeclareIndexPR(function);
   // @prSet(lo_index_pr, ...)
-  // TODO(Deepayan): fix flag here
-  bool flag = true;
-  FillKey(context, function, lo_index_pr_, op.GetLoIndexColumns(), flag);
+  FillKey(context, function, lo_index_pr_, op.GetLoIndexColumns());
   //FillKey(context, function, lo_index_pr_, op.GetLoIndexColumns());
   // @prSet(hi_index_pr, ...)
   FillKey(context, function, hi_index_pr_, op.GetHiIndexColumns());
@@ -203,8 +201,7 @@ void IndexJoinTranslator::DeclareSlot(noisepage::execution::compiler::FunctionBu
 
 void IndexJoinTranslator::FillKey(
     WorkContext *context, FunctionBuilder *builder, ast::Identifier pr,
-    const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs,
-    const bool flag) const {
+    const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) const {
   // For each key attribute,
   uint32_t count = 0;
   for (const auto &key : index_exprs) {
@@ -212,11 +209,8 @@ void IndexJoinTranslator::FillKey(
     uint16_t attr_offset = index_pm_.at(key.first);
     type::TypeId attr_type = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Type();
     bool nullable = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Nullable();
-    auto *val = index_exprs.size() == count ? GetCodeGen()->BinaryOp(parsing::Token::Type::PLUS, context->DeriveValue(*key.second.Get(), this), GetCodeGen()->Const32(1))
-                                           : context->DeriveValue(*key.second.Get(), this);
-
     auto *set_key_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(pr), attr_type, nullable, attr_offset,
-                                             val, true);
+                                             context->DeriveValue(*key.second.Get(), this), true);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
     count++;
   }
