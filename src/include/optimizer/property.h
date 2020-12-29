@@ -32,7 +32,7 @@ class Property {
    * Constructor for property
    * @param required whether the property is required
    */
-  explicit Property(bool required) : required_(required) {};
+  explicit Property(bool required) : required_(required){};
 
   /**
    * Trivial destructor for Property
@@ -85,9 +85,7 @@ class Property {
   /**
    * Sets the property's required status
    */
-  void SetRequired(bool required) {
-    required_ = required;
-  }
+  void SetRequired(bool required) { required_ = required; }
 
   /**
    * @return whether the property is required
