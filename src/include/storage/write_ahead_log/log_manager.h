@@ -17,6 +17,10 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
+namespace noisepage::replication {
+class ReplicationManager;
+}  // namespace noisepage::replication
+
 namespace noisepage::storage {
 
 class LogSerializerTask;
@@ -52,12 +56,14 @@ class LogManager : public common::DedicatedThreadOwner {
    * @param persist_threshold data written threshold to trigger log file persist
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
+   * @param replication_manager The replication manager that handles shipping logs over the network.
    * @param thread_registry DedicatedThreadRegistry dependency injection
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
-             common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry)
+             common::ManagedPointer<replication::ReplicationManager> replication_manager,
+             common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
@@ -65,7 +71,8 @@ class LogManager : public common::DedicatedThreadOwner {
         buffer_pool_(buffer_pool.Get()),
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
-        persist_threshold_(persist_threshold) {}
+        persist_threshold_(persist_threshold),
+        replication_manager_(replication_manager) {}
   /**
    * Starts log manager. Does the following in order:
    *    1. Initialize buffers to pass serialized logs to log consumers
@@ -160,6 +167,8 @@ class LogManager : public common::DedicatedThreadOwner {
   const std::chrono::microseconds persist_interval_;
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
+
+  common::ManagedPointer<replication::ReplicationManager> replication_manager_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

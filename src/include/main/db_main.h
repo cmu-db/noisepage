@@ -375,7 +375,8 @@ class DBMain {
         log_manager = std::make_unique<storage::LogManager>(
             wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
             std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
-            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
+            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(replication_manager),
+            common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
 
