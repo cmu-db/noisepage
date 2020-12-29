@@ -117,8 +117,14 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   auto limit = get->GetLimit();
   auto indexes = accessor->GetIndexOids(get->GetTableOid());
 
-  // Get sort property
+  // TODO(dpatra): This assumes there will only be ONE sort property -- may want to review this later
+  // Try setting sort property based on properties in context
   auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT);
+  // If no sort found in required properties, try optional properties
+  if (sort == nullptr) {
+    sort = context->GetOptionalProperties()->GetPropertyOfType(PropertyType::SORT);
+  }
+
   bool sort_exists = sort != nullptr;
   auto sort_prop = sort_exists ? sort->As<PropertySort>() : nullptr;
   bool sort_possible = sort_exists && IndexUtil::CheckSortProperty(sort_prop);
@@ -136,10 +142,10 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
         // Limit can only be pushed down in the following cases
         // TODO(dpatra): Limit can be pushed down in the case of an exact scan as well, but the index framework
         // doesn't currently support it.
-        limit_exists = scan_type == planner::IndexScanType::Exact ||
-                       scan_type == planner::IndexScanType::AscendingOpenHighLimit ||
-                       scan_type == planner::IndexScanType::AscendingClosedLimit ||
-                       scan_type == planner::IndexScanType::DescendingLimit;
+        limit_exists = limit_exists && (scan_type == planner::IndexScanType::Exact ||
+                                        scan_type == planner::IndexScanType::AscendingOpenHighLimit ||
+                                        scan_type == planner::IndexScanType::AscendingClosedLimit ||
+                                        scan_type == planner::IndexScanType::DescendingLimit);
         preds = get->GetPredicates();
 
         // There is an index that satisfies predicates for at least one column

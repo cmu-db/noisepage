@@ -256,7 +256,7 @@ bool IndexUtil::CheckPredicates(
   // Note: if scan type could be exact, it would have already been set by this point
   // TODO(dpatra): It may be possible to get away with being more lenient here on the index scan type to push down
   // limits but needs further investigation
-  if (scan_type == planner::IndexScanType::Dummy) scan_type = planner::IndexScanType::AscendingClosed;
+  if (scan_type == planner::IndexScanType::Dummy) scan_type = planner::IndexScanType::AscendingClosedLimit;
 
   *idx_scan_type = scan_type;
   return !bounds->empty();
