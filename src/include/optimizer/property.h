@@ -32,7 +32,7 @@ class Property {
    * Constructor for property
    * @param required whether the property is required
    */
-  explicit Property(bool required) : required_(required){}
+  explicit Property(bool required) : required_(required) {}
 
   /**
    * Trivial destructor for Property
