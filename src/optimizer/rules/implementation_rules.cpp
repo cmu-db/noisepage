@@ -1,14 +1,11 @@
 #include "optimizer/rules/implementation_rules.h"
 
 #include <memory>
-#include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
-#include "loggers/optimizer_logger.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"
 #include "optimizer/logical_operators.h"
@@ -18,7 +15,6 @@
 #include "optimizer/properties.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
-#include "storage/storage_defs.h"
 
 namespace noisepage::optimizer {
 
@@ -798,7 +794,7 @@ void LogicalLimitToPhysicalLimit::Transform(common::ManagedPointer<AbstractOptim
   NOISEPAGE_ASSERT(input->GetChildren().size() == 1, "LogicalLimit should have 1 child");
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> sorts = limit_op->GetSortExpressions();
-  std::vector<OrderByOrderingType> types = limit_op->GetSortDirections();
+  std::vector<catalog::OrderByOrderingType> types = limit_op->GetSortDirections();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));

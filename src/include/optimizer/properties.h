@@ -21,7 +21,7 @@ class PropertySort : public Property {
    * @param sort_ascending Whether each sort_column is ascending or descending
    */
   PropertySort(std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
-               std::vector<OrderByOrderingType> sort_ascending)
+               std::vector<catalog::OrderByOrderingType> sort_ascending)
       : sort_columns_(std::move(sort_columns)), sort_ascending_(std::move(sort_ascending)) {}
 
   /**
@@ -53,7 +53,7 @@ class PropertySort : public Property {
    * @param idx Index of ascending flag to retrieve
    * @returns Whether sort column at index idx is sorted in ascending order
    */
-  OrderByOrderingType GetSortAscending(int idx) const { return sort_ascending_[idx]; }
+  catalog::OrderByOrderingType GetSortAscending(int idx) const { return sort_ascending_[idx]; }
 
   /**
    * Hashes this PropertySort
@@ -86,7 +86,7 @@ class PropertySort : public Property {
   /**
    * Direction of the sort
    */
-  std::vector<OrderByOrderingType> sort_ascending_;
+  std::vector<catalog::OrderByOrderingType> sort_ascending_;
 };
 
 }  // namespace noisepage::optimizer

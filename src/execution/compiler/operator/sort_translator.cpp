@@ -87,7 +87,7 @@ void SortTranslator::GenerateComparisonFunction(FunctionBuilder *function) {
   context.SetExpressionCacheEnable(false);
   int32_t ret_value;
   for (const auto &[expr, sort_order] : GetPlanAs<planner::OrderByPlanNode>().GetSortKeys()) {
-    if (sort_order == optimizer::OrderByOrderingType::ASC) {
+    if (sort_order == catalog::OrderByOrderingType::ASC) {
       ret_value = -1;
     } else {
       ret_value = 1;

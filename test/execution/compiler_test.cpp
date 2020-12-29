@@ -1774,9 +1774,9 @@ TEST_F(CompilerTest, SimpleSortTest) {
     order_by_out.AddOutput("sum", sum);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{col2, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause1{col2, catalog::OrderByOrderingType::ASC};
     auto diff = expr_maker.OpMin(col1, col2);
-    planner::SortKey clause2{diff, optimizer::OrderByOrderingType::DESC};
+    planner::SortKey clause2{diff, catalog::OrderByOrderingType::DESC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -1891,9 +1891,9 @@ TEST_F(CompilerTest, SortWithLimitTest) {
     order_by_out.AddOutput("sum", sum);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{col2, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause1{col2, catalog::OrderByOrderingType::ASC};
     auto diff = expr_maker.OpMin(col1, col2);
-    planner::SortKey clause2{diff, optimizer::OrderByOrderingType::DESC};
+    planner::SortKey clause2{diff, catalog::OrderByOrderingType::DESC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -1986,7 +1986,7 @@ TEST_F(CompilerTest, SortWithLimitAndOffsetTest) {
     order_by_out.AddOutput("col1", col1);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{col1, optimizer::OrderByOrderingType::DESC};
+    planner::SortKey clause1{col1, catalog::OrderByOrderingType::DESC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))

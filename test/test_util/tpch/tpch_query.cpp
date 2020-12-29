@@ -148,8 +148,8 @@ TPCHQuery::MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &acc
     order_by_out.AddOutput("count_order", count_order);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{l_returnflag, optimizer::OrderByOrderingType::ASC};
-    planner::SortKey clause2{l_linestatus, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause1{l_returnflag, catalog::OrderByOrderingType::ASC};
+    planner::SortKey clause2{l_linestatus, catalog::OrderByOrderingType::ASC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -286,7 +286,7 @@ TPCHQuery::MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &acc
     order_by_out.AddOutput("order_count", order_count);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause{o_orderpriority, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause{o_orderpriority, catalog::OrderByOrderingType::ASC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -658,7 +658,7 @@ TPCHQuery::MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &acc
     order_by_out.AddOutput("revenue", revenue);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause{revenue, optimizer::OrderByOrderingType::DESC};
+    planner::SortKey clause{revenue, catalog::OrderByOrderingType::DESC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -1154,9 +1154,9 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
     order_by_out.AddOutput("volume", volume);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{supp_nation, optimizer::OrderByOrderingType::ASC};
-    planner::SortKey clause2{cust_nation, optimizer::OrderByOrderingType::ASC};
-    planner::SortKey clause3{l_year, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause1{supp_nation, catalog::OrderByOrderingType::ASC};
+    planner::SortKey clause2{cust_nation, catalog::OrderByOrderingType::ASC};
+    planner::SortKey clause3{l_year, catalog::OrderByOrderingType::ASC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -1525,7 +1525,7 @@ TPCHQuery::MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &ac
     order_by_out.AddOutput("value_sum", value_sum);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{value_sum, optimizer::OrderByOrderingType::DESC};
+    planner::SortKey clause1{value_sum, catalog::OrderByOrderingType::DESC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -1758,10 +1758,10 @@ TPCHQuery::MakeExecutableQ16(const std::unique_ptr<catalog::CatalogAccessor> &ac
     order_by_out.AddOutput("supplier_cnt", supplier_cnt);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{supplier_cnt, optimizer::OrderByOrderingType::DESC};
-    planner::SortKey clause2{p_brand, optimizer::OrderByOrderingType::ASC};
-    planner::SortKey clause3{p_type, optimizer::OrderByOrderingType::ASC};
-    planner::SortKey clause4{p_size, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause1{supplier_cnt, catalog::OrderByOrderingType::DESC};
+    planner::SortKey clause2{p_brand, catalog::OrderByOrderingType::ASC};
+    planner::SortKey clause3{p_type, catalog::OrderByOrderingType::ASC};
+    planner::SortKey clause4{p_size, catalog::OrderByOrderingType::ASC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
@@ -2070,8 +2070,8 @@ TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &ac
     order_by_out.AddOutput("sum_qty", sum_qty);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    planner::SortKey clause1{o_totalprice, optimizer::OrderByOrderingType::DESC};
-    planner::SortKey clause2{o_orderdate, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause1{o_totalprice, catalog::OrderByOrderingType::DESC};
+    planner::SortKey clause2{o_orderdate, catalog::OrderByOrderingType::ASC};
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))

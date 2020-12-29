@@ -40,7 +40,7 @@ class IndexUtil {
     auto sort_col_size = prop->GetSortColumnSize();
     for (size_t idx = 0; idx < sort_col_size; idx++) {
       // TODO(wz2): Consider descending when catalog/index support
-      auto is_asc = prop->GetSortAscending(static_cast<int>(idx)) == optimizer::OrderByOrderingType::ASC;
+      auto is_asc = prop->GetSortAscending(static_cast<int>(idx)) == catalog::OrderByOrderingType::ASC;
       auto is_base = IsBaseColumn(prop->GetSortColumn(static_cast<int>(idx)));
       if (!is_asc || !is_base) {
         return false;

@@ -413,7 +413,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
   auto logical_limit = operator_tree_->Contents()->GetContentsAs<optimizer::LogicalLimit>();
   EXPECT_EQ(2, logical_limit->GetLimit());
   EXPECT_EQ(1, logical_limit->GetOffset());
-  EXPECT_EQ(optimizer::OrderByOrderingType::ASC, logical_limit->GetSortDirections()[0]);
+  EXPECT_EQ(catalog::OrderByOrderingType::ASC, logical_limit->GetSortDirections()[0]);
   EXPECT_EQ(
       "b2",
       logical_limit->GetSortExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName());

@@ -186,7 +186,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
     EXPECT_EQ(orderby->GetOffset(), sel_stmt->GetSelectLimit()->GetOffset());
     EXPECT_EQ(orderby->GetSortKeys().size(), 1);
-    EXPECT_EQ(orderby->GetSortKeys()[0].second, optimizer::OrderByOrderingType::ASC);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::ASC);
     auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
     EXPECT_TRUE(sortkey != nullptr);
     EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);

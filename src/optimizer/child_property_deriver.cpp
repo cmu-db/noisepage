@@ -78,7 +78,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) {
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
   // Child must provide sort for Groupby columns
-  std::vector<OrderByOrderingType> sort_ascending(op->GetColumns().size(), OrderByOrderingType::ASC);
+  std::vector<catalog::OrderByOrderingType> sort_ascending(op->GetColumns().size(), catalog::OrderByOrderingType::ASC);
 
   auto sort_prop = new PropertySort(op->GetColumns(), std::move(sort_ascending));
   auto prop_set = new PropertySet(std::vector<Property *>{sort_prop});
@@ -95,7 +95,7 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   auto provided_prop = new PropertySet();
   if (!op->GetSortExpressions().empty()) {
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
-    const std::vector<OrderByOrderingType> &sorts{op->GetSortAscending()};
+    const std::vector<catalog::OrderByOrderingType> &sorts{op->GetSortAscending()};
     provided_prop->AddProperty(new PropertySort(exprs, sorts));
   }
 

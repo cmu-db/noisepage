@@ -887,7 +887,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
+                       std::vector<catalog::OrderByOrderingType> &&sort_directions);
 
   /**
    * Copy
@@ -918,7 +918,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
   /**
    * @return inlined sort directions (can be empty)
    */
-  const std::vector<optimizer::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
+  const std::vector<catalog::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
 
  private:
   /**
@@ -942,7 +942,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
   /**
    * The sort direction of sort expressions
    */
-  std::vector<optimizer::OrderByOrderingType> sort_directions_;
+  std::vector<catalog::OrderByOrderingType> sort_directions_;
 };
 
 /**
