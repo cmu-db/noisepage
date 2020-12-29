@@ -90,7 +90,7 @@ def gen_oltp_trace(
     config_forecast_data(test_case.xml_config, rates)
 
     # Turn on query trace metrics tracing
-    db_server.turn_on_metrics_trace()
+    db_server.execute("SET query_trace_metrics_enable='true'", expect_result=False)
 
     # Run the actual test
     ret_val, _, stderr = run_command(test_case.test_command,

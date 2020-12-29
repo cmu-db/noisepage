@@ -139,16 +139,6 @@ class NoisePageServer:
             # Re-raise this
             raise e
 
-    def turn_on_metrics_trace(self):
-        """
-        Turn on query trace.
-        :return:  None
-        """
-        self.execute(
-            """
-            SET query_trace_metrics_enable='true'
-            """, expect_result=False)
-
 
 def get_build_path(build_type):
     """ Get the path to the binary """

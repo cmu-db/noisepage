@@ -41,6 +41,10 @@ class ForecastModel(ABC):
         self._y_transformer = None
         pass
 
+    @property
+    def name(self):
+        return self.__class__.__name__
+
     def fit(self, train_seqs: List[Tuple[np.ndarray, np.ndarray]]) -> None:
         """
         Fit the model with sequences
