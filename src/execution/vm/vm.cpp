@@ -160,20 +160,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // TODO(pmenon): Should these READ/PEEK macros take in a vm::OperandType so
   // that we can infer primitive types using traits? This minimizes number of
   // changes if the underlying offset/bytecode/register sizes changes?
-#define PEEK_JMP_OFFSET() Peek<int32_t>(&ip) /* NOLINT */
-#define READ_IMM1() Read<int8_t>(&ip) /* NOLINT */
-#define READ_IMM2() Read<int16_t>(&ip) /* NOLINT */
-#define READ_IMM4() Read<int32_t>(&ip) /* NOLINT */
-#define READ_IMM8() Read<int64_t>(&ip) /* NOLINT */
-#define READ_IMM4F() Read<float>(&ip) /* NOLINT */
-#define READ_IMM8F() Read<double>(&ip) /* NOLINT */
-#define READ_UIMM2() Read<uint16_t>(&ip) /* NOLINT */
-#define READ_UIMM4() Read<uint32_t>(&ip) /* NOLINT */
-#define READ_JMP_OFFSET() READ_IMM4() /* NOLINT */
-#define READ_LOCAL_ID() Read<uint32_t>(&ip) /* NOLINT */
-#define READ_STATIC_LOCAL_ID() Read<uint32_t>(&ip) /* NOLINT */
+#define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)                  /* NOLINT */
+#define READ_IMM1() Read<int8_t>(&ip)                         /* NOLINT */
+#define READ_IMM2() Read<int16_t>(&ip)                        /* NOLINT */
+#define READ_IMM4() Read<int32_t>(&ip)                        /* NOLINT */
+#define READ_IMM8() Read<int64_t>(&ip)                        /* NOLINT */
+#define READ_IMM4F() Read<float>(&ip)                         /* NOLINT */
+#define READ_IMM8F() Read<double>(&ip)                        /* NOLINT */
+#define READ_UIMM2() Read<uint16_t>(&ip)                      /* NOLINT */
+#define READ_UIMM4() Read<uint32_t>(&ip)                      /* NOLINT */
+#define READ_JMP_OFFSET() READ_IMM4()                         /* NOLINT */
+#define READ_LOCAL_ID() Read<uint32_t>(&ip)                   /* NOLINT */
+#define READ_STATIC_LOCAL_ID() Read<uint32_t>(&ip)            /* NOLINT */
 #define READ_OP() Read<std::underlying_type_t<Bytecode>>(&ip) /* NOLINT */
-#define READ_FUNC_ID() READ_UIMM2() /* NOLINT */
+#define READ_FUNC_ID() READ_UIMM2()                           /* NOLINT */
 
 #define OP(name) op_##name
 #define DISPATCH_NEXT()           \

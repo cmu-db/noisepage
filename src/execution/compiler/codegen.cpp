@@ -428,7 +428,6 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   ast::Builtin builtin;
   bool asc_scan = false;
   bool use_limit = false;
-  bool limit_unusable = true;
   storage::index::ScanType asc_type;
   switch (scan_type) {
     case planner::IndexScanType::Exact:
@@ -442,9 +441,6 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
     case planner::IndexScanType::AscendingOpenLow:
     case planner::IndexScanType::AscendingOpenBoth:
       use_limit = true;
-      if (scan_type == planner::IndexScanType::AscendingOpenHighLimit ||
-          scan_type == planner::IndexScanType::AscendingClosedLimit)
-        limit_unusable = false;
       asc_scan = true;
       builtin = ast::Builtin::IndexIteratorScanAscending;
       if (scan_type == planner::IndexScanType::AscendingClosed ||

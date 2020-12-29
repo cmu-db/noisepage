@@ -231,7 +231,7 @@ class EXPORT MemoryPool {
    * @return A construct object allocated from this pool.
    */
   template <typename T, typename... Args>
-  MemPoolPtr<T> MakeObject(Args &&...args) {
+  MemPoolPtr<T> MakeObject(Args &&... args) {
     auto *object_mem = Allocate(sizeof(T), true);
     auto *obj = new (object_mem) T(std::forward<Args>(args)...);
     return MemPoolPtr<T>(obj);
