@@ -72,7 +72,7 @@ class MessengerTests : public TerrierTest {
                        .SetNetworkPort(network_port)
                        .SetUseMessenger(true)
                        .SetMessengerPort(messenger_port)
-                       .SetMessengerIdentity(messenger_identity)
+                       .SetNetworkIdentity(messenger_identity)
                        .SetUseExecution(true)
                        .Build();
 
@@ -98,13 +98,24 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   // done[3] is shared memory (mmap) so that the forked processes can coordinate on when they are done.
   // This is done instead of waitpid() because I can't find a way to stop googletest from freaking out on waitpid().
   // done[0] : primary, done[1] : replica1, done[2] : replica2.
+  volatile bool *init = static_cast<volatile bool *>(
+      mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != init, "mmap() failed.");
   volatile bool *done = static_cast<volatile bool *>(
       mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
   NOISEPAGE_ASSERT(MAP_FAILED != done, "mmap() failed.");
 
+  init[0] = false;
+  init[1] = false;
+  init[2] = false;
   done[0] = false;
   done[1] = false;
   done[2] = false;
+
+  auto spin_until_init = [init]() {
+    while (!(init[0] && init[1] && init[2])) {
+    }
+  };
 
   auto spin_until_done = [done]() {
     while (!(done[0] && done[1] && done[2])) {
@@ -114,6 +125,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
     primary->GetNetworkLayer()->GetServer()->RunServer();
+
+    init[0] = true;
+    spin_until_init();
 
     while (!(done[1] && done[2])) {
     }
@@ -127,6 +141,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   VoidFn replica1_fn = [=]() {
     auto replica1 = BuildDBMain(port_replica1, port_messenger_replica1, "replica1");
     replica1->GetNetworkLayer()->GetServer()->RunServer();
+
+    init[1] = true;
+    spin_until_init();
 
     // Set up a connection to the primary.
     auto messenger = replica1->GetMessengerLayer()->GetMessenger();
@@ -171,6 +188,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   VoidFn replica2_fn = [=]() {
     auto replica2 = BuildDBMain(port_replica2, port_messenger_replica2, "replica2");
     replica2->GetNetworkLayer()->GetServer()->RunServer();
+
+    init[2] = true;
+    spin_until_init();
 
     // Set up a connection to the primary.
     auto messenger = replica2->GetMessengerLayer()->GetMessenger();
@@ -220,8 +240,14 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
   DirtySleep();
 
-  UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
-  NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(init)), 3 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
 }
 
 // NOLINTNEXTLINE
@@ -236,12 +262,22 @@ TEST_F(MessengerTests, BasicListenTest) {
 
   uint16_t port_listen = 8030;
 
+  volatile bool *init = static_cast<volatile bool *>(
+      mmap(nullptr, 2 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != init, "mmap() failed.");
   volatile bool *done = static_cast<volatile bool *>(
       mmap(nullptr, 2 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
   NOISEPAGE_ASSERT(MAP_FAILED != done, "mmap() failed.");
 
+  init[0] = false;
+  init[1] = false;
   done[0] = false;
   done[1] = false;
+
+  auto spin_until_init = [init]() {
+    while (!(init[0] && init[1])) {
+    }
+  };
 
   auto spin_until_done = [done]() {
     while (!(done[0] && done[1])) {
@@ -251,6 +287,8 @@ TEST_F(MessengerTests, BasicListenTest) {
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
     primary->GetNetworkLayer()->GetServer()->RunServer();
+    init[0] = true;
+    spin_until_init();
 
     ConnectionDestination dest_listen = Messenger::GetEndpointIPC("listen", port_listen);
     primary->GetMessengerLayer()->GetMessenger()->ListenForConnection(
@@ -275,6 +313,8 @@ TEST_F(MessengerTests, BasicListenTest) {
   VoidFn replica1_fn = [=]() {
     auto replica1 = BuildDBMain(port_replica1, port_messenger_replica1, "replica1");
     replica1->GetNetworkLayer()->GetServer()->RunServer();
+    init[1] = true;
+    spin_until_init();
 
     // Set up a connection to the primary via the listen endpoint.
     auto messenger = replica1->GetMessengerLayer()->GetMessenger();
@@ -319,9 +359,14 @@ TEST_F(MessengerTests, BasicListenTest) {
   }
 
   DirtySleep();
-
-  UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
-  NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(init)), 2 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
 }
 
 }  // namespace noisepage::messenger

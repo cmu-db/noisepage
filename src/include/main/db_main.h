@@ -634,6 +634,15 @@ class DBMain {
     }
 
     /**
+     * @param port Network identity. Must be unique across all replicas.
+     * @return self reference for chaining
+     */
+    Builder &SetNetworkIdentity(const std::string &identity) {
+      network_identity_ = identity;
+      return *this;
+    }
+
+    /**
      * @param port Network port
      * @return self reference for chaining
      */

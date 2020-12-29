@@ -275,12 +275,11 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
   // Create a new DEALER socket and connect to the server.
   socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_DEALER);
   socket_->set(zmq::sockopt::routing_id, identity);  // Socket identity.
-  socket_->set(zmq::sockopt::immediate, true);       // Only queue messages to completed connections.
   socket_->set(zmq::sockopt::linger, 0);             // Discard all pending messages immediately on socket close.
   socket_->connect(target.GetDestination());
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
   MESSENGER_LOG_TRACE(fmt::format("[PID={}] Registered (but haven't opened!) a new connection to {} ({}) as {}.",
-                                 ::getpid(), target_name_, target.GetDestination(), routing_id_.c_str()));
+                                  ::getpid(), target_name_, target.GetDestination(), routing_id_.c_str()));
   // Add the new socket to the list of sockets that will be polled by the server loop.
   messenger->polled_sockets_->AddPollItem(socket_.get(), nullptr);
 }
