@@ -49,7 +49,7 @@ bool IndexUtil::SatisfiesSortWithIndex(
       // Column is present in both sort and index so increment both
       sort_ind++, idx_ind++;
     } else if (bounds != nullptr && bounds->find(lookup[mapped_cols[idx_ind]]) != bounds->end()) {
-      // If column is found in bounds but not index, continue
+      // If column is found in bounds but not sort, continue
       idx_ind++;
     } else {
       // Column not found in index so cannot use this index
@@ -57,7 +57,8 @@ bool IndexUtil::SatisfiesSortWithIndex(
     }
   }
 
-  return true;
+  // Ensure all of sort satisfied
+  return sort_ind == sort_col_size;
 }
 
 bool IndexUtil::SatisfiesPredicateWithIndex(
