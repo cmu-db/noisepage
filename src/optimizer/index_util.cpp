@@ -255,13 +255,17 @@ bool IndexUtil::CheckPredicates(
 
   if (bounds->empty()) return false;
 
-  // Scan may be uninitialized if all bound columns are equality checks, but not all index columns are bound so is not exact
+  // Scan may be uninitialized if all bound columns are equality checks, but not all index columns are bound so is not
+  // exact
   if (open_lows.size() == open_highs.size() && scan_type == planner::IndexScanType::Dummy) {
-    if (bounds->size() == open_lows.size()) scan_type = planner::IndexScanType::AscendingClosedLimit;
-    else scan_type = planner::IndexScanType::AscendingClosed;
+    if (bounds->size() == open_lows.size())
+      scan_type = planner::IndexScanType::AscendingClosedLimit;
+    else
+      scan_type = planner::IndexScanType::AscendingClosed;
   }
 
-  NOISEPAGE_ASSERT(scan_type != planner::IndexScanType::Dummy, "Dummy scan should never exist if any predicate is satisfied");
+  NOISEPAGE_ASSERT(scan_type != planner::IndexScanType::Dummy,
+                   "Dummy scan should never exist if any predicate is satisfied");
 
   // Lower scan type allowance if not all predicates are satisfied
   if (scan_type == planner::IndexScanType::AscendingClosedLimit && bounds->size() != predicates.size())
