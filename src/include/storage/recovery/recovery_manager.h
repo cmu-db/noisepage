@@ -160,13 +160,13 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * Recovers the databases using the provided log provider
    * @return number of committed transactions replayed
    */
-  void Recover() { RecoverFromLogs(); }
+  void Recover() { RecoverFromLogs(log_provider_); }
 
   /**
    * Recovers the databases from the logs.
    * @note this is a separate method so in the future, we can also have a RecoverFromCheckpoint method
    */
-  void RecoverFromLogs();
+  void RecoverFromLogs(common::ManagedPointer<AbstractLogProvider> log_provider_);
 
   /**
    * @brief Replay a committed transaction corresponding to txn_id.

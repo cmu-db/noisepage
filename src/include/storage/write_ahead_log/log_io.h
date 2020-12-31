@@ -18,6 +18,10 @@
 #include "loggers/storage_logger.h"
 #include "transaction/transaction_defs.h"
 
+namespace noisepage::replication {
+class ReplicationManager;
+} //
+
 namespace noisepage::storage {
 
 /**
@@ -184,6 +188,8 @@ class BufferedLogWriter {
   }
 
  private:
+  friend class replication::ReplicationManager;
+
   /** The number of callers of MarkSerialized(). See also PrepareForSerialization(). */
   static constexpr int NUM_SERIALIZERS = 2;
 

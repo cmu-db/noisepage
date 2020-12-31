@@ -6,6 +6,7 @@
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
+#include "replication/replication_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
@@ -141,6 +142,8 @@ void LogSerializerTask::HandFilledBufferToWriter() {
   //  You basically want a refcount on filled_buffer_? Except filled buffer is used pervasively through this.
   // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
   if (filled_buffer_ != nullptr) filled_buffer_->PrepareForSerialization();
+  // Replicate the buffer, if it exists.
+  if (filled_buffer_ != nullptr) replication_manager_->ReplicateBuffer(filled_buffer_);
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
   // Signal disk log consumer task thread that a buffer has been handed over

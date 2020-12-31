@@ -13,7 +13,7 @@ namespace noisepage::storage {
 /**
  * @@brief Abstract class for log providers
  * A log provider is an object that supplies logs to the recovery manager from an arbitrary source (log file, network,
- * etc). A provider should implement the Read method in such a way that it appears like it is reading contigous memory
+ * etc). A provider should implement the Read method in such a way that it appears like it is reading contiguous memory
  */
 class AbstractLogProvider {
  public:

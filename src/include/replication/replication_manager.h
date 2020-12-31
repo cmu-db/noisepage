@@ -10,6 +10,10 @@
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
 
+namespace noisepage::storage {
+class BufferedLogWriter;
+}  // namespace noisepage::storage
+
 namespace noisepage::replication {
 
 class ReplicationManager;
@@ -53,7 +57,7 @@ class Replica {
  */
 class ReplicationManager {
  public:
-  enum class MessageType : uint8_t { RESERVED = 0, HEARTBEAT };
+  enum class MessageType : uint8_t { RESERVED = 0, ACK, HEARTBEAT, REPLICATE_BUFFER };
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
@@ -66,6 +70,8 @@ class ReplicationManager {
   // just capture a bool in the callback and flip it on response, have the cvar wait on that
   // I don't think this should actually send the message, though - it should buffer the message to be sent instead
   void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
+
+  void ReplicateBuffer(storage::BufferedLogWriter *buffer);
 
   /** @return The port that replication is running on. */
   uint16_t GetPort() const { return port_; }

@@ -39,10 +39,10 @@ void RecoveryManager::WaitForRecoveryToFinish() {
   }
 }
 
-void RecoveryManager::RecoverFromLogs() {
+void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    auto pair = log_provider_->GetNextRecord();
+    auto pair = log_provider->GetNextRecord();
     auto *log_record = pair.first;
 
     // If we have exhausted all the logs, break from the loop

@@ -5,17 +5,19 @@
 #include <optional>
 
 #include "common/error/exception.h"
+#include "common/json.h"
 #include "loggers/replication_logger.h"
+#include "storage/write_ahead_log/log_io.h"
 
 namespace noisepage::replication {
 
-Replica::Replica(common::ManagedPointer<noisepage::messenger::Messenger> messenger, const std::string &replica_name,
+Replica::Replica(common::ManagedPointer<messenger::Messenger> messenger, const std::string &replica_name,
                  const std::string &hostname, uint16_t port)
     : replica_info_(messenger::ConnectionDestination::MakeTCP(replica_name, hostname, port)),
       connection_(messenger->MakeConnection(replica_info_)),
       last_heartbeat_(0) {}
 
-ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messenger::Messenger> messenger,
+ReplicationManager::ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger,
                                        const std::string &network_identity, uint16_t port,
                                        const std::string &replication_hosts_path)
     : messenger_(messenger), identity_(network_identity), port_(port) {
@@ -88,29 +90,55 @@ void ReplicationManager::ReplicaConnect(const std::string &replica_name, const s
 
 void ReplicationManager::ReplicaSend(const std::string &replica_name, const ReplicationManager::MessageType type,
                                      const std::string &msg, bool block) {
+  REPLICATION_LOG_TRACE(
+      fmt::format("Send -> {} (type {} block {}): {}", replica_name, static_cast<uint8_t>(type), block, msg));
   std::unique_lock<std::mutex> lock(mutex_);
   bool completed = false;
-  messenger_->SendMessage(
-      GetReplicaConnection(replica_name), msg,
-      [this, &completed](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-        completed = true;
-        cvar_.notify_all();
-      },
-      static_cast<uint64_t>(type));
+  try {
+    messenger_->SendMessage(
+        GetReplicaConnection(replica_name), msg,
+        [this, &completed](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
+          completed = true;
+          cvar_.notify_all();
+        },
+        static_cast<uint64_t>(type));
 
-  if (block) {
-    // If the caller requested to block until the operation was completed, the thread waits.
-    cvar_.wait(lock, [&completed] { return completed; });
+    if (block) {
+      // If the caller requested to block until the operation was completed, the thread waits.
+      cvar_.wait(lock, [&completed] { return completed; });
+    }
+  } catch (const MessengerException &e) {
+    REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (type {} block {}): {}", replica_name,
+                                     static_cast<uint8_t>(type), block, msg));
   }
   lock.unlock();
 }
 
-void ReplicationManager::EventLoop(common::ManagedPointer<noisepage::messenger::Messenger> messenger,
-                                   const noisepage::messenger::ZmqMessage &msg) {
+void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
+  NOISEPAGE_ASSERT(buffer != nullptr,
+                   "Don't try to replicate null buffers. That's pointless."
+                   "You might plausibly want to track statistics at some point, but that should not happen here.");
+  common::json j;
+  j["size"] = buffer->buffer_size_;
+  j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
+
+  for (const auto &replica : replicas_) {
+    ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), false);
+  }
+}
+
+void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
+                                   const messenger::ZmqMessage &msg) {
   switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
     case MessageType::HEARTBEAT:
       REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
       break;
+    case MessageType::REPLICATE_BUFFER: {
+      REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {}", msg.GetRoutingId()));
+      nlohmann::json msgas = nlohmann::json::parse(msg.GetMessage());
+      ReplicaSend(std::string(msg.GetRoutingId()), MessageType::ACK, "", false);
+      break;
+    }
     default:
       break;
   }
@@ -156,7 +184,7 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
   REPLICATION_LOG_TRACE(fmt::format("Replica {}: heartbeat end.", replica_name));
 }
 
-common::ManagedPointer<noisepage::messenger::ConnectionId> ReplicationManager::GetReplicaConnection(
+common::ManagedPointer<messenger::ConnectionId> ReplicationManager::GetReplicaConnection(
     const std::string &replica_name) {
   return replicas_.at(replica_name).GetConnectionId();
 }
