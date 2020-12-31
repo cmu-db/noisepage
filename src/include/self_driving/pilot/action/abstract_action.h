@@ -10,11 +10,12 @@ namespace noisepage::selfdriving::pilot {
  * The abstract class for self-driving actions
  */
 class AbstractAction {
+ public:
   /**
    * Constructor for the base AbstractAction.
    * @param family The family that this action belongs to
    */
-  explicit AbstractAction(ActionFamily family) : family_(family), id_(action_id_counter_++){};
+  explicit AbstractAction(ActionFamily family) : action_family_(family), id_(action_id_counter++){};
 
   /**
    * Set the estimated runtime metrics for this action
@@ -28,13 +29,37 @@ class AbstractAction {
   const common::ResourceTracker::Metrics &GetActualMetrics() { return estimated_metrics_; }
 
   /** @return This action's ID */
-  action_id_t GetActionID() { return id_; }
+  action_id_t GetActionID() const { return id_; }
 
   /** @return This action's family */
-  ActionFamily GetActionFamily() { return action_family_; }
+  ActionFamily GetActionFamily() const { return action_family_; }
+
+  /**
+   * Add an equivalent action
+   * @param id Action ID
+   */
+  void AddEquivalentAction(action_id_t id) { equivalent_action_ids_.emplace_back(id); }
+
+  /**
+   * Get the equivalent action ids
+   * @return Action ID vector
+   */
+  const std::vector<action_id_t> &GetEquivalentActions() const { return equivalent_action_ids_; }
+
+  /**
+   * Add a reverse action
+   * @param id Action ID
+   */
+  void AddReverseAction(action_id_t id) { reverse_action_ids_.emplace_back(id); }
+
+  /**
+   * Get the reverse action ids
+   * @return Action ID vector
+   */
+  const std::vector<action_id_t> &GetReverseActions() const { return reverse_action_ids_; }
 
  private:
-  static action_id_t action_id_counter_{0};
+  static action_id_t action_id_counter;
 
   common::ResourceTracker::Metrics estimated_metrics_{};
 
@@ -42,6 +67,11 @@ class AbstractAction {
 
   /** ID is unique for an action among on planning process (one MCTS) */
   action_id_t id_;
+
+  std::vector<action_id_t> equivalent_action_ids_;
+  std::vector<action_id_t> reverse_action_ids_;
 };
+
+action_id_t AbstractAction::action_id_counter{0};
 
 }  // namespace noisepage::selfdriving::pilot

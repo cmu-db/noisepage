@@ -1,6 +1,8 @@
 #pragma once
 
+#include <utility>
 #include "self_driving/pilot/action/abstract_action.h"
+#include "self_driving/pilot/action/index_column.h"
 
 namespace noisepage {
 
@@ -14,12 +16,29 @@ namespace selfdriving::pilot {
  * Represent a create index self-driving action
  */
 class CreateIndexAction : public AbstractAction {
+ public:
+  /**
+   * Construct CreateIndexAction
+   * @param table_name The table to create index on
+   * @param columns The columns to build index on
+   */
+  CreateIndexAction(std::string table_name, std::vector<IndexColumn> columns)
+      : AbstractAction(ActionFamily::CHANGE_INDEX), table_name_(std::move(table_name)), columns_(std::move(columns)) {
+    // Index name is a combination of table name and the column names
+    index_name_ = "AutomatedIndex" + table_name_;
+    for (auto &column : columns_) index_name_ += column.GetColumnName();
+  }
+
+  /**
+   * @return Name of the index
+   */
+  const std::string &GetIndexName() const { return index_name_; }
+
  private:
-  std::unique_ptr<planner::CreateIndexPlanNode> plan_node_;
-
-  uint32_t num_threads_;
-
-  action_id_t drop_index_action_id_;
+  std::string table_name_;
+  std::string index_name_;
+  std::vector<IndexColumn> columns_;
+  // TODO(Lin): Add other create index specific options, e.g., the # threads
 };
 
 }  // namespace selfdriving::pilot

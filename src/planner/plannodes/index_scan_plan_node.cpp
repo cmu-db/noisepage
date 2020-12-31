@@ -13,8 +13,8 @@ std::unique_ptr<IndexScanPlanNode> IndexScanPlanNode::Builder::Build() {
   return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(
       std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
       database_oid_, index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_),
-      scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_, table_num_tuple_,
-      cover_all_columns_, plan_node_id_));
+      scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_, table_num_tuple_, cover_all_columns_,
+      plan_node_id_));
 }
 
 IndexScanPlanNode::IndexScanPlanNode(

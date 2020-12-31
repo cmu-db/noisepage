@@ -130,9 +130,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           planner::IndexScanType scan_type;
           std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
-          auto predicate_satisfaction = IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(),
-                                                                               get->GetTableAlias(), index, preds,
-                                                                               allow_cves_, &scan_type, &bounds);
+          auto predicate_satisfaction = IndexUtil::SatisfiesPredicateWithIndex(
+              accessor, get->GetTableOid(), get->GetTableAlias(), index, preds, allow_cves_, &scan_type, &bounds);
           auto op = std::make_unique<OperatorNode>(
               IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update,
                               planner::IndexScanType::AscendingOpenBoth, {}, predicate_satisfaction.second)
@@ -152,16 +151,14 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
-      auto predicate_satisfaction = IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(),
-                                                                            get->GetTableAlias(), index, preds,
-                                                                            allow_cves_, &scan_type, &bounds);
+      auto predicate_satisfaction = IndexUtil::SatisfiesPredicateWithIndex(
+          accessor, get->GetTableOid(), get->GetTableAlias(), index, preds, allow_cves_, &scan_type, &bounds);
       if (predicate_satisfaction.first) {
-        auto op = std::make_unique<OperatorNode>(IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds),
-                                                                 is_update, scan_type, std::move(bounds),
-                                                                 predicate_satisfaction.second)
-                                                     .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                                 std::vector<std::unique_ptr<AbstractOptimizerNode>>(),
-                                                 context->GetOptimizerContext()->GetTxn());
+        auto op = std::make_unique<OperatorNode>(
+            IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
+                            std::move(bounds), predicate_satisfaction.second)
+                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+            std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
         transformed->emplace_back(std::move(op));
       }
     }

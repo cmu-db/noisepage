@@ -13,7 +13,7 @@ STRONG_TYPEDEF_HEADER(action_id_t, int32_t);
  * Metric types
  */
 enum class ActionFamily : uint8_t {
-  CREATE_INDEX,
+  CHANGE_INDEX,
   CHANGE_EXECUTION_MODE,
 };
 
