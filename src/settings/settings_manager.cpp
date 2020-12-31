@@ -197,7 +197,7 @@ bool SettingsManager::ValidateValue(const parser::ConstantValueExpression &value
     case type::TypeId::INTEGER:
       return value.Peek<int32_t>() >= min_value.Peek<int32_t>() && value.Peek<int32_t>() <= max_value.Peek<int32_t>();
     case type::TypeId::BIGINT:
-      return value.Peek<int64_t>() >= min_value.Peek<int64_t>() && value.Peek<int64_t>() <= max_value.Peek<int32_t>();
+      return value.Peek<int64_t>() >= min_value.Peek<int64_t>() && value.Peek<int64_t>() <= max_value.Peek<int64_t>();
     case type::TypeId ::DECIMAL:
       return value.Peek<double>() >= min_value.Peek<double>() && value.Peek<double>() <= max_value.Peek<double>();
     default:
