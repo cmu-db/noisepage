@@ -23,10 +23,16 @@ class CreateIndexAction : public AbstractAction {
    * @param columns The columns to build index on
    */
   CreateIndexAction(std::string table_name, std::vector<IndexColumn> columns)
-      : AbstractAction(ActionFamily::CHANGE_INDEX), table_name_(std::move(table_name)), columns_(std::move(columns)) {
+      : AbstractAction(ActionType::CHANGE_INDEX), table_name_(std::move(table_name)), columns_(std::move(columns)) {
     // Index name is a combination of table name and the column names
     index_name_ = "AutomatedIndex" + table_name_;
     for (auto &column : columns_) index_name_ += column.GetColumnName();
+
+    sql_command_ = "CREATE INDEX " + index_name_ + " ON " + table_name_ + " (";
+
+    for (auto &column : columns_) sql_command_ += column.GetColumnName() + ", ";
+
+    sql_command_ += ");";
   }
 
   /**
@@ -38,6 +44,7 @@ class CreateIndexAction : public AbstractAction {
   std::string table_name_;
   std::string index_name_;
   std::vector<IndexColumn> columns_;
+
   // TODO(Lin): Add other create index specific options, e.g., the # threads
 };
 

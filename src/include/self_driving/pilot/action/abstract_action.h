@@ -15,7 +15,7 @@ class AbstractAction {
    * Constructor for the base AbstractAction.
    * @param family The family that this action belongs to
    */
-  explicit AbstractAction(ActionFamily family) : action_family_(family), id_(action_id_counter++){};
+  explicit AbstractAction(ActionType family) : action_family_(family), id_(action_id_counter++){};
 
   /**
    * Set the estimated runtime metrics for this action
@@ -32,7 +32,7 @@ class AbstractAction {
   action_id_t GetActionID() const { return id_; }
 
   /** @return This action's family */
-  ActionFamily GetActionFamily() const { return action_family_; }
+  ActionType GetActionFamily() const { return action_family_; }
 
   /**
    * Add an equivalent action
@@ -58,12 +58,21 @@ class AbstractAction {
    */
   const std::vector<action_id_t> &GetReverseActions() const { return reverse_action_ids_; }
 
+  /**
+   * Get the SQL command to apply the action
+   * @return Action SQL command
+   */
+  virtual const std::string &GetSQLCommand() { return sql_command_; };
+
+ protected:
+  std::string sql_command_;
+
  private:
   static action_id_t action_id_counter;
 
   common::ResourceTracker::Metrics estimated_metrics_{};
 
-  ActionFamily action_family_;
+  ActionType action_family_;
 
   /** ID is unique for an action among on planning process (one MCTS) */
   action_id_t id_;

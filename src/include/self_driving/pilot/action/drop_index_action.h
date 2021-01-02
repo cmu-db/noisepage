@@ -16,10 +16,12 @@ class DropIndexAction : public AbstractAction {
    * @param columns The columns to build index on
    */
   DropIndexAction(std::string index_name, std::string table_name, std::vector<IndexColumn> columns)
-      : AbstractAction(ActionFamily::CHANGE_INDEX),
+      : AbstractAction(ActionType::DROP_INDEX),
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),
-        columns_(std::move(columns)) {}
+        columns_(std::move(columns)) {
+    sql_command_ = "DROP INDEX " + index_name_ + ";";
+  }
 
   /**
    * @return Name of the index
@@ -27,8 +29,8 @@ class DropIndexAction : public AbstractAction {
   const std::string &GetIndexName() const { return index_name_; }
 
  private:
-  std::string table_name_;
   std::string index_name_;
+  std::string table_name_;
   std::vector<IndexColumn> columns_;
 };
 
