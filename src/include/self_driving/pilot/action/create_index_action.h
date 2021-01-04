@@ -22,6 +22,7 @@ class CreateIndexAction : public AbstractAction {
  public:
   /**
    * Construct CreateIndexAction
+   * @param index_name Name of the index
    * @param table_name The table to create index on
    * @param columns The columns to build index on
    */
