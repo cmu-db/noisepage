@@ -67,7 +67,7 @@ class AbstractAction {
   virtual const std::string &GetSQLCommand() { return sql_command_; };
 
  protected:
-  std::string sql_command_;
+  std::string sql_command_; ///< The SQL commaned used to apply the action
 
  private:
   static action_id_t action_id_counter;
