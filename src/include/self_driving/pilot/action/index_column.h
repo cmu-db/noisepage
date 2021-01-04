@@ -11,7 +11,7 @@ struct IndexColumn {
    * Construct an IndexColumn
    * @param column_name name of the column
    */
-  explicit IndexColumn(std::string column_name) : column_name_(column_name) {}
+  explicit IndexColumn(std::string column_name) : column_name_(std::move(column_name)) {}
 
   const std::string &GetColumnName() const { return column_name_; }
 

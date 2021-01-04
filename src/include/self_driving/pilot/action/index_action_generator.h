@@ -25,6 +25,7 @@ class AbstractAction;
  * Generate create/drop index candidate actions
  */
 class IndexActionGenerator {
+ public:
   /**
    * Generate index create/drop actions for the given workload (query plans)
    * @param plans The set of query plans to generate index actions for

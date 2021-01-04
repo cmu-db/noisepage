@@ -20,7 +20,7 @@ class DropIndexAction : public AbstractAction {
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),
         columns_(std::move(columns)) {
-    sql_command_ = "DROP INDEX " + index_name_ + ";";
+    sql_command_ = "drop index " + index_name_ + ";";
   }
 
   /**

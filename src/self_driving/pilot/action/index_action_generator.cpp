@@ -1,5 +1,6 @@
 #include "self_driving/pilot/action/index_action_generator.h"
 
+
 #include <memory>
 
 #include "parser/expression/column_value_expression.h"
@@ -8,6 +9,7 @@
 #include "self_driving/pilot/action/create_index_action.h"
 #include "self_driving/pilot/action/drop_index_action.h"
 #include "self_driving/pilot/action/index_column.h"
+#include "self_driving/pilot/action/index_action_util.h"
 
 namespace noisepage::selfdriving::pilot {
 
@@ -67,10 +69,12 @@ void IndexActionGenerator::FindMissingIndex(const planner::AbstractPlanNode *pla
 
       // TODO(Lin): Don't insert potentially duplicated actions
       // Generate the create index action
-      auto create_index_action = std::make_unique<CreateIndexAction>(table_name, index_columns);
+      std::string new_index_name = IndexActionUtil::GenerateIndexName(table_name, index_columns);
+      auto create_index_action = std::make_unique<CreateIndexAction>(new_index_name, table_name, index_columns);
       action_id_t create_index_action_id = create_index_action->GetActionID();
-      auto new_index_name = create_index_action->GetIndexName();
       action_map->emplace(create_index_action_id, std::move(create_index_action));
+      // Only the create index action is valid
+      candidate_actions->emplace_back(create_index_action_id);
 
       // Generate the drop index action
       auto drop_index_action = std::make_unique<DropIndexAction>(new_index_name, table_name, index_columns);
