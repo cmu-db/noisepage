@@ -40,13 +40,21 @@ void ChangeKnobActionGenerator::GenerateActionForType(
       auto first_action = std::make_unique<ChangeKnobAction<T>>(param, param_name, first_value, settings_manager);
       action_id_t first_action_id = first_action->GetActionID();
       action_map->emplace(first_action_id, std::move(first_action));
-      auto second_action = std::make_unique<ChangeKnobAction<T>>(param, param_name, second_value, settings_manager);
-      action_id_t second_action_id = second_action->GetActionID();
-      action_map->emplace(second_action_id, std::move(second_action));
+      candidate_actions->emplace_back(first_action_id);
+      action_id_t second_action_id;
+      if (first_value != second_value) {
+        auto second_action = std::make_unique<ChangeKnobAction<T>>(param, param_name, second_value, settings_manager);
+        second_action_id = second_action->GetActionID();
+        action_map->emplace(second_action_id, std::move(second_action));
+        candidate_actions->emplace_back(second_action_id);
+        action_map->at(second_action_id)->AddReverseAction(first_action_id);
+      } else {
+        // Do not generate the self-reverse second action
+        second_action_id = first_action_id;
+      }
 
       // Populate the reverse actions
       action_map->at(first_action_id)->AddReverseAction(second_action_id);
-      action_map->at(second_action_id)->AddReverseAction(first_action_id);
     }
   }
 }

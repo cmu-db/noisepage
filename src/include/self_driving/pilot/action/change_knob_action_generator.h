@@ -19,6 +19,7 @@ class AbstractAction;
  * Generate change knob candidate actions
  */
 class ChangeKnobActionGenerator {
+ public:
   /**
    * Generate change knob self-driving actions
    * @param action_map Maps action id to the pointer of the generated action.

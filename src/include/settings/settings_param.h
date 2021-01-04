@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 
+#include "common/action_context.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/constant_value_expression.h"
 

@@ -31,8 +31,9 @@ class ChangeKnobValueConfig {
   static std::map<settings::Param, std::vector<std::pair<int64_t, int64_t>>> int64_change_value_map;
 };
 
+// For bool knobs, the reverse actions are the same (^ true)
 std::map<settings::Param, std::vector<std::pair<bool, bool>>> ChangeKnobValueConfig::bool_change_value_map = {
-    {settings::Param::compiled_query_execution, {{true, false}}},
+    {settings::Param::compiled_query_execution, {{true, true}}},
 };
 
 std::map<settings::Param, std::vector<std::pair<int64_t, int64_t>>> ChangeKnobValueConfig::int64_change_value_map = {

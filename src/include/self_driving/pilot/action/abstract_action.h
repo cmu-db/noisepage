@@ -17,6 +17,8 @@ class AbstractAction {
    */
   explicit AbstractAction(ActionType family) : action_family_(family), id_(action_id_counter++){};
 
+  virtual ~AbstractAction() = default;
+
   /**
    * Set the estimated runtime metrics for this action
    * @param estimated_metrics The metrics to set to

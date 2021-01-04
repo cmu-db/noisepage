@@ -141,6 +141,8 @@ bool IndexActionGenerator::GenerateIndexableColumns(
       // If a predicate can enlarge the result set, then (for now), reject.
       return false;
   }
+
+  return true;
 }
 
 }  // namespace noisepage::selfdriving::pilot
