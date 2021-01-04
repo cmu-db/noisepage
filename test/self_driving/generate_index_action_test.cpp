@@ -71,6 +71,16 @@ TEST_F(GenerateIndexAction, GenerateSingleColumnIndexAction) {
   std::string index_name = IndexActionUtil::GenerateIndexName(table_name, columns);
   std::string expected_command = "create index " + index_name + " on " + table_name + "(col2, );";
   EXPECT_EQ(create_index_command, expected_command);
+
+  // Check that the two actions are reverse actions to each other
+  std::vector<action_id_t> action_ids;
+  for (auto & it: action_map) {
+    action_ids.push_back(it.first);
+  }
+  action_id_t first_action_id = action_ids[0];
+  action_id_t second_action_id = action_ids[1];
+  EXPECT_EQ(action_map[first_action_id]->GetReverseActions()[0], second_action_id);
+  EXPECT_EQ(action_map[second_action_id]->GetReverseActions()[0], first_action_id);
 }
 
 // NOLINTNEXTLINE
