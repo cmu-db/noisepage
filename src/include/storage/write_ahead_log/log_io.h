@@ -20,7 +20,7 @@
 
 namespace noisepage::replication {
 class ReplicationManager;
-} //
+}  // namespace noisepage::replication
 
 namespace noisepage::storage {
 

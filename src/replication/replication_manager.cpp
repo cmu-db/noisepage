@@ -7,6 +7,8 @@
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "loggers/replication_logger.h"
+#include "network/network_io_utils.h"
+#include "storage/recovery/replication_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
 
 namespace noisepage::replication {
@@ -20,7 +22,11 @@ Replica::Replica(common::ManagedPointer<messenger::Messenger> messenger, const s
 ReplicationManager::ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger,
                                        const std::string &network_identity, uint16_t port,
                                        const std::string &replication_hosts_path)
-    : messenger_(messenger), identity_(network_identity), port_(port) {
+    : messenger_(messenger),
+      identity_(network_identity),
+      port_(port),
+      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1), false)) {
+  // TODO(WAN): provider_ arguments
   auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
   messenger_->ListenForConnection(listen_destination, network_identity,
                                   [this](common::ManagedPointer<messenger::Messenger> messenger,
@@ -29,15 +35,9 @@ ReplicationManager::ReplicationManager(common::ManagedPointer<messenger::Messeng
 
   // TODO(WAN): development purposes
   replication_logger->set_level(spdlog::level::trace);
-
-  for (const auto &replica : replicas_) {
-    ReplicaHeartbeat(replica.first);
-  }
-  std::this_thread::sleep_for(std::chrono::seconds(5));
-  for (const auto &replica : replicas_) {
-    ReplicaHeartbeat(replica.first);
-  }
 }
+
+ReplicationManager::~ReplicationManager() = default;
 
 void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_path) {
   // The replication_hosts.conf file is expected to have the following format:
@@ -118,8 +118,12 @@ void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
   NOISEPAGE_ASSERT(buffer != nullptr,
                    "Don't try to replicate null buffers. That's pointless."
                    "You might plausibly want to track statistics at some point, but that should not happen here.");
+  // TODO(WAN): Is it true that a replica will never want to send its buffers to the primary?
+  // TODO(WAN): Cache the identity check into a bool?
+  if (identity_ != "primary") return;
+
   common::json j;
-  j["size"] = buffer->buffer_size_;
+  // TODO(WAN): Add a size and checksum to message.
   j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
 
   for (const auto &replica : replicas_) {
@@ -135,7 +139,17 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
       break;
     case MessageType::REPLICATE_BUFFER: {
       REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {}", msg.GetRoutingId()));
-      nlohmann::json msgas = nlohmann::json::parse(msg.GetMessage());
+      // Parse the buffer from the received message and add it to the provided replication logs.
+      {
+        nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
+        std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
+        // TODO(WAN): Sanity-check the received message.
+        provider_->AddBufferFromMessage(content);
+      }
+      // TODO(WAN): Is it actually necessary to buffer the message first? A crashed replica is indistinguishable from
+      //  a replica that just came up right? If buffering is not necessary, move this up so that replying is faster.
+      //  We want to reply as quickly as possible -- the sender may be waiting for our confirmation.
+      // Acknowledge receipt of the buffer to the sender.
       ReplicaSend(std::string(msg.GetRoutingId()), MessageType::ACK, "", false);
       break;
     }

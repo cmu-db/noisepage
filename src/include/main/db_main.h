@@ -21,6 +21,7 @@
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/recovery/recovery_manager.h"
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -396,6 +397,15 @@ class DBMain {
                                            common::ManagedPointer(log_manager), create_default_database_);
       }
 
+      std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
+      if (use_replication_) {
+        recovery_manager = std::make_unique<storage::RecoveryManager>(
+            replication_manager->GetReplicationLogProvider().CastManagedPointerTo<storage::AbstractLogProvider>(),
+            catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(), txn_layer->GetDeferredActionManager(),
+            common::ManagedPointer(thread_registry), common::ManagedPointer(storage_layer->GetBlockStore()));
+        recovery_manager->StartRecovery();
+      }
+
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
       if (use_gc_thread_) {
         NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
@@ -451,6 +461,7 @@ class DBMain {
       db_main->txn_layer_ = std::move(txn_layer);
       db_main->storage_layer_ = std::move(storage_layer);
       db_main->catalog_layer_ = std::move(catalog_layer);
+      db_main->recovery_manager_ = std::move(recovery_manager);
       db_main->gc_thread_ = std::move(gc_thread);
       db_main->stats_storage_ = std::move(stats_storage);
       db_main->execution_layer_ = std::move(execution_layer);
@@ -999,6 +1010,7 @@ class DBMain {
   std::unique_ptr<TransactionLayer> txn_layer_;
   std::unique_ptr<StorageLayer> storage_layer_;
   std::unique_ptr<CatalogLayer> catalog_layer_;
+  std::unique_ptr<storage::RecoveryManager> recovery_manager_;
   std::unique_ptr<storage::GarbageCollectorThread>
       gc_thread_;  // thread needs to die before manual invocations of GC in CatalogLayer and others
   std::unique_ptr<optimizer::StatsStorage> stats_storage_;

@@ -38,7 +38,26 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     replication_cv_.notify_one();
   }
 
+  // buffer the message
+  void AddBufferFromMessage(const std::string &content) {
+    std::vector<unsigned char> bytes(content.begin(), content.end());
+    network::ReadBufferView view(bytes.size(), bytes.begin());
+    auto buffer = std::make_unique<network::ReadBuffer>();
+    buffer->FillBufferFrom(view, bytes.size());
+    {
+      std::unique_lock<std::mutex> lock(replication_latch_);
+      arrived_buffer_queue_.emplace(std::move(buffer));
+      replication_cv_.notify_one();
+    }
+
+    // TODO(WAN): if you want sync/async I think this is where you do it
+  }
+
   // TODO(gus): this method is not entirely correct, there could still be messages over network
+  /**
+   * TODO(WAN): Per Gus, tThis method is not entirely correct because there could still be messages pending over
+   *  the network.
+   */
   void WaitUntilSync() {
     while ((curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !arrived_buffer_queue_.empty())
       std::this_thread::yield();
@@ -52,10 +71,11 @@ class ReplicationLogProvider final : public AbstractLogProvider {
   bool IsSynchronousReplication() const { return synchronous_replication_; }
 
  private:
-  // True if replication is active
+  /** True if replication is currently active. */
   bool replication_active_;
 
   // TODO(Gus): Put in settings manager
+  /** The number of seconds before replication times out. */
   std::chrono::seconds replication_timeout_;
 
   // True if synchronous replication is enabled
@@ -84,6 +104,7 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     //  2. Someone ends replication
     //  3. We have a current buffer and it has more bytes availible
     //  4. A new packet has arrived
+    // TODO(WAN): asan on shutdown due to replication_active_, look at teardown order?
     bool predicate = replication_cv_.wait_for(lock, replication_timeout_,
                                               [&] { return !replication_active_ || NonBlockingHasMoreRecords(); });
     // If we time out, predicate == false

@@ -11,7 +11,9 @@
 #include "messenger/messenger.h"
 
 namespace noisepage::storage {
+class AbstractLogProvider;
 class BufferedLogWriter;
+class ReplicationLogProvider;
 }  // namespace noisepage::storage
 
 namespace noisepage::replication {
@@ -64,6 +66,8 @@ class ReplicationManager {
   ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity,
                      uint16_t port, const std::string &replication_hosts_path);
 
+  ~ReplicationManager();
+
   void ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port);
 
   // sync/async seems relatively easy to do in this framework, though I need to fix up the multithreaded block case
@@ -85,6 +89,10 @@ class ReplicationManager {
     return replicas;
   }
 
+  common::ManagedPointer<storage::ReplicationLogProvider> GetReplicationLogProvider() const {
+    return common::ManagedPointer(provider_);
+  }
+
  private:
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
   void ReplicaHeartbeat(const std::string &replica_name);
@@ -100,6 +108,7 @@ class ReplicationManager {
   std::string identity_;                               ///< The identity of this replica.
   uint16_t port_;                                      ///< The port that replication runs on.
   std::unordered_map<std::string, Replica> replicas_;  ///< Replica Name -> Connection ID.
+  std::unique_ptr<storage::ReplicationLogProvider> provider_;
   std::mutex mutex_;
   std::condition_variable cvar_;
 };
