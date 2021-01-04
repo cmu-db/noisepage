@@ -71,13 +71,15 @@ LINUX_TEST_PACKAGES=(\
 PYTHON_PACKAGES=(\
   "distro"  \
   "lightgbm" \
+  "numpy" \
   "pandas" \
   "psutil" \
-  "PTable"
+  "psycopg2" \
   "pyarrow" \
   "pyzmq" \
   "requests" \
   "sklearn" \
+  "torch" \
   "tqdm" \
 )
 
