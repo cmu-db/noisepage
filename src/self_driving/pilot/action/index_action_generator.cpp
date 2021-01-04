@@ -64,7 +64,9 @@ void IndexActionGenerator::FindMissingIndex(const planner::AbstractPlanNode *pla
 
       std::vector<IndexColumn> index_columns;
       // For now, just put the inequality predicates at the end of the equality predicates
+      index_columns.reserve(equality_columns.size() + inequality_columns.size());
       for (auto &it : equality_columns) index_columns.emplace_back(it->GetColumnName());
+      for (auto &it : inequality_columns) index_columns.emplace_back(it->GetColumnName());
 
       // TODO(Lin): Don't insert potentially duplicated actions
       // Generate the create index action

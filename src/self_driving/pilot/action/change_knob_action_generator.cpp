@@ -4,6 +4,7 @@
 #include "self_driving/pilot/action/change_knob_value_config.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
+#include "common/error/error_code.h"
 
 namespace noisepage::selfdriving::pilot {
 
@@ -19,9 +20,9 @@ void ChangeKnobActionGenerator::GenerateActionForType(
     common::ManagedPointer<settings::SettingsManager> settings_manager,
     std::map<action_id_t, std::unique_ptr<AbstractAction>> *action_map, std::vector<action_id_t> *candidate_actions) {
   common::ManagedPointer<std::map<settings::Param, std::vector<std::pair<T, T>>>> knob_change_value_map = nullptr;
-  if constexpr (std::is_same<T, bool>::value) {
+  if constexpr (std::is_same<T, bool>::value) {  // NOLINT
     knob_change_value_map = ChangeKnobValueConfig::GetBoolChangeValueMap();
-  } else if constexpr (std::is_same<T, int64_t>::value) {
+  } else if constexpr (std::is_same<T, int64_t>::value) {  // NOLINT
     knob_change_value_map = ChangeKnobValueConfig::GetInt64ChangeValueMap();
   } else {
     throw PILOT_EXCEPTION(fmt::format("Unexpected change knob action type \"{}\"", typeid(T).name()),
