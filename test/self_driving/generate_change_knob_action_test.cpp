@@ -28,8 +28,7 @@ TEST_F(GenerateChangeKnobAction, GenerateChangeKnobAction) {
 
   // Each bool knob only has on action since the action is self-reverse
   size_t num_actions = ChangeKnobValueConfig::GetBoolChangeValueMap()->size();
-  for (auto &it : *ChangeKnobValueConfig::GetInt64ChangeValueMap())
-    num_actions += it.second.size() * 2;
+  for (auto &it : *ChangeKnobValueConfig::GetInt64ChangeValueMap()) num_actions += it.second.size() * 2;
 
   EXPECT_EQ(action_map.size(), num_actions);
   EXPECT_EQ(candidate_actions.size(), num_actions);

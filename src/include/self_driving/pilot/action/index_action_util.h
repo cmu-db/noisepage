@@ -21,7 +21,6 @@ class IndexActionUtil {
     for (auto &column : columns) index_name += column.GetColumnName() + "_";
     return index_name;
   }
-
 };
 
 }  // namespace noisepage::selfdriving::pilot

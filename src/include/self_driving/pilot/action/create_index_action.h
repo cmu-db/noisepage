@@ -23,8 +23,9 @@ class CreateIndexAction : public AbstractAction {
    * @param columns The columns to build index on
    */
   CreateIndexAction(std::string index_name, std::string table_name, std::vector<IndexColumn> columns)
-      : AbstractAction(ActionType::CREATE_INDEX), index_name_(std::move(index_name)), table_name_(std::move
-                                                                                                  (table_name)),
+      : AbstractAction(ActionType::CREATE_INDEX),
+        index_name_(std::move(index_name)),
+        table_name_(std::move(table_name)),
         columns_(std::move(columns)) {
     sql_command_ = "create index " + index_name_ + " on " + table_name_ + "(";
 

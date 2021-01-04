@@ -1,6 +1,5 @@
 #include "self_driving/pilot/action/index_action_generator.h"
 
-
 #include <memory>
 
 #include "parser/expression/column_value_expression.h"
@@ -8,8 +7,8 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "self_driving/pilot/action/create_index_action.h"
 #include "self_driving/pilot/action/drop_index_action.h"
-#include "self_driving/pilot/action/index_column.h"
 #include "self_driving/pilot/action/index_action_util.h"
+#include "self_driving/pilot/action/index_column.h"
 
 namespace noisepage::selfdriving::pilot {
 
