@@ -1,6 +1,8 @@
 #pragma once
 
-#include "common/hash_defs.h"
+#include <string>
+#include <vector>
+
 #include "common/resource_tracker.h"
 #include "self_driving/pilot/action/action_defs.h"
 
@@ -15,7 +17,7 @@ class AbstractAction {
    * Constructor for the base AbstractAction.
    * @param family The family that this action belongs to
    */
-  explicit AbstractAction(ActionType family) : action_family_(family), id_(action_id_counter++){};
+  explicit AbstractAction(ActionType family) : action_family_(family), id_(action_id_counter++) {}
 
   virtual ~AbstractAction() = default;
 
@@ -64,10 +66,10 @@ class AbstractAction {
    * Get the SQL command to apply the action
    * @return Action SQL command
    */
-  virtual const std::string &GetSQLCommand() { return sql_command_; };
+  virtual const std::string &GetSQLCommand() { return sql_command_; }
 
  protected:
-  std::string sql_command_; ///< The SQL commaned used to apply the action
+  std::string sql_command_;  ///< The SQL commaned used to apply the action
 
  private:
   static action_id_t action_id_counter;

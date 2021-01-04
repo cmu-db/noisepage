@@ -1,6 +1,11 @@
 #pragma once
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "self_driving/pilot/action/abstract_action.h"
+#include "self_driving/pilot/action/index_column.h"
 
 namespace noisepage::selfdriving::pilot {
 

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <string>
 #include <utility>
+
 #include "self_driving/pilot/action/abstract_action.h"
 #include "settings/settings_param.h"
 

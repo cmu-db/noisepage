@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "self_driving/pilot/action/index_column.h"
 
 namespace noisepage::selfdriving::pilot {

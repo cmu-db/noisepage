@@ -1,6 +1,8 @@
 #pragma once
 
 #include <map>
+#include <utility>
+#include <vector>
 
 #include "common/managed_pointer.h"
 #include "settings/settings_param.h"
