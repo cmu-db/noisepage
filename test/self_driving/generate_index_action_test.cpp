@@ -62,10 +62,6 @@ TEST_F(GenerateIndexAction, GenerateSingleColumnIndexAction) {
   plans.emplace_back(GenerateQueryPlan(query));
   IndexActionGenerator::GenerateIndexActions(plans, &action_map, &candidate_actions);
 
-  for (auto &it : action_map) {
-    printf("%s\n", it.second->GetSQLCommand().c_str());
-  }
-
   // There should be a candidate create index action on col2 and a corresponding drop index action
   EXPECT_EQ(action_map.size(), 2);
   EXPECT_EQ(candidate_actions.size(), 1);

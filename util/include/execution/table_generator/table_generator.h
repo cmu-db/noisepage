@@ -34,7 +34,7 @@ constexpr uint32_t TABLE_ALLTYPES_SIZE = 1000;
 /**
  * Size of the index test table
  */
-constexpr uint32_t INDEX_TEST_SIZE = 40000;
+constexpr uint32_t INDEX_TEST_SIZE = 400000;
 
 /**
  * Size of the index action test table
