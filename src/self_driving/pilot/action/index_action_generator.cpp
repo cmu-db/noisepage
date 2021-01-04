@@ -73,7 +73,7 @@ void IndexActionGenerator::FindMissingIndex(const planner::AbstractPlanNode *pla
           covered_columns.emplace(column_name);
         }
       }
-      for (auto &it : inequality_columns)  {
+      for (auto &it : inequality_columns) {
         auto column_name = it->GetColumnName();
         if (covered_columns.find(column_name) == covered_columns.end()) {
           index_columns.emplace_back(column_name);

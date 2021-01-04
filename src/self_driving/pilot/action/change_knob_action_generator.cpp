@@ -1,10 +1,10 @@
 #include "self_driving/pilot/action/change_knob_action_generator.h"
 
+#include "common/error/error_code.h"
 #include "self_driving/pilot/action/change_knob_action.h"
 #include "self_driving/pilot/action/change_knob_value_config.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
-#include "common/error/error_code.h"
 
 namespace noisepage::selfdriving::pilot {
 
