@@ -74,6 +74,7 @@ TEST_F(GenerateIndexAction, GenerateSingleColumnIndexAction) {
 
   // Check that the two actions are reverse actions to each other
   std::vector<action_id_t> action_ids;
+  action_ids.reserve(action_map.size());
   for (auto &it : action_map) {
     action_ids.push_back(it.first);
   }
