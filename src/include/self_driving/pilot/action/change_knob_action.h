@@ -18,9 +18,10 @@ class ChangeKnobAction : public AbstractAction {
  public:
   /**
    * Construct ChangeKnobAction
-   * @param index_name The name of the index
-   * @param table_name The table to create index on
-   * @param columns The columns to build index on
+   * @param param Which knob param
+   * @param param_name Name of the param
+   * @param change_value The value to change that knob with
+   * @param settings_manager SettingsManager (used to find our the current knob value before applying the change_value)
    */
   ChangeKnobAction(settings::Param param, std::string param_name, T change_value,
                    common::ManagedPointer<settings::SettingsManager> settings_manager)
