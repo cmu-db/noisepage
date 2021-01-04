@@ -26,12 +26,6 @@ if __name__ == "__main__":
                         nargs='*',
                         help="Benchmark suite to run [default=ALL]")
 
-    parser.add_argument("--run",
-                        action="store_true",
-                        dest="run",
-                        default=False,
-                        help="Run Benchmarks")
-
     parser.add_argument("--local",
                         action="store_true",
                         default=False,
@@ -141,12 +135,11 @@ if __name__ == "__main__":
     # -------------------------------------------------------
 
     ret_code = 0
-    if args.run:
-        benchmark_runner = MicroBenchmarksRunner(config)
-        ret_code = benchmark_runner.run_benchmarks(args.perf)
+    benchmark_runner = MicroBenchmarksRunner(config)
+    ret_code = benchmark_runner.run_benchmarks(args.perf)
 
-        if args.local and not ret_code:
-            benchmark_runner.create_local_dirs()
+    if args.local and not ret_code:
+        benchmark_runner.create_local_dirs()
 
     # -------------------------------------------------------
     # Process results
@@ -159,14 +152,13 @@ if __name__ == "__main__":
         else:
             artifact_processor.load_jenkins_artifacts(config.ref_data_source)
 
-    if not ret_code:
         if args.csv_dump:
             LOG.error("--csv-dump is not currently supported")
         else:
             table_dump(config, artifact_processor)
 
-    if args.publish_results != 'none':
-        ret_code = send_results(config, artifact_processor)
+        if args.publish_results != 'none':
+            ret_code = send_results(config, artifact_processor)
 
     LOG.debug("Exit code = {}".format(ret_code))
     sys.exit(ret_code)
