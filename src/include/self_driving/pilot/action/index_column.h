@@ -13,8 +13,10 @@ struct IndexColumn {
    */
   explicit IndexColumn(std::string column_name) : column_name_(std::move(column_name)) {}
 
+  /** @return Name of the column */
   const std::string &GetColumnName() const { return column_name_; }
 
+ private:
   std::string column_name_;  // Column name to build index with
 };
 

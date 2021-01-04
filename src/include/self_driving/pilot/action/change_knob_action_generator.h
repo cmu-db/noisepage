@@ -22,6 +22,7 @@ class ChangeKnobActionGenerator {
  public:
   /**
    * Generate change knob self-driving actions
+   * @param settings_manager SettingsManager
    * @param action_map Maps action id to the pointer of the generated action.
    * @param candidate_actions To hold the ids of the candidate actions
    */
