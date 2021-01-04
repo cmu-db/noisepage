@@ -115,4 +115,26 @@ TEST_F(GenerateIndexAction, GenerateUncoveredColumnIndexAction) {
   EXPECT_EQ(create_index_command, expected_command);
 }
 
+// NOLINTNEXTLINE
+TEST_F(GenerateIndexAction, GenerateInequalityColumnIndexAction) {
+  std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map;
+  std::vector<action_id_t> candidate_actions;
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
+  std::string table_name("index_action_test_table");
+  std::string query = "select * from " + table_name + " where col2 > 1 and col2 < 4 and col3 = 1;";
+  plans.emplace_back(GenerateQueryPlan(query));
+  IndexActionGenerator::GenerateIndexActions(plans, &action_map, &candidate_actions);
+
+  // There should be a candidate create index action on col3 and col2 (equality followed by inequality) and a
+  // corresponding drop index action
+  EXPECT_EQ(action_map.size(), 2);
+  EXPECT_EQ(candidate_actions.size(), 1);
+
+  std::string create_index_command = action_map.at(candidate_actions[0])->GetSQLCommand();
+  std::vector<IndexColumn> columns{IndexColumn("col3"), IndexColumn("col2")};
+  std::string index_name = IndexActionUtil::GenerateIndexName(table_name, columns);
+  std::string expected_command = "create index " + index_name + " on " + table_name + "(col3, col2, );";
+  EXPECT_EQ(create_index_command, expected_command);
+}
+
 }  // namespace noisepage::selfdriving::pilot::test
