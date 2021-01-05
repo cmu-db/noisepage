@@ -28,4 +28,8 @@ const std::string &ChangeKnobAction<T>::GetSQLCommand() {
   return sql_command_;
 }
 
+template class ChangeKnobAction<bool>;
+template class ChangeKnobAction<int32_t>;
+template class ChangeKnobAction<int64_t>;
+
 }  // namespace noisepage::selfdriving::pilot
