@@ -94,16 +94,19 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
 }
 
 void ChildPropertyDeriver::Visit(const Limit *op) {
+  // Limit pushes down and preserves the internal sort property
   std::vector<PropertySet *> child_input_properties{new PropertySet()};
+  auto provided_prop = new PropertySet();
 
   // Limit must satisfy output sort properties but child can attempt to satisfy sort property optionally
   if (!op->GetSortExpressions().empty()) {
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
     const std::vector<catalog::OrderByOrderingType> &sorts{op->GetSortAscending()};
+    provided_prop->AddProperty(new PropertySort(exprs, sorts));
     child_input_properties[0]->AddProperty(new PropertySort(exprs, sorts));
   }
 
-  output_.emplace_back(new PropertySet(), std::move(child_input_properties));
+  output_.emplace_back(provided_prop, std::move(child_input_properties));
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
