@@ -4,7 +4,7 @@ from artifact_stats.base_artifact_stats_collector import BaseArtifactStatsCollec
 
 
 class CompileTimeCollector(BaseArtifactStatsCollector):
-    compile_time_file_path = '/tmp/compiletime.txt'
+    compile_time_file_path = '/tmp/noisepage-compiletime.txt'
 
     def run_collector(self):
         """ Start a timer and run the compile commands """
