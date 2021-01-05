@@ -12,15 +12,15 @@ const std::string &ChangeKnobAction<T>::GetSQLCommand() {
   if constexpr (std::is_same<T, bool>::value) {
     T original_value = settings_manager_->GetBool(param_);
     T new_value = original_value ^ change_value_;
-    sql_command_ += new_value ? "'true'" : "'false'";
+    sql_command_ += new_value ? "'true';" : "'false';";
   } else if constexpr (std::is_same<T, int32_t>::value) {
     T original_value = settings_manager_->GetInt(param_);
     T new_value = original_value + change_value_;
-    sql_command_ += std::to_string(new_value);
+    sql_command_ += std::to_string(new_value) + ";";
   } else if constexpr (std::is_same<T, int64_t>::value) {
     T original_value = settings_manager_->GetInt64(param_);
     T new_value = original_value + change_value_;
-    sql_command_ += std::to_string(new_value);
+    sql_command_ += std::to_string(new_value) + ";";
   } else {
     throw PILOT_EXCEPTION(fmt::format("Unexpected knob parameter type\"{}\"", param_name_),
                           common::ErrorCode::ERRCODE_INTERNAL_ERROR);

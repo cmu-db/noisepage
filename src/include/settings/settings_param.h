@@ -13,7 +13,10 @@ class DBMain;
 
 namespace noisepage::selfdriving::pilot {
 class ChangeKnobActionGenerator;
+namespace test {
+class GenerateChangeKnobAction_GenerateAction_Test;
 }
+}  // namespace noisepage::selfdriving::pilot
 
 namespace noisepage::runner {
 void InitializeRunnersState();
@@ -72,6 +75,7 @@ class ParamInfo {
   friend class noisepage::DBMain;
   friend class SettingsManager;
   friend class selfdriving::pilot::ChangeKnobActionGenerator;
+  friend class selfdriving::pilot::test::GenerateChangeKnobAction_GenerateAction_Test;
   std::string name_;
   parser::ConstantValueExpression value_;
   std::string desc_;
