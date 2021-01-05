@@ -85,6 +85,4 @@ class AbstractAction {
   std::vector<action_id_t> reverse_action_ids_;
 };
 
-action_id_t AbstractAction::action_id_counter{0};
-
 }  // namespace noisepage::selfdriving::pilot
