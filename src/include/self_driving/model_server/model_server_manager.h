@@ -12,14 +12,19 @@
 
 #pragma once
 
+#include <atomic>
+#include <condition_variable>  // NOLINT
 #include <string>
+#include <thread>  // NOLINT
 #include <utility>
 #include <vector>
 
 #include "common/json.h"
 #include "common/managed_pointer.h"
+#include "messenger/messenger_defs.h"
 
 namespace noisepage::messenger {
+class ConnectionRouter;
 class Messenger;
 }  // namespace noisepage::messenger
 
