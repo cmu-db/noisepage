@@ -45,7 +45,7 @@ TEST_F(GenerateIndexAction, GenerateEmptyIndexAction) {
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
   std::string query = "select * from index_action_test_table where col1 = 1;";
   plans.emplace_back(GenerateQueryPlan(query));
-  IndexActionGenerator::GenerateActions(plans, &action_map, &candidate_actions);
+  IndexActionGenerator().GenerateActions(plans, nullptr, &action_map, &candidate_actions);
 
   // There should not be any action when when predicates in the query are already indexed
   EXPECT_EQ(action_map.size(), 0);
@@ -60,7 +60,7 @@ TEST_F(GenerateIndexAction, GenerateSingleColumnIndexAction) {
   std::string table_name("index_action_test_table");
   std::string query = "select * from " + table_name + " where col2 = 1;";
   plans.emplace_back(GenerateQueryPlan(query));
-  IndexActionGenerator::GenerateActions(plans, &action_map, &candidate_actions);
+  IndexActionGenerator().GenerateActions(plans, nullptr, &action_map, &candidate_actions);
 
   // There should be a candidate create index action on col2 and a corresponding drop index action
   EXPECT_EQ(action_map.size(), 2);
@@ -92,7 +92,7 @@ TEST_F(GenerateIndexAction, GenerateMultipleColumnIndexAction) {
   std::string table_name("index_action_test_table");
   std::string query = "select * from " + table_name + " where col2 = 1 and col3 = 1;";
   plans.emplace_back(GenerateQueryPlan(query));
-  IndexActionGenerator::GenerateActions(plans, &action_map, &candidate_actions);
+  IndexActionGenerator().GenerateActions(plans, nullptr, &action_map, &candidate_actions);
 
   // There should be a candidate create index action on col2 and col3 and a corresponding drop index action
   EXPECT_EQ(action_map.size(), 2);
@@ -113,7 +113,7 @@ TEST_F(GenerateIndexAction, GenerateUncoveredColumnIndexAction) {
   std::string table_name("index_action_test_table");
   std::string query = "select * from " + table_name + " where col1 = 1 and col3 = 1;";
   plans.emplace_back(GenerateQueryPlan(query));
-  IndexActionGenerator::GenerateActions(plans, &action_map, &candidate_actions);
+  IndexActionGenerator().GenerateActions(plans, nullptr, &action_map, &candidate_actions);
 
   // There should be a candidate create index action on col1 and col3 and a corresponding drop index action
   EXPECT_EQ(action_map.size(), 2);
@@ -134,7 +134,7 @@ TEST_F(GenerateIndexAction, GenerateInequalityColumnIndexAction) {
   std::string table_name("index_action_test_table");
   std::string query = "select * from " + table_name + " where col2 > 1 and col2 < 4 and col3 = 1;";
   plans.emplace_back(GenerateQueryPlan(query));
-  IndexActionGenerator::GenerateActions(plans, &action_map, &candidate_actions);
+  IndexActionGenerator().GenerateActions(plans, nullptr, &action_map, &candidate_actions);
 
   // There should be a candidate create index action on col3 and col2 (equality followed by inequality) and a
   // corresponding drop index action

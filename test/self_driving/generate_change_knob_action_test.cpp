@@ -24,7 +24,8 @@ TEST_F(GenerateChangeKnobAction, GenerateAction) {
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map;
   std::vector<action_id_t> candidate_actions;
   auto settings_manager = db_main_->GetSettingsManager();
-  ChangeKnobActionGenerator::GenerateActions(settings_manager, &action_map, &candidate_actions);
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
+  ChangeKnobActionGenerator().GenerateActions(plans, settings_manager, &action_map, &candidate_actions);
 
   // Each bool knob only has on action since the action is self-reverse
   auto bool_change_value_map = ChangeKnobValueConfig::GetBoolChangeValueMap();
