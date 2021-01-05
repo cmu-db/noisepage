@@ -11,7 +11,7 @@ from util.common import run_check_pids, run_kill_server, print_pipe
 
 
 class NoisePageServer:
-    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args={}, db_output_file=DEFAULT_DB_OUTPUT_FILE):
+    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args=None, db_output_file=DEFAULT_DB_OUTPUT_FILE):
         """ 
         This class creates an instance of the DB that can be started, stopped, or restarted. 
 
@@ -22,6 +22,9 @@ class NoisePageServer:
             server_args - A string of server args as you would pass them in the command line
             db_output_file - The file where the DB outputs its logs to
         """
+        if server_args is None:
+            server_args = {}
+
         default_server_args = {
             'wal_file_path': DEFAULT_DB_WAL_FILE
         }
