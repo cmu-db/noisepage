@@ -202,7 +202,6 @@ void IndexJoinTranslator::FillKey(
     WorkContext *context, FunctionBuilder *builder, ast::Identifier pr,
     const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) const {
   // For each key attribute,
-  uint32_t count = 0;
   for (const auto &key : index_exprs) {
     // @prSet(pr, type, nullable, attr, expr, true)
     uint16_t attr_offset = index_pm_.at(key.first);
@@ -211,7 +210,6 @@ void IndexJoinTranslator::FillKey(
     auto *set_key_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(pr), attr_type, nullable, attr_offset,
                                              context->DeriveValue(*key.second.Get(), this), true);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
-    count++;
   }
 }
 

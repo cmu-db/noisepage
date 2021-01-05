@@ -187,7 +187,7 @@ void SetLimitInGet::Transform(common::ManagedPointer<AbstractOptimizerNode> inpu
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// SetLimitInGet
+/// SetLimitInLogicalInnerJoin
 ///////////////////////////////////////////////////////////////////////////////
 SetLimitInLogicalInnerJoin::SetLimitInLogicalInnerJoin() {
   type_ = RuleType::SET_LIMIT_IN_LOGICAL_INNER_JOIN;

@@ -431,7 +431,7 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   storage::index::ScanType asc_type;
   switch (scan_type) {
     case planner::IndexScanType::Exact:
-      // Exact scan does not take advantage of limit now, but it can
+      // TODO(Deepayan): Exact scan builtin does not take advantage of limit now, but it can
       builtin = ast::Builtin::IndexIteratorScanKey;
       break;
     case planner::IndexScanType::AscendingClosedLimit:

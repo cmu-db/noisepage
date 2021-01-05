@@ -80,7 +80,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) {
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{new PropertySet()});
 }
 
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
+void ChildPropertyDeriver::Visit(const SortGroupBy *op) {
   // Child must provide sort for Groupby columns
   std::vector<catalog::OrderByOrderingType> sort_ascending(op->GetColumns().size(), catalog::OrderByOrderingType::ASC);
 
@@ -94,7 +94,6 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
 }
 
 void ChildPropertyDeriver::Visit(const Limit *op) {
-  // Limit fulfill the internal sort property
   std::vector<PropertySet *> child_input_properties{new PropertySet()};
 
   // Limit must satisfy output sort properties but child can attempt to satisfy sort property optionally

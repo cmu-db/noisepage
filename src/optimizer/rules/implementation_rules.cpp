@@ -136,13 +136,10 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
       if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), get->GetTableAlias(), index, preds,
                                                  allow_cves_, &scan_type, &bounds)) {
         // Limit can only be pushed down in the following cases
-        // TODO(dpatra): Limit can be pushed down in the case of an exact scan as well, but the index framework
-        // doesn't currently support it.
         limit_exists = limit_exists && (scan_type == planner::IndexScanType::Exact ||
                                         scan_type == planner::IndexScanType::AscendingOpenHighLimit ||
                                         scan_type == planner::IndexScanType::AscendingClosedLimit ||
                                         scan_type == planner::IndexScanType::DescendingLimit);
-        preds = get->GetPredicates();
 
         // There is an index that satisfies predicates for at least one column
         if (sort_exists) {
