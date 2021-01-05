@@ -24,20 +24,15 @@ class OptimizationContext {
    * @param cost_upper_bound Upper cost bound
    */
   OptimizationContext(OptimizerContext *context, PropertySet *required_props,
-                      PropertySet *optional_props = new PropertySet(),
                       double cost_upper_bound = std::numeric_limits<double>::max())
       : context_(context),
         required_props_(required_props),
-        optional_props_(optional_props),
         cost_upper_bound_(cost_upper_bound) {}
 
   /**
    * Destructor
    */
-  ~OptimizationContext() {
-    delete required_props_;
-    delete optional_props_;
-  }
+  ~OptimizationContext() { delete required_props_; }
 
   /**
    * @returns OptimizerContext
@@ -48,11 +43,6 @@ class OptimizationContext {
    * @returns Properties to satisfy, owned by this OptimizationContext
    */
   PropertySet *GetRequiredProperties() const { return required_props_; }
-
-  /**
-   * @returns Properties to attempt, owned by this OptimizationContext
-   */
-  PropertySet *GetOptionalProperties() const { return optional_props_; }
 
   /**
    * @returns Current context's upper bound cost
@@ -75,11 +65,6 @@ class OptimizationContext {
    * Required properties
    */
   PropertySet *required_props_;
-
-  /**
-   * Required properties
-   */
-  PropertySet *optional_props_;
 
   /**
    * Cost Upper Bound (for pruning)

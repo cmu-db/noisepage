@@ -29,12 +29,6 @@ enum class PropertyType { SORT };
 class Property {
  public:
   /**
-   * Constructor for property
-   * @param required whether the property is required
-   */
-  explicit Property(bool required) : required_(required) {}
-
-  /**
    * Trivial destructor for Property
    */
   virtual ~Property() = default;
@@ -81,22 +75,6 @@ class Property {
     }
     return nullptr;
   }
-
-  /**
-   * Sets the property's required status
-   */
-  void SetRequired(bool required) { required_ = required; }
-
-  /**
-   * @return whether the property is required
-   */
-  auto GetRequired() const -> bool { return required_; }
-
- private:
-  /**
-   * Whether the property is required
-   */
-  bool required_{true};
 };
 
 }  // namespace noisepage::optimizer

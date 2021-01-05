@@ -48,9 +48,15 @@ bool IndexUtil::SatisfiesSortWithIndex(
     if (tv_col_oid == mapped_cols[idx_ind]) {
       // Column is present in both sort and index so increment both
       sort_ind++, idx_ind++;
-    } else if (bounds != nullptr && bounds->find(lookup[mapped_cols[idx_ind]]) != bounds->end()) {
-      // If column is found in bounds but not sort, continue
-      idx_ind++;
+    } else if (bounds != nullptr) {
+      auto bound_column = bounds->find(lookup[mapped_cols[idx_ind]]);
+      if (bound_column != bounds->end() && bound_column->second[0] == bound_column->second[1]) {
+        // If column is exactly bound but not in sort, continue
+        idx_ind++;
+      } else {
+        // Index column is not exactly bound so cannot use this index
+        return false;
+      }
     } else {
       // Column not found in index so cannot use this index
       return false;
@@ -255,13 +261,10 @@ bool IndexUtil::CheckPredicates(
 
   if (bounds->empty()) return false;
 
-  // Scan may be uninitialized if all bound columns are equality checks, but not all index columns are bound so is not
-  // exact
-  if (open_lows.size() == open_highs.size() && scan_type == planner::IndexScanType::Dummy) {
-    if (bounds->size() == open_lows.size())
-      scan_type = planner::IndexScanType::AscendingClosedLimit;
-    else
-      scan_type = planner::IndexScanType::AscendingClosed;
+  // Scan may be uninitialized if all bound columns are equality checks, but not all index columns are bound
+  if (scan_type == planner::IndexScanType::Dummy) {
+    // Cannot push down limit due to additional predicates not satisfied by index
+    scan_type = planner::IndexScanType::AscendingClosed;
   }
 
   NOISEPAGE_ASSERT(scan_type != planner::IndexScanType::Dummy,
