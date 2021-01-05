@@ -9,15 +9,15 @@ template <class T>
 const std::string &ChangeKnobAction<T>::GetSQLCommand() {
   sql_command_ = "set " + param_name_ + " ";
   // Set the new value accordingly based on the param type
-  if constexpr (std::is_same<T, bool>::value) {
+  if constexpr (std::is_same<T, bool>::value) {  // NOLINT
     T original_value = settings_manager_->GetBool(param_);
     T new_value = original_value ^ change_value_;
     sql_command_ += new_value ? "'true';" : "'false';";
-  } else if constexpr (std::is_same<T, int32_t>::value) {
+  } else if constexpr (std::is_same<T, int32_t>::value) {  // NOLINT
     T original_value = settings_manager_->GetInt(param_);
     T new_value = original_value + change_value_;
     sql_command_ += std::to_string(new_value) + ";";
-  } else if constexpr (std::is_same<T, int64_t>::value) {
+  } else if constexpr (std::is_same<T, int64_t>::value) {  // NOLINT
     T original_value = settings_manager_->GetInt64(param_);
     T new_value = original_value + change_value_;
     sql_command_ += std::to_string(new_value) + ";";
