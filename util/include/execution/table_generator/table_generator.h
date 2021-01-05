@@ -53,48 +53,24 @@ class TableGenerator {
 
   /**
    * Generate table name
-   * @param type Type
-   * @param col Number of columns
-   * @param row Number of rows
-   * @param car Cardinality
-   * @return table name
-   */
-  static std::string GenerateTableName(type::TypeId type, size_t col, size_t row, size_t car) {
-    std::stringstream table_name;
-    auto type_name = type::TypeUtil::TypeIdToString(type);
-    table_name << type_name << "Col" << col << "Row" << row << "Car" << car;
-    return table_name.str();
-  }
-
-  /**
-   * Generate Mixed Table Name
+   * If a type has no columns, the type is dropped from the name.
+   *
    * @param types Number of types
    * @param cols Number of columns per type
    * @param row Number of rows
    * @param car Cardinality
    * @return table name
    */
-  static std::string GenerateMixedTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
-                                            size_t car) {
+  static std::string GenerateTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
+                                       size_t car) {
     std::stringstream table_name;
     for (size_t idx = 0; idx < cols.size(); idx++) {
-      table_name << type::TypeUtil::TypeIdToString(types[idx]);
-      table_name << "Col" << cols[idx];
+      if (cols[idx] != 0) {
+        table_name << type::TypeUtil::TypeIdToString(types[idx]);
+        table_name << "Col" << cols[idx];
+      }
     }
     table_name << "Row" << row << "Car" << car;
-    return table_name.str();
-  }
-
-  /**
-   * Generate table name that contains an index
-   * @param type Type
-   * @param row Number of rows
-   * @return table name
-   */
-  static std::string GenerateTableIndexName(type::TypeId type, size_t row) {
-    std::stringstream table_name;
-    auto type_name = type::TypeUtil::TypeIdToString(type);
-    table_name << type_name << "IndexRow" << row;
     return table_name.str();
   }
 
@@ -112,33 +88,27 @@ class TableGenerator {
                                const runner::MiniRunnersDataConfig &config);
 
   /**
-   * Generate mini runners indexes
-   * @param settings Mini-runners settings
-   * @param config Data Configuration for mini-runners
-   */
-  void GenerateMiniRunnerIndexTables(const runner::MiniRunnersSettings &settings,
-                                     const runner::MiniRunnersDataConfig &config);
-
-  /**
    * Adds a mini-runner index
    * Function does not check whether an index of the same key_num
-   * already exists on the table GenerateTableIndexName(type, row_num)
+   * already exists on the table GenerateTableName({type}, {tbl_cols}, row_num, row_num)
    *
    * @param type Datatype of the underlying table
+   * @param tbl_cols Number of columns in the table
    * @param row_num # of rows in the underlying table
    * @param key_num Number of keys comprising the index
    */
-  void BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
+  void BuildMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
 
   /**
-   * Drops a unique mini-runner index
+   * Drops a unique mini-runner index on GenerateTableName({type}, {tbl_cols}, row_num, row_num)
    *
    * @param type Datatype of the underlying table
+   * @param tbl_cols Number of columns in the table
    * @param row_num # of rows in the underlying table
    * @param key_num Number of keys comprising the index
    * @returns bool indicating whether successful
    */
-  bool DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
+  bool DropMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
 
  private:
   exec::ExecutionContext *exec_ctx_;
@@ -358,10 +328,6 @@ class TableGenerator {
   void FillIndex(common::ManagedPointer<storage::index::Index> index, const catalog::IndexSchema &index_schema,
                  const IndexInsertMeta &index_meta, common::ManagedPointer<storage::SqlTable> table,
                  const catalog::Schema &table_schema);
-
-  noisepage::parser::ConstantValueExpression DummyCVE() {
-    return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
-  }
 };
 
 }  // namespace noisepage::execution::sql

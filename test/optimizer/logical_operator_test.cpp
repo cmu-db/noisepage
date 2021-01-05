@@ -1260,7 +1260,7 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   parser::AbstractExpression *expr_b_7 =
       new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
 
-  // columns: vector of shared_ptr of AbstractExpression
+  // columns: vector of ManagedPointer of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);

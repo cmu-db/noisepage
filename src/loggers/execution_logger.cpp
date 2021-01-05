@@ -1,10 +1,8 @@
 #include "loggers/execution_logger.h"
 
-#include <memory>
-
 namespace noisepage::execution {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> execution_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr execution_logger = nullptr;
 
 void InitExecutionLogger() {
   if (execution_logger == nullptr) {
