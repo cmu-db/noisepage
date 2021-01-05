@@ -1,4 +1,4 @@
-#include "self_driving/pilot/action/change_knob_action_generator.h"
+#include "self_driving/pilot/action/generators/change_knob_action_generator.h"
 
 #include "common/error/error_code.h"
 #include "self_driving/pilot/action/change_knob_action.h"
@@ -8,9 +8,11 @@
 
 namespace noisepage::selfdriving::pilot {
 
-void ChangeKnobActionGenerator::GenerateChangeKnobActions(
-    common::ManagedPointer<settings::SettingsManager> settings_manager,
-    std::map<action_id_t, std::unique_ptr<AbstractAction>> *action_map, std::vector<action_id_t> *candidate_actions) {
+void ChangeKnobActionGenerator::GenerateActions(const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
+                                                common::ManagedPointer<settings::SettingsManager> settings_manager,
+                                                std::map<action_id_t, std::unique_ptr<AbstractAction>> *action_map,
+                                                std::vector<action_id_t> *candidate_actions) {
+  NOISEPAGE_ASSERT(settings_manager != nullptr, "No SettingsManager provided!");
   GenerateActionForType<bool>(settings_manager, action_map, candidate_actions);
   GenerateActionForType<int64_t>(settings_manager, action_map, candidate_actions);
 }

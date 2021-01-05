@@ -33,10 +33,6 @@ class ChangeKnobAction : public AbstractAction {
         change_value_(change_value),
         settings_manager_(settings_manager) {}
 
-  /**
-   * Get the SQL command to apply the action
-   * @return Action SQL command; throws exception if the param type is unsupported
-   */
   const std::string &GetSQLCommand() override;
 
  private:

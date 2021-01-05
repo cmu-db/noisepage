@@ -6,6 +6,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "self_driving/pilot/action/action_defs.h"
+#include "self_driving/pilot/action/generators/abstract_action_generator.h"
 
 namespace noisepage {
 
@@ -25,17 +26,12 @@ class AbstractAction;
 /**
  * Generate create/drop index candidate actions
  */
-class IndexActionGenerator {
+class IndexActionGenerator : AbstractActionGenerator {
  public:
-  /**
-   * Generate index create/drop actions for the given workload (query plans)
-   * @param plans The set of query plans to generate index actions for
-   * @param action_map Maps action id to the pointer of the generated action.
-   * @param candidate_actions To hold the ids of the candidate actions
-   */
-  static void GenerateIndexActions(const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
-                                   std::map<action_id_t, std::unique_ptr<AbstractAction>> *action_map,
-                                   std::vector<action_id_t> *candidate_actions);
+  void GenerateActions(const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
+                       common::ManagedPointer<settings::SettingsManager> settings_manager,
+                       std::map<action_id_t, std::unique_ptr<AbstractAction>> *action_map,
+                       std::vector<action_id_t> *candidate_actions) override;
 
  private:
   static void FindMissingIndex(const planner::AbstractPlanNode *plan,

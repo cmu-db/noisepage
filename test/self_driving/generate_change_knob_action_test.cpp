@@ -2,8 +2,8 @@
 #include "main/db_main.h"
 #include "self_driving/pilot/action/abstract_action.h"
 #include "self_driving/pilot/action/action_defs.h"
-#include "self_driving/pilot/action/change_knob_action_generator.h"
 #include "self_driving/pilot/action/change_knob_value_config.h"
+#include "self_driving/pilot/action/generators/change_knob_action_generator.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::selfdriving::pilot::test {
@@ -24,7 +24,7 @@ TEST_F(GenerateChangeKnobAction, GenerateAction) {
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map;
   std::vector<action_id_t> candidate_actions;
   auto settings_manager = db_main_->GetSettingsManager();
-  ChangeKnobActionGenerator::GenerateChangeKnobActions(settings_manager, &action_map, &candidate_actions);
+  ChangeKnobActionGenerator::GenerateActions(settings_manager, &action_map, &candidate_actions);
 
   // Each bool knob only has on action since the action is self-reverse
   auto bool_change_value_map = ChangeKnobValueConfig::GetBoolChangeValueMap();

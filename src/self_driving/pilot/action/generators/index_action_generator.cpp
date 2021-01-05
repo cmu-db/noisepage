@@ -1,4 +1,4 @@
-#include "self_driving/pilot/action/index_action_generator.h"
+#include "self_driving/pilot/action/generators/index_action_generator.h"
 
 #include <memory>
 
@@ -12,9 +12,10 @@
 
 namespace noisepage::selfdriving::pilot {
 
-void IndexActionGenerator::GenerateIndexActions(const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
-                                                std::map<action_id_t, std::unique_ptr<AbstractAction>> *action_map,
-                                                std::vector<action_id_t> *candidate_actions) {
+void IndexActionGenerator::GenerateActions(const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
+                                           common::ManagedPointer<settings::SettingsManager> settings_manager,
+                                           std::map<action_id_t, std::unique_ptr<AbstractAction>> *action_map,
+                                           std::vector<action_id_t> *candidate_actions) {
   // Find the "missing" index for each plan and generate the corresponding actions
   for (auto &plan : plans) {
     // Currently using a heuristic to find the scan predicates that are not fully covered by an existing index, and
