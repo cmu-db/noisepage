@@ -69,6 +69,7 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
       case Callback::NOOP:
         break;
       case Callback::CONNECTED:
+        MODEL_SERVER_LOG_INFO("[PID={}] ModelServer connected", ::getpid());
         connected_ = true;
         break;
       default:
