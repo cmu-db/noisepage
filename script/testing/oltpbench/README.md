@@ -64,7 +64,7 @@ Preparation steps of the test
 - Start by invoking `run_oltpbench.py`
   - Load the config file passed in and start an instance of the database with any server_args specified in the config
   - Create a test suite for the whole config file and runs the test suite
-  - Create a `TestOLTPBench` object for the test execution, since the `TestOLTPBench` is a subclass of the `TestServer` class, it will a list of tasks as the preparation for the actual test, the most important two of which are as follow
+  - Create a `TestOLTPBench` object for the test execution, since the `TestOLTPBench` is a subclass of the `TestServer` class, it will conduct a list of tasks as the preparation for the actual test, the most important two of which are as follow
     - Pass command line options and configs in to the constructor
     - Try to locate the NoisePage binary
   - Run the test suite by calling `.run()` function of `TestOLTPBench`
@@ -138,7 +138,7 @@ In the configuration file, those information are required:
   - The `server_args` object in the configuration specifies the command line arguments passed to the server when running the binary.
 
 ### Example:
-The following example shows a oltpbenchmark test with 2 testcases
+The following example shows a oltpbenchmark test with 4 testcases
 - The first testcase has the base testcase of terminal `1` but it will be looped for different configurations of the terminals from `1` to `2` to `4`
 - The second testcase only has the base testcase whose terminal configuration is `8`
 
