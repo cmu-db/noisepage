@@ -67,10 +67,14 @@ INCREMENTAL_METRIC_FREQ = 5  # collect incremental metrics every 5 seconds by de
 
 # error code
 class ErrorCode:
+    """
+    Error codes used throughout various modules.
+    """
     SUCCESS = 0
     ERROR = 1
 
 
+# I don't know why this exists but I'm afraid of touching it.
 # psutil command line strings
 class CommandLineStr:
     TRUE = "TRUE"

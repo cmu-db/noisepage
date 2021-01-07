@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import os
 from datetime import datetime
 from util.constants import DIR_TMP

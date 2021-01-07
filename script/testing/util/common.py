@@ -86,15 +86,14 @@ def format_time(timestamp):
         "%Y-%m-%d %H:%M:%S")
 
 
-def print_or_log(msg, logger=None):
-    if logger:
-        logger.info(msg)
-    else:
-        print(msg)
-
-
 def kill_pids_on_port(port, logger=None):
     """Kill all the PIDs (if any) listening on the target port"""
+
+    def print_or_log(msg, logger=None):
+        if logger:
+            logger.info(msg)
+        else:
+            print(msg)
 
     if os.getuid() != 0:
         print_or_log("not root user, uid = {}".format(os.getuid()), logger)
@@ -108,15 +107,16 @@ def kill_pids_on_port(port, logger=None):
         LSOF_PATH=lsof_path, PORT=port)
 
     rc, stdout = subprocess.getstatusoutput(cmd)
+    print(cmd, rc, stdout)
     if rc != constants.ErrorCode.SUCCESS:
         raise Exception(
-            "Error in running 'lsof' to get processes listening to PORT={PORT}, [RC={RC}]"
-            .format(PORT=port, RC=rc))
+            "Error in running 'lsof' to get processes listening to PORT={PORT}, [RC={RC}]".format(PORT=port, RC=rc))
 
     for pid_str in stdout.split("\n"):
         try:
             pid = int(pid_str.strip())
             cmd = "kill -9 {}".format(pid)
+            print(cmd)
             rc, _, _ = run_command(cmd, printable=False)
             if rc != constants.ErrorCode.SUCCESS:
                 raise Exception("Error in killing PID={PID}, [RC={RC}]".format(
@@ -136,14 +136,21 @@ def check_pid_exists(pid):
 
 def collect_mem_info(pid):
     """
-    Collect the memory info of the process if the pid exists.
+    Collect the memory information of the provided process.
 
-    Precondition:
-    Looks like collecting the mem info for the process belongs to the same user
-    does not require escalated privilege.
+    Parameters
+    ----------
+    pid : int
+        The PID of a process.
+        Either the process must have been spawned by the same user,
+        or the caller of this function must have sudo access.
+
+    Returns
+    -------
+    The memory info of the specified process.
     """
     if not psutil.pid_exists(pid):
-        return None
+        raise Exception("Either PID does not exist or you need sudo.")
     p = psutil.Process(pid)
     return p.memory_info()
 

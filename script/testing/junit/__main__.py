@@ -4,25 +4,21 @@ import os
 import sys
 import traceback
 
-base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.insert(0, base_path)
-
-from junit.constants import JUNIT_TEST_CMD_JUNIT, JUNIT_TEST_CMD_TRACE, TESTFILES_PREFIX, REPO_TRACE_DIR
-from junit.utils import parse_command_line_args
-from junit.test_junit import TestJUnit
-from util.constants import LOG, ErrorCode
-from test_case_junit import TestCaseJUnit
+from ..util.constants import LOG, ErrorCode
+from .constants import (JUNIT_TEST_CMD_JUNIT, JUNIT_TEST_CMD_TRACE,
+                        REPO_TRACE_DIR, TESTFILES_PREFIX)
+from .test_case_junit import TestCaseJUnit
+from .test_junit import TestJUnit
+from .utils import parse_command_line_args
 
 
 def section_header(title):
     border = "+++ " + "=" * 100 + " +++\n"
     middle = "+++ " + title.center(100) + " +++\n"
     return "\n\n" + border + middle + border
-# DEF
 
 
 if __name__ == "__main__":
-
     args = parse_command_line_args()
 
     all_exit_codes = []
@@ -45,6 +41,7 @@ if __name__ == "__main__":
     # Step 2: Run the trace test for each file that we find
     # Each directory represents another set of SQL traces to test.
     LOG.info(section_header("TRACEFILE TESTS"))
+    base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     noise_trace_dir = os.path.join(base_path, REPO_TRACE_DIR)
     for item in os.listdir(noise_trace_dir):
         # Look for all of the .test files in the each directory
@@ -67,13 +64,11 @@ if __name__ == "__main__":
                 exit_code = ErrorCode.ERROR
             finally:
                 all_exit_codes.append(exit_code)
-        ## FOR (files)
-    ## FOR (dirs)
 
     # Compute final exit code. If any test failed, then the entire program has to fail
     final_code = 0
     for c in all_exit_codes:
         final_code = final_code or c
+
     LOG.info("Final Status => {}".format("FAIL" if final_code else "SUCCESS"))
     sys.exit(final_code)
-# MAIN

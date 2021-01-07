@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
-
-from util import constants
-from util.common import *
-from util.mem_metrics import MemoryMetrics
+from .common import *
+from .mem_metrics import MemoryMetrics
 
 
 class TestCase:

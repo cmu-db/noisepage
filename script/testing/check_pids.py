@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import os
-import sys
 import argparse
 from util.constants import CommandLineStr, ErrorCode
 from util.common import check_pid_exists

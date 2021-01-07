@@ -1,22 +1,26 @@
-#!/usr/bin/env python3
-import os
 import sys
-import time
 import traceback
+
 from typing import List
-from util import constants
-from util.db_server import NoisePageServer
-from util.test_case import TestCase
-from util.constants import LOG, ErrorCode
-from util.periodic_task import PeriodicTask
-from util.common import (run_command, print_file, print_pipe, update_mem_info)
+
+from . import constants
+from .db_server import NoisePageServer
+from .test_case import TestCase
+from .constants import LOG
+from .periodic_task import PeriodicTask
+from .common import (run_command, print_file, print_pipe, update_mem_info)
 
 
 class TestServer:
-    """ Class to run general tests """
+    """
+    TestServer represents an abstract server or some shit. what the fuck
+    """
 
     def __init__(self, args):
         """ Locations and misc. variable initialization """
+
+        # nice! magic disappearing trick! TODO(WAN)
+
         # clean up the command line args
         args = {k: v for k, v in args.items() if v}
 
@@ -26,7 +30,7 @@ class TestServer:
         db_port = args.get("db_port", constants.DEFAULT_DB_PORT)
         build_type = args.get("build_type", "")
         server_args = args.get("server_args", {})
-        self.is_dry_run = args.get("dry_run",False)
+        self.is_dry_run = args.get("dry_run", False)
 
         self.db_instance = NoisePageServer(db_host, db_port, build_type, server_args, db_output_file)
 
@@ -85,7 +89,21 @@ class TestServer:
         return ret_val
 
     def run(self, test_suite):
+        """
+        Orchestrate the overall execution of the specified test suite.
+
+        Parameters
+        ----------
+        test_suite : []
+
+        Returns
+        -------
+
+        """
+
         """ Orchestrate the overall test execution """
+
+        # no, fuck you. if your code is bad, you crash. no magic. TODO(WAN)
         if not isinstance(test_suite, List):
             test_suite = [test_suite]
 
@@ -98,8 +116,7 @@ class TestServer:
             traceback.print_exc(file=sys.stdout)
             test_suite_result = constants.ErrorCode.ERROR
         finally:
-            # after the test suite finish, stop the database instance
-            self.db_instance.stop_db()
+            self.run_post_suite()
         return self.handle_test_suite_result(test_suite_result)
 
     def run_test_suite(self, test_suite):
@@ -107,30 +124,27 @@ class TestServer:
         test_suite_ret_vals = {}
         for test_case in test_suite:
             try:
-                # catch the exception from run_db(), stop_db(), and restart_db()
-                # in case the db is unable to start/stop/restart
-                if test_case.db_restart:
-                    self.db_instance.restart_db(self.is_dry_run)
-                elif not self.db_instance.db_process:
-                    self.db_instance.run_db(self.is_dry_run)
+                self.db_instance.run_db(self.is_dry_run)
+                if not self.is_dry_run:
+                    try:
+                        test_case_ret_val = self.run_test(test_case)
+                        print_file(test_case.test_output_file)
+                        test_suite_ret_vals[test_case] = test_case_ret_val
+                    except:
+                        print_file(test_case.test_output_file)
+                        if not self.continue_on_error:
+                            raise
+                        else:
+                            traceback.print_exc(file=sys.stdout)
+                            test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
+                self.db_instance.stop_db(self.is_dry_run)
             except:
                 traceback.print_exc(file=sys.stdout)
                 test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
                 # early termination in case of db is unable to start/stop/restart
                 break
 
-            if not self.is_dry_run:
-                try:
-                    test_case_ret_val = self.run_test(test_case)
-                    print_file(test_case.test_output_file)
-                    test_suite_ret_vals[test_case] = test_case_ret_val
-                except:
-                    print_file(test_case.test_output_file)
-                    if not self.continue_on_error:
-                        raise
-                    else:
-                        traceback.print_exc(file=sys.stdout)
-                        test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
+
         return test_suite_ret_vals
 
     def determine_test_suite_result(self, test_suite_ret_vals):

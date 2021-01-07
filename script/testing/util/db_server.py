@@ -5,23 +5,35 @@ import time
 import shlex
 import psycopg2 as psql
 
-from .constants import (DEFAULT_DB_USER, DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN, DIR_REPO,
-                            DB_START_ATTEMPTS, DEFAULT_DB_WAL_FILE)
+from .constants import (DEFAULT_DB_USER, DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN,
+                        DIR_REPO, DB_START_ATTEMPTS, DEFAULT_DB_WAL_FILE)
 from .constants import LOG
 from .common import run_check_pids, run_kill_server, print_pipe
 
 
 class NoisePageServer:
-    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args=None, db_output_file=DEFAULT_DB_OUTPUT_FILE):
-        """ 
-        This class creates an instance of the DB that can be started, stopped, or restarted. 
+    """
+    NoisePageServer represents a NoisePage DBMS instance.
+    """
 
-        Args:
-            host - The hostname where the DB should run
-            port - The port where the DB should run
-            build_type - The name of the build (i.e. release, debug, etc.)
-            server_args - A string of server args as you would pass them in the command line
-            db_output_file - The file where the DB outputs its logs to
+    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args=None,
+                 db_output_file=DEFAULT_DB_OUTPUT_FILE):
+        """
+        Creates an instance of the DB that can be started, stopped, or restarted.
+
+        Parameters
+        ----------
+        host : str
+            The hostname where the DB should be bound to.
+        port : int
+            The port that the DB should listen on.
+        build_type : str
+            The type of build that the DBMS is.
+            Valid arguments are "debug" and "release".
+        server_args : dict
+            A dictionary of arguments to pass to the server.
+        db_output_file : str, filepath
+            The output file that the DB should output its logs to.
         """
         if server_args is None:
             server_args = {}
@@ -37,44 +49,69 @@ class NoisePageServer:
         self.db_process = None
 
     def run_db(self, is_dry_run=False):
-        """ Start the DB server """
-        # Allow ourselves to try to restart the DBMS multiple times
-        attempt_to_start_time = time.perf_counter()
+        """
+        Start the database server.
+
+
+        Parameters
+        ----------
+        is_dry_run
+
+        Returns
+        -------
+        True if the database was started successfully and false otherwise.
+
+        Warnings
+        --------
+        The NoisePage DBMS MUST have logging enabled as it is the stdout output
+        which is used to determine whether the database is ready to accept
+        incoming connections.
+        """
         server_args_str = generate_server_args_str(self.server_args)
         db_run_command = f'{self.build_path} {server_args_str}'
+
         if is_dry_run:
-            LOG.info(f'Server start command: {db_run_command}')
-            return
-        for attempt in range(DB_START_ATTEMPTS):
-            # Kill any other noisepage processes that our listening on our target port
-            # early terminate the run_db if kill_server.py encounter any exceptions
-            run_kill_server(self.db_port)
+            LOG.info(f'Dry-run: {db_run_command}')
+            return True
 
-            # use memory buffer to hold db logs
-            self.db_process = subprocess.Popen(shlex.split(db_run_command), stdout=subprocess.PIPE,
-                                               stderr=subprocess.PIPE)
-            LOG.info(f'Server start: {db_run_command} [PID={self.db_process.pid}]')
+        LOG.info(f'Running: {db_run_command}')
+        start_time = time.time()
+        db_process = subprocess.Popen(shlex.split(db_run_command),
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
+        LOG.info(f'Ran: {db_run_command} [PID={db_process.pid}]')
 
-            if not run_check_pids(self.db_process.pid):
-                LOG.info(f'{self.db_process.pid} does not exist. Trying again.')
-                # The DB process does not exist, try starting it again
-                continue
-
-            while True:
-                raw_db_log_line = self.db_process.stdout.readline()
-                if not raw_db_log_line:
-                    break
-                if has_db_started(raw_db_log_line, self.db_port, self.db_process.pid):
-                    db_start_time = time.perf_counter()
-                    LOG.info(
-                        f'DB process is verified as running in {round(db_start_time - attempt_to_start_time,2)} sec')
-                    return
-            time.sleep(2 ** attempt)  # exponential backoff
-        db_failed_to_start_time = time.perf_counter()
-        raise RuntimeError(
-            f'Failed to start DB after {DB_START_ATTEMPTS} attempts and {round(db_failed_to_start_time - attempt_to_start_time,2)} sec')
+        while True:
+            log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
+            if log_line != '':
+                print(log_line)
+            check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
+            now = time.time()
+            if log_line.endswith(check_line):
+                LOG.info(f'DB process is verified as running in {round(now - start_time, 2)} sec.')
+                self.db_process = db_process
+                return True
+            if now - start_time >= 5:
+                LOG.error(f'DBMS [PID={db_process.pid} took more than five seconds to start up. Killing.')
+                db_process.kill()
+                return False
 
     def stop_db(self, is_dry_run=False):
+        """
+        A
+
+        Parameters
+        ----------
+        is_dry_run
+
+        Returns
+        -------
+
+        """
+        print("reach kill")
+        if not self.db_process:
+            raise Exception("System is in an invalid state.")
+
         """ Stop the Db server and print it's log file """
         if not self.db_process or is_dry_run:
             LOG.debug('DB has already been stopped.')
@@ -93,11 +130,6 @@ class NoisePageServer:
             self.db_process.terminate()
             LOG.info("Stopped DB successfully")
         self.db_process = None
-
-    def restart_db(self, is_dry_run=False):
-        """ Restart the DB """
-        self.stop_db(is_dry_run)
-        self.run_db(is_dry_run)
 
     def delete_wal(self):
         """ Check that the WAL exists and delete if it does """
@@ -157,14 +189,6 @@ def get_build_path(build_type):
             return db_bin_path
 
     raise RuntimeError(f'No DB binary found in {path_list}')
-
-
-def has_db_started(raw_db_log_line, port, pid):
-    """ Check whether the db has started by checking its log """
-    log_line = raw_db_log_line.decode("utf-8").rstrip("\n")
-    LOG.debug(log_line)
-    check_line = f'[info] Listening on Unix domain socket with port {port} [PID={pid}]'
-    return log_line.endswith(check_line)
 
 
 def generate_server_args_str(server_args):

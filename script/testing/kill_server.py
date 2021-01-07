@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import os
-import sys
 import argparse
 from util.common import kill_pids_on_port
 
@@ -11,6 +9,6 @@ if __name__ == "__main__":
     args = vars(aparser.parse_args())
 
     for port in args.get("ports", []):
-        print("****** start killing processes on port {} ******".format(port))
+        print("****** Start killing processes on port: {} ******".format(port))
         kill_pids_on_port(port)
-        print("****** finish killing processes on port {} ******".format(port))
+        print("****** Finish killing processes on port: {} ******".format(port))
