@@ -3,15 +3,11 @@ import os
 import sys
 import shlex
 import subprocess
-import re
-import signal
-import errno
 import psutil
 import datetime
-from util import constants
-from util.constants import LOG
-from util.mem_metrics import MemoryInfo
-from collections import namedtuple
+from . import constants
+from .constants import LOG
+from .mem_metrics import MemoryInfo
 
 
 def run_command(command,

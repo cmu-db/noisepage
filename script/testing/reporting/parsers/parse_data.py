@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
 import os
-import distro
 import re
 from decimal import Decimal
 
-from reporting.parsers.oltpbench.config_parser import parse_config_file
-from reporting.parsers.oltpbench.summary_parser import parse_summary_file
-from reporting.parsers.oltpbench.res_parser import parse_res_file
-from util.constants import LOG
-from reporting.constants import UNKNOWN_RESULT
+import distro
+
+from ...util.constants import LOG
+from ..constants import UNKNOWN_RESULT
+from .oltpbench.config_parser import parse_config_file
+from .oltpbench.res_parser import parse_res_file
+from .oltpbench.summary_parser import parse_summary_file
 
 
 def parse_oltpbench_data(results_dir):

@@ -4,10 +4,11 @@ import subprocess
 import time
 import shlex
 import psycopg2 as psql
-from util.constants import (DEFAULT_DB_USER, DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN, DIR_REPO,
+
+from .constants import (DEFAULT_DB_USER, DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN, DIR_REPO,
                             DB_START_ATTEMPTS, DEFAULT_DB_WAL_FILE)
-from util.constants import LOG
-from util.common import run_check_pids, run_kill_server, print_pipe
+from .constants import LOG
+from .common import run_check_pids, run_kill_server, print_pipe
 
 
 class NoisePageServer:

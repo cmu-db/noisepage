@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import xml.etree.ElementTree as xml
-import json
 
 
 def parse_config_file(path):

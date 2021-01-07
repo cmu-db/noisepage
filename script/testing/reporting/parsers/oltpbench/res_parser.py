@@ -1,8 +1,7 @@
 import csv
-import json
 
-from reporting.utils import get_value_by_pattern
-from reporting.constants import LATENCY_ATTRIBUTE_MAPPING
+from ...constants import LATENCY_ATTRIBUTE_MAPPING
+from ...utils import get_value_by_pattern
 
 
 def parse_res_file(path):

@@ -1,5 +1,9 @@
 # Testing Scripts
 
+## Documentation
+
+Read and follow this: https://numpydoc.readthedocs.io/en/latest/format.html
+
 ## Folder structure
 All tests are compatible with python3
 - `util`: all the common utilities for running all kinds of tests

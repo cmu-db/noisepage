@@ -1,15 +1,21 @@
-import os
-import time
-import subprocess
 import psutil
 
-from artifact_stats.base_artifact_stats_collector import BaseArtifactStatsCollector
-from util.db_server import NoisePageServer
+from ...util.db_server import NoisePageServer
+from ..base_artifact_stats_collector import BaseArtifactStatsCollector
 
 
 class MemoryOnStartCollector(BaseArtifactStatsCollector):
-    def __init__(self, is_debug):
-        super().__init__(is_debug)
+    """
+    Measure the memory consumption of the NoisePage DBMS in release mode
+    on startup.
+
+    Notes
+    -----
+    The NoisePage DBMS is assumed to have been started by the same user as the
+    user running this script, otherwise sudo permission may be required.
+
+    It is assumed that no other instance of the NoisePage server is running.
+    """
 
     def setup(self):
         super().setup()
