@@ -167,5 +167,15 @@ class Callbacks {
    */
   static void MetricsQueryTrace(void *old_value, void *new_value, DBMain *db_main,
                                 common::ManagedPointer<common::ActionContext> action_context);
+
+  /**
+   * Enable or disable planning in Pilot thread
+   * @param old_value old settings value
+   * @param new_value new settings value
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void PilotEnablePlanning(void *old_value, void *new_value, DBMain *db_main,
+                                  common::ManagedPointer<common::ActionContext> action_context);
 };
 }  // namespace noisepage::settings

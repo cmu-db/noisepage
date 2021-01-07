@@ -150,32 +150,11 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   const auto &agg_group_aliases_set = memo.GetGroupByID(agg_group_id)->GetTableAliases();
   auto &filter_predicates = filter_expr->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
-  std::vector<AnnotatedExpression> ancestor_predicates;
-  std::vector<AnnotatedExpression> descendant_predicates;
+  std::vector<AnnotatedExpression> correlated_predicates;
+  std::vector<AnnotatedExpression> normal_predicates;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
-
-  // loop over all predicates check each of them if they refer table not contained in agg
-  // from RewritePullFilterThroughAggregation
-  for (auto &predicate : filter_predicates) {
-    if (OptimizerUtil::IsSubset(agg_group_aliases_set, predicate.GetTableAliasSet())) {
-      descendant_predicates.emplace_back(predicate);
-    } else {
-      // Correlated predicate, already in the form of
-      // (outer_relation.a = (expr))
-      ancestor_predicates.emplace_back(predicate);
-      auto root_expr = predicate.GetExpr();
-      // If the sub-query depth level of the first child is less than the current expression
-      // the first child is outer_relation.a and the second child is a (expr)
-      // The second child expression shall be evaluated as a part of the new aggregation before the new filter
-      if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      } else {
-        // Otherwise, the first child is a (expr) and the second child is outer_relation.a
-        // The first child expression shall be evaluated as a part of the new aggregation before the new filter
-        new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
-      }
-    }
-  }
+  ExtractCorrelatedPredicatesWithAggregate(filter_predicates, agg_group_aliases_set, &correlated_predicates,
+                                           &normal_predicates, &new_groupby_cols);
 
   // Create a new agg node
   auto aggregation = agg_expr->Contents()->GetContentsAs<LogicalAggregateAndGroupBy>();
@@ -193,10 +172,10 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   // Create a new inner join node from single join
   std::vector<std::unique_ptr<AbstractOptimizerNode>> inner_node;
   inner_node.emplace_back(input->GetChildren()[0]->Copy());
-  if (!descendant_predicates.empty()) {
+  if (!normal_predicates.empty()) {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> child_node;
     child_node.emplace_back(std::move(new_aggr));
-    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(descendant_predicates))
+    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(normal_predicates))
                                                      .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                                  std::move(child_node), context->GetOptimizerContext()->GetTxn());
     inner_node.emplace_back(std::move(filter));
@@ -210,10 +189,10 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   std::unique_ptr<OperatorNode> output;
   // Create new filter nodes
   // Construct a top filter if any
-  if (!ancestor_predicates.empty()) {
+  if (!correlated_predicates.empty()) {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> root_node;
     root_node.emplace_back(std::move(new_inner));
-    output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(ancestor_predicates))
+    output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(correlated_predicates))
                                                 .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                             std::move(root_node), context->GetOptimizerContext()->GetTxn());
 
@@ -221,6 +200,33 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
     output = std::move(new_inner);
   }
   transformed->emplace_back(std::move(output));
+}
+
+void ExtractCorrelatedPredicatesWithAggregate(
+    const std::vector<AnnotatedExpression> &predicates, const std::unordered_set<std::string> &child_group_aliases_set,
+    std::vector<AnnotatedExpression> *correlated_predicates, std::vector<AnnotatedExpression> *normal_predicates,
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> *new_groupby_cols) {
+  for (auto &predicate : predicates) {
+    if (OptimizerUtil::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
+      normal_predicates->emplace_back(predicate);
+    } else {
+      // Correlated predicate, predicate in nested query references column in outer query
+      correlated_predicates->emplace_back(predicate);
+      auto root_expr = predicate.GetExpr();
+      // See https://github.com/cmu-db/noisepage/issues/1404
+      // The higher the depth of an expression the deeper/more nested it is.
+      // If the sub-query depth level of the left side of the predicate is greater than the current expression then the
+      // left side doesn't references the outer query (i.e. the right side references the outer query).
+      // The left side shall be evaluated as a part of the new aggregation before the new filter
+      if (root_expr->GetChild(0)->GetDepth() > root_expr->GetDepth()) {
+        new_groupby_cols->emplace_back(root_expr->GetChild(0).Get());
+      } else {
+        // Otherwise, the right side of the predicate doesn't references the outer query (i.e. the left side references
+        // the outer query). The right side shall be evaluated as a part of the new aggregation before the new filter
+        new_groupby_cols->emplace_back(root_expr->GetChild(1).Get());
+      }
+    }
+  }
 }
 
 }  // namespace noisepage::optimizer
