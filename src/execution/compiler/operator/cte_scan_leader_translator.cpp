@@ -135,12 +135,11 @@ void CteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) const {
 
 void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuilder *builder) const {
   auto &plan = GetPlanAs<planner::CteScanPlanNode>();
-  const auto &cols = plan.GetOutputSchema()->GetColumns();
+  const auto &cols = plan.GetTableSchema()->GetColumns();
   auto codegen = GetCodeGen();
 
   for (const auto &col : cols) {
-    const auto &table_col = col.GetExpr().CastManagedPointerTo<parser::ColumnValueExpression>();
-    const auto &table_col_oid = table_col->GetColumnOid();
+    const auto &table_col_oid = col.Oid();
     size_t col_ind = 0;
     for (auto col_id : plan.GetColumnOids()) {
       if (col_id == table_col_oid) {
@@ -151,8 +150,14 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
     auto val = GetChildOutput(context, 0, col_ind);
     // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
     // Right now it is only Non Null
-    auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), table_col->GetReturnValueType(), false,
-                                      table_pm_.find(table_col_oid)->second.col_id_.UnderlyingValue(), val, true);
+    auto insertion_val = codegen->MakeFreshIdentifier("set-val");
+    auto set_decl = codegen->DeclareVar(insertion_val,
+                                        codegen->TplType(execution::sql::GetTypeId(col.Type())), val);
+    builder->Append(set_decl);
+
+    auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), col.Type(), false,
+                                      table_pm_.find(table_col_oid)->second.col_id_.UnderlyingValue(),
+                                      codegen->MakeExpr(insertion_val), true);
     builder->Append(codegen->MakeStmt(pr_set_call));
   }
 }

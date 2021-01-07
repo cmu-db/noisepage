@@ -96,7 +96,8 @@ void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *contain
   container->clear();
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
   container->reserve(impl_->states_.size());
-  for (auto &[tid, tls_handle] : impl_->states_) {
+  for (auto &[_, tls_handle] : impl_->states_) {
+    (void)_;
     container->push_back(tls_handle->State());
   }
 }
@@ -106,14 +107,16 @@ void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *
   container->clear();
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
   container->reserve(impl_->states_.size());
-  for (auto &[tid, tls_handle] : impl_->states_) {
+  for (auto &[_, tls_handle] : impl_->states_) {
+    (void)_;
     container->push_back(tls_handle->State() + element_offset);
   }
 }
 
 void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
-  for (auto &[tid, tls_handle] : impl_->states_) {
+  for (auto &[_, tls_handle] : impl_->states_) {
+    (void)_;
     iterate_fn(ctx, tls_handle->State());
   }
 }
