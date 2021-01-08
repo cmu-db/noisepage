@@ -13,7 +13,8 @@ std::unique_ptr<IndexScanPlanNode> IndexScanPlanNode::Builder::Build() {
   return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(
       std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
       database_oid_, index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_),
-      scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_, table_num_tuple_, plan_node_id_));
+      scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_, table_num_tuple_, cover_all_columns_,
+      plan_node_id_));
 }
 
 IndexScanPlanNode::IndexScanPlanNode(
@@ -23,7 +24,7 @@ IndexScanPlanNode::IndexScanPlanNode(
     IndexScanType scan_type, std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols, uint32_t scan_limit,
     bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset, uint64_t index_size, uint64_t table_num_tuple,
-    plan_node_id_t plan_node_id)
+    bool cover_all_columns, plan_node_id_t plan_node_id)
     : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
                            scan_limit, scan_has_limit, scan_offset, scan_has_offset, plan_node_id),
       scan_type_(scan_type),
@@ -33,7 +34,8 @@ IndexScanPlanNode::IndexScanPlanNode(
       lo_index_cols_(std::move(lo_index_cols)),
       hi_index_cols_(std::move(hi_index_cols)),
       table_num_tuple_(table_num_tuple),
-      index_size_(index_size) {}
+      index_size_(index_size),
+      cover_all_columns_(cover_all_columns) {}
 
 common::hash_t IndexScanPlanNode::Hash() const {
   common::hash_t hash = AbstractScanPlanNode::Hash();

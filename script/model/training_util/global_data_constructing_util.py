@@ -32,7 +32,6 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
-    headers_file = input_path + '/global_model_headers.pickle'
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX = pickle.load(pickle_file)
