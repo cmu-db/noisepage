@@ -108,6 +108,10 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * translator (which requires an OpUnit type). We skip this OpUnit in the OperatingUnitRecorder.
    */
   LIMIT,
+  /**
+   * ANALYZE
+   */
+  ANALYZE,
 
   /**
    * num_rows: index size

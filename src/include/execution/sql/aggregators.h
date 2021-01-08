@@ -4,7 +4,10 @@
 #include <limits>
 
 #include "common/macros.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/value.h"
+#include "optimizer/statistics/histogram.h"
+#include "optimizer/statistics/top_k_elements.h"
 
 namespace noisepage::execution::sql {
 
@@ -363,5 +366,173 @@ class AvgAggregate {
   double sum_{0.0};
   uint64_t count_{0};
 };
+
+/* Top K Aggregate */
+template <typename T>
+class TopKAggregate {
+  static_assert(std::is_base_of_v<Val, T>, "Template type must subclass value");
+  using CppType = decltype(T::val_);
+
+  static constexpr size_t K = 16;
+  static constexpr uint64_t WIDTH = 64;
+
+ public:
+  /**
+   * Constructor.
+   */
+  TopKAggregate() : top_k_(K, WIDTH) {}
+
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(TopKAggregate);
+
+  /**
+   * Advance the aggregate by the input value @em val.
+   */
+  void Advance(const T &val) {
+    if (val.is_null_) {
+      return;
+    }
+    null_ = false;
+    top_k_.Increment(val.val_, 1);
+  }
+
+  /*
+    @param const reference of a TopK object to be merged
+    Merge a partial top K aggregate into this aggregate.
+  */
+  void Merge(const TopKAggregate &that) {
+    if (that.null_) {
+      return;
+    }
+    null_ = false;
+
+    top_k_.Merge(that.GetTopK());
+  }
+
+  /**
+   * Reset the aggregate.
+   */
+  void Reset() {
+    null_ = true;
+    top_k_.Clear();
+  }
+
+  /**
+   * Return the serialized result of the TopK.
+   */
+  StringVal GetResult(exec::ExecutionContext *ctx) const {
+    if (null_) {
+      return StringVal::Null();
+    }
+    size_t size;
+    auto data = top_k_.Serialize(&size);
+    char *const ptr = ctx->GetStringAllocator()->PreAllocate(size);
+    std::memcpy(ptr, data.get(), size);
+    return StringVal(ptr, size);
+  }
+
+  /**
+   * Return the TopK object.
+   */
+  const optimizer::TopKElements<CppType> &GetTopK() const { return top_k_; }
+
+ private:
+  // Histogram keeping track of the topK elements.
+  optimizer::TopKElements<CppType> top_k_;
+  bool null_{true};
+};
+
+class BooleanTopKAggregate : public TopKAggregate<BoolVal> {};
+class IntegerTopKAggregate : public TopKAggregate<Integer> {};
+class RealTopKAggregate : public TopKAggregate<Real> {};
+class DecimalTopKAggregate : public TopKAggregate<DecimalVal> {};
+class StringTopKAggregate : public TopKAggregate<StringVal> {};
+class DateTopKAggregate : public TopKAggregate<DateVal> {};
+class TimestampTopKAggregate : public TopKAggregate<TimestampVal> {};
+
+/* Histogram Aggregate */
+template <typename T>
+class HistogramAggregate {
+  static_assert(std::is_base_of_v<Val, T>, "Template type must subclass value");
+  using CppType = decltype(T::val_);
+
+  static constexpr uint8_t MAX_BINS = 64;
+
+ public:
+  /**
+   * Constructor.
+   */
+  HistogramAggregate() : histogram_(MAX_BINS) {}
+
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(HistogramAggregate);
+
+  /**
+   * Advance the aggregate by the input value @em val.
+   */
+  void Advance(const T &val) {
+    if (val.is_null_) {
+      return;
+    }
+    null_ = false;
+    histogram_.Increment(val.val_);
+  }
+
+  /*
+    @param const reference of a Histogram object to be merged
+    Merge a partial top K aggregate into this aggregate.
+  */
+  void Merge(const HistogramAggregate &that) {
+    if (that.null_) {
+      return;
+    }
+    null_ = false;
+
+    histogram_.Merge(that.GetHistogram());
+  }
+
+  /**
+   * Reset the aggregate.
+   */
+  void Reset() {
+    null_ = true;
+    histogram_.Clear();
+  }
+
+  /**
+   * Return the serialized result of the Histogram.
+   */
+  StringVal GetResult(exec::ExecutionContext *ctx) const {
+    if (null_) {
+      return StringVal::Null();
+    }
+    size_t size;
+    auto data = histogram_.Serialize(&size);
+    char *const ptr = ctx->GetStringAllocator()->PreAllocate(size);
+    std::memcpy(ptr, data.get(), size);
+    return StringVal(ptr, size);
+  }
+
+  /**
+   * Return the Histogram object.
+   */
+  const optimizer::Histogram<CppType> &GetHistogram() const { return histogram_; }
+
+ private:
+  optimizer::Histogram<CppType> histogram_;
+  bool null_{true};
+};
+
+class BooleanHistogramAggregate : public HistogramAggregate<BoolVal> {};
+class IntegerHistogramAggregate : public HistogramAggregate<Integer> {};
+class RealHistogramAggregate : public HistogramAggregate<Real> {};
+class DecimalHistogramAggregate : public HistogramAggregate<DecimalVal> {};
+class StringHistogramAggregate : public HistogramAggregate<StringVal> {};
+class DateHistogramAggregate : public HistogramAggregate<DateVal> {};
+class TimestampHistogramAggregate : public HistogramAggregate<TimestampVal> {};
 
 }  // namespace noisepage::execution::sql

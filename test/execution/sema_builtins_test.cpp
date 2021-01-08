@@ -148,4 +148,10 @@ TEST_F(SemaBuiltinTest, CheckTrigBuiltins) {
   }
 }
 
+/*TEST_F(SemaBuiltinTest, CheckAggBuiltins) {
+  // AggInit
+  auto input1 = DeclVar(Ident("input3"), IntegerSqlTypeRepr(), nullptr);
+  auto result = Call<ast::Builtin::AggInit>(DeclRef(input1));
+}*/
+
 }  // namespace noisepage::execution::sema::test

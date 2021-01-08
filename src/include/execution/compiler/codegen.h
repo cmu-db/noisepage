@@ -129,6 +129,11 @@ class CodeGen {
   [[nodiscard]] ast::Expr *Const64(int64_t val) const;
 
   /**
+   * @return A literal whose value is the provided 32-bit unsigned integer.
+   */
+  [[nodiscard]] ast::Expr *ConstU32(uint32_t val) const;
+
+  /**
    * @return A literal whose value is the provided 64-bit floating point.
    */
   [[nodiscard]] ast::Expr *ConstDouble(double val) const;
@@ -174,6 +179,11 @@ class CodeGen {
    * @return The type representation for an 64-bit signed integer (i.e., int64)
    */
   [[nodiscard]] ast::Expr *Int64Type() const;
+
+  /**
+   * @return The type representation for an 32-bit unsigned integer (i.e., uint32)
+   */
+  [[nodiscard]] ast::Expr *Uint32Type() const;
 
   /**
    * @return The type representation for an 32-bit floating point number (i.e., float32)
@@ -231,7 +241,8 @@ class CodeGen {
    * @param ret_type The return type of the aggregate.
    * @return The corresponding TPL aggregate type.
    */
-  [[nodiscard]] ast::Expr *AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type) const;
+  [[nodiscard]] ast::Expr *AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type,
+                                         sql::TypeId child_type) const;
 
   /**
    * @return An expression that represents the address of the provided object.
@@ -1168,7 +1179,8 @@ class CodeGen {
    * @param agg A pointer to the aggregator.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *AggregatorResult(ast::Expr *agg);
+  [[nodiscard]] ast::Expr *AggregatorResult(ast::Expr *exec_ctx, ast::Expr *agg,
+                                            const parser::ExpressionType &expression_type);
 
   // -------------------------------------------------------
   //

@@ -432,6 +432,14 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_THROW(agg_expr_8->DeriveReturnValueType(), ParserException);
 #endif
 
+  // Testing DeriveReturnValueType functionality
+  auto agg_expr_9 = new AggregateExpression(ExpressionType::AGGREGATE_TOP_K, {}, false);
+  auto agg_expr_10 = new AggregateExpression(ExpressionType::AGGREGATE_HISTOGRAM, {}, false);
+  agg_expr_9->DeriveReturnValueType();
+  agg_expr_10->DeriveReturnValueType();
+  EXPECT_EQ(agg_expr_9->GetReturnValueType(), type::TypeId::VARBINARY);
+  EXPECT_EQ(agg_expr_10->GetReturnValueType(), type::TypeId::VARBINARY);
+
   delete agg_expr_1;
   delete agg_expr_2;
   delete agg_expr_3;
@@ -440,6 +448,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   delete agg_expr_6;
   delete agg_expr_7;
   delete agg_expr_8;
+  delete agg_expr_9;
+  delete agg_expr_10;
 }
 
 // NOLINTNEXTLINE

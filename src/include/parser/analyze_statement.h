@@ -37,9 +37,24 @@ class AnalyzeStatement : public SQLStatement {
   /** @return analyze columns */
   common::ManagedPointer<std::vector<std::string>> GetColumns() { return common::ManagedPointer(analyze_columns_); }
 
+  catalog::db_oid_t GetDatabaseOid() { return database_oid_; }
+
+  void SetDatabaseOid(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
+
+  catalog::table_oid_t GetTableOid() { return table_oid_; }
+
+  void SetTableOid(catalog::table_oid_t table_oid) { table_oid_ = table_oid; }
+
+  const std::vector<catalog::col_oid_t> &GetColumnOids() { return column_oids_; }
+
+  void AddColumnOid(catalog::col_oid_t col_oid) { column_oids_.push_back(col_oid); }
+
  private:
   std::unique_ptr<TableRef> analyze_table_;
   std::unique_ptr<std::vector<std::string>> analyze_columns_;
+  catalog::db_oid_t database_oid_;
+  catalog::table_oid_t table_oid_;
+  std::vector<catalog::col_oid_t> column_oids_;
 };
 
 }  // namespace parser

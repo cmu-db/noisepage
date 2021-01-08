@@ -29,10 +29,10 @@ class NetworkUtil {
 
   /**
    * @param type query type from the parser
-   * @return true if a SELECT, INSERT, UPDATE, or DELETE. Order of QueryType enum matters here.
+   * @return true if a SELECT, INSERT, UPDATE, DELETE, or ANALYZE. Order of QueryType enum matters here.
    */
   static bool DMLQueryType(const QueryType type) {
-    return type >= QueryType::QUERY_SELECT && type <= QueryType::QUERY_DELETE;
+    return type >= QueryType::QUERY_SELECT && type <= QueryType::QUERY_ANALYZE;
   }
 
   /**
