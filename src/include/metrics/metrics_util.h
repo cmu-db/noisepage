@@ -6,7 +6,12 @@
 
 namespace noisepage::metrics {
 
+/**
+ * Struct used to represent the hardware context that we are interested in capturing.
+ * We currently capture only the CPU frequency.
+ */
 struct HardwareContext {
+  /** CPU Frequency (MHz) */
   double cpu_mhz_;
 };
 
@@ -26,8 +31,9 @@ struct MetricsUtil {
         .count();
   }
 
-  static HardwareContext GetHardwareContext() {
-    return HardwareContext{execution::CpuInfo::Instance()->GetCpuFreq()};
-  }
+  /**
+   * @return The hardware context to record
+   */
+  static HardwareContext GetHardwareContext() { return HardwareContext{execution::CpuInfo::Instance()->GetCpuFreq()}; }
 };
 }  // namespace noisepage::metrics

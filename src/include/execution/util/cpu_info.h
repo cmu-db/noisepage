@@ -88,6 +88,9 @@ y   * @return The size of a cache line at level @em level.
    */
   uint64_t GetRefCyclesUs() const { return ref_cycles_us_; }
 
+  /**
+   * @return The CPU Frequency in MHz recorded at initialization
+   */
   double GetCpuFreq() const { return cpu_mhz_; }
 
   /**
