@@ -8,7 +8,7 @@ import psycopg2 as psql
 from .constants import (DEFAULT_DB_USER, DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN,
                         DIR_REPO, DB_START_ATTEMPTS, DEFAULT_DB_WAL_FILE)
 from .constants import LOG
-from .common import run_check_pids, run_kill_server, print_pipe
+from .common import print_pipe
 
 
 class NoisePageServer:
@@ -108,7 +108,6 @@ class NoisePageServer:
         -------
 
         """
-        print("reach kill")
         if not self.db_process:
             raise Exception("System is in an invalid state.")
 

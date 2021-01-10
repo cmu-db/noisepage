@@ -4,7 +4,7 @@ from . import constants
 
 class TestCaseJUnit(TestCase):
     """
-    Class to run JUnit tests
+    Class to run JUnit tests.
     """
 
     def __init__(self, args, test_command=constants.JUNIT_TEST_CMD_ALL):

@@ -54,7 +54,8 @@ class BaseArtifactStatsCollector(object):
 
         Returns
         -------
-        0 on success, and anything else on failure.
+        exit_code : int
+            0 on success, and anything else on failure.
         """
         pass
 

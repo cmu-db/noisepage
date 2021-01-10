@@ -1,6 +1,5 @@
 import os
-from datetime import datetime
-from util.constants import DIR_TMP
+from ..util.constants import DIR_TMP
 
 # git settings of OLTP
 OLTPBENCH_GIT_URL = "https://github.com/oltpbenchmark/oltpbench.git"

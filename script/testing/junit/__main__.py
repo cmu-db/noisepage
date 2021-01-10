@@ -5,69 +5,101 @@ import sys
 import traceback
 
 from ..util.constants import LOG, ErrorCode
-from .constants import (JUNIT_TEST_CMD_JUNIT, JUNIT_TEST_CMD_TRACE,
-                        REPO_TRACE_DIR, TESTFILES_PREFIX)
+from ..util.test_server import TestServer
+from .constants import (DEFAULT_PREPARE_THRESHOLD, JUNIT_TEST_CMD_JUNIT,
+                        JUNIT_TEST_CMD_TRACE, REPO_TRACE_DIR, TESTFILES_SUFFIX)
 from .test_case_junit import TestCaseJUnit
-from .test_junit import TestJUnit
 from .utils import parse_command_line_args
 
 
 def section_header(title):
-    border = "+++ " + "=" * 100 + " +++\n"
-    middle = "+++ " + title.center(100) + " +++\n"
-    return "\n\n" + border + middle + border
+    border = "+++ {} +++".format("=" * 100)
+    middle = "+++ {:100} +++".format(title)
+    return "\n\n{}\n{}\n".format(border, middle)
+
+
+def run_test(test_server, test_command):
+    test_case = TestCaseJUnit(args, test_command=test_command)
+    errcode = ErrorCode.ERROR
+    try:
+        errcode = test_server.run(test_case)
+    except KeyboardInterrupt:
+        LOG.error("KeyboardInterrupt received. Terminating.")
+        raise
+    except Exception as err:
+        LOG.error(f'Exception trying to run {test_command}')
+        LOG.error(err)
+        LOG.error("================ Python Error Output ==================")
+        traceback.print_exc(file=sys.stdout)
+    return errcode
+
+
+def run_tests_junit(test_server):
+    LOG.info(section_header("TEST JUNIT"))
+    return run_test(test_server, JUNIT_TEST_CMD_JUNIT)
+
+
+def run_tests_tracefiles(test_server):
+    base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    noise_trace_dir = os.path.join(base_path, REPO_TRACE_DIR)
+
+    def run_tracefile(test_server, filename):
+        # TODO(WAN): maybe this shouldn't be an env var too : )
+        old_env_var = os.environ.get("NOISEPAGE_TRACE_FILE", None)
+        os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(noise_trace_dir, filename)
+
+        LOG.info(section_header("TEST TRACEFILE: " + os.environ["NOISEPAGE_TRACE_FILE"]))
+
+        try:
+            errcode = run_test(test_server, JUNIT_TEST_CMD_TRACE)
+        finally:
+            if old_env_var is None:
+                del os.environ["NOISEPAGE_TRACE_FILE"]
+            else:
+                os.environ["NOISEPAGE_TRACE_FILE"] = old_env_var
+
+        return errcode
+
+    return [run_tracefile(test_server, item) for item in os.listdir(noise_trace_dir) if item.endswith(TESTFILES_SUFFIX)]
 
 
 if __name__ == "__main__":
     args = parse_command_line_args()
 
-    all_exit_codes = []
-    exit_code = ErrorCode.SUCCESS
-    junit_test_runner = TestJUnit(args)
+    # TODO(WAN): Using env vars is dumb and buggy when we control the entire stack.
+    original_env = {}
+    special_vars = ["NOISEPAGE_QUERY_MODE", "NOISEPAGE_PREPARE_THRESHOLD"]
 
-    # Step 1: Run the regular JUnit tests.
-    LOG.info(section_header("JUNIT TESTS"))
+
+    def set_env_vars():
+        new_values = {
+            "NOISEPAGE_QUERY_MODE": args.get("query_mode", "simple"),
+            "NOISEPAGE_PREPARE_THRESHOLD": str(args.get("prepare_threshold", DEFAULT_PREPARE_THRESHOLD)),
+        }
+        for var in special_vars:
+            original_env[var] = os.environ.get(var, None)
+            os.environ[var] = new_values[var]
+
+
+    def unset_env_vars():
+        for var in special_vars:
+            if original_env[var] is None:
+                del os.environ[var]
+            else:
+                os.environ[var] = original_env[var]
+
+
+    errcodes = []
     try:
-        test_case_junit = TestCaseJUnit(args, test_command=JUNIT_TEST_CMD_JUNIT)
-        exit_code = junit_test_runner.run(test_case_junit)
-    except:
-        LOG.error(f'Exception trying to run {JUNIT_TEST_CMD_JUNIT}')
-        LOG.error("================ Python Error Output ==================")
-        traceback.print_exc(file=sys.stdout)
-        exit_code = ErrorCode.ERROR
+        set_env_vars()
+        test_server = TestServer(args)
+        errcodes = [run_tests_junit(test_server)] + run_tests_tracefiles(test_server)
     finally:
-        all_exit_codes.append(exit_code)
+        unset_env_vars()
 
-    # Step 2: Run the trace test for each file that we find
-    # Each directory represents another set of SQL traces to test.
-    LOG.info(section_header("TRACEFILE TESTS"))
-    base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    noise_trace_dir = os.path.join(base_path, REPO_TRACE_DIR)
-    for item in os.listdir(noise_trace_dir):
-        # Look for all of the .test files in the each directory
-        if item.endswith(TESTFILES_PREFIX):
-            os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(noise_trace_dir, item)
-            LOG.info(section_header("TRACEFILE TEST: " + os.environ["NOISEPAGE_TRACE_FILE"]))
-            exit_code = ErrorCode.ERROR
-            try:
-                test_case_junit = TestCaseJUnit(
-                    args, test_command=JUNIT_TEST_CMD_TRACE)
-                exit_code = junit_test_runner.run(test_case_junit)
-            except KeyboardInterrupt:
-                exit_code = ErrorCode.ERROR
-                raise
-            except Exception as err:
-                LOG.error(f'Exception trying to run {JUNIT_TEST_CMD_TRACE}')
-                LOG.error(err)
-                LOG.error("================ Python Error Output ==================")
-                traceback.print_exc(file=sys.stdout)
-                exit_code = ErrorCode.ERROR
-            finally:
-                all_exit_codes.append(exit_code)
-
-    # Compute final exit code. If any test failed, then the entire program has to fail
+    # Compute the final exit code.
     final_code = 0
-    for c in all_exit_codes:
+    for c in errcodes:
         final_code = final_code or c
 
     LOG.info("Final Status => {}".format("FAIL" if final_code else "SUCCESS"))

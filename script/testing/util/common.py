@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import os
-import sys
 import shlex
 import subprocess
 import psutil
@@ -21,7 +20,7 @@ def run_command(command,
     General purpose wrapper for running a subprocess
     """
     if not silent_start:
-        LOG.info(f'Running subproccess: {command}')
+        LOG.info(f'Running: {command}')
     p = subprocess.Popen(shlex.split(command),
                          stdout=stdout,
                          stderr=stderr,
@@ -100,8 +99,7 @@ def kill_pids_on_port(port, logger=None):
         raise Exception("Cannot call this function unless running as root!")
 
     # get the command of lsof based on the os platform
-    lsof_path = constants.LSOF_PATH_MACOS if sys.platform.startswith(
-        constants.OS_FAMILY_DARWIN) else constants.LSOF_PATH_LINUX
+    lsof_path = constants.LSOF_PATH_LINUX
 
     cmd = "{LSOF_PATH} -i:{PORT} | grep 'LISTEN' | awk '{{ print $2 }}'".format(
         LSOF_PATH=lsof_path, PORT=port)

@@ -128,7 +128,10 @@ class TestServer:
                 if not self.is_dry_run:
                     try:
                         test_case_ret_val = self.run_test(test_case)
-                        print_file(test_case.test_output_file)
+                        if test_case_ret_val != 0:
+                            print_file(test_case.test_output_file)
+                        else:
+                            LOG.info("All tests passed (return code 0), skipping printing.")
                         test_suite_ret_vals[test_case] = test_case_ret_val
                     except:
                         print_file(test_case.test_output_file)

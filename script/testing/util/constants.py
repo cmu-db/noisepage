@@ -53,10 +53,6 @@ FILE_COLLECT_MEM_INFO = os.path.join(DIR_TESTING, "collect_mem_info.py")
 
 # Command paths
 LSOF_PATH_LINUX = "lsof"
-LSOF_PATH_MACOS = "/usr/sbin/lsof"
-
-# OS family
-OS_FAMILY_DARWIN = "darwin"
 
 # Memory info collection
 MEM_INFO_SPLITTER = ","
