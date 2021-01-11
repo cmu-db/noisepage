@@ -1,6 +1,3 @@
-#!/usr/bin/python3
-
-
 def get_value_by_pattern(dict_obj, pattern, default):
     """
     This is similar to .get() for a dict but it matches the

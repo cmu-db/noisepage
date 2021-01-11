@@ -2,6 +2,7 @@
 import argparse
 
 from util.common import collect_mem_info
+from util.constants import MEM_INFO_SPLITTER
 
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(
@@ -13,5 +14,5 @@ if __name__ == "__main__":
         mem_info = collect_mem_info(pid)
         rss = mem_info.rss if mem_info else ""
         vms = mem_info.vms if mem_info else ""
-        res = "{RSS},{VMS}".format(RSS=rss, VMS=vms)
+        res = f"{rss}{MEM_INFO_SPLITTER}{vms}"
         print(res)
