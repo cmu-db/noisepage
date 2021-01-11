@@ -1,7 +1,7 @@
 #!/usr/bin/python3
+import logging
 import os
 from datetime import datetime
-import logging
 
 # absolute paths
 DIR_UTIL = os.path.dirname(os.path.realpath(__file__))

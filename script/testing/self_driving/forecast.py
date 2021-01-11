@@ -1,25 +1,23 @@
-#!/usr/bin/env python3
 """
-The forecast scripts generates metrics traces needed for workload forecasting.
+The forecast script generates metrics traces needed for workload forecasting.
 """
-
-from oltpbench.test_case_oltp import TestCaseOLTPBench
-from oltpbench.run_oltpbench import TestOLTPBench
-from oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
-from util.constants import (LOG, ErrorCode, DEFAULT_DB_HOST, DEFAULT_DB_PORT)
-from util.common import run_command
-from util.db_server import NoisePageServer
-from self_driving.constants import (
-    DEFAULT_TPCC_TIME_SEC,
-    DEFAULT_TPCC_WEIGHTS,
-    DEFAULT_QUERY_TRACE_FILE,
-    DEFAULT_OLTP_SERVER_ARGS,
-    DEFAULT_OLTP_TEST_CASE,
-    DEFAULT_WORKLOAD_PATTERN)
 
 from pathlib import Path
-from xml.etree import ElementTree
 from typing import Dict, List, Optional, Tuple
+from xml.etree import ElementTree
+
+from oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
+from oltpbench.run_oltpbench import TestOLTPBench
+from oltpbench.test_case_oltp import TestCaseOLTPBench
+from self_driving.constants import (DEFAULT_OLTP_SERVER_ARGS,
+                                    DEFAULT_OLTP_TEST_CASE,
+                                    DEFAULT_QUERY_TRACE_FILE,
+                                    DEFAULT_TPCC_TIME_SEC,
+                                    DEFAULT_TPCC_WEIGHTS,
+                                    DEFAULT_WORKLOAD_PATTERN)
+from util.common import run_command
+from util.constants import DEFAULT_DB_HOST, DEFAULT_DB_PORT, LOG, ErrorCode
+from util.db_server import NoisePageServer
 
 
 def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:

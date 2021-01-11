@@ -1,16 +1,18 @@
 #!/usr/bin/python3
+import datetime
 import os
 import shlex
 import subprocess
+import sys
+
 import psutil
-import datetime
+
 from . import constants
 from .constants import LOG
 from .mem_metrics import MemoryInfo
 
 
 def run_command(command,
-                error_msg="",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=None,
@@ -37,13 +39,32 @@ def run_command(command,
     return rc, p.stdout, p.stderr
 
 
+def expect_command(command,
+                   stdout=subprocess.PIPE,
+                   stderr=subprocess.PIPE,
+                   cwd=None,
+                   printable=True,
+                   silent_start=False):
+
+    rc, stdout, stderr = run_command(command,
+                                     stdout,
+                                     stderr,
+                                     cwd,
+                                     printable,
+                                     silent_start)
+
+    if rc != constants.ErrorCode.SUCCESS:
+        LOG.info(stdout.read())
+        LOG.error(stderr.read())
+        sys.exit(rc)
+
+
 def run_as_root(command, printable=True, silent_start=False):
     """
     General purpose wrapper for running a subprocess as root user
     """
     sudo_command = "sudo {}".format(command)
     return run_command(sudo_command,
-                       error_msg="",
                        stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE,
                        cwd=None,
@@ -193,7 +214,7 @@ def run_kill_server(port):
 
     if rc != constants.ErrorCode.SUCCESS:
         raise Exception(
-            "Error occured in run_kill_server for [PORT={}]".format(port))
+            "Error occurred in run_kill_server for [PORT={}]".format(port))
 
 
 def run_collect_mem_info(pid):
@@ -205,11 +226,11 @@ def run_collect_mem_info(pid):
     cmd = "python3 {SCRIPT} {PID}".format(
         SCRIPT=constants.FILE_COLLECT_MEM_INFO, PID=pid)
 
-    rc, stdout, _ = run_as_root(cmd, printable=False, silent_start=True)
+    rc, stdout, _ = run_command(cmd, printable=False, silent_start=True)
 
     if rc != constants.ErrorCode.SUCCESS:
         LOG.error(
-            "Error occured in run_collect_mem_info for [PID={}]".format(pid))
+            "Error occurred in run_collect_mem_info for [PID={}]".format(pid))
         return False
 
     res_str = stdout.readline().decode("utf-8").rstrip("\n")

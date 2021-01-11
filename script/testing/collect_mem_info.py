@@ -3,7 +3,6 @@ import argparse
 
 from util.common import collect_mem_info
 
-
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(
         description="Collect the memory info of the given process IDs.")

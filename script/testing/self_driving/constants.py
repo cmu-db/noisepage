@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # Default pattern: High -> Low  ...
 DEFAULT_TPCC_RATE = 10000
 DEFAULT_WORKLOAD_PATTERN = [DEFAULT_TPCC_RATE, DEFAULT_TPCC_RATE // 10]

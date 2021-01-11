@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import requests
 from datetime import datetime
 
@@ -28,7 +27,7 @@ def report_oltpbench_result(env, server_data, results_dir, username, password, m
         'metrics': metrics
     }
 
-    send_result(env, '/oltpbench/', username, password, result)
+    _send_result(env, '/oltpbench/', username, password, result)
 
 
 def report_microbenchmark_result(env, timestamp, config,
@@ -50,11 +49,35 @@ def report_microbenchmark_result(env, timestamp, config,
         'parameters': parameters,
         'metrics': metrics
     }
-    send_result(env, '/microbenchmark/', config.publish_results_username,
+    _send_result(env, '/microbenchmark/', config.publish_results_username,
                 config.publish_results_password, result)
 
 
 def report_artifact_stats_result(env, metrics, username, password):
+    """
+    Parse and format the data from the artifact stats into a JSON body,
+    which is then sent to the performance storage service.
+
+    Parameters
+    ----------
+    env : string
+        The type of environment that we are running in.
+        Valid options are the keys to PERFORMANCE_STORAGE_SERVICE_API.
+    metrics : ???
+        what this
+    username : str
+        The username to the performance storage service.
+    password : str
+        The password to the performance storage service.
+
+    Returns
+    -------
+    None on success.
+
+    Raises
+    ------
+    RequestException if the performance storage service responds with an error.
+    """
     """ Parse and format the data from the artifact stats into a JSON body and
     send those to the performance storage service. """
     result = {
@@ -62,25 +85,42 @@ def report_artifact_stats_result(env, metrics, username, password):
         'timestamp': int(datetime.now().timestamp() * 1000),  # convert to milliseconds
         'metrics': metrics
     }
-    send_result(env, '/artifact-stats/', username, password, result)
+    _send_result(env, '/artifact-stats/', username, password, result)
 
 
-def send_result(env, path, username, password, result):
-    """ Send the results to the performance storage service. If the service
-    responds with an error code this will raise an error. """
-    LOG.debug("Sending request to {PATH}".format(PATH=path))
-    base_url = get_base_url(env)
+def _send_result(env, path, username, password, result):
+    """
+    Send the result to the performance storage service.
+    If the service responds with an error code, this will raise an error.
+
+    Parameters
+    ----------
+    env : string
+        The type of environment that we are running in.
+        Valid options are the keys to PERFORMANCE_STORAGE_SERVICE_API.
+    path : str
+        The path that the result is being sent to.
+    username : str
+        The username to the performance storage service.
+    password : str
+        The password to the performance storage service.
+    result : dict
+        The result to send to the performance storage service.
+
+    Returns
+    -------
+    None on success.
+
+    Raises
+    ------
+    RequestException if the performance storage service responds with an error.
+    """
+    url = f"{PERFORMANCE_STORAGE_SERVICE_API.get(env)}{path}"
+    LOG.debug(f"Sending results to: {url}")
+
     try:
-        result = requests.post(base_url + path,
-                               json=result,
-                               auth=(username, password))
+        result = requests.post(url, json=result, auth=(username, password))
         result.raise_for_status()
-    except Exception as err:
+    except requests.RequestException as err:
         LOG.error(err.response.text)
         raise
-
-
-def get_base_url(environment):
-    """ Determind the performance storage service URL to
-    use based on the environemnt string. """
-    return PERFORMANCE_STORAGE_SERVICE_API.get(environment)

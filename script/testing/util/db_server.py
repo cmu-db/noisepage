@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 import os
+import shlex
 import subprocess
 import time
-import shlex
+
 import psycopg2 as psql
 
-from .constants import (DEFAULT_DB_USER, DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN,
-                        DIR_REPO, DB_START_ATTEMPTS, DEFAULT_DB_WAL_FILE)
-from .constants import LOG
 from .common import print_pipe
+from .constants import (DB_START_ATTEMPTS, DEFAULT_DB_BIN, DEFAULT_DB_HOST,
+                        DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_PORT,
+                        DEFAULT_DB_USER, DEFAULT_DB_WAL_FILE, DIR_REPO, LOG)
 
 
 class NoisePageServer:
@@ -82,9 +83,10 @@ class NoisePageServer:
         LOG.info(f'Ran: {db_run_command} [PID={db_process.pid}]')
 
         while True:
+            print('foo')
             log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
-            if log_line != '':
-                print(log_line)
+            print('bar')
+            print(log_line, self.db_port, db_process.pid)
             check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
             now = time.time()
             if log_line.endswith(check_line):

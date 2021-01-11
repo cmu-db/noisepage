@@ -3,7 +3,6 @@ import argparse
 
 from util.common import kill_pids_on_port
 
-
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(
         description="Kill any processes listening on these ports!")

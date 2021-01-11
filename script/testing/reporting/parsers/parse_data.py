@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os
 import re
 from decimal import Decimal
@@ -28,7 +26,7 @@ def parse_oltpbench_data(results_dir):
         parameters (dict): The parameters that were used to run the test
         metrics (dict): The metrics gathered from the result of the test
     """
-    env_metadata = parse_jenkins_env_vars()
+    env_metadata = _parse_jenkins_env_vars()
     files_metadata, timestamp, benchmark_type, parameters, metrics = parse_oltpbench_files(
         results_dir)
     metadata = {**env_metadata, **files_metadata}
@@ -50,7 +48,6 @@ def parse_microbenchmark_data(artifact_processor_comparison):
         test_name (str): The name of the specific benchmark test
         metrics (dict): The metrics gathered from the result of the test
     """
-    env_metadata = parse_jenkins_env_vars()
     metadata = parse_standard_metadata()
     test_suite, test_name, metrics = parse_microbenchmark_comparison(
         artifact_processor_comparison)
@@ -58,36 +55,45 @@ def parse_microbenchmark_data(artifact_processor_comparison):
 
 
 def parse_standard_metadata():
-    """ Gather the standard metadata infromation from Jenkins and the DBMS.
-    This will get the DB version from a file. If there is a better way to
-    get that information from the test then that is advisible 
-    (like OLTPBench)"""
-    env_metadata = parse_jenkins_env_vars()
-    metadata = {**env_metadata, **parse_db_metadata()}
-    return metadata
+    """
+    Gather the standard metadata information from Jenkins and the DBMS.
+
+    Returns
+    -------
+    The metadata obtained from Jenkins and the DBMS.
+
+    Warnings
+    --------
+    Underlying implementation is hacky right now.
+    """
+    return {**_parse_jenkins_env_vars(), **_parse_db_metadata()}
 
 
-def parse_jenkins_env_vars():
-    """ get some metadata from the environment values that Jenkins has 
-    populated and from the operating system"""
-    jenkins_job_id = os.environ['BUILD_ID']
-    git_branch = os.environ['GIT_BRANCH']
-    commit_id = os.environ['GIT_COMMIT']
-    os_version = ' '.join(distro.linux_distribution())
-    os_cpu_number = os.cpu_count()
+def _parse_jenkins_env_vars():
+    """
+    Parse environment variables from Jenkins and the OS.
+
+    Returns
+    -------
+    metadata : dict
+        Metadata about the Jenkins environment.
+        WARNING: Note that cpu_socket is a completely garbage value.
+        TODO(WAN): I'd remove cpu_socket except I'm afraid of breakages.
+    """
     # TODO find a way to get the socket number of
     os_cpu_socket = 'true'
+
     metadata = {
         'jenkins': {
-            'jenkins_job_id': jenkins_job_id
+            'jenkins_job_id': os.environ['BUILD_ID'],
         },
         'github': {
-            'git_branch': git_branch,
-            'git_commit_id': commit_id
+            'git_branch': os.environ['GIT_BRANCH'],
+            'git_commit_id': os.environ['GIT_COMMIT'],
         },
         'environment': {
-            'os_version': os_version,
-            'cpu_number': os_cpu_number,
+            'os_version': ' '.join(distro.linux_distribution()),
+            'cpu_number': os.cpu_count(),
             'cpu_socket': os_cpu_socket
         }
     }
@@ -135,14 +141,25 @@ def parse_microbenchmark_comparison(artifact_processor_comparison):
     return test_suite, test_name, metrics
 
 
-def parse_db_metadata():
-    """ Lookup the DB version from the version.h file. This is error prone
-    due to it being reliant on file location and no tests that will fail
-    if the version.h moves and this is not updated. We use a fallback of
-    unknown result so the tests won't fail if this happens"""
+def _parse_db_metadata():
+    """
+    Parse metadata from the DBMS.
+
+    Returns
+    -------
+    metadata : dict
+        A dictionary containing metadata about the database.
+
+    Warnings
+    --------
+    Giant hack that parses a hardcoded constant NOISEPAGE_VERSION
+    in src/include/common/version.h.
+
+    If the hack is unsuccessful, it defaults to UNKNOWN_RESULT.
+    """
     regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
     curr_dir = os.path.dirname(os.path.realpath(__file__))
-    # FIXME: The relative path for the version.h may change in the future
+    # TODO(WAN): Don't do this. We support SELECT VERSION(), do that instead.
     version_file_relative = '../../../../src/include/common/version.h'
     version_file = os.path.join(curr_dir, version_file_relative)
     db_metadata = {'noisepage': {'db_version': UNKNOWN_RESULT}}

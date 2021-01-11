@@ -4,7 +4,6 @@ import argparse
 from util.common import check_pid_exists
 from util.constants import CommandLineStr
 
-
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(
         description="Check if the given PIDs exist.")
