@@ -140,9 +140,9 @@ class TestServer:
         try:
             self.run_pre_suite()
             exit_codes = self.run_test_suite(test_suite)
-            all_ok = any(x is None or x != constants.ErrorCode.SUCCESS
-                         for x in exit_codes.values())
-            result = constants.ErrorCode.SUCCESS if all_ok else constants.ErrorCode.ERROR
+            has_error = any([x is None or x != constants.ErrorCode.SUCCESS
+                             for x in exit_codes.values()])
+            result = constants.ErrorCode.ERROR if has_error else constants.ErrorCode.SUCCESS
         except:
             traceback.print_exc(file=sys.stdout)
         finally:
