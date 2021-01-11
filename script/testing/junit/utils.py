@@ -30,8 +30,11 @@ def parse_command_line_args():
 
     args = vars(aparser.parse_args())
 
+    # TODO(WAN): What is the below server_args code doing?
     args['server_args'] = map_server_args(args.get('server_arg'))
     del args['server_arg']
+
+    args = {k: v for k, v in args.items() if v}
     return args
 
 
