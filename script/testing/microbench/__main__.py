@@ -7,13 +7,13 @@ import sys
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
+from ..util.constants import LOG, PERFORMANCE_STORAGE_SERVICE_API
 from .artifact_processor import ArtifactProcessor
 from .config import Config
 from .constants import (BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH,
                         BENCHMARK_THREADS, MIN_REF_VALUES)
 from .micro_benchmarks_runner import MicroBenchmarksRunner
 from .results_output import send_results, table_dump
-from ..util.constants import LOG, PERFORMANCE_STORAGE_SERVICE_API
 
 # =========================================================
 # MAIN

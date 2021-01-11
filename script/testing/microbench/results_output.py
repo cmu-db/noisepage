@@ -1,7 +1,8 @@
-from .google_benchmark.gbench_run_result import GBenchRunResult
 from prettytable import PrettyTable
+
 from ..reporting.report_result import report_microbenchmark_result
 from ..util.constants import LOG
+from .google_benchmark.gbench_run_result import GBenchRunResult
 
 FIELD_NAMES = ['status', 'iterations', 'throughput', 'ref_throughput', 'tolerance',
                'change', 'coef_var', 'reference_type', 'num_results', 'suite', 'test']

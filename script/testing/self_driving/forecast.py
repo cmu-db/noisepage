@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import List
 from xml.etree import ElementTree
 
-from ..oltpbench.test_oltpbench import TestOLTPBench
 from ..oltpbench.test_case_oltp import TestCaseOLTPBench
-from .constants import (DEFAULT_OLTP_SERVER_ARGS, DEFAULT_OLTP_TEST_CASE,
-                        DEFAULT_QUERY_TRACE_FILE,
-                        DEFAULT_TPCC_TIME_SEC, DEFAULT_TPCC_WEIGHTS)
+from ..oltpbench.test_oltpbench import TestOLTPBench
 from ..util.common import run_command
 from ..util.constants import LOG, ErrorCode
+from .constants import (DEFAULT_OLTP_SERVER_ARGS, DEFAULT_OLTP_TEST_CASE,
+                        DEFAULT_QUERY_TRACE_FILE, DEFAULT_TPCC_TIME_SEC,
+                        DEFAULT_TPCC_WEIGHTS)
 
 
 def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:

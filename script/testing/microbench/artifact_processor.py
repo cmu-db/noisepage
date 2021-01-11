@@ -1,12 +1,12 @@
 import os
 from glob import glob
 
+from ..util.constants import LOG
 from .benchmarks import BENCHMARKS_TO_RUN
 from .constants import JENKINS_URL, LOCAL_REPO_DIR
 from .google_benchmark.gbench_historical_results import GBenchHistoricalResults
 from .google_benchmark.gbench_run_result import GBenchRunResult
 from .jenkins.jenkins import Jenkins
-from ..util.constants import LOG
 
 
 class ArtifactProcessor(object):

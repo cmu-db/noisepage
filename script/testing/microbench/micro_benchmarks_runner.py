@@ -3,9 +3,9 @@ import os
 import shutil
 import subprocess
 
+from ..util.constants import LOG
 from .constants import LOCAL_REPO_DIR
 from .google_benchmark.gbench2junit import GBenchToJUnit
-from ..util.constants import LOG
 
 
 class MicroBenchmarksRunner(object):

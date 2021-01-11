@@ -1,11 +1,11 @@
 import os
 import sys
 
+from ..util.constants import LOG
 from .benchmarks import BENCHMARKS_TO_RUN
 from .constants import (BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH,
-                        BENCHMARK_THREADS, JENKINS_REF_PROJECT,
-                        LAX_TOLERANCE, LOCAL_REPO_DIR, MIN_TIME)
-from ..util.constants import LOG
+                        BENCHMARK_THREADS, JENKINS_REF_PROJECT, LAX_TOLERANCE,
+                        LOCAL_REPO_DIR, MIN_TIME)
 
 
 class Config(object):
