@@ -11,6 +11,9 @@
 #include "self_driving/forecast/workload_forecast_segment.h"
 
 namespace noisepage::selfdriving {
+namespace pilot {
+class MonteCarloSearchTree;
+}
 
 /**
  * Breaking predicted queries passed in by the Pilot into segments by their associated timestamps
@@ -24,9 +27,12 @@ class WorkloadForecast {
    *
    */
   explicit WorkloadForecast(uint64_t forecast_interval);
+  uint64_t GetNumberOfSegments() { return num_forecast_segment_; };
 
  private:
   friend class PilotUtil;
+  friend class Pilot;
+  friend class pilot::MonteCarloSearchTree;
 
   void LoadQueryTrace();
   void LoadQueryText();

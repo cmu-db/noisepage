@@ -5,7 +5,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -16,6 +15,7 @@
 #include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
 #include "self_driving/forecast/workload_forecast.h"
+#include "self_driving/pilot/action/action_defs.h"
 
 namespace noisepage {
 namespace messenger {
@@ -34,6 +34,10 @@ namespace optimizer {
 class StatsStorage;
 }
 
+namespace planner {
+class AbstractPlanNode;
+}
+
 namespace settings {
 class SettingsManager;
 }
@@ -45,6 +49,12 @@ class TransactionManager;
 }  // namespace noisepage
 
 namespace noisepage::selfdriving {
+namespace pilot {
+class AbstractAction;
+class MonteCarloSearchTree;
+class TreeNode;
+}
+
 class PilotUtil;
 
 /**
@@ -74,10 +84,25 @@ class Pilot {
         common::ManagedPointer<optimizer::StatsStorage> stats_storage,
         common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
 
+  const std::string &GetModelSavePath() {
+    return model_save_path_;
+  }
+
+  common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() {
+    return model_server_manager_;
+  }
+
   /**
-   * Performs Pilot Logic, load and execute the predict queries while extracting pipeline features
+   * Performs Pilot Logic, load and execute the predicted queries while extracting pipeline features
    */
   void PerformPlanning();
+
+  /**
+   * Search for best action sequence through Monte Carlo Tree Search.
+   *
+   */
+   void ActionSearch(std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> *best_action_map,
+                     std::vector<pilot::action_id_t> *best_action_seq);
 
  private:
   /**
@@ -90,7 +115,8 @@ class Pilot {
    */
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
-  void ExecuteForecast();
+  void ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
+                       *pipeline_to_prediction, uint64_t start_segment_index, uint64_t end_segment_index);
 
   std::string model_save_path_;
   common::ManagedPointer<catalog::Catalog> catalog_;
@@ -100,7 +126,10 @@ class Pilot {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   uint64_t workload_forecast_interval_{10000000};
+  uint64_t action_planning_horizon_{5};
+  uint64_t simulation_number_{20};
   friend class noisepage::selfdriving::PilotUtil;
+  friend class noisepage::selfdriving::pilot::MonteCarloSearchTree;
 };
 
 }  // namespace noisepage::selfdriving

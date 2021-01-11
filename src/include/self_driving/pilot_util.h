@@ -20,6 +20,9 @@ namespace transaction {
 class TransactionManager;
 }
 
+namespace planner {
+class AbstractPlanNode;
+}
 }  // namespace noisepage
 
 namespace noisepage::selfdriving {
@@ -38,7 +41,8 @@ class PilotUtil {
    * @returns const pointer to the collected pipeline data
    */
   static const std::list<metrics::PipelineMetricRawData::PipelineData> &CollectPipelineFeatures(
-      common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast);
+      common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+      uint64_t start_segment_index, uint64_t end_segment_index);
 
   /**
    * Perform inference through model server manager with collected pipeline metrics
@@ -51,8 +55,24 @@ class PilotUtil {
   static void InferenceWithFeatures(
       const std::string &model_save_path, common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
-      std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
-          *pipeline_to_prediction);
+      std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
+               std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
+
+  /**
+   *
+   * @param pilot
+   * @param db_oids
+   * @param sql_query
+   */
+  static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::vector<uint64_t> &db_oids,
+                          const std::string &sql_query);
+
+  static std::vector<std::unique_ptr<planner::AbstractPlanNode>> GetQueryPlans(
+      common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+      uint64_t start_segment_index, uint64_t end_segment_index);
+
+  static uint64_t ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                       uint64_t start_segment_index, uint64_t end_segment_index);
 
  private:
   /**
