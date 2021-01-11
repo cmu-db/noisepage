@@ -3,7 +3,7 @@ import traceback
 from typing import List
 
 from . import constants
-from .common import print_file, print_pipe, run_command, update_mem_info
+from .common import print_file, run_command, update_mem_info
 from .constants import LOG
 from .db_server import NoisePageServer
 from .periodic_task import PeriodicTask
@@ -12,16 +12,33 @@ from .test_case import TestCase
 
 class TestServer:
     """
-    TestServer represents an abstract server or some shit. what the fuck
+    TestServer is a wrapper around NoisePageServer that can run test suites.
+
+    Attributes
+    ----------
+    collect_mem_info : bool
+        True if memory information should be collected.
+    continue_on_error : bool
+        True if the failure of a test case should stop an entire test suite.
+    db_instance : NoisePageServer
+        The DBMS that is being tested.
+    incremental_metric_freq : int
+        The frequency at which incremental metrics should be collected.
+    is_dry_run : bool
+        True if the TestServer will only perform dry-runs, meaning that
+        testing code will be printed instead of being executed.
     """
 
     def __init__(self, args, quiet=False):
         """
+        Create a new TestServer instance.
 
         Parameters
         ----------
-        args
-        quiet
+        args : dict
+            The arguments to the server.
+        quiet : bool
+            True if successful tests should avoid printing verbose output.
         """
 
         # Strip arguments which were not set.
@@ -29,6 +46,9 @@ class TestServer:
 
         self._quiet = quiet
         self.is_dry_run = args.get("dry_run", False)
+        self.continue_on_error = args.get("continue_on_error", constants.DEFAULT_CONTINUE_ON_ERROR)
+        self.collect_mem_info = args.get("collect_mem_info", False)
+        self.incremental_metric_freq = args.get("incremental_metric_freq", constants.INCREMENTAL_METRIC_FREQ)
 
         db_host = args.get("db_host", constants.DEFAULT_DB_HOST)
         db_port = args.get("db_port", constants.DEFAULT_DB_PORT)
@@ -36,15 +56,6 @@ class TestServer:
         server_args = args.get("server_args", {})
         db_output_file = args.get("db_output_file", constants.DEFAULT_DB_OUTPUT_FILE)
         self.db_instance = NoisePageServer(db_host, db_port, build_type, server_args, db_output_file)
-
-        # whether the server should stop the whole test if one of test cases failed
-        self.continue_on_error = args.get("continue_on_error", constants.DEFAULT_CONTINUE_ON_ERROR)
-
-        # memory info collection
-        self.collect_mem_info = args.get("collect_mem_info", False)
-
-        # incremental metrics
-        self.incremental_metric_freq = args.get("incremental_metric_freq", constants.INCREMENTAL_METRIC_FREQ)
 
     def run_pre_suite(self):
         """
@@ -78,17 +89,18 @@ class TestServer:
 
         test_case.run_pre_test()
 
+        collect_mem_thread = None
         if self.collect_mem_info:
             # Initialize memory information dict.
             update_mem_info(self.db_instance.db_process.pid,
                             self.incremental_metric_freq,
                             test_case.mem_metrics.mem_info_dict)
             # Start a thread to collect memory information periodically.
-            self.collect_mem_thread = PeriodicTask(
+            collect_mem_thread = PeriodicTask(
                 self.incremental_metric_freq, update_mem_info,
                 self.db_instance.db_process.pid, self.incremental_metric_freq,
                 test_case.mem_metrics.mem_info_dict)
-            self.collect_mem_thread.start()
+            collect_mem_thread.start()
 
         ret_val = constants.ErrorCode.ERROR
         try:
@@ -98,8 +110,8 @@ class TestServer:
                                             stderr=test_output_fd,
                                             cwd=test_case.test_command_cwd)
         finally:
-            if self.collect_mem_info:
-                self.collect_mem_thread.stop()
+            if self.collect_mem_info and collect_mem_thread is not None:
+                collect_mem_thread.stop()
 
             test_case.run_post_test()
             self.db_instance.delete_wal()
@@ -113,37 +125,41 @@ class TestServer:
         Parameters
         ----------
         test_suite : [TestCase]
+            A list of test cases to be run.
 
         Returns
         -------
-
+        suite_result : constants.ErrorCode
+            SUCCESS if all the tests succeeded. ERROR otherwise.
         """
-
-        """ Orchestrate the overall test execution """
-
-        # no, fuck you. if your code is bad, you crash. no magic. TODO(WAN)
+        # TODO(WAN): I dislike this magic...
         if not isinstance(test_suite, List):
             test_suite = [test_suite]
 
         result = constants.ErrorCode.ERROR
         try:
             self.run_pre_suite()
-
             exit_codes = self.run_test_suite(test_suite)
-            result = self.determine_test_suite_result(exit_codes)
+            all_ok = any(x is None or x != constants.ErrorCode.SUCCESS
+                         for x in exit_codes.values())
+            result = constants.ErrorCode.SUCCESS if all_ok else constants.ErrorCode.ERROR
         except:
             traceback.print_exc(file=sys.stdout)
         finally:
             self.run_post_suite()
-        return self.handle_test_suite_result(result)
+
+        if result is None or result != constants.ErrorCode.SUCCESS:
+            LOG.error("The test suite failed")
+        return result
 
     def run_test_suite(self, test_suite):
         """
+        Run the provided test suite.
 
         Parameters
         ----------
         test_suite : [TestCase]
-
+            A list of test cases to be run.
 
         Returns
         -------
@@ -152,8 +168,11 @@ class TestServer:
         """
         exit_codes = {}
         for test_case in test_suite:
+            dbms_started = False
             try:
-                self.db_instance.run_db(self.is_dry_run)
+                if test_case.db_restart and self.db_instance.db_process:
+                    self.db_instance.stop_db(self.is_dry_run)
+                dbms_started = self.db_instance.run_db(self.is_dry_run)
                 if not self.is_dry_run:
                     try:
                         exit_code = self.run_test(test_case)
@@ -169,39 +188,20 @@ class TestServer:
                         else:
                             traceback.print_exc(file=sys.stdout)
                             exit_codes[test_case] = constants.ErrorCode.ERROR
-                self.db_instance.stop_db(self.is_dry_run)
             except:
                 traceback.print_exc(file=sys.stdout)
                 exit_codes[test_case] = constants.ErrorCode.ERROR
-                # early termination in case of db is unable to start/stop/restart
+                # Terminate early in case the DBMS was unable to start.
                 break
+            finally:
+                if dbms_started:
+                    self.db_instance.stop_db(self.is_dry_run)
 
         return exit_codes
 
-    def determine_test_suite_result(self, test_suite_ret_vals):
-        """	
-        Based on all the test suite resultes this determines whether the test	
-        suite was a success or error	
-        """
-        for test_case, test_result in test_suite_ret_vals.items():
-            if test_result is None or test_result != constants.ErrorCode.SUCCESS:
-                return constants.ErrorCode.ERROR
-        return constants.ErrorCode.SUCCESS
-
-    def handle_test_suite_result(self, test_suite_result):
-        """	
-        Determine what to do based on the result. If continue_on_error is	
-        True then it will mask any errors and return success. Otherwise,	
-        it will return the result of the test suite.	
-        """
-        if test_suite_result is None or test_suite_result != constants.ErrorCode.SUCCESS:
-            LOG.error("The test suite failed")
-        return test_suite_result
 
     def print_db_logs(self):
         """	
-        Print out the remaining DB logs	
+        Print out the remaining DBMS logs.
         """
-        LOG.info("************ DB Logs Start ************")
-        print_pipe(self.db_instance.db_process)
-        LOG.info("************* DB Logs End *************")
+        self.db_instance.print_db_logs()

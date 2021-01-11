@@ -92,7 +92,6 @@ def gen_oltp_trace(
 
     # Run the actual test
     ret_val, _, stderr = run_command(test_case.test_command,
-                                     test_case.test_error_msg,
                                      cwd=test_case.test_command_cwd)
     if ret_val != ErrorCode.SUCCESS:
         LOG.error(stderr)

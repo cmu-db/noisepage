@@ -64,7 +64,6 @@ All test cases should inherit from the `TestCase` class. Anyone is free to modif
   - `test_command` (`List(str)`): the command to run the test case
 - Optional attributes
   - `test_command_cwd` (`str`): the working directory to run the test command
-  - `test_error_msg` (`str`): the error message to display in case of errors
 - Optional functions
   - `run_pre_test`: the pre-test tasks required for the test
     - config the xml file, etc.

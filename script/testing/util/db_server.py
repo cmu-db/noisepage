@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import shlex
 import subprocess
@@ -7,7 +6,7 @@ import time
 import psycopg2 as psql
 
 from .common import print_pipe
-from .constants import (DB_START_ATTEMPTS, DEFAULT_DB_BIN, DEFAULT_DB_HOST,
+from .constants import (DEFAULT_DB_BIN, DEFAULT_DB_HOST,
                         DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_PORT,
                         DEFAULT_DB_USER, DEFAULT_DB_WAL_FILE, DIR_REPO, LOG)
 
@@ -51,12 +50,13 @@ class NoisePageServer:
 
     def run_db(self, is_dry_run=False):
         """
-        Start the database server.
-
+        Start the DBMS.
 
         Parameters
         ----------
-        is_dry_run
+        is_dry_run : bool
+            True if the commands that will be run should be printed,
+            with the commands themselves not actually executing.
 
         Returns
         -------
@@ -83,10 +83,7 @@ class NoisePageServer:
         LOG.info(f'Ran: {db_run_command} [PID={db_process.pid}]')
 
         while True:
-            print('foo')
             log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
-            print('bar')
-            print(log_line, self.db_port, db_process.pid)
             check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
             now = time.time()
             if log_line.endswith(check_line):
@@ -100,96 +97,122 @@ class NoisePageServer:
 
     def stop_db(self, is_dry_run=False):
         """
-        A
+        Stop the DBMS. The DBMS must be running!
 
         Parameters
         ----------
-        is_dry_run
+        is_dry_run : bool
+            True if the commands that will be run should be printed,
+            with the commands themselves not actually executing.
 
-        Returns
-        -------
-
+        Raises
+        ------
+        RuntimeError if the DBMS is not running when this is called.
         """
+        if is_dry_run and self.db_process:
+            raise RuntimeError("Dry-run! Why does the DBMS exist?")
+
         if not self.db_process:
-            raise Exception("System is in an invalid state.")
+            raise RuntimeError("System is in an invalid state.")
 
-        """ Stop the Db server and print it's log file """
-        if not self.db_process or is_dry_run:
-            LOG.debug('DB has already been stopped.')
-            return
-
-        # get exit code if any
-        self.db_process.poll()
-        if self.db_process.returncode is not None:
-            # DB already terminated
-            msg = f'DB terminated with return code {self.db_process.returncode}'
+        return_code = self.db_process.poll()
+        if return_code is None:
+            self.db_process.terminate()
+            LOG.info("DBMS stopped successfully.")
+            self.db_process = None
+        else:
+            msg = f"DBMS already terminated, code: {self.db_process.returncode}"
             LOG.info(msg)
             self.print_db_logs()
             raise RuntimeError(msg)
-        else:
-            # still (correctly) running, terminate it
-            self.db_process.terminate()
-            LOG.info("Stopped DB successfully")
-        self.db_process = None
 
     def delete_wal(self):
-        """ Check that the WAL exists and delete if it does """
+        """
+        If the WAL should exist according to our server arguments,
+        then delete the WAL.
+        """
         if not self.server_args.get('wal_enable', True):
             return
-        wal_file_path = self.server_args.get('wal_file_path', DEFAULT_DB_WAL_FILE)
-        if os.path.exists(wal_file_path):
-            os.remove(wal_file_path)
+        wal = self.server_args.get('wal_file_path', DEFAULT_DB_WAL_FILE)
+        if os.path.exists(wal):
+            os.remove(wal)
 
     def print_db_logs(self):
-        """	Print out the remaining DB logs	"""
+        """
+        Print out the remaining DBMS logs.
+        """
         LOG.info("************ DB Logs Start ************")
         print_pipe(self.db_process)
         LOG.info("************* DB Logs End *************")
 
     def execute(self, sql, autocommit=True, expect_result=True, user=DEFAULT_DB_USER):
         """
-        Opens up a connection at the DB, and execute a SQL.
+        Create a new connection to the DBMS and execute the supplied SQL.
 
-        WARNING: this is a really simple (and barely thought-through) client execution interface. Users might need to
-        extend this with more arguments or error checking. Only SET SQl command has been tested.
+        Parameters
+        ----------
+        sql : str
+            The SQL to be executed.
+        autocommit : bool
+            True if the connection should autocommit.
+        expect_result : bool
+            True if rows are expected to be fetched and returned.
+        user : str
+            The default username for this connection.
 
-        :param sql: SQL to be execute
-        :param autocommit: If the connection should be set to autocommit. For SQL that should not run in transactions,
-            this should be set to True, e.g. SET XXX
-        :param expect_result: True if results rows are fetched and returned
-        :param user: User of this connection
-        :return: None if error or not expecting results, rows fetched when expect_result is True
+        Returns
+        -------
+        rows
+            None if an error occurs or if no results are expected.
+            Otherwise, the rows that are fetched are returned.
         """
         try:
             with psql.connect(port=self.db_port, host=self.db_host, user=user) as conn:
                 conn.set_session(autocommit=autocommit)
                 with conn.cursor() as cursor:
                     cursor.execute(sql)
-
                     if expect_result:
                         rows = cursor.fetchall()
                         return rows
-
                     return None
         except Exception as e:
-            LOG.error(f"Executing SQL = {sql} failed: ")
-            # Re-raise this
+            LOG.error(f"Executing SQL failed: {sql}")
             raise e
 
 
 def get_build_path(build_type):
-    """ Get the path to the binary """
+    """
+    Get the path to the DBMS binary.
+
+    Parameters
+    ----------
+    build_type : str
+        One of "standard", "debug", "release".
+
+    Returns
+    -------
+    The path to the DBMS binary to be used.
+
+    Warnings
+    --------
+    The "standard" build folder (called "build") is always checked first,
+    so if the "build" folder has a DBMS binary, then that binary is always used.
+
+    Raises
+    ------
+    RuntimeError if no DBMS binary is found.
+    """
     path_list = [
         ("standard", "build"),
         ("CLion", "cmake-build-{}".format(build_type)),
     ]
     for _, path in path_list:
         db_bin_path = os.path.join(DIR_REPO, path, "bin", DEFAULT_DB_BIN)
-        LOG.debug(f'Tring to find build path in {db_bin_path}')
+        LOG.debug(f'Locating DBMS binary in: {db_bin_path}')
         if os.path.exists(db_bin_path):
             return db_bin_path
 
-    raise RuntimeError(f'No DB binary found in {path_list}')
+    raise RuntimeError(f'No DBMS binary found in: {path_list}')
 
 
 def generate_server_args_str(server_args):
