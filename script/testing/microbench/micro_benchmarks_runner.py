@@ -3,9 +3,9 @@ import os
 import shutil
 import subprocess
 
-from microbench.constants import LOCAL_REPO_DIR
-from microbench.google_benchmark.gbench2junit import GBenchToJUnit
-from util.constants import LOG
+from .constants import LOCAL_REPO_DIR
+from .google_benchmark.gbench2junit import GBenchToJUnit
+from ..util.constants import LOG
 
 
 class MicroBenchmarksRunner(object):
@@ -143,7 +143,7 @@ def generate_numa_command():
     """ Return the command line string to execute numactl """
     # use all the cpus from the highest numbered numa node
     nodes = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
-    if not nodes:
+    if not nodes or int(nodes) == 1:
         return ""
     highest_cpu_node = int(nodes) - 1
     if highest_cpu_node > 0:

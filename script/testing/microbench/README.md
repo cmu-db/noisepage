@@ -14,7 +14,7 @@ in TimescaleDB. The results will be visualized at [stats.noise.page](https://sta
 ## Requirements
 
 This script assumes that you have numactl package installed. If you are running the script locally you do not need to
- install `numctl` but you will need to comment out a line in `MicrobenchmarksRunner._build_benchmark_cmd()`. 
+ install `numactl` but you will need to comment out a line in `MicrobenchmarksRunner._build_benchmark_cmd()`. 
 
 ```
 sudo apt install numactl
