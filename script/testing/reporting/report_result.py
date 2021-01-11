@@ -1,11 +1,13 @@
-import requests
 from datetime import datetime
 
-from .parsers.parse_data import parse_oltpbench_data, parse_microbenchmark_data, parse_standard_metadata
-from .parsers.microbenchmark.config_parser import parse_parameters, parse_wal_device
+import requests
+
+from ..util.constants import LOG, PERFORMANCE_STORAGE_SERVICE_API
+from .parsers.microbenchmark.config_parser import (parse_parameters,
+                                                   parse_wal_device)
+from .parsers.parse_data import (parse_microbenchmark_data,
+                                 parse_oltpbench_data, parse_standard_metadata)
 from .utils import add_mem_metrics
-from ..util.constants import PERFORMANCE_STORAGE_SERVICE_API
-from ..util.constants import LOG
 
 
 def report_oltpbench_result(env, server_data, results_dir, username, password, mem_metrics, query_mode='simple'):

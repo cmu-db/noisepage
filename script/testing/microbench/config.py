@@ -2,9 +2,10 @@ import os
 import sys
 
 from microbench.benchmarks import BENCHMARKS_TO_RUN
+from microbench.constants import (BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH,
+                                  BENCHMARK_THREADS, JENKINS_REF_PROJECT,
+                                  LAX_TOLERANCE, LOCAL_REPO_DIR, MIN_TIME)
 from util.constants import LOG
-from microbench.constants import (LAX_TOLERANCE, MIN_TIME, BENCHMARK_THREADS,
-                                  BENCHMARK_PATH, BENCHMARK_LOGFILE_PATH, LOCAL_REPO_DIR, JENKINS_REF_PROJECT)
 
 
 class Config(object):

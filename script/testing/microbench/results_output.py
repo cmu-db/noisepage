@@ -1,7 +1,6 @@
-from prettytable import PrettyTable
-
-from reporting.report_result import report_microbenchmark_result
 from microbench.google_benchmark.gbench_run_result import GBenchRunResult
+from prettytable import PrettyTable
+from reporting.report_result import report_microbenchmark_result
 from util.constants import LOG
 
 FIELD_NAMES = ['status', 'iterations', 'throughput', 'ref_throughput', 'tolerance',

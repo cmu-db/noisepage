@@ -23,6 +23,9 @@ class MemoryOnStartCollector(BaseArtifactStatsCollector):
         self.db_instance.run_db()
 
     def run_collector(self):
+        """
+        Measure the memory consumption of the DBMS process.
+        """
         process = psutil.Process(self.db_instance.db_process.pid)
         memory_data = process.memory_info()
         self.metrics['rss_on_start'] = memory_data.rss

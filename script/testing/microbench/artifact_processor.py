@@ -1,11 +1,12 @@
 import os
 from glob import glob
 
-from microbench.google_benchmark.gbench_run_result import GBenchRunResult
-from microbench.google_benchmark.gbench_historical_results import GBenchHistoricalResults
-from microbench.jenkins.jenkins import Jenkins
-from microbench.constants import LOCAL_REPO_DIR, JENKINS_URL
 from microbench.benchmarks import BENCHMARKS_TO_RUN
+from microbench.constants import JENKINS_URL, LOCAL_REPO_DIR
+from microbench.google_benchmark.gbench_historical_results import \
+    GBenchHistoricalResults
+from microbench.google_benchmark.gbench_run_result import GBenchRunResult
+from microbench.jenkins.jenkins import Jenkins
 from util.constants import LOG
 
 

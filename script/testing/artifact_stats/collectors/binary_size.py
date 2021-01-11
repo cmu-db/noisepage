@@ -15,7 +15,9 @@ class BinarySizeCollector(BaseArtifactStatsCollector):
     """
 
     def run_collector(self):
-        """ Measure the size of the NoisePage DBMS release binary. """
+        """
+        Measure the size of the NoisePage DBMS release binary.
+        """
         binary_path = get_build_path(build_type='release')
         self.metrics['binary_size'] = os.path.getsize(binary_path)
         return 0

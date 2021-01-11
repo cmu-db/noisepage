@@ -16,7 +16,9 @@ class CompileTimeCollector(BaseArtifactStatsCollector):
     compile_time_file_path = '/tmp/noisepage-compiletime.txt'
 
     def run_collector(self):
-        """ Read the file with compilation times, which is assumed to exist. """
+        """
+        Read the file with compilation times, which is assumed to exist.
+        """
         if not os.path.exists(self.compile_time_file_path):
             raise FileNotFoundError(f'{self.compile_time_file_path} not found.')
         with open(self.compile_time_file_path, 'r') as compile_time_file:

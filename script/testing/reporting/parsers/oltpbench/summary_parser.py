@@ -1,8 +1,8 @@
 import json
 from time import time
 
+from ...constants import LATENCY_ATTRIBUTE_MAPPING, UNKNOWN_RESULT
 from ...utils import get_value_by_pattern
-from ...constants import UNKNOWN_RESULT, LATENCY_ATTRIBUTE_MAPPING
 
 
 def parse_summary_file(path):
