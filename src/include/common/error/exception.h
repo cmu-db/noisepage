@@ -231,7 +231,7 @@ class ParserException : public Exception {
   common::ErrorCode GetErrorCode() const { return code_; }
 
   /**
-   * @param set error code of exception
+   * @param code set error code of exception
    */
   void SetErrorCode(common::ErrorCode code) { code_ = code; }
 };
