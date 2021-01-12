@@ -231,32 +231,69 @@ SELECT * from insert12
 statement ok
 DROP TABLE insert12
 
+# Test inserts that are: out of order, missing values, multiple values, multiple types. Issue #1408
+statement ok
+CREATE TABLE insert13 (c1 integer, c2 double)
+
+statement ok
+INSERT INTO insert13 (c2, c1) VALUES (2.0, 1), (4.0, 2), (8.0, 3)
+
+query IR rowsort
+SELECT * FROM insert13
+----
+1
+2.0
+2
+4.0
+3
+8.0
+
+statement ok
+INSERT INTO insert13 (c2) VALUES (16.0),(32.0),(64.0)
+
+query R rowsort
+SELECT c2 FROM insert13 WHERE c1 IS NULL
+----
+16.0
+32.0
+64.0
+
+query R rowsort
+SELECT c2 FROM insert13 WHERE c1 IS NOT NULL
+----
+2.0
+4.0
+8.0
+
+statement ok
+DROP TABLE insert13
+
 # Test inserting varchar to fixed length cols
 # #1380 fixed
 statement ok
-CREATE TABLE insert13 (c1 varchar(5))
+CREATE TABLE insert14 (c1 varchar(5))
 
 statement ok
-INSERT INTO insert13 (c1) VALUES ('abc')
+INSERT INTO insert14 (c1) VALUES ('abc')
 
 statement ok
-INSERT INTO insert13 (c1) VALUES ('abc  ')
+INSERT INTO insert14 (c1) VALUES ('abc  ')
 
 statement ok
-INSERT INTO insert13 (c1) VALUES ('abc   ')
+INSERT INTO insert14 (c1) VALUES ('abc   ')
 
 statement ok
-INSERT INTO insert13 (c1) VALUES ('abc       ')
+INSERT INTO insert14 (c1) VALUES ('abc       ')
 
 #im not sure how to check for an error here
 #there is a binder test and i have checked manually
 #statement err
-#INSERT INTO insert13 (c1) VALUES ('abcdefg')
+#INSERT INTO insert14 (c1) VALUES ('abcdefg')
 
 query I nosort
-SELECT * from insert13
+SELECT * from insert14
 ----
 4 values hashing to 50884bef6a52aaac3e6ac59d164acdcc
 
 statement ok
-DROP TABLE insert13
+DROP TABLE insert14

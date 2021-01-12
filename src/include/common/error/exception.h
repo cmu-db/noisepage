@@ -31,6 +31,7 @@ namespace noisepage {
 #define EXECUTION_EXCEPTION(msg, code) ExecutionException(msg, __FILE__, __LINE__, (code))
 #define BINDER_EXCEPTION(msg, code) BinderException(msg, __FILE__, __LINE__, (code))
 #define SETTINGS_EXCEPTION(msg, code) SettingsException(msg, __FILE__, __LINE__, (code))
+#define PILOT_EXCEPTION(msg, code) PilotException(msg, __FILE__, __LINE__, (code))
 
 /**
  * Exception types
@@ -42,6 +43,7 @@ enum class ExceptionType : uint8_t {
   CATALOG,
   CONVERSION,
   MESSENGER,
+  PILOT,
   NETWORK,
   PARSER,
   SETTINGS,
@@ -100,6 +102,8 @@ class Exception : public std::runtime_error {
         return "Optimizer";
       case ExceptionType::EXECUTION:
         return "Execution";
+      case ExceptionType::PILOT:
+        return "Pilot";
       default:
         return "Unknown exception type";
     }
@@ -168,6 +172,7 @@ DEFINE_EXCEPTION(AbortException, ExceptionType::EXECUTION);
 DEFINE_EXCEPTION_WITH_ERRCODE(ExecutionException, ExceptionType::EXECUTION);
 DEFINE_EXCEPTION_WITH_ERRCODE(BinderException, ExceptionType::BINDER);
 DEFINE_EXCEPTION_WITH_ERRCODE(SettingsException, ExceptionType::SETTINGS);
+DEFINE_EXCEPTION_WITH_ERRCODE(PilotException, ExceptionType::PILOT);
 
 /**
  * Specialized Parser exception since we want a cursor position to get more verbose output

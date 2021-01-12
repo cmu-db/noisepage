@@ -156,4 +156,15 @@ void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, 
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value, DBMain *const db_main,
+                                    common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool new_status = *static_cast<bool *>(new_value);
+  if (new_status)
+    db_main->GetPilotThread()->EnablePilot();
+  else
+    db_main->GetPilotThread()->DisablePilot();
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 }  // namespace noisepage::settings
