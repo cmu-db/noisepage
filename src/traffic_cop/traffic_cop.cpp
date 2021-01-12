@@ -309,12 +309,8 @@ std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop
     auto parse_result = parser::PostgresParser::BuildParseTree(query);
     result.emplace<std::unique_ptr<parser::ParseResult>>(std::move(parse_result));
   } catch (const ParserException &e) {
-    common::ErrorData error(common::ErrorSeverity::ERROR, std::string(e.what()),
-                            common::ErrorCode::ERRCODE_SYNTAX_ERROR);
-    error.AddField(common::ErrorField::POSITION, std::to_string(e.GetCursorPos()));
-    result.emplace<common::ErrorData>(std::move(error));
-  } catch (const BinderException &e) {
-    common::ErrorData error(common::ErrorSeverity::ERROR, std::string(e.what()), e.code_);
+    common::ErrorData error(common::ErrorSeverity::ERROR, std::string(e.what()), e.GetErrorCode());
+    if (e.GetCursorPos() >= 0) error.AddField(common::ErrorField::POSITION, std::to_string(e.GetCursorPos()));
     result.emplace<common::ErrorData>(std::move(error));
   }
   return result;

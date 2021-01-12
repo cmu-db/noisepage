@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "common/error/error_code.h"
+
 namespace noisepage::common {
 enum class ErrorCode : uint16_t;
 }  // namespace noisepage::common
@@ -171,7 +173,8 @@ DEFINE_EXCEPTION_WITH_ERRCODE(SettingsException, ExceptionType::SETTINGS);
  * Specialized Parser exception since we want a cursor position to get more verbose output
  */
 class ParserException : public Exception {
-  const uint32_t cursorpos_ = 0;
+  const int32_t cursorpos_ = -1;
+  common::ErrorCode code_ = common::ErrorCode::ERRCODE_SYNTAX_ERROR;
 
  public:
   ParserException() = delete;
@@ -216,6 +219,16 @@ class ParserException : public Exception {
    * @return from libpgquery
    */
   uint32_t GetCursorPos() const { return cursorpos_; }
+
+  /**
+   * @return error code for exception
+   */
+  common::ErrorCode GetErrorCode() const { return code_; }
+
+  /**
+   * @param set error code of exception
+   */
+  void SetErrorCode(common::ErrorCode code) { code_ = code; }
 };
 
 }  // namespace noisepage

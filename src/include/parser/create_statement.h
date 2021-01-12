@@ -96,9 +96,10 @@ struct ColumnDefinition {
         check_expr_(check_expr),
         type_modifier_(type_modifier) {
     if ((type_ == DataType::VARCHAR || type_ == DataType::VARBINARY) && type_modifier_ == 0) {
-      throw BINDER_EXCEPTION(
-          fmt::format("length for type {} must be at least 1", type_ == DataType::VARCHAR ? "varchar" : "varbinary"),
-          common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+      auto error = PARSER_EXCEPTION(
+          fmt::format("length for type {} must be at least 1", type_ == DataType::VARCHAR ? "varchar" : "varbinary"));
+      error.SetErrorCode(common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+      throw error;
     }
   }
 
