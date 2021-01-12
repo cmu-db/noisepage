@@ -238,6 +238,7 @@ def kill_pids_on_port(port, logger=None):
         try:
             pid = int(pid_str.strip())
             cmd = "kill -9 {}".format(pid)
+            print_or_log(f"Running: {cmd}", logger)
             rc, _, _ = run_command(cmd, printable=False)
             if rc != constants.ErrorCode.SUCCESS:
                 raise RuntimeError(f"Error in killing PID={pid}, [RC={rc}]")
