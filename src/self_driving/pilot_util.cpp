@@ -100,6 +100,7 @@ std::vector<std::unique_ptr<planner::AbstractPlanNode>> PilotUtil::GetQueryPlans
 uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot,
                                 common::ManagedPointer<WorkloadForecast> forecast,
                                 uint64_t start_segment_index, uint64_t end_segment_index) {
+  // Compute cost as average latency of queries weighted by their num of exec
   std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
            std::vector<std::vector<std::vector<double>>>> pipeline_to_prediction;
   pilot->ExecuteForecast(&pipeline_to_prediction, start_segment_index, end_segment_index);
@@ -107,6 +108,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot,
   std::vector<std::pair<execution::query_id_t, double>> query_cost;
   execution::query_id_t prev_qid = pipeline_to_prediction.begin()->first.first;
   query_cost.emplace_back(prev_qid, 0);
+
   for (auto ppl_to_pred : pipeline_to_prediction) {
     auto ppl_sum = 0;
     for (auto ppl_res : ppl_to_pred.second) {
@@ -123,7 +125,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot,
       prev_qid = ppl_to_pred.first.first;
     }
   }
-  uint64_t total_cost = 0, num_queries = 0;
+  uint128_t total_cost = 0, num_queries = 0;
   for (auto qcost : query_cost) {
     for (auto i = start_segment_index; i <= end_segment_index; i++) {
       total_cost += forecast->forecast_segments_[i].id_to_num_exec_[qcost.first] * qcost.second;

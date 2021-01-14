@@ -12,17 +12,18 @@
 
 namespace noisepage::selfdriving::pilot {
 
-/**
- *
- */
-TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t cost)
-  : is_leaf_{true}, number_of_visits_{1}, parent_(parent), current_action_(current_action), cost_(cost) {
+TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t current_segment_cost,
+                   uint64_t later_segments_cost)
+  : is_leaf_{true}, number_of_visits_{1}, parent_(parent), current_action_(current_action) {
   if (parent == nullptr) {
     depth_ = 0;
+    ancestor_cost_ = current_segment_cost;
   } else {
     depth_ = parent->depth_ + 1;
     parent->is_leaf_ = false;
+    ancestor_cost_ = current_segment_cost + parent->ancestor_cost_;
   }
+  cost_ = ancestor_cost_ + later_segments_cost;
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestChild() {
@@ -65,6 +66,7 @@ common::ManagedPointer<TreeNode> TreeNode::SampleChild() {
     }
   }
 
+  // break tie by random sampling
   std::sample(selected_children.begin(), selected_children.end(), std::back_inserter(out),
               1, std::mt19937{std::random_device{}()});
   return out[0];
@@ -82,8 +84,13 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     // expand each action not yet applied
     PilotUtil::ApplyAction(pilot, db_oids[depth_], action_map.at(action_id)->GetSQLCommand());
 
-    uint64_t child_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, end_segment_index);
-    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, child_cost));
+    uint64_t child_segment_cost =
+        PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
+    uint64_t later_segments_cost =
+        PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
+
+    children_.push_back(std::make_unique<TreeNode>(
+        common::ManagedPointer(this), action_id, child_segment_cost, later_segments_cost));
 
     // apply one reverse action to undo the above
     auto rev_actions = action_map.at(action_id)->GetReverseActions();

@@ -13,36 +13,39 @@ namespace noisepage::selfdriving::pilot {
 MonteCarloSearchTree::MonteCarloSearchTree(
     common::ManagedPointer<Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
     const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans, uint64_t action_planning_horizon,
-    uint64_t simulation_number, uint64_t start_segment_index)
+    uint64_t start_segment_index)
   : pilot_(pilot), forecast_(forecast), start_segment_index_(start_segment_index),
-      action_planning_horizon_(action_planning_horizon), simulation_number_(simulation_number)
-{
+      action_planning_horizon_(action_planning_horizon) {
   // populate action_map_, candidate_actions_
   IndexActionGenerator().GenerateActions(plans, pilot->settings_manager_, &action_map_, &candidate_actions_);
   ChangeKnobActionGenerator().GenerateActions(plans, pilot->settings_manager_, &action_map_, &candidate_actions_);
   // create root_
-  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0);
+  auto later_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index,
+                                          start_segment_index + action_planning_horizon - 1);
+  // root correspond to no action applied to any segment
+  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, later_cost);
 
-  //preprocess db_oids, get all db_oids starting with the current segment until the end of planning horizon
+  // preprocess db_oids, get all db_oids starting with the current segment until the end of planning horizon
   std::vector<uint64_t> curr_oids;
-  db_oids_.reserve(action_planning_horizon_);
   for (auto idx = action_planning_horizon_ - 1; idx >= 0; idx--) {
     for (auto oid : pilot->forecast_->forecast_segments_[start_segment_index + idx].GetDBOids()) {
       if (std::find(curr_oids.begin(), curr_oids.end(), oid) == curr_oids.end())
         curr_oids.push_back(oid);
     }
-    db_oids_[idx] = curr_oids;
+    db_oids_.push_back(curr_oids);
   }
+  std::reverse(db_oids_.begin(), db_oids_.end());
 }
 
-const std::string MonteCarloSearchTree::BestAction() {
-  for (auto i = 0; i < simulation_number_; i++) {
+const std::string MonteCarloSearchTree::BestAction(uint64_t simulation_number) {
+  for (auto i = 0; i < simulation_number; i++) {
     std::unordered_set<action_id_t> candidate_actions;
     for (auto action_id : candidate_actions_)
       candidate_actions.insert(action_id);
 
     auto vertex = Selection(&candidate_actions);
-    vertex->ChildrenRollout(pilot_, forecast_, start_segment_index_, start_segment_index_ + vertex->GetDepth(),
+    vertex->ChildrenRollout(pilot_, forecast_, start_segment_index_ + vertex->GetDepth(),
+                            start_segment_index_ + action_planning_horizon_ - 1,
                             db_oids_, action_map_, candidate_actions);
     BackPropogate(vertex);
   }

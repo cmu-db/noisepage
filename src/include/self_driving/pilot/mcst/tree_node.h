@@ -25,9 +25,11 @@ class TreeNode {
    * Constructor for tree node
    * @param parent pointer to parent
    * @param current_action action that leads its parent to the current node, root has NULL action
-   * @param cost cost of the node when it's first created (as a leaf)
+   * @param current_segment_cost cost of executing current segment with actions applied on path from root to current node
+   * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    */
-  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t cost);
+  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t current_segment_cost,
+           uint64_t later_segments_cost);
 
   /**
    * Get action that leads its parent to the current node, root has NULL action
@@ -104,9 +106,9 @@ class TreeNode {
    * @param forecast pointer to forecasted workload
    * @param start_segment_index
    * @param end_segment_index
-   * @param db_oids
-   * @param action_map_
-   * @param candidate_actions_
+   * @param db_oids db_oids relevant to subtree rooted at current node
+   * @param action_map_ action map of the search tree
+   * @param candidate_actions_ candidate actions of the search tree
    */
   void ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                        common::ManagedPointer<WorkloadForecast> forecast,
@@ -124,6 +126,7 @@ class TreeNode {
   std::vector<std::unique_ptr<TreeNode>> children_;
   action_id_t current_action_{INT32_MAX};
   uint64_t cost_{UINT64_MAX};
+  uint64_t ancestor_cost_{UINT64_MAX}; // cost of executing segments with actions applied on path from root to current node
 
 };
 }

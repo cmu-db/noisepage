@@ -46,14 +46,15 @@ void Pilot::PerformPlanning() {
 }
 
 void Pilot::ActionSearch(std::vector<const std::string> *best_action_seq) {
-  for (auto i = 0; i + action_planning_horizon_ <= forecast_->GetNumberOfSegments(); i++) {
+  auto num_segs = forecast_->GetNumberOfSegments();
+  for (auto i = 0; i < num_segs; i++) {
     std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans =
         PilotUtil::GetQueryPlans(common::ManagedPointer(this), common::ManagedPointer(forecast_), i,
-                                 i + action_planning_horizon_ - 1);
+                                 std::min(i + action_planning_horizon_ - 1, num_segs - 1));
     auto mcst =
         pilot::MonteCarloSearchTree(common::ManagedPointer(this), common::ManagedPointer(forecast_), plans,
-                                    action_planning_horizon_, simulation_number_, i);
-    auto best_action = mcst.BestAction();
+                                    action_planning_horizon_, i);
+    auto best_action = mcst.BestAction(simulation_number_);
     best_action_seq->emplace_back(best_action);
 
     std::vector<uint64_t> curr_oids;
