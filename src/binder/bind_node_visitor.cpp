@@ -961,10 +961,10 @@ void BindNodeVisitor::UnifyOrderByExpression(
       auto column_value_expression = exprs[idx].CastManagedPointerTo<parser::ColumnValueExpression>();
       std::string column_name = column_value_expression->GetColumnName();
       std::string table_name = column_value_expression->GetTableName();
-      if (!column_name.empty()) {
+      if (table_name.empty() && !column_name.empty()) {
         for (auto select_expression : select_items) {
           auto abstract_select_expression = select_expression.CastManagedPointerTo<parser::AbstractExpression>();
-          if (table_name == "" && abstract_select_expression->GetExpressionName() == column_name) {
+          if (abstract_select_expression->GetExpressionName() == column_name) {
             exprs[idx] = select_expression;
             break;
           }
