@@ -117,6 +117,7 @@ class DBMain {
 
   /**
    * BlockStore and GarbageCollector
+   * Additionally, a shared empty buffer queue that people push to.
    */
   class StorageLayer {
    public:
@@ -129,8 +130,11 @@ class DBMain {
      */
     StorageLayer(const common::ManagedPointer<TransactionLayer> txn_layer, const uint64_t block_store_size_limit,
                  const uint64_t block_store_reuse_limit, const bool use_gc,
-                 const common::ManagedPointer<storage::LogManager> log_manager)
-        : deferred_action_manager_(txn_layer->GetDeferredActionManager()), log_manager_(log_manager) {
+                 const common::ManagedPointer<storage::LogManager> log_manager,
+                 std::unique_ptr<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
+        : empty_buffer_queue_(std::move(empty_buffer_queue)),
+          deferred_action_manager_(txn_layer->GetDeferredActionManager()),
+          log_manager_(log_manager) {
       if (use_gc)
         garbage_collector_ = std::make_unique<storage::GarbageCollector>(txn_layer->GetTimestampManager(),
                                                                          txn_layer->GetDeferredActionManager(),
@@ -162,10 +166,19 @@ class DBMain {
      */
     common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return common::ManagedPointer(block_store_); }
 
+    /**
+     * @return A pointer to the empty buffer queue that is shared by separate components of the system.
+     *         Currently, the buffers are shared by LogSerializerTask and ReplicationManager.
+     */
+    common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> GetEmptyBufferQueue() {
+      return common::ManagedPointer(empty_buffer_queue_);
+    }
+
    private:
     // Order currently does not matter in this layer
     std::unique_ptr<storage::BlockStore> block_store_;
     std::unique_ptr<storage::GarbageCollector> garbage_collector_;
+    std::unique_ptr<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 
     // External dependencies for this layer
     const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
@@ -365,10 +378,14 @@ class DBMain {
                                                            network_identity_);
       }
 
+      auto empty_buffer_queue = std::make_unique<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>>();
+
       if (use_replication_) {
         NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
+        NOISEPAGE_ASSERT(use_logging_, "Replication uses logging.");
         replication_manager = std::make_unique<replication::ReplicationManager>(
-            messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_);
+            messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
+            common::ManagedPointer(empty_buffer_queue));
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
@@ -376,8 +393,8 @@ class DBMain {
         log_manager = std::make_unique<storage::LogManager>(
             wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
             std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
-            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(replication_manager),
-            common::ManagedPointer(thread_registry));
+            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(empty_buffer_queue),
+            common::ManagedPointer(replication_manager), common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
 
@@ -386,7 +403,7 @@ class DBMain {
 
       auto storage_layer =
           std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_, block_store_reuse_,
-                                         use_gc_, common::ManagedPointer(log_manager));
+                                         use_gc_, common::ManagedPointer(log_manager), std::move(empty_buffer_queue));
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
@@ -451,6 +468,8 @@ class DBMain {
         model_server_manager =
             std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
       }
+
+      replication_manager->EnableReplication();
 
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);

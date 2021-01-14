@@ -100,15 +100,12 @@ class ReplicationLogProvider final : public AbstractLogProvider {
   bool HasMoreRecords() override {
     std::unique_lock<std::mutex> lock(replication_latch_);
     // We wake up from CV if:
-    //  1. We time out
     //  2. Someone ends replication
     //  3. We have a current buffer and it has more bytes availible
     //  4. A new packet has arrived
     // TODO(WAN): asan on shutdown due to replication_active_, look at teardown order?
-    bool predicate = replication_cv_.wait_for(lock, replication_timeout_,
-                                              [&] { return !replication_active_ || NonBlockingHasMoreRecords(); });
-    // If we time out, predicate == false
-    return predicate && replication_active_;
+    replication_cv_.wait(lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords(); });
+    return replication_active_;
   }
 
   /**

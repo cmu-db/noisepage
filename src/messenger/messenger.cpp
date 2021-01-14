@@ -435,6 +435,10 @@ common::ManagedPointer<ConnectionRouter> Messenger::GetConnectionRouter(const st
   return common::ManagedPointer(routers_.at(router_id).get());
 }
 
+common::ManagedPointer<CallbackFn> Messenger::GetCallback(uint64_t callback_id) {
+  return common::ManagedPointer(&callbacks_.at(callback_id));
+}
+
 uint64_t Messenger::GetNextSendMessageId() {
   uint64_t send_msg_id = message_id_++;
   // Check for wraparound.

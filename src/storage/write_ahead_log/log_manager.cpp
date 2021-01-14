@@ -14,19 +14,19 @@ void LogManager::Start() {
     buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
   }
   for (size_t i = 0; i < num_buffers_; i++) {
-    empty_buffer_queue_.Enqueue(&buffers_[i]);
+    empty_buffer_queue_->Enqueue(&buffers_[i]);
   }
 
   run_log_manager_ = true;
 
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = thread_registry_->RegisterDedicatedThread<DiskLogConsumerTask>(
-      this /* requester */, persist_interval_, persist_threshold_, &buffers_, &empty_buffer_queue_,
+      this /* requester */, persist_interval_, persist_threshold_, &buffers_, empty_buffer_queue_.Get(),
       &filled_buffer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
-      this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &filled_buffer_queue_,
+      this /* requester */, serialization_interval_, buffer_pool_, empty_buffer_queue_, &filled_buffer_queue_,
       &disk_log_writer_task_->disk_log_writer_thread_cv_, replication_manager_);
 }
 
@@ -62,7 +62,7 @@ void LogManager::PersistAndStop() {
     buf.Close();
   }
   // Clear buffer queues
-  empty_buffer_queue_.Clear();
+  empty_buffer_queue_->Clear();
   filled_buffer_queue_.Clear();
   buffers_.clear();
 }

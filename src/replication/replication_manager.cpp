@@ -19,13 +19,15 @@ Replica::Replica(common::ManagedPointer<messenger::Messenger> messenger, const s
       connection_(messenger->MakeConnection(replica_info_)),
       last_heartbeat_(0) {}
 
-ReplicationManager::ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger,
-                                       const std::string &network_identity, uint16_t port,
-                                       const std::string &replication_hosts_path)
+ReplicationManager::ReplicationManager(
+    common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
+    const std::string &replication_hosts_path,
+    common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
     : messenger_(messenger),
       identity_(network_identity),
       port_(port),
-      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1), false)) {
+      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1), false)),
+      empty_buffer_queue_(empty_buffer_queue) {
   // TODO(WAN): provider_ arguments
   auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
   messenger_->ListenForConnection(listen_destination, network_identity,
@@ -90,31 +92,45 @@ void ReplicationManager::ReplicaConnect(const std::string &replica_name, const s
 
 void ReplicationManager::ReplicaSend(const std::string &replica_name, const ReplicationManager::MessageType type,
                                      const std::string &msg, bool block) {
-  REPLICATION_LOG_TRACE(
-      fmt::format("Send -> {} (type {} block {}): {}", replica_name, static_cast<uint8_t>(type), block, msg));
-  std::unique_lock<std::mutex> lock(mutex_);
+  if (!replication_enabled_) {
+    REPLICATION_LOG_WARN(fmt::format("Skipping send -> {} as replication is disabled."));
+    return;
+  }
+
+  REPLICATION_LOG_TRACE(fmt::format("Send -> {} (type {} block {}): msg size {}", replica_name,
+                                    static_cast<uint8_t>(type), block, msg.size()));
   bool completed = false;
   try {
     messenger_->SendMessage(
         GetReplicaConnection(replica_name), msg,
-        [this, &completed](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-          completed = true;
-          cvar_.notify_all();
+        [this, block, &completed](common::ManagedPointer<messenger::Messenger> messenger,
+                                  const messenger::ZmqMessage &msg) {
+          if (block) {
+            // If this isn't a blocking send, then completed will fall out of scope.
+            completed = true;
+            cvar_.notify_all();
+          }
         },
         static_cast<uint64_t>(type));
 
     if (block) {
+      std::unique_lock<std::mutex> lock(mutex_);
       // If the caller requested to block until the operation was completed, the thread waits.
       cvar_.wait(lock, [&completed] { return completed; });
+      lock.unlock();
     }
   } catch (const MessengerException &e) {
-    REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (type {} block {}): {}", replica_name,
-                                     static_cast<uint8_t>(type), block, msg));
+    REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (type {} block {}): msg size {}", replica_name,
+                                     static_cast<uint8_t>(type), block, msg.size()));
   }
-  lock.unlock();
 }
 
 void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
+  if (!replication_enabled_) {
+    REPLICATION_LOG_WARN(fmt::format("Skipping replicate buffer as replication is disabled."));
+    return;
+  }
+
   NOISEPAGE_ASSERT(buffer != nullptr,
                    "Don't try to replicate null buffers. That's pointless."
                    "You might plausibly want to track statistics at some point, but that should not happen here.");
@@ -129,11 +145,23 @@ void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
   for (const auto &replica : replicas_) {
     ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), false);
   }
+
+  if (buffer->MarkSerialized()) {
+    empty_buffer_queue_->Enqueue(buffer);
+  }
 }
 
 void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
                                    const messenger::ZmqMessage &msg) {
   switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
+    case MessageType::ACK: {
+      nlohmann::json json = nlohmann::json::parse(msg.GetMessage());
+      REPLICATION_LOG_TRACE(fmt::format("ACK: {}", json.dump()));
+      auto callback_id = json.at("callback_id").get<uint64_t>();
+      auto callback = messenger->GetCallback(callback_id);
+      (*callback)(messenger, msg);
+      break;
+    }
     case MessageType::HEARTBEAT:
       REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
       break;
@@ -150,7 +178,12 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
       //  a replica that just came up right? If buffering is not necessary, move this up so that replying is faster.
       //  We want to reply as quickly as possible -- the sender may be waiting for our confirmation.
       // Acknowledge receipt of the buffer to the sender.
-      ReplicaSend(std::string(msg.GetRoutingId()), MessageType::ACK, "", false);
+      // TODO(WAN): Add a size and checksum to message.
+      {
+        common::json j;
+        j["callback_id"] = msg.GetSourceCallbackId();
+        ReplicaSend(std::string(msg.GetRoutingId()), MessageType::ACK, j.dump(), false);
+      }
       break;
     }
     default:

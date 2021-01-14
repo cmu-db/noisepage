@@ -128,6 +128,10 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
  */
 BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
   if (filled_buffer_ == nullptr) {
+    bool x = empty_buffer_queue_->Empty();
+    (void)x;
+    int y = empty_buffer_queue_->UnsafeSize();
+    (void)y;
     empty_buffer_queue_->Dequeue(&filled_buffer_);
   }
   return filled_buffer_;

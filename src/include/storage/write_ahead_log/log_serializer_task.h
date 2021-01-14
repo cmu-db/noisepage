@@ -34,12 +34,12 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param filled_buffer_queue pointer to queue to push filled buffers to
    * @param disk_log_writer_thread_cv pointer to condition variable to notify consumer when a new buffer has handed over
    */
-  explicit LogSerializerTask(const std::chrono::microseconds serialization_interval,
-                             RecordBufferSegmentPool *buffer_pool,
-                             common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
-                             common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
-                             std::condition_variable *disk_log_writer_thread_cv,
-                             common::ManagedPointer<replication::ReplicationManager> replication_manager)
+  explicit LogSerializerTask(
+      const std::chrono::microseconds serialization_interval, RecordBufferSegmentPool *buffer_pool,
+      common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue,
+      common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
+      std::condition_variable *disk_log_writer_thread_cv,
+      common::ManagedPointer<replication::ReplicationManager> replication_manager)
       : run_task_(false),
         serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
@@ -121,7 +121,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> serialized_txns_;
 
   // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
-  common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
+  common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
   // The queue containing filled buffers. Task should push filled serialized buffers into this queue
   common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
 

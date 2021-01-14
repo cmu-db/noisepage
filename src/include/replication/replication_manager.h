@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "common/container/concurrent_blocking_queue.h"
 #include "common/managed_pointer.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
@@ -63,8 +64,10 @@ class ReplicationManager {
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
-  ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity,
-                     uint16_t port, const std::string &replication_hosts_path);
+  ReplicationManager(
+      common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
+      const std::string &replication_hosts_path,
+      common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
 
   ~ReplicationManager();
 
@@ -93,6 +96,9 @@ class ReplicationManager {
     return common::ManagedPointer(provider_);
   }
 
+  void EnableReplication() { replication_enabled_ = true; }
+  void DisableReplication() { replication_enabled_ = false; }
+
  private:
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
   void ReplicaHeartbeat(const std::string &replica_name);
@@ -111,6 +117,10 @@ class ReplicationManager {
   std::unique_ptr<storage::ReplicationLogProvider> provider_;
   std::mutex mutex_;
   std::condition_variable cvar_;
+
+  bool replication_enabled_ = false;
+
+  common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 };
 
 }  // namespace noisepage::replication

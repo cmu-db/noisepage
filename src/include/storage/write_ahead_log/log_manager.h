@@ -62,6 +62,7 @@ class LogManager : public common::DedicatedThreadOwner {
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
+             common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue,
              common::ManagedPointer<replication::ReplicationManager> replication_manager,
              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
@@ -69,6 +70,7 @@ class LogManager : public common::DedicatedThreadOwner {
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool.Get()),
+        empty_buffer_queue_(empty_buffer_queue),
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
         persist_threshold_(persist_threshold),
@@ -125,7 +127,7 @@ class LogManager : public common::DedicatedThreadOwner {
       // Add in new buffers
       for (size_t i = 0; i < new_num_buffers - num_buffers_; i++) {
         buffers_.emplace_back(log_file_path_.c_str());
-        empty_buffer_queue_.Enqueue(&buffers_[num_buffers_ + i]);
+        empty_buffer_queue_->Enqueue(&buffers_[num_buffers_ + i]);
       }
       num_buffers_ = new_num_buffers;
       return true;
@@ -151,7 +153,7 @@ class LogManager : public common::DedicatedThreadOwner {
   std::vector<BufferedLogWriter> buffers_;
   // The queue containing empty buffers which the serializer thread will use. We use a blocking queue because the
   // serializer thread should block when requesting a new buffer until it receives an empty buffer
-  common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
+  common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
   common::ConcurrentQueue<SerializedLogs> filled_buffer_queue_;
 
