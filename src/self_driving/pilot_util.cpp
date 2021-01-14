@@ -34,11 +34,11 @@ void PilotUtil::ApplyAction(
   exec_settings.UpdateFromSettingsManager(pilot->settings_manager_);
   execution::exec::NoOpResultConsumer consumer;
   execution::exec::OutputCallback callback = consumer;
-  std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
   catalog::db_oid_t db_oid;
   for (auto oid : db_oids) {
+    std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
     txn = txn_manager->BeginTransaction();
     db_oid = static_cast<catalog::db_oid_t>(oid);
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
@@ -208,6 +208,17 @@ void PilotUtil::InferenceWithFeatures(
   }
 
   // TODO: populate pipeline_to_predictions using pipeline_to_ou_positions and inference_result
+  std::vector<std::vector<double>> ppl_res;
+  for (auto ppl_to_ou : pipeline_to_ou_position) {
+    for (auto ou_it : std::get<2>(ppl_to_ou)) {
+      ppl_res.push_back(inference_result.at(ou_it.first)[ou_it.second]);
+    }
+    auto ppl_key = std::make_pair(std::get<0>(ppl_to_ou), std::get<1>(ppl_to_ou));
+    if (pipeline_to_prediction->find(ppl_key) == pipeline_to_prediction->end()) {
+      pipeline_to_prediction->emplace(ppl_key, std::vector<std::vector<std::vector<double>>>());
+    }
+    pipeline_to_prediction->at(ppl_key).emplace_back(std::move(ppl_res));
+  }
 }
 
 void PilotUtil::GroupFeaturesByOU(
