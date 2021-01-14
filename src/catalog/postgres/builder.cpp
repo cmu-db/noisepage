@@ -83,7 +83,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->pg_constraint_.constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->pg_language_.languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->pg_proc_.procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
-  dbc->pg_core_.statistics_ = new storage::SqlTable(block_store, Builder::GetStatisticTableSchema());
+  dbc->pg_stat_.statistics_ = new storage::SqlTable(block_store, Builder::GetStatisticTableSchema());
 
   // Indexes on pg_namespace
   dbc->pg_core_.namespaces_oid_index_ =
@@ -146,7 +146,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PgProc::PRO_NAME_INDEX_OID);
 
   // Indexes on pg_statistic
-  dbc->pg_core_.statistics_oid_index_ =
+  dbc->pg_stat_.statistics_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetStatisticOidIndexSchema(oid), PgStatistic::STATISTIC_OID_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);

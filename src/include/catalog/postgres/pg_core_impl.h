@@ -326,32 +326,6 @@ class PgCoreImpl {
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 
-  /**
-   * Add entry to pg_statistic
-   *
-   * Currently, this is called inside CreateTableEntry so that each row in pg_attribute (corresponding to a column
-   * of a table) has a corresponding row in pg_statistic.
-   *
-   * @tparam Column type of column (IndexSchema::Column or Schema::Column)
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @param col column to insert
-   * @param default_val default value
-   * @return whether insertion is successful
-   */
-  template <typename Column, typename ClassOid, typename ColOid>
-  void CreateColumnStatistic(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid,
-                             ColOid col_oid, const Column &col);
-
-  /**
-   * Delete entries from pg_statistic
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @return whether deletion was successful
-   */
-  template <typename Column, typename ClassOid>
-  bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
-
   const db_oid_t db_oid_;
 
   /**
@@ -421,21 +395,6 @@ class PgCoreImpl {
   storage::ProjectionMap get_columns_prm_;
   storage::ProjectedRowInitializer delete_columns_pri_;
   storage::ProjectionMap delete_columns_prm_;
-  ///@}
-
-  /**
-   * The table and indexes that define pg_statistics.
-   * TODO: update comments
-   * Created by: Builder::CreateDatabaseCatalog.
-   * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
-   */
-  ///@{
-  common::ManagedPointer<storage::SqlTable> statistics_;
-  common::ManagedPointer<storage::index::Index> statistics_oid_index_;  // indexed on class OID and column OID
-  storage::ProjectedRowInitializer pg_statistic_all_cols_pri_;
-  storage::ProjectionMap pg_statistic_all_cols_prm_;
-  storage::ProjectedRowInitializer delete_statistics_pri_;
-  storage::ProjectionMap delete_statistics_prm_;
   ///@}
 };
 

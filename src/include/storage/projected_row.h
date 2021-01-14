@@ -16,6 +16,7 @@ class PgCoreImpl;
 class PgLanguageImpl;
 class PgProcImpl;
 class PgTypeImpl;
+class PgStatisticImpl;
 }  // namespace postgres
 }  // namespace noisepage::catalog
 

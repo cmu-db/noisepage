@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "catalog/catalog_column_def.h"
 #include "catalog/catalog_defs.h"
 
@@ -9,7 +11,7 @@ class RecoveryManager;
 
 namespace noisepage::catalog::postgres {
 class Builder;
-class PgCoreImpl;
+class PgStatisticImpl;
 
 class PgStatistic {
  public:
@@ -18,13 +20,8 @@ class PgStatistic {
 
  private:
   friend class Builder;
-  friend class PgCoreImpl;
+  friend class PgStatisticImpl;
 
-  /*
-   * Column names of the form "STA[name]_COL_OID" are present in the PostgreSQL
-   * catalog specification and columns of the form "STA_[name]_COL_OID" are
-   * terrier-specific additions (generally pointers to internal objects).
-   */
   static constexpr CatalogColumnDef<table_oid_t, uint32_t> STARELID_COL_OID{col_oid_t{1}};
   static constexpr CatalogColumnDef<col_oid_t , uint32_t> STAATTNUM_COL_OID{col_oid_t{2}};
   static constexpr CatalogColumnDef<uint32_t, uint32_t> STANULLROWS_COL_OID{col_oid_t{3}};
