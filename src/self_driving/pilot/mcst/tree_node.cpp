@@ -12,28 +12,25 @@
 
 namespace noisepage::selfdriving::pilot {
 
-TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t current_segment_cost,
-                   uint64_t later_segments_cost)
-  : is_leaf_{true}, number_of_visits_{1}, parent_(parent), current_action_(current_action) {
-  if (parent == nullptr) {
-    depth_ = 0;
-    ancestor_cost_ = current_segment_cost;
-  } else {
-    depth_ = parent->depth_ + 1;
+TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action,
+                   const uint64_t current_segment_cost, uint64_t later_segments_cost)
+  : is_leaf_{true}, depth_(parent == nullptr ? 0 : parent->depth_ + 1), current_action_(current_action),
+      ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
+      parent_(parent), number_of_visits_{1} {
+
+  if (parent != nullptr)
     parent->is_leaf_ = false;
-    ancestor_cost_ = current_segment_cost + parent->ancestor_cost_;
-  }
   cost_ = ancestor_cost_ + later_segments_cost;
 }
 
-common::ManagedPointer<TreeNode> TreeNode::BestChild() {
+action_id_t TreeNode::BestSubtree(common::ManagedPointer<TreeNode> root) {
   // Get child of least cost
-  NOISEPAGE_ASSERT(children_.size() > 0, "calling best child method on non-expanded nodes");
-  auto best_child = common::ManagedPointer(children_[0]);
-  for (auto &child : children_)
+  NOISEPAGE_ASSERT(root->children_.size() > 0, "calling best child method on non-expanded nodes");
+  auto best_child = common::ManagedPointer(root->children_[0]);
+  for (auto &child : root->children_)
     if (child->cost_ < best_child->cost_)
       best_child = common::ManagedPointer(child);
-  return best_child;
+  return best_child->current_action_;
 }
 
 void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t new_cost) {
@@ -72,13 +69,34 @@ common::ManagedPointer<TreeNode> TreeNode::SampleChild() {
   return out[0];
 }
 
+common::ManagedPointer<TreeNode> TreeNode::Selection(
+    common::ManagedPointer<TreeNode> root,
+    common::ManagedPointer<Pilot> pilot,
+    const std::vector<std::vector<uint64_t>> &db_oids,
+    const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
+    std::unordered_set<action_id_t> *candidate_actions) {
+  common::ManagedPointer<TreeNode> curr = root;
+  while(!curr->is_leaf_) {
+    curr = curr->SampleChild();
+    candidate_actions->erase(curr->current_action_);
+    for (auto rev_action : action_map.at(curr->current_action_)->GetReverseActions()) {
+      candidate_actions->insert(rev_action);
+    }
+    PilotUtil::ApplyAction(pilot, db_oids[curr->depth_],
+                           action_map.at(curr->current_action_)->GetSQLCommand());
+  }
+  return curr;
+}
+
 void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                               uint64_t start_segment_index,
-                               uint64_t end_segment_index,
+                               uint64_t tree_start_segment_index,
+                               uint64_t tree_end_segment_index,
                                const std::vector<std::vector<uint64_t>> &db_oids,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                const std::unordered_set<action_id_t> &candidate_actions) {
+  auto start_segment_index = tree_start_segment_index + depth_;
+  auto end_segment_index = tree_end_segment_index;
 
   for (const auto &action_id : candidate_actions) {
     // expand each action not yet applied
@@ -95,6 +113,22 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     // apply one reverse action to undo the above
     auto rev_actions = action_map.at(action_id)->GetReverseActions();
     PilotUtil::ApplyAction(pilot, db_oids[depth_], action_map.at(rev_actions[0])->GetSQLCommand());
+  }
+}
+
+void TreeNode::BackPropogate(common::ManagedPointer<Pilot> pilot,
+                             const std::vector<std::vector<uint64_t>> &db_oids,
+                             const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map) {
+  auto curr = common::ManagedPointer(this);
+  auto leaf_cost = cost_;
+  auto new_cost = ComputeCostFromChildren();
+
+  auto num_expansion = children_.size();
+  while(curr != nullptr) {
+    auto rev_action = action_map.at(curr->current_action_)->GetReverseActions()[0];
+    PilotUtil::ApplyAction(pilot, db_oids[curr->depth_], action_map.at(rev_action)->GetSQLCommand());
+    curr->UpdateCostAndVisits(num_expansion, leaf_cost, new_cost);
+    curr = curr->parent_;
   }
 }
 

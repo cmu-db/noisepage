@@ -12,23 +12,22 @@ namespace noisepage::selfdriving::pilot {
 
 MonteCarloSearchTree::MonteCarloSearchTree(
     common::ManagedPointer<Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-    const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans, uint64_t action_planning_horizon,
-    uint64_t start_segment_index)
+    const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans, uint64_t start_segment_index,
+    uint64_t end_segment_index)
   : pilot_(pilot), forecast_(forecast), start_segment_index_(start_segment_index),
-      action_planning_horizon_(action_planning_horizon) {
+    end_segment_index_(end_segment_index) {
   // populate action_map_, candidate_actions_
   IndexActionGenerator().GenerateActions(plans, pilot->settings_manager_, &action_map_, &candidate_actions_);
   ChangeKnobActionGenerator().GenerateActions(plans, pilot->settings_manager_, &action_map_, &candidate_actions_);
   // create root_
-  auto later_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index,
-                                          start_segment_index + action_planning_horizon - 1);
+  auto later_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, end_segment_index);
   // root correspond to no action applied to any segment
   root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, later_cost);
 
   // preprocess db_oids, get all db_oids starting with the current segment until the end of planning horizon
   std::vector<uint64_t> curr_oids;
-  for (auto idx = action_planning_horizon_ - 1; idx >= 0; idx--) {
-    for (auto oid : pilot->forecast_->forecast_segments_[start_segment_index + idx].GetDBOids()) {
+  for (auto idx = end_segment_index_; idx >= start_segment_index_; idx--) {
+    for (auto oid : pilot->forecast_->forecast_segments_[idx].GetDBOids()) {
       if (std::find(curr_oids.begin(), curr_oids.end(), oid) == curr_oids.end())
         curr_oids.push_back(oid);
     }
@@ -43,45 +42,15 @@ const std::string MonteCarloSearchTree::BestAction(uint64_t simulation_number) {
     for (auto action_id : candidate_actions_)
       candidate_actions.insert(action_id);
 
-    auto vertex = Selection(&candidate_actions);
-    vertex->ChildrenRollout(pilot_, forecast_, start_segment_index_ + vertex->GetDepth(),
-                            start_segment_index_ + action_planning_horizon_ - 1,
-                            db_oids_, action_map_, candidate_actions);
-    BackPropogate(vertex);
+    auto vertex =
+        TreeNode::Selection(common::ManagedPointer(root_), pilot_, db_oids_, action_map_, &candidate_actions);
+    vertex->ChildrenRollout(pilot_, forecast_, start_segment_index_, end_segment_index_, db_oids_,
+                            action_map_, candidate_actions);
+    vertex->BackPropogate(pilot_, db_oids_, action_map_);
   }
   // return the best action at root
-  auto best_action = root_->BestChild()->GetCurrentAction();
-  return action_map_.at(best_action)->GetSQLCommand();
-}
-
-common::ManagedPointer<TreeNode> MonteCarloSearchTree::Selection(
-    std::unordered_set<action_id_t> *candidate_actions) {
-  common::ManagedPointer<TreeNode> curr = common::ManagedPointer(root_);
-  while(!curr->IsLeaf()) {
-    curr = curr->SampleChild();
-    candidate_actions->erase(curr->GetCurrentAction());
-    for (auto rev_action : action_map_.at(curr->GetCurrentAction())->GetReverseActions()) {
-      candidate_actions->insert(rev_action);
-    }
-    PilotUtil::ApplyAction(pilot_, db_oids_[curr->GetDepth()],
-                           action_map_.at(curr->GetCurrentAction())->GetSQLCommand());
-  }
-  return curr;
-}
-
-void MonteCarloSearchTree::BackPropogate(common::ManagedPointer<TreeNode> node) {
-  auto curr = node;
-  auto leaf_cost = node->GetCost();
-  auto new_cost = node->ComputeCostFromChildren();
-
-  auto num_expansion = node->GetNumberOfChildren();
-  while(curr != nullptr) {
-    auto rev_action = action_map_.at(curr->GetCurrentAction())->GetReverseActions()[0];
-    PilotUtil::ApplyAction(pilot_, db_oids_[curr->GetDepth()],
-                           action_map_.at(rev_action)->GetSQLCommand());
-    curr->UpdateCostAndVisits(num_expansion, leaf_cost, new_cost);
-    curr = curr->GetParent();
-  }
+  auto best_action_id = TreeNode::BestSubtree(common::ManagedPointer(root_));
+  return action_map_.at(best_action_id)->GetSQLCommand();
 }
 
 }  // namespace noisepage::selfdriving::pilot

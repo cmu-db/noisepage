@@ -29,7 +29,7 @@ class MonteCarloSearchTree {
   MonteCarloSearchTree(common::ManagedPointer<Pilot> pilot,
                        common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                        const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
-                       uint64_t action_planning_horizon, uint64_t start_segment_index);
+                       uint64_t start_segment_index, uint64_t end_segment_index);
 
   /**
    * Returns query string of the best action to take at the root of the current tree
@@ -38,28 +38,16 @@ class MonteCarloSearchTree {
    */
   const std::string BestAction(uint64_t simulation_number);
 
-  /**
-   * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
-   * also apply reverse actions
-   * @param node pointer to the tree node whose value is first updated in the backpropogation
-   */
-  void BackPropogate(common::ManagedPointer<TreeNode> node);
-
  private:
-  /**
-   * Recursively sample the vertex whose children will be assigned values through rollout.
-   * @return
-   */
-  common::ManagedPointer<TreeNode> Selection(std::unordered_set<action_id_t> *candidate_actions);
   common::ManagedPointer<Pilot> pilot_;
   common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
-  uint64_t start_segment_index_;
+  const uint64_t start_segment_index_;
+  const uint64_t end_segment_index_;
   std::unique_ptr<TreeNode> root_;
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
   // i-th entry stores the db_oids related to segments from first i+1 segment index
   std::vector<std::vector<uint64_t>> db_oids_;
-  uint64_t action_planning_horizon_;
 };
 }
 
