@@ -59,20 +59,37 @@ class PilotUtil {
                std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
 
   /**
-   *
-   * @param pilot
-   * @param db_oids
-   * @param sql_query
+   * Apply an action supplied through its query string to databases specified
+   * @param pointer to the pilot
+   * @param db_oids db_oids relevant to current action
+   * @param sql_query query of the action to be executed
    */
   static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::vector<uint64_t> &db_oids,
                           const std::string &sql_query);
 
-  static std::vector<std::unique_ptr<planner::AbstractPlanNode>> GetQueryPlans(
-      common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-      uint64_t start_segment_index, uint64_t end_segment_index);
+  /**
+   * Retrieve all query plans associated with queries in the interval of forecasted segments
+   * @param pilot pointer to the pilot
+   * @param forecast pointer to the forecast segments
+   * @param start_segment_index start index (inclusive)
+   * @param end_segment_index end index (inclusive)
+   * @return vector of query plans
+   */
+  static std::vector<std::unique_ptr<planner::AbstractPlanNode>> GetQueryPlans(common::ManagedPointer<Pilot> pilot,
+                                                                               common::ManagedPointer<WorkloadForecast> forecast,
+                                                                               uint64_t start_segment_index,
+                                                                               uint64_t end_segment_index);
 
+  /**
+   * Compute cost of executing queries in the segments between start and end index (both inclusive)
+   * @param pilot pointer to the pilot
+   * @param forecast pointer to the forecast segments
+   * @param start_segment_index start index (inclusive)
+   * @param end_segment_index end index (inclusive)
+   * @return cost
+   */
   static uint64_t ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                       uint64_t start_segment_index, uint64_t end_segment_index);
+                              uint64_t start_segment_index, uint64_t end_segment_index);
 
  private:
   /**

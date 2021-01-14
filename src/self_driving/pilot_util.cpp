@@ -207,7 +207,7 @@ void PilotUtil::InferenceWithFeatures(
     inference_result.emplace(ou_map_it.first, res.first);
   }
 
-  // TODO: populate pipeline_to_predictions using pipeline_to_ou_positions and inference_result
+  // populate pipeline_to_prediction using pipeline_to_ou_position and inference_result
   std::vector<std::vector<double>> ppl_res;
   for (auto ppl_to_ou : pipeline_to_ou_position) {
     for (auto ou_it : std::get<2>(ppl_to_ou)) {

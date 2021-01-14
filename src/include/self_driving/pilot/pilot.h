@@ -84,10 +84,18 @@ class Pilot {
         common::ManagedPointer<optimizer::StatsStorage> stats_storage,
         common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
 
+  /**
+   * Get model save path
+   * @return save path of the mini model
+   */
   const std::string &GetModelSavePath() {
     return model_save_path_;
   }
 
+  /**
+   * Get pointer to model server manager
+   * @return pointer to model server manager
+   */
   common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() {
     return model_server_manager_;
   }
@@ -99,10 +107,8 @@ class Pilot {
 
   /**
    * Search for best action sequence through Monte Carlo Tree Search.
-   *
    */
-   void ActionSearch(std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> *best_action_map,
-                     std::vector<pilot::action_id_t> *best_action_seq);
+   void ActionSearch(std::vector<const std::string> *best_action_seq);
 
  private:
   /**

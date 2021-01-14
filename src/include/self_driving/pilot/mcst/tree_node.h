@@ -21,19 +21,55 @@ class AbstractAction;
  */
 class TreeNode {
  public:
+  /**
+   * Constructor for tree node
+   * @param parent pointer to parent
+   * @param current_action action that leads its parent to the current node, root has NULL action
+   * @param cost cost of the node when it's first created (as a leaf)
+   */
   TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t cost);
 
+  /**
+   * Get action that leads its parent to the current node, root has NULL action
+   * @return current action
+   */
   action_id_t GetCurrentAction() { return current_action_; }
 
+  /**
+   * Get depth of the node (root has depth 0)
+   * @return node depth
+   */
   uint64_t GetDepth() { return depth_; }
 
+  /**
+   * Get pointer to parent node
+   * @return pointer to parent node
+   */
   common::ManagedPointer<TreeNode> GetParent() { return parent_; };
 
+  /**
+   * Return the number of children
+   * @return number of children
+   */
   uint64_t GetNumberOfChildren() { return children_.size(); }
+
+  /**
+   * Update the number of visits to the current node aka number of traversals in the tree
+   * containing the path to current node
+   * @param add_num number of visits to be added
+   */
   void UpdateVisits(uint64_t add_num) { number_of_visits_ += add_num; }
 
+  /**
+   * Returns if the node is expanded (has any child)
+   * @return is_leaf_
+   */
   bool IsLeaf() { return is_leaf_; }
 
+  /**
+   * Sample child based on cost and number of visits
+   * @return pointer to sampled child
+   */
   common::ManagedPointer<TreeNode> SampleChild();
 
   /**

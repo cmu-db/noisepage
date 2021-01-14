@@ -27,6 +27,11 @@ class WorkloadForecast {
    *
    */
   explicit WorkloadForecast(uint64_t forecast_interval);
+
+  /**
+   * Get number of forecasted segments
+   * @return number of forecasted segments
+   */
   uint64_t GetNumberOfSegments() { return num_forecast_segment_; };
 
  private:

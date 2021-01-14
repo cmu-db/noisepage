@@ -35,8 +35,7 @@ MonteCarloSearchTree::MonteCarloSearchTree(
   }
 }
 
-const std::string MonteCarloSearchTree::BestAction(std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> *best_action_map,
-                                                   std::vector<pilot::action_id_t> *best_action_seq) {
+const std::string MonteCarloSearchTree::BestAction() {
   for (auto i = 0; i < simulation_number_; i++) {
     std::unordered_set<action_id_t> candidate_actions;
     for (auto action_id : candidate_actions_)
@@ -49,8 +48,6 @@ const std::string MonteCarloSearchTree::BestAction(std::map<pilot::action_id_t, 
   }
   // return the best action at root
   auto best_action = root_->BestChild()->GetCurrentAction();
-  best_action_map->emplace(best_action, std::move(action_map_.at(best_action)));
-  best_action_seq->emplace_back(best_action);
   return action_map_.at(best_action)->GetSQLCommand();
 }
 

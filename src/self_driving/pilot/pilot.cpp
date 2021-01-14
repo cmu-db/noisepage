@@ -46,8 +46,7 @@ void Pilot::PerformPlanning() {
   metrics_thread_->ResumeMetrics();
 }
 
-void Pilot::ActionSearch(std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> *best_action_map,
-                         std::vector<pilot::action_id_t> *best_action_seq) {
+void Pilot::ActionSearch(std::vector<const std::string> *best_action_seq) {
   for (auto i = 0; i + action_planning_horizon_ <= forecast_->GetNumberOfSegments(); i++) {
     std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans =
         PilotUtil::GetQueryPlans(common::ManagedPointer(this), common::ManagedPointer(forecast_), i,
@@ -55,7 +54,8 @@ void Pilot::ActionSearch(std::map<pilot::action_id_t, std::unique_ptr<pilot::Abs
     auto mcst =
         pilot::MonteCarloSearchTree(common::ManagedPointer(this), common::ManagedPointer(forecast_), plans,
                                     action_planning_horizon_, simulation_number_, i);
-    auto best_action = mcst.BestAction(best_action_map, best_action_seq);
+    auto best_action = mcst.BestAction();
+    best_action_seq->emplace_back(best_action);
 
     std::vector<uint64_t> curr_oids;
     for (auto oid : forecast_->forecast_segments_[i].GetDBOids()) {

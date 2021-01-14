@@ -18,13 +18,31 @@ namespace pilot {
  */
 class MonteCarloSearchTree {
  public:
+  /**
+   * Constructor for the monte carlo search tree
+   * @param pilot pointer to pilot
+   * @param forecast pointer to workload forecast
+   * @param plans vector of query plans that the search tree is responsible for
+   * @param action_planning_horizon planning horizon (max depth of the tree, number of forecast segments to be considered)
+   * @param simulation_number number of simulations to be run on the tree
+   * @param start_segment_index the start segment index to be considered among the forecasted workloads
+   */
   MonteCarloSearchTree(common::ManagedPointer<Pilot> pilot,
                        common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                        const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
                        uint64_t action_planning_horizon,
                        uint64_t simulation_number, uint64_t start_segment_index);
-  const std::string BestAction(std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> *best_action_map,
-                               std::vector<pilot::action_id_t> *best_action_seq);
+
+  /**
+   * Returns query string of the best action to take at the root of the current tree
+   * @return query string of the best first action
+   */
+  const std::string BestAction();
+
+  /**
+   * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children
+   * @param node pointer to the tree node whose value is first updated in the backpropogation
+   */
   void BackPropogate(common::ManagedPointer<TreeNode> node);
 
  private:
