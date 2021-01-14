@@ -68,13 +68,15 @@ common::ManagedPointer<TreeNode> MonteCarloSearchTree::Selection(
 
 void MonteCarloSearchTree::BackPropogate(common::ManagedPointer<TreeNode> node) {
   auto curr = node;
-  while(curr->GetParent() != nullptr) {
+  auto leaf_cost = node->GetCost();
+  auto new_cost = node->ComputeCostFromChildren();
+
+  auto num_expansion = node->GetNumberOfChildren();
+  while(curr != nullptr) {
     auto rev_action = action_map_.at(curr->GetCurrentAction())->GetReverseActions()[0];
     PilotUtil::ApplyAction(pilot_, db_oids_[curr->GetDepth()],
                            action_map_.at(rev_action)->GetSQLCommand());
-    // TODO: Update cost of curr
-    curr->UpdateVisits(node->GetNumberOfChildren());
-
+    curr->UpdateCostAndVisits(num_expansion, leaf_cost, new_cost);
     curr = curr->GetParent();
   }
 }

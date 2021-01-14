@@ -1,10 +1,14 @@
 
+#include <random>
+#include <cmath>
+
 #include "self_driving/pilot/mcst/tree_node.h"
 #include "self_driving/pilot/action/abstract_action.h"
 #include "self_driving/pilot/pilot.h"
 #include "self_driving/pilot_util.h"
 #include "self_driving/forecast/workload_forecast.h"
 
+#define EPSILON 1e-3
 
 namespace noisepage::selfdriving::pilot {
 
@@ -28,13 +32,39 @@ common::ManagedPointer<TreeNode> TreeNode::BestChild() {
   for (auto &child : children_)
     if (child->cost_ < best_child->cost_)
       best_child = common::ManagedPointer(child);
-
   return best_child;
 }
 
+void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t new_cost) {
+  // compute cost as average of its children weighted by number of visits
+  cost_ = (cost_ * number_of_visits_ - leaf_cost + new_cost * num_expansion) / (num_expansion + number_of_visits_);
+  number_of_visits_ += num_expansion - 1;
+}
+
 common::ManagedPointer<TreeNode> TreeNode::SampleChild() {
-  // TODO: Sample based on cost of children
-  return common::ManagedPointer<TreeNode>(children_[0]);
+  // compute max of children's cost
+  uint64_t highest = 0;
+  for (auto &child : children_)
+    highest = std::max(child->cost_, highest);
+
+  // sample based on cost and num of visits of children
+  std::vector<common::ManagedPointer<TreeNode>> selected_children, out;
+  uint64_t best_value = 0;
+  for (auto &child : children_) {
+    auto child_obj = std::pow((highest + EPSILON) / (child->cost_ + EPSILON), 2) +
+                     std::sqrt(2 * std::log(number_of_visits_) / child->number_of_visits_ );
+    if (child_obj > best_value) {
+      best_value = child_obj;
+      selected_children = {};
+      selected_children.push_back(common::ManagedPointer(child));
+    } else if (child_obj == best_value) {
+      selected_children.push_back(common::ManagedPointer(child));
+    }
+  }
+
+  std::sample(selected_children.begin(), selected_children.end(), std::back_inserter(out),
+              1, std::mt19937{std::random_device{}()});
+  return out[0];
 }
 
 void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
@@ -50,7 +80,6 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     PilotUtil::ApplyAction(pilot, db_oids[depth_], action_map.at(action_id)->GetSQLCommand());
 
     uint64_t child_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, end_segment_index);
-
     children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, child_cost));
 
     // apply one reverse action to undo the above

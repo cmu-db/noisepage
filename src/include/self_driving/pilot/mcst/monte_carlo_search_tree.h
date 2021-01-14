@@ -40,7 +40,8 @@ class MonteCarloSearchTree {
   const std::string BestAction();
 
   /**
-   * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children
+   * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
+   * also apply reverse actions
    * @param node pointer to the tree node whose value is first updated in the backpropogation
    */
   void BackPropogate(common::ManagedPointer<TreeNode> node);

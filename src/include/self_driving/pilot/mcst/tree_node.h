@@ -54,11 +54,26 @@ class TreeNode {
   uint64_t GetNumberOfChildren() { return children_.size(); }
 
   /**
-   * Update the number of visits to the current node aka number of traversals in the tree
-   * containing the path to current node
-   * @param add_num number of visits to be added
+   * @return cost_
    */
-  void UpdateVisits(uint64_t add_num) { number_of_visits_ += add_num; }
+  uint64_t GetCost() { return cost_; }
+
+  uint64_t ComputeCostFromChildren() {
+      auto child_sum = 0;
+      for (auto &child : children_) {
+        child_sum += child->cost_;
+      }
+      return child_sum / children_.size();
+  }
+
+  /**
+   * Update number of visits to the current node aka number of traversals in the tree
+   * containing the path to current node, and the cost of the node; based on the expansion of a leaf
+   * @param num_expansion number of children of the expanded leaf
+   * @param leaf_cost previous cost of the leaf
+   * @param new_cost new cost of the leaf
+   */
+  void UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t new_cost);
 
   /**
    * Returns if the node is expanded (has any child)
@@ -77,7 +92,17 @@ class TreeNode {
    */
   common::ManagedPointer<TreeNode> BestChild();
 
-  void ChildrenRollout(common::ManagedPointer<Pilot> pilot_,
+  /**
+   * Expand each child of current node and update its cost and num of visits accordingly
+   * @param pilot pointer to pilot
+   * @param forecast pointer to forecasted workload
+   * @param start_segment_index
+   * @param end_segment_index
+   * @param db_oids
+   * @param action_map_
+   * @param candidate_actions_
+   */
+  void ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                        common::ManagedPointer<WorkloadForecast> forecast,
                        uint64_t start_segment_index,
                        uint64_t end_segment_index,
@@ -87,8 +112,8 @@ class TreeNode {
 
  private:
   bool is_leaf_;
-  uint64_t depth_;
-  uint64_t number_of_visits_;
+  uint64_t depth_; // number of edges in path from root
+  uint64_t number_of_visits_; // number of leaf in subtree rooted at node
   common::ManagedPointer<TreeNode> parent_;
   std::vector<std::unique_ptr<TreeNode>> children_;
   action_id_t current_action_{INT32_MAX};

@@ -103,8 +103,34 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot,
   std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
            std::vector<std::vector<std::vector<double>>>> pipeline_to_prediction;
   pilot->ExecuteForecast(&pipeline_to_prediction, start_segment_index, end_segment_index);
-  // TODO: Compute cost here
-  return 0;
+
+  std::vector<std::pair<execution::query_id_t, double>> query_cost;
+  execution::query_id_t prev_qid = pipeline_to_prediction.begin()->first.first;
+  query_cost.emplace_back(prev_qid, 0);
+  for (auto ppl_to_pred : pipeline_to_prediction) {
+    auto ppl_sum = 0;
+    for (auto ppl_res : ppl_to_pred.second) {
+      for (auto ou_res : ppl_res) {
+        // sum up the latency of ous
+        ppl_sum += ou_res[ou_res.size() - 1];
+      }
+    }
+    // record average cost of this pipeline among the same queries with diff param
+    if (prev_qid == ppl_to_pred.first.first) {
+      query_cost.end()->second += ppl_sum / ppl_to_pred.second.size();
+    } else {
+      query_cost.emplace_back(ppl_to_pred.first.first, ppl_sum / ppl_to_pred.second.size());
+      prev_qid = ppl_to_pred.first.first;
+    }
+  }
+  uint64_t total_cost = 0, num_queries = 0;
+  for (auto qcost : query_cost) {
+    for (auto i = start_segment_index; i <= end_segment_index; i++) {
+      total_cost += forecast->forecast_segments_[i].id_to_num_exec_[qcost.first] * qcost.second;
+      num_queries += forecast->forecast_segments_[i].id_to_num_exec_[qcost.first];
+    }
+  }
+  return total_cost / num_queries;
 }
 
 const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(

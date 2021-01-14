@@ -40,9 +40,8 @@ void Pilot::PerformPlanning() {
   forecast_ = std::make_unique<WorkloadForecast>(workload_forecast_interval_);
 
   metrics_thread_->PauseMetrics();
-  std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> best_action_maps;
-  std::vector<pilot::action_id_t> best_action_seq;
-  Pilot::ActionSearch(&best_action_maps, &best_action_seq);
+  std::vector<const std::string> best_action_seq;
+  Pilot::ActionSearch(&best_action_seq);
   metrics_thread_->ResumeMetrics();
 }
 
