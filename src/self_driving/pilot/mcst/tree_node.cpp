@@ -37,7 +37,9 @@ common::ManagedPointer<TreeNode> TreeNode::BestChild() {
 
 void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t new_cost) {
   // compute cost as average of its children weighted by number of visits
-  cost_ = (cost_ * number_of_visits_ - leaf_cost + new_cost * num_expansion) / (num_expansion + number_of_visits_);
+  cost_ = (number_of_visits_ / (num_expansion + number_of_visits_)) * cost_
+          - leaf_cost / (num_expansion + number_of_visits_)
+          + (num_expansion / (num_expansion + number_of_visits_)) * new_cost;
   number_of_visits_ += num_expansion - 1;
 }
 
