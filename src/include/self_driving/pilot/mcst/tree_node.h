@@ -58,12 +58,18 @@ class TreeNode {
    */
   uint64_t GetCost() { return cost_; }
 
+  /**
+   * Compute cost as average of children weighted by num of visits of each one
+   * (usually only used on the leaf being expanded in a simulation round, for nonleaf see UpdateCostAndVisits)
+   * @return recomputed cost of current node
+   */
   uint64_t ComputeCostFromChildren() {
-      auto child_sum = 0;
+      uint64_t child_sum = 0, total_visits = 0;
       for (auto &child : children_) {
-        child_sum += child->cost_;
+        child_sum += child->cost_ * child->number_of_visits_;
+        total_visits += child->number_of_visits_;
       }
-      return child_sum / children_.size();
+      return child_sum / total_visits;
   }
 
   /**
