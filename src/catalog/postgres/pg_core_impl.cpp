@@ -101,7 +101,7 @@ void PgCoreImpl::BootstrapPRIsPgStatistic() {
   pg_statistic_all_cols_prm_ = statistics_->ProjectionMapForOids(pg_statistic_all_oids);
 
   // Used to select rows to delete in DeleteColumnStatistics
-  const std::vector<col_oid_t> delete_statistics_oids{PgStatistic::STAATTNUM_COL_OID};
+  const std::vector<col_oid_t> delete_statistics_oids{PgStatistic::STAATTNUM_COL_OID.oid_};
   delete_statistics_pri_ = statistics_->InitializerForProjectedRow(delete_statistics_oids);
   delete_statistics_prm_ = statistics_->ProjectionMapForOids(delete_statistics_oids);
 }
@@ -1563,24 +1563,31 @@ void PgCoreImpl::CreateColumnStatistic(const common::ManagedPointer<transaction:
                                             const ClassOid class_oid, const ColOid col_oid, const Column &col) {
   // Step 1: Insert into the table
   auto *const redo = txn->StageWrite(db_oid_, PgStatistic::STATISTIC_TABLE_OID, pg_statistic_all_cols_pri_);
+  auto delta = common::ManagedPointer(redo->Delta());
+  auto &pm = pg_statistic_all_cols_prm_;
 
-  // Write the attributes in the Redo Record
-  auto relid_entry = reinterpret_cast<ClassOid *>(
-      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STARELID_COL_OID]));
-  auto attnum_entry = reinterpret_cast<ColOid *>(
-      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STAATTNUM_COL_OID]));
-//  auto nullfrac_entry = reinterpret_cast<double *>(
-//      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STANULLFRAC_COL_OID]));
-//  auto distinct_entry = reinterpret_cast<double *>(
-//      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STADISTINCT_COL_OID]));
-  auto numrows_entry = reinterpret_cast<uint32_t *>(
-      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STA_NUMROWS_COL_OID]));
+  // Insert into pg_statistic.
+  {
+    PgStatistic::STARELID_COL_OID.Set(delta, pm, class_oid);
+    PgStatistic::STAATTNUM_COL_OID.Set(delta, pm, col_oid);
+    PgStatistic::STANULLROWS_COL_OID.Set(delta, pm, 0);
+    PgStatistic::STA_NUMROWS_COL_OID.Set(delta, pm, 0);
+  }
 
-  *relid_entry = class_oid;
-  *attnum_entry = col_oid;
-//  *nullfrac_entry = 0.0;
-//  *distinct_entry = 0.0;
-  *numrows_entry = 0;
+//  // Write the attributes in the Redo Record
+//  auto relid_entry = reinterpret_cast<ClassOid *>(
+//      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STARELID_COL_OID]));
+//  auto attnum_entry = reinterpret_cast<ColOid *>(
+//      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STAATTNUM_COL_OID]));
+//  auto nullrows_entry = reinterpret_cast<uint32_t *>(
+//      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STANULLROWS_COL_OID]));
+//  auto numrows_entry = reinterpret_cast<uint32_t *>(
+//      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[PgStatistic::STA_NUMROWS_COL_OID]));
+//
+//  *relid_entry = class_oid;
+//  *attnum_entry = col_oid;
+//  *nullrows_entry = 0;
+//  *numrows_entry = 0;
 
   // Finally, insert into the table to get the tuple slot
   const auto tupleslot = statistics_->Insert(txn, redo);
@@ -1648,7 +1655,7 @@ bool PgCoreImpl::DeleteColumnStatistics(const common::ManagedPointer<transaction
     auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr);
     NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     const auto *const col_oid = reinterpret_cast<const uint32_t *const>(
-        pr->AccessWithNullCheck(delete_statistics_prm_.at(PgStatistic::STAATTNUM_COL_OID)));
+        pr->AccessWithNullCheck(delete_statistics_prm_.at(PgStatistic::STAATTNUM_COL_OID.oid_)));
     NOISEPAGE_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table

@@ -12,7 +12,6 @@
 #include "catalog/postgres/pg_proc_impl.h"
 #include "catalog/postgres/pg_type_impl.h"
 #include "common/managed_pointer.h"
-#include "optimizer/statistics/table_stats.h"
 
 namespace noisepage::transaction {
 class TransactionContext;

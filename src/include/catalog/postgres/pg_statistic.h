@@ -25,16 +25,15 @@ class PgStatistic {
    * catalog specification and columns of the form "STA_[name]_COL_OID" are
    * terrier-specific additions (generally pointers to internal objects).
    */
-  static constexpr col_oid_t STARELID_COL_OID = col_oid_t(1);     // INTEGER (fkey: pg_class) [table_oid_t]
-  static constexpr col_oid_t STAATTNUM_COL_OID = col_oid_t(2);    // INTEGER (fkey: pg_attribute) [col_oid_t]
-//  static constexpr col_oid_t STANULLFRAC_COL_OID = col_oid_t(3);  // DECIMAL
-//  static constexpr col_oid_t STADISTINCT_COL_OID = col_oid_t(4);  // DECIMAL
-  static constexpr col_oid_t STA_NUMROWS_COL_OID = col_oid_t(3);  // INTEGER
+  static constexpr CatalogColumnDef<table_oid_t, uint32_t> STARELID_COL_OID{col_oid_t{1}};
+  static constexpr CatalogColumnDef<col_oid_t , uint32_t> STAATTNUM_COL_OID{col_oid_t{2}};
+  static constexpr CatalogColumnDef<uint32_t, uint32_t> STANULLROWS_COL_OID{col_oid_t{3}};
+  static constexpr CatalogColumnDef<uint32_t, uint32_t> STA_NUMROWS_COL_OID{col_oid_t{4}};
 
-  static constexpr uint8_t NUM_PG_STATISTIC_COLS = 3;
+  static constexpr uint8_t NUM_PG_STATISTIC_COLS = 4;
 
   static constexpr std::array<col_oid_t, NUM_PG_STATISTIC_COLS> PG_STATISTIC_ALL_COL_OIDS = {
-      STARELID_COL_OID, STAATTNUM_COL_OID, STA_NUMROWS_COL_OID};
+      STARELID_COL_OID.oid_, STAATTNUM_COL_OID.oid_, STANULLROWS_COL_OID.oid_, STA_NUMROWS_COL_OID.oid_};
 };
 
 }  // namespace terrier::catalog::postgres
