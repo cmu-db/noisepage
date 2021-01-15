@@ -8,7 +8,7 @@ namespace noisepage::execution::sql {
  * This map is used after multiplication of decimals to get
  * the correct result. This represents the 256 bit magic
  * number in 4 128 bit uint32_t integers with each having 64 bits*/
-constexpr uint128_t MagicArray[39][4] = {
+constexpr uint128_t MAGIC_ARRAY[39][4] = {
     {0x0, 0x0, 0x0, 0x0},
     {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd},
     {0x47ae147ae147ae14, 0x7ae147ae147ae147, 0xae147ae147ae147a, 0xe147ae147ae147af},
@@ -51,7 +51,7 @@ constexpr uint128_t MagicArray[39][4] = {
 
 /* Defines the 256 bit magic number division for powers of 10 with algo used and
  * the constant p used during the division*/
-constexpr uint32_t MagicPAndAlgoArray[39][2] = {
+constexpr uint32_t MAGIC_P_AND_ALGO_ARRAY[39][2] = {
     {0, 0},   {259, 0}, {263, 1}, {266, 1}, {267, 0}, {272, 0}, {275, 0}, {279, 0}, {282, 0}, {285, 0},
     {289, 0}, {291, 0}, {296, 1}, {299, 0}, {301, 0}, {305, 0}, {309, 0}, {313, 1}, {316, 1}, {320, 1},
     {321, 0}, {325, 0}, {329, 0}, {333, 1}, {336, 1}, {339, 0}, {342, 0}, {346, 1}, {349, 0}, {350, 0},
@@ -86,13 +86,13 @@ class MagicNumber128 {
 class MagicNumber256 {
  public:
   /// Highest 64 bits
-  uint128_t A_;
+  uint128_t a_;
   /// High Middle 64 bits
-  uint128_t B_;
+  uint128_t b_;
   /// Low Middle 64 bits
-  uint128_t C_;
+  uint128_t c_;
   /// Lowest 64 bits
-  uint128_t D_;
+  uint128_t d_;
   /// value - p in magic division
   uint32_t p_;
   /// Algo type
@@ -102,7 +102,7 @@ class MagicNumber256 {
 /* Magic Array for 128 bit division with powers of 10
  * This map is used after multiplication of decimals to get
  * the correct result*/
-MagicNumber128 MagicMap128BitPowerTen[39] = {{0, 0, 0, 0},
+MagicNumber128 magic_map128_bit_power_ten[39] = {{0, 0, 0, 0},
                                                            {0xcccccccccccccccc, 0xcccccccccccccccd, 131, 0},
                                                            {0x28f5c28f5c28f5c2, 0x8f5c28f5c28f5c29, 132, 0},
                                                            {0x624dd2f1a9fbe76, 0xc8b4395810624dd3, 138, 1},
@@ -186,11 +186,11 @@ uint128_t PowerOfTen[39][2] = {{0, 0},
                                {0x4b3b4ca85a86c47a, 0x098a224000000000}};
 
 /* Magic map for 128 bit division with constants*/
-std::map<uint128_t, class MagicNumber128> MagicMap128BitConstantDivision = {
+std::map<uint128_t, class MagicNumber128> magic_map128_bit_constant_division = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccd, 130, 0}}, {7, {0x2492492492492492, 0x4924924924924925, 131, 1}}};
 
 /* Magic map for 256 bit division with constants*/
-std::map<uint128_t, class MagicNumber256> MagicMap256BitConstantDivision = {
+std::map<uint128_t, class MagicNumber256> magic_map256_bit_constant_division = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
     {7, {0x2492492492492492, 0x4924924924924924, 0x9249249249249249, 0x2492492492492493, 259, 1}},
     {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09, 0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},
@@ -200,7 +200,7 @@ std::map<uint128_t, class MagicNumber256> MagicMap256BitConstantDivision = {
 /* Map of powers of 2
  * This map stores powers of two to be used during
  * constant division of a decimal with a power of 2*/
-std::map<uint128_t, uint32_t> PowerTwo = {
+std::map<uint128_t, uint32_t> power_two = {
     {0x2, 1},
     {0x4, 2},
     {0x8, 3},

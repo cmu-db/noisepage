@@ -7,7 +7,7 @@ nbits = 128
 
 d = 999
 
-print '128 bit magic number is - Put this in the Map MagicMap128BitConstantDivision'
+print '128 bit magic number is - Put this in the Map magic_map128_bit_constant_division'
 
 nc = (nmax + 1) // d * d - 1
 for p in range(0, 2 * nbits + 1):
@@ -24,7 +24,7 @@ for p in range(0, 2 * nbits + 1):
             print 'Algo' + str(1)
         break
 
-print '256 bit magic number is - Put this in the Map MagicMap256BitConstantDivision'
+print '256 bit magic number is - Put this in the Map magic_map256_bit_constant_division'
 
 nmax = 2 ** 256 - 1
 nbits = 256

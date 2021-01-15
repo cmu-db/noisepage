@@ -26,10 +26,8 @@ class DecimalBenchmark : public benchmark::Fixture {
   std::vector<int128_t> floats_;
 };
 
-// Insert the num_inserts_ of tuples into a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DecimalBenchmark, AddDecimal)(benchmark::State &state) {
-  // NOLINTNEXTLINE
   uint64_t elapsed_ms;
   {
     execution::sql::Decimal128 result(0);
@@ -44,7 +42,6 @@ BENCHMARK_DEFINE_F(DecimalBenchmark, AddDecimal)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DecimalBenchmark, AddFloat)(benchmark::State &state) {
-  // NOLINTNEXTLINE
   uint64_t elapsed_ms;
   {
     float result = 0;
