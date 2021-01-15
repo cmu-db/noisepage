@@ -37,24 +37,24 @@ class Context;
 //           implementations, but can also be created and manipulated from TPL
 //           code. We specialize these because we also want to add SQL-level
 //           type information to these builtins.
-#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                                  \
-  /* Primitive types */                                                                         \
-  PRIM(Nil, uint8_t, "nil")                                                                     \
-  PRIM(Bool, bool, "bool")                                                                      \
-  PRIM(Int8, int8_t, "int8")                                                                    \
-  PRIM(Int16, int16_t, "int16")                                                                 \
-  PRIM(Int32, int32_t, "int32")                                                                 \
-  PRIM(Int64, int64_t, "int64")                                                                 \
-  PRIM(Uint8, uint8_t, "uint8")                                                                 \
-  PRIM(Uint16, uint16_t, "uint16")                                                              \
-  PRIM(Uint32, uint32_t, "uint32")                                                              \
-  PRIM(Uint64, uint64_t, "uint64")                                                              \
-  PRIM(Int128, int128_t, "int128")                                                              \
-  PRIM(Uint128, uint128_t, "uint128")                                                           \
-  PRIM(Float32, float, "float32")                                                               \
-  PRIM(Float64, double, "float64")                                                              \
-                                                                                                \
-  /* Non-primitive builtins */                                                                  \
+#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                                    \
+  /* Primitive types */                                                                           \
+  PRIM(Nil, uint8_t, "nil")                                                                       \
+  PRIM(Bool, bool, "bool")                                                                        \
+  PRIM(Int8, int8_t, "int8")                                                                      \
+  PRIM(Int16, int16_t, "int16")                                                                   \
+  PRIM(Int32, int32_t, "int32")                                                                   \
+  PRIM(Int64, int64_t, "int64")                                                                   \
+  PRIM(Uint8, uint8_t, "uint8")                                                                   \
+  PRIM(Uint16, uint16_t, "uint16")                                                                \
+  PRIM(Uint32, uint32_t, "uint32")                                                                \
+  PRIM(Uint64, uint64_t, "uint64")                                                                \
+  PRIM(Int128, int128_t, "int128")                                                                \
+  PRIM(Uint128, uint128_t, "uint128")                                                             \
+  PRIM(Float32, float, "float32")                                                                 \
+  PRIM(Float64, double, "float64")                                                                \
+                                                                                                  \
+  /* Non-primitive builtins */                                                                    \
   NON_PRIM(AggregationHashTable, noisepage::execution::sql::AggregationHashTable)                 \
   NON_PRIM(AHTIterator, noisepage::execution::sql::AHTIterator)                                   \
   NON_PRIM(AHTVectorIterator, noisepage::execution::sql::AHTVectorIterator)                       \
@@ -77,8 +77,8 @@ class Context;
   NON_PRIM(VectorProjection, noisepage::execution::sql::VectorProjection)                         \
   NON_PRIM(VectorProjectionIterator, noisepage::execution::sql::VectorProjectionIterator)         \
   NON_PRIM(IndexIterator, noisepage::execution::sql::IndexIterator)                               \
-                                                                                                \
-  /* SQL Aggregate types (if you add, remember to update BuiltinType) */                        \
+                                                                                                  \
+  /* SQL Aggregate types (if you add, remember to update BuiltinType) */                          \
   NON_PRIM(CountAggregate, noisepage::execution::sql::CountAggregate)                             \
   NON_PRIM(CountStarAggregate, noisepage::execution::sql::CountStarAggregate)                     \
   NON_PRIM(AvgAggregate, noisepage::execution::sql::AvgAggregate)                                 \
@@ -88,20 +88,20 @@ class Context;
   NON_PRIM(RealMaxAggregate, noisepage::execution::sql::RealMaxAggregate)                         \
   NON_PRIM(RealMinAggregate, noisepage::execution::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, noisepage::execution::sql::RealSumAggregate)                         \
-  NON_PRIM(DecimalMaxAggregate, noisepage::execution::sql::DecimalMaxAggregate)         \
-  NON_PRIM(DecimalMinAggregate, noisepage::execution::sql::DecimalMinAggregate)         \
-  NON_PRIM(DecimalSumAggregate, noisepage::execution::sql::DecimalSumAggregate)         \
+  NON_PRIM(DecimalMaxAggregate, noisepage::execution::sql::DecimalMaxAggregate)                   \
+  NON_PRIM(DecimalMinAggregate, noisepage::execution::sql::DecimalMinAggregate)                   \
+  NON_PRIM(DecimalSumAggregate, noisepage::execution::sql::DecimalSumAggregate)                   \
   NON_PRIM(DateMinAggregate, noisepage::execution::sql::DateMinAggregate)                         \
   NON_PRIM(DateMaxAggregate, noisepage::execution::sql::DateMaxAggregate)                         \
   NON_PRIM(StringMinAggregate, noisepage::execution::sql::StringMinAggregate)                     \
   NON_PRIM(StringMaxAggregate, noisepage::execution::sql::StringMaxAggregate)                     \
-                                                                                                \
-  /* SQL Table operations */                                                                    \
+                                                                                                  \
+  /* SQL Table operations */                                                                      \
   NON_PRIM(ProjectedRow, noisepage::storage::ProjectedRow)                                        \
   NON_PRIM(TupleSlot, noisepage::storage::TupleSlot)                                              \
   NON_PRIM(StorageInterface, noisepage::execution::sql::StorageInterface)                         \
-                                                                                                \
-  /* Non-primitive SQL Runtime Values */                                                        \
+                                                                                                  \
+  /* Non-primitive SQL Runtime Values */                                                          \
   SQL(Boolean, noisepage::execution::sql::BoolVal)                                                \
   SQL(Integer, noisepage::execution::sql::Integer)                                                \
   SQL(Real, noisepage::execution::sql::Real)                                                      \
@@ -109,7 +109,6 @@ class Context;
   SQL(StringVal, noisepage::execution::sql::StringVal)                                            \
   SQL(Date, noisepage::execution::sql::DateVal)                                                   \
   SQL(Timestamp, noisepage::execution::sql::TimestampVal)
-
 
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)

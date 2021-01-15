@@ -256,7 +256,7 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId r
         return BuiltinType(ast::BuiltinType::DateMinAggregate);
       } else if (ret_type == sql::TypeId::Varchar) {
         return BuiltinType(ast::BuiltinType::StringMinAggregate);
-      }  else if (ret_type == sql::TypeId::Decimal) {
+      } else if (ret_type == sql::TypeId::Decimal) {
         return BuiltinType(ast::BuiltinType::DecimalMinAggregate);
       } else {
         throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("MIN() aggregates on type {}", TypeIdToString(ret_type)));
@@ -279,7 +279,8 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId r
       NOISEPAGE_ASSERT(IsTypeNumeric(ret_type), "Only arithmetic types have sums.");
       if (IsTypeIntegral(ret_type)) {
         return BuiltinType(ast::BuiltinType::IntegerSumAggregate);
-      } else if (ret_type == sql::TypeId::Decimal) {
+      }
+      if (ret_type == sql::TypeId::Decimal) {
         return BuiltinType(ast::BuiltinType::DecimalSumAggregate);
       }
       return BuiltinType(ast::BuiltinType::RealSumAggregate);
@@ -397,7 +398,6 @@ ast::Expr *CodeGen::DateToSql(sql::Date date) const {
 }
 
 ast::Expr *CodeGen::DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const {
-
   const uint128_t flag = (0xFFFFFFFF);
   uint128_t fixed_decimal_1 = fixed_decimal.GetValue();
   fixed_decimal_1 = fixed_decimal_1 >> 96;
@@ -410,19 +410,15 @@ ast::Expr *CodeGen::DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precisio
   uint128_t fixed_decimal_4 = fixed_decimal.GetValue();
   fixed_decimal_4 = fixed_decimal_4 & flag;
 
-  ast::Expr *call = CallBuiltin(ast::Builtin::DecimalToSql,
-                                {Const32(fixed_decimal_1),
-                                 Const32(fixed_decimal_2),
-                                 Const32(fixed_decimal_3),
-                                 Const32(fixed_decimal_4),
-                                 Const32(precision)});
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::DecimalToSql, {Const32(fixed_decimal_1), Const32(fixed_decimal_2),
+                                               Const32(fixed_decimal_3), Const32(fixed_decimal_4), Const32(precision)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
   return call;
 }
 
-ast::Expr *CodeGen::SetPrecisionDecimal(ast::Expr * decimal_value, int32_t precision) const {
-  ast::Expr *call = CallBuiltin(ast::Builtin::SetPrecisionDecimal,
-                                {decimal_value, Const32(precision)});
+ast::Expr *CodeGen::SetPrecisionDecimal(ast::Expr *decimal_value, int32_t precision) const {
+  ast::Expr *call = CallBuiltin(ast::Builtin::SetPrecisionDecimal, {decimal_value, Const32(precision)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
   return call;
 }
@@ -558,10 +554,9 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return CallBuiltin(builtin, {pr, idx_expr});
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                          bool own, uint16_t max_varlen_size) {
-
-  if(type == type::TypeId::DECIMAL) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val, bool own,
+                          uint16_t max_varlen_size) {
+  if (type == type::TypeId::DECIMAL) {
     // The max var len size represents the precision in case of a fixed decimal
     val = CallBuiltin(ast::Builtin::RescalePrecisionDecimal, {val, Const32(max_varlen_size)});
     val->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));

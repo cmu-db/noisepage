@@ -53,7 +53,6 @@ class Schema {
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
           default_value_(default_value.Copy()) {
-
       Validate();
     }
 
@@ -74,7 +73,6 @@ class Schema {
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
           default_value_(default_value.Copy()) {
-
       Validate();
     }
 

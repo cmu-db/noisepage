@@ -117,7 +117,7 @@ ast::Expr *InsertTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto type = column.Type();
   auto nullable = column.Nullable();
   auto attr_index = table_pm_.find(col_oid)->second;
-  if(sql::GetTypeId(type) == sql::TypeId::Decimal) {
+  if (sql::GetTypeId(type) == sql::TypeId::Decimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(insert_pr_), type, nullable, attr_index);
     return GetCodeGen()->SetPrecisionDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
   }
@@ -194,8 +194,8 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     uint16_t attr_offset = index_pm.at(index_col.Oid());
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
-    auto *set_key_call = GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false,
-                                             index_col.TypeModifier());
+    auto *set_key_call =
+        GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false, index_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 

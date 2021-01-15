@@ -27,7 +27,7 @@ enum class TypeId : uint8_t {
   Timestamp,  // Timestamp objects
   Varchar,    // char*, representing a null-terminated UTF-8 string
   Varbinary,  // blobs representing arbitrary bytes
-  Decimal  // blobs representing fixed decimals
+  Decimal     // blobs representing fixed decimals
 };
 
 /**

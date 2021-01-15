@@ -120,8 +120,9 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
     // NOTE: index expressions refer to columns in the child translator.
     // For example, if the child is a seq scan, the index expressions would contain ColumnValueExpressions
     const auto &val = context->DeriveValue(*index_col.StoredExpression().Get(), child);
-    auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
-                                            index_col.Nullable(), index_pm.at(index_col.Oid()), val, true, index_col.TypeModifier());
+    auto *pr_set_call =
+        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(), index_col.Nullable(),
+                            index_pm.at(index_col.Oid()), val, true, index_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 

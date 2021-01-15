@@ -159,7 +159,7 @@ struct ColumnDefinition {
     } else if ((strcmp(str, "double") == 0) || (strcmp(str, "float8") == 0) || (strcmp(str, "real") == 0) ||
                (strcmp(str, "float4") == 0)) {
       value_type = type::TypeId::REAL;
-    } else if (strcmp(str, "numeric") == 0  || strcmp(str, "decimal") == 0) {
+    } else if (strcmp(str, "numeric") == 0 || strcmp(str, "decimal") == 0) {
       value_type = type::TypeId::DECIMAL;
     } else if (strcmp(str, "tinyint") == 0) {
       value_type = type::TypeId::TINYINT;

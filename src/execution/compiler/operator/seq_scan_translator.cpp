@@ -130,11 +130,11 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto col_index = GetColOidIndex(cve->GetColumnOid());
       auto const_val = translator->DeriveValue(nullptr, nullptr);
-      if(translator->GetExpression().GetReturnValueType() == type::TypeId::DECIMAL) {
+      if (translator->GetExpression().GetReturnValueType() == type::TypeId::DECIMAL) {
         const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
         uint16_t max_varlen_size = schema.GetColumn(cve->GetColumnOid()).TypeModifier();
-        const_val = codegen->CallBuiltin(ast::Builtin::RescalePrecisionDecimal,
-                                         {const_val, codegen->Const32(max_varlen_size)});
+        const_val =
+            codegen->CallBuiltin(ast::Builtin::RescalePrecisionDecimal, {const_val, codegen->Const32(max_varlen_size)});
       }
 
       auto cmp_type = predicate->GetExpressionType();
@@ -342,8 +342,9 @@ ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto type = schema.GetColumn(col_oid).Type();
   auto nullable = schema.GetColumn(col_oid).Nullable();
   auto col_index = GetColOidIndex(col_oid);
-  if(sql::GetTypeId(type) == sql::TypeId::Decimal) {
-    auto vpi_get_expr = GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
+  if (sql::GetTypeId(type) == sql::TypeId::Decimal) {
+    auto vpi_get_expr =
+        GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
     return GetCodeGen()->SetPrecisionDecimal(vpi_get_expr, schema.GetColumn(col_oid).TypeModifier());
   }
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);

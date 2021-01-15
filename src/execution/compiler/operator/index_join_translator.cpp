@@ -143,7 +143,7 @@ ast::Expr *IndexJoinTranslator::GetTableColumn(catalog::col_oid_t col_oid) const
   auto type = table_schema_.GetColumn(col_oid).Type();
   auto nullable = table_schema_.GetColumn(col_oid).Nullable();
   uint16_t attr_idx = table_pm_.find(col_oid)->second;
-  if(sql::GetTypeId(type) == sql::TypeId::Decimal) {
+  if (sql::GetTypeId(type) == sql::TypeId::Decimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(table_pr_), type, nullable, attr_idx);
     return GetCodeGen()->SetPrecisionDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
   }

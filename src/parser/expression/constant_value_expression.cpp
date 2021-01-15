@@ -180,7 +180,8 @@ common::hash_t ConstantValueExpression::Hash() const {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<double>()));
     }
     case type::TypeId::DECIMAL: {
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<execution::sql::Decimal128>().GetValue()));
+      return common::HashUtil::CombineHashes(hash,
+                                             common::HashUtil::Hash(Peek<execution::sql::Decimal128>().GetValue()));
     }
     case type::TypeId::TIMESTAMP: {
       return common::HashUtil::CombineHashes(hash,

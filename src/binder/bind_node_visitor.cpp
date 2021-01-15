@@ -17,7 +17,6 @@
 #include "common/managed_pointer.h"
 #include "execution/functions/function_context.h"
 #include "loggers/binder_logger.h"
-#include "parser/expression_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -31,6 +30,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
+#include "parser/expression_util.h"
 #include "parser/parse_result.h"
 #include "parser/statements.h"
 

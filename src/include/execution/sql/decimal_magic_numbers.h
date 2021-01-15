@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unordered_map>
+#include <map>
 
 namespace noisepage::execution::sql {
 
@@ -264,4 +264,4 @@ std::map<uint128_t, unsigned> PowerTwo = {
     {0x8000000000000000, 63},
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

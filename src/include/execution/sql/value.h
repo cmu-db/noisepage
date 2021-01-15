@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <string>
 
 #include "common/macros.h"
 #include "execution/sql/runtime_types.h"
@@ -133,7 +134,8 @@ struct DecimalVal : public Val {
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The raw decimal value.
    */
-  explicit DecimalVal(Decimal128::NativeType val, int precision = 0) noexcept : DecimalVal(Decimal128{val}, precision) {}
+  explicit DecimalVal(Decimal128::NativeType val, int precision = 0) noexcept
+      : DecimalVal(Decimal128{val}, precision) {}
 
   /**
    * @return A NULL decimal value.
@@ -145,31 +147,28 @@ struct DecimalVal : public Val {
   }
 
   std::string ToString() const {
-    std::string output = "";
+    std::string output;
     int128_t value = val_.GetValue();
-    if(value < 0) {
+    if (value < 0) {
       output.push_back('-');
       value = 0 - value;
     }
 
-
-
-    if(precision_ != 0) {
-
+    if (precision_ != 0) {
       int128_t fractional = value;
-      std::string fractional_string = "";
-      for(int i = 0; i < precision_; i++) {
-        int remainder = fractional % 10;
+      std::string fractional_string;
+      for (int i = 0; i < precision_; i++) {
+        int remainder = static_cast<int>(fractional % 10);
         fractional_string.push_back('0' + remainder);
         fractional /= 10;
       }
 
       int128_t integral = fractional;
 
-      std::string integral_string = "";
+      std::string integral_string;
 
-      while(integral != 0) {
-        int remainder = integral % 10;
+      while (integral != 0) {
+        int remainder = static_cast<int>(integral % 10);
         integral_string.push_back('0' + remainder);
         integral /= 10;
       }
@@ -186,16 +185,15 @@ struct DecimalVal : public Val {
     }
 
     int128_t integral = value;
-    std::string integral_string = "";
-    while(integral != 0) {
-      int remainder = integral % 10;
+    std::string integral_string;
+    while (integral != 0) {
+      int remainder = static_cast<int>(integral % 10);
       integral_string.push_back('0' + remainder);
       integral /= 10;
     }
     std::reverse(integral_string.begin(), integral_string.end());
     output.append(integral_string);
     return output;
-
   }
 };
 

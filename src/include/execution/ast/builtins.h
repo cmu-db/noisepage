@@ -94,8 +94,8 @@ namespace noisepage::execution::ast {
   F(VPIGetDoubleNull, vpiGetDoubleNull)                                 \
   F(VPIGetDate, vpiGetDate)                                             \
   F(VPIGetDateNull, vpiGetDateNull)                                     \
-  F(VPIGetDecimal, vpiGetDecimal)                             \
-  F(VPIGetDecimalNull, vpiGetDecimalNull)                     \
+  F(VPIGetDecimal, vpiGetDecimal)                                       \
+  F(VPIGetDecimalNull, vpiGetDecimalNull)                               \
   F(VPIGetTimestamp, vpiGetTimestamp)                                   \
   F(VPIGetTimestampNull, vpiGetTimestampNull)                           \
   F(VPIGetString, vpiGetString)                                         \
@@ -117,8 +117,8 @@ namespace noisepage::execution::ast {
   F(VPISetDoubleNull, vpiSetDoubleNull)                                 \
   F(VPISetDate, vpiSetDate)                                             \
   F(VPISetDateNull, vpiSetDateNull)                                     \
-  F(VPISetDecimal, vpiSetDecimal)                             \
-  F(VPISetDecimalNull, vpiSetDecimalNull)                     \
+  F(VPISetDecimal, vpiSetDecimal)                                       \
+  F(VPISetDecimalNull, vpiSetDecimalNull)                               \
   F(VPISetTimestamp, vpiSetTimestamp)                                   \
   F(VPISetTimestampNull, vpiSetTimestampNull)                           \
   F(VPISetString, vpiSetString)                                         \
@@ -236,7 +236,7 @@ namespace noisepage::execution::ast {
   F(PRSetReal, prSetReal)                                               \
   F(PRSetDouble, prSetDouble)                                           \
   F(PRSetDate, prSetDate)                                               \
-  F(PRSetDecimal, prSetDecimal)                               \
+  F(PRSetDecimal, prSetDecimal)                                         \
   F(PRSetTimestamp, prSetTimestamp)                                     \
   F(PRSetVarlen, prSetVarlen)                                           \
   F(PRSetBoolNull, prSetBoolNull)                                       \
@@ -247,7 +247,7 @@ namespace noisepage::execution::ast {
   F(PRSetRealNull, prSetRealNull)                                       \
   F(PRSetDoubleNull, prSetDoubleNull)                                   \
   F(PRSetDateNull, prSetDateNull)                                       \
-  F(PRSetDecimalNull, prSetDecimalNull)                       \
+  F(PRSetDecimalNull, prSetDecimalNull)                                 \
   F(PRSetTimestampNull, prSetTimestampNull)                             \
   F(PRSetVarlenNull, prSetVarlenNull)                                   \
   F(PRGetBool, prGetBool)                                               \
@@ -258,7 +258,7 @@ namespace noisepage::execution::ast {
   F(PRGetReal, prGetReal)                                               \
   F(PRGetDouble, prGetDouble)                                           \
   F(PRGetDate, prGetDate)                                               \
-  F(PRGetDecimal, prGetDecimal)                               \
+  F(PRGetDecimal, prGetDecimal)                                         \
   F(PRGetTimestamp, prGetTimestamp)                                     \
   F(PRGetVarlen, prGetVarlen)                                           \
   F(PRGetBoolNull, prGetBoolNull)                                       \
@@ -269,7 +269,7 @@ namespace noisepage::execution::ast {
   F(PRGetRealNull, prGetRealNull)                                       \
   F(PRGetDoubleNull, prGetDoubleNull)                                   \
   F(PRGetDateNull, prGetDateNull)                                       \
-  F(PRGetDecimalNull, prGetDecimalNull)                       \
+  F(PRGetDecimalNull, prGetDecimalNull)                                 \
   F(PRGetTimestampNull, prGetTimestampNull)                             \
   F(PRGetVarlenNull, prGetVarlenNull)                                   \
   /* CSV */                                                             \

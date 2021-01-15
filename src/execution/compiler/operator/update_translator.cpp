@@ -143,7 +143,7 @@ ast::Expr *UpdateTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto type = column.Type();
   auto nullable = column.Nullable();
   auto attr_index = table_pm_.find(col_oid)->second;
-  if(sql::GetTypeId(type) == sql::TypeId::Decimal) {
+  if (sql::GetTypeId(type) == sql::TypeId::Decimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(update_pr_), type, nullable, attr_index);
     return GetCodeGen()->SetPrecisionDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
   }
@@ -185,9 +185,9 @@ void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
     const auto &table_col_oid = clause.first;
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     const auto &clause_expr = context->DeriveValue(*clause.second, this);
-    auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                            table_pm_.find(table_col_oid)->second, clause_expr, true,
-                                            table_col.TypeModifier());
+    auto *pr_set_call =
+        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
+                            table_pm_.find(table_col_oid)->second, clause_expr, true, table_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
 
     set_oids.insert(table_col_oid);
@@ -249,8 +249,8 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     uint16_t attr_offset = index_pm.at(index_col.Oid());
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
-    auto *set_key_call = GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, true,
-                                             index_col.TypeModifier());
+    auto *set_key_call =
+        GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, true, index_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 
@@ -301,9 +301,9 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
     // NOTE: index expressions refer to columns in the child translator.
     // For example, if the child is a seq scan, the index expressions would contain ColumnValueExpressions
     const auto &val = context->DeriveValue(*index_col.StoredExpression().Get(), child);
-    auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
-                                            index_col.Nullable(), index_pm.at(index_col.Oid()), val, true,
-                                            index_col.TypeModifier());
+    auto *pr_set_call =
+        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(), index_col.Nullable(),
+                            index_pm.at(index_col.Oid()), val, true, index_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 

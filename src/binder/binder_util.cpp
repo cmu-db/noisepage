@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <limits>
 
-#include "execution/sql/runtime_types.h"
 #include "common/error/error_code.h"
+#include "execution/sql/runtime_types.h"
 #include "network/postgres/postgres_defs.h"
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"

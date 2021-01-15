@@ -448,13 +448,13 @@ class EXPORT Decimal {
    */
   hash_t Hash(const hash_t seed) const {
     uint128_t x = value_;
-    const uint64_t kMul = 0x9ddfea08eb382d69ULL;
+    const uint64_t k_mul = 0x9ddfea08eb382d69ULL;
     uint128_t low_mask = 0xFFFFFFFFFFFFFFFF;
-    uint64_t a = ((x&low_mask) ^ (x>>64)) * kMul;
+    uint64_t a = ((x & low_mask) ^ (x >> 64)) * k_mul;
     a ^= (a >> 47);
-    uint64_t b = ((x>>64) ^ a) * kMul;
+    uint64_t b = ((x >> 64) ^ a) * k_mul;
     b ^= (b >> 47);
-    b *= kMul;
+    b *= k_mul;
     return b;
   }
 
@@ -576,7 +576,7 @@ class EXPORT Decimal {
    * Pass in the the precision of the decimal with higher precision
    * @param value the decimal to be multiplied with
    * @param precision Number of digits after decimal point.*/
-  void MultiplyAndSet(const Decimal<T> &value, unsigned precision);
+  void MultiplyAndSet(const Decimal<T> &input, unsigned precision);
 
   /** Signed version of MultiplyAndSet
    * @param input the decimal to be multiplied with

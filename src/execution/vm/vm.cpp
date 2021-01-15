@@ -1021,10 +1021,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto fixed_decimal_3 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto fixed_decimal_4 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
-    uint128_t fixed_decimal_1_128 = static_cast<uint128_t>(fixed_decimal_1);
-    uint128_t fixed_decimal_2_128 = static_cast<uint128_t>(fixed_decimal_2);
-    uint128_t fixed_decimal_3_128 = static_cast<uint128_t>(fixed_decimal_3);
-    uint128_t fixed_decimal_4_128 = static_cast<uint128_t>(fixed_decimal_4);
+    auto fixed_decimal_1_128 = static_cast<uint128_t>(fixed_decimal_1);
+    auto fixed_decimal_2_128 = static_cast<uint128_t>(fixed_decimal_2);
+    auto fixed_decimal_3_128 = static_cast<uint128_t>(fixed_decimal_3);
+    auto fixed_decimal_4_128 = static_cast<uint128_t>(fixed_decimal_4);
 
     uint128_t fixed_decimal_128 = fixed_decimal_1_128 << 96;
     fixed_decimal_128 = fixed_decimal_128 | (fixed_decimal_2_128 << 64);
@@ -1163,11 +1163,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     Op##op##Date(result, left, right);                                  \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
-  OP(op##Decimal) : {                                              \
+  OP(op##Decimal) : {                                                   \
     auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());     \
     auto *left = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());    \
     auto *right = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());   \
-    Op##op##Decimal(result, left, right);                          \
+    Op##op##Decimal(result, left, right);                               \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
   OP(op##Timestamp) : {                                                 \
@@ -1247,7 +1247,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_MATH_OPS(Mod)
 
 #undef GEN_MATH_OPS
-
 
   OP(AddDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
@@ -2088,7 +2087,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_PR_SET(Double, sql::Real)
   GEN_PR_SET(DateVal, sql::DateVal)
   GEN_PR_SET(DecimalVal, sql::DecimalVal)
-GEN_PR_SET(TimestampVal, sql::TimestampVal)
+  GEN_PR_SET(TimestampVal, sql::TimestampVal)
 #undef GEN_PR_SET
 
   OP(PRSetVarlen) : {

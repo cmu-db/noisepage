@@ -3,8 +3,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "common/error/exception.h"
 #include "common/error/error_code.h"
+#include "common/error/exception.h"
 #include "execution/sql/decimal_magic_numbers.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -668,7 +668,7 @@ template <typename T>
 void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
   this->value_ = 0;
 
-  if (input.size() == 0) return;
+  if (input.empty()) return;
 
   unsigned pos = 0;
 
@@ -774,7 +774,7 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
   }
 }
 
-void CalculateMultiWordProduct128(uint128_t *half_words_a, uint128_t *half_words_b, uint128_t *half_words_result,
+void CalculateMultiWordProduct128(uint128_t * const half_words_a, uint128_t * const half_words_b, uint128_t *half_words_result,
                                   unsigned m, unsigned n) {
   uint128_t k, t;
   unsigned i, j;
@@ -793,41 +793,42 @@ void CalculateMultiWordProduct128(uint128_t *half_words_a, uint128_t *half_words
 
 int nlz128(uint128_t x) {
   // Not used Figure 5-19 - Hacker's Delight double method as we need for 128 bits
-  constexpr uint128_t A = ((uint128_t)0x0000000000000000 << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t B = ((uint128_t)0x00000000FFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t C = ((uint128_t)0x0000FFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t D = ((uint128_t)0x00FFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t E = ((uint128_t)0x0FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t F = ((uint128_t)0x3FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t G = ((uint128_t)0x7FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t a = (static_cast<uint128_t>(0x0000000000000000) << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t b = (static_cast<uint128_t>(0x00000000FFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t c = (static_cast<uint128_t>(0x0000FFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t d = (static_cast<uint128_t>(0x00FFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t e = (static_cast<uint128_t>(0x0FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t f = (static_cast<uint128_t>(0x3FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t g = (static_cast<uint128_t>(0x7FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
 
-  if (x == 0) return (128);
+  // clang made me comment this
+  //if (x == 0) return (128);
   int n = 0;
-  if (x <= A) {
+  if (x <= a) {
     n = n + 64;
     x = x << 64;
   }
-  if (x <= B) {
+  if (x <= b) {
     n = n + 32;
     x = x << 32;
   }
-  if (x <= C) {
+  if (x <= c) {
     n = n + 16;
     x = x << 16;
   }
-  if (x <= D) {
+  if (x <= d) {
     n = n + 8;
     x = x << 8;
   }
-  if (x <= E) {
+  if (x <= e) {
     n = n + 4;
     x = x << 4;
   }
-  if (x <= F) {
+  if (x <= f) {
     n = n + 2;
     x = x << 2;
   }
-  if (x <= G) {
+  if (x <= g) {
     n = n + 1;
   }
   return n;
@@ -836,9 +837,7 @@ int nlz128(uint128_t x) {
 uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t v) {
   if (u1 >= v) {
     // Result will overflow from 128 bits
-    throw EXECUTION_EXCEPTION(
-        fmt::format("Decimal Overflow from 128 bits"),
-        common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+    throw EXECUTION_EXCEPTION(fmt::format("Decimal Overflow from 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   // Base 2^64
@@ -940,48 +939,44 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
     uint128_t overflow_checker = result_upper >> magic_p;
     if (overflow_checker > 0) {
       // Result will overflow from 128 bits
-      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
     }
 
-    result_lower = result_lower >> magic_p;
-    result_upper = result_upper << (128 - magic_p);
-    this->value_ = result_lower | result_upper;
-    return;
-  } else {
-    // Overflow Algorithm 2 - Magic number is > 2^256
-
-    // Magic Result
-    uint128_t half_words_magic_result[8];
-    // TODO(Rohan): Make optimization to calculate only upper half of the word
-    CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
-    // Get the higher order result
-    uint128_t result_lower = half_words_result[0] | (half_words_result[1] << 64);
-    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-
-    uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
-    uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
-
-    /*Perform addition*/
-    result_lower += add_lower;
-    result_upper += add_upper;
-    // carry bit using conditional instructions
-    result_upper += (result_lower < add_lower);
-
-    uint128_t overflow_checker = result_upper >> magic_p;
-    if ((overflow_checker > 0) || (result_upper < add_upper)) {
-      // Result will overflow from 128 bits
-      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
-    }
-
-    /*We know that we only retain the lower 128 bits so there is no need of shri
-     * We can safely drop the additional carry bit*/
     result_lower = result_lower >> magic_p;
     result_upper = result_upper << (128 - magic_p);
     this->value_ = result_lower | result_upper;
     return;
   }
+  // Overflow Algorithm 2 - Magic number is > 2^256
+
+  // Magic Result
+  uint128_t half_words_magic_result[8];
+  // TODO(Rohan): Make optimization to calculate only upper half of the word
+  CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
+  // Get the higher order result
+  uint128_t result_lower = half_words_result[0] | (half_words_result[1] << 64);
+  uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
+
+  uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+  uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+  /*Perform addition*/
+  result_lower += add_lower;
+  result_upper += add_upper;
+  // carry bit using conditional instructions
+  result_upper += static_cast<uint128_t>(result_lower < add_lower);
+
+  uint128_t overflow_checker = result_upper >> magic_p;
+  if ((overflow_checker > 0) || (result_upper < add_upper)) {
+    // Result will overflow from 128 bits
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+  }
+
+  /*We know that we only retain the lower 128 bits so there is no need of shri
+   * We can safely drop the additional carry bit*/
+  result_lower = result_lower >> magic_p;
+  result_upper = result_upper << (128 - magic_p);
+  this->value_ = result_lower | result_upper;
 }
 
 template <typename T>
@@ -1023,7 +1018,7 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power) {
     /*Perform addition*/
     result_upper += add_upper;
 
-    uint128_t carry = (uint128_t)(result_upper < add_upper);
+    auto carry = static_cast<uint128_t>(result_upper < add_upper);
     carry = carry << 127;
     // shrxi 1
     result_upper = result_upper >> 1;
@@ -1093,7 +1088,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
     /*Perform addition*/
     result_upper += add_upper;
 
-    uint128_t carry = (uint128_t)(result_upper < add_upper);
+    auto carry = static_cast<uint128_t>(result_upper < add_upper);
     carry = carry << 127;
     // shrxi 1
     result_upper = result_upper >> 1;
@@ -1165,8 +1160,7 @@ void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
   if (half_words_result[2] == 0 && half_words_result[3] == 0) {
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
   } else {
-    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                              common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   if (negative_result) {
@@ -1276,52 +1270,49 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     uint128_t overflow_checker = result_upper >> magic_p;
     if (overflow_checker > 0) {
       // Result will overflow from 128 bits
-      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
     }
 
-    result_lower = result_lower >> magic_p;
-    result_upper = result_upper << (128 - magic_p);
-    return result_lower | result_upper;
-  } else {
-    // Overflow Algorithm 2 - Magic number is > 2^256
-
-    // Magic Result
-    uint128_t half_words_magic_result[8];
-    // TODO(Rohan): Make optimization to calculate only upper half of the word
-    CalculateMultiWordProduct128(dividend, magic, half_words_magic_result, 4, 4);
-    // Get the higher order result
-    uint128_t result_lower = dividend[0] | (dividend[1] << 64);
-    uint128_t result_upper = dividend[2] | (dividend[3] << 64);
-
-    uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
-    uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
-
-    /*Perform addition*/
-    result_lower += add_lower;
-    result_upper += add_upper;
-    // carry bit using conditional instructions
-    result_upper += (result_lower < add_lower);
-
-    uint128_t overflow_checker = result_upper >> magic_p;
-    if ((overflow_checker > 0) || (result_upper < add_upper)) {
-      // Result will overflow from 128 bits
-      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
-    }
-
-    /*We know that we only retain the lower 128 bits so there is no need of shri
-     * We can safely drop the additional carry bit*/
     result_lower = result_lower >> magic_p;
     result_upper = result_upper << (128 - magic_p);
     return result_lower | result_upper;
   }
+  // Overflow Algorithm 2 - Magic number is > 2^256
+
+  // Magic Result
+  uint128_t half_words_magic_result[8];
+  // TODO(Rohan): Make optimization to calculate only upper half of the word
+  CalculateMultiWordProduct128(dividend, magic, half_words_magic_result, 4, 4);
+  // Get the higher order result
+  uint128_t result_lower = dividend[0] | (dividend[1] << 64);
+  uint128_t result_upper = dividend[2] | (dividend[3] << 64);
+
+  uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+  uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+  /*Perform addition*/
+  result_lower += add_lower;
+  result_upper += add_upper;
+  // carry bit using conditional instructions
+  result_upper += static_cast<uint128_t>(result_lower < add_lower);
+
+  uint128_t overflow_checker = result_upper >> magic_p;
+  if ((overflow_checker > 0) || (result_upper < add_upper)) {
+    // Result will overflow from 128 bits
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+  }
+
+  /*We know that we only retain the lower 128 bits so there is no need of shri
+   * We can safely drop the additional carry bit*/
+  result_lower = result_lower >> magic_p;
+  result_upper = result_upper << (128 - magic_p);
+  return result_lower | result_upper;
 }
 template <typename T>
 int Decimal<T>::SetMaxmPrecision(std::string input) {
   this->value_ = 0;
 
-  if (input.size() == 0) return 0;
+  if (input.empty()) return 0;
 
   unsigned pos = 0;
 
@@ -1333,22 +1324,21 @@ int Decimal<T>::SetMaxmPrecision(std::string input) {
 
   while (pos < input.size() && input[pos] != '.') {
     this->value_ += input[pos] - '0';
-    if(pos < input.size() - 1) {
+    if (pos < input.size() - 1) {
       this->value_ *= 10;
     }
     pos++;
   }
 
-  if(pos == input.size()) {
+  if (pos == input.size()) {
     if (is_negative) {
       this->value_ = -this->value_;
     }
     return 0;
-  } else {
-    pos++;
   }
+  pos++;
 
-  if(pos == input.size()) {
+  if (pos == input.size()) {
     this->value_ /= 10;
     if (is_negative) {
       this->value_ = -this->value_;
@@ -1357,9 +1347,9 @@ int Decimal<T>::SetMaxmPrecision(std::string input) {
   }
 
   int precision = 0;
-  while(pos < input.size()) {
+  while (pos < input.size()) {
     this->value_ += input[pos] - '0';
-    if(pos < input.size() - 1) {
+    if (pos < input.size() - 1) {
       this->value_ *= 10;
     }
     pos++;
