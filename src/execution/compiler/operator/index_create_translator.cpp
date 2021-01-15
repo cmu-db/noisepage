@@ -269,7 +269,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     execution::ast::Expr * col_expr;
     if(sql_type == sql::TypeId::FixedDecimal) {
       auto vpi_get_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
-      col_expr = GetCodeGen()->SetPrecisionFixedDecimal(vpi_get_expr, tbl_col.MaxVarlenSize());
+      col_expr = GetCodeGen()->SetPrecisionFixedDecimal(vpi_get_expr, tbl_col.TypeModifier());
     } else {
       col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
     }
@@ -278,7 +278,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     uint16_t attr_offset = index_pm.at(index_col.Oid());
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
-    auto *set_key_call = codegen_->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false, index_col.MaxVarlenSize());
+    auto *set_key_call = codegen_->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false, index_col.TypeModifier());
     function->Append(codegen_->MakeStmt(set_key_call));
   }
 

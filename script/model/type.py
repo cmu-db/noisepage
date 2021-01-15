@@ -38,10 +38,10 @@ class OpUnit(enum.IntEnum):
     OP_INTEGER_MULTIPLY = 8,
     OP_INTEGER_DIVIDE = 9,
     OP_INTEGER_COMPARE = 10,
-    OP_DECIMAL_PLUS_OR_MINUS = 11,
-    OP_DECIMAL_MULTIPLY = 12,
-    OP_DECIMAL_DIVIDE = 13,
-    OP_DECIMAL_COMPARE = 14,
+    OP_REAL_PLUS_OR_MINUS = 11,
+    OP_REAL_MULTIPLY = 12,
+    OP_REAL_DIVIDE = 13,
+    OP_REAL_COMPARE = 14,
     OP_VARCHAR_COMPARE = 15,
 
     SEQ_SCAN = 20,
@@ -62,6 +62,8 @@ class OpUnit(enum.IntEnum):
     PARALLEL_MERGE_AGGBUILD = 35,
     PARALLEL_SORT_STEP = 36,
     PARALLEL_SORT_MERGE_STEP = 37
+    INDEX_INSERT = 38
+    INDEX_DELETE = 39
 
     # Networking opunits
     BIND_COMMAND = 40,
@@ -78,28 +80,22 @@ class ExecutionFeature(enum.IntEnum):
     FEATURES = 3,
 
     # input features
-    EXEC_MODE = 4,
-    NUM_ROWS = 5,
-    KEY_SIZES = 6,
-    NUM_KEYS = 7,
-    EST_CARDINALITIES = 8,
-    MEM_FACTOR = 9,
-    NUM_LOOPS = 10,
-    NUM_CONCURRENT = 11,
+    CPU_FREQ = 4,
+    EXEC_MODE = 5,
+    NUM_ROWS = 6,
+    KEY_SIZES = 7,
+    NUM_KEYS = 8,
+    EST_CARDINALITIES = 9,
+    MEM_FACTOR = 10,
+    NUM_LOOPS = 11,
+    NUM_CONCURRENT = 12,
 
     # interval input features
-    TXNS_DEALLOCATED = 12,
-    TXNS_UNLINKED = 13,
-    BUFFER_UNLINKED = 14,
-    READONLY_UNLINKED = 15,
-    INTERVAL = 16,
-
-
-class ArithmeticFeature(enum.Enum):
-    """The input fields of the arithmetic operating units
-    """
-    EXEC_NUMBER = 0,
-    EXEC_MODE = 1,
+    TXNS_DEALLOCATED = 13,
+    TXNS_UNLINKED = 14,
+    BUFFER_UNLINKED = 15,
+    READONLY_UNLINKED = 16,
+    INTERVAL = 17,
 
 
 class ConcurrentCountingMode(enum.Enum):

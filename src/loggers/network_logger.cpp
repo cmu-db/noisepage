@@ -1,10 +1,8 @@
 #include "loggers/network_logger.h"
 
-#include <memory>
-
 namespace noisepage::network {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> network_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr network_logger = nullptr;
 
 void InitNetworkLogger() {
   if (network_logger == nullptr) {

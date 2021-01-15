@@ -176,6 +176,26 @@ SETTING_int(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int64(
+    workload_forecast_interval,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: ns)",
+    10000000,
+    10000000,
+    1000000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    pilot_interval,
+    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000, unit: ns)",
+    1000000,
+    1000000,
+    10000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",
@@ -190,6 +210,22 @@ SETTING_bool(
     true,
     false,
     noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    use_pilot_thread,
+    "Use a thread for the pilot (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    pilot_planning,
+    "Start planning in pilot (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::PilotEnablePlanning
 )
 
 SETTING_bool(
@@ -321,6 +357,32 @@ SETTING_bool(
     messenger_enable,
     "Whether to enable the messenger (default: false)",
     false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    model_server_enable,
+    "Whether to enable the ModelServerManager (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+// Relative path assuming binary locate at PROJECT_ROOT/build/bin/, and model_server.py at PROJECT_ROOT/script/model
+SETTING_string(
+    model_server_path,
+    "The python model server script to invoke (default: ../../script/model/model_server.py)",
+    "../../script/model/model_server.py",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+// Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH)
+SETTING_string(
+    model_save_path,
+    "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
+    "/../script/model/terrier_model_server_trained/mini_model_test.pickle",
     false,
     noisepage::settings::Callbacks::NoOp
 )

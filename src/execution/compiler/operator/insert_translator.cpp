@@ -35,7 +35,9 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
       compilation_context->Prepare(*node_val);
     }
   }
-  for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
+
+  auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
+  for (auto &index_oid : index_oids) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
       compilation_context->Prepare(*index_col.StoredExpression());
@@ -66,8 +68,7 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     // var insert_slot = @tableInsert(&inserter)
     GenTableInsert(function);
     function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
-    const auto &table_oid = GetPlanAs<planner::InsertPlanNode>().GetTableOid();
-    const auto &index_oids = GetCodeGen()->GetCatalogAccessor()->GetIndexOids(table_oid);
+    const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
     for (const auto &index_oid : index_oids) {
       GenIndexInsert(context, function, index_oid);
     }
@@ -118,7 +119,7 @@ ast::Expr *InsertTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto attr_index = table_pm_.find(col_oid)->second;
   if(sql::GetTypeId(type) == sql::TypeId::FixedDecimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(insert_pr_), type, nullable, attr_index);
-    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).MaxVarlenSize());
+    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
   }
   return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(insert_pr_), type, nullable, attr_index);
 }
@@ -159,7 +160,7 @@ void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     const auto &pr_set_call =
         GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
-                            table_pm_.find(table_col_oid)->second, src, true, table_col.MaxVarlenSize());
+                            table_pm_.find(table_col_oid)->second, src, true, table_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 }
@@ -194,7 +195,7 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
     auto *set_key_call = GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false,
-                                             index_col.MaxVarlenSize());
+                                             index_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 

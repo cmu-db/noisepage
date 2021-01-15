@@ -160,7 +160,7 @@ class IndexMetadata {
   /**
    * Computes the attribute sizes as given by the key schema if everything were inlined.
    * Note varchars are inlined as VarlenEntry if they fit, and as (4 bytes of size + varlen content) otherwise.
-   * e.g.   if key_schema is {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
+   * e.g.   if key_schema is {INTEGER, VARCHAR(8), VARCHAR(1), TINYINT, VARCHAR(12)}
    *        then attr_sizes returned is {4, 16, 16, 1, 16}
    */
   static std::vector<uint16_t> ComputeInlinedAttributeSizes(const catalog::IndexSchema &key_schema) {
@@ -174,7 +174,7 @@ class IndexMetadata {
         case type::TypeId::VARCHAR: {
           // Add 4 bytes because we'll prepend a size field. If we're too small, we'll just use a VarlenEntry.
           auto varlen_size =
-              std::max(static_cast<uint16_t>(key.MaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
+              std::max(static_cast<uint16_t>(key.TypeModifier() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
           inlined_attr_sizes.emplace_back(varlen_size);
           break;
         }
@@ -194,8 +194,10 @@ class IndexMetadata {
     return std::any_of(key_cols.begin(), key_cols.end(), [](const auto &key) -> bool {
       switch (key.Type()) {
         case type::TypeId::VARBINARY:
-        case type::TypeId::VARCHAR:
-          return key.MaxVarlenSize() > VarlenEntry::InlineThreshold();
+        case type::TypeId::VARCHAR: {
+          // TODO(Matt): we should add an assertion here once a default for unlimited varlens is decided
+          return static_cast<uint32_t>(key.TypeModifier()) > VarlenEntry::InlineThreshold();
+        }
         default:
           break;
       }

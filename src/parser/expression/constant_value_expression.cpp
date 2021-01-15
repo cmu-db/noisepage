@@ -176,7 +176,7 @@ common::hash_t ConstantValueExpression::Hash() const {
     case type::TypeId::BIGINT: {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<int64_t>()));
     }
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<double>()));
     }
     case type::TypeId::FIXEDDECIMAL: {
@@ -215,7 +215,7 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
     case type::TypeId::BIGINT: {
       return Peek<int64_t>() == other_cve.Peek<int64_t>();
     }
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       return Peek<double>() == other_cve.Peek<double>();
     }
     case type::TypeId::FIXEDDECIMAL: {
@@ -247,7 +247,7 @@ std::string ConstantValueExpression::ToString() const {
     case type::TypeId::BIGINT: {
       return fmt::format("{}", GetInteger().val_);
     }
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       return fmt::format("{}", GetReal().val_);
     }
     case type::TypeId::FIXEDDECIMAL: {
@@ -280,7 +280,7 @@ ConstantValueExpression ConstantValueExpression::FromString(const std::string &v
     case type::TypeId::BIGINT: {
       return ConstantValueExpression(type_id, execution::sql::Integer(std::stoll(val)));
     }
-    case type::TypeId::DECIMAL: {
+    case type::TypeId::REAL: {
       return ConstantValueExpression(type_id, execution::sql::Real(std::stod(val)));
     }
     case type::TypeId::TIMESTAMP: {
@@ -315,7 +315,7 @@ nlohmann::json ConstantValueExpression::ToJson() const {
         j["value"] = Peek<int64_t>();
         break;
       }
-      case type::TypeId::DECIMAL: {
+      case type::TypeId::REAL: {
         j["value"] = Peek<double>();
         break;
       }
@@ -363,7 +363,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
         value_ = execution::sql::Integer(j.at("value").get<int64_t>());
         break;
       }
-      case type::TypeId::DECIMAL: {
+      case type::TypeId::REAL: {
         value_ = execution::sql::Real(j.at("value").get<double>());
         break;
       }

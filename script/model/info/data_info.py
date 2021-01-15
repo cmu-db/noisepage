@@ -1,8 +1,8 @@
-from type import OpUnit, ArithmeticFeature, Target, ExecutionFeature
+from type import OpUnit, Target, ExecutionFeature
 
 # Boundary from input feature -> outputs
 # The field >= boundary is the inputs and outputs
-INPUT_OUTPUT_BOUNDARY = ExecutionFeature.EXEC_MODE
+INPUT_OUTPUT_BOUNDARY = ExecutionFeature.CPU_FREQ
 
 # End of the input features
 INPUT_END_BOUNDARY = Target.START_TIME
@@ -18,12 +18,6 @@ INPUT_CSV_INDEX = {}
 
 # The index for different targets in the output
 TARGET_CSV_INDEX = {}
-
-# The mini model features for arithmetic operations
-ARITHMETIC_FEATURE_INDEX = {
-    ArithmeticFeature.EXEC_NUMBER: 0,
-    ArithmeticFeature.EXEC_MODE: 1,
-}
 
 # The position of the name of the operating unit in the execution engine csv metrics file
 EXECUTION_CSV_NAME_POSITION = 0
@@ -41,8 +35,8 @@ MINI_MODEL_TARGET_NUM = len(MINI_MODEL_TARGET_LIST)
 # All the opunits of arithmetic operations
 ARITHMETIC_OPUNITS = {OpUnit.OP_INTEGER_PLUS_OR_MINUS, OpUnit.OP_INTEGER_MULTIPLY, OpUnit.OP_INTEGER_DIVIDE,
                       OpUnit.OP_INTEGER_COMPARE,
-                      OpUnit.OP_DECIMAL_PLUS_OR_MINUS, OpUnit.OP_DECIMAL_MULTIPLY, OpUnit.OP_DECIMAL_DIVIDE,
-                      OpUnit.OP_DECIMAL_COMPARE}
+                      OpUnit.OP_REAL_PLUS_OR_MINUS, OpUnit.OP_REAL_MULTIPLY, OpUnit.OP_REAL_DIVIDE,
+                      OpUnit.OP_REAL_COMPARE}
 
 # Operating units that need memory adjustment
 MEM_ADJUST_OPUNITS = {OpUnit.SORT_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.AGG_BUILD}

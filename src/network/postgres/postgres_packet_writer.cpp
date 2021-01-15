@@ -161,6 +161,9 @@ void PostgresPacketWriter::WriteCommandComplete(const QueryType query_type, cons
     case QueryType::QUERY_SET:
       WriteCommandComplete("SET");
       break;
+    case QueryType::QUERY_SHOW:
+      WriteCommandComplete("SHOW");
+      break;
     default:
       WriteCommandComplete("This QueryType needs a completion message!");
       break;
@@ -304,7 +307,7 @@ uint32_t PostgresPacketWriter::WriteBinaryAttribute(const execution::sql::Val *c
         WriteBinaryVal<bool, execution::sql::BoolVal>(val, type);
         break;
       }
-      case type::TypeId::DECIMAL: {
+      case type::TypeId::REAL: {
         WriteBinaryVal<double, execution::sql::Real>(val, type);
         break;
       }
@@ -352,7 +355,7 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         AppendValue<int32_t>(static_cast<int32_t>(str_view.length())).AppendStringView(str_view, false);
         return execution::sql::ValUtil::GetSqlSize(type);
       }
-      case type::TypeId::DECIMAL: {
+      case type::TypeId::REAL: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
         string_value = std::to_string(real_val->val_);
         break;

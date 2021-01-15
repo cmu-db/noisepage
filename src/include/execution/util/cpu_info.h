@@ -89,6 +89,11 @@ y   * @return The size of a cache line at level @em level.
   uint64_t GetRefCyclesUs() const { return ref_cycles_us_; }
 
   /**
+   * @return The CPU Frequency in MHz recorded at initialization
+   */
+  double GetCpuFreq() const { return cpu_mhz_; }
+
+  /**
    * @return True if the CPU has the input hardware feature @em feature; false otherwise;
    */
   bool HasFeature(const Feature feature) const noexcept { return hardware_flags_[feature]; }

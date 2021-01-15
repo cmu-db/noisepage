@@ -399,10 +399,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           }
 
           // We overwrite the original insert columns and values with the schema-ordered versions generated above.
-          insert_columns->clear();
           values.clear();
           for (auto &pair : cols) {
-            insert_columns->emplace_back(pair.first.Name());
             values.emplace_back(pair.second);
           }
         }
@@ -445,6 +443,15 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
         }
       }
     }
+    // The final list of insert columns will always be the full list. Done here to avoid iterator invalidation problems.
+    {
+      const auto &cols = table_schema.GetColumns();
+      node->GetInsertColumns()->clear();
+      node->GetInsertColumns()->reserve(cols.size());
+      for (const auto &col : cols) {
+        node->GetInsertColumns()->emplace_back(col.Name());
+      }
+    }
   }
 
   context_ = nullptr;
@@ -463,7 +470,7 @@ int32_t BindNodeVisitor::FixedDecimalExpressionResolvePrecision(common::ManagedP
           common::ManagedPointer<noisepage::parser::ColumnValueExpression> &&>(expr)->GetTableOid();
       noisepage::catalog::col_oid_t column_oid = reinterpret_cast<
           common::ManagedPointer<noisepage::parser::ColumnValueExpression> &&>(expr)->GetColumnOid();
-      return catalog_accessor_->GetSchema(table_oid).GetColumn(column_oid).MaxVarlenSize();
+      return catalog_accessor_->GetSchema(table_oid).GetColumn(column_oid).TypeModifier();
     } else {
       return -1;
     }
@@ -883,7 +890,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
         case type::TypeId::BIGINT:
           column_id = constant_value_expression->GetInteger().val_;
           break;
-        case type::TypeId::DECIMAL:
+        case type::TypeId::REAL:
           column_id = constant_value_expression->GetReal().val_;
           break;
         default:

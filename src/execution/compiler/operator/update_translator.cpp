@@ -30,7 +30,8 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
     compilation_context->Prepare(*clause.second);
   }
 
-  for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
+  auto &index_oids = GetPlanAs<planner::UpdatePlanNode>().GetIndexOids();
+  for (auto &index_oid : index_oids) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
       compilation_context->Prepare(*index_col.StoredExpression());
@@ -72,7 +73,7 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     // For indexed updates, we need to re-insert into the table, and then delete-and-insert into every index.
     // var insert_slot = @tableInsert(&updater_)
     GenTableInsert(function);
-    const auto &indexes = GetCodeGen()->GetCatalogAccessor()->GetIndexOids(op.GetTableOid());
+    const auto &indexes = GetPlanAs<planner::UpdatePlanNode>().GetIndexOids();
     for (const auto &index_oid : indexes) {
       GenIndexDelete(function, context, index_oid);
       GenIndexInsert(context, function, index_oid);
@@ -90,10 +91,22 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 }
 
 void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
-                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
-  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
-                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  if (GetPlanAs<planner::UpdatePlanNode>().GetIndexOids().empty()) {
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::UPDATE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  } else {
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::INSERT,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+    FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::DELETE,
+                  selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  }
+
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 
@@ -132,7 +145,7 @@ ast::Expr *UpdateTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto attr_index = table_pm_.find(col_oid)->second;
   if(sql::GetTypeId(type) == sql::TypeId::FixedDecimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(update_pr_), type, nullable, attr_index);
-    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).MaxVarlenSize());
+    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
   }
   return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(update_pr_), type, nullable, attr_index);
 }
@@ -160,30 +173,13 @@ void UpdateTranslator::GetUpdatePR(noisepage::execution::compiler::FunctionBuild
   // var update_pr = @getTablePR(&updater)
   auto *get_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetTablePR, {GetCodeGen()->AddressOf(updater_)});
   builder->Append(GetCodeGen()->Assign(GetCodeGen()->MakeExpr(update_pr_), get_pr_call));
-
-  const auto &op = GetPlanAs<planner::UpdatePlanNode>();
-  auto *update_pr = GetCodeGen()->MakeExpr(update_pr_);
-  // TODO(WAN): is this a hack?
-  // Set the update_pr from the child so that updates can safely refer to themselves, e.g. UPDATE a = a+1.
-  // @prSet(update_pr, ...)
-  if (op.GetChildrenSize() > 0) {
-    const auto *child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
-
-    for (const auto oid : all_oids_) {
-      const auto &col = table_schema_.GetColumn(oid);
-      const auto idx = table_pm_.find(oid)->second;
-
-      ast::Expr *child_expr = child->GetTableColumn(oid);
-      ast::Expr *set_pr = GetCodeGen()->PRSet(update_pr, col.Type(), col.Nullable(), idx, child_expr, true,
-                                              col.MaxVarlenSize());
-      builder->Append(GetCodeGen()->MakeStmt(set_pr));
-    }
-  }
 }
 
 void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *context) const {
-  const auto &clauses = GetPlanAs<planner::UpdatePlanNode>().GetSetClauses();
+  const auto &op = GetPlanAs<planner::UpdatePlanNode>();
+  const auto &clauses = op.GetSetClauses();
 
+  std::unordered_set<catalog::col_oid_t> set_oids;
   for (const auto &clause : clauses) {
     // @prSet(update_pr, ...)
     const auto &table_col_oid = clause.first;
@@ -191,8 +187,24 @@ void UpdateTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
     const auto &clause_expr = context->DeriveValue(*clause.second, this);
     auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
                                             table_pm_.find(table_col_oid)->second, clause_expr, true,
-                                            table_col.MaxVarlenSize());
+                                            table_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
+
+    set_oids.insert(table_col_oid);
+  }
+
+  for (const auto oid : all_oids_) {
+    if (set_oids.find(oid) == set_oids.end()) {
+      // For columns not modified by an update clause, copy the original value.
+      const auto &col = table_schema_.GetColumn(oid);
+      const auto idx = table_pm_.find(oid)->second;
+
+      const auto *provider = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
+      ast::Expr *child_expr = provider->GetTableColumn(oid);
+      ast::Expr *set_pr =
+          GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), col.Type(), col.Nullable(), idx, child_expr, true);
+      builder->Append(GetCodeGen()->MakeStmt(set_pr));
+    }
   }
 }
 
@@ -238,7 +250,7 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
     auto *set_key_call = GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, true,
-                                             index_col.MaxVarlenSize());
+                                             index_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 
@@ -291,7 +303,7 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
     const auto &val = context->DeriveValue(*index_col.StoredExpression().Get(), child);
     auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
                                             index_col.Nullable(), index_pm.at(index_col.Oid()), val, true,
-                                            index_col.MaxVarlenSize());
+                                            index_col.TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 

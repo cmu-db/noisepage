@@ -132,7 +132,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
       auto const_val = translator->DeriveValue(nullptr, nullptr);
       if(translator->GetExpression().GetReturnValueType() == type::TypeId::FIXEDDECIMAL) {
         const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
-        uint16_t max_varlen_size = schema.GetColumn(cve->GetColumnOid()).MaxVarlenSize();
+        uint16_t max_varlen_size = schema.GetColumn(cve->GetColumnOid()).TypeModifier();
         const_val = codegen->CallBuiltin(ast::Builtin::UpgradePrecisionFixedDecimal,
                                          {const_val, codegen->Const32(max_varlen_size)});
       }
@@ -169,7 +169,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
         case type::TypeId::BIGINT:
           builtin = ast::Builtin::GetParamBigInt;
           break;
-        case type::TypeId::DECIMAL:
+        case type::TypeId::REAL:
           builtin = ast::Builtin::GetParamDouble;
           break;
         case type::TypeId::DATE:
@@ -344,7 +344,7 @@ ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto col_index = GetColOidIndex(col_oid);
   if(sql::GetTypeId(type) == sql::TypeId::FixedDecimal) {
     auto vpi_get_expr = GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
-    return GetCodeGen()->SetPrecisionFixedDecimal(vpi_get_expr, schema.GetColumn(col_oid).MaxVarlenSize());
+    return GetCodeGen()->SetPrecisionFixedDecimal(vpi_get_expr, schema.GetColumn(col_oid).TypeModifier());
   }
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
 }

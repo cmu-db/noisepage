@@ -36,7 +36,7 @@ class TypeUtil {
       case TypeId::PARAMETER_OFFSET:
         return 4;
       case TypeId::BIGINT:
-      case TypeId::DECIMAL:
+      case TypeId::REAL:
       case TypeId::TIMESTAMP:
         return 8;
       case TypeId::FIXEDDECIMAL:
@@ -44,6 +44,8 @@ class TypeUtil {
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
         return storage::VARLEN_COLUMN;
+      case TypeId::DECIMAL:
+        return 16;
       default:
         throw std::runtime_error("Unknown TypeId in noisepage::type::TypeUtil::GetTypeSize().");
     }
@@ -76,6 +78,8 @@ class TypeUtil {
         return "INTEGER";
       case type::TypeId::BIGINT:
         return "BIGINT";
+      case type::TypeId::REAL:
+        return "REAL";
       case type::TypeId::DECIMAL:
         return "DECIMAL";
       case type::TypeId::TIMESTAMP:
@@ -121,6 +125,9 @@ class TypeUtil {
     }
     if (type_string == "BIGINT") {
       return type::TypeId::BIGINT;
+    }
+    if (type_string == "REAL") {
+      return type::TypeId::REAL;
     }
     if (type_string == "DECIMAL") {
       return type::TypeId::DECIMAL;

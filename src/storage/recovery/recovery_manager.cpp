@@ -232,83 +232,83 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
   // be entries in pg_index. Thus, we hardcode these to update
   switch (table_oid.UnderlyingValue()) {
-    case (catalog::postgres::DATABASE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgDatabase::DATABASE_TABLE_OID.UnderlyingValue()): {
       index_objects.emplace_back(catalog_->databases_name_index_,
                                  catalog_->databases_name_index_->metadata_.GetSchema());
       index_objects.emplace_back(catalog_->databases_oid_index_, catalog_->databases_oid_index_->metadata_.GetSchema());
       break;
     }
 
-    case (catalog::postgres::NAMESPACE_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->namespaces_oid_index_,
-                                 db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->namespaces_name_index_,
-                                 db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.namespaces_oid_index_,
+                                 db_catalog_ptr->pg_core_.namespaces_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.namespaces_name_index_,
+                                 db_catalog_ptr->pg_core_.namespaces_name_index_->metadata_.GetSchema());
       break;
     }
 
-    case (catalog::postgres::CLASS_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->classes_oid_index_,
-                                 db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->classes_name_index_,
-                                 db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->classes_namespace_index_,
-                                 db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgClass::CLASS_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.classes_oid_index_,
+                                 db_catalog_ptr->pg_core_.classes_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.classes_name_index_,
+                                 db_catalog_ptr->pg_core_.classes_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.classes_namespace_index_,
+                                 db_catalog_ptr->pg_core_.classes_namespace_index_->metadata_.GetSchema());
       break;
     }
 
-    case (catalog::postgres::COLUMN_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->columns_oid_index_,
-                                 db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->columns_name_index_,
-                                 db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.columns_oid_index_,
+                                 db_catalog_ptr->pg_core_.columns_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.columns_name_index_,
+                                 db_catalog_ptr->pg_core_.columns_name_index_->metadata_.GetSchema());
       break;
     }
 
-    case (catalog::postgres::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->constraints_oid_index_,
-                                 db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_name_index_,
-                                 db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_namespace_index_,
-                                 db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_index_index_,
-                                 db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_foreigntable_index_,
-                                 db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_oid_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_name_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_namespace_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_namespace_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_index_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_index_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_constraint_.constraints_foreigntable_index_,
+                                 db_catalog_ptr->pg_constraint_.constraints_foreigntable_index_->metadata_.GetSchema());
       break;
     }
 
-    case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->indexes_oid_index_,
-                                 db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->indexes_table_index_,
-                                 db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgIndex::INDEX_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.indexes_oid_index_,
+                                 db_catalog_ptr->pg_core_.indexes_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_core_.indexes_table_index_,
+                                 db_catalog_ptr->pg_core_.indexes_table_index_->metadata_.GetSchema());
       break;
     }
 
-    case (catalog::postgres::TYPE_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->types_oid_index_,
-                                 db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->types_name_index_,
-                                 db_catalog_ptr->types_name_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->types_namespace_index_,
-                                 db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgType::TYPE_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_type_.types_oid_index_,
+                                 db_catalog_ptr->pg_type_.types_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_type_.types_name_index_,
+                                 db_catalog_ptr->pg_type_.types_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_type_.types_namespace_index_,
+                                 db_catalog_ptr->pg_type_.types_namespace_index_->metadata_.GetSchema());
       break;
     }
 
-    case (catalog::postgres::LANGUAGE_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->languages_oid_index_,
-                                 db_catalog_ptr->languages_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->languages_name_index_,
-                                 db_catalog_ptr->languages_name_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgLanguage::LANGUAGE_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_language_.languages_oid_index_,
+                                 db_catalog_ptr->pg_language_.languages_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_language_.languages_name_index_,
+                                 db_catalog_ptr->pg_language_.languages_name_index_->metadata_.GetSchema());
       break;
     }
-    case (catalog::postgres::PRO_TABLE_OID.UnderlyingValue()): {
-      index_objects.emplace_back(db_catalog_ptr->procs_oid_index_,
-                                 db_catalog_ptr->procs_oid_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->procs_name_index_,
-                                 db_catalog_ptr->procs_name_index_->metadata_.GetSchema());
+    case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
+      index_objects.emplace_back(db_catalog_ptr->pg_proc_.procs_oid_index_,
+                                 db_catalog_ptr->pg_proc_.procs_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->pg_proc_.procs_name_index_,
+                                 db_catalog_ptr->pg_proc_.procs_name_index_->metadata_.GetSchema());
       break;
     }
 
@@ -357,7 +357,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       if (table_pr->IsNull(pr_map[table_col_oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
-        auto size = AttrSizeBytes(col.AttrSize());
+        auto size = AttrSizeBytes(col.AttributeLength());
         std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
                     table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
       }
@@ -393,15 +393,15 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
   }
 
   switch (table_oid.UnderlyingValue()) {
-    case (catalog::postgres::DATABASE_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgDatabase::DATABASE_TABLE_OID.UnderlyingValue()): {
       return ProcessSpecialCasePGDatabaseRecord(txn, buffered_changes, start_idx);
     }
 
-    case (catalog::postgres::CLASS_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgClass::CLASS_TABLE_OID.UnderlyingValue()): {
       return ProcessSpecialCasePGClassRecord(txn, buffered_changes, start_idx);
     }
 
-    case (catalog::postgres::COLUMN_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
       NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
                        "Special case pg_attribute record must be a delete");
       // A delete into pg_attribute means we are deleting a column. There are two cases:
@@ -412,7 +412,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       return 0;  // Case 2, no additional records processed
     }
 
-    case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgIndex::INDEX_TABLE_OID.UnderlyingValue()): {
       NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
                        "Special case pg_index record must be a delete");
       // A delete into pg_index means we are dropping an index. In this case, we dont process the record because the
@@ -420,7 +420,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       return 0;  // No additional logs processed
     }
 
-    case (catalog::postgres::PRO_TABLE_OID.UnderlyingValue()): {
+    case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
       return ProcessSpecialCasePGProcRecord(txn, buffered_changes, start_idx);
     }
 
@@ -437,7 +437,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
 
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID,
+    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID,
                      "This function must be only called with records modifying pg_database");
 
     // An insert into pg_database is a special case because we need the catalog to actually create the necessary
@@ -445,16 +445,16 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
     NOISEPAGE_ASSERT(IsInsertRecord(redo_record), "Special case on pg_database should only be insert");
 
     // Step 1: Extract inserted values from the PR in redo record
-    storage::SqlTable *pg_database = catalog_->databases_;
+    const auto pg_database = common::ManagedPointer<storage::SqlTable>(catalog_->databases_);
     auto pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, redo_record));
-    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(),
+    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATOID.oid_) != pr_map.end(),
                      "PR Map must contain database oid");
-    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATNAME_COL_OID) != pr_map.end(),
+    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATNAME.oid_) != pr_map.end(),
                      "PR Map must contain database name");
     catalog::db_oid_t db_oid(*(reinterpret_cast<uint32_t *>(
-        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID]))));
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATOID.oid_]))));
     VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATNAME_COL_OID])));
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATNAME.oid_])));
     std::string name_string(name_varlen.StringView());
 
     // Step 2: Recreate the database
@@ -483,18 +483,18 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
   NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE, "Must be delete record at this point");
   auto *delete_record = curr_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
 
-  NOISEPAGE_ASSERT(delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID,
+  NOISEPAGE_ASSERT(delete_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID,
                    "Special case for delete should be on pg_class or pg_database");
 
   // Step 1: Determine the database oid for the database that is being deleted
-  storage::SqlTable *pg_database = catalog_->databases_;
-  auto pr_init = pg_database->InitializerForProjectedRow({catalog::postgres::DATOID_COL_OID});
-  auto pr_map = pg_database->ProjectionMapForOids({catalog::postgres::DATOID_COL_OID});
+  const auto pg_database = common::ManagedPointer<storage::SqlTable>(catalog_->databases_);
+  auto pr_init = pg_database->InitializerForProjectedRow({catalog::postgres::PgDatabase::DATOID.oid_});
+  auto pr_map = pg_database->ProjectionMapForOids({catalog::postgres::PgDatabase::DATOID.oid_});
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *pr = pr_init.InitializeRow(buffer);
   pg_database->Select(common::ManagedPointer(txn), GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
-  auto db_oid =
-      *(reinterpret_cast<catalog::db_oid_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID])));
+  auto db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
+      pr->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATOID.oid_])));
   delete[] buffer;
 
   // Step 2: We need to handle the case where we are just renaming a database, in this case we don't wan't to delete
@@ -509,18 +509,18 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
           IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
         // Step 3: Get the oid and name for the database being created
         pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, next_redo_record));
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATOID.oid_) != pr_map.end(),
                          "PR Map must contain class oid");
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATNAME_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgDatabase::DATNAME.oid_) != pr_map.end(),
                          "PR Map must contain class name");
         auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
-            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID])));
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATOID.oid_])));
 
         // If the oid matches on the next record, this is a renaming
         if (db_oid == next_db_oid) {
           // Step 4: Extract out the new name
           VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATNAME_COL_OID])));
+              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgDatabase::DATNAME.oid_])));
           std::string name_string(name_varlen.StringView());
 
           // Step 5: Rename the database
@@ -566,7 +566,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   auto *curr_record = buffered_changes->at(start_idx).first;
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID,
+    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PgClass::CLASS_TABLE_OID,
                      "This function must be only called with records modifying pg_class");
 
     NOISEPAGE_ASSERT(!IsInsertRecord(redo_record), "Special case pg_class record should only be updates");
@@ -578,40 +578,40 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
     //  anything yet because we don't support DDL changes in the catalog
     //  3. If we update the ptr column, this means we've inserted a new object and we need to recreate the object, and
     //  set the pointer again.
-    auto pg_class_ptr = db_catalog->classes_;
+    auto pg_class_ptr = db_catalog->pg_core_.classes_;
     auto redo_record_oids = GetOidsForRedoRecord(pg_class_ptr, redo_record);
     NOISEPAGE_ASSERT(redo_record_oids.size() == 1, "Updates to pg_class should only touch one column");
     auto updated_pg_class_oid = redo_record_oids[0];
 
     switch (updated_pg_class_oid.UnderlyingValue()) {
-      case (catalog::postgres::REL_NEXTCOLOID_COL_OID.UnderlyingValue()): {  // Case 1
+      case (catalog::postgres::PgClass::REL_NEXTCOLOID.oid_.UnderlyingValue()): {  // Case 1
         ReplayRedoRecord(txn, curr_record);
         return 0;  // No additional logs processed
       }
 
-      case (catalog::postgres::REL_SCHEMA_COL_OID.UnderlyingValue()): {  // Case 2
+      case (catalog::postgres::PgClass::REL_SCHEMA.oid_.UnderlyingValue()): {  // Case 2
         // TODO(Gus): Add support for recovering DDL changes.
         return 0;  // No additional logs processed
       }
 
-      case (catalog::postgres::REL_PTR_COL_OID.UnderlyingValue()): {  // Case 3
+      case (catalog::postgres::PgClass::REL_PTR.oid_.UnderlyingValue()): {  // Case 3
         // An update to the ptr column of pg_class means that we have inserted all necessary metadata into the other
         // catalog tables, and we can now recreate the object
         // Step 1: Get the class oid and kind for the object we're updating
-        std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELOID_COL_OID,
-                                                    catalog::postgres::RELKIND_COL_OID};
+        std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID.oid_,
+                                                    catalog::postgres::PgClass::RELKIND.oid_};
         auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
         auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
         auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
         auto *pr = pr_init.InitializeRow(buffer);
         pg_class_ptr->Select(common::ManagedPointer(txn), GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
         auto class_oid =
-            *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
-        auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
-            pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
+            *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID.oid_])));
+        auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
+            pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND.oid_])));
 
         switch (class_kind) {
-          case (catalog::postgres::ClassKind::REGULAR_TABLE): {
+          case (catalog::postgres::PgClass::RelKind::REGULAR_TABLE): {
             // Step 2: Query pg_attribute for the columns of the table
             auto schema_cols =
                 db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
@@ -619,8 +619,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
             // Step 3: Create and set schema in catalog
             auto *schema = new catalog::Schema(std::move(schema_cols));
-            bool result UNUSED_ATTRIBUTE =
-                db_catalog->SetTableSchemaPointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid), schema);
+            bool result UNUSED_ATTRIBUTE = db_catalog->SetTableSchemaPointer<RecoveryManager>(
+                common::ManagedPointer(txn), catalog::table_oid_t(class_oid), schema);
             NOISEPAGE_ASSERT(result,
                              "Setting table schema pointer should succeed, entry should be in pg_class already");
 
@@ -643,14 +643,14 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             return 0;  // No additional records processed
           }
 
-          case (catalog::postgres::ClassKind::INDEX): {
+          case (catalog::postgres::PgClass::RelKind::INDEX): {
             // Step 2: Query pg_attribute for the columns of the index
             auto index_cols =
                 db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
                     common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
 
             // Step 3: Query pg_index for the metadata we need for the index schema
-            auto pg_indexes_index = db_catalog->indexes_oid_index_;
+            auto pg_indexes_index = db_catalog->pg_core_.indexes_oid_index_;
             pr = pg_indexes_index->GetProjectedRowInitializer().InitializeRow(buffer);
             *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
             std::vector<TupleSlot> tuple_slot_result;
@@ -659,44 +659,45 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
             // NOLINTNEXTLINE
             col_oids.clear();
-            col_oids = {catalog::postgres::INDISUNIQUE_COL_OID, catalog::postgres::INDISPRIMARY_COL_OID,
-                        catalog::postgres::INDISEXCLUSION_COL_OID, catalog::postgres::INDIMMEDIATE_COL_OID,
-                        catalog::postgres::IND_TYPE_COL_OID};
-            auto pg_index_pr_init = db_catalog->indexes_->InitializerForProjectedRow(col_oids);
-            auto pg_index_pr_map = db_catalog->indexes_->ProjectionMapForOids(col_oids);
+            col_oids = {catalog::postgres::PgIndex::INDISUNIQUE.oid_, catalog::postgres::PgIndex::INDISPRIMARY.oid_,
+                        catalog::postgres::PgIndex::INDISEXCLUSION.oid_, catalog::postgres::PgIndex::INDIMMEDIATE.oid_,
+                        catalog::postgres::PgIndex::IND_TYPE.oid_};
+            auto pg_index_pr_init = db_catalog->pg_core_.indexes_->InitializerForProjectedRow(col_oids);
+            auto pg_index_pr_map = db_catalog->pg_core_.indexes_->ProjectionMapForOids(col_oids);
             delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
             buffer = common::AllocationUtil::AllocateAligned(pg_index_pr_init.ProjectedRowSize());
             pr = pg_index_pr_init.InitializeRow(buffer);
             bool result UNUSED_ATTRIBUTE =
-                db_catalog->indexes_->Select(common::ManagedPointer(txn), tuple_slot_result[0], pr);
+                db_catalog->pg_core_.indexes_->Select(common::ManagedPointer(txn), tuple_slot_result[0], pr);
             NOISEPAGE_ASSERT(result, "Select into pg_index should succeed during recovery");
             bool is_unique = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISUNIQUE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISUNIQUE.oid_])));
             bool is_primary = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISPRIMARY_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISPRIMARY.oid_])));
             bool is_exclusion = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISEXCLUSION_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDISEXCLUSION.oid_])));
             bool is_immediate = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDIMMEDIATE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::INDIMMEDIATE.oid_])));
             storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::IND_TYPE_COL_OID])));
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::IND_TYPE.oid_])));
 
             // Step 4: Create and set IndexSchema in catalog
             auto *index_schema =
                 new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
-            result = db_catalog->SetIndexSchemaPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid),
-                                                       index_schema);
+            result = db_catalog->SetIndexSchemaPointer<RecoveryManager>(common::ManagedPointer(txn),
+                                                                        catalog::index_oid_t(class_oid), index_schema);
             NOISEPAGE_ASSERT(result,
                              "Setting index schema pointer should succeed, entry should be in pg_class already");
 
             // Step 5: Create and set index pointer in catalog
-            storage::index::Index *index;
+            common::ManagedPointer<storage::index::Index> index;
             if (class_oid < catalog::START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
               index = GetCatalogIndex(catalog::index_oid_t(class_oid), db_catalog);
             } else {
-              index = index::IndexBuilder().SetKeySchema(*index_schema).Build();
+              index = common::ManagedPointer(index::IndexBuilder().SetKeySchema(*index_schema).Build());
             }
-            result = db_catalog->SetIndexPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid), index);
+            result =
+                db_catalog->SetIndexPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid), index.Get());
             NOISEPAGE_ASSERT(result, "Setting index pointer should succeed, entry should be in pg_class already");
 
             // Step 6: Update catalog oid
@@ -730,16 +731,18 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
   // Step 1: Determine the object oid and type that is being deleted
   auto db_catalog_ptr = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid());
-  storage::SqlTable *pg_class = db_catalog_ptr->classes_;
-  std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELOID_COL_OID, catalog::postgres::RELKIND_COL_OID};
+  const auto pg_class = common::ManagedPointer<storage::SqlTable>(db_catalog_ptr->pg_core_.classes_);
+  std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID.oid_,
+                                              catalog::postgres::PgClass::RELKIND.oid_};
   auto pr_init = pg_class->InitializerForProjectedRow(col_oids);
   auto pr_map = pg_class->ProjectionMapForOids(col_oids);
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *pr = pr_init.InitializeRow(buffer);
   pg_class->Select(common::ManagedPointer(txn), GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
-  auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
-  auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
-      pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
+  auto class_oid =
+      *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID.oid_])));
+  auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
+      pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND.oid_])));
   delete[] buffer;
 
   // Step 2: We need to handle the case where we are just renaming a table, in this case we don't wan't to delete
@@ -753,23 +756,24 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
           IsInsertRecord(next_redo_record)) {  // Condition 3: next record is an insert into the same pg_class
         // Step 3: Get the oid and kind of the object being inserted
         auto pr_map = pg_class->ProjectionMapForOids(GetOidsForRedoRecord(pg_class, next_redo_record));
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::RELOID_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELOID.oid_) != pr_map.end(),
                          "PR Map must contain class oid");
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::RELNAME_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELNAME.oid_) != pr_map.end(),
                          "PR Map must contain class name");
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::RELKIND_COL_OID) != pr_map.end(),
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::PgClass::RELKIND.oid_) != pr_map.end(),
                          "PR Map must contain class kind");
         auto next_class_oid = *(reinterpret_cast<uint32_t *>(
-            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
-        auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
-            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID.oid_])));
+        auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND.oid_])));
 
         if (class_oid == next_class_oid) {  // Condition 4: If the oid matches on the next record, this is a renaming
-          NOISEPAGE_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE && class_kind == next_class_kind,
-                           "We only allow renaming of tables");
+          NOISEPAGE_ASSERT(
+              class_kind == catalog::postgres::PgClass::RelKind::REGULAR_TABLE && class_kind == next_class_kind,
+              "We only allow renaming of tables");
           // Step 4: Extract out the new name
           VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::RELNAME_COL_OID])));
+              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELNAME.oid_])));
           std::string name_string(name_varlen.StringView());
 
           // Step 5: Rename the table
@@ -780,7 +784,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
           // Step 6: Update metadata and clean up additional record processed. We need to use the indexes on
           // pg_class to find what tuple slot we just inserted into. We get the new tuple slot using the oid index.
-          auto pg_class_oid_index = GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())->classes_oid_index_;
+          auto pg_class_oid_index =
+              GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())->pg_core_.classes_oid_index_;
           auto pr_init = pg_class_oid_index->GetProjectedRowInitializer();
           buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
           pr = pr_init.InitializeRow(buffer);
@@ -802,11 +807,11 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   // Step 3: If it was not a renaming, we call to the catalog to delete the class object
   bool result UNUSED_ATTRIBUTE;
   switch (class_kind) {
-    case (catalog::postgres::ClassKind::REGULAR_TABLE): {
+    case (catalog::postgres::PgClass::RelKind::REGULAR_TABLE): {
       result = db_catalog_ptr->DeleteTable(common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
       break;
     }
-    case (catalog::postgres::ClassKind::INDEX): {
+    case (catalog::postgres::PgClass::RelKind::INDEX): {
       result = db_catalog_ptr->DeleteIndex(common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
       break;
     }
@@ -826,7 +831,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transaction::TransactionContext *txn,
                                                                        const catalog::db_oid_t db_oid,
                                                                        const catalog::table_oid_t table_oid) {
-  if (table_oid == catalog::postgres::DATABASE_TABLE_OID) {
+  if (table_oid == catalog::postgres::PgDatabase::DATABASE_TABLE_OID) {
     return common::ManagedPointer(catalog_->databases_);
   }
 
@@ -835,36 +840,36 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
   common::ManagedPointer<storage::SqlTable> table_ptr = nullptr;
 
   switch (table_oid.UnderlyingValue()) {
-    case (catalog::postgres::CLASS_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->classes_);
+    case (catalog::postgres::PgClass::CLASS_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_core_.classes_);
       break;
     }
-    case (catalog::postgres::NAMESPACE_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->namespaces_);
+    case (catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_core_.namespaces_);
       break;
     }
-    case (catalog::postgres::COLUMN_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->columns_);
+    case (catalog::postgres::PgAttribute::COLUMN_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_core_.columns_);
       break;
     }
-    case (catalog::postgres::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->constraints_);
+    case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_constraint_.constraints_);
       break;
     }
-    case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->indexes_);
+    case (catalog::postgres::PgIndex::INDEX_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_core_.indexes_);
       break;
     }
-    case (catalog::postgres::TYPE_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
+    case (catalog::postgres::PgType::TYPE_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_type_.types_);
       break;
     }
-    case (catalog::postgres::LANGUAGE_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
+    case (catalog::postgres::PgLanguage::LANGUAGE_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_language_.languages_);
       break;
     }
-    case (catalog::postgres::PRO_TABLE_OID.UnderlyingValue()): {
-      table_ptr = common::ManagedPointer(db_catalog_ptr->procs_);
+    case (catalog::postgres::PgProc::PRO_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_proc_.procs_);
       break;
     }
     default:
@@ -875,8 +880,8 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
   return table_ptr;
 }
 
-std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::SqlTable *sql_table,
-                                                                      RedoRecord *record) {
+std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(
+    common::ManagedPointer<storage::SqlTable> sql_table, RedoRecord *record) {
   std::vector<catalog::col_oid_t> result;
   for (uint16_t i = 0; i < record->Delta()->NumColumns(); i++) {
     col_id_t col_id = record->Delta()->ColumnIds()[i];
@@ -888,97 +893,97 @@ std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::S
   return result;
 }
 
-storage::index::Index *RecoveryManager::GetCatalogIndex(
+common::ManagedPointer<storage::index::Index> RecoveryManager::GetCatalogIndex(
     const catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog) {
   NOISEPAGE_ASSERT((oid.UnderlyingValue()) < catalog::START_OID, "Oid must be a valid catalog oid");
 
   switch (oid.UnderlyingValue()) {
-    case (catalog::postgres::NAMESPACE_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->namespaces_oid_index_;
+    case (catalog::postgres::PgNamespace::NAMESPACE_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.namespaces_oid_index_;
     }
 
-    case (catalog::postgres::NAMESPACE_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->namespaces_name_index_;
+    case (catalog::postgres::PgNamespace::NAMESPACE_NAME_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.namespaces_name_index_;
     }
 
-    case (catalog::postgres::CLASS_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->classes_oid_index_;
+    case (catalog::postgres::PgClass::CLASS_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.classes_oid_index_;
     }
 
-    case (catalog::postgres::CLASS_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->classes_name_index_;
+    case (catalog::postgres::PgClass::CLASS_NAME_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.classes_name_index_;
     }
 
-    case (catalog::postgres::CLASS_NAMESPACE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->classes_namespace_index_;
+    case (catalog::postgres::PgClass::CLASS_NAMESPACE_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.classes_namespace_index_;
     }
 
-    case (catalog::postgres::INDEX_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->indexes_oid_index_;
+    case (catalog::postgres::PgIndex::INDEX_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.indexes_oid_index_;
     }
 
-    case (catalog::postgres::INDEX_TABLE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->indexes_table_index_;
+    case (catalog::postgres::PgIndex::INDEX_TABLE_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.indexes_table_index_;
     }
 
-    case (catalog::postgres::COLUMN_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->columns_oid_index_;
+    case (catalog::postgres::PgAttribute::COLUMN_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.columns_oid_index_;
     }
 
-    case (catalog::postgres::COLUMN_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->columns_name_index_;
+    case (catalog::postgres::PgAttribute::COLUMN_NAME_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_core_.columns_name_index_;
     }
 
-    case (catalog::postgres::TYPE_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->types_oid_index_;
+    case (catalog::postgres::PgType::TYPE_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_type_.types_oid_index_;
     }
 
-    case (catalog::postgres::TYPE_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->types_name_index_;
+    case (catalog::postgres::PgType::TYPE_NAME_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_type_.types_name_index_;
     }
 
-    case (catalog::postgres::TYPE_NAMESPACE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->types_namespace_index_;
+    case (catalog::postgres::PgType::TYPE_NAMESPACE_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_type_.types_namespace_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_oid_index_;
+    case (catalog::postgres::PgConstraint::CONSTRAINT_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_constraint_.constraints_oid_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_name_index_;
+    case (catalog::postgres::PgConstraint::CONSTRAINT_NAME_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_constraint_.constraints_name_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_NAMESPACE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_namespace_index_;
+    case (catalog::postgres::PgConstraint::CONSTRAINT_NAMESPACE_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_constraint_.constraints_namespace_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_TABLE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_table_index_;
+    case (catalog::postgres::PgConstraint::CONSTRAINT_TABLE_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_constraint_.constraints_table_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_INDEX_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_index_index_;
+    case (catalog::postgres::PgConstraint::CONSTRAINT_INDEX_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_constraint_.constraints_index_index_;
     }
 
-    case (catalog::postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->constraints_foreigntable_index_;
+    case (catalog::postgres::PgConstraint::CONSTRAINT_FOREIGNTABLE_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_constraint_.constraints_foreigntable_index_;
     }
 
-    case (catalog::postgres::LANGUAGE_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->languages_oid_index_;
+    case (catalog::postgres::PgLanguage::LANGUAGE_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_language_.languages_oid_index_;
     }
 
-    case (catalog::postgres::LANGUAGE_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->languages_name_index_;
+    case (catalog::postgres::PgLanguage::LANGUAGE_NAME_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_language_.languages_name_index_;
     }
 
-    case (catalog::postgres::PRO_OID_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->procs_oid_index_;
+    case (catalog::postgres::PgProc::PRO_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_proc_.procs_oid_index_;
     }
 
-    case (catalog::postgres::PRO_NAME_INDEX_OID.UnderlyingValue()): {
-      return db_catalog->procs_name_index_;
+    case (catalog::postgres::PgProc::PRO_NAME_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_proc_.procs_name_index_;
     }
 
     default:
@@ -999,21 +1004,21 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
     } else {
       return 0;
     }
-    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID,
+    NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID,
                      "This function must be only called with records modifying pg_proc");
 
     // An insert into pg_proc is a special case because we need the catalog to actually create the necessary
     // database catalog objects
     NOISEPAGE_ASSERT(IsInsertRecord(redo_record), "Special case on pg_proc should only be insert");
-    storage::SqlTable *pg_proc =
-        catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->procs_;
+    common::ManagedPointer<storage::SqlTable> pg_proc =
+        catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->pg_proc_.procs_;
     auto pr_map = pg_proc->ProjectionMapForOids(GetOidsForRedoRecord(pg_proc, redo_record));
     catalog::proc_oid_t proc_oid(*(reinterpret_cast<uint32_t *>(
-        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PROOID_COL_OID]))));
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PgProc::PROOID.oid_]))));
 
     auto result UNUSED_ATTRIBUTE =
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())
-            ->SetProcCtxPtr(common::ManagedPointer(txn), proc_oid, nullptr);
+            ->SetFunctionContextPointer(common::ManagedPointer(txn), proc_oid, nullptr);
     NOISEPAGE_ASSERT(result, "Setting to null did not work");
     return 0;  // No additional records processed
   }

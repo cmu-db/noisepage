@@ -67,6 +67,15 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   ExecutionOperatingUnitFeatureVector RecordTranslators(
       const std::vector<execution::compiler::OperatorTranslator *> &translators);
 
+  /**
+   * Adjust key_size and num_key based on type
+   *
+   * @param type Type
+   * @param key_size
+   * @param num_key
+   */
+  static void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
+
  private:
   /**
    * Handle additional processing for AbstractPlanNode
@@ -100,6 +109,15 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::AggregatePlanNode *plan) override;
   void Visit(const planner::CreateIndexPlanNode *plan) override;
 
+  /**
+   * Records the index operations performed by a plan node
+   * that requires modifying any system index.
+   *
+   * @param index_oids Index OIDs to record operations for.
+   */
+  template <typename IndexPlanNode>
+  void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids);
+
   template <typename Translator>
   void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
 
@@ -125,15 +143,6 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    */
   double ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset, size_t key_size,
                                   size_t ref_offset);
-
-  /**
-   * Adjust key_size and num_key based on type
-   *
-   * @param type Type
-   * @param key_size
-   * @param num_key
-   */
-  void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
 
   /**
    * Compute key size from vector of expressions

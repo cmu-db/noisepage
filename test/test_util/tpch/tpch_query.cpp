@@ -26,10 +26,10 @@ TPCHQuery::MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &acc
     // Read all needed columns
     auto l_returnflag = expr_maker.CVE(l_schema.GetColumn("l_returnflag").Oid(), type::TypeId::VARCHAR);
     auto l_linestatus = expr_maker.CVE(l_schema.GetColumn("l_linestatus").Oid(), type::TypeId::VARCHAR);
-    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::DECIMAL);
-    auto l_tax = expr_maker.CVE(l_schema.GetColumn("l_tax").Oid(), type::TypeId::DECIMAL);
-    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::DECIMAL);
+    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::REAL);
+    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::REAL);
+    auto l_tax = expr_maker.CVE(l_schema.GetColumn("l_tax").Oid(), type::TypeId::REAL);
+    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::REAL);
     auto l_shipdate = expr_maker.CVE(l_schema.GetColumn("l_shipdate").Oid(), type::TypeId::DATE);
     std::vector<catalog::col_oid_t> col_oids = {
         l_schema.GetColumn("l_returnflag").Oid(),    l_schema.GetColumn("l_linestatus").Oid(),
@@ -425,8 +425,8 @@ TPCHQuery::MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &acc
   execution::compiler::test::OutputSchemaHelper l_seq_scan_out{1, &expr_maker};
   {
     // Read all needed columns
-    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::DECIMAL);
+    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::REAL);
+    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::REAL);
     auto l_orderkey = expr_maker.CVE(l_schema.GetColumn("l_orderkey").Oid(), type::TypeId::INTEGER);
     auto l_suppkey = expr_maker.CVE(l_schema.GetColumn("l_suppkey").Oid(), type::TypeId::INTEGER);
     std::vector<catalog::col_oid_t> l_col_oids = {
@@ -683,10 +683,10 @@ TPCHQuery::MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &acc
   execution::compiler::test::OutputSchemaHelper l_seq_scan_out{0, &expr_maker};
   {
     // Read all needed columns
-    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::DECIMAL);
+    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::REAL);
+    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::REAL);
     auto l_shipdate = expr_maker.CVE(l_schema.GetColumn("l_shipdate").Oid(), type::TypeId::DATE);
-    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::DECIMAL);
+    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::REAL);
     std::vector<catalog::col_oid_t> l_col_oids = {
         l_schema.GetColumn("l_extendedprice").Oid(), l_schema.GetColumn("l_discount").Oid(),
         l_schema.GetColumn("l_shipdate").Oid(), l_schema.GetColumn("l_quantity").Oid()};
@@ -965,8 +965,8 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
   execution::compiler::test::OutputSchemaHelper l_seq_scan_out{1, &expr_maker};
   {
     // Read all needed columns
-    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::DECIMAL);
+    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::REAL);
+    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::REAL);
     auto l_orderkey = expr_maker.CVE(l_schema.GetColumn("l_orderkey").Oid(), type::TypeId::INTEGER);
     auto l_suppkey = expr_maker.CVE(l_schema.GetColumn("l_suppkey").Oid(), type::TypeId::INTEGER);
     auto l_shipdate = expr_maker.CVE(l_schema.GetColumn("l_shipdate").Oid(), type::TypeId::DATE);
@@ -981,9 +981,12 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
     l_seq_scan_out.AddOutput("l_orderkey", l_orderkey);
     l_seq_scan_out.AddOutput("l_suppkey", l_suppkey);
 
-    auto date_type = expr_maker.Constant(static_cast<int32_t>(execution::sql::DatePartType::YEAR));
-    auto extract_year = expr_maker.Function("data_part", {l_shipdate, date_type}, type::TypeId::INTEGER,
-                                            noisepage::catalog::postgres::DATE_PART_PRO_OID);
+    auto date_part_oid = accessor->GetProcOid("date_part", {accessor->GetTypeOidFromTypeId(type::TypeId::DATE),
+                                                            accessor->GetTypeOidFromTypeId(type::TypeId::INTEGER)});
+
+    auto year_type = expr_maker.Constant(static_cast<int32_t>(execution::sql::DatePartType::YEAR));
+    auto extract_year =
+        expr_maker.Function("extract_year", {l_shipdate, year_type}, type::TypeId::INTEGER, date_part_oid);
 
     l_seq_scan_out.AddOutput("l_year", extract_year);
     auto schema = l_seq_scan_out.MakeSchema();
@@ -1278,7 +1281,7 @@ TPCHQuery::MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &ac
     // Read all needed columns
     auto ps_suppkey = expr_maker.CVE(ps_schema.GetColumn("ps_suppkey").Oid(), type::TypeId::INTEGER);
     auto ps_partkey = expr_maker.CVE(ps_schema.GetColumn("ps_partkey").Oid(), type::TypeId::INTEGER);
-    auto ps_supplycost = expr_maker.CVE(ps_schema.GetColumn("ps_supplycost").Oid(), type::TypeId::DECIMAL);
+    auto ps_supplycost = expr_maker.CVE(ps_schema.GetColumn("ps_supplycost").Oid(), type::TypeId::REAL);
     auto ps_availqty = expr_maker.CVE(ps_schema.GetColumn("ps_availqty").Oid(), type::TypeId::INTEGER);
     std::vector<catalog::col_oid_t> ps_col_oids = {
         ps_schema.GetColumn("ps_suppkey").Oid(), ps_schema.GetColumn("ps_partkey").Oid(),
@@ -1303,7 +1306,7 @@ TPCHQuery::MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &ac
     // Read all needed columns
     auto ps_suppkey = expr_maker.CVE(ps_schema.GetColumn("ps_suppkey").Oid(), type::TypeId::INTEGER);
     auto ps_partkey = expr_maker.CVE(ps_schema.GetColumn("ps_partkey").Oid(), type::TypeId::INTEGER);
-    auto ps_supplycost = expr_maker.CVE(ps_schema.GetColumn("ps_supplycost").Oid(), type::TypeId::DECIMAL);
+    auto ps_supplycost = expr_maker.CVE(ps_schema.GetColumn("ps_supplycost").Oid(), type::TypeId::REAL);
     auto ps_availqty = expr_maker.CVE(ps_schema.GetColumn("ps_availqty").Oid(), type::TypeId::INTEGER);
     std::vector<catalog::col_oid_t> ps2_col_oids = {
         ps_schema.GetColumn("ps_suppkey").Oid(), ps_schema.GetColumn("ps_partkey").Oid(),
@@ -1817,7 +1820,7 @@ TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &ac
     auto o_orderkey = expr_maker.CVE(o_schema.GetColumn("o_orderkey").Oid(), type::TypeId::INTEGER);
     auto o_custkey = expr_maker.CVE(o_schema.GetColumn("o_custkey").Oid(), type::TypeId::INTEGER);
     auto o_orderdate = expr_maker.CVE(o_schema.GetColumn("o_orderdate").Oid(), type::TypeId::DATE);
-    auto o_totalprice = expr_maker.CVE(o_schema.GetColumn("o_totalprice").Oid(), type::TypeId::DECIMAL);
+    auto o_totalprice = expr_maker.CVE(o_schema.GetColumn("o_totalprice").Oid(), type::TypeId::REAL);
     std::vector<catalog::col_oid_t> o_col_oids = {
         o_schema.GetColumn("o_orderkey").Oid(), o_schema.GetColumn("o_custkey").Oid(),
         o_schema.GetColumn("o_orderdate").Oid(), o_schema.GetColumn("o_totalprice").Oid()};
@@ -1840,7 +1843,7 @@ TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &ac
   execution::compiler::test::OutputSchemaHelper l_seq_scan_out1{0, &expr_maker};
   {
     // Read all needed columns
-    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::DECIMAL);
+    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::REAL);
     auto l_orderkey = expr_maker.CVE(l_schema.GetColumn("l_orderkey").Oid(), type::TypeId::INTEGER);
     std::vector<catalog::col_oid_t> l_col_oids = {
         l_schema.GetColumn("l_quantity").Oid(),
@@ -1863,7 +1866,7 @@ TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &ac
   execution::compiler::test::OutputSchemaHelper l_seq_scan_out2{1, &expr_maker};
   {
     // Read all needed columns
-    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::DECIMAL);
+    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::REAL);
     auto l_orderkey = expr_maker.CVE(l_schema.GetColumn("l_orderkey").Oid(), type::TypeId::INTEGER);
     std::vector<catalog::col_oid_t> l2_col_oids = {
         l_schema.GetColumn("l_quantity").Oid(),
@@ -2098,10 +2101,10 @@ TPCHQuery::MakeExecutableQ19(const std::unique_ptr<catalog::CatalogAccessor> &ac
   execution::compiler::test::OutputSchemaHelper l_seq_scan_out{1, &expr_maker};
   {
     // Read all needed columns
-    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::DECIMAL);
+    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::REAL);
+    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::REAL);
     auto l_partkey = expr_maker.CVE(l_schema.GetColumn("l_partkey").Oid(), type::TypeId::INTEGER);
-    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::DECIMAL);
+    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::REAL);
     auto l_shipmode = expr_maker.CVE(l_schema.GetColumn("l_shipmode").Oid(), type::TypeId::VARCHAR);
     auto l_shipinstruct = expr_maker.CVE(l_schema.GetColumn("l_shipinstruct").Oid(), type::TypeId::VARCHAR);
     std::vector<catalog::col_oid_t> l_col_oids = {

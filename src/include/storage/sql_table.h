@@ -217,7 +217,7 @@ class SqlTable {
    */
   ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids) const {
     NOISEPAGE_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
-                     "There should not be any duplicated in the col_ids!");
+                     "There should not be any duplicates in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     NOISEPAGE_ASSERT(col_ids.size() == col_oids.size(),
                      "Projection should be the same number of columns as requested col_oids.");

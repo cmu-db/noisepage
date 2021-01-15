@@ -37,7 +37,7 @@ double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats,
 
 double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
   // Convert value type to raw value (double)
-  NOISEPAGE_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
+  NOISEPAGE_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::REAL,
                    "It seems like there's an assumption that it's a DECIMAL type.");
   const auto value = condition.GetPointerToValue()->Peek<double>();
   if (std::isnan(value)) {
@@ -66,7 +66,7 @@ double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, con
 
 double Selectivity::Equal(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
   // Convert value type to raw value (double)
-  NOISEPAGE_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
+  NOISEPAGE_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::REAL,
                    "It seems like there's an assumption that it's a DECIMAL type.");
   const auto value = condition.GetPointerToValue()->Peek<double>();
   if (std::isnan(value) || !table_stats->HasColumnStats(condition.GetColumnID())) {

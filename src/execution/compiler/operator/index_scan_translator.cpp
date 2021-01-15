@@ -126,7 +126,7 @@ ast::Expr *IndexScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const
   uint16_t attr_idx = table_pm_.find(col_oid)->second;
   if(sql::GetTypeId(type) == sql::TypeId::FixedDecimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(table_pr_), type, nullable, attr_idx);
-    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).MaxVarlenSize());
+    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
   }
   return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(table_pr_), type, nullable, attr_idx);
 }
@@ -207,7 +207,7 @@ void IndexScanTranslator::FillKey(
     bool nullable = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Nullable();
     auto *set_key_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(pr), attr_type, nullable, attr_offset,
                                              context->DeriveValue(*key.second.Get(), this), false,
-                                             index_schema_.GetColumn(key.first.UnderlyingValue() - 1).MaxVarlenSize());
+                                             index_schema_.GetColumn(key.first.UnderlyingValue() - 1).TypeModifier());
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 }

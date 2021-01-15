@@ -18,6 +18,8 @@ STRONG_TYPEDEF_HEADER(date_t, uint32_t);
  */
 STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
 
+// TODO(Matt): reconcile with execution::sql::SqlTypeId
+// TODO(Matt): also what is noisepage::parser::ColumnDefinition::DataType?
 enum class TypeId : uint8_t {
   INVALID = 0,
   BOOLEAN,
@@ -25,7 +27,8 @@ enum class TypeId : uint8_t {
   SMALLINT,
   INTEGER,
   BIGINT,
-  DECIMAL,
+  REAL,     // equivalent to DOUBLE
+  DECIMAL,  // equivalent to NUMERIC
   TIMESTAMP,
   DATE,
   VARCHAR,
@@ -33,6 +36,7 @@ enum class TypeId : uint8_t {
   PARAMETER_OFFSET,
   VARIADIC,
   FIXEDDECIMAL,
+  VAR_ARRAY,  ///< pg_type requires a distinct type for var_array.
 };
 
 }  // namespace noisepage::type
