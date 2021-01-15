@@ -941,7 +941,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
     if (overflow_checker > 0) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
     }
 
     result_lower = result_lower >> magic_p;
@@ -972,7 +972,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
     if ((overflow_checker > 0) || (result_upper < add_upper)) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
     }
 
     /*We know that we only retain the lower 128 bits so there is no need of shri
@@ -1166,7 +1166,7 @@ void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
   } else {
     throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                              common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+                              common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   if (negative_result) {
@@ -1277,7 +1277,7 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     if (overflow_checker > 0) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
     }
 
     result_lower = result_lower >> magic_p;
@@ -1307,7 +1307,7 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     if ((overflow_checker > 0) || (result_upper < add_upper)) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+                                common::ErrorCode::ERRCODE_DATA_EXCEPTION);
     }
 
     /*We know that we only retain the lower 128 bits so there is no need of shri
