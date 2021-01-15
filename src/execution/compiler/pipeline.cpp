@@ -282,7 +282,8 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction() const {
   auto params = compilation_context_->QueryParams();
   ast::FieldDecl *p_state_ptr = nullptr;
   auto &state = GetPipelineStateDescriptor();
-  uint32_t p_state_ind;
+  // Need to initialize this to stop compiler from complaining
+  uint32_t p_state_ind = -1;
   if (nested_) {
     p_state_ptr = codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
                                       codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName())));
@@ -472,7 +473,8 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
   auto params = compilation_context_->QueryParams();
   ast::FieldDecl *p_state_ptr = nullptr;
   auto &state = GetPipelineStateDescriptor();
-  uint32_t p_state_index;
+  // Need to initialize this to stop compiler from complaining
+  uint32_t p_state_index = -1;
   if (nested_) {
     // if we're nested we also take in the pipeline state as an argument
     p_state_ptr = codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
