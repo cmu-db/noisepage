@@ -420,7 +420,7 @@ class EXPORT Decimal {
    * > precision then we round up
    * @param input input string
    * @param precision Number of digits after decimal point.*/
-  void RoundUpAndSet(std::string input, unsigned precision);
+  void RoundUpAndSet(std::string input, uint32_t precision);
 
   /** Underlying native data type. */
   using NativeType = T;
@@ -540,7 +540,7 @@ class EXPORT Decimal {
    * 256 x 256 bit multiplication with an overflow check in 512 bits
    * @param input the decimal to be divide with
    * @param denominator_precision Number of digits after decimal point.*/
-  void SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_precision);
+  void SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_precision);
 
   /** This function divides with a given unsigned 128 bit number with
    * another 128 bit input. The given number here is stored inside the
@@ -576,7 +576,7 @@ class EXPORT Decimal {
    * Pass in the the precision of the decimal with higher precision
    * @param value the decimal to be multiplied with
    * @param precision Number of digits after decimal point.*/
-  void MultiplyAndSet(const Decimal<T> &input, unsigned precision);
+  void MultiplyAndSet(const Decimal<T> &input, uint32_t precision);
 
   /** Signed version of MultiplyAndSet
    * @param input the decimal to be multiplied with
@@ -601,7 +601,7 @@ class EXPORT Decimal {
    * of decimals to get the correct result.
    * @param power - i in 10^i.
    * */
-  void UnsignedDivideConstant128BitPowerOfTen(unsigned power);
+  void UnsignedDivideConstant128BitPowerOfTen(uint32_t power);
 };
 
 using Decimal32 = Decimal<int32_t>;

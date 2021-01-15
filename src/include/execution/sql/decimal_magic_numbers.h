@@ -7,7 +7,7 @@ namespace noisepage::execution::sql {
 /* Magic array for 256 bit division with powers of 10
  * This map is used after multiplication of decimals to get
  * the correct result. This represents the 256 bit magic
- * number in 4 128 bit unsigned integers with each having 64 bits*/
+ * number in 4 128 bit uint32_t integers with each having 64 bits*/
 constexpr uint128_t MagicArray[39][4] = {
     {0x0, 0x0, 0x0, 0x0},
     {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd},
@@ -51,7 +51,7 @@ constexpr uint128_t MagicArray[39][4] = {
 
 /* Defines the 256 bit magic number division for powers of 10 with algo used and
  * the constant p used during the division*/
-constexpr unsigned MagicPAndAlgoArray[39][2] = {
+constexpr uint32_t MagicPAndAlgoArray[39][2] = {
     {0, 0},   {259, 0}, {263, 1}, {266, 1}, {267, 0}, {272, 0}, {275, 0}, {279, 0}, {282, 0}, {285, 0},
     {289, 0}, {291, 0}, {296, 1}, {299, 0}, {301, 0}, {305, 0}, {309, 0}, {313, 1}, {316, 1}, {320, 1},
     {321, 0}, {325, 0}, {329, 0}, {333, 1}, {336, 1}, {339, 0}, {342, 0}, {346, 1}, {349, 0}, {350, 0},
@@ -59,7 +59,7 @@ constexpr unsigned MagicPAndAlgoArray[39][2] = {
 
 /** Magic Number for 128 bit division
  * This struct is used to store Magic Numbers for 128 bit division
- * It stores two 128 bit unsigned integers representing the upper and
+ * It stores two 128 bit uint32_t integers representing the upper and
  * lower 64 bits of the magic number
  * p Represents the adjust constant p during the magic number algorithm
  * Algo is constant which is either 0 or 1 representing the type of algo
@@ -71,14 +71,14 @@ class MagicNumber128 {
   /// Lower half of 128 bit magic number
   uint128_t lower_;
   /// value - p in magic division
-  unsigned p_;
+  uint32_t p_;
   /// Algo type
-  unsigned algo_;
+  uint32_t algo_;
 };
 
 /** Magic Number for 256 bit division
  * This struct is used to store Magic Numbers for 256 bit division
- * It stores 4 128 bit unsigned integers representing the magic number
+ * It stores 4 128 bit uint32_t integers representing the magic number
  * in 64 bits each.
  * p Represents the adjust constant p during the magic number algorithm
  * Algo is constant which is either 0 or 1 representing the type of algo
@@ -94,9 +94,9 @@ class MagicNumber256 {
   /// Lowest 64 bits
   uint128_t D_;
   /// value - p in magic division
-  unsigned p_;
+  uint32_t p_;
   /// Algo type
-  unsigned algo_;
+  uint32_t algo_;
 };
 
 /* Magic Array for 128 bit division with powers of 10
@@ -200,7 +200,7 @@ std::map<uint128_t, class MagicNumber256> MagicMap256BitConstantDivision = {
 /* Map of powers of 2
  * This map stores powers of two to be used during
  * constant division of a decimal with a power of 2*/
-std::map<uint128_t, unsigned> PowerTwo = {
+std::map<uint128_t, uint32_t> PowerTwo = {
     {0x2, 1},
     {0x4, 2},
     {0x8, 3},

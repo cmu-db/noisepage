@@ -665,12 +665,12 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
+void Decimal<T>::RoundUpAndSet(std::string input, uint32_t precision) {
   this->value_ = 0;
 
   if (input.empty()) return;
 
-  unsigned pos = 0;
+  uint32_t pos = 0;
 
   bool is_negative = false;
   if (input[pos] == '-') {
@@ -704,7 +704,7 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
 
   // No decimal point case
   if (pos == input.size()) {
-    for (unsigned i = 0; i < precision - 1; i++) {
+    for (uint32_t i = 0; i < precision - 1; i++) {
       this->value_ *= 10;
     }
     if (is_negative) {
@@ -716,7 +716,7 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
   pos++;
   // Nothing after decimal point case
   if (pos == input.size()) {
-    for (unsigned i = 0; i < precision - 1; i++) {
+    for (uint32_t i = 0; i < precision - 1; i++) {
       this->value_ *= 10;
     }
     if (is_negative) {
@@ -725,13 +725,13 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
     return;
   }
 
-  for (unsigned i = 1; i < precision; i++) {
+  for (uint32_t i = 1; i < precision; i++) {
     if (pos < input.size()) {
       this->value_ += input[pos] - '0';
       this->value_ *= 10;
       pos++;
     } else {
-      for (unsigned j = i; j < precision; j++) {
+      for (uint32_t j = i; j < precision; j++) {
         this->value_ *= 10;
       }
       if (is_negative) {
@@ -775,9 +775,9 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
 }
 
 void CalculateMultiWordProduct128(uint128_t * const half_words_a, uint128_t * const half_words_b, uint128_t *half_words_result,
-                                  unsigned m, unsigned n) {
+                                  uint32_t m, uint32_t n) {
   uint128_t k, t;
-  unsigned i, j;
+  uint32_t i, j;
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   for (i = 0; i < m; i++) half_words_result[i] = 0;
   for (j = 0; j < n; j++) {
@@ -887,7 +887,7 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t
 }
 
 template <typename T>
-void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision) {
+void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, uint32_t precision) {
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
@@ -923,7 +923,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
   magic[2] = MagicArray[precision][1];
   magic[3] = MagicArray[precision][0];
 
-  unsigned magic_p = MagicPAndAlgoArray[precision][0] - 256;
+  uint32_t magic_p = MagicPAndAlgoArray[precision][0] - 256;
 
   if (MagicPAndAlgoArray[precision][1] == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^256
@@ -980,7 +980,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
 }
 
 template <typename T>
-void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power) {
+void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
@@ -1002,7 +1002,7 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power) {
   // TODO(Rohan): Calculate only upper half
   CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-  unsigned magic_p = MagicMap128BitPowerTen[power].p_ - 128;
+  uint32_t magic_p = MagicMap128BitPowerTen[power].p_ - 128;
 
   if (MagicMap128BitPowerTen[power].algo_ == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^128
@@ -1039,7 +1039,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
 
   // Power of 2
   if ((constant & (constant - 1)) == 0) {
-    unsigned power_of_two = PowerTwo[constant];
+    uint32_t power_of_two = PowerTwo[constant];
     uint128_t numerator = this->value_;
     numerator = numerator >> power_of_two;
     this->value_ = numerator;
@@ -1072,7 +1072,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
   // TODO(Rohan): Calculate only upper half
   CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-  unsigned magic_p = MagicMap128BitConstantDivision[constant].p_ - 128;
+  uint32_t magic_p = MagicMap128BitConstantDivision[constant].p_ - 128;
 
   if (MagicMap128BitConstantDivision[constant].algo_ == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^128
@@ -1099,7 +1099,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
 }
 
 template <typename T>
-void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision) {
+void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, uint32_t lower_precision) {
   bool negative_result = (this->value_ < 0) != (input.GetValue() < 0);
 
   // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
@@ -1193,7 +1193,7 @@ void Decimal<T>::SignedDivideWithConstant(int64_t input) {
 }
 
 template <typename T>
-void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_precision) {
+void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_precision) {
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
@@ -1254,7 +1254,7 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
   magic[2] = MagicMap256BitConstantDivision[constant].B_;
   magic[3] = MagicMap256BitConstantDivision[constant].A_;
 
-  unsigned magic_p = MagicMap256BitConstantDivision[constant].p_ - 256;
+  uint32_t magic_p = MagicMap256BitConstantDivision[constant].p_ - 256;
 
   if (MagicMap256BitConstantDivision[constant].algo_ == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^256
@@ -1314,7 +1314,7 @@ int Decimal<T>::SetMaxmPrecision(std::string input) {
 
   if (input.empty()) return 0;
 
-  unsigned pos = 0;
+  uint32_t pos = 0;
 
   bool is_negative = false;
   if (input[pos] == '-') {
