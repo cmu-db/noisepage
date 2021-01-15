@@ -493,7 +493,7 @@ int32_t BindNodeVisitor::DecimalExpressionResolvePrecision(common::ManagedPointe
         decimal_val.RoundUpAndSet(std::string(str_view), precision >= 0 ? precision : 10);
         auto value =
             std::make_unique<parser::ConstantValueExpression>(
-                type::TypeId::Decimal, execution::sql::DecimalVal(decimal_val,
+                type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val,
                                                                        precision >= 0 ? precision : 10));
         expr->SetChild(i, common::ManagedPointer(value).CastManagedPointerTo<parser::AbstractExpression>());
       }

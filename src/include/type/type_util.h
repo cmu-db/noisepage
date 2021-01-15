@@ -39,13 +39,11 @@ class TypeUtil {
       case TypeId::REAL:
       case TypeId::TIMESTAMP:
         return 8;
-      case TypeId::Decimal:
+      case TypeId::DECIMAL:
         return 16;
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
         return storage::VARLEN_COLUMN;
-      case TypeId::DECIMAL:
-        return 16;
       default:
         throw std::runtime_error("Unknown TypeId in noisepage::type::TypeUtil::GetTypeSize().");
     }
@@ -84,8 +82,6 @@ class TypeUtil {
         return "DECIMAL";
       case type::TypeId::TIMESTAMP:
         return "TIMESTAMP";
-      case type::TypeId::Decimal:
-        return "FIXED DECIMAL";
       case type::TypeId::DATE:
         return "DATE";
       case type::TypeId::VARCHAR:

@@ -265,7 +265,7 @@ TypeId GetTypeId(type::TypeId frontend_type) {
     case type::TypeId::DATE:
       execution_type_id = execution::sql::TypeId::Date;
       break;
-    case type::TypeId::Decimal:
+    case type::TypeId::DECIMAL:
       execution_type_id = execution::sql::TypeId::Decimal;
       break;
     case type::TypeId::VARCHAR:

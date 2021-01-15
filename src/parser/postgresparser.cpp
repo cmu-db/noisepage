@@ -759,7 +759,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
         noisepage::execution::sql::Decimal128 decimal_val(0);
         // TODO(Rohan): Fix the precision argument
         int precision = decimal_val.SetMaxmPrecision(std::string(string));
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::Decimal,
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
                                                            execution::sql::DecimalVal(decimal_val, precision));
       }
       break;
@@ -1514,7 +1514,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
         auto node_type = reinterpret_cast<A_Const *>(node)->val_.type_;
         switch (node_type) {
           case T_Integer: {
-            if(datatype == ColumnDefinition::DataType::Decimal) {
+            if(datatype == ColumnDefinition::DataType::DECIMAL) {
               auto node2 = reinterpret_cast<Node *>(type_name->typmods_->tail->data.ptr_value);
               varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node2)->val_.val_.ival_);
               break;

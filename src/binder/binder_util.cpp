@@ -192,12 +192,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             }
           }
 
-          case type::TypeId::Decimal: {
+          case type::TypeId::DECIMAL: {
             {
               noisepage::execution::sql::Decimal128 decimal_val(0);
               // TODO(Rohan): Fix the precision argument
               int precision = decimal_val.SetMaxmPrecision(std::string(str_view));
-              value->SetValue(type::TypeId::Decimal, execution::sql::DecimalVal(decimal_val, precision));
+              value->SetValue(type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val, precision));
               break;
             }
           }

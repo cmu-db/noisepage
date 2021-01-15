@@ -130,7 +130,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto col_index = GetColOidIndex(cve->GetColumnOid());
       auto const_val = translator->DeriveValue(nullptr, nullptr);
-      if(translator->GetExpression().GetReturnValueType() == type::TypeId::Decimal) {
+      if(translator->GetExpression().GetReturnValueType() == type::TypeId::DECIMAL) {
         const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
         uint16_t max_varlen_size = schema.GetColumn(cve->GetColumnOid()).TypeModifier();
         const_val = codegen->CallBuiltin(ast::Builtin::UpgradePrecisionDecimal,

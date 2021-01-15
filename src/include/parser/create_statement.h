@@ -47,7 +47,6 @@ struct ColumnDefinition {
     DATE,
     TIMESTAMP,
     TEXT,
-    Decimal,
 
     VARCHAR,
     VARBINARY
@@ -122,7 +121,7 @@ struct ColumnDefinition {
     } else if ((strcmp(str, "real") == 0) || (strcmp(str, "float4") == 0)) {
       data_type = ColumnDefinition::DataType::FLOAT;
     } else if (strcmp(str, "numeric") == 0) {
-      data_type = ColumnDefinition::DataType::Decimal;
+      data_type = ColumnDefinition::DataType::DECIMAL;
     } else if (strcmp(str, "text") == 0) {
       data_type = ColumnDefinition::DataType::TEXT;
     } else if (strcmp(str, "tinyint") == 0) {
@@ -159,9 +158,9 @@ struct ColumnDefinition {
       value_type = type::TypeId::BOOLEAN;
     } else if ((strcmp(str, "double") == 0) || (strcmp(str, "float8") == 0) || (strcmp(str, "real") == 0) ||
                (strcmp(str, "float4") == 0)) {
-      value_type = type::TypeId::DECIMAL;
+      value_type = type::TypeId::REAL;
     } else if (strcmp(str, "numeric") == 0  || strcmp(str, "decimal") == 0) {
-      value_type = type::TypeId::Decimal;
+      value_type = type::TypeId::DECIMAL;
     } else if (strcmp(str, "tinyint") == 0) {
       value_type = type::TypeId::TINYINT;
     } else if (strcmp(str, "varbinary") == 0) {
@@ -191,9 +190,7 @@ struct ColumnDefinition {
         return type::TypeId::BIGINT;
 
       case DataType::DECIMAL:
-        // TODO(Matt): when we support fixed point DECIMAL properly:
-
-        //        return type::TypeId::DECIMAL;
+        return type::TypeId::DECIMAL;
       case DataType::DOUBLE:
       case DataType::FLOAT:
         return type::TypeId::REAL;
@@ -214,10 +211,6 @@ struct ColumnDefinition {
 
       case DataType::DATE:
         return type::TypeId::DATE;
-
-      case DataType::Decimal:
-        return type::TypeId::Decimal;
-
       case DataType::INVALID:
       case DataType::PRIMARY:
       case DataType::FOREIGN:

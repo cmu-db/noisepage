@@ -35,7 +35,6 @@ enum class TypeId : uint8_t {
   VARBINARY,
   PARAMETER_OFFSET,
   VARIADIC,
-  Decimal,
   VAR_ARRAY,  ///< pg_type requires a distinct type for var_array.
 };
 

@@ -541,7 +541,7 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
       break;
-    case type::TypeId::Decimal:
+    case type::TypeId::DECIMAL:
       builtin = nullable ? ast::Builtin::PRGetDecimalNull : ast::Builtin::PRGetDecimal;
       break;
     case type::TypeId::TIMESTAMP:
@@ -561,7 +561,7 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
                           bool own, uint16_t max_varlen_size) {
 
-  if(type == type::TypeId::Decimal) {
+  if(type == type::TypeId::DECIMAL) {
     // The max var len size represents the precision in case of a fixed decimal
     val = CallBuiltin(ast::Builtin::UpgradePrecisionDecimal, {val, Const32(max_varlen_size)});
     val->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
@@ -590,7 +590,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
       break;
-    case type::TypeId::Decimal:
+    case type::TypeId::DECIMAL:
       builtin = nullable ? ast::Builtin::PRSetDecimalNull : ast::Builtin::PRSetDecimal;
       break;
     case type::TypeId::TIMESTAMP:
