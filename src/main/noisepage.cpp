@@ -68,7 +68,6 @@ int main(int argc, char *argv[]) {
 
   // Initialize debug loggers
   noisepage::LoggersUtil::Initialize();
-  noisepage::execution::execution_logger->set_level(spdlog::level::trace);
 
   // Generate Settings Manager map
   std::unordered_map<noisepage::settings::Param, noisepage::settings::ParamInfo> param_map;

@@ -598,7 +598,7 @@ VM_OP_HOT void OpSetPrecisionDecimal(noisepage::execution::sql::DecimalVal *resu
   result->precision_ = precision;
 }
 
-VM_OP_HOT void OpUpgradePrecisionDecimal(noisepage::execution::sql::DecimalVal *result,
+VM_OP_HOT void OpRescalePrecisionDecimal(noisepage::execution::sql::DecimalVal *result,
                                               noisepage::execution::sql::DecimalVal * fixed_decimal,
                                           int32_t precision) {
   result->is_null_ = fixed_decimal->is_null_;

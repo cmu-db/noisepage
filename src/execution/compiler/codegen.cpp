@@ -563,7 +563,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 
   if(type == type::TypeId::DECIMAL) {
     // The max var len size represents the precision in case of a fixed decimal
-    val = CallBuiltin(ast::Builtin::UpgradePrecisionDecimal, {val, Const32(max_varlen_size)});
+    val = CallBuiltin(ast::Builtin::RescalePrecisionDecimal, {val, Const32(max_varlen_size)});
     val->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
   }
 

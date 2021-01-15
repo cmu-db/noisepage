@@ -1044,11 +1044,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(UpgradePrecisionDecimal) : {
+  OP(RescalePrecisionDecimal) : {
     auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-    OpUpgradePrecisionDecimal(sql_fixed_decimal, fixed_decimal, precision);
+    OpRescalePrecisionDecimal(sql_fixed_decimal, fixed_decimal, precision);
     DISPATCH_NEXT();
   }
 

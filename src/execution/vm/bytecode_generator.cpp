@@ -566,10 +566,10 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::SetPrecisionDecimal, dest, fixed_decimal, precision);
       break;
     }
-    case ast::Builtin::UpgradePrecisionDecimal: {
+    case ast::Builtin::RescalePrecisionDecimal: {
       auto fixed_decimal = VisitExpressionForRValue(call->Arguments()[0]);
       auto precision = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::UpgradePrecisionDecimal, dest, fixed_decimal, precision);
+      GetEmitter()->Emit(Bytecode::RescalePrecisionDecimal, dest, fixed_decimal, precision);
       break;
     }
     case ast::Builtin::TimestampToSql: {
@@ -2633,7 +2633,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::DateToSql:
     case ast::Builtin::DecimalToSql:
     case ast::Builtin::SetPrecisionDecimal:
-    case ast::Builtin::UpgradePrecisionDecimal:
+    case ast::Builtin::RescalePrecisionDecimal:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:
