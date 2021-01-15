@@ -8,7 +8,7 @@ namespace noisepage::execution::sql {
  * This map is used after multiplication of decimals to get
  * the correct result. This represents the 256 bit magic
  * number in 4 128 bit unsigned integers with each having 64 bits*/
-constexpr uint128_t MAGIC_ARRAY[39][4] = {
+constexpr uint128_t MagicArray[39][4] = {
     {0x0, 0x0, 0x0, 0x0},
     {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd},
     {0x47ae147ae147ae14, 0x7ae147ae147ae147, 0xae147ae147ae147a, 0xe147ae147ae147af},
@@ -51,7 +51,7 @@ constexpr uint128_t MAGIC_ARRAY[39][4] = {
 
 /* Defines the 256 bit magic number division for powers of 10 with algo used and
  * the constant p used during the division*/
-constexpr unsigned MAGIC_P_AND_ALGO_ARRAY[39][2] = {
+constexpr unsigned MagicPAndAlgoArray[39][2] = {
     {0, 0},   {259, 0}, {263, 1}, {266, 1}, {267, 0}, {272, 0}, {275, 0}, {279, 0}, {282, 0}, {285, 0},
     {289, 0}, {291, 0}, {296, 1}, {299, 0}, {301, 0}, {305, 0}, {309, 0}, {313, 1}, {316, 1}, {320, 1},
     {321, 0}, {325, 0}, {329, 0}, {333, 1}, {336, 1}, {339, 0}, {342, 0}, {346, 1}, {349, 0}, {350, 0},
@@ -64,15 +64,16 @@ constexpr unsigned MAGIC_P_AND_ALGO_ARRAY[39][2] = {
  * p Represents the adjust constant p during the magic number algorithm
  * Algo is constant which is either 0 or 1 representing the type of algo
  * we need for the division*/
-struct Magic_Number_128 {
+class MagicNumber128 {
+ public:
   /// Upper half of 128 bit magic number
-  uint128_t upper;
+  uint128_t upper_;
   /// Lower half of 128 bit magic number
-  uint128_t lower;
+  uint128_t lower_;
   /// value - p in magic division
-  unsigned p;
+  unsigned p_;
   /// Algo type
-  unsigned algo;
+  unsigned algo_;
 };
 
 /** Magic Number for 256 bit division
@@ -82,25 +83,26 @@ struct Magic_Number_128 {
  * p Represents the adjust constant p during the magic number algorithm
  * Algo is constant which is either 0 or 1 representing the type of algo
  * we need for the division*/
-struct Magic_Number_256 {
+class MagicNumber256 {
+ public:
   /// Highest 64 bits
-  uint128_t A;
+  uint128_t A_;
   /// High Middle 64 bits
-  uint128_t B;
+  uint128_t B_;
   /// Low Middle 64 bits
-  uint128_t C;
+  uint128_t C_;
   /// Lowest 64 bits
-  uint128_t D;
+  uint128_t D_;
   /// value - p in magic division
-  unsigned p;
+  unsigned p_;
   /// Algo type
-  unsigned algo;
+  unsigned algo_;
 };
 
 /* Magic Array for 128 bit division with powers of 10
  * This map is used after multiplication of decimals to get
  * the correct result*/
-struct Magic_Number_128 MAGIC_MAP_128_BIT_POWER_TEN[39] = {{0, 0, 0, 0},
+MagicNumber128 MagicMap128BitPowerTen[39] = {{0, 0, 0, 0},
                                                            {0xcccccccccccccccc, 0xcccccccccccccccd, 131, 0},
                                                            {0x28f5c28f5c28f5c2, 0x8f5c28f5c28f5c29, 132, 0},
                                                            {0x624dd2f1a9fbe76, 0xc8b4395810624dd3, 138, 1},
@@ -184,11 +186,11 @@ uint128_t PowerOfTen[39][2] = {{0, 0},
                                {0x4b3b4ca85a86c47a, 0x098a224000000000}};
 
 /* Magic map for 128 bit division with constants*/
-std::map<uint128_t, struct Magic_Number_128> MagicMap128BitConstantDivision = {
+std::map<uint128_t, class MagicNumber128> MagicMap128BitConstantDivision = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccd, 130, 0}}, {7, {0x2492492492492492, 0x4924924924924925, 131, 1}}};
 
 /* Magic map for 256 bit division with constants*/
-std::map<uint128_t, struct Magic_Number_256> MagicMap256BitConstantDivision = {
+std::map<uint128_t, class MagicNumber256> MagicMap256BitConstantDivision = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
     {7, {0x2492492492492492, 0x4924924924924924, 0x9249249249249249, 0x2492492492492493, 259, 1}},
     {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09, 0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},

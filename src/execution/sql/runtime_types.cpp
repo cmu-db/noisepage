@@ -918,14 +918,14 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
 
   // Magic number halfwords
   uint128_t magic[4];
-  magic[0] = MAGIC_ARRAY[precision][3];
-  magic[1] = MAGIC_ARRAY[precision][2];
-  magic[2] = MAGIC_ARRAY[precision][1];
-  magic[3] = MAGIC_ARRAY[precision][0];
+  magic[0] = MagicArray[precision][3];
+  magic[1] = MagicArray[precision][2];
+  magic[2] = MagicArray[precision][1];
+  magic[3] = MagicArray[precision][0];
 
-  unsigned magic_p = MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
+  unsigned magic_p = MagicPAndAlgoArray[precision][0] - 256;
 
-  if (MAGIC_P_AND_ALGO_ARRAY[precision][1] == 0) {
+  if (MagicPAndAlgoArray[precision][1] == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^256
 
     // Magic Result
@@ -994,17 +994,17 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power) {
   half_words_a[0] = a & bottom_mask;
   half_words_a[1] = (a & top_mask) >> 64;
 
-  half_words_b[0] = MAGIC_MAP_128_BIT_POWER_TEN[power].lower;
-  half_words_b[1] = MAGIC_MAP_128_BIT_POWER_TEN[power].upper;
+  half_words_b[0] = MagicMap128BitPowerTen[power].lower_;
+  half_words_b[1] = MagicMap128BitPowerTen[power].upper_;
 
   // Calculate 256 bit result
   uint128_t half_words_result[4];
   // TODO(Rohan): Calculate only upper half
   CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-  unsigned magic_p = MAGIC_MAP_128_BIT_POWER_TEN[power].p - 128;
+  unsigned magic_p = MagicMap128BitPowerTen[power].p_ - 128;
 
-  if (MAGIC_MAP_128_BIT_POWER_TEN[power].algo == 0) {
+  if (MagicMap128BitPowerTen[power].algo_ == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^128
 
     uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
@@ -1064,17 +1064,17 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
   half_words_a[0] = a & bottom_mask;
   half_words_a[1] = (a & top_mask) >> 64;
 
-  half_words_b[0] = MagicMap128BitConstantDivision[constant].lower;
-  half_words_b[1] = MagicMap128BitConstantDivision[constant].upper;
+  half_words_b[0] = MagicMap128BitConstantDivision[constant].lower_;
+  half_words_b[1] = MagicMap128BitConstantDivision[constant].upper_;
 
   // Calculate 256 bit result
   uint128_t half_words_result[4];
   // TODO(Rohan): Calculate only upper half
   CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-  unsigned magic_p = MagicMap128BitConstantDivision[constant].p - 128;
+  unsigned magic_p = MagicMap128BitConstantDivision[constant].p_ - 128;
 
-  if (MagicMap128BitConstantDivision[constant].algo == 0) {
+  if (MagicMap128BitConstantDivision[constant].algo_ == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^128
 
     uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
@@ -1249,14 +1249,14 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
   // Magic number halfwords
   uint128_t magic[4];
 
-  magic[0] = MagicMap256BitConstantDivision[constant].D;
-  magic[1] = MagicMap256BitConstantDivision[constant].C;
-  magic[2] = MagicMap256BitConstantDivision[constant].B;
-  magic[3] = MagicMap256BitConstantDivision[constant].A;
+  magic[0] = MagicMap256BitConstantDivision[constant].D_;
+  magic[1] = MagicMap256BitConstantDivision[constant].C_;
+  magic[2] = MagicMap256BitConstantDivision[constant].B_;
+  magic[3] = MagicMap256BitConstantDivision[constant].A_;
 
-  unsigned magic_p = MagicMap256BitConstantDivision[constant].p - 256;
+  unsigned magic_p = MagicMap256BitConstantDivision[constant].p_ - 256;
 
-  if (MagicMap256BitConstantDivision[constant].algo == 0) {
+  if (MagicMap256BitConstantDivision[constant].algo_ == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^256
 
     // Magic Result
