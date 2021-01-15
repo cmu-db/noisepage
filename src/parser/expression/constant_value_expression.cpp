@@ -43,7 +43,7 @@ void ConstantValueExpression::Validate() const {
   } else if (std::holds_alternative<execution::sql::Real>(value_)) {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::DecimalVal>(value_)) {
-    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::FIXEDDECIMAL, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::Decimal, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::DateVal>(value_)) {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::TimestampVal>(value_)) {
@@ -179,7 +179,7 @@ common::hash_t ConstantValueExpression::Hash() const {
     case type::TypeId::REAL: {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<double>()));
     }
-    case type::TypeId::FIXEDDECIMAL: {
+    case type::TypeId::Decimal: {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<execution::sql::Decimal128>().GetValue()));
     }
     case type::TypeId::TIMESTAMP: {
@@ -218,7 +218,7 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
     case type::TypeId::REAL: {
       return Peek<double>() == other_cve.Peek<double>();
     }
-    case type::TypeId::FIXEDDECIMAL: {
+    case type::TypeId::Decimal: {
       return Peek<int128_t>() == other_cve.Peek<int128_t>();
     }
     case type::TypeId::TIMESTAMP: {
@@ -250,7 +250,7 @@ std::string ConstantValueExpression::ToString() const {
     case type::TypeId::REAL: {
       return fmt::format("{}", GetReal().val_);
     }
-    case type::TypeId::FIXEDDECIMAL: {
+    case type::TypeId::Decimal: {
       return fmt::format("{}", GetDecimal().ToString());
     }
     case type::TypeId::TIMESTAMP: {
@@ -319,7 +319,7 @@ nlohmann::json ConstantValueExpression::ToJson() const {
         j["value"] = Peek<double>();
         break;
       }
-      case type::TypeId::FIXEDDECIMAL: {
+      case type::TypeId::Decimal: {
         j["value"] = static_cast<ino64_t>(Peek<int128_t>());
         break;
       }
@@ -367,7 +367,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
         value_ = execution::sql::Real(j.at("value").get<double>());
         break;
       }
-      case type::TypeId::FIXEDDECIMAL: {
+      case type::TypeId::Decimal: {
         value_ = execution::sql::DecimalVal(j.at("value").get<int64_t>());
         break;
       }

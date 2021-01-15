@@ -39,8 +39,8 @@ ast::Expr *ConstantTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
       return codegen->TimestampToSql(val.GetTimestampVal().val_);
     case sql::TypeId::Varchar:
       return codegen->StringToSql(val.GetStringVal().StringView());
-    case sql::TypeId::FixedDecimal:
-      return codegen->FixedDecimalToSql(val.GetDecimal().val_, val.GetDecimal().precision_);
+    case sql::TypeId::Decimal:
+      return codegen->DecimalToSql(val.GetDecimal().val_, val.GetDecimal().precision_);
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("Translation of constant type {}", TypeIdToString(type_id)));
   }

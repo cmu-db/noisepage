@@ -217,7 +217,7 @@ const DoubleType &DoubleType::InstanceNullable() {
 DecimalType::DecimalType(bool nullable, uint32_t precision, uint32_t scale)
     : SqlType(SqlTypeId::Decimal, nullable), precision_(precision), scale_(scale) {}
 
-TypeId DecimalType::GetPrimitiveTypeId() const { return TypeId::FixedDecimal; }
+TypeId DecimalType::GetPrimitiveTypeId() const { return TypeId::Decimal; }
 
 std::string DecimalType::GetName() const {
   std::string str = "Decimal[" + std::to_string(Precision()) + "," + std::to_string(Scale());

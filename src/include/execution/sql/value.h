@@ -399,7 +399,7 @@ struct ValUtil {
       case type::TypeId::REAL:
         return static_cast<uint32_t>(sizeof(Real));
       case type::TypeId::DECIMAL:
-      case type::TypeId::FIXEDDECIMAL:
+      case type::TypeId::Decimal:
         return static_cast<uint32_t>(sizeof(DecimalVal));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
@@ -429,7 +429,7 @@ struct ValUtil {
       case type::TypeId::REAL:
         return static_cast<uint32_t>(alignof(Real));
       case type::TypeId::DECIMAL:
-      case type::TypeId::FIXEDDECIMAL:
+      case type::TypeId::Decimal:
         return static_cast<uint32_t>(alignof(DecimalVal));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:

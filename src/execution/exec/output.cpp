@@ -60,7 +60,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
             ss << val->val_;
           break;
         }
-        case type::TypeId::FIXEDDECIMAL: {
+        case type::TypeId::Decimal: {
           auto *val = reinterpret_cast<sql::DecimalVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_)
             ss << "NULL";

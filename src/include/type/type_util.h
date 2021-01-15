@@ -39,7 +39,7 @@ class TypeUtil {
       case TypeId::REAL:
       case TypeId::TIMESTAMP:
         return 8;
-      case TypeId::FIXEDDECIMAL:
+      case TypeId::Decimal:
         return 16;
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
@@ -84,7 +84,7 @@ class TypeUtil {
         return "DECIMAL";
       case type::TypeId::TIMESTAMP:
         return "TIMESTAMP";
-      case type::TypeId::FIXEDDECIMAL:
+      case type::TypeId::Decimal:
         return "FIXED DECIMAL";
       case type::TypeId::DATE:
         return "DATE";

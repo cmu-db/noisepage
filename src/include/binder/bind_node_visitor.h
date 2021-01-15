@@ -113,7 +113,7 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   void UnifyOrderByExpression(common::ManagedPointer<parser::OrderByDescription> order_by_description,
                               const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
-  int32_t FixedDecimalExpressionResolvePrecision(common::ManagedPointer<parser::AbstractExpression> expr);
+  int32_t DecimalExpressionResolvePrecision(common::ManagedPointer<parser::AbstractExpression> expr);
   void ValidateDatabaseName(const std::string &db_name);
 };
 

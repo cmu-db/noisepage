@@ -28,7 +28,7 @@ SqlTypeId GetSqlTypeFromInternalType(TypeId type) {
       return SqlTypeId::Double;
     case TypeId::Date:
       return SqlTypeId::Date;
-    case TypeId::FixedDecimal:
+    case TypeId::Decimal:
       return SqlTypeId::Decimal;
     case TypeId::Varchar:
       return SqlTypeId::Varchar;
@@ -61,7 +61,7 @@ std::size_t GetTypeIdSize(TypeId type) {
       return sizeof(float);
     case TypeId::Double:
       return sizeof(double);
-    case TypeId::FixedDecimal:
+    case TypeId::Decimal:
       return sizeof(Decimal128);
     case TypeId::Date:
       return sizeof(Date);
@@ -122,7 +122,7 @@ bool IsTypeFixedSize(TypeId type) {
     case TypeId::Float:
     case TypeId::Double:
     case TypeId::Date:
-    case TypeId::FixedDecimal:
+    case TypeId::Decimal:
       return true;
     case TypeId::Varchar:
     case TypeId::Varbinary:
@@ -139,7 +139,7 @@ bool IsTypeIntegral(TypeId type) {
     case TypeId::Integer:
     case TypeId::BigInt:
       return true;
-    case TypeId::FixedDecimal:
+    case TypeId::Decimal:
     case TypeId::Boolean:
     case TypeId::Hash:
     case TypeId::Pointer:
@@ -159,7 +159,7 @@ bool IsTypeFloatingPoint(TypeId type) {
     case TypeId::Float:
     case TypeId::Double:
       return true;
-    case TypeId::FixedDecimal:
+    case TypeId::Decimal:
     case TypeId::Boolean:
     case TypeId::TinyInt:
     case TypeId::SmallInt:
@@ -189,7 +189,7 @@ bool IsTypeNumeric(TypeId type) {
     case TypeId::Float:
     case TypeId::Double:
     case TypeId::Date:
-    case TypeId::FixedDecimal:
+    case TypeId::Decimal:
       return true;
     case TypeId::Varchar:
     case TypeId::Varbinary:
@@ -223,8 +223,8 @@ std::string TypeIdToString(TypeId type) {
       return "Double";
     case TypeId::Date:
       return "Date";
-    case TypeId::FixedDecimal:
-      return "FixedDecimal";
+    case TypeId::Decimal:
+      return "Decimal";
     case TypeId::Timestamp:
       return "Timestamp";
     case TypeId::Varchar:
@@ -265,8 +265,8 @@ TypeId GetTypeId(type::TypeId frontend_type) {
     case type::TypeId::DATE:
       execution_type_id = execution::sql::TypeId::Date;
       break;
-    case type::TypeId::FIXEDDECIMAL:
-      execution_type_id = execution::sql::TypeId::FixedDecimal;
+    case type::TypeId::Decimal:
+      execution_type_id = execution::sql::TypeId::Decimal;
       break;
     case type::TypeId::VARCHAR:
       execution_type_id = execution::sql::TypeId::Varchar;

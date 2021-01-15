@@ -221,7 +221,7 @@ class Schema {
         NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
         NOISEPAGE_ASSERT(type_modifier_ == -1 || type_modifier_ > 0,
                          "Type modifier should be -1 (no limit), or a positive integer.");
-      } else if (type_ == type::TypeId::DECIMAL || type_ == type::TypeId::FIXEDDECIMAL) {
+      } else if (type_ == type::TypeId::DECIMAL || type_ == type::TypeId::Decimal) {
         NOISEPAGE_ASSERT(attr_length_ == 16, "Invalid attribute length.");
         NOISEPAGE_ASSERT(type_modifier_ > 0, "Type modifier should be a  positive integer.");
       } else {

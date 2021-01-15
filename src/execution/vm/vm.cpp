@@ -843,11 +843,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_VPI_ACCESS(BigInt, sql::Integer)
   GEN_VPI_ACCESS(Real, sql::Real)
   GEN_VPI_ACCESS(Double, sql::Real)
-  GEN_VPI_ACCESS(Decimal, sql::DecimalVal)
   GEN_VPI_ACCESS(Date, sql::DateVal)
   GEN_VPI_ACCESS(Timestamp, sql::TimestampVal)
   GEN_VPI_ACCESS(String, sql::StringVal)
-  GEN_VPI_ACCESS(FixedDecimal, sql::DecimalVal)
+  GEN_VPI_ACCESS(Decimal, sql::DecimalVal)
 #undef GEN_VPI_ACCESS
 
   OP(VPIGetPointer) : {
@@ -875,7 +874,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_HASH(Bool, sql::BoolVal)
   GEN_HASH(Real, sql::Real)
   GEN_HASH(Date, sql::DateVal)
-  GEN_HASH(FixedDecimal, sql::DecimalVal)
+  GEN_HASH(Decimal, sql::DecimalVal)
   GEN_HASH(Timestamp, sql::TimestampVal)
   GEN_HASH(String, sql::StringVal)
 #undef GEN_HASH
@@ -1015,7 +1014,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(InitFixedDecimal) : {
+  OP(InitDecimal) : {
     auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto fixed_decimal_1 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto fixed_decimal_2 = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
@@ -1033,23 +1032,23 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     fixed_decimal_128 = fixed_decimal_128 | (fixed_decimal_4_128);
 
     auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-    OpInitFixedDecimal(sql_fixed_decimal, fixed_decimal_128, precision);
+    OpInitDecimal(sql_fixed_decimal, fixed_decimal_128, precision);
     DISPATCH_NEXT();
   }
 
-  OP(SetPrecisionFixedDecimal) : {
+  OP(SetPrecisionDecimal) : {
     auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-    OpSetPrecisionFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
+    OpSetPrecisionDecimal(sql_fixed_decimal, fixed_decimal, precision);
     DISPATCH_NEXT();
   }
 
-  OP(UpgradePrecisionFixedDecimal) : {
+  OP(UpgradePrecisionDecimal) : {
     auto *sql_fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto fixed_decimal = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-    OpUpgradePrecisionFixedDecimal(sql_fixed_decimal, fixed_decimal, precision);
+    OpUpgradePrecisionDecimal(sql_fixed_decimal, fixed_decimal, precision);
     DISPATCH_NEXT();
   }
 
@@ -1164,11 +1163,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     Op##op##Date(result, left, right);                                  \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
-  OP(op##FixedDecimal) : {                                              \
+  OP(op##Decimal) : {                                              \
     auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());     \
     auto *left = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());    \
     auto *right = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());   \
-    Op##op##FixedDecimal(result, left, right);                          \
+    Op##op##Decimal(result, left, right);                          \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
   OP(op##Timestamp) : {                                                 \
@@ -1250,39 +1249,39 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 #undef GEN_MATH_OPS
 
 
-  OP(AddFixedDecimal) : {
+  OP(AddDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
 
-    OpAddFixedDecimal(dest, lhs, rhs);
+    OpAddDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
 
-  OP(SubFixedDecimal) : {
+  OP(SubDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
 
-    OpSubFixedDecimal(dest, lhs, rhs);
+    OpSubDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
 
-  OP(MulFixedDecimal) : {
+  OP(MulDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
 
-    OpMulFixedDecimal(dest, lhs, rhs);
+    OpMulDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
 
-  OP(DivFixedDecimal) : {
+  OP(DivDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
 
-    OpDivFixedDecimal(dest, lhs, rhs);
+    OpDivDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
 
@@ -1576,9 +1575,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_AGGREGATE(Real, RealSumAggregate);
   GEN_AGGREGATE(Real, RealMaxAggregate);
   GEN_AGGREGATE(Real, RealMinAggregate);
-  GEN_AGGREGATE(DecimalVal, FixedDecimalSumAggregate);
-  GEN_AGGREGATE(DecimalVal, FixedDecimalMaxAggregate);
-  GEN_AGGREGATE(DecimalVal, FixedDecimalMinAggregate);
+  GEN_AGGREGATE(DecimalVal, DecimalSumAggregate);
+  GEN_AGGREGATE(DecimalVal, DecimalMaxAggregate);
+  GEN_AGGREGATE(DecimalVal, DecimalMinAggregate);
   GEN_AGGREGATE(DateVal, DateMaxAggregate);
   GEN_AGGREGATE(DateVal, DateMinAggregate);
   GEN_AGGREGATE(StringVal, StringMaxAggregate);
@@ -2060,7 +2059,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_PR_ACCESS(Real, sql::Real)
   GEN_PR_ACCESS(Double, sql::Real)
   GEN_PR_ACCESS(DateVal, sql::DateVal)
-  GEN_PR_ACCESS(FixedDecimalVal, sql::DecimalVal)
+  GEN_PR_ACCESS(DecimalVal, sql::DecimalVal)
   GEN_PR_ACCESS(TimestampVal, sql::TimestampVal)
   GEN_PR_ACCESS(Varlen, sql::StringVal)
 #undef GEN_PR_ACCESS
@@ -2088,7 +2087,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_PR_SET(Real, sql::Real)
   GEN_PR_SET(Double, sql::Real)
   GEN_PR_SET(DateVal, sql::DateVal)
-  GEN_PR_SET(FixedDecimalVal, sql::DecimalVal)
+  GEN_PR_SET(DecimalVal, sql::DecimalVal)
 GEN_PR_SET(TimestampVal, sql::TimestampVal)
 #undef GEN_PR_SET
 

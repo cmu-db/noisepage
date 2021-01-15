@@ -550,26 +550,26 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::InitDate, dest, year, month, day);
       break;
     }
-    case ast::Builtin::FixedDecimalToSql: {
+    case ast::Builtin::DecimalToSql: {
       auto fixed_decimal_1 = VisitExpressionForRValue(call->Arguments()[0]);
       auto fixed_decimal_2 = VisitExpressionForRValue(call->Arguments()[1]);
       auto fixed_decimal_3 = VisitExpressionForRValue(call->Arguments()[2]);
       auto fixed_decimal_4 = VisitExpressionForRValue(call->Arguments()[3]);
       auto precision = VisitExpressionForRValue(call->Arguments()[4]);
-      GetEmitter()->Emit(Bytecode::InitFixedDecimal, dest, fixed_decimal_1,
+      GetEmitter()->Emit(Bytecode::InitDecimal, dest, fixed_decimal_1,
                          fixed_decimal_2, fixed_decimal_3, fixed_decimal_4, precision);
       break;
     }
-    case ast::Builtin::SetPrecisionFixedDecimal: {
+    case ast::Builtin::SetPrecisionDecimal: {
       auto fixed_decimal = VisitExpressionForRValue(call->Arguments()[0]);
       auto precision = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::SetPrecisionFixedDecimal, dest, fixed_decimal, precision);
+      GetEmitter()->Emit(Bytecode::SetPrecisionDecimal, dest, fixed_decimal, precision);
       break;
     }
-    case ast::Builtin::UpgradePrecisionFixedDecimal: {
+    case ast::Builtin::UpgradePrecisionDecimal: {
       auto fixed_decimal = VisitExpressionForRValue(call->Arguments()[0]);
       auto precision = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::UpgradePrecisionFixedDecimal, dest, fixed_decimal, precision);
+      GetEmitter()->Emit(Bytecode::UpgradePrecisionDecimal, dest, fixed_decimal, precision);
       break;
     }
     case ast::Builtin::TimestampToSql: {
@@ -851,7 +851,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
       GEN_CASE(VPIGetReal, Bytecode::VPIGetReal);
       GEN_CASE(VPIGetDouble, Bytecode::VPIGetDouble);
       GEN_CASE(VPIGetDate, Bytecode::VPIGetDate);
-      GEN_CASE(VPIGetFixedDecimal, Bytecode::VPIGetFixedDecimal);
+      GEN_CASE(VPIGetDecimal, Bytecode::VPIGetDecimal);
       GEN_CASE(VPIGetTimestamp, Bytecode::VPIGetTimestamp);
       GEN_CASE(VPIGetString, Bytecode::VPIGetString);
 #undef GEN_CASE
@@ -878,7 +878,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
       GEN_CASE(VPISetReal, Bytecode::VPISetReal);
       GEN_CASE(VPISetDouble, Bytecode::VPISetDouble);
       GEN_CASE(VPISetDate, Bytecode::VPISetDate);
-      GEN_CASE(VPISetFixedDecimal, Bytecode::VPISetFixedDecimal);
+      GEN_CASE(VPISetDecimal, Bytecode::VPISetDecimal);
       GEN_CASE(VPISetTimestamp, Bytecode::VPISetTimestamp);
       GEN_CASE(VPISetString, Bytecode::VPISetString);
 #undef GEN_CASE
@@ -921,8 +921,8 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
       case ast::BuiltinType::Date:
         GetEmitter()->Emit(Bytecode::HashDate, hash_val, input, hash_val.ValueOf());
         break;
-      case ast::BuiltinType::FixedDecimal:
-        GetEmitter()->Emit(Bytecode::HashFixedDecimal, hash_val, input, hash_val.ValueOf());
+      case ast::BuiltinType::Decimal:
+        GetEmitter()->Emit(Bytecode::HashDecimal, hash_val, input, hash_val.ValueOf());
         break;
       case ast::BuiltinType::Timestamp:
         GetEmitter()->Emit(Bytecode::HashTimestamp, hash_val, input, hash_val.ValueOf());
@@ -1230,18 +1230,18 @@ namespace {
   /* SUM(real_col) */                                                                                                  \
   F(RealSumAggregate, RealSumAggregateInit, RealSumAggregateAdvance, RealSumAggregateGetResult, RealSumAggregateMerge, \
     RealSumAggregateReset, RealSumAggregateFree)                                                                       \
-  /* MAX(FixedDecimal_col) */                                                                                          \
-  F(FixedDecimalMaxAggregate, FixedDecimalMaxAggregateInit, FixedDecimalMaxAggregateAdvance,                           \
-    FixedDecimalMaxAggregateGetResult, FixedDecimalMaxAggregateMerge, FixedDecimalMaxAggregateReset,                   \
-    FixedDecimalMaxAggregateFree)                                                                                      \
-  /* MIN(FixedDecimal_col) */                                                                                          \
-  F(FixedDecimalMinAggregate, FixedDecimalMinAggregateInit, FixedDecimalMinAggregateAdvance,                           \
-    FixedDecimalMinAggregateGetResult, FixedDecimalMinAggregateMerge,                                                  \
-    FixedDecimalMinAggregateReset, FixedDecimalMinAggregateFree)                                                       \
-  /* SUM(FixedDecimal_col) */                                                                                          \
-  F(FixedDecimalSumAggregate, FixedDecimalSumAggregateInit, FixedDecimalSumAggregateAdvance,                           \
-    FixedDecimalSumAggregateGetResult, FixedDecimalSumAggregateMerge,                                                  \
-    FixedDecimalSumAggregateReset, FixedDecimalSumAggregateFree)                                                       \
+  /* MAX(Decimal_col) */                                                                                          \
+  F(DecimalMaxAggregate, DecimalMaxAggregateInit, DecimalMaxAggregateAdvance,                           \
+    DecimalMaxAggregateGetResult, DecimalMaxAggregateMerge, DecimalMaxAggregateReset,                   \
+    DecimalMaxAggregateFree)                                                                                      \
+  /* MIN(Decimal_col) */                                                                                          \
+  F(DecimalMinAggregate, DecimalMinAggregateInit, DecimalMinAggregateAdvance,                           \
+    DecimalMinAggregateGetResult, DecimalMinAggregateMerge,                                                  \
+    DecimalMinAggregateReset, DecimalMinAggregateFree)                                                       \
+  /* SUM(Decimal_col) */                                                                                          \
+  F(DecimalSumAggregate, DecimalSumAggregateInit, DecimalSumAggregateAdvance,                           \
+    DecimalSumAggregateGetResult, DecimalSumAggregateMerge,                                                  \
+    DecimalSumAggregateReset, DecimalSumAggregateFree)                                                       \
   /* MAX(date_col) */                                                                                                  \
   F(DateMaxAggregate, DateMaxAggregateInit, DateMaxAggregateAdvance, DateMaxAggregateGetResult, DateMaxAggregateMerge, \
     DateMaxAggregateReset, DateMaxAggregateFree)                                                                       \
@@ -2080,10 +2080,10 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       GetEmitter()->EmitPRSet(Bytecode::PRSetDateVal, pr, col_idx, val);
       break;
     }
-    case ast::Builtin::PRSetFixedDecimal: {
+    case ast::Builtin::PRSetDecimal: {
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
-      GetEmitter()->EmitPRSet(Bytecode::PRSetFixedDecimalVal, pr, col_idx, val);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetDecimalVal, pr, col_idx, val);
       break;
     }
     case ast::Builtin::PRSetTimestamp: {
@@ -2147,10 +2147,10 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       GetEmitter()->EmitPRSet(Bytecode::PRSetDateValNull, pr, col_idx, val);
       break;
     }
-    case ast::Builtin::PRSetFixedDecimalNull: {
+    case ast::Builtin::PRSetDecimalNull: {
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
-      GetEmitter()->EmitPRSet(Bytecode::PRSetFixedDecimalValNull, pr, col_idx, val);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetDecimalValNull, pr, col_idx, val);
       break;
     }
     case ast::Builtin::PRSetTimestampNull: {
@@ -2219,10 +2219,10 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       GetEmitter()->EmitPRGet(Bytecode::PRGetDateVal, val, pr, col_idx);
       break;
     }
-    case ast::Builtin::PRGetFixedDecimal: {
-      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::FixedDecimal));
+    case ast::Builtin::PRGetDecimal: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Decimal));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      GetEmitter()->EmitPRGet(Bytecode::PRGetFixedDecimalVal, val, pr, col_idx);
+      GetEmitter()->EmitPRGet(Bytecode::PRGetDecimalVal, val, pr, col_idx);
       break;
     }
     case ast::Builtin::PRGetTimestamp: {
@@ -2292,10 +2292,10 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       GetEmitter()->EmitPRGet(Bytecode::PRGetDateValNull, val, pr, col_idx);
       break;
     }
-    case ast::Builtin::PRGetFixedDecimalNull: {
-      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::FixedDecimal));
+    case ast::Builtin::PRGetDecimalNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Decimal));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      GetEmitter()->EmitPRGet(Bytecode::PRGetFixedDecimalValNull, val, pr, col_idx);
+      GetEmitter()->EmitPRGet(Bytecode::PRGetDecimalValNull, val, pr, col_idx);
       break;
     }
     case ast::Builtin::PRGetTimestampNull: {
@@ -2631,9 +2631,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
-    case ast::Builtin::FixedDecimalToSql:
-    case ast::Builtin::SetPrecisionFixedDecimal:
-    case ast::Builtin::UpgradePrecisionFixedDecimal:
+    case ast::Builtin::DecimalToSql:
+    case ast::Builtin::SetPrecisionDecimal:
+    case ast::Builtin::UpgradePrecisionDecimal:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:
@@ -2764,8 +2764,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::VPIGetDoubleNull:
     case ast::Builtin::VPIGetDate:
     case ast::Builtin::VPIGetDateNull:
-    case ast::Builtin::VPIGetFixedDecimal:
-    case ast::Builtin::VPIGetFixedDecimalNull:
+    case ast::Builtin::VPIGetDecimal:
+    case ast::Builtin::VPIGetDecimalNull:
     case ast::Builtin::VPIGetTimestamp:
     case ast::Builtin::VPIGetTimestampNull:
     case ast::Builtin::VPIGetString:
@@ -2787,8 +2787,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::VPISetDoubleNull:
     case ast::Builtin::VPISetDate:
     case ast::Builtin::VPISetDateNull:
-    case ast::Builtin::VPISetFixedDecimal:
-    case ast::Builtin::VPISetFixedDecimalNull:
+    case ast::Builtin::VPISetDecimal:
+    case ast::Builtin::VPISetDecimalNull:
     case ast::Builtin::VPISetTimestamp:
     case ast::Builtin::VPISetTimestampNull:
     case ast::Builtin::VPISetString:
@@ -2979,7 +2979,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PRSetReal:
     case ast::Builtin::PRSetDouble:
     case ast::Builtin::PRSetDate:
-    case ast::Builtin::PRSetFixedDecimal:
+    case ast::Builtin::PRSetDecimal:
     case ast::Builtin::PRSetTimestamp:
     case ast::Builtin::PRSetVarlen:
     case ast::Builtin::PRSetBoolNull:
@@ -2990,7 +2990,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PRSetRealNull:
     case ast::Builtin::PRSetDoubleNull:
     case ast::Builtin::PRSetDateNull:
-    case ast::Builtin::PRSetFixedDecimalNull:
+    case ast::Builtin::PRSetDecimalNull:
     case ast::Builtin::PRSetTimestampNull:
     case ast::Builtin::PRSetVarlenNull:
     case ast::Builtin::PRGetBool:
@@ -3001,7 +3001,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PRGetReal:
     case ast::Builtin::PRGetDouble:
     case ast::Builtin::PRGetDate:
-    case ast::Builtin::PRGetFixedDecimal:
+    case ast::Builtin::PRGetDecimal:
     case ast::Builtin::PRGetTimestamp:
     case ast::Builtin::PRGetVarlen:
     case ast::Builtin::PRGetBoolNull:
@@ -3012,7 +3012,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PRGetRealNull:
     case ast::Builtin::PRGetDoubleNull:
     case ast::Builtin::PRGetDateNull:
-    case ast::Builtin::PRGetFixedDecimalNull:
+    case ast::Builtin::PRGetDecimalNull:
     case ast::Builtin::PRGetTimestampNull:
     case ast::Builtin::PRGetVarlenNull: {
       VisitBuiltinPRCall(call, builtin);
@@ -3427,12 +3427,12 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
   LocalVar right = VisitExpressionForSQLValue(node->Right());
 
   const bool is_integer_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
-  const bool is_decimal_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::FixedDecimal);
+  const bool is_decimal_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Decimal);
   Bytecode bytecode;
   switch (node->Op()) {
     case parsing::Token::Type::PLUS: {
       if(is_decimal_math) {
-        bytecode = Bytecode::AddFixedDecimal;
+        bytecode = Bytecode::AddDecimal;
         break;
       }
       bytecode = (is_integer_math ? Bytecode::AddInteger : Bytecode::AddReal);
@@ -3440,7 +3440,7 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
     }
     case parsing::Token::Type::MINUS: {
       if(is_decimal_math) {
-        bytecode = Bytecode::SubFixedDecimal;
+        bytecode = Bytecode::SubDecimal;
         break;
       }
       bytecode = (is_integer_math ? Bytecode::SubInteger : Bytecode::SubReal);
@@ -3448,7 +3448,7 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
     }
     case parsing::Token::Type::STAR: {
       if(is_decimal_math) {
-        bytecode = Bytecode::MulFixedDecimal;
+        bytecode = Bytecode::MulDecimal;
         break;
       }
       bytecode = (is_integer_math ? Bytecode::MulInteger : Bytecode::MulReal);
@@ -3456,7 +3456,7 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
     }
     case parsing::Token::Type::SLASH: {
       if(is_decimal_math) {
-        bytecode = Bytecode::DivFixedDecimal;
+        bytecode = Bytecode::DivDecimal;
         break;
       }
       bytecode = (is_integer_math ? Bytecode::DivInteger : Bytecode::DivReal);
@@ -3520,8 +3520,8 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
     case ast::BuiltinType::Kind::StringVal:                             \
       CODE_RESULT = Bytecode::COMPARISON_TYPE##String;                  \
       break;                                                            \
-    case ast::BuiltinType::Kind::FixedDecimal:                          \
-      CODE_RESULT = Bytecode::COMPARISON_TYPE##FixedDecimal;            \
+    case ast::BuiltinType::Kind::Decimal:                          \
+      CODE_RESULT = Bytecode::COMPARISON_TYPE##Decimal;            \
       break;                                                            \
     default:                                                            \
       UNREACHABLE("Undefined SQL comparison!");                         \

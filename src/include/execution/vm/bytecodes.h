@@ -165,8 +165,6 @@ namespace noisepage::execution::vm {
   F(VPIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(VPIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
   F(VPIGetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
-  F(VPIGetFixedDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
-  F(VPIGetFixedDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(VPIGetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPIGetPointer, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(VPIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
@@ -189,8 +187,6 @@ namespace noisepage::execution::vm {
   F(VPISetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPISetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(VPISetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
-  F(VPISetFixedDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
-  F(VPISetFixedDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
   F(VPISetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
   F(VPISetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPISetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
@@ -254,9 +250,9 @@ namespace noisepage::execution::vm {
   F(InitInteger64, OperandType::Local, OperandType::Local)                                                            \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  F(InitFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)\
-  F(SetPrecisionFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                             \
-  F(UpgradePrecisionFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(InitDecimal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)\
+  F(SetPrecisionDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(UpgradePrecisionDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
   F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
     OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \
@@ -297,12 +293,12 @@ namespace noisepage::execution::vm {
   F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
-  F(LessThanFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
-  F(LessThanEqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(GreaterThanFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
-  F(GreaterThanEqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  F(EqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
-  F(NotEqualFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(LessThanDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(LessThanEqualDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(GreaterThanDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(GreaterThanEqualDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(EqualDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(NotEqualDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(LessThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
   F(LessThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(GreaterThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
@@ -334,13 +330,13 @@ namespace noisepage::execution::vm {
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(ModInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(AddFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(AddDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(SubFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(SubDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(MulFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(MulDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(DivFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(DivDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(ModReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
   /* Hashing */                                                                                                       \
@@ -348,7 +344,7 @@ namespace noisepage::execution::vm {
   F(HashBool, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashDate, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
-  F(HashFixedDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(HashDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
   F(HashTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
   F(HashString, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(HashCombine, OperandType::Local, OperandType::Local)                                                              \
@@ -409,12 +405,12 @@ namespace noisepage::execution::vm {
   F(RealSumAggregateReset, OperandType::Local)                                                                        \
   F(RealSumAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealSumAggregateFree, OperandType::Local)                                                                         \
-  F(FixedDecimalSumAggregateInit, OperandType::Local)                                                                 \
-  F(FixedDecimalSumAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
-  F(FixedDecimalSumAggregateMerge, OperandType::Local, OperandType::Local)                                            \
-  F(FixedDecimalSumAggregateReset, OperandType::Local)                                                                \
-  F(FixedDecimalSumAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
-  F(FixedDecimalSumAggregateFree, OperandType::Local)                                                                 \
+  F(DecimalSumAggregateInit, OperandType::Local)                                                                 \
+  F(DecimalSumAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
+  F(DecimalSumAggregateMerge, OperandType::Local, OperandType::Local)                                            \
+  F(DecimalSumAggregateReset, OperandType::Local)                                                                \
+  F(DecimalSumAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
+  F(DecimalSumAggregateFree, OperandType::Local)                                                                 \
   /* MAX Aggregates */                                                                                                \
   F(IntegerMaxAggregateInit, OperandType::Local)                                                                      \
   F(IntegerMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
@@ -428,12 +424,12 @@ namespace noisepage::execution::vm {
   F(RealMaxAggregateReset, OperandType::Local)                                                                        \
   F(RealMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealMaxAggregateFree, OperandType::Local)                                                                         \
-  F(FixedDecimalMaxAggregateInit, OperandType::Local)                                                                 \
-  F(FixedDecimalMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
-  F(FixedDecimalMaxAggregateMerge, OperandType::Local, OperandType::Local)                                            \
-  F(FixedDecimalMaxAggregateReset, OperandType::Local)                                                                \
-  F(FixedDecimalMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
-  F(FixedDecimalMaxAggregateFree, OperandType::Local)                                                                 \
+  F(DecimalMaxAggregateInit, OperandType::Local)                                                                 \
+  F(DecimalMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
+  F(DecimalMaxAggregateMerge, OperandType::Local, OperandType::Local)                                            \
+  F(DecimalMaxAggregateReset, OperandType::Local)                                                                \
+  F(DecimalMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
+  F(DecimalMaxAggregateFree, OperandType::Local)                                                                 \
   F(DateMaxAggregateInit, OperandType::Local)                                                                         \
   F(DateMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(DateMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
@@ -459,12 +455,12 @@ namespace noisepage::execution::vm {
   F(RealMinAggregateReset, OperandType::Local)                                                                        \
   F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealMinAggregateFree, OperandType::Local)                                                                         \
-  F(FixedDecimalMinAggregateInit, OperandType::Local)                                                                 \
-  F(FixedDecimalMinAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
-  F(FixedDecimalMinAggregateMerge, OperandType::Local, OperandType::Local)                                            \
-  F(FixedDecimalMinAggregateReset, OperandType::Local)                                                                \
-  F(FixedDecimalMinAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
-  F(FixedDecimalMinAggregateFree, OperandType::Local)                                                                 \
+  F(DecimalMinAggregateInit, OperandType::Local)                                                                 \
+  F(DecimalMinAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
+  F(DecimalMinAggregateMerge, OperandType::Local, OperandType::Local)                                            \
+  F(DecimalMinAggregateReset, OperandType::Local)                                                                \
+  F(DecimalMinAggregateGetResult, OperandType::Local, OperandType::Local)                                        \
+  F(DecimalMinAggregateFree, OperandType::Local)                                                                 \
   F(DateMinAggregateInit, OperandType::Local)                                                                         \
   F(DateMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(DateMinAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
@@ -561,7 +557,7 @@ namespace noisepage::execution::vm {
   F(PRGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
   F(PRGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
   F(PRGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
-  F(PRGetFixedDecimalVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                 \
+  F(PRGetDecimalVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                 \
   F(PRGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
   F(PRGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
   F(PRGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
@@ -572,7 +568,7 @@ namespace noisepage::execution::vm {
   F(PRGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PRGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
   F(PRGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
-  F(PRGetFixedDecimalValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
+  F(PRGetDecimalValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
   F(PRGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                \
   F(PRGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
   F(PRSetBool, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
@@ -583,7 +579,7 @@ namespace noisepage::execution::vm {
   F(PRSetReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
   F(PRSetDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
   F(PRSetDateVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
-  F(PRSetFixedDecimalVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                 \
+  F(PRSetDecimalVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                 \
   F(PRSetTimestampVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
   F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                      \
   F(PRSetBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
@@ -594,7 +590,7 @@ namespace noisepage::execution::vm {
   F(PRSetRealNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetDoubleNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
   F(PRSetDateValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
-  F(PRSetFixedDecimalValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                             \
+  F(PRSetDecimalValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                             \
   F(PRSetTimestampValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                \
   F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                  \
                                                                                                                       \

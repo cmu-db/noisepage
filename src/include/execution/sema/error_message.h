@@ -60,7 +60,6 @@ namespace sema {
   F(InvalidIndexOperation, "invalid operation: type '%0' does not support indexing", (ast::Type *))                   \
   F(InvalidArrayIndexValue, "non-integer array index", ())                                                            \
   F(InvalidCastToSqlInt, "invalid cast of %0 to SQL integer", (ast::Type *))                                          \
-  F(InvalidCastToSqlDecimal, "invalid cast of %0 to SQL decimal", (ast::Type *))                                      \
   F(InvalidCastToSqlDate, "date creation expects three 32-bit integers, received '%0', '%1', '%2'",                   \
     (ast::Type *, ast::Type *, ast::Type *))                                                                          \
   F(InvalidSqlCastToBool, "invalid input to cast to native boolean: expected SQL boolean, got %0", (ast::Type *))     \
@@ -96,7 +95,7 @@ namespace sema {
     "types. Received type '%0' in position %1",                                                                       \
     (ast::Type *, uint32_t))                                                                                          \
   F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))            \
-  F(InvalidCastToSqlFixedDecimal, "invalid cast of %0 %1 %2 %3 %4 to SQL fixed decimal", (ast::Type *, ast::Type *, ast::Type *, ast::Type *, ast::Type *))
+  F(InvalidCastToSqlDecimal, "invalid cast of %0 %1 %2 %3 %4 to SQL fixed decimal", (ast::Type *, ast::Type *, ast::Type *, ast::Type *, ast::Type *))
 
 /// Define the ErrorMessageId enumeration
 enum class ErrorMessageId : uint16_t {

@@ -1024,7 +1024,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
     parser::ConstantValueExpression null_val{val_type, execution::sql::Val(true)};
     auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
 
-    if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY || val_type == type::TypeId::FIXEDDECIMAL) {
+    if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY || val_type == type::TypeId::Decimal) {
       cols.emplace_back(col->GetColumnName(), val_type, col->GetTypeModifier(), col->IsNullable(), val);
     } else {
       cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), val);

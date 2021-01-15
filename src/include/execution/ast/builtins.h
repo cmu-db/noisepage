@@ -14,9 +14,9 @@ namespace noisepage::execution::ast {
   F(BoolToSql, boolToSql)                                               \
   F(FloatToSql, floatToSql)                                             \
   F(DateToSql, dateToSql)                                               \
-  F(FixedDecimalToSql, fixedDecimalToSql)                               \
-  F(SetPrecisionFixedDecimal, setPrecisionFixedDecimal)                 \
-  F(UpgradePrecisionFixedDecimal, upgradePrecisionFixedDecimal)         \
+  F(DecimalToSql, DecimalToSql)                               \
+  F(SetPrecisionDecimal, setPrecisionDecimal)                 \
+  F(UpgradePrecisionDecimal, upgradePrecisionDecimal)         \
   F(TimestampToSql, timestampToSql)                                     \
   F(TimestampToSqlYMDHMSMU, timestampToSqlYMDHMSMU)                     \
   F(StringToSql, stringToSql)                                           \
@@ -94,8 +94,8 @@ namespace noisepage::execution::ast {
   F(VPIGetDoubleNull, vpiGetDoubleNull)                                 \
   F(VPIGetDate, vpiGetDate)                                             \
   F(VPIGetDateNull, vpiGetDateNull)                                     \
-  F(VPIGetFixedDecimal, vpiGetFixedDecimal)                             \
-  F(VPIGetFixedDecimalNull, vpiGetFixedDecimalNull)                     \
+  F(VPIGetDecimal, vpiGetDecimal)                             \
+  F(VPIGetDecimalNull, vpiGetDecimalNull)                     \
   F(VPIGetTimestamp, vpiGetTimestamp)                                   \
   F(VPIGetTimestampNull, vpiGetTimestampNull)                           \
   F(VPIGetString, vpiGetString)                                         \
@@ -117,8 +117,8 @@ namespace noisepage::execution::ast {
   F(VPISetDoubleNull, vpiSetDoubleNull)                                 \
   F(VPISetDate, vpiSetDate)                                             \
   F(VPISetDateNull, vpiSetDateNull)                                     \
-  F(VPISetFixedDecimal, vpiSetFixedDecimal)                             \
-  F(VPISetFixedDecimalNull, vpiSetFixedDecimalNull)                     \
+  F(VPISetDecimal, vpiSetDecimal)                             \
+  F(VPISetDecimalNull, vpiSetDecimalNull)                     \
   F(VPISetTimestamp, vpiSetTimestamp)                                   \
   F(VPISetTimestampNull, vpiSetTimestampNull)                           \
   F(VPISetString, vpiSetString)                                         \
@@ -236,7 +236,7 @@ namespace noisepage::execution::ast {
   F(PRSetReal, prSetReal)                                               \
   F(PRSetDouble, prSetDouble)                                           \
   F(PRSetDate, prSetDate)                                               \
-  F(PRSetFixedDecimal, prSetFixedDecimal)                               \
+  F(PRSetDecimal, prSetDecimal)                               \
   F(PRSetTimestamp, prSetTimestamp)                                     \
   F(PRSetVarlen, prSetVarlen)                                           \
   F(PRSetBoolNull, prSetBoolNull)                                       \
@@ -247,7 +247,7 @@ namespace noisepage::execution::ast {
   F(PRSetRealNull, prSetRealNull)                                       \
   F(PRSetDoubleNull, prSetDoubleNull)                                   \
   F(PRSetDateNull, prSetDateNull)                                       \
-  F(PRSetFixedDecimalNull, prSetFixedDecimalNull)                       \
+  F(PRSetDecimalNull, prSetDecimalNull)                       \
   F(PRSetTimestampNull, prSetTimestampNull)                             \
   F(PRSetVarlenNull, prSetVarlenNull)                                   \
   F(PRGetBool, prGetBool)                                               \
@@ -258,7 +258,7 @@ namespace noisepage::execution::ast {
   F(PRGetReal, prGetReal)                                               \
   F(PRGetDouble, prGetDouble)                                           \
   F(PRGetDate, prGetDate)                                               \
-  F(PRGetFixedDecimal, prGetFixedDecimal)                               \
+  F(PRGetDecimal, prGetDecimal)                               \
   F(PRGetTimestamp, prGetTimestamp)                                     \
   F(PRGetVarlen, prGetVarlen)                                           \
   F(PRGetBoolNull, prGetBoolNull)                                       \
@@ -269,7 +269,7 @@ namespace noisepage::execution::ast {
   F(PRGetRealNull, prGetRealNull)                                       \
   F(PRGetDoubleNull, prGetDoubleNull)                                   \
   F(PRGetDateNull, prGetDateNull)                                       \
-  F(PRGetFixedDecimalNull, prGetFixedDecimalNull)                       \
+  F(PRGetDecimalNull, prGetDecimalNull)                       \
   F(PRGetTimestampNull, prGetTimestampNull)                             \
   F(PRGetVarlenNull, prGetVarlenNull)                                   \
   /* CSV */                                                             \

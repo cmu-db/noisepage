@@ -229,7 +229,7 @@ void Vector::Reference(GenericValue *value) {
       data_ = reinterpret_cast<byte *>(&value->value_.date_);
       break;
     }
-    case TypeId::FixedDecimal: {
+    case TypeId::Decimal: {
       data_ = reinterpret_cast<byte *>(&value->value_.decimal128_);
       break;
     }

@@ -88,9 +88,9 @@ class Context;
   NON_PRIM(RealMaxAggregate, noisepage::execution::sql::RealMaxAggregate)                         \
   NON_PRIM(RealMinAggregate, noisepage::execution::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, noisepage::execution::sql::RealSumAggregate)                         \
-  NON_PRIM(FixedDecimalMaxAggregate, noisepage::execution::sql::FixedDecimalMaxAggregate)         \
-  NON_PRIM(FixedDecimalMinAggregate, noisepage::execution::sql::FixedDecimalMinAggregate)         \
-  NON_PRIM(FixedDecimalSumAggregate, noisepage::execution::sql::FixedDecimalSumAggregate)         \
+  NON_PRIM(DecimalMaxAggregate, noisepage::execution::sql::DecimalMaxAggregate)         \
+  NON_PRIM(DecimalMinAggregate, noisepage::execution::sql::DecimalMinAggregate)         \
+  NON_PRIM(DecimalSumAggregate, noisepage::execution::sql::DecimalSumAggregate)         \
   NON_PRIM(DateMinAggregate, noisepage::execution::sql::DateMinAggregate)                         \
   NON_PRIM(DateMaxAggregate, noisepage::execution::sql::DateMaxAggregate)                         \
   NON_PRIM(StringMinAggregate, noisepage::execution::sql::StringMinAggregate)                     \
@@ -108,7 +108,6 @@ class Context;
   SQL(Decimal, noisepage::execution::sql::DecimalVal)                                             \
   SQL(StringVal, noisepage::execution::sql::StringVal)                                            \
   SQL(Date, noisepage::execution::sql::DateVal)                                                   \
-  SQL(FixedDecimal, noisepage::execution::sql::DecimalVal)                                        \
   SQL(Timestamp, noisepage::execution::sql::TimestampVal)
 
 

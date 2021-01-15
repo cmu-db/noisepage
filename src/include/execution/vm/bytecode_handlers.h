@@ -430,7 +430,6 @@ GEN_VPI_GET(BigInt, Integer, int64_t);
 GEN_VPI_GET(Real, Real, float);
 GEN_VPI_GET(Double, Real, double);
 GEN_VPI_GET(Decimal, DecimalVal, noisepage::execution::sql::Decimal128);
-GEN_VPI_GET(FixedDecimal, DecimalVal, noisepage::execution::sql::Decimal128);
 GEN_VPI_GET(Date, DateVal, noisepage::execution::sql::Date);
 GEN_VPI_GET(Timestamp, TimestampVal, noisepage::execution::sql::Timestamp);
 GEN_VPI_GET(String, StringVal, noisepage::storage::VarlenEntry);
@@ -441,11 +440,10 @@ GEN_VPI_SET(Integer, Integer, int32_t);
 GEN_VPI_SET(BigInt, Integer, int64_t);
 GEN_VPI_SET(Real, Real, float);
 GEN_VPI_SET(Double, Real, double);
-GEN_VPI_SET(Decimal, DecimalVal, noisepage::execution::sql::Decimal128);
 GEN_VPI_SET(Date, DateVal, noisepage::execution::sql::Date);
 GEN_VPI_SET(Timestamp, TimestampVal, noisepage::execution::sql::Timestamp);
 GEN_VPI_SET(String, StringVal, noisepage::storage::VarlenEntry);
-GEN_VPI_SET(FixedDecimal, DecimalVal, noisepage::execution::sql::Decimal128);
+GEN_VPI_SET(Decimal, DecimalVal, noisepage::execution::sql::Decimal128);
 
 
 #undef GEN_VPI_SET
@@ -487,7 +485,7 @@ VM_OP_HOT void OpHashDate(noisepage::hash_t *const hash_val, const noisepage::ex
   *hash_val = input->is_null_ ? 0 : input->val_.Hash(seed);
 }
 
-VM_OP_HOT void OpHashFixedDecimal(noisepage::hash_t *const hash_val, const noisepage::execution::sql::DecimalVal *const input,
+VM_OP_HOT void OpHashDecimal(noisepage::hash_t *const hash_val, const noisepage::execution::sql::DecimalVal *const input,
                           const noisepage::hash_t seed) {
   *hash_val = input->is_null_ ? 0 : input->val_.Hash(seed);
 }
@@ -586,13 +584,13 @@ VM_OP_HOT void OpInitDate(noisepage::execution::sql::DateVal *result, int32_t ye
   result->val_ = noisepage::execution::sql::Date::FromYMD(year, month, day);
 }
 
-VM_OP_HOT void OpInitFixedDecimal(noisepage::execution::sql::DecimalVal *result, int128_t fixed_decimal, int32_t precision) {
+VM_OP_HOT void OpInitDecimal(noisepage::execution::sql::DecimalVal *result, int128_t fixed_decimal, int32_t precision) {
   result->is_null_ = false;
   result->val_ = noisepage::execution::sql::Decimal128(fixed_decimal);
   result->precision_ = precision;
 }
 
-VM_OP_HOT void OpSetPrecisionFixedDecimal(noisepage::execution::sql::DecimalVal *result,
+VM_OP_HOT void OpSetPrecisionDecimal(noisepage::execution::sql::DecimalVal *result,
                                           noisepage::execution::sql::DecimalVal * fixed_decimal,
                                           int32_t precision) {
   result->is_null_ = fixed_decimal->is_null_;
@@ -600,7 +598,7 @@ VM_OP_HOT void OpSetPrecisionFixedDecimal(noisepage::execution::sql::DecimalVal 
   result->precision_ = precision;
 }
 
-VM_OP_HOT void OpUpgradePrecisionFixedDecimal(noisepage::execution::sql::DecimalVal *result,
+VM_OP_HOT void OpUpgradePrecisionDecimal(noisepage::execution::sql::DecimalVal *result,
                                               noisepage::execution::sql::DecimalVal * fixed_decimal,
                                           int32_t precision) {
   result->is_null_ = fixed_decimal->is_null_;
@@ -764,7 +762,7 @@ GEN_SQL_COMPARISONS(String, StringVal)
 
 // TODO(Rohan): Optimize this
 #define GEN_FIXED_DECIMAL_COMPARISONS(NAME, EXPR)                                                   \
-  VM_OP_HOT void Op##NAME##FixedDecimal(noisepage::execution::sql::BoolVal *const result,           \
+  VM_OP_HOT void Op##NAME##Decimal(noisepage::execution::sql::BoolVal *const result,           \
                                      const noisepage::execution::sql::DecimalVal *const left,       \
                                      const noisepage::execution::sql::DecimalVal *const right) {    \
     auto left_val = left->val_;                                                                     \
@@ -861,7 +859,7 @@ VM_OP_HOT void OpMulReal(noisepage::execution::sql::Real *const result,
   noisepage::execution::sql::ArithmeticFunctions::Mul(result, *left, *right);
 }
 
-VM_OP_HOT void OpAddFixedDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
+VM_OP_HOT void OpAddDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
                                  const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
@@ -887,7 +885,7 @@ VM_OP_HOT void OpAddFixedDecimal(noisepage::execution::sql::DecimalVal *const re
   result->precision_ = left_precision > right_precision ? left_precision : right_precision;
 }
 
-VM_OP_HOT void OpSubFixedDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
+VM_OP_HOT void OpSubDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
                                  const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
@@ -913,7 +911,7 @@ VM_OP_HOT void OpSubFixedDecimal(noisepage::execution::sql::DecimalVal *const re
   result->precision_ = left_precision > right_precision ? left_precision : right_precision;
 }
 
-VM_OP_HOT void OpMulFixedDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
+VM_OP_HOT void OpMulDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
                          const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
@@ -926,7 +924,7 @@ VM_OP_HOT void OpMulFixedDecimal(noisepage::execution::sql::DecimalVal *const re
   result->precision_ = left_precision > right_precision ? left_precision : right_precision;
 }
 
-VM_OP_HOT void OpDivFixedDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
+VM_OP_HOT void OpDivDecimal(noisepage::execution::sql::DecimalVal *const result, const noisepage::execution::sql::DecimalVal *const left,
                                  const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
@@ -1172,28 +1170,28 @@ VM_OP_HOT void OpRealSumAggregateGetResult(noisepage::execution::sql::Real *resu
 
 VM_OP_HOT void OpRealSumAggregateFree(noisepage::execution::sql::RealSumAggregate *agg) { agg->~RealSumAggregate(); }
 
-VM_OP_HOT void OpFixedDecimalSumAggregateInit(noisepage::execution::sql::FixedDecimalSumAggregate *agg) {
-  new (agg) noisepage::execution::sql::FixedDecimalSumAggregate();
+VM_OP_HOT void OpDecimalSumAggregateInit(noisepage::execution::sql::DecimalSumAggregate *agg) {
+  new (agg) noisepage::execution::sql::DecimalSumAggregate();
 }
 
-VM_OP_HOT void OpFixedDecimalSumAggregateAdvance(noisepage::execution::sql::FixedDecimalSumAggregate *agg,
+VM_OP_HOT void OpDecimalSumAggregateAdvance(noisepage::execution::sql::DecimalSumAggregate *agg,
                                          const noisepage::execution::sql::DecimalVal *val) {
   agg->Advance(*val);
 }
 
-VM_OP_HOT void OpFixedDecimalSumAggregateMerge(noisepage::execution::sql::FixedDecimalSumAggregate *agg_1,
-                                       const noisepage::execution::sql::FixedDecimalSumAggregate *agg_2) {
+VM_OP_HOT void OpDecimalSumAggregateMerge(noisepage::execution::sql::DecimalSumAggregate *agg_1,
+                                       const noisepage::execution::sql::DecimalSumAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpFixedDecimalSumAggregateReset(noisepage::execution::sql::FixedDecimalSumAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpDecimalSumAggregateReset(noisepage::execution::sql::DecimalSumAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpFixedDecimalSumAggregateGetResult(noisepage::execution::sql::DecimalVal *result,
-                                           const noisepage::execution::sql::FixedDecimalSumAggregate *agg) {
+VM_OP_HOT void OpDecimalSumAggregateGetResult(noisepage::execution::sql::DecimalVal *result,
+                                           const noisepage::execution::sql::DecimalSumAggregate *agg) {
   *result = agg->GetResultSum();
 }
 
-VM_OP_HOT void OpFixedDecimalSumAggregateFree(noisepage::execution::sql::FixedDecimalSumAggregate *agg) { agg->~FixedDecimalSumAggregate(); }
+VM_OP_HOT void OpDecimalSumAggregateFree(noisepage::execution::sql::DecimalSumAggregate *agg) { agg->~DecimalSumAggregate(); }
 
 // ---------------------------------------------------------
 // MAX
@@ -1247,28 +1245,28 @@ VM_OP_HOT void OpRealMaxAggregateGetResult(noisepage::execution::sql::Real *resu
 
 VM_OP_HOT void OpRealMaxAggregateFree(noisepage::execution::sql::RealMaxAggregate *agg) { agg->~RealMaxAggregate(); }
 
-VM_OP_HOT void OpFixedDecimalMaxAggregateInit(noisepage::execution::sql::FixedDecimalMaxAggregate *agg) {
-  new (agg) noisepage::execution::sql::FixedDecimalMaxAggregate();
+VM_OP_HOT void OpDecimalMaxAggregateInit(noisepage::execution::sql::DecimalMaxAggregate *agg) {
+  new (agg) noisepage::execution::sql::DecimalMaxAggregate();
 }
 
-VM_OP_HOT void OpFixedDecimalMaxAggregateAdvance(noisepage::execution::sql::FixedDecimalMaxAggregate *agg,
+VM_OP_HOT void OpDecimalMaxAggregateAdvance(noisepage::execution::sql::DecimalMaxAggregate *agg,
                                          const noisepage::execution::sql::DecimalVal *val) {
   agg->Advance(*val);
 }
 
-VM_OP_HOT void OpFixedDecimalMaxAggregateMerge(noisepage::execution::sql::FixedDecimalMaxAggregate *agg_1,
-                                       const noisepage::execution::sql::FixedDecimalMaxAggregate *agg_2) {
+VM_OP_HOT void OpDecimalMaxAggregateMerge(noisepage::execution::sql::DecimalMaxAggregate *agg_1,
+                                       const noisepage::execution::sql::DecimalMaxAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpFixedDecimalMaxAggregateReset(noisepage::execution::sql::FixedDecimalMaxAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpDecimalMaxAggregateReset(noisepage::execution::sql::DecimalMaxAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpFixedDecimalMaxAggregateGetResult(noisepage::execution::sql::DecimalVal *result,
-                                           const noisepage::execution::sql::FixedDecimalMaxAggregate *agg) {
+VM_OP_HOT void OpDecimalMaxAggregateGetResult(noisepage::execution::sql::DecimalVal *result,
+                                           const noisepage::execution::sql::DecimalMaxAggregate *agg) {
   *result = agg->GetResultMax();
 }
 
-VM_OP_HOT void OpFixedDecimalMaxAggregateFree(noisepage::execution::sql::FixedDecimalMaxAggregate *agg) { agg->~FixedDecimalMaxAggregate(); }
+VM_OP_HOT void OpDecimalMaxAggregateFree(noisepage::execution::sql::DecimalMaxAggregate *agg) { agg->~DecimalMaxAggregate(); }
 
 VM_OP_HOT void OpDateMaxAggregateInit(noisepage::execution::sql::DateMaxAggregate *agg) {
   new (agg) noisepage::execution::sql::DateMaxAggregate();
@@ -1370,28 +1368,28 @@ VM_OP_HOT void OpRealMinAggregateGetResult(noisepage::execution::sql::Real *resu
 
 VM_OP_HOT void OpRealMinAggregateFree(noisepage::execution::sql::RealMinAggregate *agg) { agg->~RealMinAggregate(); }
 
-VM_OP_HOT void OpFixedDecimalMinAggregateInit(noisepage::execution::sql::FixedDecimalMinAggregate *agg) {
-  new (agg) noisepage::execution::sql::FixedDecimalMinAggregate();
+VM_OP_HOT void OpDecimalMinAggregateInit(noisepage::execution::sql::DecimalMinAggregate *agg) {
+  new (agg) noisepage::execution::sql::DecimalMinAggregate();
 }
 
-VM_OP_HOT void OpFixedDecimalMinAggregateAdvance(noisepage::execution::sql::FixedDecimalMinAggregate *agg,
+VM_OP_HOT void OpDecimalMinAggregateAdvance(noisepage::execution::sql::DecimalMinAggregate *agg,
                                          const noisepage::execution::sql::DecimalVal *val) {
   agg->Advance(*val);
 }
 
-VM_OP_HOT void OpFixedDecimalMinAggregateMerge(noisepage::execution::sql::FixedDecimalMinAggregate *agg_1,
-                                       const noisepage::execution::sql::FixedDecimalMinAggregate *agg_2) {
+VM_OP_HOT void OpDecimalMinAggregateMerge(noisepage::execution::sql::DecimalMinAggregate *agg_1,
+                                       const noisepage::execution::sql::DecimalMinAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
-VM_OP_HOT void OpFixedDecimalMinAggregateReset(noisepage::execution::sql::FixedDecimalMinAggregate *agg) { agg->Reset(); }
+VM_OP_HOT void OpDecimalMinAggregateReset(noisepage::execution::sql::DecimalMinAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpFixedDecimalMinAggregateGetResult(noisepage::execution::sql::DecimalVal *result,
-                                           const noisepage::execution::sql::FixedDecimalMinAggregate *agg) {
+VM_OP_HOT void OpDecimalMinAggregateGetResult(noisepage::execution::sql::DecimalVal *result,
+                                           const noisepage::execution::sql::DecimalMinAggregate *agg) {
   *result = agg->GetResultMin();
 }
 
-VM_OP_HOT void OpFixedDecimalMinAggregateFree(noisepage::execution::sql::FixedDecimalMinAggregate *agg) { agg->~FixedDecimalMinAggregate(); }
+VM_OP_HOT void OpDecimalMinAggregateFree(noisepage::execution::sql::DecimalMinAggregate *agg) { agg->~DecimalMinAggregate(); }
 
 VM_OP_HOT void OpDateMinAggregateInit(noisepage::execution::sql::DateMinAggregate *agg) {
   new (agg) noisepage::execution::sql::DateMinAggregate();
@@ -2149,7 +2147,7 @@ VM_OP_HOT void OpPRSetDateVal(noisepage::storage::ProjectedRow *pr, uint16_t col
   pr->Set<uint32_t, false>(col_idx, pr_val, val->is_null_);
 }
 
-VM_OP_HOT void OpPRSetFixedDecimalVal(noisepage::storage::ProjectedRow *pr, uint16_t col_idx,
+VM_OP_HOT void OpPRSetDecimalVal(noisepage::storage::ProjectedRow *pr, uint16_t col_idx,
                               noisepage::execution::sql::DecimalVal *val) {
   auto pr_val = val->val_.GetValue();
   pr->Set<int128_t, false>(col_idx, pr_val, val->is_null_);
@@ -2161,7 +2159,7 @@ VM_OP_HOT void OpPRSetDateValNull(noisepage::storage::ProjectedRow *pr, uint16_t
   pr->Set<uint32_t, true>(col_idx, pr_val, val->is_null_);
 }
 
-VM_OP_HOT void OpPRSetFixedDecimalValNull(noisepage::storage::ProjectedRow *pr, uint16_t col_idx,
+VM_OP_HOT void OpPRSetDecimalValNull(noisepage::storage::ProjectedRow *pr, uint16_t col_idx,
                                   noisepage::execution::sql::DecimalVal *val) {
   auto pr_val = val->is_null_ ? 0 : val->val_.GetValue();
   pr->Set<int128_t , true>(col_idx, pr_val, val->is_null_);
@@ -2200,7 +2198,7 @@ VM_OP_HOT void OpPRGetDateValNull(noisepage::execution::sql::DateVal *out, noise
   out->val_ = null ? noisepage::execution::sql::Date() : noisepage::execution::sql::Date::FromNative(*ptr);
 }
 
-VM_OP_HOT void OpPRGetFixedDecimalVal(noisepage::execution::sql::DecimalVal *out, noisepage::storage::ProjectedRow *pr,
+VM_OP_HOT void OpPRGetDecimalVal(noisepage::execution::sql::DecimalVal *out, noisepage::storage::ProjectedRow *pr,
                               uint16_t col_idx) {
   // Read
   auto *ptr = pr->Get<int128_t , false>(col_idx, nullptr);
@@ -2210,7 +2208,7 @@ VM_OP_HOT void OpPRGetFixedDecimalVal(noisepage::execution::sql::DecimalVal *out
   out->val_ = noisepage::execution::sql::Decimal128(*ptr);
 }
 
-VM_OP_HOT void OpPRGetFixedDecimalValNull(noisepage::execution::sql::DecimalVal *out, noisepage::storage::ProjectedRow *pr,
+VM_OP_HOT void OpPRGetDecimalValNull(noisepage::execution::sql::DecimalVal *out, noisepage::storage::ProjectedRow *pr,
                                   uint16_t col_idx) {
   // Read
   bool null = false;

@@ -267,9 +267,9 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     auto sql_type = sql::GetTypeId(tbl_col.Type());
     auto scan_offset = oid_offset[cve->GetColumnOid()];
     execution::ast::Expr * col_expr;
-    if(sql_type == sql::TypeId::FixedDecimal) {
+    if(sql_type == sql::TypeId::Decimal) {
       auto vpi_get_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
-      col_expr = GetCodeGen()->SetPrecisionFixedDecimal(vpi_get_expr, tbl_col.TypeModifier());
+      col_expr = GetCodeGen()->SetPrecisionDecimal(vpi_get_expr, tbl_col.TypeModifier());
     } else {
       col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
     }

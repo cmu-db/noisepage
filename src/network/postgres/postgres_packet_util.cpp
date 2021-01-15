@@ -66,7 +66,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       return {type, execution::sql::Integer(static_cast<int64_t>(std::stoll(string)))};
     case type::TypeId::REAL:
       return {type, execution::sql::Real(std::stod(string))};
-    case type::TypeId::FIXEDDECIMAL: {
+    case type::TypeId::Decimal: {
       // TODO(Rohan): Find out how to fix this
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
       return {type::TypeId::VARCHAR, string_val.first, std::move(string_val.second)};

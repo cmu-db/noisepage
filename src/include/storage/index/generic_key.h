@@ -152,7 +152,7 @@ class GenericKey {
       return *reinterpret_cast<const int64_t *const>(lhs_attr) OP * reinterpret_cast<const int64_t *const>(rhs_attr);  \
     case type::TypeId::DECIMAL:                                                                                        \
       return *reinterpret_cast<const double *const>(lhs_attr) OP * reinterpret_cast<const double *const>(rhs_attr);    \
-    case type::TypeId::FIXEDDECIMAL:                                                                                   \
+    case type::TypeId::Decimal:                                                                                   \
       return *reinterpret_cast<const int128_t *const>(lhs_attr) OP * reinterpret_cast<const int128_t *const>(rhs_attr);\
     case type::TypeId::TIMESTAMP:                                                                                      \
       return *reinterpret_cast<const uint64_t *const>(lhs_attr) OP *                                                   \

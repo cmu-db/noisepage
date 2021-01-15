@@ -180,7 +180,7 @@ void SelectOperation(const exec::ExecutionSettings &exec_settings, const Vector 
     case TypeId::Date:
       TemplatedSelectOperation<Date, Op>(exec_settings, left, right, tid_list);
       break;
-    case TypeId::FixedDecimal:
+    case TypeId::Decimal:
       TemplatedSelectOperation<Decimal128 , Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Timestamp:

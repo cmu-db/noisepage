@@ -143,9 +143,9 @@ ast::Expr *UpdateTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto type = column.Type();
   auto nullable = column.Nullable();
   auto attr_index = table_pm_.find(col_oid)->second;
-  if(sql::GetTypeId(type) == sql::TypeId::FixedDecimal) {
+  if(sql::GetTypeId(type) == sql::TypeId::Decimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(update_pr_), type, nullable, attr_index);
-    return GetCodeGen()->SetPrecisionFixedDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
+    return GetCodeGen()->SetPrecisionDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());
   }
   return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(update_pr_), type, nullable, attr_index);
 }

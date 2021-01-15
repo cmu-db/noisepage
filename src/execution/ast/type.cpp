@@ -32,7 +32,7 @@ bool Type::IsArithmetic() const {
          IsSpecificBuiltin(BuiltinType::Integer) ||  // SQL integer
          IsSpecificBuiltin(BuiltinType::Real) ||     // SQL reals
          IsSpecificBuiltin(BuiltinType::Decimal) ||   // SQL decimals
-         IsSpecificBuiltin(BuiltinType::FixedDecimal);    // SQL decimals
+         IsSpecificBuiltin(BuiltinType::Decimal);    // SQL decimals
 }
 
 // ---------------------------------------------------------

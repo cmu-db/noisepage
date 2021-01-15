@@ -27,7 +27,7 @@ enum class TypeId : uint8_t {
   Timestamp,  // Timestamp objects
   Varchar,    // char*, representing a null-terminated UTF-8 string
   Varbinary,  // blobs representing arbitrary bytes
-  FixedDecimal  // blobs representing fixed decimals
+  Decimal  // blobs representing fixed decimals
 };
 
 /**
@@ -102,7 +102,7 @@ constexpr inline TypeId GetTypeId() {
   } else if constexpr (std::is_same<std::remove_const_t<T>, Timestamp>()) {  // NOLINT
     return TypeId::Timestamp;
   } else if constexpr (std::is_same<std::remove_const_t<T>, Decimal128>()) {  // NOLINT
-    return TypeId::FixedDecimal;
+    return TypeId::Decimal;
   } else if constexpr (std::is_same<std::remove_const_t<T>, char *>() ||  // NOLINT
                        std::is_same<std::remove_const_t<T>, const char *>() ||
                        std::is_same<std::remove_const_t<T>, std::string>() ||

@@ -174,7 +174,7 @@ class EXPORT GenericValue {
    * @param decimal The decimal.
    * @return A decimal value.
    */
-  static GenericValue CreateFixedDecimal(Decimal128 decimal);
+  static GenericValue CreateDecimal(Decimal128 decimal);
 
   /**
    * Create a non-NULL date value.
