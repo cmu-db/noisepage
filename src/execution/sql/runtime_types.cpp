@@ -1221,8 +1221,8 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_
   half_words_a[0] = value_ & bottom_mask;
   half_words_a[1] = (value_ & top_mask) >> 64;
 
-  half_words_b[0] = PowerOfTen[denominator_precision][1];
-  half_words_b[1] = PowerOfTen[denominator_precision][0];
+  half_words_b[0] = power_of_ten[denominator_precision][1];
+  half_words_b[1] = power_of_ten[denominator_precision][0];
 
   uint128_t half_words_result[4];
   CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);

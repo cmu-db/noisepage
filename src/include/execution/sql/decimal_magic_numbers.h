@@ -145,7 +145,7 @@ MagicNumber128 magic_map128_bit_power_ten[39] = {{0, 0, 0, 0},
 /*Power map of powers of 10 for multiplying
  * This map is used when we need to multiply with denominator
  * precision in the divide routine*/
-uint128_t PowerOfTen[39][2] = {{0, 0},
+uint128_t power_of_ten[39][2] = {{0, 0},
                                {0x0, 0xa},
                                {0x0, 0x64},
                                {0x0, 0x3e8},
