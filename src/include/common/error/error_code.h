@@ -179,7 +179,6 @@ enum class ErrorCode : uint16_t {
   ERRCODE_TOO_MANY_JSON_ARRAY_ELEMENTS,                     // 2203D
   ERRCODE_TOO_MANY_JSON_OBJECT_MEMBERS,                     // 2203E
   ERRCODE_SQL_JSON_SCALAR_REQUIRED,                         // 2203F
-  ERRCODE_DECIMAL_RESULT_OVERFLOW,                          // 22040
 
   // Section: Class 23 - Integrity Constraint Violation
 
@@ -655,8 +654,6 @@ constexpr std::string_view ErrorCodeToString(const ErrorCode code) {
       return "2203E";
     case ErrorCode::ERRCODE_SQL_JSON_SCALAR_REQUIRED:
       return "2203F";
-    case ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW:
-      return "22040";
     case ErrorCode::ERRCODE_INTEGRITY_CONSTRAINT_VIOLATION:
       return "23000";
     case ErrorCode::ERRCODE_RESTRICT_VIOLATION:
