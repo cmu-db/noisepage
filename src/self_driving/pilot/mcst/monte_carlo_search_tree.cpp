@@ -26,14 +26,13 @@ MonteCarloSearchTree::MonteCarloSearchTree(
 
   // preprocess db_oids, get all db_oids starting with the current segment until the end of planning horizon
   std::vector<uint64_t> curr_oids;
-  for (auto idx = end_segment_index_; idx >= start_segment_index_; idx--) {
+  for (auto idx = start_segment_index_; idx <= end_segment_index_; idx++) {
     for (auto oid : pilot->forecast_->forecast_segments_[idx].GetDBOids()) {
       if (std::find(curr_oids.begin(), curr_oids.end(), oid) == curr_oids.end())
         curr_oids.push_back(oid);
     }
-    db_oids_.push_back(curr_oids);
   }
-  std::reverse(db_oids_.begin(), db_oids_.end());
+  db_oids_ = curr_oids;
 }
 
 const std::string MonteCarloSearchTree::BestAction(uint64_t simulation_number) {

@@ -46,7 +46,7 @@ class TreeNode {
    */
   static common::ManagedPointer<TreeNode> Selection(common::ManagedPointer<TreeNode> root,
                                                     common::ManagedPointer<Pilot> pilot,
-                                                    const std::vector<std::vector<uint64_t>> &db_oids,
+                                                    const std::vector<uint64_t> &db_oids,
                                                     const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                                     std::unordered_set<action_id_t> *candidate_actions);
 
@@ -60,11 +60,9 @@ class TreeNode {
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree
    */
-  void ChildrenRollout(common::ManagedPointer<Pilot> pilot,
-                       common::ManagedPointer<WorkloadForecast> forecast,
-                       uint64_t tree_start_segment_index,
-                       uint64_t tree_end_segment_index,
-                       const std::vector<std::vector<uint64_t>> &db_oids,
+  void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                       uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
+                       const std::vector<uint64_t> &db_oids,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions);
 
@@ -72,12 +70,12 @@ class TreeNode {
    * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
    * also apply reverse actions
    * @param pilot pointer to pilot
-   * @param db_oids db_oids relevant to subtree rooted at current node
+   * @param db_oids db_oids relevant to current search tree
    * @param action_map action map of the search tree
    */
-  void BackPropogate(common::ManagedPointer<Pilot> pilot,
-                     const std::vector<std::vector<uint64_t>> &db_oids,
+  void BackPropogate(common::ManagedPointer<Pilot> pilot, const std::vector<uint64_t> &db_oids,
                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map);
+
  private:
 
   /**

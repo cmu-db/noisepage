@@ -46,8 +46,8 @@ class MonteCarloSearchTree {
   std::unique_ptr<TreeNode> root_;
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
-  // i-th entry stores the db_oids related to segments from first i+1 segment index
-  std::vector<std::vector<uint64_t>> db_oids_;
+  // db_oids related to segments from start index to end index
+  std::vector<uint64_t> db_oids_;
 };
 }
 
