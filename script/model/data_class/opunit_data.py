@@ -9,7 +9,7 @@ import tqdm
 import math
 
 from data_class import data_util
-from info import data_info
+from info.data_info import data_info
 from util import io_util
 
 from type import OpUnit, Target, ExecutionFeature
@@ -180,9 +180,9 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
         indexes = next(reader)
         data_info.parse_csv_header(indexes, True)
-        features_vector_index = data_info.RAW_FEATURES_CSV_INDEX[ExecutionFeature.FEATURES]
-        raw_boundary = data_info.RAW_FEATURES_CSV_INDEX[data_info.INPUT_OUTPUT_BOUNDARY]
-        input_output_boundary = len(data_info.INPUT_CSV_INDEX)
+        features_vector_index = data_info.raw_features_csv_index[ExecutionFeature.FEATURES]
+        raw_boundary = data_info.raw_features_csv_index[data_info.INPUT_OUTPUT_BOUNDARY]
+        input_output_boundary = len(data_info.input_csv_index)
 
         for line in reader:
             # drop query_id, pipeline_id, num_features, features_vector

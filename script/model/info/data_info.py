@@ -5,7 +5,6 @@ class DataInfo:
     """
     The class that stores the position information of the data
     """
-
     def __init__(self):
         # Boundary from input feature -> outputs
         # The field >= boundary is the inputs and outputs

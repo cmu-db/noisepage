@@ -37,7 +37,7 @@ from data_class import opunit_data
 from mini_trainer import MiniTrainer
 from util import logging_util
 from type import OpUnit
-from info.data_info import data_info
+from info import data_info
 
 logging_util.init_logging('info')
 
@@ -260,7 +260,7 @@ class ModelServer:
 
         # Pickle dump the model
         with save_path.open(mode='wb') as f:
-            pickle.dump((model_map, data_info), f)
+            pickle.dump((model_map, data_info.data_info), f)
 
         return True, ""
 
@@ -283,7 +283,7 @@ class ModelServer:
 
         # Load into cache
         with save_path.open(mode='rb') as f:
-            model, data_info = pickle.load(f)
+            model, data_info.data_info = pickle.load(f)
 
             # TODO(ricky): model checking here?
             if len(model) == 0:
