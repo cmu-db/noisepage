@@ -12,9 +12,9 @@ from sklearn import model_selection
 import model
 from util import io_util, logging_util
 from data_class import opunit_data
-from info import data_info
+from info.data_info import data_info
 from training_util import data_transforming_util, result_writing_util
-from type import Target, ExecutionFeature
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -75,8 +75,8 @@ class MiniTrainer:
         error_bias = 1
         min_percentage_error = 2
         pred_results = None
-        elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
-        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
+        elapsed_us_index = data_info.target_csv_index[Target.ELAPSED_US]
+        memory_b_index = data_info.target_csv_index[Target.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1
@@ -197,4 +197,4 @@ if __name__ == '__main__':
                           args.expose_all, args.txn_sample_interval)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
-        pickle.dump(trained_model_map, file)
+        pickle.dump((trained_model_map, data_info), file)

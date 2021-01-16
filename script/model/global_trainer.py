@@ -10,7 +10,7 @@ from sklearn import model_selection
 
 import model
 import global_model_config
-from info import data_info
+from info.data_info import data_info
 from util import io_util, logging_util
 from training_util import global_data_constructing_util, result_writing_util
 from type import Target
@@ -41,7 +41,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
 
     min_percentage_error = 1
     pred_results = None
-    elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
+    elapsed_us_index = data_info.target_csv_index[Target.ELAPSED_US]
 
     for method in methods:
         # Train the model
@@ -165,7 +165,7 @@ class GlobalTrainer:
         for idx in tqdm.tqdm(sample_list, desc="Construct data for the {} model".format(model_name)):
             d = impact_data_list[idx]
             mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
-            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
+            predicted_elapsed_us = mini_model_y_pred[-1][data_info.target_csv_index[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
                 predicted_resource_util = d.get_y_pred().copy()
@@ -183,7 +183,7 @@ class GlobalTrainer:
             raw_y.append(d.target_grouped_op_unit_data.y)
             y.append(raw_y[-1] / (mini_model_y_pred[-1] + epsilon))
             # Do not adjust memory consumption since it shouldn't change
-            y[-1][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = 1
+            y[-1][data_info.target_csv_index[Target.MEMORY_B]] = 1
 
         # Training
         metrics_path = "{}/global_{}_model_metrics.csv".format(self.model_results_path, model_name)
@@ -250,7 +250,7 @@ if __name__ == '__main__':
     logging.info("Global trainer starts.")
 
     with open(args.mini_model_file, 'rb') as pickle_file:
-        model_map = pickle.load(pickle_file)
+        model_map, data_info = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
                             args.impact_model_ratio, model_map, args.warmup_period, args.use_query_predict_cache,
                             args.add_noise, args.ee_sample_interval, args.txn_sample_interval,

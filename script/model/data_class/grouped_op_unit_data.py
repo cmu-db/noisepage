@@ -7,7 +7,7 @@ import os
 import logging
 
 from data_class import data_util
-from info import data_info
+from info.data_info import data_info
 import global_model_config
 
 from type import ConcurrentCountingMode, OpUnit, Target, ExecutionFeature
@@ -68,8 +68,8 @@ def _txn_get_mini_runner_data(filename, txn_sample_interval):
     df = pd.concat([base_x, df], axis=1)
     x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
     y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
-    start_times = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.START_TIME]].values
-    cpu_ids = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.CPU_ID]].values
+    start_times = df.iloc[:, data_info.target_csv_index[data_info.Target.START_TIME]].values
+    cpu_ids = df.iloc[:, data_info.target_csv_index[data_info.Target.CPU_ID]].values
 
     logging.info("Loaded file: {}".format(OpUnit[file_name.upper()]))
 
@@ -123,15 +123,14 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
     data_list = []
     with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
-        indexes = next(reader)
-        data_info.parse_csv_header(indexes, True)
-        features_vector_index = data_info.RAW_FEATURES_CSV_INDEX[ExecutionFeature.FEATURES]
-        input_output_boundary = data_info.RAW_FEATURES_CSV_INDEX[data_info.INPUT_OUTPUT_BOUNDARY]
-        input_end_boundary = len(data_info.INPUT_CSV_INDEX)
+        next(reader)
+        features_vector_index = data_info.raw_features_csv_index[ExecutionFeature.FEATURES]
+        input_output_boundary = data_info.raw_features_csv_index[data_info.INPUT_OUTPUT_BOUNDARY]
+        input_end_boundary = len(data_info.input_csv_index)
 
         for line in reader:
             # extract the time
-            cpu_time = line[data_info.RAW_TARGET_CSV_INDEX[Target.START_TIME]]
+            cpu_time = line[data_info.raw_target_csv_index[Target.START_TIME]]
             if start_time is None:
                 start_time = cpu_time
 
@@ -156,7 +155,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
 
                 opunit = OpUnit[feature]
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
-                if x_loc[data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]] == 0:
+                if x_loc[data_info.input_csv_index[ExecutionFeature.NUM_ROWS]] == 0:
                     logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
                     continue
 
@@ -189,14 +188,12 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
 def _interval_get_grouped_op_unit_data(filename):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename, skipinitialspace=True)
-    headers = list(df.columns.values)
-    data_info.parse_csv_header(headers, False)
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
     x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
     y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
-    start_times = df.iloc[:, data_info.TARGET_CSV_INDEX[Target.START_TIME]].values
-    cpu_ids = df.iloc[:, data_info.TARGET_CSV_INDEX[Target.CPU_ID]].values
+    start_times = df.iloc[:, data_info.target_csv_index[Target.START_TIME]].values
+    cpu_ids = df.iloc[:, data_info.target_csv_index[Target.CPU_ID]].values
     interval = data_info.PERIODIC_OPUNIT_INTERVAL
 
     # Map from interval start time to the data in this interval
@@ -250,7 +247,7 @@ class GroupedOpUnitData:
         self.opunit_features = opunit_features
         self.y = metrics[-data_info.MINI_MODEL_TARGET_NUM:]
         self.y_pred = None
-        index_map = data_info.TARGET_CSV_INDEX
+        index_map = data_info.target_csv_index
         self.start_time = metrics[index_map[Target.START_TIME]]
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
         self.cpu_id = int(metrics[index_map[Target.CPU_ID]])
@@ -282,7 +279,7 @@ class GroupedOpUnitData:
         if concurrent_counting_mode is ConcurrentCountingMode.EXACT:
             end_time = self.end_time
         if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
-            end_time = self.start_time + self.y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]] - 1
+            end_time = self.start_time + self.y_pred[data_info.target_csv_index[Target.ELAPSED_US]] - 1
         if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
             end_time = self.start_time + global_model_config.INTERVAL_START + global_model_config.INTERVAL_SIZE
         return end_time
