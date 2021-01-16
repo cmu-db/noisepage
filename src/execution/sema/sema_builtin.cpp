@@ -58,14 +58,17 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     if (!CheckArgCount(call, 2)) {
       return;
     }
-    //    const auto int32_kind = ast::BuiltinType::Int32;
-    //    const auto int128_kind = ast::BuiltinType::Int128;
 
-    //    if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(int128_kind) ||
-    //        !call->Arguments()[1]->GetType()->IsSpecificBuiltin(int32_kind)) {
-    //      GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidCastToSqlDecimal,
-    //                                 call->Arguments()[0]->GetType(), call->Arguments()[1]->GetType());
-    //    }
+    const auto int32_kind = ast::BuiltinType::Int32;
+    if (!call->Arguments()[0]->GetType()->IsSqlValueType()) {
+      ReportIncorrectCallArg(call, 0, "sql_type");;
+      return;
+    }
+    // Second argument (precision) is a int32_t
+    if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(int32_kind)) {
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
+      return;
+    }
     // All good. Set return type as SQL Decimal.
     call->SetType(GetBuiltinType(ast::BuiltinType::Decimal));
     return;
