@@ -143,12 +143,15 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @param is_for_update whether the scan is used for update
    * @param scan_type IndexScanType
    * @param bounds Bounds for IndexScan
+   * @param limit_exists whether a limit exists
+   * @param limit value of the limit
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
-                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
+                       bool limit_exists = false, uint32_t limit = 0);
 
   /**
    * Copy
@@ -197,6 +200,16 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
     return bounds_;
   }
 
+  /**
+   * @return whether the limit exists
+   */
+  bool GetLimitExists() const { return limit_exists_; }
+
+  /**
+   * @return value of the limit
+   */
+  uint32_t GetLimit() const { return limit_; }
+
  private:
   /**
    * OID of the database
@@ -232,6 +245,16 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * Bounds
    */
   std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
+
+  /**
+   * Whether limit exists
+   */
+  bool limit_exists_;
+
+  /**
+   * Limit value for get
+   */
+  uint32_t limit_;
 };
 
 /**
@@ -394,7 +417,7 @@ class Limit : public OperatorNodeContents<Limit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
+                       std::vector<catalog::OrderByOrderingType> &&sort_directions);
 
   /**
    * Copy
@@ -425,7 +448,7 @@ class Limit : public OperatorNodeContents<Limit> {
   /**
    * @return sorting orders (if ascending)
    */
-  const std::vector<optimizer::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
+  const std::vector<catalog::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
 
  private:
   /**
@@ -453,7 +476,7 @@ class Limit : public OperatorNodeContents<Limit> {
   /**
    * Sorting order
    */
-  std::vector<optimizer::OrderByOrderingType> sort_directions_;
+  std::vector<catalog::OrderByOrderingType> sort_directions_;
 };
 
 /**
@@ -467,11 +490,13 @@ class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
    * @param scan_type IndexScanType
    * @param join_keys Join Keys
    * @param join_predicates predicates for join
+   * @param limit_exists whether a limit exists
+   * @param limit value of the limit
    * @return an InnerIndexJoin operator
    */
   static Operator Make(catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
                        std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
-                       std::vector<AnnotatedExpression> join_predicates);
+                       std::vector<AnnotatedExpression> join_predicates, bool limit_exists = false, uint32_t limit = 0);
 
   /**
    * Copy
@@ -510,6 +535,16 @@ class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
    */
   const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
+  /**
+   * @return whether the limit exists
+   */
+  bool GetLimitExists() const { return limit_exists_; }
+
+  /**
+   * @return value of the limit
+   */
+  uint32_t GetLimit() const { return limit_; }
+
  private:
   /**
    * Table OID
@@ -535,6 +570,16 @@ class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
    * Predicates for join
    */
   std::vector<AnnotatedExpression> join_predicates_;
+
+  /**
+   * Whether limit exists
+   */
+  bool limit_exists_;
+
+  /**
+   * Limit value for get
+   */
+  uint32_t limit_;
 };
 
 /**

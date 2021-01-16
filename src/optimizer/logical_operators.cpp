@@ -288,7 +288,7 @@ BaseOperatorNodeContents *LogicalLimit::Copy() const { return new LogicalLimit(*
 
 Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                            std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
+                            std::vector<catalog::OrderByOrderingType> &&sort_directions) {
   NOISEPAGE_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   auto *op = new LogicalLimit();
   op->offset_ = offset;

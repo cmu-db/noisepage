@@ -36,6 +36,7 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
                     {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), false);
 
     auto scan_pred = index_plan->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
@@ -55,6 +56,51 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScanWithLimit) {
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
+    // Get Schema
+    auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
+
+    // Limit
+    EXPECT_EQ(plan->GetChildrenSize(), 1);
+    EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
+    auto limit_plan = reinterpret_cast<const planner::LimitPlanNode *>(plan.get());
+    EXPECT_EQ(limit_plan->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+
+    // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
+    auto plani = plan->GetChild(0);
+    EXPECT_EQ(plani->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+    EXPECT_EQ(plani->GetChildrenSize(), 0);
+    auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
+    EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), true);
+    EXPECT_EQ(index_plan->GetScanLimit(), 15);
+    test->CheckOids(index_plan->GetColumnOids(),
+                    {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
+
+    EXPECT_EQ(index_plan->IsForUpdate(), false);
+    EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+
+    // Check Index Scan Predicate
+    auto scan_pred = index_plan->GetScanPredicate();
+    EXPECT_TRUE(scan_pred != nullptr);
+    EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+    EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+    EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
+    EXPECT_EQ(cve->Peek<int64_t>(), 1);
+  };
+
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 LIMIT 15";
+  OptimizeQuery(query, tbl_new_order_, check);
+}
+
+// NOLINTNEXTLINE
 TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
@@ -70,6 +116,7 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
                     {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), false);
 
     auto scan_pred = index_plan->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
@@ -104,6 +151,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSort) {
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetScanPredicate().Get(), nullptr);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), false);
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" ORDER BY NO_W_ID";
@@ -141,6 +189,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
                     {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), false);
 
     // Check Index Scan Predicate
     auto scan_pred = index_plan->GetScanPredicate();
@@ -157,6 +206,247 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 ORDER BY NO_W_ID";
+  OptimizeQuery(query, tbl_new_order_, check);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TpccPlanIndexScanTests, IndexFulfillSortWithLimit) {
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
+    // Get Schema
+    auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
+    EXPECT_EQ(plan->GetChildrenSize(), 1);
+    EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
+
+    // Limit
+    auto planl = plan->GetChild(0);
+    EXPECT_EQ(planl->GetChildrenSize(), 1);
+    EXPECT_EQ(planl->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
+    auto limit_plan = reinterpret_cast<const planner::LimitPlanNode *>(planl);
+    EXPECT_EQ(limit_plan->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+
+    // Order By
+    auto planc = planl->GetChild(0);
+    EXPECT_EQ(planc->GetChildrenSize(), 1);
+    EXPECT_EQ(planc->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
+    auto orderby = reinterpret_cast<const planner::OrderByPlanNode *>(planc);
+    EXPECT_EQ(orderby->HasLimit(), true);
+    EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+    EXPECT_EQ(orderby->GetSortKeys().size(), 1);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::ASC);
+    auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
+    EXPECT_TRUE(sortkey != nullptr);
+    EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(sortkey->GetTupleIdx(), 0);
+    EXPECT_EQ(sortkey->GetValueIdx(), 0);
+
+    // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
+    auto plani = planc->GetChild(0);
+    EXPECT_EQ(plani->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+    EXPECT_EQ(plani->GetChildrenSize(), 0);
+    auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
+    EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), true);
+    EXPECT_EQ(index_plan->GetScanLimit(), 15);
+    test->CheckOids(index_plan->GetColumnOids(),
+                    {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
+
+    EXPECT_EQ(index_plan->IsForUpdate(), false);
+    EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+  };
+
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" ORDER BY NO_W_ID LIMIT 15";
+  OptimizeQuery(query, tbl_new_order_, check);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TpccPlanIndexScanTests, IndexCannotFulfillSortWithPredicateWithLimit) {
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
+    // Get Schema
+    auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
+
+    // Limit
+    EXPECT_EQ(plan->GetChildrenSize(), 1);
+    EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
+    auto limit_plan = reinterpret_cast<const planner::LimitPlanNode *>(plan.get());
+    EXPECT_EQ(limit_plan->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+
+    // Order By
+    auto planc = plan->GetChild(0);
+    EXPECT_EQ(planc->GetChildrenSize(), 1);
+    EXPECT_EQ(planc->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
+    auto orderby = reinterpret_cast<const planner::OrderByPlanNode *>(planc);
+    EXPECT_EQ(orderby->HasLimit(), true);
+    EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+    EXPECT_EQ(orderby->GetSortKeys().size(), 1);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::ASC);
+    auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
+    EXPECT_TRUE(sortkey != nullptr);
+    EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(sortkey->GetTupleIdx(), 0);
+    EXPECT_EQ(sortkey->GetValueIdx(), 0);
+
+    // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
+    auto plani = planc->GetChild(0);
+    EXPECT_EQ(plani->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+    EXPECT_EQ(plani->GetChildrenSize(), 0);
+    auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
+    EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), false);
+    test->CheckOids(index_plan->GetColumnOids(),
+                    {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
+
+    EXPECT_EQ(index_plan->IsForUpdate(), false);
+    EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+
+    // Check Index Scan Predicate
+    auto scan_pred = index_plan->GetScanPredicate();
+    EXPECT_TRUE(scan_pred != nullptr);
+    EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+    EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+    EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
+    EXPECT_EQ(cve->Peek<int64_t>(), 1);
+  };
+
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\"  WHERE NO_W_ID = 1 ORDER BY NO_O_ID LIMIT 15";
+  OptimizeQuery(query, tbl_new_order_, check);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndRequiredPredicateWithLimit) {
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
+    // Get Schema
+    auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
+    EXPECT_EQ(plan->GetChildrenSize(), 1);
+    EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
+
+    // Limit
+    auto planl = plan->GetChild(0);
+    EXPECT_EQ(planl->GetChildrenSize(), 1);
+    EXPECT_EQ(planl->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
+    auto limit_plan = reinterpret_cast<const planner::LimitPlanNode *>(planl);
+    EXPECT_EQ(limit_plan->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+
+    // Order By
+    auto planc = planl->GetChild(0);
+    EXPECT_EQ(planc->GetChildrenSize(), 1);
+    EXPECT_EQ(planc->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
+    auto orderby = reinterpret_cast<const planner::OrderByPlanNode *>(planc);
+    EXPECT_EQ(orderby->HasLimit(), true);
+    EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+    EXPECT_EQ(orderby->GetSortKeys().size(), 1);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::ASC);
+    auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
+    EXPECT_TRUE(sortkey != nullptr);
+    EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(sortkey->GetTupleIdx(), 0);
+    EXPECT_EQ(sortkey->GetValueIdx(), 0);
+
+    // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
+    auto plani = planc->GetChild(0);
+    EXPECT_EQ(plani->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+    EXPECT_EQ(plani->GetChildrenSize(), 0);
+    auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
+    EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), true);
+    EXPECT_EQ(index_plan->GetScanLimit(), 15);
+    test->CheckOids(index_plan->GetColumnOids(), {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid(),
+                                                  schema.GetColumn("no_d_id").Oid()});
+
+    EXPECT_EQ(index_plan->IsForUpdate(), false);
+    EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+
+    // Check Index Scan Predicate
+    auto scan_pred = index_plan->GetScanPredicate();
+    EXPECT_TRUE(scan_pred != nullptr);
+    EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+    EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+    EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
+    EXPECT_EQ(cve->Peek<int64_t>(), 1);
+  };
+
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 ORDER BY NO_D_ID LIMIT 15";
+  OptimizeQuery(query, tbl_new_order_, check);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TpccPlanIndexScanTests, IndexFulfillMultipleSortAndRequiredPredicateWithLimit) {
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
+    // Get Schema
+    auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
+    EXPECT_EQ(plan->GetChildrenSize(), 1);
+    EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
+
+    // Limit
+    auto planl = plan->GetChild(0);
+    EXPECT_EQ(planl->GetChildrenSize(), 1);
+    EXPECT_EQ(planl->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
+    auto limit_plan = reinterpret_cast<const planner::LimitPlanNode *>(planl);
+    EXPECT_EQ(limit_plan->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+
+    // Order By
+    auto planc = planl->GetChild(0);
+    EXPECT_EQ(planc->GetChildrenSize(), 1);
+    EXPECT_EQ(planc->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
+    auto orderby = reinterpret_cast<const planner::OrderByPlanNode *>(planc);
+    EXPECT_EQ(orderby->HasLimit(), true);
+    EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
+    EXPECT_EQ(orderby->GetSortKeys().size(), 2);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::ASC);
+    EXPECT_EQ(orderby->GetSortKeys()[1].second, catalog::OrderByOrderingType::ASC);
+    auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
+    EXPECT_TRUE(sortkey != nullptr);
+    EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(sortkey->GetTupleIdx(), 0);
+    EXPECT_EQ(sortkey->GetValueIdx(), 0);
+    sortkey = orderby->GetSortKeys()[1].first.CastManagedPointerTo<parser::DerivedValueExpression>();
+    EXPECT_TRUE(sortkey != nullptr);
+    EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(sortkey->GetTupleIdx(), 0);
+    EXPECT_EQ(sortkey->GetValueIdx(), 1);
+
+    // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
+    auto plani = planc->GetChild(0);
+    EXPECT_EQ(plani->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+    EXPECT_EQ(plani->GetChildrenSize(), 0);
+    auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
+    EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), true);
+    EXPECT_EQ(index_plan->GetScanLimit(), 15);
+    test->CheckOids(index_plan->GetColumnOids(), {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid(),
+                                                  schema.GetColumn("no_d_id").Oid()});
+
+    EXPECT_EQ(index_plan->IsForUpdate(), false);
+    EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
+
+    // Check Index Scan Predicate
+    auto scan_pred = index_plan->GetScanPredicate();
+    EXPECT_TRUE(scan_pred != nullptr);
+    EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+    EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+    EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
+    EXPECT_EQ(cve->Peek<int64_t>(), 1);
+  };
+
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 ORDER BY NO_D_ID, NO_O_ID LIMIT 15";
   OptimizeQuery(query, tbl_new_order_, check);
 }
 
@@ -186,7 +476,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
     EXPECT_EQ(orderby->GetOffset(), sel_stmt->GetSelectLimit()->GetOffset());
     EXPECT_EQ(orderby->GetSortKeys().size(), 1);
-    EXPECT_EQ(orderby->GetSortKeys()[0].second, optimizer::OrderByOrderingType::ASC);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::ASC);
     auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
     EXPECT_TRUE(sortkey != nullptr);
     EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
@@ -199,6 +489,8 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(plani->GetChildrenSize(), 0);
     auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), true);
+    EXPECT_EQ(index_plan->GetScanLimit(), 15);
     test->CheckOids(index_plan->GetColumnOids(),
                     {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
 

@@ -117,6 +117,24 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    */
   bool GetIsForUpdate() const { return is_for_update_; }
 
+  /**
+   * Sets the limit
+   */
+  void SetLimit(uint32_t limit) {
+    limit_exists_ = true;
+    limit_ = limit;
+  }
+
+  /**
+   * @returns whether the limit exists
+   */
+  bool GetLimitExists() { return limit_exists_; }
+
+  /**
+   * @returns value of the limit
+   */
+  uint32_t GetLimit() { return limit_; }
+
  private:
   /**
    * OID of the database
@@ -142,6 +160,16 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    * Whether the scan is used for update
    */
   bool is_for_update_;
+
+  /**
+   * Whether limit exists
+   */
+  bool limit_exists_;
+
+  /**
+   * Limit value for get
+   */
+  uint32_t limit_;
 };
 
 /**
@@ -487,11 +515,39 @@ class LogicalInnerJoin : public OperatorNodeContents<LogicalInnerJoin> {
    */
   const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
+  /**
+   * Sets the limit
+   */
+  void SetLimit(uint32_t limit) {
+    limit_exists_ = true;
+    limit_ = limit;
+  }
+
+  /**
+   * @returns whether the limit exists
+   */
+  bool GetLimitExists() { return limit_exists_; }
+
+  /**
+   * @returns value of the limit
+   */
+  uint32_t GetLimit() { return limit_; }
+
  private:
   /**
    * Join predicates
    */
   std::vector<AnnotatedExpression> join_predicates_;
+
+  /**
+   * Whether limit exists
+   */
+  bool limit_exists_;
+
+  /**
+   * Limit value for get
+   */
+  uint32_t limit_;
 };
 
 /**
@@ -831,7 +887,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
+                       std::vector<catalog::OrderByOrderingType> &&sort_directions);
 
   /**
    * Copy
@@ -862,7 +918,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
   /**
    * @return inlined sort directions (can be empty)
    */
-  const std::vector<optimizer::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
+  const std::vector<catalog::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
 
  private:
   /**
@@ -886,7 +942,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
   /**
    * The sort direction of sort expressions
    */
-  std::vector<optimizer::OrderByOrderingType> sort_directions_;
+  std::vector<catalog::OrderByOrderingType> sort_directions_;
 };
 
 /**

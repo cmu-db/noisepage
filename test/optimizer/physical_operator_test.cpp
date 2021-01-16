@@ -421,7 +421,7 @@ TEST(OperatorTests, LimitTest) {
   size_t limit = 22;
   auto sort_expr_ori = new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
-  OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
+  catalog::OrderByOrderingType sort_dir = catalog::OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
   Operator op1 = Limit::Make(offset, limit, {sort_expr}, {sort_dir}).RegisterWithTxnContext(txn_context);

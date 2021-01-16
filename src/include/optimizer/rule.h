@@ -17,6 +17,8 @@ enum class RuleType : uint32_t {
   // Transformation rules (logical -> logical)
   INNER_JOIN_COMMUTE = 0,
   INNER_JOIN_ASSOCIATE,
+  SET_LIMIT_IN_GET,
+  SET_LIMIT_IN_LOGICAL_INNER_JOIN,
 
   // Don't move this one
   LogicalPhysicalDelimiter,
@@ -83,6 +85,7 @@ enum class RuleType : uint32_t {
  */
 enum class RuleSetName : uint32_t {
   PREDICATE_PUSH_DOWN = 0,
+  CLAUSE_PUSH_DOWN,
   UNNEST_SUBQUERY,
   LOGICAL_TRANSFORMATION,
   PHYSICAL_IMPLEMENTATION

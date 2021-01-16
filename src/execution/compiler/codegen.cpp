@@ -431,24 +431,30 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   storage::index::ScanType asc_type;
   switch (scan_type) {
     case planner::IndexScanType::Exact:
+      // TODO(Deepayan): Exact scan builtin does not take advantage of limit now, but it can
       builtin = ast::Builtin::IndexIteratorScanKey;
       break;
+    case planner::IndexScanType::AscendingClosedLimit:
     case planner::IndexScanType::AscendingClosed:
+    case planner::IndexScanType::AscendingOpenHighLimit:
     case planner::IndexScanType::AscendingOpenHigh:
     case planner::IndexScanType::AscendingOpenLow:
     case planner::IndexScanType::AscendingOpenBoth:
-      asc_scan = true;
       use_limit = true;
+      asc_scan = true;
       builtin = ast::Builtin::IndexIteratorScanAscending;
-      if (scan_type == planner::IndexScanType::AscendingClosed)
+      if (scan_type == planner::IndexScanType::AscendingClosed ||
+          scan_type == planner::IndexScanType::AscendingClosedLimit)
         asc_type = storage::index::ScanType::Closed;
-      else if (scan_type == planner::IndexScanType::AscendingOpenHigh)
+      else if (scan_type == planner::IndexScanType::AscendingOpenHigh ||
+               scan_type == planner::IndexScanType::AscendingOpenHighLimit)
         asc_type = storage::index::ScanType::OpenHigh;
       else if (scan_type == planner::IndexScanType::AscendingOpenLow)
         asc_type = storage::index::ScanType::OpenLow;
       else if (scan_type == planner::IndexScanType::AscendingOpenBoth)
         asc_type = storage::index::ScanType::OpenBoth;
       break;
+    // TODO(dpatra): These cases are currently unreachable
     case planner::IndexScanType::Descending:
       builtin = ast::Builtin::IndexIteratorScanDescending;
       break;

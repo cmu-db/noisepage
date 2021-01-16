@@ -53,7 +53,7 @@ common::hash_t PropertySort::Hash() const {
   for (size_t i = 0; i < num_sort_columns; ++i) {
     hash = common::HashUtil::CombineHashes(hash, sort_columns_[i]->Hash());
 
-    auto asc_hash = common::HashUtil::Hash<OrderByOrderingType>(sort_ascending_[i]);
+    auto asc_hash = common::HashUtil::Hash<catalog::OrderByOrderingType>(sort_ascending_[i]);
     hash = common::HashUtil::CombineHashes(hash, asc_hash);
   }
   return hash;

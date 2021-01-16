@@ -12,7 +12,7 @@
 
 namespace noisepage::planner {
 
-using SortKey = std::pair<common::ManagedPointer<parser::AbstractExpression>, optimizer::OrderByOrderingType>;
+using SortKey = std::pair<common::ManagedPointer<parser::AbstractExpression>, catalog::OrderByOrderingType>;
 
 /**
  * Plan node for order by operator
@@ -41,8 +41,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key,
-                        optimizer::OrderByOrderingType ordering) {
+    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key, catalog::OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }

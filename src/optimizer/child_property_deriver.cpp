@@ -36,8 +36,11 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
   // Use GetIndexOids() to get all indexes on table_alias
   auto tbl_id = op->GetTableOID();
   std::vector<catalog::index_oid_t> tbl_indexes = accessor_->GetIndexOids(tbl_id);
+  auto bounds = op->GetBounds();
 
   auto *property_set = new PropertySet();
+
+  // Output properties of IndexScan should be required properties satisfied by index
   for (auto prop : requirements_->Properties()) {
     if (prop->Type() == PropertyType::SORT) {
       auto sort_prop = prop->As<PropertySort>();
@@ -46,12 +49,13 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
       }
 
       auto idx_oid = op->GetIndexOID();
-      if (IndexUtil::SatisfiesSortWithIndex(accessor_, sort_prop, tbl_id, idx_oid)) {
+      if (IndexUtil::SatisfiesSortWithIndex(accessor_, sort_prop, tbl_id, idx_oid, &bounds)) {
         property_set->AddProperty(prop->Copy());
       }
     }
   }
 
+  // Index scan children should have no properties
   output_.emplace_back(property_set, std::vector<PropertySet *>{});
 }
 
@@ -76,9 +80,9 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) {
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{new PropertySet()});
 }
 
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
+void ChildPropertyDeriver::Visit(const SortGroupBy *op) {
   // Child must provide sort for Groupby columns
-  std::vector<OrderByOrderingType> sort_ascending(op->GetColumns().size(), OrderByOrderingType::ASC);
+  std::vector<catalog::OrderByOrderingType> sort_ascending(op->GetColumns().size(), catalog::OrderByOrderingType::ASC);
 
   auto sort_prop = new PropertySort(op->GetColumns(), std::move(sort_ascending));
   auto prop_set = new PropertySet(std::vector<Property *>{sort_prop});
@@ -90,13 +94,16 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
 }
 
 void ChildPropertyDeriver::Visit(const Limit *op) {
-  // Limit fulfill the internal sort property
+  // Limit pushes down and preserves the internal sort property
   std::vector<PropertySet *> child_input_properties{new PropertySet()};
   auto provided_prop = new PropertySet();
+
+  // Limit must satisfy output sort properties but child can attempt to satisfy sort property optionally
   if (!op->GetSortExpressions().empty()) {
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
-    const std::vector<OrderByOrderingType> &sorts{op->GetSortAscending()};
+    const std::vector<catalog::OrderByOrderingType> &sorts{op->GetSortAscending()};
     provided_prop->AddProperty(new PropertySort(exprs, sorts));
+    child_input_properties[0]->AddProperty(new PropertySort(exprs, sorts));
   }
 
   output_.emplace_back(provided_prop, std::move(child_input_properties));

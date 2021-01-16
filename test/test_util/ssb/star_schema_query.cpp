@@ -591,8 +591,8 @@ SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(p_brand1, optimizer::OrderByOrderingType::ASC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(p_brand1, catalog::OrderByOrderingType::ASC)
                .Build();
   }
 
@@ -836,8 +836,8 @@ SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(p_brand1, optimizer::OrderByOrderingType::ASC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(p_brand1, catalog::OrderByOrderingType::ASC)
                .Build();
   }
 
@@ -1080,8 +1080,8 @@ SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(p_brand1, optimizer::OrderByOrderingType::ASC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(p_brand1, catalog::OrderByOrderingType::ASC)
                .Build();
   }
 
@@ -1341,8 +1341,8 @@ SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(revenue, optimizer::OrderByOrderingType::DESC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(revenue, catalog::OrderByOrderingType::DESC)
                .Build();
   }
 
@@ -1598,8 +1598,8 @@ SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(revenue, optimizer::OrderByOrderingType::DESC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(revenue, catalog::OrderByOrderingType::DESC)
                .Build();
   }
 
@@ -1857,8 +1857,8 @@ SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(revenue, optimizer::OrderByOrderingType::DESC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(revenue, catalog::OrderByOrderingType::DESC)
                .Build();
   }
 
@@ -2117,8 +2117,8 @@ SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(revenue, optimizer::OrderByOrderingType::DESC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(revenue, catalog::OrderByOrderingType::DESC)
                .Build();
   }
 
@@ -2428,8 +2428,8 @@ SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(c_nation, optimizer::OrderByOrderingType::ASC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(c_nation, catalog::OrderByOrderingType::ASC)
                .Build();
   }
 
@@ -2758,9 +2758,9 @@ SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(s_nation, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(p_category, optimizer::OrderByOrderingType::ASC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(s_nation, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(p_category, catalog::OrderByOrderingType::ASC)
                .Build();
   }
 
@@ -3087,9 +3087,9 @@ SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccesso
     sort = planner::OrderByPlanNode::Builder{}
                .SetOutputSchema(sort_out.MakeSchema())
                .AddChild(std::move(agg))
-               .AddSortKey(d_year, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(s_city, optimizer::OrderByOrderingType::ASC)
-               .AddSortKey(p_brand1, optimizer::OrderByOrderingType::ASC)
+               .AddSortKey(d_year, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(s_city, catalog::OrderByOrderingType::ASC)
+               .AddSortKey(p_brand1, catalog::OrderByOrderingType::ASC)
                .Build();
   }
 

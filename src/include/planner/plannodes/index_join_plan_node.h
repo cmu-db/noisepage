@@ -89,6 +89,16 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
       return *this;
     }
 
+    /**
+     * @param limit number of tuples to limit to
+     * @return builder object
+     */
+    Builder &SetScanLimit(uint32_t limit) {
+      scan_limit_ = limit;
+      scan_has_limit_ = true;
+      return *this;
+    }
+
    private:
     /**
      * OID of the index
@@ -98,6 +108,16 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * OID of the corresponding table
      */
     catalog::table_oid_t table_oid_;
+
+    /**
+     * The number of tuples that this scan should emit due to a LIMIT clause.
+     */
+    uint32_t scan_limit_{0};
+
+    /**
+     * Flag to indicate if scan_limit_ is set
+     */
+    bool scan_has_limit_{false};
 
     IndexScanType scan_type_;
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};

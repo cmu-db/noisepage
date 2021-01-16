@@ -286,10 +286,11 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
+
       auto child_group =
           context_->GetOptimizerContext()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
 
-      // Check whether the child group is already optimized for the prop
+      // Check whether the child group is already optimized for the required input properties
       auto child_best_expr = child_group->GetBestExpression(i_prop);
       if (child_best_expr != nullptr) {  // Directly get back the best expr if the child group is optimized
         cur_total_cost_ += child_best_expr->GetCost(i_prop);

@@ -7,6 +7,11 @@
 
 namespace noisepage::catalog {
 
+/**
+ * Ordering types
+ */
+enum class OrderByOrderingType { ASC, DESC };
+
 constexpr uint32_t NULL_OID = 0;  // error return value
 constexpr uint32_t START_OID = 1001;
 
