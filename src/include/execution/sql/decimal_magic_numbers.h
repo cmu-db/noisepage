@@ -1,8 +1,23 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 
 namespace noisepage::execution::sql {
+
+/* The following hash is required to create an unordered map of 128bit uints*/
+struct Unsigned128BitHash {
+  hash_t operator()(const uint128_t &value) const {
+    uint128_t x = value;
+    const uint64_t k_mul = 0x9ddfea08eb382d69ULL;
+    uint128_t low_mask = 0xFFFFFFFFFFFFFFFF;
+    uint64_t a = ((x & low_mask) ^ (x >> 64)) * k_mul;
+    a ^= (a >> 47);
+    uint64_t b = ((x >> 64) ^ a) * k_mul;
+    b ^= (b >> 47);
+    b *= k_mul;
+    return b;
+  }
+};
 
 /* Magic array for 256 bit division with powers of 10
  * This map is used after multiplication of decimals to get
@@ -103,94 +118,94 @@ class MagicNumber256 {
  * This map is used after multiplication of decimals to get
  * the correct result*/
 MagicNumber128 magic_map128_bit_power_ten[39] = {{0, 0, 0, 0},
-                                                           {0xcccccccccccccccc, 0xcccccccccccccccd, 131, 0},
-                                                           {0x28f5c28f5c28f5c2, 0x8f5c28f5c28f5c29, 132, 0},
-                                                           {0x624dd2f1a9fbe76, 0xc8b4395810624dd3, 138, 1},
-                                                           {0xd1b71758e219652b, 0xd3c36113404ea4a9, 141, 0},
-                                                           {0x29f16b11c6d1e108, 0xc3f3e0370cdc8755, 142, 0},
-                                                           {0x8637bd05af6c69b, 0x5a63f9a49c2c1b11, 143, 0},
-                                                           {0xd6bf94d5e57a42bc, 0x3d32907604691b4d, 151, 0},
-                                                           {0x5798ee2308c39df9, 0xfb841a566d74f87b, 155, 1},
-                                                           {0x89705f4136b4a597, 0x31680a88f8953031, 157, 0},
-                                                           {0x36f9bfb3af7b756f, 0xad5cd10396a21347, 159, 0},
-                                                           {0xafebff0bcb24aafe, 0xf78f69a51539d749, 164, 0},
-                                                           {0x232f33025bd42232, 0xfe4fe1edd10b9175, 165, 0},
-                                                           {0x709709a125da0709, 0x9432d2f9035837dd, 170, 0},
-                                                           {0xb424dc35095cd80f, 0x538484c19ef38c95, 174, 0},
-                                                           {0x203af9ee756159b2, 0x1f3a6e0297ec1421, 178, 1},
-                                                           {0x39a5652fb1137856, 0xd30baf9a1e626a6d, 179, 0},
-                                                           {0xb877aa3236a4b449, 0x09befeb9fad487c3, 184, 0},
-                                                           {0x2725dd1d243aba0e, 0x75fe645cc4873f9f, 188, 1},
-                                                           {0x760f253edb4ab0d2, 0x9598f4f1e8361973, 190, 0},
-                                                           {0x79ca10c9242235d5, 0x11e976394d79eb09, 195, 1},
-                                                           {0x2e3b40a0e9b4f7dd, 0xa7edf82dd794bc07, 198, 1},
-                                                           {0xf1c90080baf72cb1, 0x5324c68b12dd6339, 201, 0},
-                                                           {0x305b66802564a289, 0xdd6dc14f03c5e0a5, 202, 0},
-                                                           {0x9abe14cd44753b52, 0xc4926a9672793543, 207, 0},
-                                                           {0xf79687aed3eec551, 0x3a83ddbd83f52205, 211, 0},
-                                                           {0x63090312bb2c4eed, 0x4a9b257f019540cf, 213, 0},
-                                                           {0x4f3a68dbc8f03f24, 0x3baf513267aa9a3f, 216, 0},
-                                                           {0xfd87b5f28300ca0d, 0x8bca9d6e188853fd, 221, 0},
-                                                           {0xcad2f7f5359a3b3e, 0x096ee45813a04331, 224, 0},
-                                                           {0x4484bfeebc29f863, 0x424b06f3529a051b, 228, 1},
-                                                           {0x39d66589687f9e9, 0x01d59f290ee19daf, 231, 1},
-                                                           {0x9f623d5a8a732974, 0xcfbc31db4b0295e5, 235, 1},
-                                                           {0xa6274bbdd0fadd61, 0xecb1ad8aeacdd58f, 237, 0},
-                                                           {0x84ec3c97da624ab4, 0xbd5af13bef0b113f, 240, 0},
-                                                           {0xd4ad2dbfc3d07787, 0x955e4ec64b44e865, 244, 0},
-                                                           {0x5512124cb4b9c969, 0x6ef285e8eae85cf5, 246, 0},
-                                                           {0x881cea14545c7575, 0x7e50d64177da2e55, 250, 0},
-                                                           {0x6ce3ee76a9e3912a, 0xcb73de9ac6482511, 253, 0}};
+                                                 {0xcccccccccccccccc, 0xcccccccccccccccd, 131, 0},
+                                                 {0x28f5c28f5c28f5c2, 0x8f5c28f5c28f5c29, 132, 0},
+                                                 {0x624dd2f1a9fbe76, 0xc8b4395810624dd3, 138, 1},
+                                                 {0xd1b71758e219652b, 0xd3c36113404ea4a9, 141, 0},
+                                                 {0x29f16b11c6d1e108, 0xc3f3e0370cdc8755, 142, 0},
+                                                 {0x8637bd05af6c69b, 0x5a63f9a49c2c1b11, 143, 0},
+                                                 {0xd6bf94d5e57a42bc, 0x3d32907604691b4d, 151, 0},
+                                                 {0x5798ee2308c39df9, 0xfb841a566d74f87b, 155, 1},
+                                                 {0x89705f4136b4a597, 0x31680a88f8953031, 157, 0},
+                                                 {0x36f9bfb3af7b756f, 0xad5cd10396a21347, 159, 0},
+                                                 {0xafebff0bcb24aafe, 0xf78f69a51539d749, 164, 0},
+                                                 {0x232f33025bd42232, 0xfe4fe1edd10b9175, 165, 0},
+                                                 {0x709709a125da0709, 0x9432d2f9035837dd, 170, 0},
+                                                 {0xb424dc35095cd80f, 0x538484c19ef38c95, 174, 0},
+                                                 {0x203af9ee756159b2, 0x1f3a6e0297ec1421, 178, 1},
+                                                 {0x39a5652fb1137856, 0xd30baf9a1e626a6d, 179, 0},
+                                                 {0xb877aa3236a4b449, 0x09befeb9fad487c3, 184, 0},
+                                                 {0x2725dd1d243aba0e, 0x75fe645cc4873f9f, 188, 1},
+                                                 {0x760f253edb4ab0d2, 0x9598f4f1e8361973, 190, 0},
+                                                 {0x79ca10c9242235d5, 0x11e976394d79eb09, 195, 1},
+                                                 {0x2e3b40a0e9b4f7dd, 0xa7edf82dd794bc07, 198, 1},
+                                                 {0xf1c90080baf72cb1, 0x5324c68b12dd6339, 201, 0},
+                                                 {0x305b66802564a289, 0xdd6dc14f03c5e0a5, 202, 0},
+                                                 {0x9abe14cd44753b52, 0xc4926a9672793543, 207, 0},
+                                                 {0xf79687aed3eec551, 0x3a83ddbd83f52205, 211, 0},
+                                                 {0x63090312bb2c4eed, 0x4a9b257f019540cf, 213, 0},
+                                                 {0x4f3a68dbc8f03f24, 0x3baf513267aa9a3f, 216, 0},
+                                                 {0xfd87b5f28300ca0d, 0x8bca9d6e188853fd, 221, 0},
+                                                 {0xcad2f7f5359a3b3e, 0x096ee45813a04331, 224, 0},
+                                                 {0x4484bfeebc29f863, 0x424b06f3529a051b, 228, 1},
+                                                 {0x39d66589687f9e9, 0x01d59f290ee19daf, 231, 1},
+                                                 {0x9f623d5a8a732974, 0xcfbc31db4b0295e5, 235, 1},
+                                                 {0xa6274bbdd0fadd61, 0xecb1ad8aeacdd58f, 237, 0},
+                                                 {0x84ec3c97da624ab4, 0xbd5af13bef0b113f, 240, 0},
+                                                 {0xd4ad2dbfc3d07787, 0x955e4ec64b44e865, 244, 0},
+                                                 {0x5512124cb4b9c969, 0x6ef285e8eae85cf5, 246, 0},
+                                                 {0x881cea14545c7575, 0x7e50d64177da2e55, 250, 0},
+                                                 {0x6ce3ee76a9e3912a, 0xcb73de9ac6482511, 253, 0}};
 
 /*Power map of powers of 10 for multiplying
  * This map is used when we need to multiply with denominator
  * precision in the divide routine*/
 uint128_t power_of_ten[39][2] = {{0, 0},
-                               {0x0, 0xa},
-                               {0x0, 0x64},
-                               {0x0, 0x3e8},
-                               {0x0, 0x2710},
-                               {0x0, 0x186a0},
-                               {0x0, 0xf4240},
-                               {0x0, 0x989680},
-                               {0x0, 0x5f5e100},
-                               {0x0, 0x3b9aca00},
-                               {0x0, 0x2540be400},
-                               {0x0, 0x174876e800},
-                               {0x0, 0xe8d4a51000},
-                               {0x0, 0x9184e72a000},
-                               {0x0, 0x5af3107a4000},
-                               {0x0, 0x38d7ea4c68000},
-                               {0x0, 0x2386f26fc10000},
-                               {0x0, 0x16345785d8a0000},
-                               {0x0, 0xde0b6b3a7640000},
-                               {0x0, 0x8ac7230489e80000},
-                               {0x5, 0x6bc75e2d63100000},
-                               {0x36, 0x35c9adc5dea00000},
-                               {0x21e, 0x19e0c9bab2400000},
-                               {0x152d, 0x02c7e14af6800000},
-                               {0xd3c2, 0x1bcecceda1000000},
-                               {0x84595, 0x161401484a000000},
-                               {0x52b7d2, 0xdcc80cd2e4000000},
-                               {0x33b2e3c, 0x9fd0803ce8000000},
-                               {0x204fce5e, 0x3e25026110000000},
-                               {0x1431e0fae, 0x6d7217caa0000000},
-                               {0xc9f2c9cd0, 0x4674edea40000000},
-                               {0x7e37be2022, 0xc0914b2680000000},
-                               {0x4ee2d6d415b, 0x85acef8100000000},
-                               {0x314dc6448d93, 0x38c15b0a00000000},
-                               {0x1ed09bead87c0, 0x378d8e6400000000},
-                               {0x13426172c74d82, 0x2b878fe800000000},
-                               {0xc097ce7bc90715, 0xb34b9f1000000000},
-                               {0x785ee10d5da46d9, 0x00f436a000000000},
-                               {0x4b3b4ca85a86c47a, 0x098a224000000000}};
+                                 {0x0, 0xa},
+                                 {0x0, 0x64},
+                                 {0x0, 0x3e8},
+                                 {0x0, 0x2710},
+                                 {0x0, 0x186a0},
+                                 {0x0, 0xf4240},
+                                 {0x0, 0x989680},
+                                 {0x0, 0x5f5e100},
+                                 {0x0, 0x3b9aca00},
+                                 {0x0, 0x2540be400},
+                                 {0x0, 0x174876e800},
+                                 {0x0, 0xe8d4a51000},
+                                 {0x0, 0x9184e72a000},
+                                 {0x0, 0x5af3107a4000},
+                                 {0x0, 0x38d7ea4c68000},
+                                 {0x0, 0x2386f26fc10000},
+                                 {0x0, 0x16345785d8a0000},
+                                 {0x0, 0xde0b6b3a7640000},
+                                 {0x0, 0x8ac7230489e80000},
+                                 {0x5, 0x6bc75e2d63100000},
+                                 {0x36, 0x35c9adc5dea00000},
+                                 {0x21e, 0x19e0c9bab2400000},
+                                 {0x152d, 0x02c7e14af6800000},
+                                 {0xd3c2, 0x1bcecceda1000000},
+                                 {0x84595, 0x161401484a000000},
+                                 {0x52b7d2, 0xdcc80cd2e4000000},
+                                 {0x33b2e3c, 0x9fd0803ce8000000},
+                                 {0x204fce5e, 0x3e25026110000000},
+                                 {0x1431e0fae, 0x6d7217caa0000000},
+                                 {0xc9f2c9cd0, 0x4674edea40000000},
+                                 {0x7e37be2022, 0xc0914b2680000000},
+                                 {0x4ee2d6d415b, 0x85acef8100000000},
+                                 {0x314dc6448d93, 0x38c15b0a00000000},
+                                 {0x1ed09bead87c0, 0x378d8e6400000000},
+                                 {0x13426172c74d82, 0x2b878fe800000000},
+                                 {0xc097ce7bc90715, 0xb34b9f1000000000},
+                                 {0x785ee10d5da46d9, 0x00f436a000000000},
+                                 {0x4b3b4ca85a86c47a, 0x098a224000000000}};
 
 /* Magic map for 128 bit division with constants*/
-std::map<uint128_t, class MagicNumber128> magic_map128_bit_constant_division = {
+std::unordered_map<uint128_t, class MagicNumber128, Unsigned128BitHash> magic_map128_bit_constant_division = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccd, 130, 0}}, {7, {0x2492492492492492, 0x4924924924924925, 131, 1}}};
 
 /* Magic map for 256 bit division with constants*/
-std::map<uint128_t, class MagicNumber256> magic_map256_bit_constant_division = {
+std::unordered_map<uint128_t, class MagicNumber256, Unsigned128BitHash> magic_map256_bit_constant_division = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
     {7, {0x2492492492492492, 0x4924924924924924, 0x9249249249249249, 0x2492492492492493, 259, 1}},
     {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09, 0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},
@@ -200,7 +215,7 @@ std::map<uint128_t, class MagicNumber256> magic_map256_bit_constant_division = {
 /* Map of powers of 2
  * This map stores powers of two to be used during
  * constant division of a decimal with a power of 2*/
-std::map<uint128_t, uint32_t> power_two = {
+std::unordered_map<uint128_t, uint32_t, Unsigned128BitHash> power_two = {
     {0x2, 1},
     {0x4, 2},
     {0x8, 3},

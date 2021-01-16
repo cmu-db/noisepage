@@ -774,8 +774,8 @@ void Decimal<T>::RoundUpAndSet(std::string input, uint32_t precision) {
   }
 }
 
-void CalculateMultiWordProduct128(const uint128_t * const half_words_a, const uint128_t * const half_words_b, uint128_t *half_words_result,
-                                  uint32_t m, uint32_t n) {
+void CalculateMultiWordProduct128(const uint128_t *const half_words_a, const uint128_t *const half_words_b,
+                                  uint128_t *half_words_result, uint32_t m, uint32_t n) {
   uint128_t k, t;
   uint32_t i, j;
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
@@ -802,7 +802,7 @@ int Nlz128(uint128_t x) {
   constexpr uint128_t g = (static_cast<uint128_t>(0x7FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
 
   // clang made me comment this
-  //if (x == 0) return (128);
+  // if (x == 0) return (128);
   int n = 0;
   if (x <= a) {
     n = n + 64;
@@ -1235,7 +1235,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_
       value_ = UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
     } else {
       value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
-                                                      half_words_result[0] | (half_words_result[1] << 64), constant);
+                                                half_words_result[0] | (half_words_result[1] << 64), constant);
     }
   }
 

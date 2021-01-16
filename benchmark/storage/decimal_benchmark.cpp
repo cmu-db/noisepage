@@ -33,7 +33,7 @@ BENCHMARK_DEFINE_F(DecimalBenchmark, AddDecimal)(benchmark::State &state) {
     noisepage::execution::sql::Decimal128 result(0);
     noisepage::common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
     for (unsigned j = 0; j < 1000; j++)
-      for (auto & decimal : decimals_) {
+      for (auto &decimal : decimals_) {
         result += decimal;
       }
   }
@@ -47,7 +47,7 @@ BENCHMARK_DEFINE_F(DecimalBenchmark, AddFloat)(benchmark::State &state) {
     float result = 0;
     noisepage::common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
     for (unsigned j = 0; j < 1000; j++)
-      for (auto & fl : floats_) {
+      for (auto &fl : floats_) {
         result += fl;
       }
   }

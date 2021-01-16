@@ -151,8 +151,7 @@ class GenericKey {
     case type::TypeId::BIGINT:                                                                                        \
       return *reinterpret_cast<const int64_t *const>(lhs_attr) OP * reinterpret_cast<const int64_t *const>(rhs_attr); \
     case type::TypeId::REAL:                                                                                          \
-      return *reinterpret_cast<const double *const>(lhs_attr) OP *                                                    \
-             reinterpret_cast<const double *const>(rhs_attr);                                                         \
+      return *reinterpret_cast<const double *const>(lhs_attr) OP * reinterpret_cast<const double *const>(rhs_attr);   \
     case type::TypeId::DECIMAL:                                                                                       \
       return *reinterpret_cast<const int128_t *const>(lhs_attr) OP *                                                  \
              reinterpret_cast<const int128_t *const>(rhs_attr);                                                       \
@@ -164,7 +163,7 @@ class GenericKey {
       return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                 \
     }                                                                                                                 \
     default:                                                                                                          \
-      throw std::runtime_error("Unknown TypeId in noisepage::storage::index::GenericKey::TypeComparators.");            \
+      throw std::runtime_error("Unknown TypeId in noisepage::storage::index::GenericKey::TypeComparators.");          \
   }
 
     /**

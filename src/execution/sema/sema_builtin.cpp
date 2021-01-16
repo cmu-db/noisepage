@@ -61,7 +61,7 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
 
     const auto int32_kind = ast::BuiltinType::Int32;
     if (!call->Arguments()[0]->GetType()->IsSqlValueType()) {
-      ReportIncorrectCallArg(call, 0, "sql_type");;
+      ReportIncorrectCallArg(call, 0, "sql_type");
       return;
     }
     // Second argument (precision) is a int32_t
