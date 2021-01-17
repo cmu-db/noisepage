@@ -122,6 +122,7 @@ struct Real : public Val {
 struct DecimalVal : public Val {
   /** The internal decimal representation. */
   Decimal128 val_;
+  /** precision of the decimal representation. */
   int precision_;
 
   /**
@@ -146,6 +147,9 @@ struct DecimalVal : public Val {
     return val;
   }
 
+  /**
+   * @return A string representing the given decimal
+   */
   std::string ToString() const {
     std::string output;
     int128_t value = val_.GetValue();

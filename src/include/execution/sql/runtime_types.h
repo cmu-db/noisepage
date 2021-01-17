@@ -574,7 +574,7 @@ class EXPORT Decimal {
    * Pass in the the precision of the decimal with lower precision
    * If you want result in the precision of the decimal with lower precision
    * Pass in the the precision of the decimal with higher precision
-   * @param value the decimal to be multiplied with
+   * @param input the decimal to be multiplied with
    * @param precision Number of digits after decimal point.*/
   void MultiplyAndSet(const Decimal<T> &input, uint32_t precision);
 
@@ -589,6 +589,11 @@ class EXPORT Decimal {
    * @param input the constant to be multiplied with. */
   void SignedMultiplyWithConstant(int64_t input);
 
+  /** This function converts an input decimal string to the
+   * underlying decimaml representation. We try to retain the
+   * maximum number of digits possible after the decimal point
+   * and set the precision accordingly.
+   * @param input input string*/
   int SetMaxmPrecision(std::string input);
 
  private:
