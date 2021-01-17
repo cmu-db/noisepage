@@ -14,7 +14,7 @@ from util import io_util, logging_util
 from data_class import opunit_data
 from info import data_info
 from training_util import data_transforming_util, result_writing_util
-from type import Target, ExecutionFeature
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -75,8 +75,8 @@ class MiniTrainer:
         error_bias = 1
         min_percentage_error = 2
         pred_results = None
-        elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
-        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
+        elapsed_us_index = data_info.instance.target_csv_index[Target.ELAPSED_US]
+        memory_b_index = data_info.instance.target_csv_index[Target.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1
@@ -114,7 +114,7 @@ class MiniTrainer:
                     # on the elapsed us. For any opunits in MEM_EVALUATE_OPUNITS, we evaluate by comparing the
                     # model error on memory_b.
                     eval_error = percentage_error[elapsed_us_index]
-                    if data.opunit in data_info.MEM_EVALUATE_OPUNITS:
+                    if data.opunit in data_info.instance.MEM_EVALUATE_OPUNITS:
                         eval_error = percentage_error[memory_b_index]
 
                     # Record the model with the lowest elapsed time prediction (since that might be the most
@@ -122,7 +122,7 @@ class MiniTrainer:
                     # Only use linear regression for the arithmetic operating units
                     if (j == 1 and eval_error < min_percentage_error
                             and y_transformer == y_transformers[-1]
-                            and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
+                            and (data.opunit not in data_info.instance.ARITHMETIC_OPUNITS or method == 'lr')):
                         min_percentage_error = eval_error
                         if self.expose_all:
                             best_y_transformer = i
@@ -154,7 +154,7 @@ class MiniTrainer:
         self.model_map = {}
 
         # Create the results files for the paper
-        header = ["OpUnit", "Method"] + [target.name for target in data_info.MINI_MODEL_TARGET_LIST]
+        header = ["OpUnit", "Method"] + [target.name for target in data_info.instance.MINI_MODEL_TARGET_LIST]
         summary_file = "{}/mini_runner.csv".format(self.model_metrics_path)
         io_util.create_csv_file(summary_file, header)
 
@@ -197,4 +197,4 @@ if __name__ == '__main__':
                           args.expose_all, args.txn_sample_interval)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
-        pickle.dump(trained_model_map, file)
+        pickle.dump((trained_model_map, data_info.instance), file)

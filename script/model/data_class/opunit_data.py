@@ -53,11 +53,11 @@ def _default_get_mini_runner_data(filename):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename, skipinitialspace=True)
     headers = list(df.columns.values)
-    data_info.parse_csv_header(headers, False)
+    data_info.instance.parse_csv_header(headers, False)
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
-    x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
+    x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
 
     return [OpUnitData(OpUnit[file_name.upper()], x, y)]
 
@@ -70,10 +70,10 @@ def _txn_get_mini_runner_data(filename, model_results_path, txn_sample_interval)
     # prepending a column of ones as the base transaction data feature
     base_x = pd.DataFrame(data=np.ones((df.shape[0], 1), dtype=int))
     df = pd.concat([base_x, df], axis=1)
-    x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
-    start_times = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.START_TIME]].values
-    cpu_ids = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.CPU_ID]].values
+    x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    start_times = df.iloc[:, data_info.instance.TARGET_CSV_INDEX[data_info.instance.Target.START_TIME]].values
+    cpu_ids = df.iloc[:, data_info.instance.TARGET_CSV_INDEX[data_info.instance.Target.CPU_ID]].values
 
     logging.info("Loaded file: {}".format(OpUnit[file_name.upper()]))
 
@@ -81,7 +81,7 @@ def _txn_get_mini_runner_data(filename, model_results_path, txn_sample_interval)
     prediction_path = "{}/{}_txn_converted_data.csv".format(model_results_path, file_name)
     io_util.create_csv_file(prediction_path, [""])
 
-    interval = data_info.CONTENDING_OPUNIT_INTERVAL
+    interval = data_info.instance.CONTENDING_OPUNIT_INTERVAL
 
     # Map from interval start time to the data in this interval
     interval_x_map = {}
@@ -119,19 +119,19 @@ def _interval_get_mini_runner_data(filename, model_results_path):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename, skipinitialspace=True)
     headers = list(df.columns.values)
-    data_info.parse_csv_header(headers, False)
+    data_info.instance.parse_csv_header(headers, False)
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
-    x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
-    start_times = df.iloc[:, data_info.RAW_TARGET_CSV_INDEX[Target.START_TIME]].values
+    x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    start_times = df.iloc[:, data_info.instance.RAW_TARGET_CSV_INDEX[Target.START_TIME]].values
     logging.info("Loaded file: {}".format(OpUnit[file_name.upper()]))
 
     # change the data based on the interval for the periodically invoked operating units
     prediction_path = "{}/{}_interval_converted_data.csv".format(model_results_path, file_name)
     io_util.create_csv_file(prediction_path, [""])
 
-    interval = data_info.PERIODIC_OPUNIT_INTERVAL
+    interval = data_info.instance.PERIODIC_OPUNIT_INTERVAL
 
     # Map from interval start time to the data in this interval
     interval_x_map = {}
@@ -179,17 +179,17 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
     with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
         indexes = next(reader)
-        data_info.parse_csv_header(indexes, True)
-        features_vector_index = data_info.RAW_FEATURES_CSV_INDEX[ExecutionFeature.FEATURES]
-        raw_boundary = data_info.RAW_FEATURES_CSV_INDEX[data_info.INPUT_OUTPUT_BOUNDARY]
-        input_output_boundary = len(data_info.INPUT_CSV_INDEX)
+        data_info.instance.parse_csv_header(indexes, True)
+        features_vector_index = data_info.instance.raw_features_csv_index[ExecutionFeature.FEATURES]
+        raw_boundary = data_info.instance.raw_features_csv_index[data_info.instance.INPUT_OUTPUT_BOUNDARY]
+        input_output_boundary = len(data_info.instance.input_csv_index)
 
         for line in reader:
             # drop query_id, pipeline_id, num_features, features_vector
             record = [d for i, d in enumerate(line) if i >= raw_boundary]
             data = list(map(data_util.convert_string_to_numeric, record))
             x_multiple = data[:input_output_boundary]
-            y_merged = np.array(data[-data_info.MINI_MODEL_TARGET_NUM:])
+            y_merged = np.array(data[-data_info.instance.MINI_MODEL_TARGET_NUM:])
 
             # Get the opunits located within
             opunits = []
@@ -254,7 +254,7 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
     for opunit, values in data_map.items():
         np_value = np.array(values)
         x = np_value[:, :input_output_boundary]
-        y = np_value[:, -data_info.MINI_MODEL_TARGET_NUM:]
+        y = np_value[:, -data_info.instance.MINI_MODEL_TARGET_NUM:]
         data_list.append(OpUnitData(opunit, x, y))
 
     return data_list
