@@ -128,12 +128,14 @@ struct DecimalVal : public Val {
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The decimal value.
+   * @param precision The decimal precision.
    */
   explicit DecimalVal(Decimal128 val, int precision = 0) noexcept : Val(false), val_(val), precision_(precision) {}
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The raw decimal value.
+   * @param precision The decimal precision.
    */
   explicit DecimalVal(Decimal128::NativeType val, int precision = 0) noexcept
       : DecimalVal(Decimal128{val}, precision) {}

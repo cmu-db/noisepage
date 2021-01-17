@@ -6,6 +6,7 @@ namespace noisepage::execution::sql {
 
 /* The following hash is required to create an unordered map of 128bit uints*/
 struct Unsigned128BitHash {
+  /* Hashing function */
   hash_t operator()(const uint128_t &value) const {
     uint128_t x = value;
     const uint64_t k_mul = 0x9ddfea08eb382d69ULL;
