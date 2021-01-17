@@ -45,6 +45,8 @@ common::hash_t IndexScanPlanNode::Hash() const {
 
   hash = common::HashUtil::CombineHashInRange(hash, column_oids_.begin(), column_oids_.end());
 
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(cover_all_columns_));
+
   return hash;
 }
 
@@ -55,6 +57,8 @@ bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   if (column_oids_ != other.column_oids_) return false;
 
+  if (cover_all_columns_ != other.cover_all_columns_) return false;
+
   // Index Oid
   return (index_oid_ == other.index_oid_);
 }
@@ -63,6 +67,7 @@ nlohmann::json IndexScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractScanPlanNode::ToJson();
   j["index_oid"] = index_oid_;
   j["column_oids"] = column_oids_;
+  j["cover_all_columns"] = cover_all_columns_;
   return j;
 }
 
@@ -72,6 +77,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> IndexScanPlanNode::From
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   index_oid_ = j.at("index_oid").get<catalog::index_oid_t>();
   column_oids_ = j.at("column_oids").get<std::vector<catalog::col_oid_t>>();
+  cover_all_columns_ = j.at("cover_all_columns").get<bool>();
   return exprs;
 }
 

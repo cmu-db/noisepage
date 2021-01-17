@@ -15,7 +15,7 @@ namespace noisepage::selfdriving::pilot {
 class DropIndexAction : public AbstractAction {
  public:
   /**
-   * Construct CreateIndexAction
+   * Construct DropIndexAction
    * @param index_name The name of the index
    * @param table_name The table to create index on
    * @param columns The columns to build index on

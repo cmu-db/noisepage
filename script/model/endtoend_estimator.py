@@ -45,6 +45,7 @@ class EndtoendEstimator:
                                                                                       self.model_results_path,
                                                                                       0,
                                                                                       False,
+                                                                                      False,
                                                                                       self.ee_sample_interval,
                                                                                       self.txn_sample_interval,
                                                                                       self.network_sample_interval)
@@ -88,7 +89,7 @@ class EndtoendEstimator:
             data_list.append(d.target_grouped_op_unit_data)
             mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
             raw_y.append(d.target_grouped_op_unit_data.y)
-            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
+            predicted_elapsed_us = mini_model_y_pred[-1][data_info.instance.target_csv_index[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
                 predicted_resource_util = d.get_y_pred()
@@ -100,9 +101,9 @@ class EndtoendEstimator:
             predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= self_resource
             predicted_resource_util[predicted_resource_util < 0] = 0
             x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us,
-                                    predicted_resource_util,
-                                    d.resource_util_same_core_x)))
-            #x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util)))
+                                     predicted_resource_util,
+                                     d.resource_util_same_core_x)))
+            # x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred +
                                                         global_model_config.RATIO_DIVISION_EPSILON))
 
@@ -154,7 +155,7 @@ class EndtoendEstimator:
             ratio_error = np.abs(raw_y - raw_y_pred) / (raw_y + epsilon)
             avg_ratio_error = np.average(ratio_error, axis=0)
             accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (
-                        accumulated_raw_y + epsilon)
+                    accumulated_raw_y + epsilon)
             original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
                     accumulated_raw_y + epsilon)
 
@@ -175,8 +176,8 @@ class EndtoendEstimator:
                 prediction_path = "{}/grouped_opunit_prediction.csv".format(self.model_results_path)
                 io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
                 for i, data in enumerate(data_list):
-                        io_util.write_csv_result(prediction_path, data.name, [""] + list(raw_y[i]) + [""] +
-                                                 list(raw_y_pred[i]) + [""] + list(ratio_error[i]))
+                    io_util.write_csv_result(prediction_path, data.name, [""] + list(raw_y[i]) + [""] +
+                                             list(raw_y_pred[i]) + [""] + list(ratio_error[i]))
 
                 average_result_path = "{}/interval_average_prediction.csv".format(self.model_results_path)
                 io_util.create_csv_file(average_result_path,
@@ -185,7 +186,7 @@ class EndtoendEstimator:
                 interval_y_map = {}
                 interval_y_pred_map = {}
                 mark_list = None
-                #mark_list = _generate_mark_list(data_list)
+                # mark_list = _generate_mark_list(data_list)
                 for i, data in enumerate(data_list):
                     # Don't count the create index OU
                     # TODO(lin): needs better way to evaluate... maybe add a id_query field to GroupedOpunitData
@@ -268,7 +269,7 @@ if __name__ == '__main__':
     logging_util.init_logging(args.log)
 
     with open(args.mini_model_file, 'rb') as pickle_file:
-        model_map = pickle.load(pickle_file)
+        model_map, data_info.instance = pickle.load(pickle_file)
     with open(args.global_resource_model_file, 'rb') as pickle_file:
         resource_model = pickle.load(pickle_file)
     with open(args.global_impact_model_file, 'rb') as pickle_file:
