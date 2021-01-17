@@ -105,7 +105,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   /**
    * LIMIT
    * We don't model LIMIT for now since there's no LIMIT operator. But we keep this OpUnit type since there's a LIMIT
-   * translator. We skip this OpUnit in the OperatingUnitRecorder.
+   * translator (which requires an OpUnit type). We skip this OpUnit in the OperatingUnitRecorder.
    */
   LIMIT,
 
