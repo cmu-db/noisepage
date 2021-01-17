@@ -554,6 +554,21 @@ TEST_F(RuntimeTypesTest, DecimalDivisionRegressionTest) {
     EXPECT_EQ(1, d == d_1);
   }
 }
+
+// NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, LeadingNumberZerosTest) {
+  uint128_t x = 1;
+  for (int i = 0; i < 127; i++) {
+    EXPECT_EQ(noisepage::execution::sql::Nlz128(x), noisepage::execution::sql::Nlz128Fast(x));
+    x = x << 1;
+  }
+  x = 324325;
+  for (int i = 0; i < 127; i++) {
+    EXPECT_EQ(noisepage::execution::sql::Nlz128(x), noisepage::execution::sql::Nlz128Fast(x));
+    x = x << 1;
+  }
+}
+
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, ExtractDateParts) {
   // Valid date

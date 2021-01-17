@@ -756,4 +756,15 @@ inline Timestamp Date::ConvertToTimestamp() const { return Timestamp(value_ * K_
 /** Converts the provided timestamp into a date. */
 inline Date Timestamp::ConvertToDate() const { return Date(value_ / K_MICRO_SECONDS_PER_DAY); }
 
+/* Calculate the Number of leading zeros for a 128 bit unsigned int*/
+int Nlz128(uint128_t x);
+/* Calculate the Number of leading zeros for a 128 bit unsigned int faster*/
+inline int Nlz128Fast(uint128_t u) {
+  uint64_t hi = u >> 64;
+  uint64_t lo = u;
+  int retval[3] = {__builtin_clzll(hi), __builtin_clzll(lo) + 64, 128};
+  int idx = !hi + ((!lo) & (!hi));
+  return retval[idx];
+}
+
 }  // namespace noisepage::execution::sql

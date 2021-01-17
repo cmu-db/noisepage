@@ -845,7 +845,7 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t
   b = b << 64;
 
   uint128_t un1, un0, vn1, vn0, q1, q0, un32, un21, un10, rhat;
-  int128_t s = Nlz128(v);
+  int128_t s = Nlz128Fast(v);
 
   // Normalize everything
   v = v << s;
