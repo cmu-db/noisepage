@@ -150,9 +150,6 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
             features = line[features_vector_index].split(';')
             concurrency = 0
             for idx, feature in enumerate(features):
-                if feature == 'LIMIT':
-                    continue
-
                 opunit = OpUnit[feature]
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
                 if x_loc[data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]] == 0:

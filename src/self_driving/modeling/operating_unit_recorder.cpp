@@ -611,13 +611,7 @@ void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
-  VisitAbstractPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
-
-  // Copy outwards
-  auto num_keys = plan->GetOutputSchema()->GetColumns().size();
-  auto key_size = ComputeKeySizeOutputSchema(plan, &num_keys);
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+  // Limit plan does not have its own operator and we don't model Limit with our operating units. So we skip.
 }
 
 void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
