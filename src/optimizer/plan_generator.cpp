@@ -236,6 +236,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
   builder.SetColumnOids(std::move(column_ids));
   builder.SetTableNumTuple(table_num_tuple);
   builder.SetIndexSize(accessor_->GetTable(tbl_oid)->GetNumTuple());
+  builder.SetCoverAllColumns(op->GetCoverAllColumns());
 
   auto type = op->GetIndexScanType();
   builder.SetScanType(type);
