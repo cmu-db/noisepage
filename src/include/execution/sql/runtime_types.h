@@ -593,7 +593,8 @@ class EXPORT Decimal {
    * underlying decimaml representation. We try to retain the
    * maximum number of digits possible after the decimal point
    * and set the precision accordingly.
-   * @param input input string*/
+   * @param input input string
+   * @return precision for the underlying decimal*/
   int SetMaxmPrecision(std::string input);
 
  private:
