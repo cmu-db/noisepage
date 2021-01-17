@@ -59,6 +59,25 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
+      case type::TypeId::DECIMAL: {
+        switch (desired_type) {
+          case type::TypeId::REAL: {
+            {
+              double double_val = value->GetDecimal().val_;
+              for (int i = 0; i < value->GetDecimal().precision_; i++) {
+                double_val /= 10.0;
+              }
+              value->SetValue(type::TypeId::REAL, execution::sql::Real(double_val));
+              break;
+            }
+          }
+          default:
+            throw BINDER_EXCEPTION(fmt::format("failed to convert decimal to another type, decimal to convert was {}",
+                                               value->GetDecimal().ToString()),
+                                   common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
+        }
+        break;
+      }
 
         // DATE and TIMESTAMP conversion. String to boolean conversion. String to numeric type conversion.
       case type::TypeId::VARCHAR: {
