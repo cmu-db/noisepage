@@ -21,7 +21,6 @@ class DecimalBenchmark : public benchmark::Fixture {
 
   void TearDown(const benchmark::State &state) final {}
 
-  // Read buffers pointers for concurrent reads
   std::vector<noisepage::execution::sql::Decimal128> decimals_;
   std::vector<float> floats_;
 };

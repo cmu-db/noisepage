@@ -170,7 +170,7 @@ class EXPORT GenericValue {
   static GenericValue CreateDate(Date date);
 
   /**
-   * Create a non-NULL date value.
+   * Create a non-NULL decimal value.
    * @param decimal The decimal.
    * @return A decimal value.
    */

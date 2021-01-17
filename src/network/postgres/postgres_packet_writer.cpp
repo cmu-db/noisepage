@@ -361,7 +361,6 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         break;
       }
       case type::TypeId::DECIMAL: {
-        // TODO(Rohan): Find the best way to write this
         auto *decimal_val = reinterpret_cast<const execution::sql::DecimalVal *const>(val);
         string_value = decimal_val->ToString();
         break;

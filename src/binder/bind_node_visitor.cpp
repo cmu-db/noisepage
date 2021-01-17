@@ -30,7 +30,6 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
-#include "parser/expression_util.h"
 #include "parser/parse_result.h"
 #include "parser/statements.h"
 

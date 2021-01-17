@@ -74,7 +74,6 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
-  // Handle the builtins whose API is different from the other builtins.
   if (builtin == ast::Builtin::DecimalToSql) {
     if (!CheckArgCount(call, 5)) {
       return;
@@ -91,7 +90,7 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
                                  call->Arguments()[2]->GetType(), call->Arguments()[3]->GetType(),
                                  call->Arguments()[4]->GetType());
     }
-    // All good. Set return type as SQL Date.
+    // All good. Set return type as SQL Decimal.
     call->SetType(GetBuiltinType(ast::BuiltinType::Decimal));
     return;
   }

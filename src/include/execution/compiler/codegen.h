@@ -499,7 +499,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *DateToSql(int32_t year, int32_t month, int32_t day) const;
 
   /**
-   * Call \@dateToSql(). Convert a date into a SQL date.
+   * Call \@DecimalToSql(). Convert a date into a SQL date.
    * @param fixed_decimal The fixed decimal.
    * @param precision The precision
    * @return The SQL fixed decimal.
@@ -732,7 +732,7 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   [[nodiscard]] ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                                 bool own = false, uint16_t max_varlen_size = 0);
+                                 bool own = false, uint16_t type_mod = 0);
 
   // -------------------------------------------------------
   //

@@ -167,7 +167,6 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
         }
         deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
       });
-
   return SetClassPointer(txn, index, index_ptr, postgres::PgClass::REL_PTR.oid_);
 }
 

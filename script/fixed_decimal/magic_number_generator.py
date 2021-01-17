@@ -4,6 +4,10 @@ nmax = 2 ** 128 - 1
 nbits = 128
 
 # DEFINE THE NUMBER THAT YOU WANT TO GET A MAGIC NUMBER OF
+# Magic Numbers are special numbers required by the fixed point
+# decimal package unique to noisepage which speed up constant division
+# operations. If you want to speed up highly division by a particular
+# constant , define d to be that number and change the Maps accordingly
 
 d = 999
 
