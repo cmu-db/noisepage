@@ -64,9 +64,11 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
           case type::TypeId::REAL: {
             {
               double double_val = value->GetDecimal().val_;
+              double divisor = 1.0;
               for (int i = 0; i < value->GetDecimal().precision_; i++) {
-                double_val /= 10.0;
+                divisor *= 10.0;
               }
+              double_val /= divisor;
               value->SetValue(type::TypeId::REAL, execution::sql::Real(double_val));
               break;
             }
