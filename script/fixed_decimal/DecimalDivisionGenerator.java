@@ -1,73 +1,48 @@
 import java.util.Random;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-public class Decimal_Division_Generator {
-    public static void main(String[] args) {
 
-        int no_of_test_cases = 1000000;
-
-        Random rand = new Random(); //instance of random class
-        //generate random values from 0-10
-        int upperbound = 10;
-
-
-        for (int i = 0; i < no_of_test_cases; i++) {
-
-            int precision = i % 37;
-            precision = precision + 1;
-
-            int int_random = rand.nextInt(upperbound);
-            if (int_random == 0) {
-                int_random += 1;
-            }
-            BigInteger d_1 = new BigInteger(String.valueOf(int_random));
-
-            for (int j = 1; j < precision; j++) {
-                int random = rand.nextInt(upperbound);
-                BigInteger ten = new BigInteger(String.valueOf(10));
-                BigInteger random_big = new BigInteger(String.valueOf(random));
-                d_1 = d_1.multiply(ten);
-                d_1 = d_1.add(random_big);
-            }
-
-            String x = d_1.toString();
-            x = "0." + x;
-
-            for (int k = 0; k < 38; k++) {
-                int precision2 = k + 1;
-                int int_random2 = rand.nextInt(upperbound);
-                if (int_random2 == 0) {
-                    int_random2 += 1;
-                }
-                BigInteger d_2 = new BigInteger(String.valueOf(int_random2));
-
-                for (int j = 1; j < precision2; j++) {
-                    int random2 = rand.nextInt(upperbound);
-                    BigInteger ten2 = new BigInteger(String.valueOf(10));
-                    BigInteger random_big2 = new BigInteger(String.valueOf(random2));
-                    d_2 = d_2.multiply(ten2);
-                    d_2 = d_2.add(random_big2);
-                }
-
-                String y = d_2.toString();
-                y = "0." + y;
-
-                // Create two new BigDecimals
-                BigDecimal bd1 =
-                    new BigDecimal(x);
-                BigDecimal bd2 =
-                    new BigDecimal(y);
-
-
-                // Division of two BigDecimals
-                bd1 = bd1.divide(bd2, precision, 1);
-                String z = bd1.toString();
-                System.out.println(x + " " + String.valueOf(precision) +
-                    " " + y + " " + String.valueOf(precision2) +
-                    " " + z + " " + String.valueOf(precision));
-            }
-
+public class DecimalDivisionGenerator {
+    /**
+     * Generate a BigInteger that is precision-many digits long.
+     *
+     * @param random    The random instance to generate random numbers from.
+     * @param precision The number of digits in the final BigInteger generated.
+     * @return A BigInteger that is precision-many digits long.
+     */
+    private static BigInteger generateBigInteger(Random random, int precision) {
+        BigInteger bigInt = BigInteger.valueOf(random.nextInt(9) + 1);      // Start with a random digit from [1, 9].
+        for (int j = 1; j < precision; j++) {                               // Until we reach "precision" many digits:
+            bigInt = bigInt.multiply(BigInteger.valueOf(10));               // Shift current digits to the left.
+            bigInt = bigInt.add(BigInteger.valueOf(random.nextInt(10)));    // Add a random digit from [0, 9].
         }
+        return bigInt;
+    }
 
+    public static void main(String[] args) {
+        // Our maximum precision is 38 digits because NoisePage represents fixed decimals
+        // with an int128_t and 10^k > 2^128 for k > 38.5318.
+        int maxPrecisionDigits = 38;
+        int numTestCases = 1000000;
+        Random random = new Random();
+
+        for (int i = 0; i < numTestCases; i++) {
+            int precision1 = (i % (maxPrecisionDigits - 1)) + 1;             // [1, maxPrecisionDigits - 1]
+            BigInteger bigInt1 = generateBigInteger(random, precision1);
+
+            for (int precision2 = 1; precision2 <= maxPrecisionDigits; precision2++) {
+                BigInteger bigInt2 = generateBigInteger(random, precision2);
+
+                BigDecimal bd1 = new BigDecimal("0." + bigInt1.toString());
+                BigDecimal bd2 = new BigDecimal("0." + bigInt2.toString());
+                BigDecimal res = bd1.divide(bd2, precision1, 1);
+
+                System.out.printf("%s %d %s %d %s %d\n",
+                        bd1.toString(), precision1,
+                        bd2.toString(), precision2,
+                        res.toString(), precision1
+                );
+            }
+        }
     }
 }
