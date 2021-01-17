@@ -1,5 +1,5 @@
 from util import io_util
-from info.data_info import data_info
+from info import data_info
 
 
 def create_metrics_and_prediction_files(metrics_path, prediction_path, test_only):
@@ -36,7 +36,7 @@ def _get_result_labels(test_only):
     else:
         datasets = ["Train", "Test"]
     for dataset in datasets:
-        for target in data_info.MINI_MODEL_TARGET_LIST:
+        for target in data_info.instance.MINI_MODEL_TARGET_LIST:
             labels.append(dataset + " " + target.name)
         labels.append("")
 

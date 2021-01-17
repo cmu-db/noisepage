@@ -9,7 +9,7 @@ import tqdm
 import global_model_config
 from util import io_util, logging_util
 from training_util import global_data_constructing_util, result_writing_util
-from info.data_info import data_info
+from info import data_info
 from type import Target
 
 np.set_printoptions(precision=4)
@@ -89,7 +89,7 @@ class EndtoendEstimator:
             data_list.append(d.target_grouped_op_unit_data)
             mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
             raw_y.append(d.target_grouped_op_unit_data.y)
-            predicted_elapsed_us = mini_model_y_pred[-1][data_info.target_csv_index[Target.ELAPSED_US]]
+            predicted_elapsed_us = mini_model_y_pred[-1][data_info.instance.target_csv_index[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
                 predicted_resource_util = d.get_y_pred()
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     logging_util.init_logging(args.log)
 
     with open(args.mini_model_file, 'rb') as pickle_file:
-        model_map, data_info = pickle.load(pickle_file)
+        model_map, data_info.instance = pickle.load(pickle_file)
     with open(args.global_resource_model_file, 'rb') as pickle_file:
         resource_model = pickle.load(pickle_file)
     with open(args.global_impact_model_file, 'rb') as pickle_file:

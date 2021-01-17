@@ -260,7 +260,7 @@ class ModelServer:
 
         # Pickle dump the model
         with save_path.open(mode='wb') as f:
-            pickle.dump((model_map, data_info.data_info), f)
+            pickle.dump((model_map, data_info.instance), f)
 
         return True, ""
 
@@ -283,7 +283,7 @@ class ModelServer:
 
         # Load into cache
         with save_path.open(mode='rb') as f:
-            model, data_info.data_info = pickle.load(f)
+            model, data_info.instance = pickle.load(f)
 
             # TODO(ricky): model checking here?
             if len(model) == 0:

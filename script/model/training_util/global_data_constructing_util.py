@@ -9,7 +9,7 @@ import pickle
 
 from util import io_util
 from info import hardware_info
-from info.data_info import data_info
+from info import data_info
 from data_class import global_model_data, grouped_op_unit_data
 import global_model_config
 from type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
@@ -217,10 +217,10 @@ def _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_int
 def _add_estimation_noise(opunit, x):
     """Add estimation noise to the OUs that may use the cardinality estimation
     """
-    if opunit not in data_info.OUS_USING_CAR_EST:
+    if opunit not in data_info.instance.OUS_USING_CAR_EST:
         return
-    tuple_num_index = data_info.input_csv_index[ExecutionFeature.NUM_ROWS]
-    cardinality_index = data_info.input_csv_index[ExecutionFeature.EST_CARDINALITIES]
+    tuple_num_index = data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]
+    cardinality_index = data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]
     tuple_num = x[tuple_num_index]
     cardinality = x[cardinality_index]
     if tuple_num > 1000:
@@ -294,34 +294,34 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
                 logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                                      x[0], y_pred[0, -1]))
 
-                if opunit in data_info.MEM_ADJUST_OPUNITS:
+                if opunit in data_info.instance.MEM_ADJUST_OPUNITS:
                     # Compute the number of "slots" (based on row feature or cardinality feature
-                    num_tuple = opunit_feature[1][data_info.input_csv_index[ExecutionFeature.NUM_ROWS]]
+                    num_tuple = opunit_feature[1][data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]]
                     if opunit == OpUnit.AGG_BUILD:
-                        num_tuple = opunit_feature[1][data_info.input_csv_index[ExecutionFeature.EST_CARDINALITIES]]
+                        num_tuple = opunit_feature[1][data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]]
 
                     # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
                     # that contains the first pow2 larger than num_tuple entries
                     pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
-                    buffer_size = pow_high * data_info.POINTER_SIZE
+                    buffer_size = pow_high * data_info.instance.POINTER_SIZE
                     if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
                         # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
                         # the buffer is not recorded as part of the pipeline
                         buffer_size = 0
 
-                    pred_mem = y_pred[0][data_info.target_csv_index[Target.MEMORY_B]]
+                    pred_mem = y_pred[0][data_info.instance.target_csv_index[Target.MEMORY_B]]
                     if pred_mem <= buffer_size:
                         logging.debug("{} feature {} {} with prediction {} exceeds buffer {}"
                                       .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                     # For hashjoin_build, there is still some inaccuracy due to the
                     # fact that we do not know about the hash table's load factor.
-                    scale = data_info.input_csv_index[ExecutionFeature.MEM_FACTOR]
+                    scale = data_info.instance.input_csv_index[ExecutionFeature.MEM_FACTOR]
                     adj_mem = (pred_mem - buffer_size) * opunit_feature[1][scale] + buffer_size
 
                     # Don't modify prediction cache
                     y_pred = copy.deepcopy(y_pred)
-                    y_pred[0][data_info.target_csv_index[Target.MEMORY_B]] = adj_mem
+                    y_pred[0][data_info.instance.target_csv_index[Target.MEMORY_B]] = adj_mem
 
                 pipeline_y_pred += y_pred[0]
 
