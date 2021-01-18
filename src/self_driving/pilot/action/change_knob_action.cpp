@@ -48,11 +48,11 @@ bool ChangeKnobAction<T>::IsValid() {
   } else if constexpr (std::is_same<T, int32_t>::value) {  // NOLINT
     T original_value = settings_manager_->GetInt(param_);
     T new_value = original_value + change_value_;
-    return new_value <= param_max_value_ and new_value >= param_min_value_;
+    return new_value <= param_max_value_ && new_value >= param_min_value_;
   } else if constexpr (std::is_same<T, int64_t>::value) {  // NOLINT
     T original_value = settings_manager_->GetInt64(param_);
     T new_value = original_value + change_value_;
-    return new_value <= param_max_value_ and new_value >= param_min_value_;
+    return new_value <= param_max_value_ && new_value >= param_min_value_;
   } else {
     throw PILOT_EXCEPTION(fmt::format("Unexpected knob parameter type \"{}\"", param_name_),
                           common::ErrorCode::ERRCODE_INTERNAL_ERROR);
