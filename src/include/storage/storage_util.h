@@ -123,7 +123,7 @@ class StorageUtil {
    * @param attr_sizes attribute sizes
    * @param num_reserved_columns number of extra 8-byte columns
    *
-   * @return {offset_varlen, offset_8, offset_4, offset_2, offset_1}
+   * @return {offset_varlen, offset_16, offset_8, offset_4, offset_2, offset_1}
    */
   static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint16_t> &attr_sizes,
                                                            uint16_t num_reserved_columns);
