@@ -118,6 +118,7 @@ enum class QueryType : uint8_t {
   // Misc (non-transactional)
   QUERY_EXPLAIN,
   QUERY_SET,
+  QUERY_SHOW,
   // end of what we support in the traffic cop right now
   QUERY_RENAME,
   QUERY_ALTER,
@@ -128,7 +129,6 @@ enum class QueryType : uint8_t {
   // Misc
   QUERY_COPY,
   QUERY_ANALYZE,
-  QUERY_SHOW,
   QUERY_OTHER,
   QUERY_INVALID
 };

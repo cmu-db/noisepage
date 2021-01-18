@@ -16,6 +16,9 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/pilot/pilot.h"
+#include "self_driving/pilot/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -424,6 +427,25 @@ class DBMain {
         messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
                                                            messenger_identity_);
       }
+      std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
+      if (model_server_enable_) {
+        NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
+        model_server_manager =
+            std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+      }
+
+      std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
+      std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
+      if (use_pilot_thread_) {
+        NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
+        pilot = std::make_unique<selfdriving::Pilot>(
+            model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
+            common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
+            common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
+        pilot_thread = std::make_unique<selfdriving::PilotThread>(
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
+      }
 
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
@@ -439,6 +461,9 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->pilot_thread_ = std::move(pilot_thread);
+      db_main->pilot_ = std::move(pilot);
+      db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
 
       return db_main;
@@ -714,6 +739,24 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value with ModelServer enable
+     * @return self reference for chaining
+     */
+    Builder &SetUseModelServer(const bool value) {
+      model_server_enable_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value model_server_path
+     * @return self reference for chaining
+     */
+    Builder &SetModelServerPath(const std::string &value) {
+      model_server_path_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -742,6 +785,11 @@ class DBMain {
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
+    bool use_pilot_thread_ = false;
+    bool pilot_planning_ = false;
+    uint64_t pilot_interval_ = 1e7;
+    uint64_t workload_forecast_interval_ = 1e7;
+    std::string model_save_path_;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -761,6 +809,13 @@ class DBMain {
     bool use_messenger_ = false;
     uint16_t messenger_port_ = 9022;
     std::string messenger_identity_ = "primary";
+    bool model_server_enable_ = false;
+    /**
+     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
+     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
+     * in use cases where such assumptions are no longer true.
+     */
+    std::string model_server_path_ = "../../script/model/model_server.py";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -790,8 +845,13 @@ class DBMain {
 
       use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
       use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
+      use_pilot_thread_ = settings_manager->GetBool(settings::Param::use_pilot_thread);
+      pilot_planning_ = settings_manager->GetBool(settings::Param::pilot_planning);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+      pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
+      workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
+      model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
@@ -815,7 +875,10 @@ class DBMain {
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
+
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
+      model_server_enable_ = settings_manager->GetBool(settings::Param::model_server_enable);
+      model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);
 
       return settings_manager;
     }
@@ -906,6 +969,18 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
+  common::ManagedPointer<selfdriving::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<selfdriving::PilotThread> GetPilotThread() const {
+    return common::ManagedPointer(pilot_thread_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
   common::ManagedPointer<trafficcop::TrafficCop> GetTrafficCop() const { return common::ManagedPointer(traffic_cop_); }
 
   /**
@@ -928,6 +1003,11 @@ class DBMain {
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
   common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
 
+  /** @return ManagedPointer to the ModelServerManager, can be nullptr if disabled. */
+  common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() const {
+    return common::ManagedPointer(model_server_manager_);
+  }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -945,6 +1025,9 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
+  std::unique_ptr<selfdriving::Pilot> pilot_;
+  std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 

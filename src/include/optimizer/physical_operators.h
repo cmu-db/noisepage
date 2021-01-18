@@ -143,12 +143,14 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @param is_for_update whether the scan is used for update
    * @param scan_type IndexScanType
    * @param bounds Bounds for IndexScan
+   * @param cover_all_columns whether the index covers all indexable columns (that we support) in the predicates
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
-                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
+                       bool cover_all_columns);
 
   /**
    * Copy
@@ -197,6 +199,11 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
     return bounds_;
   }
 
+  /**
+   * @return whether the index covers all predicate columns
+   */
+  bool GetCoverAllColumns() const { return cover_all_columns_; }
+
  private:
   /**
    * OID of the database
@@ -232,6 +239,12 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * Bounds
    */
   std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
+
+  /**
+   *
+   * The index covers all indexable columns in the predicates
+   */
+  bool cover_all_columns_;
 };
 
 /**
@@ -916,13 +929,11 @@ class Insert : public OperatorNodeContents<Insert> {
    * @param table_oid OID of the table
    * @param columns OIDs of columns to insert into
    * @param values expressions of values to insert
-   * @param index_oids the OIDs of the indexes to insert into
    * @return an Insert operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                        std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                       std::vector<catalog::index_oid_t> &&index_oids);
+                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
 
   /**
    * Copy
@@ -955,11 +966,6 @@ class Insert : public OperatorNodeContents<Insert> {
     return values_;
   }
 
-  /**
-   * @return Index oids to insert into
-   */
-  const std::vector<catalog::index_oid_t> &GetIndexes() const { return index_oids_; }
-
  private:
   /**
    * OID of the database
@@ -980,11 +986,6 @@ class Insert : public OperatorNodeContents<Insert> {
    * Expressions of values to insert
    */
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
-
-  /**
-   * Indexes to insert into
-   */
-  std::vector<catalog::index_oid_t> index_oids_;
 };
 
 /**
@@ -995,11 +996,9 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
   /**
    * @param database_oid OID of the database
    * @param table_oid OID of the table
-   * @param index_oids the OIDs of the indexes to insert into
    * @return an InsertSelect operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                       std::vector<catalog::index_oid_t> &&index_oids);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid);
 
   /**
    * Copy
@@ -1020,11 +1019,6 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return Index oids to insert into
-   */
-  const std::vector<catalog::index_oid_t> &GetIndexes() const { return index_oids_; }
-
  private:
   /**
    * OID of the database
@@ -1035,11 +1029,6 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
-
-  /**
-   * Indexes to insert into
-   */
-  std::vector<catalog::index_oid_t> index_oids_;
 };
 
 /**
