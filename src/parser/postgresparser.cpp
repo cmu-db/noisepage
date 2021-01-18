@@ -751,6 +751,14 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
       // T_Float is also used for oversized ints, e.g. BIGINT.
       // For this reason, a quick hack...
       // TODO(WAN): figure out how Postgres does it once we care about floating point
+      // TODO(WAN): We appear to care about floating point now.
+      //  I don't think errors should be thrown at parse time.
+      //  All semantic resolution should happen in the binder at the earliest.
+      //  This means that the approach here may be problematic.
+      //  For reference, Postgres errors with 22P02 if you try to insert "a"
+      //  where it wants a decimal.
+      //  Need to come back to this...
+
       if (std::strchr(val.val_.str_, '.') == nullptr) {
         result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
