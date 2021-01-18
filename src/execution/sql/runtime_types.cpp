@@ -1,7 +1,6 @@
 #include "execution/sql/runtime_types.h"
 
 #include <string>
-#include <unordered_map>
 
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
@@ -792,7 +791,8 @@ void CalculateMultiWordProduct128(const uint128_t *const half_words_a, const uin
 }
 
 int Nlz128(uint128_t x) {
-  // Not used Figure 5-19 - Hacker's Delight double method as we need for 128 bits
+  // Hacker's Delight [2E Figure 5-19] has a method for computing the number of
+  // leading zeroes, but their method is not applicable as we need 128 bits.
   constexpr uint128_t a = (static_cast<uint128_t>(0x0000000000000000) << 64) | 0xFFFFFFFFFFFFFFFF;
   constexpr uint128_t b = (static_cast<uint128_t>(0x00000000FFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
   constexpr uint128_t c = (static_cast<uint128_t>(0x0000FFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
