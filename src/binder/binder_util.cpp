@@ -60,6 +60,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
         break;
       }
       case type::TypeId::DECIMAL: {
+        // TODO(WAN): I'm not sure this code is Postgres-compliant.
         switch (desired_type) {
           case type::TypeId::REAL: {
             {
@@ -215,6 +216,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
 
           case type::TypeId::DECIMAL: {
             {
+              // TODO(WAN): Error handling, casting, etc. Definitely not Postgres-compliant right now.
               noisepage::execution::sql::Decimal128 decimal_val(0);
               int precision = decimal_val.SetMaxmPrecision(std::string(str_view));
               value->SetValue(type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val, precision));
