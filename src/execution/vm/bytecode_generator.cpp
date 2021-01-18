@@ -3426,39 +3426,32 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
   LocalVar right = VisitExpressionForSQLValue(node->Right());
 
   const bool is_integer_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
-  const bool is_decimal_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Decimal);
+
+#define GEN_PICK_BYTECODE(Op)                                                 \
+  if (node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {        \
+    bytecode = Bytecode::Op##Integer;                                         \
+  } else if (node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Decimal)) { \
+    bytecode = Bytecode::Op##Decimal;                                         \
+  } else {                                                                    \
+    bytecode = Bytecode::Op##Real;                                            \
+  }
+
   Bytecode bytecode;
   switch (node->Op()) {
     case parsing::Token::Type::PLUS: {
-      if (is_decimal_math) {
-        bytecode = Bytecode::AddDecimal;
-        break;
-      }
-      bytecode = (is_integer_math ? Bytecode::AddInteger : Bytecode::AddReal);
+      GEN_PICK_BYTECODE(Add);
       break;
     }
     case parsing::Token::Type::MINUS: {
-      if (is_decimal_math) {
-        bytecode = Bytecode::SubDecimal;
-        break;
-      }
-      bytecode = (is_integer_math ? Bytecode::SubInteger : Bytecode::SubReal);
+      GEN_PICK_BYTECODE(Sub);
       break;
     }
     case parsing::Token::Type::STAR: {
-      if (is_decimal_math) {
-        bytecode = Bytecode::MulDecimal;
-        break;
-      }
-      bytecode = (is_integer_math ? Bytecode::MulInteger : Bytecode::MulReal);
+      GEN_PICK_BYTECODE(Mul);
       break;
     }
     case parsing::Token::Type::SLASH: {
-      if (is_decimal_math) {
-        bytecode = Bytecode::DivDecimal;
-        break;
-      }
-      bytecode = (is_integer_math ? Bytecode::DivInteger : Bytecode::DivReal);
+      GEN_PICK_BYTECODE(Div);
       break;
     }
     case parsing::Token::Type::PERCENT: {
@@ -3469,6 +3462,8 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
       UNREACHABLE("Impossible arithmetic SQL operation");
     }
   }
+
+#undef GEN_PICK_BYTECODE
 
   // Emit
   GetEmitter()->EmitBinaryOp(bytecode, dest, left, right);
