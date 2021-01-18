@@ -413,7 +413,7 @@ template <typename T>
 class EXPORT Decimal {
  public:
   /** This function converts an input decimal string to the
-   * underlying decimaml representation. The second argument
+   * underlying decimal representation. The second argument
    * specifies the number of digits after the decimal point
    * that we want to retain. The total no of digits has to be
    * <= 38. If the number of digits after the decimal point
