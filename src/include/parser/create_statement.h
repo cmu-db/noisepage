@@ -211,6 +211,7 @@ struct ColumnDefinition {
 
       case DataType::DATE:
         return type::TypeId::DATE;
+
       case DataType::INVALID:
       case DataType::PRIMARY:
       case DataType::FOREIGN:
