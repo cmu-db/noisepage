@@ -1,0 +1,156 @@
+
+statement ok
+CREATE TABLE foo (a DECIMAL(18,5));
+
+statement ok
+INSERT INTO foo VALUES(3.144);
+
+statement ok
+INSERT INTO foo VALUES(3243243243.144);
+
+statement ok
+CREATE TABLE foo2 (a DECIMAL(18,5));
+
+statement ok
+INSERT INTO foo2 VALUES(3.144);
+
+statement ok
+INSERT INTO foo2 VALUES(3243243243.144);
+
+query R rowsort
+SELECT * FROM foo;
+----
+3.14400
+3243243243.14400
+
+query R rowsort
+SELECT * FROM foo WHERE a >= 3.144;
+----
+3.14400
+3243243243.14400
+
+query R rowsort
+SELECT * FROM foo WHERE a = 3.144;
+----
+3.14400
+
+query R rowsort
+SELECT * FROM foo WHERE a <= 3.14;
+----
+
+query R rowsort
+SELECT a*2.2312 FROM foo;
+----
+7.014892800
+7236324324.102892800
+
+query R rowsort
+SELECT 2.2312*a FROM foo;
+----
+7.014892800
+7236324324.102892800
+
+query R rowsort
+SELECT 2.2312*a*a FROM foo;
+----
+22.05481
+23469159969345270731.94308
+
+query R rowsort
+SELECT 2.2312*a*2.2312 FROM foo;
+----
+15.65162
+16145686831.93836
+
+query R rowsort
+SELECT a/2.31231 FROM foo;
+----
+1.3596792817572038
+1402598805.15328827
+
+query R rowsort
+SELECT (a*2.31231)/a FROM foo;
+----
+2.31230
+2.31230
+
+query R rowsort
+SELECT a+a FROM foo;
+----
+6.28800
+6486486486.28800
+
+query R rowsort
+SELECT a/a FROM foo;
+----
+1.00000000000000000000
+1.00000000000000000000
+
+query R rowsort
+SELECT a*a FROM foo;
+----
+10518626734199211103.0047360000
+9.8847360000
+
+query R rowsort
+SELECT a + 2.324 FROM foo;
+----
+3243243245.46800
+5.46800
+
+query R rowsort
+SELECT a / 2.324 FROM foo;
+----
+1.3528399311531842
+1395543564.17555938
+
+query R rowsort
+SELECT a * 2.324 FROM foo;
+----
+7.30665600
+7537297297.06665600
+
+query R rowsort
+SELECT (a + 2.32432)/123.12321 - 12312.213 FROM foo;
+----
+-12312.16858660304584326546
+26329132.632925638229
+
+query RR rowsort
+SELECT * FROM foo, foo2 WHERE foo.a = foo2.a;
+----
+3.14400
+3.14400
+3243243243.14400
+3243243243.14400
+
+statement ok
+CREATE TABLE foo3 (a DECIMAL(18,5), b DECIMAL(18,5));
+
+statement ok
+INSERT INTO foo3 VALUES(3.123, 213.324);
+
+statement ok
+INSERT INTO foo3 VALUES(6.123, 213.324);
+
+statement ok
+INSERT INTO foo3 VALUES(3.123, 213.3245);
+
+statement ok
+INSERT INTO foo3 VALUES(6.123, 213.3245);
+
+query R rowsort
+SELECT max(a*b) FROM foo3 group by b;
+----
+1306.1828520000
+1306.1859135000
+
+query RRR rowsort
+SELECT sum(a*b), min(a*b), max(a*b) FROM foo3 group by b;
+----
+1972.3937040000
+666.2108520000
+1306.1828520000
+1972.3983270000
+666.2124135000
+1306.1859135000
