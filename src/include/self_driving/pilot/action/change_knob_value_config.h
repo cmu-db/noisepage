@@ -22,6 +22,12 @@ class ChangeKnobValueConfig {
     return common::ManagedPointer(&bool_change_value_map);
   }
 
+  /** @return Map from a int knob param to the vector of its candidate change values */
+  static common::ManagedPointer<std::map<settings::Param, std::vector<std::pair<int32_t, int32_t>>>>
+  GetIntChangeValueMap() {
+    return common::ManagedPointer(&int_change_value_map);
+  }
+
   /** @return Map from a int64 knob param to the vector of its candidate change values */
   static common::ManagedPointer<std::map<settings::Param, std::vector<std::pair<int64_t, int64_t>>>>
   GetInt64ChangeValueMap() {
@@ -30,6 +36,7 @@ class ChangeKnobValueConfig {
 
  private:
   static std::map<settings::Param, std::vector<std::pair<bool, bool>>> bool_change_value_map;
+  static std::map<settings::Param, std::vector<std::pair<int32_t, int32_t>>> int_change_value_map;
   static std::map<settings::Param, std::vector<std::pair<int64_t, int64_t>>> int64_change_value_map;
 };
 
