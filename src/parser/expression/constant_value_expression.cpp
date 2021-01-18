@@ -82,12 +82,10 @@ T ConstantValueExpression::Peek() const {
   if constexpr (std::is_same_v<T, execution::sql::Date>) {
     return GetDateVal().val_;
   }
-
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Decimal128>) {
     return GetDecimal().val_;
   }
-
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Timestamp>) {
     return GetTimestampVal().val_;

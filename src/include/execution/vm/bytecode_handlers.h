@@ -2209,7 +2209,7 @@ VM_OP_HOT void OpPRGetDecimalVal(noisepage::execution::sql::DecimalVal *out, noi
                                  uint16_t col_idx) {
   // Read
   auto *ptr = pr->Get<int128_t, false>(col_idx, nullptr);
-  NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+  NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read decimal");
   // Set
   out->is_null_ = false;
   out->val_ = noisepage::execution::sql::Decimal128(*ptr);
@@ -2230,7 +2230,7 @@ VM_OP_HOT void OpPRGetTimestampVal(noisepage::execution::sql::TimestampVal *out,
                                    uint16_t col_idx) {
   // Read
   auto *ptr = pr->Get<uint64_t, false>(col_idx, nullptr);
-  NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+  NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read timestamp");
 
   // Set
   out->is_null_ = false;
