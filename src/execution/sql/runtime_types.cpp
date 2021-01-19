@@ -893,7 +893,7 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t
 }
 
 template <typename T>
-void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, uint32_t precision) {
+void Decimal<T>::MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t precision) {
   // 1. Multiply with the overflow check.
   // 2. If overflow, divide by 10^precision using 256-bit magic number division.
   // 3. If no overflow, divide by 10^precision using 128-bit magic number division.
@@ -903,7 +903,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, uint32_t precision) {
   // First input
   uint128_t a = value_;
   // Second input
-  uint128_t b = input.GetValue();
+  uint128_t b = unsigned_input.GetValue();
   // Split into half words
   uint128_t half_words_a[2];
   uint128_t half_words_b[2];
