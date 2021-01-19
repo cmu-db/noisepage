@@ -1511,10 +1511,10 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
   auto datatype_name = reinterpret_cast<value *>(type_name->names_->tail->data.ptr_value)->val_.str_;
   auto datatype = ColumnDefinition::StrToDataType(datatype_name);
 
-  // TODO(WAN): This is a size_t now? It was -1 before. Check with Matt what type_mod is for most types.
-
-  // handle type modifiers
-  size_t varlen = 0;
+  // Handle type modifiers. Type modifiers (atttypmod in Postgres) default to -1.
+  // The meaning of a type modifier is up to the type.
+  // For example, a type modifier of 0 is meaningful, but the meaning depends on what type it is associated with.
+  int32_t type_modifier = -1;
 
   if (type_name->typmods_ != nullptr) {
     auto node = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
@@ -1523,12 +1523,13 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
         auto node_type = reinterpret_cast<A_Const *>(node)->val_.type_;
         switch (node_type) {
           case T_Integer: {
+            // TODO(WAN): We should probably be capturing the type modifier for more types.
             if (datatype == ColumnDefinition::DataType::DECIMAL) {
               auto node2 = reinterpret_cast<Node *>(type_name->typmods_->tail->data.ptr_value);
-              varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node2)->val_.val_.ival_);
+              type_modifier = static_cast<int32_t>(reinterpret_cast<A_Const *>(node2)->val_.val_.ival_);
               break;
             }
-            varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
+            type_modifier = static_cast<int32_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
             break;
           }
           default: {
@@ -1613,7 +1614,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
 
   auto name = root->colname_;
   auto result = std::make_unique<ColumnDefinition>(name, datatype, is_primary, is_not_null, is_unique, default_expr,
-                                                   check_expr, varlen);
+                                                   check_expr, type_modifier);
 
   return {std::move(result), std::move(foreign_keys)};
 }
