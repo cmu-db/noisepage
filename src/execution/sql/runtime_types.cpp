@@ -1202,7 +1202,14 @@ void Decimal<T>::SignedDivideWithConstant(int64_t input) {
 }
 
 template <typename T>
-void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_precision) {
+void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denominator_precision) {
+  // 1. Multiply the dividend with 10^(denominator precision), with overflow checking.
+  // 2. If overflow, divide by the denominator with multiword 256-bit division.
+  // 3. If no overflow, divide by the denominator with 128-bit division.
+  // In all the dividing cases, use magic number division if magic numbers are available.
+  // Moreover, the result is in the numerator's precision for technical reasons.
+  // If the result were to be in the denominator's precision, the first step would need to be multiplication with
+  // 10^(2*denominator precision - numerator precision) which requires 256-bit multiply and 512-bit overflow check.
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 

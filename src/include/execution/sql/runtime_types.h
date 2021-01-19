@@ -540,23 +540,14 @@ class EXPORT Decimal {
    */
   void SetValue(T value) { value_ = value; }
 
-  /** This function divides with a given decimal
-   * Note we multiply with the 10^precision of the denominator and then
-   * divide by the denominator
-   * If we do not overflow, we use a 128 number division
-   * If we already know the magic number of the 128 bit number then we use
-   * magic number division
-   * If we overflow, we need to use a multiword 256 bit division
-   * If we already know the magic number of the 256 bit number then we use
-   * magic number division
-   * We retain the result in numerator precision, this is due to the simple
-   * fact that if we were to retain it in denominator precision we need to
-   * multiply with 10 ^ (2* denominator - numerator) which will require a
-   * 256 x 256 bit multiplication with an overflow check in 512 bits
-   * @param input the decimal to be divide with
-   * @param denominator_precision Number of digits after decimal point.*/
-
-  void SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_precision);
+  /**
+   * Divide the current decimal by the given decimal.
+   * The result is in the numerator's (current decimal's) precision.
+   *
+   * @param denominator The decimal to divide by.
+   * @param denominator_precision The precision of the denominator.
+   */
+  void SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denominator_precision);
 
   /** This function divides with a given unsigned 128 bit number with
    * another 128 bit input. The given number here is stored inside the
