@@ -282,7 +282,7 @@ TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionNegativeTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
-  // Valid date
+  // The precisions MUST match. See the warnings in Decimal::operator+.
   Decimal128 d_1(0);
   Decimal128 d_2(0);
 
@@ -319,7 +319,7 @@ TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalSubtractionTest) {
-  // Valid date
+  // The precisions MUST match. See the warnings in Decimal::operator-.
   Decimal128 d_1(0);
   Decimal128 d_2(0);
 
