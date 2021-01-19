@@ -764,8 +764,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
         const auto string = std::string_view{val.val_.str_};
-        noisepage::execution::sql::Decimal128 decimal_val(0);
-        int precision = decimal_val.SetMaxmPrecision(std::string(string));
+        int precision;
+        noisepage::execution::sql::Decimal128 decimal_val(std::string(string), &precision);
         result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
                                                            execution::sql::DecimalVal(decimal_val, precision));
       }

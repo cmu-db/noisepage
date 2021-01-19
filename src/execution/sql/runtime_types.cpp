@@ -1206,10 +1206,13 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
 }
 
 template <typename T>
-int Decimal<T>::SetMaxmPrecision(std::string input) {
+Decimal<T>::Decimal(std::string input, int *precision) {
   value_ = 0;
 
-  if (input.empty()) return 0;
+  if (input.empty()) {
+   *precision = 0;
+   return;
+  }
 
   uint32_t pos = 0;
 
@@ -1231,7 +1234,8 @@ int Decimal<T>::SetMaxmPrecision(std::string input) {
     if (is_negative) {
       value_ = -value_;
     }
-    return 0;
+    *precision = 0;
+    return;
   }
   pos++;
 
@@ -1240,23 +1244,24 @@ int Decimal<T>::SetMaxmPrecision(std::string input) {
     if (is_negative) {
       value_ = -value_;
     }
-    return 0;
+    *precision = 0;
+    return;
   }
 
-  int precision = 0;
+  *precision = 0;
   while (pos < input.size()) {
     value_ += input[pos] - '0';
     if (pos < input.size() - 1) {
       value_ *= 10;
     }
     pos++;
-    precision++;
+    (*precision) = (*precision) + 1;
   }
 
   if (is_negative) {
     value_ = -value_;
   }
-  return precision;
+  return;
 }
 // TODO(WAN): The Decimal code below has been left as-is, but could probably be simplified and cleaned up further.
 //  I am leaving it alone because I don't think people will need to modify or look at this code often, assuming that

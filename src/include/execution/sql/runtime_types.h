@@ -438,6 +438,14 @@ class EXPORT Decimal {
    */
   Decimal(std::string input, int precision);
 
+  /** This function converts an input decimal string to the
+   * underlying decimal representation. We try to retain the
+   * maximum number of digits possible after the decimal point
+   * and set the precision accordingly.
+   * @param input input string
+   * @param precision pointer to return precision for the underlying decimal*/
+  Decimal(std::string input, int *precision);
+
   /**
    * @return The raw underlying encoded decimal value.
    */
@@ -601,14 +609,6 @@ class EXPORT Decimal {
   /** Signed version of MultiplyAndSet with a constant
    * @param input the constant to be multiplied with. */
   void SignedMultiplyWithConstant(int64_t input);
-
-  /** This function converts an input decimal string to the
-   * underlying decimal representation. We try to retain the
-   * maximum number of digits possible after the decimal point
-   * and set the precision accordingly.
-   * @param input input string
-   * @return precision for the underlying decimal*/
-  int SetMaxmPrecision(std::string input);
 
  private:
   // The encoded decimal value
