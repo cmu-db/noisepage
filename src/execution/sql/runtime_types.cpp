@@ -894,6 +894,9 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t
 
 template <typename T>
 void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, uint32_t precision) {
+  // 1. Multiply with the overflow check.
+  // 2. If overflow, divide by 10^precision using 256-bit magic number division.
+  // 3. If no overflow, divide by 10^precision using 128-bit magic number division.
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 

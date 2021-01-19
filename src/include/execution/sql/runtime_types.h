@@ -572,19 +572,16 @@ class EXPORT Decimal {
    * @param input divisor*/
   void SignedDivideWithConstant(int64_t input);
 
-  /** This function multiplies with a given decimal
-   * This function works only with decimals in the unsigned format
-   * Note we multiply with the overflow check and divide by
-   * 10 ^ precision using a 256 bit magic number division
-   * If we do not overflow, we use a 128 bit magic number division
-   * To make this function multi purpose, the precision is not specified
-   * If you want result in the precision of the decimal with higher precision
-   * Pass in the the precision of the decimal with lower precision
-   * If you want result in the precision of the decimal with lower precision
-   * Pass in the the precision of the decimal with higher precision
-   * @param input the decimal to be multiplied with
-   * @param precision Number of digits after decimal point.*/
-  void MultiplyAndSet(const Decimal<T> &input, uint32_t precision);
+  /**
+   * Multiply the current decimal with an unsigned decimal.
+   * The precision of the result depends on the precision provided.
+   *
+   * @param unsigned_input  The input decimal to multiply against. Must be unsigned!
+   * @param precision       The number of digits after the decimal point.
+   *                        To obtain higher precision result, pass in the lower precision of the operands.
+   *                        To obtain lower precision result, pass in the higher precision of the operands.
+   */
+  void MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t precision);
 
   /** Signed version of MultiplyAndSet
    * @param input the decimal to be multiplied with
