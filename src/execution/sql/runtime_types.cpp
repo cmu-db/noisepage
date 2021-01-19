@@ -663,6 +663,10 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
 //
 //===----------------------------------------------------------------------===//
 
+// TODO(WAN): The Decimal code below has been left as-is, but could probably be simplified and cleaned up further.
+//  I am leaving it alone because I don't think people will need to modify or look at this code often, assuming that
+//  works (it does contain parsing logic etc. that may require changes in the future).
+
 template <typename T>
 void Decimal<T>::RoundUpAndSet(std::string input, uint32_t precision) {
   value_ = 0;
@@ -801,6 +805,8 @@ int Nlz128(uint128_t x) {
   constexpr uint128_t f = (static_cast<uint128_t>(0x3FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
   constexpr uint128_t g = (static_cast<uint128_t>(0x7FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
 
+  // TODO(WAN): clang believes that this can result in a shift of 128 bits, which would result in undefined behavior.
+  //  clang has historically been reliable, so let's double-check this one eventually.
   // clang made me comment this
   // if (x == 0) return (128);
   int n = 0;
@@ -916,7 +922,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, uint32_t precision) {
     return;
   }
 
-  // Magic number halfwords
+  // Magic number half words
   uint128_t magic[4];
   magic[0] = MAGIC_ARRAY[precision][3];
   magic[1] = MAGIC_ARRAY[precision][2];
@@ -960,7 +966,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, uint32_t precision) {
   uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
   uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
 
-  /*Perform addition*/
+  // Perform addition
   result_lower += add_lower;
   result_upper += add_upper;
   // carry bit using conditional instructions
@@ -972,8 +978,8 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, uint32_t precision) {
     throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
-  /*We know that we only retain the lower 128 bits so there is no need of shri
-   * We can safely drop the additional carry bit*/
+  // We know that we only retain the lower 128 bits so there is no need of shri.
+  // We can safely drop the additional carry bit.
   result_lower = result_lower >> magic_p;
   result_upper = result_upper << (128 - magic_p);
   value_ = result_lower | result_upper;
@@ -1102,7 +1108,7 @@ template <typename T>
 void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, uint32_t lower_precision) {
   bool negative_result = (value_ < 0) != (input.GetValue() < 0);
 
-  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
   if (value_ < 0) {
     value_ = 0 - value_;
@@ -1123,7 +1129,7 @@ template <typename T>
 void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
   bool negative_result = (value_ < 0) != (input < 0);
 
-  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
   if (value_ < 0) {
     value_ = 0 - value_;
@@ -1172,7 +1178,7 @@ template <typename T>
 void Decimal<T>::SignedDivideWithConstant(int64_t input) {
   bool negative_result = (value_ < 0) != (input < 0);
 
-  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
   if (value_ < 0) {
     value_ = 0 - value_;
@@ -1199,7 +1205,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_
 
   bool negative_result = (value_ < 0) != (input.GetValue() < 0);
 
-  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
   if (value_ < 0) {
     value_ = 0 - value_;
@@ -1246,7 +1252,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_
 
 template <typename T>
 uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *dividend, uint128_t constant) {
-  // Magic number halfwords
+  // Magic number half words
   uint128_t magic[4];
 
   magic[0] = magic_map256_bit_constant_division[constant].d_;
@@ -1290,7 +1296,7 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
   uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
   uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
 
-  /*Perform addition*/
+  // Perform addition
   result_lower += add_lower;
   result_upper += add_upper;
   // carry bit using conditional instructions
@@ -1302,12 +1308,13 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
-  /*We know that we only retain the lower 128 bits so there is no need of shri
-   * We can safely drop the additional carry bit*/
+  // We know that we only retain the lower 128 bits so there is no need of shri
+  // We can safely drop the additional carry bit
   result_lower = result_lower >> magic_p;
   result_upper = result_upper << (128 - magic_p);
   return result_lower | result_upper;
 }
+
 template <typename T>
 int Decimal<T>::SetMaxmPrecision(std::string input) {
   value_ = 0;

@@ -2,13 +2,27 @@
 
 #include <unordered_map>
 
+/*
+ * This file contains magic numbers as defined by Hacker's Delight [2E].
+ * Magic numbers are used for fast integer division.
+ */
+
 namespace noisepage::execution::sql {
 
-/** The following hash is required to create an unordered map of 128bit uints*/
+/** A hash function for uint128_t values. */
 struct Unsigned128BitHash {
-  /** Hashing function
-   * @param value - the value to be hashed*/
+  /**
+   * @param value The value to be hashed.
+   * @return The hashed value.
+   */
   hash_t operator()(const uint128_t &value) const {
+    // Source: https://github.com/vnmakarov/mum-hash/blob/95b65eb25635bab8f0801b09a18f50749dc70a99/src/City.h#L87
+    // TODO(WAN): Rohan makes the argument to use Murmur hashing:
+    //   "I have thought long about this and feel that we should use the custom hash function above only.
+    //   The byte hash function HashBytes will unnecessarily run a for loop and is not needed unless we have a
+    //   variable number of bytes. It is very similar to the CombineHashes function in noisepage."
+    //   Is Decimal hashing important enough to justify a different hashing implementation?
+    //   If I'm not mistaken, we had some bugs from having divergent frontend hashing and execution hashing.
     uint128_t x = value;
     const uint64_t k_mul = 0x9ddfea08eb382d69ULL;
     uint128_t low_mask = 0xFFFFFFFFFFFFFFFF;
@@ -21,10 +35,10 @@ struct Unsigned128BitHash {
   }
 };
 
-/* Magic array for 256 bit division with powers of 10
- * This map is used after multiplication of decimals to get
- * the correct result. This represents the 256 bit magic
- * number in 4 128 bit uint32_t integers with each having 64 bits*/
+/**
+ * 256-bit magic numbers for division with powers of 10.
+ * Each 256-bit number is represented as four uint32_t integers.
+ */
 constexpr uint128_t MAGIC_ARRAY[39][4] = {
     {0x0, 0x0, 0x0, 0x0},
     {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd},
@@ -66,59 +80,36 @@ constexpr uint128_t MAGIC_ARRAY[39][4] = {
     {0x1039d428a8b8eaea, 0xfca1ac82efb45ca9, 0x77fcdc09b62c8824, 0x8149483089341779},
     {0xb38fb9daa78e44ab, 0x2dcf7a6b19209442, 0x59949342bd140d07, 0x35420d1a7520258f}};
 
-/* Defines the 256 bit magic number division for powers of 10 with algo used and
- * the constant p used during the division*/
+/**
+ * The 256-bit P and algorithm types for dividing by powers of 10.
+ */
 constexpr uint32_t MAGIC_P_AND_ALGO_ARRAY[39][2] = {
     {0, 0},   {259, 0}, {263, 1}, {266, 1}, {267, 0}, {272, 0}, {275, 0}, {279, 0}, {282, 0}, {285, 0},
     {289, 0}, {291, 0}, {296, 1}, {299, 0}, {301, 0}, {305, 0}, {309, 0}, {313, 1}, {316, 1}, {320, 1},
     {321, 0}, {325, 0}, {329, 0}, {333, 1}, {336, 1}, {339, 0}, {342, 0}, {346, 1}, {349, 0}, {350, 0},
     {351, 0}, {359, 1}, {362, 0}, {363, 0}, {367, 0}, {372, 0}, {373, 0}, {379, 1}, {383, 1}};
 
-/** Magic Number for 128 bit division
- * This struct is used to store Magic Numbers for 128 bit division
- * It stores two 128 bit uint32_t integers representing the upper and
- * lower 64 bits of the magic number
- * p Represents the adjust constant p during the magic number algorithm
- * Algo is constant which is either 0 or 1 representing the type of algo
- * we need for the division*/
+/** 128-bit magic numbers. See this file's header comment. */
 class MagicNumber128 {
  public:
-  /// Upper half of 128 bit magic number
-  uint128_t upper_;
-  /// Lower half of 128 bit magic number
-  uint128_t lower_;
-  /// value - p in magic division
-  uint32_t p_;
-  /// Algo type
-  uint32_t algo_;
+  uint128_t upper_;  ///< Upper half of 128 bit magic number
+  uint128_t lower_;  ///< Lower half of 128 bit magic number
+  uint32_t p_;       ///< p as defined in magic division.
+  uint32_t algo_;    ///< The algorithm type.
 };
 
-/** Magic Number for 256 bit division
- * This struct is used to store Magic Numbers for 256 bit division
- * It stores 4 128 bit uint32_t integers representing the magic number
- * in 64 bits each.
- * p Represents the adjust constant p during the magic number algorithm
- * Algo is constant which is either 0 or 1 representing the type of algo
- * we need for the division*/
+/** 256-bit magic numbers. See this file's header comment. */
 class MagicNumber256 {
  public:
-  /// Highest 64 bits
-  uint128_t a_;
-  /// High Middle 64 bits
-  uint128_t b_;
-  /// Low Middle 64 bits
-  uint128_t c_;
-  /// Lowest 64 bits
-  uint128_t d_;
-  /// value - p in magic division
-  uint32_t p_;
-  /// Algo type
-  uint32_t algo_;
+  uint128_t a_;    ///< Highest 64 bits.
+  uint128_t b_;    ///< High middle 64 bits.
+  uint128_t c_;    ///< Low middle 64 bits.
+  uint128_t d_;    ///< Lowest 64 bits.
+  uint32_t p_;     ///< p as defined in magic division.
+  uint32_t algo_;  ///< The algorithm type.
 };
 
-/* Magic Array for 128 bit division with powers of 10
- * This map is used after multiplication of decimals to get
- * the correct result*/
+/** 128-bit magic numbers for powers of 10. */
 MagicNumber128 magic_map128_bit_power_ten[39] = {{0, 0, 0, 0},
                                                  {0xcccccccccccccccc, 0xcccccccccccccccd, 131, 0},
                                                  {0x28f5c28f5c28f5c2, 0x8f5c28f5c28f5c29, 132, 0},
@@ -159,9 +150,7 @@ MagicNumber128 magic_map128_bit_power_ten[39] = {{0, 0, 0, 0},
                                                  {0x881cea14545c7575, 0x7e50d64177da2e55, 250, 0},
                                                  {0x6ce3ee76a9e3912a, 0xcb73de9ac6482511, 253, 0}};
 
-/*Power map of powers of 10 for multiplying
- * This map is used when we need to multiply with denominator
- * precision in the divide routine*/
+/** Powers of ten, used to multiply the denominator during division. */
 uint128_t power_of_ten[39][2] = {{0, 0},
                                  {0x0, 0xa},
                                  {0x0, 0x64},
@@ -202,11 +191,16 @@ uint128_t power_of_ten[39][2] = {{0, 0},
                                  {0x785ee10d5da46d9, 0x00f436a000000000},
                                  {0x4b3b4ca85a86c47a, 0x098a224000000000}};
 
-/* Magic map for 128 bit division with constants*/
+// TODO(WAN): The two maps below, magic_mapXXX_bit_constant_division, will speed up dividing decimals by the hardcoded
+//            constant key values in UnsignedDivideConstant128Bit. A sufficiently smart DBMS optimizer can probably
+//            notice if you're about to divide by a specific constant and quickly slide in that value, so there's value
+//            in keeping the maps. The magic numbers are generated by magic_number_generator.py.
+
+/** Magic numbers for 128-bit division with specific constants. */
 std::unordered_map<uint128_t, class MagicNumber128, Unsigned128BitHash> magic_map128_bit_constant_division = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccd, 130, 0}}, {7, {0x2492492492492492, 0x4924924924924925, 131, 1}}};
 
-/* Magic map for 256 bit division with constants*/
+/** Magic numbers for 256-bit division with specific constants. */
 std::unordered_map<uint128_t, class MagicNumber256, Unsigned128BitHash> magic_map256_bit_constant_division = {
     {5, {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
     {7, {0x2492492492492492, 0x4924924924924924, 0x9249249249249249, 0x2492492492492493, 259, 1}},
@@ -214,9 +208,7 @@ std::unordered_map<uint128_t, class MagicNumber256, Unsigned128BitHash> magic_ma
     {999, {0x6680a40106680a4, 0x0106680a40106680, 0xa40106680a401066, 0x80a40106680a4011, 266, 1}},
 };
 
-/* Map of powers of 2
- * This map stores powers of two to be used during
- * constant division of a decimal with a power of 2*/
+/** Powers of two, used during constant division of a decimal with a power of two. */
 std::unordered_map<uint128_t, uint32_t, Unsigned128BitHash> power_two = {
     {0x2, 1},
     {0x4, 2},

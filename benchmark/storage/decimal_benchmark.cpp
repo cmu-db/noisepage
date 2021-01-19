@@ -10,7 +10,7 @@ namespace terrier {
 class DecimalBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
-    // generate a random column of decimals and floats
+    // Generate a random column of decimals and floats.
     for (unsigned i = 0; i < 1000000; i++) {
       noisepage::execution::sql::Decimal128 d(i);
       decimals_.push_back(d);

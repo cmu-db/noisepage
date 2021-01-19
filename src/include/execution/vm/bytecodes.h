@@ -331,14 +331,14 @@ namespace noisepage::execution::vm {
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(ModInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(AddDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(SubDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(MulDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(DivDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(ModReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(AddDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(SubDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(MulDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(DivDecimal, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \

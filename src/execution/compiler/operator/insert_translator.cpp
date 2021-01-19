@@ -117,6 +117,7 @@ ast::Expr *InsertTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto type = column.Type();
   auto nullable = column.Nullable();
   auto attr_index = table_pm_.find(col_oid)->second;
+  // TODO(WAN): #1439
   if (sql::GetTypeId(type) == sql::TypeId::Decimal) {
     auto get_expr = GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(insert_pr_), type, nullable, attr_index);
     return GetCodeGen()->SetPrecisionDecimal(get_expr, table_schema_.GetColumn(col_oid).TypeModifier());

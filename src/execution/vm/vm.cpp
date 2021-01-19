@@ -843,10 +843,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_VPI_ACCESS(BigInt, sql::Integer)
   GEN_VPI_ACCESS(Real, sql::Real)
   GEN_VPI_ACCESS(Double, sql::Real)
+  GEN_VPI_ACCESS(Decimal, sql::DecimalVal)
   GEN_VPI_ACCESS(Date, sql::DateVal)
   GEN_VPI_ACCESS(Timestamp, sql::TimestampVal)
   GEN_VPI_ACCESS(String, sql::StringVal)
-  GEN_VPI_ACCESS(Decimal, sql::DecimalVal)
 #undef GEN_VPI_ACCESS
 
   OP(VPIGetPointer) : {

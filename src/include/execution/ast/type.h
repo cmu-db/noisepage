@@ -63,10 +63,10 @@ class Context;
   NON_PRIM(OutputBuffer, noisepage::execution::exec::OutputBuffer)                                \
   NON_PRIM(ExecutionContext, noisepage::execution::exec::ExecutionContext)                        \
   NON_PRIM(ExecOUFeatureVector, noisepage::selfdriving::ExecOUFeatureVector)                      \
-  NON_PRIM(JoinHashTableIterator, noisepage::execution::sql::JoinHashTableIterator)               \
   NON_PRIM(FilterManager, noisepage::execution::sql::FilterManager)                               \
   NON_PRIM(HashTableEntry, noisepage::execution::sql::HashTableEntry)                             \
   NON_PRIM(HashTableEntryIterator, noisepage::execution::sql::HashTableEntryIterator)             \
+  NON_PRIM(JoinHashTableIterator, noisepage::execution::sql::JoinHashTableIterator)               \
   NON_PRIM(JoinHashTable, noisepage::execution::sql::JoinHashTable)                               \
   NON_PRIM(MemoryPool, noisepage::execution::sql::MemoryPool)                                     \
   NON_PRIM(Sorter, noisepage::execution::sql::Sorter)                                             \

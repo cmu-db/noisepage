@@ -433,6 +433,7 @@ GEN_VPI_GET(Decimal, DecimalVal, noisepage::execution::sql::Decimal128);
 GEN_VPI_GET(Date, DateVal, noisepage::execution::sql::Date);
 GEN_VPI_GET(Timestamp, TimestampVal, noisepage::execution::sql::Timestamp);
 GEN_VPI_GET(String, StringVal, noisepage::storage::VarlenEntry);
+
 GEN_VPI_SET(Bool, BoolVal, bool);
 GEN_VPI_SET(TinyInt, Integer, int8_t);
 GEN_VPI_SET(SmallInt, Integer, int16_t);
@@ -440,10 +441,10 @@ GEN_VPI_SET(Integer, Integer, int32_t);
 GEN_VPI_SET(BigInt, Integer, int64_t);
 GEN_VPI_SET(Real, Real, float);
 GEN_VPI_SET(Double, Real, double);
+GEN_VPI_SET(Decimal, DecimalVal, noisepage::execution::sql::Decimal128);
 GEN_VPI_SET(Date, DateVal, noisepage::execution::sql::Date);
 GEN_VPI_SET(Timestamp, TimestampVal, noisepage::execution::sql::Timestamp);
 GEN_VPI_SET(String, StringVal, noisepage::storage::VarlenEntry);
-GEN_VPI_SET(Decimal, DecimalVal, noisepage::execution::sql::Decimal128);
 
 #undef GEN_VPI_SET
 #undef GEN_VPI_GET
@@ -757,7 +758,7 @@ GEN_SQL_COMPARISONS(String, StringVal)
 
 #undef GEN_SQL_COMPARISONS
 
-// TODO(Rohan): Optimize this
+// TODO(Rohan): Optimize this by performing a binary search.
 #define GEN_FIXED_DECIMAL_COMPARISONS(NAME, EXPR)                                              \
   VM_OP_HOT void Op##NAME##Decimal(noisepage::execution::sql::BoolVal *const result,           \
                                    const noisepage::execution::sql::DecimalVal *const left,    \
@@ -862,7 +863,7 @@ VM_OP_HOT void OpAddDecimal(noisepage::execution::sql::DecimalVal *const result,
   auto right_val = right->val_;
   auto left_precision = left->precision_;
   auto right_precision = right->precision_;
-  // TODO(Rohan): Optimize this
+  // TODO(Rohan): Optimize this by performing a binary search.
   if (left_precision < right_precision) {
     int128_t intermediate_value = left_val.GetValue();
     for (int i = 0; i < right_precision - left_precision; i++) {
@@ -889,7 +890,7 @@ VM_OP_HOT void OpSubDecimal(noisepage::execution::sql::DecimalVal *const result,
   auto right_val = right->val_;
   auto left_precision = left->precision_;
   auto right_precision = right->precision_;
-  // TODO(Rohan): Optimize this
+  // TODO(Rohan): Optimize this by performing a binary search.
   if (left_precision < right_precision) {
     int128_t intermediate_value = left_val.GetValue();
     for (int i = 0; i < right_precision - left_precision; i++) {

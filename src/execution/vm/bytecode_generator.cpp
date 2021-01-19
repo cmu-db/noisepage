@@ -1230,13 +1230,13 @@ namespace {
   /* SUM(real_col) */                                                                                                  \
   F(RealSumAggregate, RealSumAggregateInit, RealSumAggregateAdvance, RealSumAggregateGetResult, RealSumAggregateMerge, \
     RealSumAggregateReset, RealSumAggregateFree)                                                                       \
-  /* MAX(Decimal_col) */                                                                                               \
+  /* MAX(decimal_col) */                                                                                               \
   F(DecimalMaxAggregate, DecimalMaxAggregateInit, DecimalMaxAggregateAdvance, DecimalMaxAggregateGetResult,            \
     DecimalMaxAggregateMerge, DecimalMaxAggregateReset, DecimalMaxAggregateFree)                                       \
-  /* MIN(Decimal_col) */                                                                                               \
+  /* MIN(decimal_col) */                                                                                               \
   F(DecimalMinAggregate, DecimalMinAggregateInit, DecimalMinAggregateAdvance, DecimalMinAggregateGetResult,            \
     DecimalMinAggregateMerge, DecimalMinAggregateReset, DecimalMinAggregateFree)                                       \
-  /* SUM(Decimal_col) */                                                                                               \
+  /* SUM(decimal_col) */                                                                                               \
   F(DecimalSumAggregate, DecimalSumAggregateInit, DecimalSumAggregateAdvance, DecimalSumAggregateGetResult,            \
     DecimalSumAggregateMerge, DecimalSumAggregateReset, DecimalSumAggregateFree)                                       \
   /* MAX(date_col) */                                                                                                  \

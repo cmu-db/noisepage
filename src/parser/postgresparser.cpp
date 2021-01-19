@@ -1511,7 +1511,9 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
   auto datatype_name = reinterpret_cast<value *>(type_name->names_->tail->data.ptr_value)->val_.str_;
   auto datatype = ColumnDefinition::StrToDataType(datatype_name);
 
-  // handle varlen and fixed decimal precision
+  // TODO(WAN): This is a size_t now? It was -1 before. Check with Matt what type_mod is for most types.
+
+  // handle type modifiers
   size_t varlen = 0;
 
   if (type_name->typmods_ != nullptr) {

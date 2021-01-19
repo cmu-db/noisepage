@@ -499,17 +499,17 @@ class CodeGen {
   [[nodiscard]] ast::Expr *DateToSql(int32_t year, int32_t month, int32_t day) const;
 
   /**
-   * Call \@DecimalToSql(). Convert a date into a SQL date.
+   * Call \@decimalToSql(). Convert a decimal into a SQL fixed decimal.
    * @param fixed_decimal The fixed decimal.
-   * @param precision The precision
+   * @param precision The precision.
    * @return The SQL fixed decimal.
    */
   [[nodiscard]] ast::Expr *DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const;
 
   /**
-   * Call \@SetPrecisionDecimal(). Set the precision of a fixed decimal
-   * @param decimal_value AST expression of the deicmal value
-   * @param precision The precision
+   * Call \@setPrecisionDecimal(). Set the precision of a SQL fixed decimal.
+   * @param decimal_value AST expression of the decimal value.
+   * @param precision The precision.
    * @return The SQL fixed decimal with precision set.
    */
   [[nodiscard]] ast::Expr *SetPrecisionDecimal(ast::Expr *decimal_value, int32_t precision) const;
@@ -728,8 +728,11 @@ class CodeGen {
    * @param attr_idx Index of the column being accessed.
    * @param val The value to set the column to.
    * @param own When inserting varchars, whether the VarlenEntry should own its content.
-   * @param max_varlen_size max_varlen_size of the column where we are inserting
+   * @param type_mod The type mod of the column that we are inserting.
    * @return The expression corresponding to the builtin call.
+   *
+   * TODO(WAN): Normally would nitpick over default arguments, but will be addressed in #1439 when we pass the
+   *            entire Schema::Column in.
    */
   [[nodiscard]] ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
                                  bool own = false, uint16_t type_mod = 0);

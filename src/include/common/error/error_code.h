@@ -447,9 +447,9 @@ enum class ErrorCode : uint16_t {
   // Section: Class XX - Internal Error
 
   // this is for "can't-happen" conditions and software bugs (PostgreSQL-specific error class)
-  ERRCODE_INTERNAL_ERROR,   // XX000
-  ERRCODE_DATA_CORRUPTED,   // XX001
-  ERRCODE_INDEX_CORRUPTED,  // XX002
+  ERRCODE_INTERNAL_ERROR,  // XX000
+  ERRCODE_DATA_CORRUPTED,  // XX001
+  ERRCODE_INDEX_CORRUPTED  // XX002
 };
 
 constexpr std::string_view ErrorCodeToString(const ErrorCode code) {

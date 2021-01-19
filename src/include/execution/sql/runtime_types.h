@@ -412,14 +412,15 @@ class EXPORT Timestamp {
 template <typename T>
 class EXPORT Decimal {
  public:
-  /** This function converts an input decimal string to the
-   * underlying decimal representation. The second argument
-   * specifies the number of digits after the decimal point
-   * that we want to retain. The total no of digits has to be
-   * <= 38. If the number of digits after the decimal point
-   * > precision then we round up
-   * @param input input string
-   * @param precision Number of digits after decimal point.*/
+  /**
+   * Convert an input string into a decimal representation.
+   * @param input       The input string to convert.
+   *                    If the input string has more digits than the specified precision, the value is rounded up.
+   * @param precision   Number of digits after the decimal point.
+   *                    The precision must be <= 38.
+   *
+   * TODO(WAN): This is basically a constructor. Why isn't it a constructor?
+   */
   void RoundUpAndSet(std::string input, uint32_t precision);
 
   /** Underlying native data type. */
@@ -433,6 +434,7 @@ class EXPORT Decimal {
 
   /**
    * Empty constructor.
+   * TODO(WAN): Why do we have an empty constructor? We've been reasonably good about keeping constructors private.
    */
   Decimal() = default;
 
@@ -447,6 +449,7 @@ class EXPORT Decimal {
    * @return The hash value for this decimal instance.
    */
   hash_t Hash(const hash_t seed) const {
+    // TODO(WAN): Find out where this function came from and properly attribute them. Also not convinced about this.
     uint128_t x = value_;
     const uint64_t k_mul = 0x9ddfea08eb382d69ULL;
     uint128_t low_mask = 0xFFFFFFFFFFFFFFFF;
@@ -516,12 +519,16 @@ class EXPORT Decimal {
   /**
    * Get the underlying value of the decimal
    * @return This decimal value.
+   *
+   * TODO(WAN): Abstraction leak. Why?
    */
   T GetValue() const { return value_; }
 
   /**
    * Set the underlying value of the decimal
    * @param value The value to be set.
+   *
+   * TODO(WAN): Abstraction leak. Why?
    */
   void SetValue(T value) { value_ = value; }
 
@@ -540,6 +547,7 @@ class EXPORT Decimal {
    * 256 x 256 bit multiplication with an overflow check in 512 bits
    * @param input the decimal to be divide with
    * @param denominator_precision Number of digits after decimal point.*/
+
   void SignedDivideWithDecimal(Decimal<T> input, uint32_t denominator_precision);
 
   /** This function divides with a given unsigned 128 bit number with
@@ -585,12 +593,12 @@ class EXPORT Decimal {
    * the higher precision value.*/
   void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
 
-  /** Signed version of MultiplyAndSet with a coFromNativenstant
+  /** Signed version of MultiplyAndSet with a constant
    * @param input the constant to be multiplied with. */
   void SignedMultiplyWithConstant(int64_t input);
 
   /** This function converts an input decimal string to the
-   * underlying decimaml representation. We try to retain the
+   * underlying decimal representation. We try to retain the
    * maximum number of digits possible after the decimal point
    * and set the precision accordingly.
    * @param input input string
@@ -761,6 +769,8 @@ class EXPORT Blob {
 inline Timestamp Date::ConvertToTimestamp() const { return Timestamp(value_ * K_MICRO_SECONDS_PER_DAY); }
 /** Converts the provided timestamp into a date. */
 inline Date Timestamp::ConvertToDate() const { return Date(value_ / K_MICRO_SECONDS_PER_DAY); }
+
+// TODO(WAN): These Nlz's are not runtime type functions. Dump them somewhere else.
 
 /* Calculate the Number of leading zeros for a 128 bit unsigned int*/
 int Nlz128(uint128_t x);

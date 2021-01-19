@@ -14,7 +14,7 @@ namespace noisepage::execution::ast {
   F(BoolToSql, boolToSql)                                               \
   F(FloatToSql, floatToSql)                                             \
   F(DateToSql, dateToSql)                                               \
-  F(DecimalToSql, DecimalToSql)                                         \
+  F(DecimalToSql, decimalToSql)                                         \
   F(SetPrecisionDecimal, setPrecisionDecimal)                           \
   F(RescalePrecisionDecimal, rescalePrecisionDecimal)                   \
   F(TimestampToSql, timestampToSql)                                     \

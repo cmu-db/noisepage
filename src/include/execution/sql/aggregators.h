@@ -148,6 +148,12 @@ class IntegerSumAggregate : public SumAggregate<Integer> {};
 /** Real sums. */
 class RealSumAggregate : public SumAggregate<Real> {};
 
+// TODO(WAN):
+//    In aggregating's Advance(), you need to choose the maximum precision.
+//    From Rohan in #1434 discussion, the precision will always be the same.
+//    I am not sure why this is the case? Why can't you have TPL that arbitrarily constructs a random DecimalVal
+//    of a different precision?
+
 /** Decimal sums. */
 class DecimalSumAggregate {
  public:
