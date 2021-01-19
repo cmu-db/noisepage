@@ -125,8 +125,8 @@ SETTING_int(
     100,
     1,
     10000,
-    false,
-    noisepage::settings::Callbacks::NoOp
+    true,
+    noisepage::settings::Callbacks::WalSerializationInterval
 )
 
 // Log file persisting interval

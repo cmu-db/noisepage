@@ -495,8 +495,8 @@ pipeline {
                         sh script: '''
                         cd build
                         export BUILD_ABS_PATH=`pwd`
-                        timeout 10m ninja self_driving_test
-                        ''', label: 'Running self-driving test'
+                        timeout 10m ninja self_driving_e2e_test
+                        ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }

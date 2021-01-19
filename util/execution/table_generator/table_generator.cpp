@@ -395,6 +395,14 @@ void TableGenerator::GenerateTestTables() {
         {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
         {"colD", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999},
         {"colE", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
+
+      {"index_action_test_table",
+       INDEX_ACTION_TEST_SIZE,
+       {{"col1", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
+        {"col2", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
+        {"col3", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
+        {"col4", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999},
+        {"col5", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
   };
 
   for (auto &table_meta : insert_meta) {
@@ -594,7 +602,11 @@ void TableGenerator::InitTestIndexes() {
        {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}}},
 
       // Index on a varchar
-      {"varchar_index", "all_types_empty_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
+      {"varchar_index", "all_types_empty_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}},
+
+      // Index action table
+      {"index_index_action", "index_action_test_table", {{"index_col1", type::TypeId::INTEGER, false, "col1"}}},
+  };
 
   for (auto &index_meta : index_metas) {
     CreateIndex(&index_meta);
