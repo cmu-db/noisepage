@@ -1,9 +1,8 @@
 #include <fstream>
 #include <sstream>
 
-#include "execution/sql/runtime_types.h"
-
 #include "common/error/exception.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/tpl_test.h"
 
 namespace noisepage::execution::sql::test {
@@ -16,59 +15,59 @@ TEST_F(RuntimeTypesTest, StringToDecimalTest) {
 
   d.RoundUpAndSet(std::string("1234.567"), 4);
   Decimal128 a_1(12345670);
-  EXPECT_EQ(1, a_1 == d);
+  EXPECT_EQ(a_1, d);
 
   d.RoundUpAndSet(std::string("1234.56"), 4);
   Decimal128 a_2(12345600);
-  EXPECT_EQ(1, a_2 == d);
+  EXPECT_EQ(a_2, d);
 
   d.RoundUpAndSet(std::string("1234."), 4);
   Decimal128 a_3(12340000);
-  EXPECT_EQ(1, a_3 == d);
+  EXPECT_EQ(a_3, d);
 
   d.RoundUpAndSet(std::string("1234"), 4);
   Decimal128 a_4(12340000);
-  EXPECT_EQ(1, a_4 == d);
+  EXPECT_EQ(a_4, d);
 
   d.RoundUpAndSet(std::string("123"), 4);
   Decimal128 a_5(1230000);
-  EXPECT_EQ(1, a_5 == d);
+  EXPECT_EQ(a_5, d);
 
   d.RoundUpAndSet(std::string("123.5"), 4);
   Decimal128 a_6(1235000);
-  EXPECT_EQ(1, a_6 == d);
+  EXPECT_EQ(a_6, d);
 
   d.RoundUpAndSet(std::string("1234.568"), 4);
   Decimal128 a_7(12345680);
-  EXPECT_EQ(1, a_7 == d);
+  EXPECT_EQ(a_7, d);
 
   d.RoundUpAndSet(std::string("1234.5678"), 4);
   Decimal128 a_8(12345678);
-  EXPECT_EQ(1, a_8 == d);
+  EXPECT_EQ(a_8, d);
 
   d.RoundUpAndSet(std::string("1234.56789"), 4);
   Decimal128 a_9(12345679);
-  EXPECT_EQ(1, a_9 == d);
+  EXPECT_EQ(a_9, d);
 
   d.RoundUpAndSet(std::string("1234.56785"), 4);
   Decimal128 a_10(12345678);
-  EXPECT_EQ(1, a_10 == d);
+  EXPECT_EQ(a_10, d);
 
   d.RoundUpAndSet(std::string("1234.56784"), 4);
   Decimal128 a_11(12345678);
-  EXPECT_EQ(1, a_11 == d);
+  EXPECT_EQ(a_11, d);
 
   d.RoundUpAndSet(std::string("1234.56779"), 4);
   Decimal128 a_12(12345678);
-  EXPECT_EQ(1, a_12 == d);
+  EXPECT_EQ(a_12, d);
 
   d.RoundUpAndSet(std::string("1234.56775"), 4);
   Decimal128 a_13(12345678);
-  EXPECT_EQ(1, a_13 == d);
+  EXPECT_EQ(a_13, d);
 
   d.RoundUpAndSet(std::string("1234.56774"), 4);
   Decimal128 a_14(12345677);
-  EXPECT_EQ(1, a_14 == d);
+  EXPECT_EQ(a_14, d);
 }
 
 TEST_F(RuntimeTypesTest, StringToNegativeDecimalTest) {
@@ -76,59 +75,59 @@ TEST_F(RuntimeTypesTest, StringToNegativeDecimalTest) {
 
   d.RoundUpAndSet(std::string("-1234.567"), 4);
   Decimal128 a_1(-12345670);
-  EXPECT_EQ(1, a_1 == d);
+  EXPECT_EQ(a_1, d);
 
   d.RoundUpAndSet(std::string("-1234.56"), 4);
   Decimal128 a_2(-12345600);
-  EXPECT_EQ(1, a_2 == d);
+  EXPECT_EQ(a_2, d);
 
   d.RoundUpAndSet(std::string("-1234."), 4);
   Decimal128 a_3(-12340000);
-  EXPECT_EQ(1, a_3 == d);
+  EXPECT_EQ(a_3, d);
 
   d.RoundUpAndSet(std::string("-1234"), 4);
   Decimal128 a_4(-12340000);
-  EXPECT_EQ(1, a_4 == d);
+  EXPECT_EQ(a_4, d);
 
   d.RoundUpAndSet(std::string("-123"), 4);
   Decimal128 a_5(-1230000);
-  EXPECT_EQ(1, a_5 == d);
+  EXPECT_EQ(a_5, d);
 
   d.RoundUpAndSet(std::string("-123.5"), 4);
   Decimal128 a_6(-1235000);
-  EXPECT_EQ(1, a_6 == d);
+  EXPECT_EQ(a_6, d);
 
   d.RoundUpAndSet(std::string("-1234.568"), 4);
   Decimal128 a_7(-12345680);
-  EXPECT_EQ(1, a_7 == d);
+  EXPECT_EQ(a_7, d);
 
   d.RoundUpAndSet(std::string("-1234.5678"), 4);
   Decimal128 a_8(-12345678);
-  EXPECT_EQ(1, a_8 == d);
+  EXPECT_EQ(a_8, d);
 
   d.RoundUpAndSet(std::string("-1234.56789"), 4);
   Decimal128 a_9(-12345679);
-  EXPECT_EQ(1, a_9 == d);
+  EXPECT_EQ(a_9, d);
 
   d.RoundUpAndSet(std::string("-1234.56785"), 4);
   Decimal128 a_10(-12345678);
-  EXPECT_EQ(1, a_10 == d);
+  EXPECT_EQ(a_10, d);
 
   d.RoundUpAndSet(std::string("-1234.56784"), 4);
   Decimal128 a_11(-12345678);
-  EXPECT_EQ(1, a_11 == d);
+  EXPECT_EQ(a_11, d);
 
   d.RoundUpAndSet(std::string("-1234.56779"), 4);
   Decimal128 a_12(-12345678);
-  EXPECT_EQ(1, a_12 == d);
+  EXPECT_EQ(a_12, d);
 
   d.RoundUpAndSet(std::string("-1234.56775"), 4);
   Decimal128 a_13(-12345678);
-  EXPECT_EQ(1, a_13 == d);
+  EXPECT_EQ(a_13, d);
 
   d.RoundUpAndSet(std::string("-1234.56774"), 4);
   Decimal128 a_14(-12345677);
-  EXPECT_EQ(1, a_14 == d);
+  EXPECT_EQ(a_14, d);
 }
 
 // NOLINTNEXTLINE
@@ -137,73 +136,73 @@ TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionTest) {
   int returned_precision;
   returned_precision = d.SetMaxmPrecision(std::string("1234.567"));
   Decimal128 a_1(1234567);
-  EXPECT_EQ(1, a_1 == d);
+  EXPECT_EQ(a_1, d);
   EXPECT_EQ(returned_precision, 3);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.56"));
   Decimal128 a_2(123456);
-  EXPECT_EQ(1, a_2 == d);
+  EXPECT_EQ(a_2, d);
   EXPECT_EQ(returned_precision, 2);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234."));
   Decimal128 a_3(1234);
-  EXPECT_EQ(1, a_3 == d);
+  EXPECT_EQ(a_3, d);
   EXPECT_EQ(returned_precision, 0);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234"));
   Decimal128 a_4(1234);
-  EXPECT_EQ(1, a_4 == d);
+  EXPECT_EQ(a_4, d);
   EXPECT_EQ(returned_precision, 0);
 
   returned_precision = d.SetMaxmPrecision(std::string("123"));
   Decimal128 a_5(123);
-  EXPECT_EQ(1, a_5 == d);
+  EXPECT_EQ(a_5, d);
   EXPECT_EQ(returned_precision, 0);
 
   returned_precision = d.SetMaxmPrecision(std::string("123.5"));
   Decimal128 a_6(1235);
-  EXPECT_EQ(1, a_6 == d);
+  EXPECT_EQ(a_6, d);
   EXPECT_EQ(returned_precision, 1);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.568"));
   Decimal128 a_7(1234568);
-  EXPECT_EQ(1, a_7 == d);
+  EXPECT_EQ(a_7, d);
   EXPECT_EQ(returned_precision, 3);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.5678"));
   Decimal128 a_8(12345678);
-  EXPECT_EQ(1, a_8 == d);
+  EXPECT_EQ(a_8, d);
   EXPECT_EQ(returned_precision, 4);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.56789"));
   Decimal128 a_9(123456789);
-  EXPECT_EQ(1, a_9 == d);
+  EXPECT_EQ(a_9, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.56785"));
   Decimal128 a_10(123456785);
-  EXPECT_EQ(1, a_10 == d);
+  EXPECT_EQ(a_10, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.56784"));
   Decimal128 a_11(123456784);
-  EXPECT_EQ(1, a_11 == d);
+  EXPECT_EQ(a_11, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.56779"));
   Decimal128 a_12(123456779);
-  EXPECT_EQ(1, a_12 == d);
+  EXPECT_EQ(a_12, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.56775"));
   Decimal128 a_13(123456775);
-  EXPECT_EQ(1, a_13 == d);
+  EXPECT_EQ(a_13, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("1234.56774"));
   Decimal128 a_14(123456774);
   EXPECT_EQ(returned_precision, 5);
-  EXPECT_EQ(1, a_14 == d);
+  EXPECT_EQ(a_14, d);
 }
 
 // NOLINTNEXTLINE
@@ -212,73 +211,73 @@ TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionNegativeTest) {
   int returned_precision;
   returned_precision = d.SetMaxmPrecision(std::string("-1234.567"));
   Decimal128 a_1(-1234567);
-  EXPECT_EQ(1, a_1 == d);
+  EXPECT_EQ(a_1, d);
   EXPECT_EQ(returned_precision, 3);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.56"));
   Decimal128 a_2(-123456);
-  EXPECT_EQ(1, a_2 == d);
+  EXPECT_EQ(a_2, d);
   EXPECT_EQ(returned_precision, 2);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234."));
   Decimal128 a_3(-1234);
-  EXPECT_EQ(1, a_3 == d);
+  EXPECT_EQ(a_3, d);
   EXPECT_EQ(returned_precision, 0);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234"));
   Decimal128 a_4(-1234);
-  EXPECT_EQ(1, a_4 == d);
+  EXPECT_EQ(a_4, d);
   EXPECT_EQ(returned_precision, 0);
 
   returned_precision = d.SetMaxmPrecision(std::string("-123"));
   Decimal128 a_5(-123);
-  EXPECT_EQ(1, a_5 == d);
+  EXPECT_EQ(a_5, d);
   EXPECT_EQ(returned_precision, 0);
 
   returned_precision = d.SetMaxmPrecision(std::string("-123.5"));
   Decimal128 a_6(-1235);
-  EXPECT_EQ(1, a_6 == d);
+  EXPECT_EQ(a_6, d);
   EXPECT_EQ(returned_precision, 1);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.568"));
   Decimal128 a_7(-1234568);
-  EXPECT_EQ(1, a_7 == d);
+  EXPECT_EQ(a_7, d);
   EXPECT_EQ(returned_precision, 3);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.5678"));
   Decimal128 a_8(-12345678);
-  EXPECT_EQ(1, a_8 == d);
+  EXPECT_EQ(a_8, d);
   EXPECT_EQ(returned_precision, 4);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.56789"));
   Decimal128 a_9(-123456789);
-  EXPECT_EQ(1, a_9 == d);
+  EXPECT_EQ(a_9, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.56785"));
   Decimal128 a_10(-123456785);
-  EXPECT_EQ(1, a_10 == d);
+  EXPECT_EQ(a_10, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.56784"));
   Decimal128 a_11(-123456784);
-  EXPECT_EQ(1, a_11 == d);
+  EXPECT_EQ(a_11, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.56779"));
   Decimal128 a_12(-123456779);
-  EXPECT_EQ(1, a_12 == d);
+  EXPECT_EQ(a_12, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.56775"));
   Decimal128 a_13(-123456775);
-  EXPECT_EQ(1, a_13 == d);
+  EXPECT_EQ(a_13, d);
   EXPECT_EQ(returned_precision, 5);
 
   returned_precision = d.SetMaxmPrecision(std::string("-1234.56774"));
   Decimal128 a_14(-123456774);
   EXPECT_EQ(returned_precision, 5);
-  EXPECT_EQ(1, a_14 == d);
+  EXPECT_EQ(a_14, d);
 }
 
 // NOLINTNEXTLINE
@@ -291,31 +290,31 @@ TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
   d_2.RoundUpAndSet(std::string("1234.6429"), 4);
   Decimal128 d(24692107);
   d_1 += d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string(".00012345000098765"), 17);
   d_2.RoundUpAndSet(std::string("123.45"), 17);
   d.RoundUpAndSet("123.45012345000098765", 17);
   d_1 += d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("1234500009876.5"), 17);
   d_2.RoundUpAndSet(std::string(".00012345000098765"), 17);
   d.RoundUpAndSet("1234500009876.50012345000098765", 17);
   d_1 += d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("9999909999999.5"), 3);
   d_2.RoundUpAndSet(std::string(".555"), 3);
   d.RoundUpAndSet("9999910000000.055", 3);
   d_1 += d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("-12345"), 2);
   d_2.RoundUpAndSet(std::string("-123.45"), 2);
   d.RoundUpAndSet("-12468.45", 2);
   d_1 += d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 }
 
 // NOLINTNEXTLINE
@@ -328,43 +327,43 @@ TEST_F(RuntimeTypesTest, DecimalSubtractionTest) {
   d_2.RoundUpAndSet(std::string("2469.2107"), 4);
   Decimal128 d(-12346429);
   d_1 -= d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("1234.5678"), 4);
   d_2.RoundUpAndSet(std::string("1234.5679"), 4);
   d.RoundUpAndSet("-00000.0001", 4);
   d_1 -= d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string(".00012345000098765"), 17);
   d_2.RoundUpAndSet(std::string("123.45"), 17);
   d.RoundUpAndSet("-123.44987654999901235", 17);
   d_1 -= d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("1234500009876.5"), 17);
   d_2.RoundUpAndSet(std::string(".00012345000098765"), 17);
   d.RoundUpAndSet("1234500009876.49987654999901235", 17);
   d_1 -= d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("9999900000000.5"), 3);
   d_2.RoundUpAndSet(std::string(".555"), 3);
   d.RoundUpAndSet("9999899999999.945", 3);
   d_1 -= d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("1111.5551"), 4);
   d_2.RoundUpAndSet(std::string("1111.555"), 4);
   d.RoundUpAndSet("0.0001", 4);
   d_1 -= d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("1000001000"), 1);
   d_2.RoundUpAndSet(std::string("0.1"), 1);
   d.RoundUpAndSet("1000000999.9", 1);
   d_1 -= d_2;
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 }
 
 // NOLINTNEXTLINE
@@ -373,27 +372,27 @@ TEST_F(RuntimeTypesTest, StringToDecimalMultiPrecisionTest) {
 
   d.RoundUpAndSet(std::string("1234.567"), 4);
   Decimal128 a_1(12345670);
-  EXPECT_EQ(1, a_1 == d);
+  EXPECT_EQ(a_1, d);
 
   d.RoundUpAndSet(std::string("1234.567"), 3);
   Decimal128 a_2(1234567);
-  EXPECT_EQ(1, a_2 == d);
+  EXPECT_EQ(a_2, d);
 
   d.RoundUpAndSet(std::string("1234.567"), 5);
   Decimal128 a_3(123456700);
-  EXPECT_EQ(1, a_3 == d);
+  EXPECT_EQ(a_3, d);
 
   d.RoundUpAndSet(std::string("1234.567"), 2);
   Decimal128 a_4(123457);
-  EXPECT_EQ(1, a_4 == d);
+  EXPECT_EQ(a_4, d);
 
   d.RoundUpAndSet(std::string("1234.567"), 1);
   Decimal128 a_5(12346);
-  EXPECT_EQ(1, a_5 == d);
+  EXPECT_EQ(a_5, d);
 
   d.RoundUpAndSet(std::string("1234.567"), 0);
   Decimal128 a_6(1234);
-  EXPECT_EQ(1, a_6 == d);
+  EXPECT_EQ(a_6, d);
 }
 
 // NOLINTNEXTLINE
@@ -407,26 +406,26 @@ TEST_F(RuntimeTypesTest, DecimalMultiplicationTest) {
   d_2.RoundUpAndSet(std::string("0.3278598274982374859061277"), 25);
   d.RoundUpAndSet("0.0704350401498734190382129", 25);
   d_1.MultiplyAndSet(d_2, 25);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("0.7582386326849632823554847"), 25);
   d_2.RoundUpAndSet(std::string("0.7472136320201879174717897"), 25);
   d.RoundUpAndSet("0.5665662426665525849360499", 25);
   d_1.MultiplyAndSet(d_2, 25);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   // Overflow Algorithm 2 - Magic number is > 2^256
   d_1.RoundUpAndSet(std::string("0.892038085789327580372041421"), 27);
   d_2.RoundUpAndSet(std::string("0.273953192085891327489327489"), 27);
   d.RoundUpAndSet("0.244376681064174465536041239", 27);
   d_1.MultiplyAndSet(d_2, 27);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("0.728153698365712865782136987"), 27);
   d_2.RoundUpAndSet(std::string("0.920138918390128401275810278"), 27);
   d.RoundUpAndSet("0.670002556435998842845938898", 27);
   d_1.MultiplyAndSet(d_2, 27);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 }
 
 TEST_F(RuntimeTypesTest, DISABLED_DecimalMultiplicationRegressionTest) {
@@ -450,7 +449,7 @@ TEST_F(RuntimeTypesTest, DISABLED_DecimalMultiplicationRegressionTest) {
     d_2.RoundUpAndSet(decimal2, precision_decimal2);
     d.RoundUpAndSet(result, precision_result);
     d_1.MultiplyAndSet(d_2, precision_decimal1);
-    EXPECT_EQ(1, d == d_1);
+    EXPECT_EQ(d, d_1);
   }
 }
 
@@ -464,70 +463,70 @@ TEST_F(RuntimeTypesTest, DecimalDivisionTest) {
   d_2.RoundUpAndSet(std::string("0.10218327103891902"), 17);
   d.RoundUpAndSet("1.38214828109801195", 17);
   d_1.SignedDivideWithDecimal(d_2, 17);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("0.1412324324234141232432423"), 25);
   d_2.RoundUpAndSet(std::string("0.1021832710389190247920184"), 25);
   d.RoundUpAndSet("1.3821482810980112392853736", 25);
   d_1.SignedDivideWithDecimal(d_2, 25);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("1.12412"), 5);
   d_2.RoundUpAndSet(std::string("7.213"), 3);
   d.RoundUpAndSet("0.15584", 5);
   d_1.SignedDivideWithDecimal(d_2, 3);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("1.12412"), 10);
   d_2.RoundUpAndSet(std::string("7.213"), 3);
   d.RoundUpAndSet("0.1558463884", 10);
   d_1.SignedDivideWithDecimal(d_2, 3);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("0.174742476062277562382"), 21);
   d_2.RoundUpAndSet(std::string("0.18347228288313502339555553"), 26);
   d.RoundUpAndSet("0.952418933891949111511", 21);
   d_1.SignedDivideWithDecimal(d_2, 26);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("0.215133535198406993127682632256305281"), 36);
   d_2.RoundUpAndSet(std::string("0.512"), 3);
   d.RoundUpAndSet("0.420182685934388658452505141125596251", 36);
   d_1.SignedDivideWithDecimal(d_2, 3);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   // Magic division tests
   d_1.RoundUpAndSet(std::string("0.174742476062"), 12);
   d_2.RoundUpAndSet(std::string("0.0005"), 4);
   d.RoundUpAndSet("349.484952124000", 12);
   d_1.SignedDivideWithDecimal(d_2, 4);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("0.174742476062277562382"), 21);
   d_2.RoundUpAndSet(std::string("0.00000005"), 8);
   d.RoundUpAndSet("3494849.521245551247640000000", 21);
   d_1.SignedDivideWithDecimal(d_2, 8);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   d_1.RoundUpAndSet(std::string("0.174742476062"), 12);
   d_2.RoundUpAndSet(std::string("0.0007"), 4);
   d.RoundUpAndSet("249.632108660000", 12);
   d_1.SignedDivideWithDecimal(d_2, 4);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   // 256 bit algo 0
   d_1.RoundUpAndSet(std::string("0.174742476062277562382"), 21);
   d_2.RoundUpAndSet(std::string("0.0000000000000000777"), 19);
   d.RoundUpAndSet("2248937915859428.087284427284427284427", 21);
   d_1.SignedDivideWithDecimal(d_2, 19);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 
   // 256 bit algo 1
   d_1.RoundUpAndSet(std::string("0.174742476062277562382"), 21);
   d_2.RoundUpAndSet(std::string("0.0000000000000000999"), 19);
   d.RoundUpAndSet("1749173934557332.956776776776776776776", 21);
   d_1.SignedDivideWithDecimal(d_2, 19);
-  EXPECT_EQ(1, d == d_1);
+  EXPECT_EQ(d, d_1);
 }
 
 TEST_F(RuntimeTypesTest, DecimalDivisionRegressionTest) {
@@ -551,7 +550,7 @@ TEST_F(RuntimeTypesTest, DecimalDivisionRegressionTest) {
     d_2.RoundUpAndSet(decimal2, precision_decimal2);
     d.RoundUpAndSet(result, precision_result);
     d_1.SignedDivideWithDecimal(d_2, precision_decimal2);
-    EXPECT_EQ(1, d == d_1);
+    EXPECT_EQ(d, d_1);
   }
 }
 
