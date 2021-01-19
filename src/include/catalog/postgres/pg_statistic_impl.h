@@ -44,12 +44,11 @@ class PgStatisticImpl {
   void BootstrapPRIs();
 
   /**
-   * @brief Create pg_language and associated indexes.
+   * @brief Create pg_statistic and associated indexes.
    *
    * Bootstrap:
-   *    pg_language
-   *    pg_languages_oid_index
-   *    pg_languages_name_index
+   *    pg_statistic
+   *    pg_statistic_index
    *
    * Dependencies (for bootstrapping):
    *    pg_core must have been bootstrapped.
@@ -63,7 +62,7 @@ class PgStatisticImpl {
                  common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Add entry to pg_statistic
+   * Add entry to pg_statistic.
    *
    * Currently, this is called inside CreateTableEntry so that each row in pg_attribute (corresponding to a column
    * of a table) has a corresponding row in pg_statistic.
@@ -80,7 +79,7 @@ class PgStatisticImpl {
                              ColOid col_oid, const Column &col);
 
   /**
-   * Delete entries from pg_statistic
+   * Delete entry from pg_statistic.
    * @param txn txn to use
    * @param class_oid oid of table or index
    * @return whether deletion was successful
@@ -91,7 +90,7 @@ class PgStatisticImpl {
   const db_oid_t db_oid_;
 
   /**
-   * The table and indexes that define pg_statistics.
+   * The table and indexes that define pg_statistic.
    * Created by: Builder::CreateDatabaseCatalog.
    * Cleaned up by: DatabaseCatalog::TearDown, where the scans from pg_class and pg_index pick these up.
    */

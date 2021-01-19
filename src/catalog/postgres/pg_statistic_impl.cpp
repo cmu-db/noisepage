@@ -2,16 +2,18 @@
 
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
-#include "catalog/schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/schema.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
 namespace noisepage::catalog::postgres {
 
+PgStatisticImpl::PgStatisticImpl(db_oid_t db_oid) : db_oid_(db_oid) {}
+
 void PgStatisticImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
-                                      common::ManagedPointer<DatabaseCatalog> dbc) {
+                                common::ManagedPointer<DatabaseCatalog> dbc) {
   // pg_statistic and associated indexes.
   dbc->BootstrapTable(txn, PgStatistic::STATISTIC_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
                       "pg_statistic", Builder::GetStatisticTableSchema(), statistics_);
@@ -27,7 +29,7 @@ void PgStatisticImpl::BootstrapPRIs() {
   pg_statistic_all_cols_prm_ = statistics_->ProjectionMapForOids(pg_statistic_all_oids);
 
   // Used to select rows to delete in DeleteColumnStatistics
-  const std::vector<col_oid_t> delete_statistics_oids{PgStatistic::STAATTNUM_COL_OID.oid_};
+  const std::vector<col_oid_t> delete_statistics_oids{PgStatistic::STAATTNUM.oid_};
   delete_statistics_pri_ = statistics_->InitializerForProjectedRow(delete_statistics_oids);
   delete_statistics_prm_ = statistics_->ProjectionMapForOids(delete_statistics_oids);
 }
@@ -42,10 +44,10 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
 
   // Insert into pg_statistic.
   {
-    PgStatistic::STARELID_COL_OID.Set(delta, pm, class_oid);
-    PgStatistic::STAATTNUM_COL_OID.Set(delta, pm, col_oid);
-    PgStatistic::STANULLROWS_COL_OID.Set(delta, pm, 0);
-    PgStatistic::STA_NUMROWS_COL_OID.Set(delta, pm, 0);
+    PgStatistic::STARELID.Set(delta, pm, class_oid);
+    PgStatistic::STAATTNUM.Set(delta, pm, col_oid);
+    PgStatistic::STANULLROWS.Set(delta, pm, 0);
+    PgStatistic::STA_NUMROWS.Set(delta, pm, 0);
   }
 
   // Finally, insert into the table to get the tuple slot
@@ -85,13 +87,12 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
 
     // Write the attributes in the ProjectedRow
     // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-    *(reinterpret_cast<ClassOid *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = class_oid;
-    *(reinterpret_cast<uint32_t *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
+    pr_lo->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), class_oid, false);
+    pr_lo->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), 0, false);
 
-    auto next_oid = ClassOid(class_oid + 1);
     // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-    *(reinterpret_cast<ClassOid *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = next_oid;
-    *(reinterpret_cast<uint32_t *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
+    pr_hi->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), ClassOid(class_oid + 1), false);
+    pr_hi->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), 0, false);
 
     statistics_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
   }
@@ -114,7 +115,7 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
     auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr);
     NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     const auto *const col_oid = reinterpret_cast<const uint32_t *const>(
-        pr->AccessWithNullCheck(delete_statistics_prm_.at(PgStatistic::STAATTNUM_COL_OID.oid_)));
+        pr->AccessWithNullCheck(delete_statistics_prm_.at(PgStatistic::STAATTNUM.oid_)));
     NOISEPAGE_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table

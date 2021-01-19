@@ -522,8 +522,7 @@ bool PgCoreImpl::CreateTableEntry(const common::ManagedPointer<transaction::Tran
   {
     col_oid_t curr_col_oid(1);
     for (auto &col : schema.GetColumns()) {
-      col_oid_t col_oid(curr_col_oid++);
-      auto success = CreateColumn(txn, table_oid, col_oid, col);
+      auto success = CreateColumn(txn, table_oid, curr_col_oid++, col);
       if (!success) return false;
     }
   }

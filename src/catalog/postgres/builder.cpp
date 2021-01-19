@@ -681,18 +681,18 @@ Schema Builder::GetStatisticTableSchema() {
 
   columns.emplace_back("starelid", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PgStatistic::STARELID_COL_OID.oid_);
+  columns.back().SetOid(PgStatistic::STARELID.oid_);
 
   columns.emplace_back("staattnum", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PgStatistic::STAATTNUM_COL_OID.oid_);
+  columns.back().SetOid(PgStatistic::STAATTNUM.oid_);
 
   columns.emplace_back("stanullrows", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PgStatistic::STANULLROWS_COL_OID.oid_);
+  columns.back().SetOid(PgStatistic::STANULLROWS.oid_);
 
   columns.emplace_back("numrows", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PgStatistic::STA_NUMROWS_COL_OID.oid_);
+  columns.back().SetOid(PgStatistic::STA_NUMROWS.oid_);
 
   return Schema(columns);
 }
@@ -827,12 +827,12 @@ IndexSchema Builder::GetStatisticOidIndexSchema(db_oid_t db) {
 
   columns.emplace_back("starelid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, PgStatistic::STATISTIC_TABLE_OID,
-                                                     PgStatistic::STARELID_COL_OID.oid_));
+                                                     PgStatistic::STARELID.oid_));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   columns.emplace_back("staattnum", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, PgStatistic::STATISTIC_TABLE_OID,
-                                                     PgStatistic::STAATTNUM_COL_OID.oid_));
+                                                     PgStatistic::STAATTNUM.oid_));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary

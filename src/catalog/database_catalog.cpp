@@ -68,6 +68,7 @@ void DatabaseCatalog::BootstrapPRIs() {
   pg_constraint_.BootstrapPRIs();
   pg_language_.BootstrapPRIs();
   pg_proc_.BootstrapPRIs();
+  pg_stat_.BootstrapPRIs();
 }
 
 void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn) {
@@ -84,6 +85,7 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   pg_constraint_.Bootstrap(txn, common::ManagedPointer(this));
   pg_language_.Bootstrap(txn, common::ManagedPointer(this));
   pg_proc_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_stat_.Bootstrap(txn, common::ManagedPointer(this));
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -332,10 +334,9 @@ void DatabaseCatalog::BootstrapIndex(const common::ManagedPointer<transaction::T
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
-  col_oid_t curr_col_oid(1);
+  col_oid_t col_oid(1);
   for (auto &col : schema.GetColumns()) {
-    col_oid_t col_oid(curr_col_oid++);
-    pg_stat_.CreateColumnStatistic(txn, table_oid, col_oid, col);
+    pg_stat_.CreateColumnStatistic(txn, table_oid, col_oid++, col);
   }
   return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
 }

@@ -277,6 +277,7 @@ class ProjectedRowInitializer {
   friend class catalog::postgres::PgCoreImpl;      // access to the PRI default constructor
   friend class catalog::postgres::PgLanguageImpl;  // access to the PRI default constructor
   friend class catalog::postgres::PgProcImpl;      // access to the PRI default constructor
+  friend class catalog::postgres::PgStatisticImpl; // access to the PRI default constructor
   friend class catalog::postgres::PgTypeImpl;      // access to the PRI default constructor
   friend class execution::sql::StorageInterface;   // access to the PRI default constructor
   friend class WriteAheadLoggingTests;
