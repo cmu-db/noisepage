@@ -1094,7 +1094,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
     uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
     uint128_t add_upper = value_;
 
-    /*Perform addition*/
+    // Perform addition
     result_upper += add_upper;
 
     auto carry = static_cast<uint128_t>(result_upper < add_upper);
@@ -1248,7 +1248,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denomi
     UnsignedDivideConstant128Bit(constant);
   } else {
     if (magic_map256_bit_constant_division.count(constant) > 0) {
-      value_ = UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
+      value_ = Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
     } else {
       value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
                                                 half_words_result[0] | (half_words_result[1] << 64), constant);
