@@ -663,119 +663,6 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
 //
 //===----------------------------------------------------------------------===//
 
-// TODO(WAN): The Decimal code below has been left as-is, but could probably be simplified and cleaned up further.
-//  I am leaving it alone because I don't think people will need to modify or look at this code often, assuming that
-//  works (it does contain parsing logic etc. that may require changes in the future).
-
-template <typename T>
-void Decimal<T>::RoundUpAndSet(std::string input, uint32_t precision) {
-  value_ = 0;
-
-  if (input.empty()) return;
-
-  uint32_t pos = 0;
-
-  bool is_negative = false;
-  if (input[pos] == '-') {
-    pos++;
-    is_negative = true;
-  }
-
-  while (pos < input.size() && input[pos] != '.') {
-    value_ += input[pos] - '0';
-    value_ *= 10;
-    pos++;
-  }
-
-  if (precision == 0) {
-    value_ /= 10;
-    if (pos != input.size()) {
-      if (pos + 1 < input.size()) {
-        pos++;
-        if (input[pos] - '0' > 5) {
-          value_ += 1;
-        } else if (input[pos] - '0' == 5 && value_ % 2 == 1) {
-          value_ += 1;
-        }
-      }
-    }
-    if (is_negative) {
-      value_ = -value_;
-    }
-    return;
-  }
-
-  // No decimal point case
-  if (pos == input.size()) {
-    for (uint32_t i = 0; i < precision - 1; i++) {
-      value_ *= 10;
-    }
-    if (is_negative) {
-      value_ = -value_;
-    }
-    return;
-  }
-  // Skip decimal point
-  pos++;
-  // Nothing after decimal point case
-  if (pos == input.size()) {
-    for (uint32_t i = 0; i < precision - 1; i++) {
-      value_ *= 10;
-    }
-    if (is_negative) {
-      value_ = -value_;
-    }
-    return;
-  }
-
-  for (uint32_t i = 1; i < precision; i++) {
-    if (pos < input.size()) {
-      value_ += input[pos] - '0';
-      value_ *= 10;
-      pos++;
-    } else {
-      for (uint32_t j = i; j < precision; j++) {
-        value_ *= 10;
-      }
-      if (is_negative) {
-        value_ = -value_;
-      }
-      return;
-    }
-  }
-
-  if (pos == input.size()) {
-    if (is_negative) {
-      value_ = -value_;
-    }
-    return;
-  }
-
-  if (pos == input.size() - 1) {
-    // No Rounding required
-    value_ += input[pos] - '0';
-  } else {
-    if (input[pos + 1] - '0' > 5) {
-      // Round Up
-      value_ += input[pos] - '0' + 1;
-    } else if (input[pos + 1] - '0' < 5) {
-      // No Rounding will happen
-      value_ += input[pos] - '0';
-    } else {
-      if ((input[pos] - '0') % 2 == 0) {
-        // Round up if ODD
-        value_ += input[pos] - '0';
-      } else {
-        // Round up if ODD
-        value_ += input[pos] - '0' + 1;
-      }
-    }
-  }
-
-  if (is_negative) {
-    value_ = -value_;
-  }
-}
 
 void CalculateMultiWordProduct128(const uint128_t *const half_words_a, const uint128_t *const half_words_b,
                                   uint128_t *half_words_result, uint32_t m, uint32_t n) {
@@ -1370,6 +1257,119 @@ int Decimal<T>::SetMaxmPrecision(std::string input) {
     value_ = -value_;
   }
   return precision;
+}
+// TODO(WAN): The Decimal code below has been left as-is, but could probably be simplified and cleaned up further.
+//  I am leaving it alone because I don't think people will need to modify or look at this code often, assuming that
+//  works (it does contain parsing logic etc. that may require changes in the future).
+
+template <typename T>
+Decimal<T>::Decimal(std::string input, int precision) {
+    value_ = 0;
+
+    if (input.empty()) return;
+
+    uint32_t pos = 0;
+
+    bool is_negative = false;
+    if (input[pos] == '-') {
+        pos++;
+        is_negative = true;
+    }
+
+    while (pos < input.size() && input[pos] != '.') {
+        value_ += input[pos] - '0';
+        value_ *= 10;
+        pos++;
+    }
+
+    if (precision == 0) {
+        value_ /= 10;
+        if (pos != input.size()) {
+            if (pos + 1 < input.size()) {
+                pos++;
+                if (input[pos] - '0' > 5) {
+                    value_ += 1;
+                } else if (input[pos] - '0' == 5 && value_ % 2 == 1) {
+                    value_ += 1;
+                }
+            }
+        }
+        if (is_negative) {
+            value_ = -value_;
+        }
+        return;
+    }
+
+    // No decimal point case
+    if (pos == input.size()) {
+        for (int i = 0; i < precision - 1; i++) {
+            value_ *= 10;
+        }
+        if (is_negative) {
+            value_ = -value_;
+        }
+        return;
+    }
+    // Skip decimal point
+    pos++;
+    // Nothing after decimal point case
+    if (pos == input.size()) {
+        for (int i = 0; i < precision - 1; i++) {
+            value_ *= 10;
+        }
+        if (is_negative) {
+            value_ = -value_;
+        }
+        return;
+    }
+
+    for (int i = 1; i < precision; i++) {
+        if (pos < input.size()) {
+            value_ += input[pos] - '0';
+            value_ *= 10;
+            pos++;
+        } else {
+            for (int j = i; j < precision; j++) {
+                value_ *= 10;
+            }
+            if (is_negative) {
+                value_ = -value_;
+            }
+            return;
+        }
+    }
+
+    if (pos == input.size()) {
+        if (is_negative) {
+            value_ = -value_;
+        }
+        return;
+    }
+
+    if (pos == input.size() - 1) {
+        // No Rounding required
+        value_ += input[pos] - '0';
+    } else {
+        if (input[pos + 1] - '0' > 5) {
+            // Round Up
+            value_ += input[pos] - '0' + 1;
+        } else if (input[pos + 1] - '0' < 5) {
+            // No Rounding will happen
+            value_ += input[pos] - '0';
+        } else {
+            if ((input[pos] - '0') % 2 == 0) {
+                // Round up if ODD
+                value_ += input[pos] - '0';
+            } else {
+                // Round up if ODD
+                value_ += input[pos] - '0' + 1;
+            }
+        }
+    }
+
+    if (is_negative) {
+        value_ = -value_;
+    }
 }
 
 template class Decimal<int128_t>;
