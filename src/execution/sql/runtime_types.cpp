@@ -990,6 +990,8 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t preci
 
 template <typename T>
 void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
+  // Magic number division from Hacker's Delight [2E 10-9 Unsigned Division].
+
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
@@ -1024,7 +1026,7 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
     uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
     uint128_t add_upper = value_;
 
-    /*Perform addition*/
+    // Perform addition
     result_upper += add_upper;
 
     auto carry = static_cast<uint128_t>(result_upper < add_upper);

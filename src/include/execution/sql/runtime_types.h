@@ -608,13 +608,14 @@ class EXPORT Decimal {
   // The encoded decimal value
   T value_;
 
-  /* This function performs the magic number division by a power of
-   * 10 for 128 bit unsigned integers. It assumes that the underlying
-   * decimal number is positive. This routine is used after multiplication
-   * of decimals to get the correct result.
-   * @param power - i in 10^i.
-   * */
-  void UnsignedDivideConstant128BitPowerOfTen(uint32_t power);
+  /**
+   * Divide the current positive unsigned 128-bit integer by a power of ten.
+   *
+   * @warning   The current decimal is assumed to be positive, unsigned, and 128-bit.
+   *
+   * @param exponent The exponent of the power of ten to divide by. (i in 10^i)
+   */
+  void UnsignedDivideConstant128BitPowerOfTen(uint32_t exponent);
 };
 
 using Decimal32 = Decimal<int32_t>;
