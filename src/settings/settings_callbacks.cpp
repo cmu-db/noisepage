@@ -60,6 +60,14 @@ void Callbacks::WalNumBuffers(void *const old_value, void *const new_value, DBMa
     action_context->SetState(common::ActionState::FAILURE);
 }
 
+void Callbacks::WalSerializationInterval(void *const old_value, void *const new_value, DBMain *const db_main,
+                                         common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int new_interval = *static_cast<int *>(new_value);
+  db_main->GetLogManager()->SetSerializationInterval(new_interval);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 void Callbacks::MetricsLogging(void *const old_value, void *const new_value, DBMain *const db_main,
                                common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
