@@ -126,6 +126,15 @@ class LogManager : public common::DedicatedThreadOwner {
     return false;
   }
 
+  /**
+   * Set the new log serialization interval in microseconds.
+   * @param interval the new serialization interval in microseconds (should > 0)
+   */
+  void SetSerializationInterval(int32_t interval);
+
+  /** @return the log serialization interval */
+  int32_t GetSerializationInterval() { return serialization_interval_.count(); }
+
  private:
   // Flag to tell us when the log manager is running or during termination
   bool run_log_manager_;
@@ -151,7 +160,7 @@ class LogManager : public common::DedicatedThreadOwner {
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
   // Interval used by log serialization task
-  const std::chrono::microseconds serialization_interval_;
+  std::chrono::microseconds serialization_interval_;
 
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
