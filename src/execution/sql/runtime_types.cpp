@@ -1213,7 +1213,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denomi
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
-  bool negative_result = (value_ < 0) != (input.GetValue() < 0);
+  bool negative_result = (value_ < 0) != (denominator.GetValue() < 0);
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
@@ -1222,10 +1222,10 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denomi
   }
 
   uint128_t constant;
-  if (input < 0) {
-    constant = -input.GetValue();
+  if (denominator < 0) {
+    constant = -denominator.GetValue();
   } else {
-    constant = input.GetValue();
+    constant = denominator.GetValue();
   }
 
   // Always keep the result in numerator precision
