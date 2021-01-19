@@ -87,6 +87,12 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
   }
 
   // Fork success
+  // TODO(lin): The LightGBM (Python) library has a known hanging issue when multithreading and using forking in
+  //  Linux at the same time:
+  //  https://lightgbm.readthedocs.io/en/latest/FAQ
+  //  .html#lightgbm-hangs-when-multithreading-openmp-and-using-forking-in-linux-at-the-same-time
+  //  So this may cause a subsequent command that issues a model training using LightGBM under multi-threading to
+  //  hang (not always). Don't have a good solution right now.
   if (py_pid_ > 0) {
     // Parent Process Routine
     MODEL_SERVER_LOG_INFO("Model Server Process running at : {}", py_pid_);
