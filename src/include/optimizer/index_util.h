@@ -74,9 +74,11 @@ class IndexUtil {
    * @param allow_cves Allow CVEs
    * @param scan_type IndexScanType to utilize
    * @param bounds Relevant bounds for the index scan
-   * @returns Whether index can be used
+   * @returns The first element represents whether the index can be used, the second element represents whether
+   * all the predicates' indexable columns that we suport are covered by the given index (schema). Note that a "true"
+   * value for the second element does not guarantee an optimal index.
    */
-  static bool SatisfiesPredicateWithIndex(
+  static std::pair<bool, bool> SatisfiesPredicateWithIndex(
       catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
       catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
       planner::IndexScanType *scan_type,
@@ -94,9 +96,10 @@ class IndexUtil {
    * @param allow_cves Allow ColumnValueExpressions
    * @param idx_scan_type IndexScanType to utilize
    * @param bounds Relevant bounds for the index scan
-   * @returns Whether predicate can be utilized
+   * @returns The first element represents whether predicate can be utilized, the second element represents whether
+   * all the predicates' indexable columns that we suport are covered by the given index (schema)
    */
-  static bool CheckPredicates(
+  static std::pair<bool, bool> CheckPredicates(
       const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
       const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
       const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,

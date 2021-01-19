@@ -16,6 +16,7 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
+#include "optimizer/rules/unnesting_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
@@ -493,21 +494,8 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
   std::vector<AnnotatedExpression> correlated_predicates;
   std::vector<AnnotatedExpression> normal_predicates;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
-  for (auto &predicate : predicates) {
-    if (OptimizerUtil::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
-      normal_predicates.emplace_back(predicate);
-    } else {
-      // Correlated predicate, already in the form of
-      // (outer_relation.a = (expr))
-      correlated_predicates.emplace_back(predicate);
-      auto root_expr = predicate.GetExpr();
-      if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      } else {
-        new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
-      }
-    }
-  }
+  ExtractCorrelatedPredicatesWithAggregate(predicates, child_group_aliases_set, &correlated_predicates,
+                                           &normal_predicates, &new_groupby_cols);
 
   if (correlated_predicates.empty()) {
     // No need to pull

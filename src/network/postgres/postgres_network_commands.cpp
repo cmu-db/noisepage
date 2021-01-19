@@ -101,7 +101,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   const auto statement = std::make_unique<network::Statement>(
       std::move(query_text), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse_result)));
 
-  // TODO(Matt:) Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
+  // TODO(Matt): Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult. It's not clear to me how the binder would
   // handle that though since you pass the ParseResult in for binding. Maybe bind ParseResult once?
 

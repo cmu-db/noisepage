@@ -25,6 +25,7 @@ from enum import Enum, auto, IntEnum
 from typing import Dict, Optional, Tuple, List, Any
 import json
 import logging
+import os
 import pprint
 import pickle
 from pathlib import Path
@@ -36,6 +37,7 @@ from data_class import opunit_data
 from mini_trainer import MiniTrainer
 from util import logging_util
 from type import OpUnit
+from info import data_info
 
 logging_util.init_logging('info')
 
@@ -134,7 +136,10 @@ class ModelServer:
         logging.debug(
             f"Python model trying to connect to manager at {end_point}")
         self.socket.connect(f"ipc://{end_point}")
-        logging.debug(f"Python model connected at {end_point}")
+        logging.info(f"Python model connected at {end_point}")
+
+        # If the ModelServer is closing
+        self._closing = False
 
         # Register the exit callback
         atexit.register(self.cleanup_zmq)
@@ -255,7 +260,7 @@ class ModelServer:
 
         # Pickle dump the model
         with save_path.open(mode='wb') as f:
-            pickle.dump(model_map, f)
+            pickle.dump((model_map, data_info.instance), f)
 
         return True, ""
 
@@ -278,7 +283,7 @@ class ModelServer:
 
         # Load into cache
         with save_path.open(mode='rb') as f:
-            model = pickle.load(f)
+            model, data_info.instance = pickle.load(f)
 
             # TODO(ricky): model checking here?
             if len(model) == 0:
@@ -331,6 +336,19 @@ class ModelServer:
 
         return y_pred.tolist(), True, ""
 
+    def _recv(self) -> str:
+        """
+        Receive from the ZMQ socket. This is a blocking call.
+
+        :return: Message paylod
+        """
+        identity = self.socket.recv()
+        _delim = self.socket.recv()
+        payload = self.socket.recv()
+        logging.debug(f"Python recv: {str(identity)}, {str(payload)}")
+
+        return payload.decode("ascii")
+
     def _execute_cmd(self, cmd: Command, data: Dict) -> Tuple[Dict, bool]:
         """
         Execute a command from the ModelServerManager
@@ -382,12 +400,20 @@ class ModelServer:
         """
 
         while(1):
-            identity = self.socket.recv()
-            _delim = self.socket.recv()
-            payload = self.socket.recv()
-            logging.debug(f"Python recv: {str(identity)}, {str(payload)}")
+            try:
+                payload = self._recv()
+            except UnicodeError as e:
+                logging.warning(f"Failed to decode : {e.reason}")
+                continue
+            except KeyboardInterrupt:
+                if self._closing:
+                    logging.warning("Forced shutting down now.")
+                    os._exit(-1)
+                else:
+                    logging.info("Received KeyboardInterrupt. Ctrl+C again to force shutting down.")
+                    self._closing = True
+                    continue
 
-            payload = payload.decode("ascii")
             send_id, recv_id, msg = self._parse_msg(payload)
             if msg is None:
                 continue

@@ -4,6 +4,7 @@ This should be the only module that you directly import classes, instead of the 
 """
 import enum
 
+
 class Target(enum.IntEnum):
     """The output targets for the operating units
     """
@@ -80,28 +81,22 @@ class ExecutionFeature(enum.IntEnum):
     FEATURES = 3,
 
     # input features
-    EXEC_MODE = 4,
-    NUM_ROWS = 5,
-    KEY_SIZES = 6,
-    NUM_KEYS = 7,
-    EST_CARDINALITIES = 8,
-    MEM_FACTOR = 9,
-    NUM_LOOPS = 10,
-    NUM_CONCURRENT = 11,
+    CPU_FREQ = 4,
+    EXEC_MODE = 5,
+    NUM_ROWS = 6,
+    KEY_SIZES = 7,
+    NUM_KEYS = 8,
+    EST_CARDINALITIES = 9,
+    MEM_FACTOR = 10,
+    NUM_LOOPS = 11,
+    NUM_CONCURRENT = 12,
 
     # interval input features
-    TXNS_DEALLOCATED = 12,
-    TXNS_UNLINKED = 13,
-    BUFFER_UNLINKED = 14,
-    READONLY_UNLINKED = 15,
-    INTERVAL = 16,
-
-
-class ArithmeticFeature(enum.Enum):
-    """The input fields of the arithmetic operating units
-    """
-    EXEC_NUMBER = 0,
-    EXEC_MODE = 1,
+    TXNS_DEALLOCATED = 13,
+    TXNS_UNLINKED = 14,
+    BUFFER_UNLINKED = 15,
+    READONLY_UNLINKED = 16,
+    INTERVAL = 17,
 
 
 class ConcurrentCountingMode(enum.Enum):
