@@ -468,6 +468,10 @@ class EXPORT Decimal {
 
   /**
    * Add the encoded decimal value @em that to this decimal value.
+   *
+   * @warning   The other decimal value MUST be of the same precision.
+   *            This is currently resolved at runtime in the execution engine VM.
+   *
    * @param that The value to add.
    * @return This decimal value.
    */
@@ -478,6 +482,10 @@ class EXPORT Decimal {
 
   /**
    * Subtract the encoded decimal value @em that from this decimal value.
+   *
+   * @warning   The other decimal value MUST be of the same precision.
+   *            This is currently resolved at runtime in the execution engine VM.
+   *
    * @param that The value to subtract.
    * @return This decimal value.
    */
