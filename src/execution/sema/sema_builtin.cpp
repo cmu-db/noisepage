@@ -54,7 +54,7 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
-  if (builtin == ast::Builtin::SetPrecisionDecimal || builtin == ast::Builtin::RescalePrecisionDecimal) {
+  if (builtin == ast::Builtin::DecimalSetPrecision || builtin == ast::Builtin::DecimalRescalePrecision) {
     if (!CheckArgCount(call, 2)) {
       return;
     }
@@ -3297,8 +3297,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
     case ast::Builtin::DecimalToSql:
-    case ast::Builtin::SetPrecisionDecimal:
-    case ast::Builtin::RescalePrecisionDecimal:
+    case ast::Builtin::DecimalSetPrecision:
+    case ast::Builtin::DecimalRescalePrecision:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:

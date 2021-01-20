@@ -417,8 +417,8 @@ ast::Expr *CodeGen::DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precisio
   return call;
 }
 
-ast::Expr *CodeGen::SetPrecisionDecimal(ast::Expr *decimal_value, int32_t precision) const {
-  ast::Expr *call = CallBuiltin(ast::Builtin::SetPrecisionDecimal, {decimal_value, Const32(precision)});
+ast::Expr *CodeGen::DecimalSetPrecision(ast::Expr *decimal_value, int32_t precision) const {
+  ast::Expr *call = CallBuiltin(ast::Builtin::DecimalSetPrecision, {decimal_value, Const32(precision)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
   return call;
 }
@@ -581,7 +581,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       break;
     case type::TypeId::DECIMAL:
       // The type_mod represents the precision in case of a fixed decimal
-      val = CallBuiltin(ast::Builtin::RescalePrecisionDecimal, {val, Const32(type_mod)});
+      val = CallBuiltin(ast::Builtin::DecimalRescalePrecision, {val, Const32(type_mod)});
       val->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
       builtin = nullable ? ast::Builtin::PRSetDecimalNull : ast::Builtin::PRSetDecimal;
       break;

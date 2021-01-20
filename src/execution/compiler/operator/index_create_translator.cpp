@@ -270,7 +270,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     // TODO(WAN): #1439
     if (sql_type == sql::TypeId::Decimal) {
       auto vpi_get_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
-      col_expr = GetCodeGen()->SetPrecisionDecimal(vpi_get_expr, tbl_col.TypeModifier());
+      col_expr = GetCodeGen()->DecimalSetPrecision(vpi_get_expr, tbl_col.TypeModifier());
     } else {
       col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
     }

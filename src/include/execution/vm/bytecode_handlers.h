@@ -590,31 +590,31 @@ VM_OP_HOT void OpInitDecimal(noisepage::execution::sql::DecimalVal *result, int1
   result->precision_ = precision;
 }
 
-VM_OP_HOT void OpSetPrecisionDecimal(noisepage::execution::sql::DecimalVal *result,
-                                     noisepage::execution::sql::DecimalVal *fixed_decimal, int32_t precision) {
-  result->is_null_ = fixed_decimal->is_null_;
-  result->val_ = fixed_decimal->val_;
-  result->precision_ = precision;
+VM_OP_HOT void OpDecimalSetPrecision(noisepage::execution::sql::DecimalVal *result,
+                                     noisepage::execution::sql::DecimalVal *source, int32_t source_precision) {
+  result->is_null_ = source->is_null_;
+  result->val_ = source->val_;
+  result->precision_ = source_precision;
 }
 
-VM_OP_HOT void OpRescalePrecisionDecimal(noisepage::execution::sql::DecimalVal *result,
-                                         noisepage::execution::sql::DecimalVal *fixed_decimal, int32_t precision) {
-  result->is_null_ = fixed_decimal->is_null_;
-  result->val_.SetValue(fixed_decimal->val_.GetValue());
-  if (fixed_decimal->precision_ < precision) {
+VM_OP_HOT void OpDecimalRescalePrecision(noisepage::execution::sql::DecimalVal *result,
+                                         noisepage::execution::sql::DecimalVal *source, int32_t new_precision) {
+  result->is_null_ = source->is_null_;
+  result->val_.SetValue(source->val_.GetValue());
+  if (source->precision_ < new_precision) {
     int128_t value = result->val_.GetValue();
-    for (int i = 0; i < precision - fixed_decimal->precision_; i++) {
+    for (int i = 0; i < new_precision - source->precision_; i++) {
       value *= 10;
     }
     result->val_.SetValue(value);
-  } else if (fixed_decimal->precision_ > precision) {
+  } else if (source->precision_ > new_precision) {
     int128_t value = result->val_.GetValue();
-    for (int i = 0; i < fixed_decimal->precision_ - precision; i++) {
+    for (int i = 0; i < source->precision_ - new_precision; i++) {
       value /= 10;
     }
     result->val_.SetValue(value);
   }
-  result->precision_ = precision;
+  result->precision_ = new_precision;
 }
 
 VM_OP_HOT void OpInitTimestamp(noisepage::execution::sql::TimestampVal *result, uint64_t usec) {
