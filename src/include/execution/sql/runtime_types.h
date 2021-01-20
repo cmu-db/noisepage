@@ -412,7 +412,6 @@ class EXPORT Timestamp {
 template <typename T>
 class EXPORT Decimal {
  public:
-
   /** Underlying native data type. */
   using NativeType = T;
 

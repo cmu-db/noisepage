@@ -11,7 +11,6 @@ class RuntimeTypesTest : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, StringToDecimalTest) {
-
   Decimal128 d_1(std::string("1234.567"), 4);
   Decimal128 a_1(12345670);
   EXPECT_EQ(a_1, d_1);
@@ -70,7 +69,6 @@ TEST_F(RuntimeTypesTest, StringToDecimalTest) {
 }
 
 TEST_F(RuntimeTypesTest, StringToNegativeDecimalTest) {
- 
   Decimal128 d_1(std::string("-1234.567"), 4);
   Decimal128 a_1(-12345670);
   EXPECT_EQ(a_1, d_1);
@@ -204,7 +202,6 @@ TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionNegativeTest) {
-  
   int returned_precision;
   Decimal128 d11(std::string("-1234.567"), &returned_precision);
   Decimal128 a_1(-1234567);
@@ -315,7 +312,7 @@ TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalSubtractionTest) {
   // The precisions MUST match. See the warnings in Decimal::operator-.
-  
+
   Decimal128 d11(std::string("1234.5678"), 4);
   Decimal128 d21(std::string("2469.2107"), 4);
   Decimal128 a1(-12346429);
@@ -361,7 +358,6 @@ TEST_F(RuntimeTypesTest, DecimalSubtractionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, StringToDecimalMultiPrecisionTest) {
-
   Decimal128 d_1(std::string("1234.567"), 4);
   Decimal128 a_1(12345670);
   EXPECT_EQ(a_1, a_1);
@@ -389,7 +385,6 @@ TEST_F(RuntimeTypesTest, StringToDecimalMultiPrecisionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalMultiplicationTest) {
-
   // Overflow Algorithm 1 - Magic number is < 2^256
   Decimal128 d11(std::string("0.2148327859723895720384199"), 25);
   Decimal128 d21(std::string("0.3278598274982374859061277"), 25);
@@ -441,7 +436,6 @@ TEST_F(RuntimeTypesTest, DISABLED_DecimalMultiplicationRegressionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalDivisionTest) {
-
   Decimal128 d11(std::string("0.14123243242341419"), 17);
   Decimal128 d21(std::string("0.10218327103891902"), 17);
   Decimal128 a1("1.38214828109801195", 17);
