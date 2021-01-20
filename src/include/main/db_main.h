@@ -17,6 +17,8 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/pilot/pilot.h"
+#include "self_driving/pilot/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -432,6 +434,19 @@ class DBMain {
             std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
       }
 
+      std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
+      std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
+      if (use_pilot_thread_) {
+        NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
+        pilot = std::make_unique<selfdriving::Pilot>(
+            model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
+            common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
+            common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
+        pilot_thread = std::make_unique<selfdriving::PilotThread>(
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
+      }
+
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -446,6 +461,8 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->pilot_thread_ = std::move(pilot_thread);
+      db_main->pilot_ = std::move(pilot);
       db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
 
@@ -768,6 +785,11 @@ class DBMain {
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
+    bool use_pilot_thread_ = false;
+    bool pilot_planning_ = false;
+    uint64_t pilot_interval_ = 1e7;
+    uint64_t workload_forecast_interval_ = 1e7;
+    std::string model_save_path_;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -823,8 +845,13 @@ class DBMain {
 
       use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
       use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
+      use_pilot_thread_ = settings_manager->GetBool(settings::Param::use_pilot_thread);
+      pilot_planning_ = settings_manager->GetBool(settings::Param::pilot_planning);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+      pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
+      workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
+      model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
@@ -942,6 +969,18 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
+  common::ManagedPointer<selfdriving::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<selfdriving::PilotThread> GetPilotThread() const {
+    return common::ManagedPointer(pilot_thread_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
   common::ManagedPointer<trafficcop::TrafficCop> GetTrafficCop() const { return common::ManagedPointer(traffic_cop_); }
 
   /**
@@ -986,6 +1025,8 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
+  std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
 };
