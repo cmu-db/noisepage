@@ -554,13 +554,13 @@ class EXPORT Decimal {
    */
   void SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denominator_precision);
 
-  /** This function divides with a given unsigned 128 bit number with
-   * another 128 bit input. The given number here is stored inside the
-   * decimal class and assumes that it is non negative.
-   * If constant is a power of 2, we right shift
-   * If we have the magic number, we would use it to do the division
-   * Otherwise we do a normal division
-   * @param constant divisor*/
+  /**
+   * Divide the current decimal by the unsigned 128-bit constant supplied.
+   *
+   * @warning Assumes that the current decimal is non-negative.
+   *
+   * @param constant The unsigned 128-bit constant to divide by.
+   */
   void UnsignedDivideConstant128Bit(uint128_t constant);
 
   /**

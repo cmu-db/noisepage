@@ -927,6 +927,10 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
 
 template <typename T>
 void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
+  // 1. If the constant is a power of 2, we right shift.
+  // 2. If the magic numbers were precomputed for the constant, we use those.
+  // 3. Otherwise, do a normal division.
+
   if (constant == 1) {
     return;
   }
@@ -934,64 +938,71 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
-  // Power of 2
-  if ((constant & (constant - 1)) == 0) {
-    uint32_t power_of_two = power_two[constant];
-    uint128_t numerator = value_;
-    numerator = numerator >> power_of_two;
-    value_ = numerator;
-    return;
+  // 1. If possible, power of 2 division.
+  {
+    if ((constant & (constant - 1)) == 0) {
+      uint32_t power_of_two = power_two[constant];
+      uint128_t numerator = value_;
+      numerator = numerator >> power_of_two;
+      value_ = numerator;
+      return;
+    }
   }
 
-  // Cannot optimize if we do not have the magic number with us
-  if (magic_map128_bit_constant_division.count(constant) == 0) {
-    uint128_t numerator = value_;
-    numerator = numerator / constant;
-    value_ = numerator;
-    return;
+  // 2. If possible, magic number division.
+  {
+    if (magic_map128_bit_constant_division.count(constant) == 0) {
+      uint128_t numerator = value_;
+      numerator = numerator / constant;
+      value_ = numerator;
+      return;
+    }
   }
 
-  // First input
-  uint128_t a = value_;
+  // 3. Regular division.
+  {
+    // First input
+    uint128_t a = value_;
 
-  // Split into half words
-  uint128_t half_words_a[2];
-  uint128_t half_words_b[2];
+    // Split into half words
+    uint128_t half_words_a[2];
+    uint128_t half_words_b[2];
 
-  half_words_a[0] = a & bottom_mask;
-  half_words_a[1] = (a & top_mask) >> 64;
+    half_words_a[0] = a & bottom_mask;
+    half_words_a[1] = (a & top_mask) >> 64;
 
-  half_words_b[0] = magic_map128_bit_constant_division[constant].lower_;
-  half_words_b[1] = magic_map128_bit_constant_division[constant].upper_;
+    half_words_b[0] = magic_map128_bit_constant_division[constant].lower_;
+    half_words_b[1] = magic_map128_bit_constant_division[constant].upper_;
 
-  // Calculate 256 bit result
-  uint128_t half_words_result[4];
-  // TODO(Rohan): Calculate only upper half
-  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
+    // Calculate 256 bit result
+    uint128_t half_words_result[4];
+    // TODO(Rohan): Calculate only upper half
+    CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-  uint32_t magic_p = magic_map128_bit_constant_division[constant].p_ - 128;
+    uint32_t magic_p = magic_map128_bit_constant_division[constant].p_ - 128;
 
-  if (magic_map128_bit_constant_division[constant].algo_ == 0) {
-    // Overflow Algorithm 1 - Magic number is < 2^128
+    if (magic_map128_bit_constant_division[constant].algo_ == 0) {
+      // Overflow Algorithm 1 - Magic number is < 2^128
 
-    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-    value_ = result_upper >> magic_p;
-  } else {
-    // Overflow Algorithm 2 - Magic number is > 2^128
+      uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
+      value_ = result_upper >> magic_p;
+    } else {
+      // Overflow Algorithm 2 - Magic number is > 2^128
 
-    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-    uint128_t add_upper = value_;
+      uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
+      uint128_t add_upper = value_;
 
-    // Perform addition
-    result_upper += add_upper;
+      // Perform addition
+      result_upper += add_upper;
 
-    auto carry = static_cast<uint128_t>(result_upper < add_upper);
-    carry = carry << 127;
-    // shrxi 1
-    result_upper = result_upper >> 1;
-    result_upper |= carry;
+      auto carry = static_cast<uint128_t>(result_upper < add_upper);
+      carry = carry << 127;
+      // shrxi 1
+      result_upper = result_upper >> 1;
+      result_upper |= carry;
 
-    value_ = result_upper >> (magic_p - 1);
+      value_ = result_upper >> (magic_p - 1);
+    }
   }
 }
 
