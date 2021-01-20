@@ -8,7 +8,8 @@ import tqdm
 import pickle
 
 from util import io_util
-from info import data_info, hardware_info
+from info import hardware_info
+from info import data_info
 from data_class import global_model_data, grouped_op_unit_data
 import global_model_config
 from type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
@@ -32,10 +33,9 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
-    headers_file = input_path + '/global_model_headers.pickle'
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as pickle_file:
-            resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX = pickle.load(pickle_file)
+            resource_data_list, impact_data_list, = pickle.load(pickle_file)
     else:
         data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
                                                              warmup_period, use_query_predict_cache, add_noise,
@@ -44,7 +44,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
-            pickle.dump((resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX), file)
+            pickle.dump((resource_data_list, impact_data_list), file)
 
     return resource_data_list, impact_data_list
 
@@ -155,7 +155,7 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
         data_end_time = data.get_end_time(ConcurrentCountingMode.ESTIMATED)
         ratio = _calculate_range_overlap(start_time, end_time, data_start_time, data_end_time) / (data_end_time -
                                                                                                   data_start_time + 2)
-        #print(start_time, end_time, data_start_time, data_end_time, data_end_time - data_start_time + 1)
+        # print(start_time, end_time, data_start_time, data_end_time, data_end_time - data_start_time + 1)
         sample_interval = data.sample_interval
         logging.debug("{} {} {}".format(data_start_time, data_end_time, ratio))
         logging.debug("{} {}".format(data.y, data.y_pred))
@@ -217,10 +217,10 @@ def _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_int
 def _add_estimation_noise(opunit, x):
     """Add estimation noise to the OUs that may use the cardinality estimation
     """
-    if opunit not in data_info.OUS_USING_CAR_EST:
+    if opunit not in data_info.instance.OUS_USING_CAR_EST:
         return
-    tuple_num_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]
-    cardinality_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]
+    tuple_num_index = data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]
+    cardinality_index = data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]
     tuple_num = x[tuple_num_index]
     cardinality = x[cardinality_index]
     if tuple_num > 1000:
@@ -294,34 +294,34 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
                 logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                                      x[0], y_pred[0, -1]))
 
-                if opunit in data_info.MEM_ADJUST_OPUNITS:
+                if opunit in data_info.instance.MEM_ADJUST_OPUNITS:
                     # Compute the number of "slots" (based on row feature or cardinality feature
-                    num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]]
+                    num_tuple = opunit_feature[1][data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]]
                     if opunit == OpUnit.AGG_BUILD:
-                        num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]]
+                        num_tuple = opunit_feature[1][data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]]
 
                     # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
                     # that contains the first pow2 larger than num_tuple entries
                     pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
-                    buffer_size = pow_high * data_info.POINTER_SIZE
+                    buffer_size = pow_high * data_info.instance.POINTER_SIZE
                     if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
                         # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
                         # the buffer is not recorded as part of the pipeline
                         buffer_size = 0
 
-                    pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
+                    pred_mem = y_pred[0][data_info.instance.target_csv_index[Target.MEMORY_B]]
                     if pred_mem <= buffer_size:
                         logging.debug("{} feature {} {} with prediction {} exceeds buffer {}"
-                                        .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+                                      .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                     # For hashjoin_build, there is still some inaccuracy due to the
                     # fact that we do not know about the hash table's load factor.
-                    scale = data_info.INPUT_CSV_INDEX[ExecutionFeature.MEM_FACTOR]
+                    scale = data_info.instance.input_csv_index[ExecutionFeature.MEM_FACTOR]
                     adj_mem = (pred_mem - buffer_size) * opunit_feature[1][scale] + buffer_size
 
                     # Don't modify prediction cache
                     y_pred = copy.deepcopy(y_pred)
-                    y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
+                    y_pred[0][data_info.instance.target_csv_index[Target.MEMORY_B]] = adj_mem
 
                 pipeline_y_pred += y_pred[0]
 
@@ -393,11 +393,12 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
         ratio_error = abs(actual - predicted) / (actual + 1)
         abs_error = abs(actual - predicted)[-1]
         pabs_error = abs_error / total_elapsed_err
-        io_util.write_csv_result(pipeline_path, pipeline, [num, num*1.0/num_pipelines, actual[-1],
-                                 predicted[-1], ratio_error[-1], abs_error, pabs_error] +
+        io_util.write_csv_result(pipeline_path, pipeline, [num, num * 1.0 / num_pipelines, actual[-1],
+                                                           predicted[-1], ratio_error[-1], abs_error, pabs_error] +
                                  [""] + list(actual) + [""] + list(predicted) + [""] + list(ratio_error))
 
     ratio_error = abs(total_actual - total_predicted) / (total_actual + 1)
     io_util.write_csv_result(pipeline_path, "Total Pipeline", [num_pipelines, 1, total_actual[-1],
-                             total_predicted[-1], ratio_error[-1], total_elapsed_err, 1] +
+                                                               total_predicted[-1], ratio_error[-1], total_elapsed_err,
+                                                               1] +
                              [""] + list(total_actual) + [""] + list(total_predicted) + [""] + list(ratio_error))
