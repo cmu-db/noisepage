@@ -135,7 +135,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
@@ -228,7 +228,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     steps {
@@ -265,7 +265,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
