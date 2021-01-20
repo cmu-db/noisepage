@@ -19,7 +19,7 @@
 * 100% Open-Source (MIT License)
 
 ## Quickstart
-The NoisePage project is built and tested on **Ubuntu 20.04** or **macOS 10.14+**. No other environments are officially supported.
+The NoisePage project is built and tested on **Ubuntu 20.04**. No other environments are officially supported.
 
 ```
 git clone https://github.com/cmu-db/noisepage.git
@@ -30,17 +30,6 @@ cd build
 cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_UNITY_BUILD=ON ..
 ninja noisepage
 ./bin/noisepage
-```
-
-If you are on a Mac, you may need to add this to your `.zshrc`:
-
-```
-export PATH="/usr/local/opt/llvm@8/bin:$PATH"
-export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/
-export CC=/usr/local/Cellar/llvm@8/8.0.1_3/bin/clang
-export CXX=/usr/local/Cellar/llvm@8/8.0.1_3/bin/clang++
-export LLVM_DIR=/usr/local/Cellar/llvm@8/8.0.1_3
-export ASAN_OPTIONS=detect_container_overflow=0
 ```
 
 You can now connect to NoisePage over the Postgres client `psql`.

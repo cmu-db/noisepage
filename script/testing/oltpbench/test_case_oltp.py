@@ -16,6 +16,7 @@ from reporting.report_result import report_oltpbench_result
 
 class TestCaseOLTPBench(TestCase):
     """Class of a test case of OLTPBench"""
+
     def __init__(self, args):
         TestCase.__init__(self, args)
 
@@ -135,6 +136,7 @@ class TestCaseOLTPBench(TestCase):
         if not os.path.exists(self.test_result_dir):
             os.makedirs(self.test_result_dir)
 
+
     def create_and_load_db(self):
         """
         Create the database and load the data before the actual test execution.
@@ -147,10 +149,11 @@ class TestCaseOLTPBench(TestCase):
             LOAD=self.db_load)
         error_msg = "Error: unable to create and load the database"
         rc, stdout, stderr = run_command(cmd,
-                                         error_msg=error_msg,
-                                         cwd=self.test_command_cwd)
+                                        error_msg=error_msg,
+                                        cwd=self.test_command_cwd)
         if rc != ErrorCode.SUCCESS:
-            LOG.error(stderr)
+            LOG.info(stdout.read())
+            LOG.error(stderr.read())
             raise RuntimeError(error_msg)
 
     def get_db_url(self):

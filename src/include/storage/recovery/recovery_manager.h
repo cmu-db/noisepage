@@ -84,14 +84,18 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         block_store_(store),
         recovered_txns_(0) {
     // Initialize catalog_table_schemas_ map
-    catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
-    catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
+    catalog_table_schemas_[catalog::postgres::PgClass::CLASS_TABLE_OID] =
+        catalog::postgres::Builder::GetClassTableSchema();
+    catalog_table_schemas_[catalog::postgres::PgNamespace::NAMESPACE_TABLE_OID] =
         catalog::postgres::Builder::GetNamespaceTableSchema();
-    catalog_table_schemas_[catalog::postgres::COLUMN_TABLE_OID] = catalog::postgres::Builder::GetColumnTableSchema();
-    catalog_table_schemas_[catalog::postgres::CONSTRAINT_TABLE_OID] =
+    catalog_table_schemas_[catalog::postgres::PgAttribute::COLUMN_TABLE_OID] =
+        catalog::postgres::Builder::GetColumnTableSchema();
+    catalog_table_schemas_[catalog::postgres::PgConstraint::CONSTRAINT_TABLE_OID] =
         catalog::postgres::Builder::GetConstraintTableSchema();
-    catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
-    catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
+    catalog_table_schemas_[catalog::postgres::PgIndex::INDEX_TABLE_OID] =
+        catalog::postgres::Builder::GetIndexTableSchema();
+    catalog_table_schemas_[catalog::postgres::PgType::TYPE_TABLE_OID] =
+        catalog::postgres::Builder::GetTypeTableSchema();
   }
 
   /**
@@ -257,21 +261,21 @@ class RecoveryManager : public common::DedicatedThreadOwner {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
       if (IsInsertRecord(redo_record)) {
         // Case 1
-        return redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
-               redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
+        return redo_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID ||
+               redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID;
       }
 
       // Case 2
-      return redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
-             redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
+      return redo_record->GetTableOid() == catalog::postgres::PgClass::CLASS_TABLE_OID ||
+             redo_record->GetTableOid() == catalog::postgres::PgProc::PRO_TABLE_OID;
     }
 
     // Case 3, 4, 5, and 6
     auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
-    return delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
-           delete_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
-           delete_record->GetTableOid() == catalog::postgres::INDEX_TABLE_OID ||
-           delete_record->GetTableOid() == catalog::postgres::COLUMN_TABLE_OID;
+    return delete_record->GetTableOid() == catalog::postgres::PgDatabase::DATABASE_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::postgres::PgClass::CLASS_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::postgres::PgIndex::INDEX_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::postgres::PgAttribute::COLUMN_TABLE_OID;
   }
 
   /**
@@ -352,15 +356,16 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   // TODO(John): Currently this is being used to extract values from redo records for catalog tables. You should look at
   // adding constants for col_id_t for catalog tables.
-  std::vector<catalog::col_oid_t> GetOidsForRedoRecord(storage::SqlTable *sql_table, RedoRecord *record);
+  std::vector<catalog::col_oid_t> GetOidsForRedoRecord(common::ManagedPointer<storage::SqlTable> sql_table,
+                                                       RedoRecord *record);
 
   /**
    * @param oid oid of catalog index
    * @param db_catalog database catalog that has given index
    * @return pointer to catalog index
    */
-  storage::index::Index *GetCatalogIndex(catalog::index_oid_t oid,
-                                         const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog);
+  common::ManagedPointer<storage::index::Index> GetCatalogIndex(
+      catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog);
 
   /**
    * Fetches a table's schema. If the table is a catalog table, we return the cached schema, otherwise we go to the

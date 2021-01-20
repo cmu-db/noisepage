@@ -1,10 +1,8 @@
 #include "loggers/storage_logger.h"
 
-#include <memory>
-
 namespace noisepage::storage {
 #ifdef NOISEPAGE_USE_LOGGING
-std::shared_ptr<spdlog::logger> storage_logger = nullptr;  // NOLINT
+common::SanctionedSharedPtr<spdlog::logger>::Ptr storage_logger = nullptr;
 
 void InitStorageLogger() {
   if (storage_logger == nullptr) {

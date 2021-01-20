@@ -123,7 +123,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
   // Create a constant value expression to pass to ValueCondition.
   // Floating point numbers have DECIMAL type and are represented as Reals in execution layer.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(6.f));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(6.f));
 
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(catalog::col_oid_t(1), parser::ExpressionType::COMPARE_LESS_THAN,
@@ -137,7 +137,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
 
   // TEST PART 2
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(3.f));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(3.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
@@ -152,7 +152,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
 
   // TEST PART 3
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(0.f));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(0.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
@@ -230,7 +230,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   // TEST PART 1
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(1.0));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(1.0));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(catalog::col_oid_t(2), parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -243,7 +243,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   // TEST PART 2
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(5.0));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(5.0));
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
       ValueCondition(catalog::col_oid_t(2), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
@@ -257,7 +257,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   for (int i = 1; i <= 1000; ++i) {
     // Create a constant value expression to pass to ValueCondition.
     const_value_expr_ptr = std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::DECIMAL, execution::sql::Real(static_cast<float>(i)));
+        type::TypeId::REAL, execution::sql::Real(static_cast<float>(i)));
     // Create a value condition to pass to SelectivityUtil.
     value_condition =
         ValueCondition(catalog::col_oid_t(4), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
@@ -275,7 +275,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
   // Create a constant value expression to pass to ValueCondition.
   // Floating point numbers have DECIMAL type and are represented as Reals in execution layer.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(6.f));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(6.f));
 
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(catalog::col_oid_t(1), parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
@@ -289,7 +289,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
 
   // TEST PART 2
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(3.f));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(3.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(catalog::col_oid_t(1), parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
@@ -303,7 +303,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
 
   // TEST PART 3
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(0.f));
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(0.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(catalog::col_oid_t(1), parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,

@@ -84,13 +84,22 @@ class UpdatePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param index_oids vector of indexes to update
+     * @return builder object
+     */
+    Builder &SetIndexOids(std::vector<catalog::index_oid_t> &&index_oids) {
+      index_oids_ = index_oids;
+      return *this;
+    }
+
+    /**
      * Build the delete plan node
      * @return plan node
      */
     std::unique_ptr<UpdatePlanNode> Build() {
-      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::make_unique<OutputSchema>(),
-                                                                database_oid_, table_oid_, update_primary_key_,
-                                                                indexed_update_, std::move(sets_)));
+      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(
+          std::move(children_), std::make_unique<OutputSchema>(), database_oid_, table_oid_, update_primary_key_,
+          indexed_update_, std::move(sets_), std::move(index_oids_), plan_node_id_));
     }
 
    protected:
@@ -118,6 +127,11 @@ class UpdatePlanNode : public AbstractPlanNode {
      * Set Clauses
      */
     std::vector<SetClause> sets_;
+
+    /**
+     * Vector of indexes to update
+     */
+    std::vector<catalog::index_oid_t> index_oids_;
   };
 
  private:
@@ -130,16 +144,20 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param update_primary_key whether to update primary key
    * @param indexed_update whether to update indexes
    * @param sets SET clauses
+   * @param index_oids Indexes to update
+   * @param plan_node_id Plan node id
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, bool update_primary_key,
-                 bool indexed_update, std::vector<SetClause> sets)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                 bool indexed_update, std::vector<SetClause> sets, std::vector<catalog::index_oid_t> &&index_oids,
+                 plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         database_oid_(database_oid),
         table_oid_(table_oid),
         update_primary_key_(update_primary_key),
         indexed_update_(indexed_update),
-        sets_(std::move(sets)) {}
+        sets_(std::move(sets)),
+        index_oids_(std::move(index_oids)) {}
 
  public:
   /**
@@ -180,6 +198,11 @@ class UpdatePlanNode : public AbstractPlanNode {
   const std::vector<SetClause> &GetSetClauses() const { return sets_; }
 
   /**
+   * @return the indexes to update
+   */
+  const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
+
+  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
@@ -216,6 +239,11 @@ class UpdatePlanNode : public AbstractPlanNode {
    * SET clauses
    */
   std::vector<SetClause> sets_;
+
+  /**
+   * Vector of indexes to update
+   */
+  std::vector<catalog::index_oid_t> index_oids_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(UpdatePlanNode);

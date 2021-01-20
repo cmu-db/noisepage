@@ -137,7 +137,7 @@ std::string SettingsManager::GetString(Param param) {
 DEFINE_SETTINGS_MANAGER_SET(Bool, bool, type::TypeId::BOOLEAN, execution::sql::BoolVal, false);
 DEFINE_SETTINGS_MANAGER_SET(Int, int32_t, type::TypeId::INTEGER, execution::sql::Integer, true);
 DEFINE_SETTINGS_MANAGER_SET(Int64, int64_t, type::TypeId::BIGINT, execution::sql::Integer, true);
-DEFINE_SETTINGS_MANAGER_SET(Double, double, type::TypeId::DECIMAL, execution::sql::Real, true);
+DEFINE_SETTINGS_MANAGER_SET(Double, double, type::TypeId::REAL, execution::sql::Real, true);
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
                                 common::ManagedPointer<ActionContext> action_context,
@@ -197,7 +197,7 @@ bool SettingsManager::ValidateValue(const parser::ConstantValueExpression &value
     case type::TypeId::INTEGER:
       return value.Peek<int32_t>() >= min_value.Peek<int32_t>() && value.Peek<int32_t>() <= max_value.Peek<int32_t>();
     case type::TypeId::BIGINT:
-      return value.Peek<int64_t>() >= min_value.Peek<int64_t>() && value.Peek<int64_t>() <= max_value.Peek<int32_t>();
+      return value.Peek<int64_t>() >= min_value.Peek<int64_t>() && value.Peek<int64_t>() <= max_value.Peek<int64_t>();
     case type::TypeId ::DECIMAL:
       return value.Peek<double>() >= min_value.Peek<double>() && value.Peek<double>() <= max_value.Peek<double>();
     default:
@@ -304,7 +304,7 @@ void SettingsManager::SetParameter(const std::string &name,
       SetInt64(param, value->GetInteger().val_, common::ManagedPointer(&action_context),
                SettingsManager::EmptySetterCallback);
       break;
-    case type::TypeId::DECIMAL:
+    case type::TypeId::REAL:
       SetDouble(param, value->GetReal().val_, common::ManagedPointer(&action_context),
                 SettingsManager::EmptySetterCallback);
       break;

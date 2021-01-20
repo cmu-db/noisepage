@@ -18,7 +18,7 @@ namespace noisepage::execution::compiler {
 
 IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::IDX_SCAN),
+    : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::IDX_SCAN),
       input_oids_(plan.GetColumnOids()),
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(input_oids_)),
@@ -110,11 +110,11 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   // @indexIteratorFree(&index_iter_)
   FreeIterator(function);
 
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
                 GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)}));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+  FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
+                selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_scans_index_));
   FeatureArithmeticRecordSet(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_scans_index_));
 }

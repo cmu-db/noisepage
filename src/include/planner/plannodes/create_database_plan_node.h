@@ -59,9 +59,11 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_name the name of the database
+   * @param plan_node_id Plan node id
    */
   CreateDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                         std::unique_ptr<OutputSchema> output_schema, std::string database_name);
+                         std::unique_ptr<OutputSchema> output_schema, std::string database_name,
+                         plan_node_id_t plan_node_id);
 
  public:
   /**

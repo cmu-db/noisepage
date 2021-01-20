@@ -14,10 +14,10 @@
 namespace noisepage::planner {
 
 std::unique_ptr<CreateTriggerPlanNode> CreateTriggerPlanNode::Builder::Build() {
-  return std::unique_ptr<CreateTriggerPlanNode>(
-      new CreateTriggerPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_,
-                                table_oid_, std::move(trigger_name_), std::move(trigger_funcnames_),
-                                std::move(trigger_args_), std::move(trigger_columns_), trigger_when_, trigger_type_));
+  return std::unique_ptr<CreateTriggerPlanNode>(new CreateTriggerPlanNode(
+      std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
+      std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_), std::move(trigger_columns_),
+      trigger_when_, trigger_type_, plan_node_id_));
 }
 
 CreateTriggerPlanNode::CreateTriggerPlanNode(
@@ -25,8 +25,8 @@ CreateTriggerPlanNode::CreateTriggerPlanNode(
     catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
     std::string trigger_name, std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
     std::vector<catalog::col_oid_t> &&trigger_columns, common::ManagedPointer<parser::AbstractExpression> trigger_when,
-    int16_t trigger_type)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+    int16_t trigger_type, plan_node_id_t plan_node_id)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       database_oid_(database_oid),
       namespace_oid_(namespace_oid),
       table_oid_(table_oid),

@@ -23,6 +23,7 @@ OSX_BUILD_PACKAGES=(\
   "libevent" \
   "libpqxx" \
   "pkg-config" \
+  "python@3.8" \
   "ninja" \
   "tbb" \
   "zeromq" \
@@ -55,6 +56,7 @@ LINUX_BUILD_PACKAGES=(\
   "ninja-build"
   "wget" \
   "zlib1g-dev" \
+  "time" \
 )
 LINUX_TEST_PACKAGES=(\
   "ant" \
@@ -67,12 +69,18 @@ LINUX_TEST_PACKAGES=(\
 # These are the packages that we will install with pip3
 # We will install these for both build and test.
 PYTHON_PACKAGES=(\
-  "pyarrow" \
-  "pandas" \
-  "requests" \
-  "psutil" \
   "distro"  \
-  "PTable"
+  "lightgbm" \
+  "numpy" \
+  "pandas" \
+  "psutil" \
+  "psycopg2" \
+  "pyarrow" \
+  "pyzmq" \
+  "requests" \
+  "sklearn" \
+  "torch" \
+  "tqdm" \
 )
 
 
@@ -166,7 +174,7 @@ install_mac() {
   # Install Homebrew.
   if test ! $(which brew); then
     echo "Installing Homebrew (https://brew.sh/)"
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
   fi
   # Update Homebrew.
   brew update

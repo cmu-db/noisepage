@@ -1,10 +1,13 @@
+def utils // common build functions are loaded from Jenkinsfile-utils into this object
+String utilsFileName  = 'Jenkinsfile-utils'
+
+
 pipeline {
     agent none
-
-    environment{
-        //Do not change. 
+    environment {
+        //Do not change.
         //Performance Storage Service(Django) authentication information. The credentials can only be changed on Jenkins webpage
-        PSS_CREATOR= credentials('pss-creator')
+        PSS_CREATOR = credentials('pss-creator')
     }
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
@@ -16,17 +19,44 @@ pipeline {
     }
 
     stages {
+        stage('Artifact Stats') {
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+
+                // The following command compiles and builds the binary without caching and times the whole operation. 
+                // The time gets output to a file which an artifact stats collector reads, in order to report the metrics.
+                script {
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(useCache:false, buildType:utils.RELEASE_BUILD, isBuildTests:false, isRecordTime:true)
+                }
+
+                sh script: '''
+                cd build
+                python3 ../script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                ''', label: 'Artifact Stats'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
         stage('Performance') {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
-                sh script:'''
-                mkdir build
-                cd build
-                cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
-                ninja noisepage''', label: 'Compiling'
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
+                }
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                 catchError(stageResult: 'Failure'){
                     sh script:'''
@@ -47,6 +77,8 @@ pipeline {
                     ''', label: 'OLTPBench (No WAL)'
                 }
 
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
                 archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
             }
             post {
@@ -60,34 +92,26 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
-                sh script:'''
-                mkdir build
-                cd build
-                cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
-                ninja''', label: 'Compiling'
-
-                script { // TODO: This script block is temporary to get some initial data into microbenchmarks
-                    def iterations = 4
-                    for(int i = 0;i < iterations; i++){
-                        // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
-                        //  # of Threads: 4
-                        //  WAL Path: Ramdisk
-                        sh script:'''
-                        cd script/testing
-                        python3 microbench/run_microbench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                        ''', label:'Microbenchmark'
-
-                        archiveArtifacts 'script/testing/*.json'
-                        junit 'script/testing/*.xml'
-                        // This next line can be removed when the loop is removed
-                        sh 'rm script/testing/*.json'
-                        sh 'rm script/testing/*.xml'
-                    }
-
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildBenchmarks:true)
                 }
 
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
+                //  # of Threads: 4
+                //  WAL Path: Ramdisk
+                sh script:'''
+                cd script/testing
+                python3 microbench/run_microbench.py --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                ''', label:'Microbenchmark'
+
+                archiveArtifacts 'script/testing/*.json'
+                junit 'script/testing/*.xml'
+
+                sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
             }
             post {
                 cleanup {

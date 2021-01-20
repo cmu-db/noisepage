@@ -1,13 +1,11 @@
 #pragma once
 
-#include <memory>
-
 #include "loggers/loggers_util.h"
 
 #ifdef NOISEPAGE_USE_LOGGING
 
 namespace noisepage::parser {
-extern std::shared_ptr<spdlog::logger> parser_logger;  // NOLINT
+extern common::SanctionedSharedPtr<spdlog::logger>::Ptr parser_logger;
 
 void InitParserLogger();
 }  // namespace noisepage::parser

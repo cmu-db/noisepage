@@ -320,7 +320,7 @@ class EXPORT CatalogAccessor {
   proc_oid_t CreateProcedure(const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                              const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                              const std::vector<type_oid_t> &all_arg_types,
-                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                             const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
   /**
@@ -346,20 +346,12 @@ class EXPORT CatalogAccessor {
    * @param func_context The context object to set to
    * @return False if the given proc_oid is invalid, True if else
    */
-  bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context);
+  bool SetFunctionContextPointer(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context);
 
   /**
    * Gets the proc context pointer column of proc_oid
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
-   */
-  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
-
-  /**
-   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
-   * object is reconstructed, put in pg_proc and returned
-   * @param proc_oid The proc_oid whose FunctionContext object we are returning here
-   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
 
@@ -394,8 +386,9 @@ class EXPORT CatalogAccessor {
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
-        search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
-        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID),
+        search_path_({postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
+                      postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID}),
+        default_namespace_(postgres::PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID),
         cache_(cache) {}
 
  private:

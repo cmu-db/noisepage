@@ -14,7 +14,7 @@ from util import io_util, logging_util
 from data_class import opunit_data
 from info import data_info
 from training_util import data_transforming_util, result_writing_util
-from type import Target, ExecutionFeature
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -37,7 +37,10 @@ class MiniTrainer:
         self.expose_all = expose_all
         self.txn_sample_interval = txn_sample_interval
 
-    def _train_specific_model(self, data, y_transformer_idx, method_idx):
+    def get_model_map(self):
+        return self.model_map
+
+    def train_specific_model(self, data, y_transformer_idx, method_idx):
         methods = self.ml_models
         method = methods[method_idx]
         label = method if y_transformer_idx == 0 else method + " transform"
@@ -50,7 +53,7 @@ class MiniTrainer:
         regressor.train(data.x, data.y)
         self.model_map[data.opunit] = regressor
 
-    def _train_data(self, data, summary_file):
+    def train_data(self, data, summary_file):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
                                                                             test_size=self.test_ratio,
                                                                             random_state=0)
@@ -72,8 +75,8 @@ class MiniTrainer:
         error_bias = 1
         min_percentage_error = 2
         pred_results = None
-        elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
-        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
+        elapsed_us_index = data_info.instance.target_csv_index[Target.ELAPSED_US]
+        memory_b_index = data_info.instance.target_csv_index[Target.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1
@@ -111,7 +114,7 @@ class MiniTrainer:
                     # on the elapsed us. For any opunits in MEM_EVALUATE_OPUNITS, we evaluate by comparing the
                     # model error on memory_b.
                     eval_error = percentage_error[elapsed_us_index]
-                    if data.opunit in data_info.MEM_EVALUATE_OPUNITS:
+                    if data.opunit in data_info.instance.MEM_EVALUATE_OPUNITS:
                         eval_error = percentage_error[memory_b_index]
 
                     # Record the model with the lowest elapsed time prediction (since that might be the most
@@ -119,7 +122,7 @@ class MiniTrainer:
                     # Only use linear regression for the arithmetic operating units
                     if (j == 1 and eval_error < min_percentage_error
                             and y_transformer == y_transformers[-1]
-                            and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
+                            and (data.opunit not in data_info.instance.ARITHMETIC_OPUNITS or method == 'lr')):
                         min_percentage_error = eval_error
                         if self.expose_all:
                             best_y_transformer = i
@@ -151,7 +154,7 @@ class MiniTrainer:
         self.model_map = {}
 
         # Create the results files for the paper
-        header = ["OpUnit", "Method"] + [target.name for target in data_info.MINI_MODEL_TARGET_LIST]
+        header = ["OpUnit", "Method"] + [target.name for target in data_info.instance.MINI_MODEL_TARGET_LIST]
         summary_file = "{}/mini_runner.csv".format(self.model_metrics_path)
         io_util.create_csv_file(summary_file, header)
 
@@ -161,9 +164,9 @@ class MiniTrainer:
             data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.txn_sample_interval,
                                                          self.model_map, self.stats_map, self.trim)
             for data in data_list:
-                best_y_transformer, best_method = self._train_data(data, summary_file)
+                best_y_transformer, best_method = self.train_data(data, summary_file)
                 if self.expose_all:
-                    self._train_specific_model(data, best_y_transformer, best_method)
+                    self.train_specific_model(data, best_y_transformer, best_method)
 
         return self.model_map
 
@@ -194,4 +197,4 @@ if __name__ == '__main__':
                           args.expose_all, args.txn_sample_interval)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
-        pickle.dump(trained_model_map, file)
+        pickle.dump((trained_model_map, data_info.instance), file)

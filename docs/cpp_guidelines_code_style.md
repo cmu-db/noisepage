@@ -162,3 +162,32 @@ A DBMS is full of use cases for various concurrent data structures, and there ar
 Concurrent data structures, especially lock-free ones, are not magic. They perform well only in the environment they are designed for. Our advice is to always start simple, and ensure correctness with latches and other simple mechanisms. Performance gain needs to be measured and verified on representative benchmarks, taken against multiple alternatives.
 
 Finally, always prefer a wrapper whose underlying implementation can be swapped out with minimal effort to direct invocation of third-party code, when it comes to data structures.
+
+### Enforcing function access control
+
+Sometimes, `public`, `protected`, and `private` are not granular enough for controlling who can call a function.
+Historically, we have thrown a `@warning` into the function documentation, but unfortunately function comments can be
+outdated and/or ignored. However, if you know exactly which types are allowed to call some function,
+then it is actually possible to enforce this at compile-time (provided that your callers are acting in good faith).
+
+This is done by templatizing your function to take in the `CallerType`, and using a `static_assert` in the
+implementation to check that the `CallerType` is valid. This breaks if the caller is not reporting their `CallerType`
+truthfully, but it is much easier to catch that in code review than it is to check for `@warning` violation.
+You can think of the `CallerType` as a door entry code, with all the security that entails.
+
+An example of this pattern is the following `DatabaseCatalog` function:
+
+```cpp
+template <typename CallerType>
+bool SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
+                           const Schema *schema) {
+  static_assert(std::is_same_v<CallerType, storage::RecoveryManager>, "Only recovery should call this.");
+  ...
+```
+
+Unfortunately, this has the following drawbacks: being templated, the function must either expose its implementation
+in the header or explicit template instantiation must be used. Exposing implementation in the header may require
+adding more `#include`s to the header, which can lead to a painful blowup of compile time, so the latter is preferred.
+
+You may also be interested in the cppreference for [std::enable_if](https://en.cppreference.com/w/cpp/types/enable_if),
+which allows you to compile out functions entirely. However, this may lead to mystery linking errors in tests.

@@ -124,11 +124,14 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param table_oid the OID of the target SQL table
    * @param values values to insert
    * @param parameter_info parameters information
+   * @param index_oids indexes to insert into
+   * @param plan_node_id Plan node id
    */
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                 std::vector<catalog::col_oid_t> &&parameter_info);
+                 std::vector<catalog::col_oid_t> &&parameter_info, std::vector<catalog::index_oid_t> &&index_oids,
+                 plan_node_id_t plan_node_id);
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)
@@ -177,7 +180,7 @@ class InsertPlanNode : public AbstractPlanNode {
   size_t GetBulkInsertCount() const { return values_.size(); }
 
   /**
-   * @return the index_oids used
+   * @return the indexes to insert into
    */
   const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
 
@@ -219,7 +222,7 @@ class InsertPlanNode : public AbstractPlanNode {
   std::vector<catalog::col_oid_t> parameter_info_;
 
   /**
-   * vector of indexes used by this node
+   * Vector of indexes to insert into
    */
   std::vector<catalog::index_oid_t> index_oids_;
 };

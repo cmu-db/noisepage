@@ -9,14 +9,17 @@
 #include <utility>
 #include <vector>
 
-#include "brain/brain_util.h"
-#include "brain/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
+#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/operating_unit_util.h"
 #include "transaction/transaction_defs.h"
 
+namespace noisepage::selfdriving {
+class PilotUtil;
+}
 namespace noisepage::metrics {
 
 /**
@@ -47,12 +50,14 @@ class PipelineMetricRawData : public AbstractRawData {
                      "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
+    auto context = MetricsUtil::GetHardwareContext();
 
     for (auto &data : pipeline_data_) {
       outfile << data.query_id_.UnderlyingValue() << ", ";
       outfile << data.pipeline_id_.UnderlyingValue() << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
+      outfile << context.cpu_mhz_ << ", ";
       outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.GetEstRowsVectorString() << ", ";
       outfile << data.GetKeySizeVectorString() << ", ";
@@ -78,23 +83,24 @@ class PipelineMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "query_id, pipeline_id, num_features, features, exec_mode, num_rows, key_sizes, num_keys, "
+      "query_id, pipeline_id, num_features, features, cpu_freq, exec_mode, num_rows, key_sizes, num_keys, "
       "est_cardinalities, mem_factor, num_loops, num_concurrent"};
 
  private:
   friend class PipelineMetric;
+  friend class selfdriving::PilotUtil;
   FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                          std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                          std::vector<selfdriving::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     pipeline_data_.emplace_back(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 
   struct PipelineData {
     PipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                 std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                 std::vector<selfdriving::ExecutionOperatingUnitFeature> &&features,
                  const common::ResourceTracker::Metrics &resource_metrics)
         : query_id_(query_id),
           pipeline_id_(pipeline_id),
@@ -117,8 +123,8 @@ class PipelineMetricRawData : public AbstractRawData {
     std::string GetFeatureVectorString() {
       std::vector<std::string> types;
       for (auto &feature : features_) {
-        types.emplace_back(
-            brain::BrainUtil::ExecutionOperatingUnitTypeToString(feature.GetExecutionOperatingUnitType()));
+        types.emplace_back(selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(
+            feature.GetExecutionOperatingUnitType()));
       }
       return ConcatVectorToString<std::string>(types);
     }
@@ -182,7 +188,7 @@ class PipelineMetricRawData : public AbstractRawData {
     const execution::query_id_t query_id_;
     const execution::pipeline_id_t pipeline_id_;
     const uint8_t execution_mode_;
-    const std::vector<brain::ExecutionOperatingUnitFeature> features_;
+    const std::vector<selfdriving::ExecutionOperatingUnitFeature> features_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 
@@ -197,7 +203,7 @@ class PipelineMetric : public AbstractMetric<PipelineMetricRawData> {
   friend class MetricsStore;
 
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                          std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                          std::vector<selfdriving::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
