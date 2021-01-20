@@ -181,38 +181,38 @@ TEST(OperatorTests, IndexScanTest) {
 
   // different from index_scan_1 in dbOID
   Operator index_scan_01 = IndexScan::Make(catalog::db_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), false, type, {})
+                                           std::vector<AnnotatedExpression>(), false, type, {}, true)
                                .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in index OID
   Operator index_scan_03 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(4),
-                                           std::vector<AnnotatedExpression>(), false, type, {})
+                                           std::vector<AnnotatedExpression>(), false, type, {}, true)
                                .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in table alias
   Operator index_scan_04 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(5), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), false, type, {})
+                                           std::vector<AnnotatedExpression>(), false, type, {}, true)
                                .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in 'is for update'
   Operator index_scan_05 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), true, type, {})
+                                           std::vector<AnnotatedExpression>(), true, type, {}, true)
                                .RegisterWithTxnContext(txn_context);
   Operator index_scan_1 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>(), false, type, {})
+                                          std::vector<AnnotatedExpression>(), false, type, {}, true)
                               .RegisterWithTxnContext(txn_context);
   Operator index_scan_2 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>(), false, type, {})
+                                          std::vector<AnnotatedExpression>(), false, type, {}, true)
                               .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in predicates
   Operator index_scan_3 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_0}, false, type, {})
+                                          std::vector<AnnotatedExpression>{annotated_expr_0}, false, type, {}, true)
                               .RegisterWithTxnContext(txn_context);
   Operator index_scan_4 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_1}, false, type, {})
+                                          std::vector<AnnotatedExpression>{annotated_expr_1}, false, type, {}, true)
                               .RegisterWithTxnContext(txn_context);
   Operator index_scan_5 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_2}, false, type, {})
+                                          std::vector<AnnotatedExpression>{annotated_expr_2}, false, type, {}, true)
                               .RegisterWithTxnContext(txn_context);
   Operator index_scan_6 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_3}, false, type, {})
+                                          std::vector<AnnotatedExpression>{annotated_expr_3}, false, type, {}, true)
                               .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(index_scan_1.GetOpType(), OpType::INDEXSCAN);

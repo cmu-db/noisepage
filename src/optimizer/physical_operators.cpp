@@ -84,7 +84,8 @@ BaseOperatorNodeContents *IndexScan::Copy() const { return new IndexScan(*this);
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                          std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                          planner::IndexScanType scan_type,
-                         std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds) {
+                         std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
+                         bool cover_all_columns) {
   auto *scan = new IndexScan();
   scan->database_oid_ = database_oid;
   scan->tbl_oid_ = tbl_oid;
@@ -93,6 +94,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tb
   scan->predicates_ = std::move(predicates);
   scan->scan_type_ = scan_type;
   scan->bounds_ = std::move(bounds);
+  scan->cover_all_columns_ = cover_all_columns;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(scan));
 }
 

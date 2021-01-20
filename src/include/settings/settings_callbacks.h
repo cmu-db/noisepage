@@ -79,6 +79,16 @@ class Callbacks {
                             common::ManagedPointer<common::ActionContext> action_context);
 
   /**
+   * Changes the number of buffers the log manager uses.
+   * @param old_value old settings value
+   * @param new_value new settings value
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void WalSerializationInterval(void *old_value, void *new_value, DBMain *db_main,
+                                       common::ManagedPointer<common::ActionContext> action_context);
+
+  /**
    * Enable or disable metrics collection for Logging component
    * @param old_value old settings value
    * @param new_value new settings value
