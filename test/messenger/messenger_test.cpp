@@ -129,7 +129,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
   pthread_cond_init(pcond, &condattr);
 
-  auto spin_until_init = [init, pmutex, pcond]() {
+  auto sleep_until_init = [init, pmutex, pcond]() {
     while (!(init[0] && init[1] && init[2])) {
       pthread_mutex_lock(pmutex);
       pthread_cond_wait(pcond, pmutex);
@@ -137,7 +137,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     }
   };
 
-  auto spin_until_done = [done, pmutex, pcond]() {
+  auto sleep_until_done = [done, pmutex, pcond]() {
     while (!(done[0] && done[1] && done[2])) {
       pthread_mutex_lock(pmutex);
       pthread_cond_wait(pcond, pmutex);
@@ -155,7 +155,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     init[0] = true;
     wake_all();
-    spin_until_init();
+    sleep_until_init();
     DirtySleep();
 
     while (!(done[1] && done[2])) {
@@ -164,7 +164,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
     wake_all();
-    spin_until_done();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
     primary->ForceShutdown();
   };
@@ -175,7 +175,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     init[1] = true;
     wake_all();
-    spin_until_init();
+    sleep_until_init();
     DirtySleep();
 
     // Set up a connection to the primary.
@@ -217,7 +217,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
     wake_all();
-    spin_until_done();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
     replica1->ForceShutdown();
   };
@@ -228,7 +228,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     init[2] = true;
     wake_all();
-    spin_until_init();
+    sleep_until_init();
     DirtySleep();
 
     // Set up a connection to the primary.
@@ -270,7 +270,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     MESSENGER_LOG_TRACE("Replica 2 done.");
     done[2] = true;
     wake_all();
-    spin_until_done();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 2 exit.");
     replica2->ForceShutdown();
   };
@@ -278,7 +278,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn, replica2_fn});
 
   // Spin until all done.
-  spin_until_done();
+  sleep_until_done();
 
   pthread_mutex_destroy(pmutex);
   pthread_mutexattr_destroy(&mutexattr);
@@ -344,12 +344,12 @@ TEST_F(MessengerTests, BasicListenTest) {
   pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
   pthread_cond_init(pcond, &condattr);
 
-  auto spin_until_init = [init]() {
+  auto sleep_until_init = [init]() {
     while (!(init[0] && init[1])) {
     }
   };
 
-  auto spin_until_done = [done]() {
+  auto sleep_until_done = [done]() {
     while (!(done[0] && done[1])) {
     }
   };
@@ -377,7 +377,7 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     init[0] = true;
     wake_all();
-    spin_until_init();
+    sleep_until_init();
     DirtySleep();
 
     while (!done[1]) {
@@ -386,7 +386,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
     wake_all();
-    spin_until_done();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
     primary->ForceShutdown();
   };
@@ -396,7 +396,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     replica1->GetNetworkLayer()->GetServer()->RunServer();
     init[1] = true;
     wake_all();
-    spin_until_init();
+    sleep_until_init();
     DirtySleep();
 
     // Set up a connection to the primary via the listen endpoint.
@@ -432,7 +432,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
     wake_all();
-    spin_until_done();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
     replica1->ForceShutdown();
   };
@@ -440,7 +440,7 @@ TEST_F(MessengerTests, BasicListenTest) {
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn});
 
   // Spin until all done.
-  spin_until_done();
+  sleep_until_done();
 
   pthread_mutex_destroy(pmutex);
   pthread_mutexattr_destroy(&mutexattr);
