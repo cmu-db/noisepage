@@ -500,8 +500,8 @@ class CodeGen {
 
   /**
    * Call \@decimalToSql(). Convert a decimal into a SQL fixed decimal.
-   * @param fixed_decimal The fixed decimal.
-   * @param precision The precision.
+   * @param fixed_decimal The fixed decimal to convert.
+   * @param precision The precision of the fixed decimal.
    * @return The SQL fixed decimal.
    */
   [[nodiscard]] ast::Expr *DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const;

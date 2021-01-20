@@ -433,16 +433,14 @@ class EXPORT Decimal {
    *                    If the input string has more digits than the specified precision, the value is rounded up.
    * @param precision   Number of digits after the decimal point.
    *                    The precision must be <= 38.
-   *
    */
   Decimal(std::string input, int precision);
 
-  /** This function converts an input decimal string to the
-   * underlying decimal representation. We try to retain the
-   * maximum number of digits possible after the decimal point
-   * and set the precision accordingly.
-   * @param input input string
-   * @param precision pointer to return precision for the underlying decimal*/
+  /**
+   * Convert an input string into a decimal representation, taking as many digits as possible.
+   * @param input           The input string to convert.
+   * @param[out] precision  The precision that the decimal was read with.
+   */
   Decimal(std::string input, int *precision);
 
   /**

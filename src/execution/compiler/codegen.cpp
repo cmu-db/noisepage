@@ -580,7 +580,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
       break;
     case type::TypeId::DECIMAL:
-      // The type_mod represents the precision in case of a fixed decimal
+      // The type_mod represents the precision for fixed decimals.
       val = CallBuiltin(ast::Builtin::DecimalRescalePrecision, {val, Const32(type_mod)});
       val->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
       builtin = nullable ? ast::Builtin::PRSetDecimalNull : ast::Builtin::PRSetDecimal;

@@ -1250,36 +1250,32 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(AddDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
+    auto *lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto *rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     OpAddDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
 
   OP(SubDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
+    auto *lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto *rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     OpSubDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
 
   OP(MulDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
+    auto *lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto *rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     OpMulDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
 
   OP(DivDecimal) : {
     auto *dest = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-    auto rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
-
+    auto *lhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
+    auto *rhs = frame->LocalAt<execution::sql::DecimalVal *>(READ_LOCAL_ID());
     OpDivDecimal(dest, lhs, rhs);
     DISPATCH_NEXT();
   }
