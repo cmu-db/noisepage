@@ -217,8 +217,8 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
           case type::TypeId::DECIMAL: {
             {
               // TODO(WAN): Error handling, casting, etc. Definitely not Postgres-compliant right now. #1440
-              noisepage::execution::sql::Decimal128 decimal_val(0);
-              int precision = decimal_val.SetMaxmPrecision(std::string(str_view));
+              int precision;
+              noisepage::execution::sql::Decimal128 decimal_val(std::string(str_view), &precision);
               value->SetValue(type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val, precision));
               break;
             }

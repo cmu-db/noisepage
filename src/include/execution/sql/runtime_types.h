@@ -412,16 +412,6 @@ class EXPORT Timestamp {
 template <typename T>
 class EXPORT Decimal {
  public:
-  /**
-   * Convert an input string into a decimal representation.
-   * @param input       The input string to convert.
-   *                    If the input string has more digits than the specified precision, the value is rounded up.
-   * @param precision   Number of digits after the decimal point.
-   *                    The precision must be <= 38.
-   *
-   * TODO(WAN): This is basically a constructor. Why isn't it a constructor?
-   */
-  void RoundUpAndSet(std::string input, uint32_t precision);
 
   /** Underlying native data type. */
   using NativeType = T;
@@ -437,6 +427,24 @@ class EXPORT Decimal {
    * TODO(WAN): Why do we have an empty constructor? We've been reasonably good about keeping constructors private.
    */
   Decimal() = default;
+
+  /**
+   * Convert an input string into a decimal representation.
+   * @param input       The input string to convert.
+   *                    If the input string has more digits than the specified precision, the value is rounded up.
+   * @param precision   Number of digits after the decimal point.
+   *                    The precision must be <= 38.
+   *
+   */
+  Decimal(std::string input, int precision);
+
+  /** This function converts an input decimal string to the
+   * underlying decimal representation. We try to retain the
+   * maximum number of digits possible after the decimal point
+   * and set the precision accordingly.
+   * @param input input string
+   * @param precision pointer to return precision for the underlying decimal*/
+  Decimal(std::string input, int *precision);
 
   /**
    * @return The raw underlying encoded decimal value.
@@ -595,14 +603,6 @@ class EXPORT Decimal {
   /** Signed version of MultiplyAndSet with a constant
    * @param input the constant to be multiplied with. */
   void SignedMultiplyWithConstant(int64_t input);
-
-  /** This function converts an input decimal string to the
-   * underlying decimal representation. We try to retain the
-   * maximum number of digits possible after the decimal point
-   * and set the precision accordingly.
-   * @param input input string
-   * @return precision for the underlying decimal*/
-  int SetMaxmPrecision(std::string input);
 
  private:
   // The encoded decimal value
