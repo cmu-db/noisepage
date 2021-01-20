@@ -149,6 +149,9 @@ class SettingsManager {
   static void ConstructParamMap(
       std::unordered_map<noisepage::settings::Param, noisepage::settings::ParamInfo> &param_map);  // NOLINT
 
+  /** @return The ParamInfo corresponding to the given parameter; throws exception if doesn't exist. */
+  const ParamInfo &GetParamInfo(const settings::Param &param) const;
+
  private:
   common::ManagedPointer<DBMain> db_main_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
@@ -161,8 +164,6 @@ class SettingsManager {
 
   /** @return The Param corresponding to the given name; throws exception if doesn't exist. */
   Param GetParam(const std::string &name) const;
-  /** @return The ParamInfo corresponding to the given parameter; throws exception if doesn't exist. */
-  const ParamInfo &GetParamInfo(const settings::Param &param) const;
 
   parser::ConstantValueExpression &GetValue(Param param);
   bool SetValue(Param param, parser::ConstantValueExpression value);
