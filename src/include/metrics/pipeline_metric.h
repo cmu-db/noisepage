@@ -17,6 +17,9 @@
 #include "self_driving/modeling/operating_unit_util.h"
 #include "transaction/transaction_defs.h"
 
+namespace noisepage::selfdriving {
+class PilotUtil;
+}
 namespace noisepage::metrics {
 
 /**
@@ -47,12 +50,14 @@ class PipelineMetricRawData : public AbstractRawData {
                      "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
+    auto context = MetricsUtil::GetHardwareContext();
 
     for (auto &data : pipeline_data_) {
       outfile << data.query_id_.UnderlyingValue() << ", ";
       outfile << data.pipeline_id_.UnderlyingValue() << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
+      outfile << context.cpu_mhz_ << ", ";
       outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.GetEstRowsVectorString() << ", ";
       outfile << data.GetKeySizeVectorString() << ", ";
@@ -78,11 +83,12 @@ class PipelineMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "query_id, pipeline_id, num_features, features, exec_mode, num_rows, key_sizes, num_keys, "
+      "query_id, pipeline_id, num_features, features, cpu_freq, exec_mode, num_rows, key_sizes, num_keys, "
       "est_cardinalities, mem_factor, num_loops, num_concurrent"};
 
  private:
   friend class PipelineMetric;
+  friend class selfdriving::PilotUtil;
   FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 

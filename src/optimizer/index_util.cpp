@@ -52,14 +52,14 @@ bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const
   return true;
 }
 
-bool IndexUtil::SatisfiesPredicateWithIndex(
+std::pair<bool, bool> IndexUtil::SatisfiesPredicateWithIndex(
     catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
     catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
     planner::IndexScanType *scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
   auto &index_schema = accessor->GetIndexSchema(index_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
-    return false;
+    return std::make_pair(false, false);
   }
 
   std::vector<catalog::col_oid_t> mapped_cols;
@@ -67,7 +67,7 @@ bool IndexUtil::SatisfiesPredicateWithIndex(
   if (!ConvertIndexKeyOidToColOid(accessor, tbl_oid, index_schema, &lookup, &mapped_cols)) {
     // Unable to translate indexkeycol_oid_t -> col_oid_t
     // Translation uses the IndexSchema::Column expression
-    return false;
+    return std::make_pair(false, false);
   }
 
   std::unordered_set<catalog::col_oid_t> mapped_set;
@@ -77,7 +77,7 @@ bool IndexUtil::SatisfiesPredicateWithIndex(
                          bounds);
 }
 
-bool IndexUtil::CheckPredicates(
+std::pair<bool, bool> IndexUtil::CheckPredicates(
     const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
     const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
     const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
@@ -89,9 +89,10 @@ bool IndexUtil::CheckPredicates(
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_highs;  // <index, low start>
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_lows;   // <index, high end>
   bool left_side = true;
+  bool covered_all_columns = true;
   for (const auto &pred : predicates) {
     auto expr = pred.GetExpr();
-    if (expr->HasSubquery()) return false;
+    if (expr->HasSubquery()) return std::make_pair(false, false);
 
     auto type = expr->GetExpressionType();
     switch (type) {
@@ -163,17 +164,20 @@ bool IndexUtil::CheckPredicates(
               open_lows[idxkey] = idx_expr;
             }
           }
+        } else {
+          // The index schema does not cover a indexable column in the predicates
+          covered_all_columns = false;
         }
         break;
       }
       default:
         // If a predicate can enlarge the result set, then (for now), reject.
-        return false;
+        return std::make_pair(false, false);
     }
   }
 
   // No predicate can actually be used
-  if (open_highs.empty() && open_lows.empty()) return false;
+  if (open_highs.empty() && open_lows.empty()) return std::make_pair(false, false);
 
   // Check predicate open/close ordering
   planner::IndexScanType scan_type = planner::IndexScanType::AscendingClosed;
@@ -230,11 +234,11 @@ bool IndexUtil::CheckPredicates(
     // TODO(John): Ideally this check should be based off of lookups in the catalog.  However, we do not
     // support dynamically defined index types nor do we have `pg_op*` catalog tables to store the necessary
     // data.  For now, this check is sufficient for what the optimizer is doing.
-    return false;
+    return std::make_pair(false, false);
   }
 
   *idx_scan_type = scan_type;
-  return !bounds->empty();
+  return std::make_pair(!bounds->empty(), covered_all_columns);
 }
 
 bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,

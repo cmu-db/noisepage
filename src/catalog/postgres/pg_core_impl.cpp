@@ -644,14 +644,12 @@ bool PgCoreImpl::DeleteTable(const common::ManagedPointer<transaction::Transacti
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() {
       deferred_action_manager->RegisterDeferredAction([=]() {
-        deferred_action_manager->RegisterDeferredAction([=]() {
-          // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
-          // be transactions not yet unlinked by the GC that depend on the table
-          delete schema_ptr;
-          delete table_ptr;
-        }, transaction::DafId::MEMORY_DEALLOCATION);
-      }, transaction::DafId::MEMORY_DEALLOCATION);
-    }, transaction::DafId::MEMORY_DEALLOCATION);
+        // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
+        // be transactions not yet unlinked by the GC that depend on the table
+        delete schema_ptr;
+        delete table_ptr;
+      });
+    });
   });
 
   delete[] buffer;
@@ -974,12 +972,10 @@ bool PgCoreImpl::DeleteIndex(const common::ManagedPointer<transaction::Transacti
           // Unregistering from GC can happen immediately, but we have to double-defer freeing the actual objects
           deferred_action_manager->RegisterDeferredAction([=]() {
             deferred_action_manager->RegisterDeferredAction([=]() {
-              deferred_action_manager->RegisterDeferredAction([=]() {
-                delete schema_ptr;
-                delete index_ptr;
-              }, transaction::DafId::MEMORY_DEALLOCATION);
-            }, transaction::DafId::MEMORY_DEALLOCATION);
-          }, transaction::DafId::MEMORY_DEALLOCATION);
+              delete schema_ptr;
+              delete index_ptr;
+            });
+          });
         });
   }
 

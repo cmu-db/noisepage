@@ -21,23 +21,27 @@ class TestServer:
         args = {k: v for k, v in args.items() if v}
 
         # server output
-        db_output_file = args.get("db_output_file", constants.DEFAULT_DB_OUTPUT_FILE)
+        db_output_file = args.get("db_output_file",
+                                  constants.DEFAULT_DB_OUTPUT_FILE)
         db_host = args.get("db_host", constants.DEFAULT_DB_HOST)
         db_port = args.get("db_port", constants.DEFAULT_DB_PORT)
         build_type = args.get("build_type", "")
         server_args = args.get("server_args", {})
         self.is_dry_run = args.get("dry_run",False)
 
-        self.db_instance = NoisePageServer(db_host, db_port, build_type, server_args, db_output_file)
+        self.db_instance = NoisePageServer(db_host, db_port, build_type,
+                                           server_args, db_output_file)
 
         # whether the server should stop the whole test if one of test cases failed
-        self.continue_on_error = args.get("continue_on_error", constants.DEFAULT_CONTINUE_ON_ERROR)
+        self.continue_on_error = args.get("continue_on_error",
+                                          constants.DEFAULT_CONTINUE_ON_ERROR)
 
         # memory info collection
         self.collect_mem_info = args.get("collect_mem_info", False)
 
         # incremental metrics
-        self.incremental_metric_freq = args.get("incremental_metric_freq", constants.INCREMENTAL_METRIC_FREQ)
+        self.incremental_metric_freq = args.get(
+            "incremental_metric_freq", constants.INCREMENTAL_METRIC_FREQ)
         return
 
     def run_pre_suite(self):
@@ -63,11 +67,12 @@ class TestServer:
                 self.db_instance.db_process.pid, self.incremental_metric_freq,
                 test_case.mem_metrics.mem_info_dict)
             # collect the initial memory info
-            update_mem_info(self.db_instance.db_process.pid, self.incremental_metric_freq,
+            update_mem_info(self.db_instance.db_process.pid,
+                            self.incremental_metric_freq,
                             test_case.mem_metrics.mem_info_dict)
 
         # run the actual test
-        with open(test_case.test_output_file, "w+") as test_output_fd:
+        with open(test_case.test_output_file, "a+") as test_output_fd:
             ret_val, _, _ = run_command(test_case.test_command,
                                         test_case.test_error_msg,
                                         stdout=test_output_fd,
@@ -98,6 +103,8 @@ class TestServer:
             traceback.print_exc(file=sys.stdout)
             test_suite_result = constants.ErrorCode.ERROR
         finally:
+            # run the post suite tasks
+            self.run_post_suite()
             # after the test suite finish, stop the database instance
             self.db_instance.stop_db()
         return self.handle_test_suite_result(test_suite_result)

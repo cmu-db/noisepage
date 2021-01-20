@@ -1,10 +1,31 @@
 # Networking
 
 ## Overview
-A prototype implementation of the Postgres network protocol in C++ in order to support communication with Postgres shell clients with Terrier.
+A prototype implementation of the Postgres network protocol in C++ in order to support communication with Postgres shell clients (psql) with NoisePage.
 
-## Scope
->Which parts of the system will this feature rely on or modify? Write down specifics so people involved can review the design doc
+## Description
+
+- Expected callee: `DBMain`
+- Entry point of the network layer: `NoisePageServer::RunServer()` in `noisepage_server.h`
+- `NoisePageServer::RunServer()` will:
+    1. Create a `ConnectionDispatcherTask` (CDT) with a specified `ProtocolInterpreter` and a list of file descriptors.  
+       Each file descriptor is registered with `libevent` to invoke a callback `connection_dispatcher_fn` whenever  
+       the respective file descriptor becomes readable. The `ProtocolInterpreter` is saved for later use.  
+       When the CDT is run, a pool of `ConnectionHandlerTask` (CHT) threads are created.
+    2. When a file descriptor `fd` becomes readable, the descriptor is dispatched from the CDT to an idle CHT with the `ProtocolInterpreter` from above.
+    3. The CHT creates (or reuses) a new `ConnectionHandle` (CH) to handle `fd` and invokes `ConnectionHandle::RegisterToReceiveEvents()`.
+    4. The CH makes a `NetworkIOWrapper` around `fd` and registers two events:
+       - `workpool_event_`: DOESN'T DO ANYTHING RIGHT NOW. Originally envisioned for future callback support.
+       - `network_event_`: Handle transitions through the state machine of the `ProtocolInterpreter`, which is currently always `PostgresProtocolInterpreter`. See footnote A1.
+    5. It is through `ProtocolInterpreter::Process()` that control flow proceeds to the next layer of the system.  
+       An example is `PostgresProtocolInterpreter::Process() -> SimpleQueryCommand::Exec()`, which goes through the
+       `TrafficCop` before returning control flow to the `PostgresProtocolInterpreter`. 
+    
+**Footnote A1.**
+It was envisioned that the internal Terrier protocol (ITP) would use the same network state machine as Postgres does.
+However, the `Messenger` system serves this purpose instead. This is because it does not necessarily make sense for
+an internal communication protocol to have the same `TryRead`, `TryWrite`, etc., that the Postgres connection handler does.
+
 
 ## Glossary
 
@@ -26,18 +47,3 @@ A prototype implementation of the Postgres network protocol in C++ in order to s
  	* RowDescription (T)
 	* DataRow (D)
 	* CommandComplete (C)
-
-## Architectural Design
->Explain the input and output of the component, describe interactions and breakdown the smaller components if any. Include diagrams if appropriate.
-
-## Design Rationale
->Explain the goals of this design and how the design achieves these goals. Present alternatives considered and document why they are not chosen.
-
-## Testing Plan
-Unit testing of basic command handling is provided by `test/network/network_test.cpp`.  More complete test coverage will be handled by the Junit integration tests.
-
-## Trade-offs and Potential Problems
->Write down any conscious trade-off you made that can be problematic in the future, or any problems discovered during the design process that remain unaddressed (technical debts).
-
-## Future Work
-- Support internal protocol for server-to-server communications
