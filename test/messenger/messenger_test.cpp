@@ -145,7 +145,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     }
   };
 
-  auto wake_all = [pmutex, pcond]() { pthread_cond_broadcast(pcond); };
+  auto wake_all = [pcond]() { pthread_cond_broadcast(pcond); };
 
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
@@ -352,7 +352,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     }
   };
 
-  auto wake_all = [pmutex, pcond]() { pthread_cond_broadcast(pcond); };
+  auto wake_all = [pcond]() { pthread_cond_broadcast(pcond); };
 
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
