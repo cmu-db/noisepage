@@ -27,11 +27,7 @@ class SqlBasedTest : public TplTest {
     TplTest::SetUp();
     // Initialize noisepage objects
 
-    db_main_ = noisepage::DBMain::Builder()
-                   .SetUseGC(true)
-                   .SetUseCatalog(true)
-                   .SetUseStatsStorage(true)
-                   .Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseStatsStorage(true).Build();
     metrics_manager_ = db_main_->GetMetricsManager();
 
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();

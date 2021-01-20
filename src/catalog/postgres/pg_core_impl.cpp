@@ -642,14 +642,22 @@ bool PgCoreImpl::DeleteTable(const common::ManagedPointer<transaction::Transacti
   // Everything succeeded from an MVCC standpoint, register deferred action for the GC with txn manager. See base
   // function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() {
-      deferred_action_manager->RegisterDeferredAction([=]() {
-        // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
-        // be transactions not yet unlinked by the GC that depend on the table
-        delete schema_ptr;
-        delete table_ptr;
-      });
-    });
+    deferred_action_manager->RegisterDeferredAction(
+        [=]() {
+          deferred_action_manager->RegisterDeferredAction(
+              [=]() {
+                deferred_action_manager->RegisterDeferredAction(
+                    [=]() {
+                      // Defer an action upon commit to delete the table. Delete table will need a double deferral
+                      // because there could be transactions not yet unlinked by the GC that depend on the table
+                      delete schema_ptr;
+                      delete table_ptr;
+                    },
+                    transaction::DafId::MEMORY_DEALLOCATION);
+              },
+              transaction::DafId::MEMORY_DEALLOCATION);
+        },
+        transaction::DafId::MEMORY_DEALLOCATION);
   });
 
   delete[] buffer;
@@ -970,12 +978,20 @@ bool PgCoreImpl::DeleteIndex(const common::ManagedPointer<transaction::Transacti
             garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
           }
           // Unregistering from GC can happen immediately, but we have to double-defer freeing the actual objects
-          deferred_action_manager->RegisterDeferredAction([=]() {
-            deferred_action_manager->RegisterDeferredAction([=]() {
-              delete schema_ptr;
-              delete index_ptr;
-            });
-          });
+          deferred_action_manager->RegisterDeferredAction(
+              [=]() {
+                deferred_action_manager->RegisterDeferredAction(
+                    [=]() {
+                      deferred_action_manager->RegisterDeferredAction(
+                          [=]() {
+                            delete schema_ptr;
+                            delete index_ptr;
+                          },
+                          transaction::DafId::MEMORY_DEALLOCATION);
+                    },
+                    transaction::DafId::MEMORY_DEALLOCATION);
+              },
+              transaction::DafId::MEMORY_DEALLOCATION);
         });
   }
 

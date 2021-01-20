@@ -941,13 +941,6 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<storage::GarbageCollectorThread> GetGarbageCollectorThread() const {
-    return common::ManagedPointer(gc_thread_);
-  }
-
-  /**
-   * @return ManagedPointer to the component, can be nullptr if disabled
-   */
   common::ManagedPointer<selfdriving::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
 
   /**
