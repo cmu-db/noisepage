@@ -3651,14 +3651,14 @@ void BytecodeGenerator::VisitMemberExpr(ast::MemberExpr *node) {
   // the issue here at the bytecode level, but always incurs the cost of an
   // additional Lea bytecode as well as an additional store in the IR
 
-//  LocalVar field_ptr;
-//  if (offset == 0) {
-//    field_ptr = obj_ptr;
-//  } else {
-//    field_ptr = GetCurrentFunction()->NewLocal(node->GetType()->PointerTo());
-//    GetEmitter()->EmitLea(field_ptr, obj_ptr, offset);
-//    field_ptr = field_ptr.ValueOf();
-//  }
+  //  LocalVar field_ptr;
+  //  if (offset == 0) {
+  //    field_ptr = obj_ptr;
+  //  } else {
+  //    field_ptr = GetCurrentFunction()->NewLocal(node->GetType()->PointerTo());
+  //    GetEmitter()->EmitLea(field_ptr, obj_ptr, offset);
+  //    field_ptr = field_ptr.ValueOf();
+  //  }
   LocalVar field_ptr = GetCurrentFunction()->NewLocal(node->GetType()->PointerTo());
   GetEmitter()->EmitLea(field_ptr, obj_ptr, offset);
   field_ptr = field_ptr.ValueOf();

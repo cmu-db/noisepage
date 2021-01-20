@@ -738,8 +738,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         case OperandType::LocalCount: {
           std::vector<LocalVar> locals;
           iter.GetLocalCountOperand(i, &locals);
-          // TODO(Kyle): need to make & in order to compile?
-          for (const auto& local : locals) {
+          for (const auto local : locals) {
             args.push_back(locals_map.GetArgumentById(local));
           }
           break;
