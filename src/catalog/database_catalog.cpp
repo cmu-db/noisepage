@@ -116,7 +116,7 @@ table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transactio
 bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table) {
   if (!TryLock(txn)) return false;
-  // Delete associated entries in pg_statistic
+  // Delete associated entries in pg_statistic.
   {
     auto result = pg_stat_.DeleteColumnStatistics<Schema::Column>(txn, table);
     if (!result) return false;
@@ -334,9 +334,12 @@ void DatabaseCatalog::BootstrapIndex(const common::ManagedPointer<transaction::T
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
-  col_oid_t col_oid(1);
-  for (auto &col : schema.GetColumns()) {
-    pg_stat_.CreateColumnStatistic(txn, table_oid, col_oid++, col);
+  // Create associated entries in pg_statistic.
+  {
+    col_oid_t col_oid(1);
+    for (auto &col : schema.GetColumns()) {
+      pg_stat_.CreateColumnStatistic(txn, table_oid, col_oid++, col);
+    }
   }
   return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
 }

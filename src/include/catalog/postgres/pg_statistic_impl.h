@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_statistic.h"
 #include "common/managed_pointer.h"
@@ -40,7 +38,7 @@ class PgStatisticImpl {
    */
   explicit PgStatisticImpl(db_oid_t db_oid);
 
-  /** @brief Bootstrap the projected row initializers for pg_language. */
+  /** @brief Bootstrap the projected row initializers for pg_statistic. */
   void BootstrapPRIs();
 
   /**

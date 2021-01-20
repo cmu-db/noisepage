@@ -304,7 +304,6 @@ class PgCoreImpl {
   void BootstrapPRIsPgClass();
   void BootstrapPRIsPgIndex();
   void BootstrapPRIsPgAttribute();
-  void BootstrapPRIsPgStatistic();
   void BootstrapPgNamespace(common::ManagedPointer<transaction::TransactionContext> txn,
                             common::ManagedPointer<DatabaseCatalog> dbc);
   void BootstrapPgClass(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -312,8 +311,6 @@ class PgCoreImpl {
   void BootstrapPgIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                         common::ManagedPointer<DatabaseCatalog> dbc);
   void BootstrapPgAttribute(common::ManagedPointer<transaction::TransactionContext> txn,
-                            common::ManagedPointer<DatabaseCatalog> dbc);
-  void BootstrapPgStatistic(common::ManagedPointer<transaction::TransactionContext> txn,
                             common::ManagedPointer<DatabaseCatalog> dbc);
   ///@}
 
