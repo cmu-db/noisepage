@@ -31,7 +31,7 @@ class PgStatisticImpl {
   friend class catalog::DatabaseCatalog;  ///< DatabaseCatalog sets up and owns pg_statistic.
 
   /**
-   * @brief Prepare to create pg_language.
+   * @brief Prepare to create pg_statistic.
    *
    * Does NOT create anything until the relevant bootstrap functions are called.
    *
