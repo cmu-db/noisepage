@@ -949,7 +949,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
     }
   }
 
-  // 2. If possible, magic number division.
+  // 2. If not possible, regular division.
   {
     if (magic_map128_bit_constant_division.count(constant) == 0) {
       uint128_t numerator = value_;
@@ -959,7 +959,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
     }
   }
 
-  // 3. Regular division.
+  // 3. Magic Number division.
   {
     // First input
     uint128_t a = value_;
