@@ -61,10 +61,7 @@ class PgStatisticImpl {
                  common::ManagedPointer<DatabaseCatalog> dbc);
 
   /**
-   * Add entry to pg_statistic.
-   *
-   * Currently, this is called inside CreateTableEntry so that each row in pg_attribute (corresponding to a column
-   * of a table) has a corresponding row in pg_statistic.
+   * Add a column statistic entry to pg_statistic.
    *
    * @param txn         The transaction to use.
    * @param table_oid   The OID of the table.
@@ -76,7 +73,7 @@ class PgStatisticImpl {
                              col_oid_t col_oid, const Schema::Column &col);
 
   /**
-   * Delete entry from pg_statistic.
+   * Delete all column statistic entries for a particular table from pg_statistic.
    *
    * @param txn         The transaction to use.
    * @param class_oid   The OID of the table to delete column statistics for.
@@ -93,7 +90,7 @@ class PgStatisticImpl {
    */
   ///@{
   common::ManagedPointer<storage::SqlTable> statistics_;
-  common::ManagedPointer<storage::index::Index> statistics_oid_index_;  // indexed on class OID and column OID
+  common::ManagedPointer<storage::index::Index> statistics_oid_index_;  // indexed on starelid, staattnum
   storage::ProjectedRowInitializer pg_statistic_all_cols_pri_;
   storage::ProjectionMap pg_statistic_all_cols_prm_;
   storage::ProjectedRowInitializer delete_statistics_pri_;
