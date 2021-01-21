@@ -35,7 +35,7 @@ class PgStatisticImpl {
    *
    * Does NOT create anything until the relevant bootstrap functions are called.
    *
-   * @param db_oid          The OID of the database that pg_language should be created in.
+   * @param db_oid          The OID of the database that pg_statistic should be created in.
    */
   explicit PgStatisticImpl(db_oid_t db_oid);
 
