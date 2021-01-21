@@ -70,16 +70,14 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
   const auto &oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
   const auto &oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
 
-  byte *const buffer = common::AllocationUtil::AllocateAligned(delete_statistics_pri_.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
+  byte *const key_buffer_2 = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
 
   // Look for the column statistic in pg_statistic_index.
   std::vector<storage::TupleSlot> index_results;
   {
-    NOISEPAGE_ASSERT(delete_statistics_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                     "Buffer must be large enough to fit largest PR.");
-    auto *pr_lo = oid_pri.InitializeRow(buffer);
-    auto *pr_hi = oid_pri.InitializeRow(key_buffer);
+    auto *pr_lo = oid_pri.InitializeRow(key_buffer);
+    auto *pr_hi = oid_pri.InitializeRow(key_buffer_2);
 
     // Low key (class, INVALID_COLUMN_OID)
     pr_lo->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
@@ -94,11 +92,16 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
         !index_results.empty(),
         "Incorrect number of results from index scan. empty() implies that function was called with an oid "
         "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
+    if (index_results.empty()) {
+      delete[] key_buffer;
+      delete[] key_buffer_2;
+      return false;
+    }
   }
 
   // Scan pg_statistic to get the columns.
   {
-    auto pr = common::ManagedPointer(delete_statistics_pri_.InitializeRow(buffer));
+    auto pr = common::ManagedPointer(delete_statistics_pri_.InitializeRow(key_buffer));
     for (const auto &slot : index_results) {
       auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr.Get());
       NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
@@ -112,15 +115,15 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
         txn->StageDelete(db_oid_, PgStatistic::STATISTIC_TABLE_OID, slot);
         result = statistics_->Delete(txn, slot);
         if (!result) {  // Failed to delete some column. Ask to abort.
-          delete[] buffer;
           delete[] key_buffer;
+          delete[] key_buffer_2;
           return false;
         }
       }
 
       // Delete from pg_statistic_index.
       {
-        auto *key_pr = oid_pri.InitializeRow(key_buffer);
+        auto *key_pr = oid_pri.InitializeRow(key_buffer_2);
         key_pr->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
         key_pr->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), *col_oid, false);
         statistics_oid_index_->Delete(txn, *key_pr, slot);
@@ -128,8 +131,8 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
     }
   }
 
-  delete[] buffer;
   delete[] key_buffer;
+  delete[] key_buffer_2;
   return true;
 }
 
