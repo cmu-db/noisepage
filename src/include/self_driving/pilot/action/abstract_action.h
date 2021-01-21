@@ -68,6 +68,15 @@ class AbstractAction {
    */
   virtual const std::string &GetSQLCommand() { return sql_command_; }
 
+  /**
+   * Check whether the action is valid to apply.
+   * Possible scenarios that the action is invalid to apply: the knob setting is out of the valid range, the index
+   * requires more memory than available in the system, etc.
+   * TODO(lin): add the available memory as input param
+   * @return true if the action is valid to apply, false otherwise
+   */
+  virtual bool IsValid() { return true; }
+
  protected:
   std::string sql_command_;  ///< The SQL commaned used to apply the action
 

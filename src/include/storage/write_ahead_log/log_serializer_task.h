@@ -74,12 +74,18 @@ class LogSerializerTask : public common::DedicatedThreadTask {
     }
   }
 
+  /**
+   * Set the new log serialization interval in microseconds.
+   * @param interval the new serialization interval in microseconds (should > 0)
+   */
+  void SetSerializationInterval(int32_t interval) { serialization_interval_ = std::chrono::microseconds(interval); }
+
  private:
   friend class LogManager;
   // Flag to signal task to run or stop
   bool run_task_;
   // Interval for serialization
-  const std::chrono::microseconds serialization_interval_;
+  std::chrono::microseconds serialization_interval_;
 
   // Used to release processed buffers
   RecordBufferSegmentPool *buffer_pool_;
