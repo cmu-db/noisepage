@@ -32,16 +32,16 @@ void PgStatisticImpl::Bootstrap(common::ManagedPointer<transaction::TransactionC
                       Builder::GetStatisticOidIndexSchema(db_oid_), statistics_oid_index_);
 }
 
-template <typename Column, typename ClassOid, typename ColOid>
 void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            const ClassOid class_oid, const ColOid col_oid, const Column &col) {
+                                            const table_oid_t table_oid, const col_oid_t col_oid,
+                                            const Schema::Column &col) {
   auto *const redo = txn->StageWrite(db_oid_, PgStatistic::STATISTIC_TABLE_OID, pg_statistic_all_cols_pri_);
   auto delta = common::ManagedPointer(redo->Delta());
   auto &pm = pg_statistic_all_cols_prm_;
 
   // Prepare the PR for insertion.
   {
-    PgStatistic::STARELID.Set(delta, pm, class_oid);
+    PgStatistic::STARELID.Set(delta, pm, table_oid);
     PgStatistic::STAATTNUM.Set(delta, pm, col_oid);
     PgStatistic::STA_NULLROWS.Set(delta, pm, 0);
     PgStatistic::STA_NUMROWS.Set(delta, pm, 0);
@@ -55,8 +55,8 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
   // Insert into pg_statistic_index.
   {
     auto *pr = oid_pri.InitializeRow(buffer);
-    pr->Set<ClassOid, false>(oid_prm[indexkeycol_oid_t(1)], class_oid, false);
-    pr->Set<ColOid, false>(oid_prm[indexkeycol_oid_t(2)], col_oid, false);
+    pr->Set<table_oid_t, false>(oid_prm[indexkeycol_oid_t(1)], table_oid, false);
+    pr->Set<col_oid_t, false>(oid_prm[indexkeycol_oid_t(2)], col_oid, false);
 
     bool UNUSED_ATTRIBUTE result = statistics_oid_index_->InsertUnique(txn, *pr, tuple_slot);
     NOISEPAGE_ASSERT(result, "Assigned pg_statistic OIDs failed to be unique.");
@@ -65,9 +65,8 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
   delete[] buffer;
 }
 
-template <typename Column, typename ClassOid>
 bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                             const ClassOid class_oid) {
+                                             const table_oid_t table_oid) {
   const auto &oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
   const auto &oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
 
@@ -82,13 +81,13 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
     auto *pr_lo = oid_pri.InitializeRow(buffer);
     auto *pr_hi = oid_pri.InitializeRow(key_buffer);
 
-    // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-    pr_lo->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), class_oid, false);
-    pr_lo->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), 0, false);
+    // Low key (class, INVALID_COLUMN_OID)
+    pr_lo->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
+    pr_lo->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), INVALID_COLUMN_OID, false);
 
-    // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-    pr_hi->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), ClassOid(class_oid + 1), false);
-    pr_hi->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), 0, false);
+    // High key (class + 1, INVALID_COLUMN_OID)
+    pr_hi->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid + 1, false);
+    pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), INVALID_COLUMN_OID, false);
 
     statistics_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
     NOISEPAGE_ASSERT(
@@ -122,8 +121,8 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
       // Delete from pg_statistic_index.
       {
         auto *key_pr = oid_pri.InitializeRow(key_buffer);
-        key_pr->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), class_oid, false);
-        key_pr->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid->UnderlyingValue(), false);
+        key_pr->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
+        key_pr->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), *col_oid, false);
         statistics_oid_index_->Delete(txn, *key_pr, slot);
       }
     }

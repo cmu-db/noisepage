@@ -118,7 +118,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   if (!TryLock(txn)) return false;
   // Delete associated entries in pg_statistic.
   {
-    auto result = pg_stat_.DeleteColumnStatistics<Schema::Column>(txn, table);
+    auto result = pg_stat_.DeleteColumnStatistics(txn, table);
     if (!result) return false;
   }
   return pg_core_.DeleteTable(txn, common::ManagedPointer(this), table);

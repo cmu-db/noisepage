@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_statistic.h"
+#include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
@@ -65,25 +66,23 @@ class PgStatisticImpl {
    * Currently, this is called inside CreateTableEntry so that each row in pg_attribute (corresponding to a column
    * of a table) has a corresponding row in pg_statistic.
    *
-   * @tparam Column type of column (IndexSchema::Column or Schema::Column)
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @param col column to insert
-   * @param default_val default value
-   * @return whether insertion is successful
+   * @param txn         The transaction to use.
+   * @param table_oid   The OID of the table.
+   * @param col_oid     The OID of the column.
+   * @param col         The column to insert.
+   * @return            True if the insert succeeded. False otherwise.
    */
-  template <typename Column, typename ClassOid, typename ColOid>
-  void CreateColumnStatistic(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid,
-                             ColOid col_oid, const Column &col);
+  void CreateColumnStatistic(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                             col_oid_t col_oid, const Schema::Column &col);
 
   /**
    * Delete entry from pg_statistic.
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @return whether deletion was successful
+   *
+   * @param txn         The transaction to use.
+   * @param class_oid   The OID of the table to delete column statistics for.
+   * @return            True if the delete was successful. False otherwise.
    */
-  template <typename Column, typename ClassOid>
-  bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
+  bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid);
 
   const db_oid_t db_oid_;
 

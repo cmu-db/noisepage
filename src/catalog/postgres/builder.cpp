@@ -691,7 +691,8 @@ Schema Builder::GetStatisticTableSchema() {
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PgStatistic::STA_NULLROWS.oid_);
 
-  columns.emplace_back("stanumrows", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.emplace_back("stanumrows", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PgStatistic::STA_NUMROWS.oid_);
 
   return Schema(columns);
