@@ -1045,7 +1045,7 @@ void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
 
   // Second input
   uint128_t b;
-  if (input < 0) {
+  if (input > 0) {
     b = input;
   } else {
     b = -input;
