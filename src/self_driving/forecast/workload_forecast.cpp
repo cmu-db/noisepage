@@ -39,7 +39,10 @@ void WorkloadForecast::CreateSegments() {
       curr_time = it.first;
       curr_segment = std::unordered_map<execution::query_id_t, uint64_t>();
     }
+
+    if (curr_segment.find(it.second) == curr_segment.end()) curr_segment.emplace(it.second, 0);
     curr_segment[it.second] += 1;
+
     if (std::find(db_oids.begin(), db_oids.end(), query_id_to_dboid_[it.second]) == db_oids.end()) {
       db_oids.push_back(query_id_to_dboid_[it.second]);
     }

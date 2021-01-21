@@ -42,7 +42,7 @@ class PilotUtil {
    */
   static const std::list<metrics::PipelineMetricRawData::PipelineData> &CollectPipelineFeatures(
       common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-      uint64_t start_segment_index, uint64_t end_segment_index);
+      uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids);
 
   /**
    * Perform inference through model server manager with collected pipeline metrics
@@ -54,6 +54,7 @@ class PilotUtil {
    */
   static void InferenceWithFeatures(
       const std::string &model_save_path, common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+      const std::vector<execution::query_id_t> &pipeline_qids,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
                std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
@@ -102,6 +103,7 @@ class PilotUtil {
   static void GroupFeaturesByOU(
       std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
                            std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
+      const std::vector<execution::query_id_t> &pipeline_qids,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
 };

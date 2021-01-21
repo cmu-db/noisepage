@@ -19,6 +19,7 @@
 
 namespace noisepage::selfdriving {
 class PilotUtil;
+class Pilot;
 }
 namespace noisepage::metrics {
 
@@ -89,6 +90,7 @@ class PipelineMetricRawData : public AbstractRawData {
  private:
   friend class PipelineMetric;
   friend class selfdriving::PilotUtil;
+  friend class selfdriving::Pilot;
   FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 

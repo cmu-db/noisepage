@@ -98,6 +98,7 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
 
   for (const auto &action_id : candidate_actions) {
     // expand each action not yet applied
+    if (!action_map.at(action_id)->IsValid()) continue;
     PilotUtil::ApplyAction(pilot, db_oids, action_map.at(action_id)->GetSQLCommand());
 
     uint64_t child_segment_cost =
