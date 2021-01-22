@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "common/resource_tracker.h"
 #include "catalog/catalog_defs.h"
+#include "common/resource_tracker.h"
 #include "self_driving/pilot/action/action_defs.h"
 
 namespace noisepage::selfdriving::pilot {
