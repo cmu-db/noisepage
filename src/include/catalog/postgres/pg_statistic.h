@@ -5,6 +5,10 @@
 #include "catalog/catalog_column_def.h"
 #include "catalog/catalog_defs.h"
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::catalog::postgres {
 class Builder;
 class PgStatisticImpl;
