@@ -90,11 +90,11 @@ class PgStatisticImpl {
    */
   ///@{
   common::ManagedPointer<storage::SqlTable> statistics_;
-  common::ManagedPointer<storage::index::Index> statistics_oid_index_;  // indexed on starelid, staattnum
+  common::ManagedPointer<storage::index::Index> statistic_oid_index_;  // indexed on starelid, staattnum
   storage::ProjectedRowInitializer pg_statistic_all_cols_pri_;
   storage::ProjectionMap pg_statistic_all_cols_prm_;
-  storage::ProjectedRowInitializer delete_statistics_pri_;
-  storage::ProjectionMap delete_statistics_prm_;
+  storage::ProjectedRowInitializer statistic_oid_index_pri_;
+  storage::ProjectionMap statistic_oid_index_prm_;
   ///@}
 };
 

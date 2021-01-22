@@ -12,6 +12,7 @@ class PgStatisticImpl;
 /** The OIDs used by the NoisePage version of pg_statistic. */
 class PgStatistic {
  private:
+  friend class storage::RecoveryManager;
   friend class Builder;
   friend class PgStatisticImpl;
 

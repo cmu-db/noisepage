@@ -146,7 +146,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PgProc::PRO_NAME_INDEX_OID);
 
   // Indexes on pg_statistic
-  dbc->pg_stat_.statistics_oid_index_ =
+  dbc->pg_stat_.statistic_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetStatisticOidIndexSchema(oid), PgStatistic::STATISTIC_OID_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);

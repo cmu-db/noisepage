@@ -17,10 +17,9 @@ void PgStatisticImpl::BootstrapPRIs() {
                                                      PgStatistic::PG_STATISTIC_ALL_COL_OIDS.end()};
   pg_statistic_all_cols_pri_ = statistics_->InitializerForProjectedRow(pg_statistic_all_oids);
   pg_statistic_all_cols_prm_ = statistics_->ProjectionMapForOids(pg_statistic_all_oids);
-
-  const std::vector<col_oid_t> delete_statistics_oids{PgStatistic::STAATTNUM.oid_};
-  delete_statistics_pri_ = statistics_->InitializerForProjectedRow(delete_statistics_oids);
-  delete_statistics_prm_ = statistics_->ProjectionMapForOids(delete_statistics_oids);
+  const std::vector<col_oid_t> statistic_oid_index_oids{PgStatistic::STARELID.oid_, PgStatistic::STAATTNUM.oid_};
+  statistic_oid_index_pri_ = statistics_->InitializerForProjectedRow(statistic_oid_index_oids);
+  statistic_oid_index_prm_ = statistics_->ProjectionMapForOids(statistic_oid_index_oids);
 }
 
 void PgStatisticImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -29,7 +28,7 @@ void PgStatisticImpl::Bootstrap(common::ManagedPointer<transaction::TransactionC
                       "pg_statistic", Builder::GetStatisticTableSchema(), statistics_);
   dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgStatistic::STATISTIC_TABLE_OID,
                       PgStatistic::STATISTIC_OID_INDEX_OID, "pg_statistic_index",
-                      Builder::GetStatisticOidIndexSchema(db_oid_), statistics_oid_index_);
+                      Builder::GetStatisticOidIndexSchema(db_oid_), statistic_oid_index_);
 }
 
 void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -48,8 +47,8 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
   }
   const auto tuple_slot = statistics_->Insert(txn, redo);
 
-  const auto oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
-  auto oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
+  const auto oid_pri = statistic_oid_index_->GetProjectedRowInitializer();
+  auto oid_prm = statistic_oid_index_->GetKeyOidToOffsetMap();
   byte *const buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
 
   // Insert into pg_statistic_index.
@@ -58,7 +57,7 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
     pr->Set<table_oid_t, false>(oid_prm[indexkeycol_oid_t(1)], table_oid, false);
     pr->Set<col_oid_t, false>(oid_prm[indexkeycol_oid_t(2)], col_oid, false);
 
-    bool UNUSED_ATTRIBUTE result = statistics_oid_index_->InsertUnique(txn, *pr, tuple_slot);
+    bool UNUSED_ATTRIBUTE result = statistic_oid_index_->InsertUnique(txn, *pr, tuple_slot);
     NOISEPAGE_ASSERT(result, "Assigned pg_statistic OIDs failed to be unique.");
   }
 
@@ -67,8 +66,8 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
 
 bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transaction::TransactionContext> txn,
                                              const table_oid_t table_oid) {
-  const auto &oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
-  const auto &oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
+  const auto &oid_pri = statistic_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_prm = statistic_oid_index_->GetKeyOidToOffsetMap();
 
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
   byte *const key_buffer_2 = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
@@ -79,42 +78,35 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
     auto *pr_lo = oid_pri.InitializeRow(key_buffer);
     auto *pr_hi = oid_pri.InitializeRow(key_buffer_2);
 
-    // Low key (class, INVALID_COLUMN_OID)
+    // Low key (class, min col_oid_t)
     pr_lo->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
-    pr_lo->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), INVALID_COLUMN_OID, false);
+    pr_lo->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::min()),
+                                 false);
 
-    // High key (class + 1, INVALID_COLUMN_OID)
+    // High key (class + 1, max col_oid_t)
     pr_hi->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid + 1, false);
-    pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), INVALID_COLUMN_OID, false);
+    pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::max()),
+                                 false);
 
-    statistics_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
-    NOISEPAGE_ASSERT(
-        !index_results.empty(),
-        "Incorrect number of results from index scan. empty() implies that function was called with an oid "
-        "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
-    if (index_results.empty()) {
-      delete[] key_buffer;
-      delete[] key_buffer_2;
-      return false;
-    }
+    statistic_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
+    // TODO(WAN): Is there an assertion that we can make here?
   }
 
   // Scan pg_statistic to get the columns.
-  {
-    auto pr = common::ManagedPointer(delete_statistics_pri_.InitializeRow(key_buffer));
+  if (!index_results.empty()) {
+    auto pr = common::ManagedPointer(statistic_oid_index_pri_.InitializeRow(key_buffer));
     for (const auto &slot : index_results) {
       auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr.Get());
       NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-      auto &pm = delete_statistics_prm_;
+      auto &pm = statistic_oid_index_prm_;
       auto *col_oid = PgStatistic::STAATTNUM.Get(pr, pm);
       NOISEPAGE_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
       // Delete from pg_statistic.
       {
         txn->StageDelete(db_oid_, PgStatistic::STATISTIC_TABLE_OID, slot);
-        result = statistics_->Delete(txn, slot);
-        if (!result) {  // Failed to delete some column. Ask to abort.
+        if (!statistics_->Delete(txn, slot)) {  // Failed to delete some column. Ask to abort.
           delete[] key_buffer;
           delete[] key_buffer_2;
           return false;
@@ -126,7 +118,7 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
         auto *key_pr = oid_pri.InitializeRow(key_buffer_2);
         key_pr->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
         key_pr->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), *col_oid, false);
-        statistics_oid_index_->Delete(txn, *key_pr, slot);
+        statistic_oid_index_->Delete(txn, *key_pr, slot);
       }
     }
   }
