@@ -79,8 +79,8 @@ TEST_F(ModelServerTest, PipelineTest) {
   std::string msg = "ModelServerTest";
   ms_manager->PrintMessage(msg);
 
-  // Perform a training of the opunit models with {lr, gbm} as training methods.
-  std::vector<std::string> methods{"lr", "gbm"};
+  // Perform a training of the opunit models with {lr, rf} as training methods.
+  std::vector<std::string> methods{"lr", "rf"};
   std::string save_path = "model_server_test.pickle";
 
   ModelServerFuture<std::string> future;
