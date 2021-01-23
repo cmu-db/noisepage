@@ -82,6 +82,10 @@ TEST_F(GenerateIndexAction, GenerateSingleColumnIndexAction) {
   action_id_t second_action_id = action_ids[1];
   EXPECT_EQ(action_map[first_action_id]->GetReverseActions()[0], second_action_id);
   EXPECT_EQ(action_map[second_action_id]->GetReverseActions()[0], first_action_id);
+  EXPECT_EQ(action_map[first_action_id]->GetEnabledActions()[0], second_action_id);
+  EXPECT_EQ(action_map[second_action_id]->GetEnabledActions()[0], first_action_id);
+  EXPECT_EQ(action_map[first_action_id]->GetInvalidatedActions()[0], first_action_id);
+  EXPECT_EQ(action_map[second_action_id]->GetInvalidatedActions()[0], second_action_id);
 }
 
 // NOLINTNEXTLINE
