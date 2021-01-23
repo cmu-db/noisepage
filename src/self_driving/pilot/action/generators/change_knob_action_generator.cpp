@@ -62,7 +62,7 @@ void ChangeKnobActionGenerator::GenerateActionForType(
       // Populate the reverse actions
       action_map->at(first_action_id)->AddReverseAction(second_action_id);
 
-      // Note that change knob actions do not have any enabled/invalidated actions since they're based on deltas and
+      // NOTE: change knob actions do not have any enabled/invalidated actions since they're based on deltas and
       // always valid (unless exceeds the knob setting limit, which is handled by `ChangeKnobAction::IsValid()`).
     }
   }
