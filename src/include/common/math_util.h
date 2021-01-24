@@ -7,6 +7,7 @@
 #include <numeric>
 
 #include "common/macros.h"
+#include "common/strong_typedef.h"
 
 namespace noisepage::common {
 
@@ -143,6 +144,20 @@ class MathUtil {
       result *= i;
     }
     return result;
+  }
+
+  /**
+   * Compute the number of leading zeroes in num, ASSUMING THAT num IS NOT ZERO.
+   * @param u 128-bit unsigned integer, must not be 0.
+   * @return The number of leading zeroes in 128-bit unsigned integer u.
+   */
+  static int32_t GetNumLeadingZeroesAssumingNonZero(uint128_t num) {
+    NOISEPAGE_ASSERT(num != 0, "num cannot be 0");
+    uint64_t hi = num >> 64;
+    uint64_t lo = num;
+    int32_t retval[2] = {__builtin_clzll(hi), __builtin_clzll(lo) + 64};
+    auto idx = static_cast<int32_t>(hi == 0);
+    return retval[idx];
   }
 
   /**

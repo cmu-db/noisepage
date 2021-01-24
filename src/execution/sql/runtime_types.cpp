@@ -4,6 +4,7 @@
 
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
+#include "common/math_util.h"
 #include "execution/sql/decimal_magic_numbers.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -663,8 +664,11 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
 //
 //===----------------------------------------------------------------------===//
 
+namespace {
+
 void CalculateMultiWordProduct128(const uint128_t *const half_words_a, const uint128_t *const half_words_b,
                                   uint128_t *half_words_result, uint32_t m, uint32_t n) {
+  // Hacker's Delight [2E Figure 8-1]
   uint128_t k, t;
   uint32_t i, j;
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
@@ -680,51 +684,7 @@ void CalculateMultiWordProduct128(const uint128_t *const half_words_a, const uin
   }
 }
 
-int Nlz128(uint128_t x) {
-  // Hacker's Delight [2E Figure 5-19] has a method for computing the number of
-  // leading zeroes, but their method is not applicable as we need 128 bits.
-  constexpr uint128_t a = (static_cast<uint128_t>(0x0000000000000000) << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t b = (static_cast<uint128_t>(0x00000000FFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t c = (static_cast<uint128_t>(0x0000FFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t d = (static_cast<uint128_t>(0x00FFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t e = (static_cast<uint128_t>(0x0FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t f = (static_cast<uint128_t>(0x3FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
-  constexpr uint128_t g = (static_cast<uint128_t>(0x7FFFFFFFFFFFFFFF) << 64) | 0xFFFFFFFFFFFFFFFF;
-
-  // TODO(WAN): clang believes that this can result in a shift of 128 bits, which would result in undefined behavior.
-  //  clang has historically been reliable, so let's double-check this one eventually.
-  // clang made me comment this
-  // if (x == 0) return (128);
-  int n = 0;
-  if (x <= a) {
-    n = n + 64;
-    x = x << 64;
-  }
-  if (x <= b) {
-    n = n + 32;
-    x = x << 32;
-  }
-  if (x <= c) {
-    n = n + 16;
-    x = x << 16;
-  }
-  if (x <= d) {
-    n = n + 8;
-    x = x << 8;
-  }
-  if (x <= e) {
-    n = n + 4;
-    x = x << 4;
-  }
-  if (x <= f) {
-    n = n + 2;
-    x = x << 2;
-  }
-  if (x <= g) {
-    n = n + 1;
-  }
-  return n;
-}
+}  // namespace
 
 uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t v) {
   if (u1 >= v) {
@@ -737,7 +697,7 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t
   b = b << 64;
 
   uint128_t un1, un0, vn1, vn0, q1, q0, un32, un21, un10, rhat;
-  int128_t s = Nlz128Fast(v);
+  int128_t s = common::MathUtil::GetNumLeadingZeroesAssumingNonZero(v);
 
   // Normalize everything
   v = v << s;
