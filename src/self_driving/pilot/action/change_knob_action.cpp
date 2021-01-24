@@ -8,7 +8,8 @@ namespace noisepage::selfdriving::pilot {
 template <class T>
 ChangeKnobAction<T>::ChangeKnobAction(settings::Param param, std::string param_name, T change_value,
                                       common::ManagedPointer<settings::SettingsManager> settings_manager)
-    : AbstractAction(ActionType::CHANGE_KNOB),
+    // ChangeKnobAction should not need a database oid so put the invalid oid here
+    : AbstractAction(ActionType::CHANGE_KNOB, catalog::INVALID_DATABASE_OID),
       param_(param),
       param_name_(std::move(param_name)),
       change_value_(change_value),
