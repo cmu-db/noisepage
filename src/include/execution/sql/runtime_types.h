@@ -530,20 +530,14 @@ class EXPORT Decimal {
   }
 
   /**
-   * Get the underlying value of the decimal
-   * @return This decimal value.
    *
-   * TODO(WAN): Abstraction leak. Why?
+   * @param precision
+   * @return
    */
-  T GetValue() const { return value_; }
+  std::string ToString(int32_t precision) const;
 
-  /**
-   * Set the underlying value of the decimal
-   * @param value The value to be set.
-   *
-   * TODO(WAN): Abstraction leak. Why?
-   */
-  void SetValue(T value) { value_ = value; }
+  /** @return The native representation of the decimal. */
+  T ToNative() const { return value_; }
 
   /**
    * Divide the current decimal by the given decimal.
@@ -553,6 +547,17 @@ class EXPORT Decimal {
    * @param denominator_precision The precision of the denominator.
    */
   void SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denominator_precision);
+
+  /** Signed version of MultiplyAndSet
+   * @param input the decimal to be multiplied with
+   * @param lower_precision Number of digits after decimal point
+   * of the decimal with lower precision. Note the result will be stored in
+   * the higher precision value.*/
+  void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
+
+ private:
+  // The encoded decimal value
+  T value_;
 
   /**
    * Divide the current decimal by the unsigned 128-bit constant supplied.
@@ -590,20 +595,9 @@ class EXPORT Decimal {
    */
   void MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t precision);
 
-  /** Signed version of MultiplyAndSet
-   * @param input the decimal to be multiplied with
-   * @param lower_precision Number of digits after decimal point
-   * of the decimal with lower precision. Note the result will be stored in
-   * the higher precision value.*/
-  void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
-
   /** Signed version of MultiplyAndSet with a constant
    * @param input the constant to be multiplied with. */
   void SignedMultiplyWithConstant(int64_t input);
-
- private:
-  // The encoded decimal value
-  T value_;
 
   /**
    * Divide the current positive unsigned 128-bit integer by a power of ten.

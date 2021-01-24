@@ -179,7 +179,7 @@ common::hash_t ConstantValueExpression::Hash() const {
     }
     case type::TypeId::DECIMAL: {
       return common::HashUtil::CombineHashes(hash,
-                                             common::HashUtil::Hash(Peek<execution::sql::Decimal128>().GetValue()));
+                                             common::HashUtil::Hash(Peek<execution::sql::Decimal128>().ToNative()));
     }
     case type::TypeId::TIMESTAMP: {
       return common::HashUtil::CombineHashes(hash,

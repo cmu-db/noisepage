@@ -600,19 +600,19 @@ VM_OP_HOT void OpDecimalSetPrecision(noisepage::execution::sql::DecimalVal *resu
 VM_OP_HOT void OpDecimalRescalePrecision(noisepage::execution::sql::DecimalVal *result,
                                          noisepage::execution::sql::DecimalVal *source, int32_t new_precision) {
   result->is_null_ = source->is_null_;
-  result->val_.SetValue(source->val_.GetValue());
+  result->val_ = noisepage::execution::sql::Decimal128(source->val_.ToNative());
   if (source->precision_ < new_precision) {
-    int128_t value = result->val_.GetValue();
+    int128_t value = result->val_.ToNative();
     for (int i = 0; i < new_precision - source->precision_; i++) {
       value *= 10;
     }
-    result->val_.SetValue(value);
+    result->val_ = noisepage::execution::sql::Decimal128(value);
   } else if (source->precision_ > new_precision) {
-    int128_t value = result->val_.GetValue();
+    int128_t value = result->val_.ToNative();
     for (int i = 0; i < source->precision_ - new_precision; i++) {
       value /= 10;
     }
-    result->val_.SetValue(value);
+    result->val_ = noisepage::execution::sql::Decimal128(value);
   }
   result->precision_ = new_precision;
 }
@@ -768,17 +768,17 @@ GEN_SQL_COMPARISONS(String, StringVal)
     auto left_precision = left->precision_;                                                    \
     auto right_precision = right->precision_;                                                  \
     if (left_precision < right_precision) {                                                    \
-      int128_t intermediate_value = left_val.GetValue();                                       \
+      int128_t intermediate_value = left_val.ToNative();                                       \
       for (int i = 0; i < right_precision - left_precision; i++) {                             \
         intermediate_value *= 10;                                                              \
       }                                                                                        \
-      left_val.SetValue(intermediate_value);                                                   \
+      left_val = noisepage::execution::sql::Decimal128(intermediate_value);                    \
     } else {                                                                                   \
-      int128_t intermediate_value = right_val.GetValue();                                      \
+      int128_t intermediate_value = right_val.ToNative();                                      \
       for (int i = 0; i < left_precision - right_precision; i++) {                             \
         intermediate_value *= 10;                                                              \
       }                                                                                        \
-      right_val.SetValue(intermediate_value);                                                  \
+      right_val = noisepage::execution::sql::Decimal128(intermediate_value);                   \
     }                                                                                          \
     result->is_null_ = (left->is_null_ || right->is_null_);                                    \
     result->val_ = (left_val EXPR right_val);                                                  \
@@ -865,17 +865,17 @@ VM_OP_HOT void OpAddDecimal(noisepage::execution::sql::DecimalVal *const result,
   auto right_precision = right->precision_;
   // TODO(Rohan): Optimize this by performing a binary search.
   if (left_precision < right_precision) {
-    int128_t intermediate_value = left_val.GetValue();
+    int128_t intermediate_value = left_val.ToNative();
     for (int i = 0; i < right_precision - left_precision; i++) {
       intermediate_value *= 10;
     }
-    left_val.SetValue(intermediate_value);
+    left_val = noisepage::execution::sql::Decimal128(intermediate_value);
   } else {
-    int128_t intermediate_value = right_val.GetValue();
+    int128_t intermediate_value = right_val.ToNative();
     for (int i = 0; i < left_precision - right_precision; i++) {
       intermediate_value *= 10;
     }
-    right_val.SetValue(intermediate_value);
+    right_val = noisepage::execution::sql::Decimal128(intermediate_value);
   }
   left_val += right_val;
   result->val_ = left_val;
@@ -892,17 +892,17 @@ VM_OP_HOT void OpSubDecimal(noisepage::execution::sql::DecimalVal *const result,
   auto right_precision = right->precision_;
   // TODO(Rohan): Optimize this by performing a binary search.
   if (left_precision < right_precision) {
-    int128_t intermediate_value = left_val.GetValue();
+    int128_t intermediate_value = left_val.ToNative();
     for (int i = 0; i < right_precision - left_precision; i++) {
       intermediate_value *= 10;
     }
-    left_val.SetValue(intermediate_value);
+    left_val = noisepage::execution::sql::Decimal128(intermediate_value);
   } else {
-    int128_t intermediate_value = right_val.GetValue();
+    int128_t intermediate_value = right_val.ToNative();
     for (int i = 0; i < left_precision - right_precision; i++) {
       intermediate_value *= 10;
     }
-    right_val.SetValue(intermediate_value);
+    right_val = noisepage::execution::sql::Decimal128(intermediate_value);
   }
   left_val -= right_val;
   result->val_ = left_val;
@@ -2157,7 +2157,7 @@ VM_OP_HOT void OpPRSetDateVal(noisepage::storage::ProjectedRow *pr, uint16_t col
 
 VM_OP_HOT void OpPRSetDecimalVal(noisepage::storage::ProjectedRow *pr, uint16_t col_idx,
                                  noisepage::execution::sql::DecimalVal *val) {
-  auto pr_val = val->val_.GetValue();
+  auto pr_val = val->val_.ToNative();
   pr->Set<int128_t, false>(col_idx, pr_val, val->is_null_);
 }
 
@@ -2169,7 +2169,7 @@ VM_OP_HOT void OpPRSetDateValNull(noisepage::storage::ProjectedRow *pr, uint16_t
 
 VM_OP_HOT void OpPRSetDecimalValNull(noisepage::storage::ProjectedRow *pr, uint16_t col_idx,
                                      noisepage::execution::sql::DecimalVal *val) {
-  auto pr_val = val->is_null_ ? 0 : val->val_.GetValue();
+  auto pr_val = val->is_null_ ? 0 : val->val_.ToNative();
   pr->Set<int128_t, true>(col_idx, pr_val, val->is_null_);
 }
 

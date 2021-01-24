@@ -789,7 +789,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t preci
   // First input
   uint128_t a = value_;
   // Second input
-  uint128_t b = unsigned_input.GetValue();
+  uint128_t b = unsigned_input.ToNative();
   // Split into half words
   uint128_t half_words_a[2];
   uint128_t half_words_b[2];
@@ -1008,7 +1008,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
 
 template <typename T>
 void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, uint32_t lower_precision) {
-  bool negative_result = (value_ < 0) != (input.GetValue() < 0);
+  bool negative_result = (value_ < 0) != (input.ToNative() < 0);
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
@@ -1016,8 +1016,8 @@ void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, uint32_t lower_prec
     value_ = 0 - value_;
   }
 
-  if (input.GetValue() < 0) {
-    input.SetValue(-input.GetValue());
+  if (input.ToNative() < 0) {
+    input = Decimal<T>(-input.ToNative());
   }
 
   MultiplyAndSet(input, lower_precision);
@@ -1112,7 +1112,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denomi
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
-  bool negative_result = (value_ < 0) != (denominator.GetValue() < 0);
+  bool negative_result = (value_ < 0) != (denominator.ToNative() < 0);
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
@@ -1122,9 +1122,9 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denomi
 
   uint128_t constant;
   if (denominator < 0) {
-    constant = -denominator.GetValue();
+    constant = -denominator.ToNative();
   } else {
-    constant = denominator.GetValue();
+    constant = denominator.ToNative();
   }
 
   // Always keep the result in numerator precision
@@ -1394,6 +1394,57 @@ Decimal<T>::Decimal(std::string input, int precision) {
   if (is_negative) {
     value_ = -value_;
   }
+}
+
+template <typename T>
+std::string Decimal<T>::ToString(int32_t precision) const {
+  std::string output;
+  int128_t value = value_;
+  if (value < 0) {
+    output.push_back('-');
+    value = 0 - value;
+  }
+
+  if (precision != 0) {
+    int128_t fractional = value;
+    std::string fractional_string;
+    for (int i = 0; i < precision; i++) {
+      int remainder = static_cast<int>(fractional % 10);
+      fractional_string.push_back('0' + remainder);
+      fractional /= 10;
+    }
+
+    int128_t integral = fractional;
+
+    std::string integral_string;
+
+    while (integral != 0) {
+      int remainder = static_cast<int>(integral % 10);
+      integral_string.push_back('0' + remainder);
+      integral /= 10;
+    }
+
+    std::reverse(integral_string.begin(), integral_string.end());
+    output.append(integral_string);
+
+    output.push_back('.');
+
+    std::reverse(fractional_string.begin(), fractional_string.end());
+    output.append(fractional_string);
+
+    return output;
+  }
+
+  int128_t integral = value;
+  std::string integral_string;
+  while (integral != 0) {
+    int remainder = static_cast<int>(integral % 10);
+    integral_string.push_back('0' + remainder);
+    integral /= 10;
+  }
+  std::reverse(integral_string.begin(), integral_string.end());
+  output.append(integral_string);
+  return output;
 }
 
 template class Decimal<int128_t>;

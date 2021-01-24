@@ -122,7 +122,7 @@ struct Real : public Val {
 struct DecimalVal : public Val {
   /** The internal decimal representation. */
   Decimal128 val_;
-  /** The precision of the decimal representation is the number of digits after the decimal point. */
+  /** The precision is the number of digits after the decimal point that it is accurate for. */
   int precision_;
 
   /**
@@ -154,58 +154,9 @@ struct DecimalVal : public Val {
   }
 
   /**
-   * @return A string representing the given decimal
+   * @return A string representing the given decimal.
    */
-  std::string ToString() const {
-    // TODO(WAN): Move this to .cpp.
-    std::string output;
-    int128_t value = val_.GetValue();
-    if (value < 0) {
-      output.push_back('-');
-      value = 0 - value;
-    }
-
-    if (precision_ != 0) {
-      int128_t fractional = value;
-      std::string fractional_string;
-      for (int i = 0; i < precision_; i++) {
-        int remainder = static_cast<int>(fractional % 10);
-        fractional_string.push_back('0' + remainder);
-        fractional /= 10;
-      }
-
-      int128_t integral = fractional;
-
-      std::string integral_string;
-
-      while (integral != 0) {
-        int remainder = static_cast<int>(integral % 10);
-        integral_string.push_back('0' + remainder);
-        integral /= 10;
-      }
-
-      std::reverse(integral_string.begin(), integral_string.end());
-      output.append(integral_string);
-
-      output.push_back('.');
-
-      std::reverse(fractional_string.begin(), fractional_string.end());
-      output.append(fractional_string);
-
-      return output;
-    }
-
-    int128_t integral = value;
-    std::string integral_string;
-    while (integral != 0) {
-      int remainder = static_cast<int>(integral % 10);
-      integral_string.push_back('0' + remainder);
-      integral /= 10;
-    }
-    std::reverse(integral_string.begin(), integral_string.end());
-    output.append(integral_string);
-    return output;
-  }
+  std::string ToString() const { return val_.ToString(precision_); }
 };
 
 /**

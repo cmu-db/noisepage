@@ -399,16 +399,11 @@ ast::Expr *CodeGen::DateToSql(sql::Date date) const {
 
 ast::Expr *CodeGen::DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const {
   const uint128_t flag = (0xFFFFFFFF);
-  uint128_t fixed_decimal_1 = fixed_decimal.GetValue();
-  fixed_decimal_1 = fixed_decimal_1 >> 96;
-  uint128_t fixed_decimal_2 = fixed_decimal.GetValue();
-  fixed_decimal_2 = fixed_decimal_2 >> 64;
-  fixed_decimal_2 = fixed_decimal_2 & flag;
-  uint128_t fixed_decimal_3 = fixed_decimal.GetValue();
-  fixed_decimal_3 = fixed_decimal_3 >> 32;
-  fixed_decimal_3 = fixed_decimal_3 & flag;
-  uint128_t fixed_decimal_4 = fixed_decimal.GetValue();
-  fixed_decimal_4 = fixed_decimal_4 & flag;
+  uint128_t native_val = fixed_decimal.ToNative();
+  uint128_t fixed_decimal_1 = native_val >> 96;
+  uint128_t fixed_decimal_2 = (native_val >> 64) & flag;
+  uint128_t fixed_decimal_3 = (native_val >> 32) & flag;
+  uint128_t fixed_decimal_4 = native_val & flag;
 
   ast::Expr *call =
       CallBuiltin(ast::Builtin::DecimalToSql, {Const32(fixed_decimal_1), Const32(fixed_decimal_2),
