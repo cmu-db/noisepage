@@ -175,9 +175,9 @@ GenericValue GenericValue::CreateDate(Date date) {
   return result;
 }
 
-GenericValue GenericValue::CreateDecimal(Decimal128 decimal) {
+GenericValue GenericValue::CreateDecimal(Decimal decimal) {
   GenericValue result(TypeId::Decimal);
-  result.value_.decimal128_ = decimal;
+  result.value_.Decimal_ = decimal;
   result.is_null_ = false;
   return result;
 }

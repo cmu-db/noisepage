@@ -62,7 +62,7 @@ std::size_t GetTypeIdSize(TypeId type) {
     case TypeId::Double:
       return sizeof(double);
     case TypeId::Decimal:
-      return sizeof(Decimal128);
+      return sizeof(Decimal);
     case TypeId::Date:
       return sizeof(Date);
     case TypeId::Timestamp:

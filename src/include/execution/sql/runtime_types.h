@@ -407,19 +407,18 @@ class EXPORT Timestamp {
  * A generic fixed point decimal value. This only serves as a storage container for decimals of various sizes.
  * Operations on decimals require a precision and scale.
  *
- * @tparam T The underlying native data type sufficiently large to store decimals of a pre-determined scale.
+ * TODO(WAN): Ask Rohan why we are
  */
-template <typename T>
 class EXPORT Decimal {
  public:
   /** Underlying native data type. */
-  using NativeType = T;
+  using NativeType = int128_t;
 
   /**
    * Create a decimal value using the given raw underlying encoded value.
    * @param value The value to set this decimal to.
    */
-  explicit Decimal(const T &value) : value_(value) {}
+  explicit Decimal(const NativeType &value) : value_(value) {}
 
   /**
    * Empty constructor.
@@ -446,7 +445,7 @@ class EXPORT Decimal {
   /**
    * @return The raw underlying encoded decimal value.
    */
-  operator T() const { return value_; }  // NOLINT
+  operator NativeType() const { return value_; }  // NOLINT
 
   /**
    * Compute the hash value of this decimal instance.
@@ -480,7 +479,7 @@ class EXPORT Decimal {
    * @param that The value to add.
    * @return This decimal value.
    */
-  const Decimal<T> &operator+=(const T &that) {
+  const Decimal &operator+=(const NativeType &that) {
     value_ += that;
     return *this;
   }
@@ -494,7 +493,7 @@ class EXPORT Decimal {
    * @param that The value to subtract.
    * @return This decimal value.
    */
-  const Decimal<T> &operator-=(const T &that) {
+  const Decimal &operator-=(const NativeType &that) {
     value_ -= that;
     return *this;
   }
@@ -504,7 +503,7 @@ class EXPORT Decimal {
    * @param that The value to multiply by.
    * @return This decimal value.
    */
-  const Decimal<T> &operator*=(const T &that) {
+  const Decimal &operator*=(const NativeType &that) {
     value_ *= that;
     return *this;
   }
@@ -514,7 +513,7 @@ class EXPORT Decimal {
    * @param that The value to divide by.
    * @return This decimal value.
    */
-  const Decimal<T> &operator/=(const T &that) {
+  const Decimal &operator/=(const NativeType &that) {
     value_ /= that;
     return *this;
   }
@@ -524,7 +523,7 @@ class EXPORT Decimal {
    * @param that The value to modulus by.
    * @return This decimal value.
    */
-  const Decimal<T> &operator%=(const T &that) {
+  const Decimal &operator%=(const NativeType &that) {
     value_ %= that;
     return *this;
   }
@@ -537,27 +536,29 @@ class EXPORT Decimal {
   std::string ToString(int32_t precision) const;
 
   /** @return The native representation of the decimal. */
-  T ToNative() const { return value_; }
+  NativeType ToNative() const { return value_; }
 
   /**
    * Divide the current decimal by the given decimal.
    * The result is in the numerator's (current decimal's) precision.
    *
-   * @param denominator The decimal to divide by.
-   * @param denominator_precision The precision of the denominator.
+   * @param denominator             The decimal to divide by.
+   * @param denominator_precision   The precision of the denominator.
    */
-  void SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denominator_precision);
+  void SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_precision);
 
-  /** Signed version of MultiplyAndSet
-   * @param input the decimal to be multiplied with
-   * @param lower_precision Number of digits after decimal point
-   * of the decimal with lower precision. Note the result will be stored in
-   * the higher precision value.*/
-  void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
+  /**
+   * Multiply the current decimal by the given decimal.
+   * The result is in the higher precision of the current decimal and the multiplier.
+   *
+   * @param multiplier          The decimal to multiply by.
+   * @param lower_precision     The lower precision of the two decimals.
+   */
+  void SignedMultiplyWithDecimal(Decimal multiplier, unsigned lower_precision);
 
  private:
   // The encoded decimal value
-  T value_;
+  NativeType value_;
 
   /**
    * Divide the current decimal by the unsigned 128-bit constant supplied.
@@ -580,9 +581,12 @@ class EXPORT Decimal {
    */
   static uint128_t UnsignedMagicDivideConstantNumerator256Bit(uint128_t dividend[4], uint128_t constant);
 
-  /** Signed version of UnsignedDivideConstant128Bit
-   * @param input divisor*/
-  void SignedDivideWithConstant(int64_t input);
+  /**
+   * Divide the current decimal by the divisor provided.
+   *
+   * @param divisor         The divisor to divide by.
+   */
+  void SignedDivideWithConstant(int64_t divisor);
 
   /**
    * Multiply the current decimal with an unsigned decimal.
@@ -593,7 +597,7 @@ class EXPORT Decimal {
    *                        To obtain higher precision result, pass in the lower precision of the operands.
    *                        To obtain lower precision result, pass in the higher precision of the operands.
    */
-  void MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t precision);
+  void MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision);
 
   /** Signed version of MultiplyAndSet with a constant
    * @param input the constant to be multiplied with. */
@@ -608,10 +612,6 @@ class EXPORT Decimal {
    */
   void UnsignedDivideConstant128BitPowerOfTen(uint32_t exponent);
 };
-
-using Decimal32 = Decimal<int32_t>;
-using Decimal64 = Decimal<int64_t>;
-using Decimal128 = Decimal<int128_t>;
 
 //===----------------------------------------------------------------------===//
 //

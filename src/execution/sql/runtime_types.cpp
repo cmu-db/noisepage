@@ -778,8 +778,7 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t
   return q1 * b + q0;
 }
 
-template <typename T>
-void Decimal<T>::MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t precision) {
+void Decimal::MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision) {
   // 1. Multiply with the overflow check.
   // 2. If overflow, divide by 10^precision using 256-bit magic number division.
   // 3. If no overflow, divide by 10^precision using 128-bit magic number division.
@@ -874,8 +873,7 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &unsigned_input, uint32_t preci
   value_ = result_lower | result_upper;
 }
 
-template <typename T>
-void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
+void Decimal::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
   // Magic number division from Hacker's Delight [2E 10-9 Unsigned Division].
 
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
@@ -925,8 +923,7 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
   }
 }
 
-template <typename T>
-void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
+void Decimal::UnsignedDivideConstant128Bit(uint128_t constant) {
   // 1. If the constant is a power of 2, we right shift.
   // 2. If the magic numbers were precomputed for the constant, we use those.
   // 3. Otherwise, do a normal division.
@@ -1006,8 +1003,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
   }
 }
 
-template <typename T>
-void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, uint32_t lower_precision) {
+void Decimal::SignedMultiplyWithDecimal(Decimal input, uint32_t lower_precision) {
   bool negative_result = (value_ < 0) != (input.ToNative() < 0);
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
@@ -1017,7 +1013,7 @@ void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, uint32_t lower_prec
   }
 
   if (input.ToNative() < 0) {
-    input = Decimal<T>(-input.ToNative());
+    input = Decimal(-input.ToNative());
   }
 
   MultiplyAndSet(input, lower_precision);
@@ -1027,8 +1023,7 @@ void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, uint32_t lower_prec
   }
 }
 
-template <typename T>
-void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
+void Decimal::SignedMultiplyWithConstant(int64_t input) {
   bool negative_result = (value_ < 0) != (input < 0);
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
@@ -1076,8 +1071,7 @@ void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
   }
 }
 
-template <typename T>
-void Decimal<T>::SignedDivideWithConstant(int64_t input) {
+void Decimal::SignedDivideWithConstant(int64_t input) {
   bool negative_result = (value_ < 0) != (input < 0);
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
@@ -1100,8 +1094,7 @@ void Decimal<T>::SignedDivideWithConstant(int64_t input) {
   }
 }
 
-template <typename T>
-void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denominator_precision) {
+void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_precision) {
   // 1. Multiply the dividend with 10^(denominator precision), with overflow checking.
   // 2. If overflow, divide by the denominator with multiword 256-bit division.
   // 3. If no overflow, divide by the denominator with 128-bit division.
@@ -1147,7 +1140,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denomi
     UnsignedDivideConstant128Bit(constant);
   } else {
     if (magic_map256_bit_constant_division.count(constant) > 0) {
-      value_ = Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
+      value_ = Decimal::UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
     } else {
       value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
                                                 half_words_result[0] | (half_words_result[1] << 64), constant);
@@ -1159,8 +1152,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> denominator, uint32_t denomi
   }
 }
 
-template <typename T>
-uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *dividend, uint128_t constant) {
+uint128_t Decimal::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *dividend, uint128_t constant) {
   // Magic number half words
   uint128_t magic[4];
 
@@ -1224,8 +1216,7 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
   return result_lower | result_upper;
 }
 
-template <typename T>
-Decimal<T>::Decimal(std::string input, int *precision) {
+Decimal::Decimal(std::string input, int *precision) {
   value_ = 0;
 
   if (input.empty()) {
@@ -1286,8 +1277,7 @@ Decimal<T>::Decimal(std::string input, int *precision) {
 //  I am leaving it alone because I don't think people will need to modify or look at this code often, assuming that
 //  works (it does contain parsing logic etc. that may require changes in the future).
 
-template <typename T>
-Decimal<T>::Decimal(std::string input, int precision) {
+Decimal::Decimal(std::string input, int precision) {
   value_ = 0;
 
   if (input.empty()) return;
@@ -1396,8 +1386,7 @@ Decimal<T>::Decimal(std::string input, int precision) {
   }
 }
 
-template <typename T>
-std::string Decimal<T>::ToString(int32_t precision) const {
+std::string Decimal::ToString(int32_t precision) const {
   std::string output;
   int128_t value = value_;
   if (value < 0) {
@@ -1447,7 +1436,4 @@ std::string Decimal<T>::ToString(int32_t precision) const {
   return output;
 }
 
-template class Decimal<int128_t>;
-template class Decimal<int64_t>;
-template class Decimal<int32_t>;
 }  // namespace noisepage::execution::sql

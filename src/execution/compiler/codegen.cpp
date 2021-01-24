@@ -397,7 +397,7 @@ ast::Expr *CodeGen::DateToSql(sql::Date date) const {
   return DateToSql(year, month, day);
 }
 
-ast::Expr *CodeGen::DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const {
+ast::Expr *CodeGen::DecimalToSql(sql::Decimal fixed_decimal, int32_t precision) const {
   const uint128_t flag = (0xFFFFFFFF);
   uint128_t native_val = fixed_decimal.ToNative();
   uint128_t fixed_decimal_1 = native_val >> 96;

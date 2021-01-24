@@ -174,7 +174,7 @@ class EXPORT GenericValue {
    * @param decimal The decimal.
    * @return A decimal value.
    */
-  static GenericValue CreateDecimal(Decimal128 decimal);
+  static GenericValue CreateDecimal(Decimal decimal);
 
   /**
    * Create a non-NULL date value.
@@ -241,7 +241,7 @@ class EXPORT GenericValue {
     hash_t hash_;
     uintptr_t pointer_;
     Date date_;
-    Decimal128 decimal128_;
+    Decimal Decimal_;
     Timestamp timestamp_;
     float float_;
     double double_;

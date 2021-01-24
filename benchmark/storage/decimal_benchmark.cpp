@@ -12,7 +12,7 @@ class DecimalBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State &state) final {
     // Generate a random column of decimals and floats.
     for (unsigned i = 0; i < 1000000; i++) {
-      noisepage::execution::sql::Decimal128 d(i);
+      noisepage::execution::sql::Decimal d(i);
       decimals_.push_back(d);
       float f = (static_cast<float>(i)) / (static_cast<float>(1000));
       floats_.push_back(f);
@@ -21,7 +21,7 @@ class DecimalBenchmark : public benchmark::Fixture {
 
   void TearDown(const benchmark::State &state) final {}
 
-  std::vector<noisepage::execution::sql::Decimal128> decimals_;
+  std::vector<noisepage::execution::sql::Decimal> decimals_;
   std::vector<float> floats_;
 };
 
@@ -29,7 +29,7 @@ class DecimalBenchmark : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(DecimalBenchmark, AddDecimal)(benchmark::State &state) {
   uint64_t elapsed_ms;
   {
-    noisepage::execution::sql::Decimal128 result(0);
+    noisepage::execution::sql::Decimal result(0);
     noisepage::common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
     for (unsigned j = 0; j < 1000; j++)
       for (auto &decimal : decimals_) {

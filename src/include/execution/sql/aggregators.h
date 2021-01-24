@@ -200,7 +200,7 @@ class DecimalSumAggregate {
    */
   void Reset() {
     sum_.is_null_ = true;
-    sum_.val_ = Decimal128(0);
+    sum_.val_ = Decimal(0);
   }
 
   /**
@@ -302,7 +302,7 @@ class DecimalMaxAggregate {
   DecimalMaxAggregate() : max_(std::numeric_limits<decltype(DecimalVal::val_)>::min()) {
     int128_t minval = 1;
     minval = minval << 127;
-    max_.val_ = Decimal128(minval);
+    max_.val_ = Decimal(minval);
     max_.is_null_ = true;
   }
 
@@ -342,7 +342,7 @@ class DecimalMaxAggregate {
     max_.is_null_ = true;
     int128_t minval = 1;
     minval = minval << 127;
-    max_.val_ = Decimal128(minval);
+    max_.val_ = Decimal(minval);
   }
 
   /**
@@ -446,7 +446,7 @@ class DecimalMinAggregate {
     uint128_t maxval = 1;
     maxval = maxval << 127;
     maxval -= 1;
-    min_.val_ = Decimal128(maxval);
+    min_.val_ = Decimal(maxval);
     min_.is_null_ = true;
   }
 
@@ -487,7 +487,7 @@ class DecimalMinAggregate {
     uint128_t maxval = 1;
     maxval = maxval << 127;
     maxval -= 1;
-    min_.val_ = Decimal128(maxval);
+    min_.val_ = Decimal(maxval);
   }
 
   /**

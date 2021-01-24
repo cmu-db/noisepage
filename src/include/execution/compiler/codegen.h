@@ -504,7 +504,7 @@ class CodeGen {
    * @param precision The precision of the fixed decimal.
    * @return The SQL fixed decimal.
    */
-  [[nodiscard]] ast::Expr *DecimalToSql(sql::Decimal128 fixed_decimal, int32_t precision) const;
+  [[nodiscard]] ast::Expr *DecimalToSql(sql::Decimal fixed_decimal, int32_t precision) const;
 
   /**
    * Call \@decimalSetPrecision(). Set the precision of a SQL fixed decimal.

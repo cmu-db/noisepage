@@ -33,8 +33,7 @@ struct IsSafeForFullCompute {
 
 template <typename T>
 struct IsSafeForFullCompute<T, std::enable_if_t<std::is_fundamental_v<T> || std::is_same_v<T, Date> ||
-                                                std::is_same_v<T, Timestamp> || std::is_same_v<T, Decimal32> ||
-                                                std::is_same_v<T, Decimal64> || std::is_same_v<T, Decimal128>>> {
+                                                std::is_same_v<T, Timestamp> || std::is_same_v<T, Decimal>>> {
   static constexpr bool VALUE = true;
 };
 
@@ -181,7 +180,7 @@ void SelectOperation(const exec::ExecutionSettings &exec_settings, const Vector 
       TemplatedSelectOperation<Date, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Decimal:
-      TemplatedSelectOperation<Decimal128, Op>(exec_settings, left, right, tid_list);
+      TemplatedSelectOperation<Decimal, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Timestamp:
       TemplatedSelectOperation<Timestamp, Op>(exec_settings, left, right, tid_list);

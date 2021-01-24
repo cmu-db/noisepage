@@ -83,7 +83,7 @@ T ConstantValueExpression::Peek() const {
     return GetDateVal().val_;
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
-  if constexpr (std::is_same_v<T, execution::sql::Decimal128>) {
+  if constexpr (std::is_same_v<T, execution::sql::Decimal>) {
     return GetDecimal().val_;
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
@@ -179,7 +179,7 @@ common::hash_t ConstantValueExpression::Hash() const {
     }
     case type::TypeId::DECIMAL: {
       return common::HashUtil::CombineHashes(hash,
-                                             common::HashUtil::Hash(Peek<execution::sql::Decimal128>().ToNative()));
+                                             common::HashUtil::Hash(Peek<execution::sql::Decimal>().ToNative()));
     }
     case type::TypeId::TIMESTAMP: {
       return common::HashUtil::CombineHashes(hash,

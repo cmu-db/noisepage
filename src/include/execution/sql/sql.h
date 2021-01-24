@@ -101,7 +101,7 @@ constexpr inline TypeId GetTypeId() {
     return TypeId::Date;
   } else if constexpr (std::is_same<std::remove_const_t<T>, Timestamp>()) {  // NOLINT
     return TypeId::Timestamp;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, Decimal128>()) {  // NOLINT
+  } else if constexpr (std::is_same<std::remove_const_t<T>, Decimal>()) {  // NOLINT
     return TypeId::Decimal;
   } else if constexpr (std::is_same<std::remove_const_t<T>, char *>() ||  // NOLINT
                        std::is_same<std::remove_const_t<T>, const char *>() ||
