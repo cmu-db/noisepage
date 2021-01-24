@@ -968,9 +968,7 @@ void Decimal::SignedMultiplyWithDecimal(Decimal input, uint32_t lower_precision)
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
-  if (value_ < 0) {
-    value_ = 0 - value_;
-  }
+value_ = value_ < 0 ? 0 - value_ : value_;
 
   if (input.ToNative() < 0) {
     input = Decimal(-input.ToNative());
@@ -988,9 +986,7 @@ void Decimal::SignedMultiplyWithConstant(int64_t input) {
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
-  if (value_ < 0) {
-    value_ = 0 - value_;
-  }
+  value_ = value_ < 0 ? 0 - value_ : value_;
 
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
@@ -1036,9 +1032,7 @@ void Decimal::SignedDivideWithConstant(int64_t input) {
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
-  if (value_ < 0) {
-    value_ = 0 - value_;
-  }
+value_ = value_ < 0 ? 0 - value_ : value_;
 
   uint128_t constant;
   if (input < 0) {
@@ -1069,9 +1063,7 @@ void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
-  if (value_ < 0) {
-    value_ = 0 - value_;
-  }
+value_ = value_ < 0 ? 0 - value_ : value_;
 
   uint128_t constant;
   if (denominator < 0) {
