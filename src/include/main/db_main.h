@@ -77,14 +77,17 @@ class DBMain {
      * @param log_manager argument to the TransactionManager
      */
     TransactionLayer(const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool,
-                     const bool gc_enabled, const common::ManagedPointer<storage::LogManager> log_manager) {
+                     const bool gc_enabled, const bool wal_async_commit_enable,
+                     const common::ManagedPointer<storage::LogManager> log_manager) {
       NOISEPAGE_ASSERT(buffer_segment_pool != nullptr, "Need a buffer segment pool for Transaction layer.");
+      NOISEPAGE_ASSERT(!wal_async_commit_enable || (wal_async_commit_enable && log_manager != DISABLED),
+                       "Doesn't make sense to enable async commit without enabling logging.");
       timestamp_manager_ = std::make_unique<transaction::TimestampManager>();
       deferred_action_manager_ =
           std::make_unique<transaction::DeferredActionManager>(common::ManagedPointer(timestamp_manager_));
-      txn_manager_ = std::make_unique<transaction::TransactionManager>(common::ManagedPointer(timestamp_manager_),
-                                                                       common::ManagedPointer(deferred_action_manager_),
-                                                                       buffer_segment_pool, gc_enabled, log_manager);
+      txn_manager_ = std::make_unique<transaction::TransactionManager>(
+          common::ManagedPointer(timestamp_manager_), common::ManagedPointer(deferred_action_manager_),
+          buffer_segment_pool, gc_enabled, wal_async_commit_enable, log_manager);
     }
 
     /**
@@ -367,8 +370,9 @@ class DBMain {
         log_manager->Start();
       }
 
-      auto txn_layer = std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool), use_gc_,
-                                                          common::ManagedPointer(log_manager));
+      auto txn_layer =
+          std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool), use_gc_,
+                                             wal_async_commit_enable_, common::ManagedPointer(log_manager));
 
       auto storage_layer =
           std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_, block_store_reuse_,
@@ -784,6 +788,7 @@ class DBMain {
     int32_t wal_persist_interval_ = 100;
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
+    bool wal_async_commit_enable_ = false;
     bool use_gc_ = false;
     bool use_pilot_thread_ = false;
     bool pilot_planning_ = false;
@@ -836,6 +841,7 @@ class DBMain {
       use_logging_ = settings_manager->GetBool(settings::Param::wal_enable);
       if (use_logging_) {
         wal_file_path_ = settings_manager->GetString(settings::Param::wal_file_path);
+        wal_async_commit_enable_ = settings_manager->GetBool(settings::Param::wal_async_commit_enable);
         wal_num_buffers_ = static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_num_buffers));
         wal_serialization_interval_ = settings_manager->GetInt(settings::Param::wal_serialization_interval);
         wal_persist_interval_ = settings_manager->GetInt(settings::Param::wal_persist_interval);

@@ -107,6 +107,15 @@ SETTING_string(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Asynchronous commit txns when WAL is enabled
+SETTING_bool(
+    wal_async_commit_enable,
+    "When WAL is enabled, allow commit confirmation before results are durable in the WAL. (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     wal_num_buffers,
