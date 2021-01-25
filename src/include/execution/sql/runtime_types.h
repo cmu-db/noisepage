@@ -560,6 +560,17 @@ class EXPORT Decimal {
   // The encoded decimal value
   NativeType value_;
 
+  /** A mask for the bottom half of a 128-bit decimal. */
+  static constexpr const uint128_t BOTTOM_MASK = (uint128_t{1} << 64) - 1;
+  /** A mask for the top half of a 128-bit decimal. */
+  static constexpr const uint128_t TOP_MASK = ~BOTTOM_MASK;
+
+  /** @return The negative version of the current 128-bit decimal. */
+  Decimal GetNegation();
+
+  /** @return The absolute value (always positive) version of the current 128-bit decimal. */
+  Decimal GetAbs();
+
   /**
    * Divide the current decimal by the unsigned 128-bit constant supplied.
    *
@@ -572,14 +583,15 @@ class EXPORT Decimal {
   /**
    * Divide the 256-bit unsigned dividend with a 128-bit unsigned divisor.
    *
-   * @warning Assumes that the magic number required is already present in magic_map256_bit_constant_division.
+   * @warning Assumes that the magic number required is already present in MAGIC_MAP256_BIT_CONSTANT_DIVISION.
    *
    * @param unsigned_dividend   The 256-bit unsigned dividend, represented as an array of 128 bit numbers,
    *                            where each 128-bit number only has the lower 64 bits set.
    * @param unsigned_constant   The 128-bit unsigned divisor.
    * @return                    The result of the division.
    */
-  static uint128_t UnsignedMagicDivideConstantNumerator256Bit(uint128_t dividend[4], uint128_t constant);
+  static uint128_t UnsignedMagicDivideConstantNumerator256Bit(const uint128_t (&unsigned_dividend)[4],
+                                                              uint128_t unsigned_constant);
 
   /**
    * Divide the current decimal by the divisor provided.

@@ -684,9 +684,8 @@ void CalculateMultiWordProduct128(const uint128_t *const half_words_a, const uin
   }
 }
 
-}  // namespace
-
 uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t v) {
+  // Hacker's Delight [2E Figure 9-3]
   if (u1 >= v) {
     // Result will overflow from 128 bits
     throw EXECUTION_EXCEPTION(fmt::format("Decimal Overflow from 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
@@ -738,390 +737,48 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t
   return q1 * b + q0;
 }
 
-void Decimal::MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision) {
-  // 1. Multiply with the overflow check.
-  // 2. If overflow, divide by 10^precision using 256-bit magic number division.
-  // 3. If no overflow, divide by 10^precision using 128-bit magic number division.
-  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
-  constexpr const uint128_t top_mask = ~bottom_mask;
-
-  // First input
-  uint128_t a = value_;
-  // Second input
-  uint128_t b = unsigned_input.ToNative();
-  // Split into half words
-  uint128_t half_words_a[2];
-  uint128_t half_words_b[2];
-
-  half_words_a[0] = a & bottom_mask;
-  half_words_a[1] = (a & top_mask) >> 64;
-
-  half_words_b[0] = b & bottom_mask;
-  half_words_b[1] = (b & top_mask) >> 64;
-
-  // Calculate 256 bit result
-  uint128_t half_words_result[4];
-  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
-
-  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
-    // TODO(Rohan): Optimize by sending in an array of half words
-    value_ = half_words_result[0] | (half_words_result[1] << 64);
-    UnsignedDivideConstant128BitPowerOfTen(precision);
-    return;
-  }
-
-  // Magic number half words
-  uint128_t magic[4];
-  magic[0] = MAGIC_ARRAY[precision][3];
-  magic[1] = MAGIC_ARRAY[precision][2];
-  magic[2] = MAGIC_ARRAY[precision][1];
-  magic[3] = MAGIC_ARRAY[precision][0];
-
-  uint32_t magic_p = MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
-
-  if (MAGIC_P_AND_ALGO_ARRAY[precision][1] == 0) {
-    // Overflow Algorithm 1 - Magic number is < 2^256
-
-    // Magic Result
-    uint128_t half_words_magic_result[8];
-    // TODO(Rohan): Make optimization to calculate only upper half of the word
-    CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
-    // Get the higher order result
-    uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
-    uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
-
-    uint128_t overflow_checker = result_upper >> magic_p;
-    if (overflow_checker > 0) {
-      // Result will overflow from 128 bits
-      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
-    }
-
-    result_lower = result_lower >> magic_p;
-    result_upper = result_upper << (128 - magic_p);
-    value_ = result_lower | result_upper;
-    return;
-  }
-  // Overflow Algorithm 2 - Magic number is > 2^256
-
-  // Magic Result
-  uint128_t half_words_magic_result[8];
-  // TODO(Rohan): Make optimization to calculate only upper half of the word
-  CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
-  // Get the higher order result
-  uint128_t result_lower = half_words_result[0] | (half_words_result[1] << 64);
-  uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-
-  uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
-  uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
-
-  // Perform addition
-  result_lower += add_lower;
-  result_upper += add_upper;
-  // carry bit using conditional instructions
-  result_upper += static_cast<uint128_t>(result_lower < add_lower);
-
-  uint128_t overflow_checker = result_upper >> magic_p;
-  if ((overflow_checker > 0) || (result_upper < add_upper)) {
-    // Result will overflow from 128 bits
-    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
-  }
-
-  // We know that we only retain the lower 128 bits so there is no need of shri.
-  // We can safely drop the additional carry bit.
-  result_lower = result_lower >> magic_p;
-  result_upper = result_upper << (128 - magic_p);
-  value_ = result_lower | result_upper;
-}
-
-void Decimal::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
-  // Magic number division from Hacker's Delight [2E 10-9 Unsigned Division].
-
-  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
-  constexpr const uint128_t top_mask = ~bottom_mask;
-
-  // First input
-  uint128_t a = value_;
-
-  // Split into half words
-  uint128_t half_words_a[2];
-  uint128_t half_words_b[2];
-
-  half_words_a[0] = a & bottom_mask;
-  half_words_a[1] = (a & top_mask) >> 64;
-
-  half_words_b[0] = magic_map128_bit_power_ten[power].lower_;
-  half_words_b[1] = magic_map128_bit_power_ten[power].upper_;
-
-  // Calculate 256 bit result
-  uint128_t half_words_result[4];
-  // TODO(Rohan): Calculate only upper half
-  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
-
-  uint32_t magic_p = magic_map128_bit_power_ten[power].p_ - 128;
-
-  if (magic_map128_bit_power_ten[power].algo_ == 0) {
-    // Overflow Algorithm 1 - Magic number is < 2^128
-
-    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-    value_ = result_upper >> magic_p;
-  } else {
-    // Overflow Algorithm 2 - Magic number is > 2^128
-
-    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-    uint128_t add_upper = value_;
-
-    // Perform addition
-    result_upper += add_upper;
-
-    auto carry = static_cast<uint128_t>(result_upper < add_upper);
-    carry = carry << 127;
-    // shrxi 1
-    result_upper = result_upper >> 1;
-    result_upper |= carry;
-
-    value_ = result_upper >> (magic_p - 1);
-  }
-}
-
-void Decimal::UnsignedDivideConstant128Bit(uint128_t constant) {
-  // 1. If the constant is a power of 2, we right shift.
-  // 2. If the magic numbers were precomputed for the constant, we use those.
-  // 3. Otherwise, do a normal division.
-
-  if (constant == 1) {
-    return;
-  }
-
-  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
-  constexpr const uint128_t top_mask = ~bottom_mask;
-
-  // 1. If possible, power of 2 division.
-  {
-    if ((constant & (constant - 1)) == 0) {
-      uint32_t power_of_two = power_two[constant];
-      uint128_t numerator = value_;
-      numerator = numerator >> power_of_two;
-      value_ = numerator;
-      return;
-    }
-  }
-
-  // 2. If not possible, regular division.
-  {
-    if (magic_map128_bit_constant_division.count(constant) == 0) {
-      uint128_t numerator = value_;
-      numerator = numerator / constant;
-      value_ = numerator;
-      return;
-    }
-  }
-
-  // 3. Magic Number division.
-  {
-    // First input
-    uint128_t a = value_;
-
-    // Split into half words
-    uint128_t half_words_a[2];
-    uint128_t half_words_b[2];
-
-    half_words_a[0] = a & bottom_mask;
-    half_words_a[1] = (a & top_mask) >> 64;
-
-    half_words_b[0] = magic_map128_bit_constant_division[constant].lower_;
-    half_words_b[1] = magic_map128_bit_constant_division[constant].upper_;
-
-    // Calculate 256 bit result
-    uint128_t half_words_result[4];
-    // TODO(Rohan): Calculate only upper half
-    CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
-
-    uint32_t magic_p = magic_map128_bit_constant_division[constant].p_ - 128;
-
-    if (magic_map128_bit_constant_division[constant].algo_ == 0) {
+/** Some code that was refactored out of Rohan's stuff. Here be dragons. */
+Decimal::NativeType DecimalComputeMagicNumbers128(const uint128_t (&half_words_result)[4], uint32_t algo,
+                                                  uint32_t magic_p, uint128_t current_value) {
+  // Hacker's Delight [2E Chapter 10 Integer Division by Constants]
+  switch (algo) {
+    case 0: {
       // Overflow Algorithm 1 - Magic number is < 2^128
-
       uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-      value_ = result_upper >> magic_p;
-    } else {
-      // Overflow Algorithm 2 - Magic number is > 2^128
-
+      return result_upper >> magic_p;
+    }
+    case 1: {
+      // Overflow Algorithm 2 - Magic number is >= 2^128
       uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
-      uint128_t add_upper = value_;
+      uint128_t add_upper = current_value;
 
-      // Perform addition
       result_upper += add_upper;
 
       auto carry = static_cast<uint128_t>(result_upper < add_upper);
       carry = carry << 127;
-      // shrxi 1
+
       result_upper = result_upper >> 1;
       result_upper |= carry;
 
-      value_ = result_upper >> (magic_p - 1);
+      return result_upper >> (magic_p - 1);
     }
+    default:
+      throw EXECUTION_EXCEPTION("Unknown algorithm.", common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 }
 
-void Decimal::SignedMultiplyWithDecimal(Decimal input, uint32_t lower_precision) {
-  bool negative_result = (value_ < 0) != (input.ToNative() < 0);
+/** Some code that was refactored out of Rohan's stuff. Here be dragons. */
+Decimal::NativeType DecimalComputeMagicNumbers256(const uint128_t (&a)[4], const uint128_t (&b)[4], uint32_t algo,
+                                                  uint32_t magic_p) {
+  // Hacker's Delight [2E Chapter 10 Integer Division by Constants]
+  uint128_t half_words_magic_result[8];
 
-  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
-  // Will be needed to change in the future when storage optimizations happen
-value_ = value_ < 0 ? 0 - value_ : value_;
-
-  if (input.ToNative() < 0) {
-    input = Decimal(-input.ToNative());
-  }
-
-  MultiplyAndSet(input, lower_precision);
-
-  if (negative_result) {
-    value_ = 0 - value_;
-  }
-}
-
-void Decimal::SignedMultiplyWithConstant(int64_t input) {
-  bool negative_result = (value_ < 0) != (input < 0);
-
-  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
-  // Will be needed to change in the future when storage optimizations happen
-  value_ = value_ < 0 ? 0 - value_ : value_;
-
-  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
-  constexpr const uint128_t top_mask = ~bottom_mask;
-
-  // First input
-  uint128_t a = value_;
-
-  // Second input
-  uint128_t b;
-  if (input > 0) {
-    b = input;
-  } else {
-    b = -input;
-  }
-
-  // Split into half words
-  uint128_t half_words_a[2];
-  uint128_t half_words_b[2];
-
-  half_words_a[0] = a & bottom_mask;
-  half_words_a[1] = (a & top_mask) >> 64;
-
-  half_words_b[0] = b & bottom_mask;
-  half_words_b[1] = (b & top_mask) >> 64;
-
-  // Calculate 256 bit result
-  uint128_t half_words_result[4];
-  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
-
-  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
-    value_ = half_words_result[0] | (half_words_result[1] << 64);
-  } else {
-    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
-  }
-
-  if (negative_result) {
-    value_ = 0 - value_;
-  }
-}
-
-void Decimal::SignedDivideWithConstant(int64_t input) {
-  bool negative_result = (value_ < 0) != (input < 0);
-
-  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
-  // Will be needed to change in the future when storage optimizations happen
-value_ = value_ < 0 ? 0 - value_ : value_;
-
-  uint128_t constant;
-  if (input < 0) {
-    constant = -input;
-  } else {
-    constant = input;
-  }
-
-  UnsignedDivideConstant128Bit(constant);
-
-  if (negative_result) {
-    value_ = 0 - value_;
-  }
-}
-
-void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_precision) {
-  // 1. Multiply the dividend with 10^(denominator precision), with overflow checking.
-  // 2. If overflow, divide by the denominator with multiword 256-bit division.
-  // 3. If no overflow, divide by the denominator with 128-bit division.
-  // In all the dividing cases, use magic number division if magic numbers are available.
-  // Moreover, the result is in the numerator's precision for technical reasons.
-  // If the result were to be in the denominator's precision, the first step would need to be multiplication with
-  // 10^(2*denominator precision - numerator precision) which requires 256-bit multiply and 512-bit overflow check.
-  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
-  constexpr const uint128_t top_mask = ~bottom_mask;
-
-  bool negative_result = (value_ < 0) != (denominator.ToNative() < 0);
-
-  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
-  // Will be needed to change in the future when storage optimizations happen
-value_ = value_ < 0 ? 0 - value_ : value_;
-
-  uint128_t constant;
-  if (denominator < 0) {
-    constant = -denominator.ToNative();
-  } else {
-    constant = denominator.ToNative();
-  }
-
-  // Always keep the result in numerator precision
-  // Multiply with 10^(denominator precision)
-  // Split into half words
-  uint128_t half_words_a[2];
-  uint128_t half_words_b[2];
-
-  half_words_a[0] = value_ & bottom_mask;
-  half_words_a[1] = (value_ & top_mask) >> 64;
-
-  half_words_b[0] = power_of_ten[denominator_precision][1];
-  half_words_b[1] = power_of_ten[denominator_precision][0];
-
-  uint128_t half_words_result[4];
-  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
-
-  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
-    value_ = half_words_result[0] | (half_words_result[1] << 64);
-    UnsignedDivideConstant128Bit(constant);
-  } else {
-    if (magic_map256_bit_constant_division.count(constant) > 0) {
-      value_ = Decimal::UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
-    } else {
-      value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
-                                                half_words_result[0] | (half_words_result[1] << 64), constant);
-    }
-  }
-
-  if (negative_result) {
-    value_ = 0 - value_;
-  }
-}
-
-uint128_t Decimal::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *dividend, uint128_t constant) {
-  // Magic number half words
-  uint128_t magic[4];
-
-  magic[0] = magic_map256_bit_constant_division[constant].d_;
-  magic[1] = magic_map256_bit_constant_division[constant].c_;
-  magic[2] = magic_map256_bit_constant_division[constant].b_;
-  magic[3] = magic_map256_bit_constant_division[constant].a_;
-
-  uint32_t magic_p = magic_map256_bit_constant_division[constant].p_ - 256;
-
-  if (magic_map256_bit_constant_division[constant].algo_ == 0) {
+  if (algo == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^256
 
     // Magic Result
-    uint128_t half_words_magic_result[8];
     // TODO(Rohan): Make optimization to calculate only upper half of the word
-    CalculateMultiWordProduct128(dividend, magic, half_words_magic_result, 4, 4);
+    CalculateMultiWordProduct128(a, b, half_words_magic_result, 4, 4);
     // Get the higher order result
     uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
     uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
@@ -1136,15 +793,13 @@ uint128_t Decimal::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *dividen
     result_upper = result_upper << (128 - magic_p);
     return result_lower | result_upper;
   }
-  // Overflow Algorithm 2 - Magic number is > 2^256
+  // Overflow Algorithm 2 - Magic number is >= 2^256
 
-  // Magic Result
-  uint128_t half_words_magic_result[8];
   // TODO(Rohan): Make optimization to calculate only upper half of the word
-  CalculateMultiWordProduct128(dividend, magic, half_words_magic_result, 4, 4);
+  CalculateMultiWordProduct128(a, b, half_words_magic_result, 4, 4);
   // Get the higher order result
-  uint128_t result_lower = dividend[0] | (dividend[1] << 64);
-  uint128_t result_upper = dividend[2] | (dividend[3] << 64);
+  uint128_t result_lower = a[0] | (a[1] << 64);
+  uint128_t result_upper = a[2] | (a[3] << 64);
 
   uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
   uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
@@ -1168,12 +823,212 @@ uint128_t Decimal::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *dividen
   return result_lower | result_upper;
 }
 
+}  // namespace
+
+Decimal Decimal::GetNegation() { return Decimal(-value_); }
+
+Decimal Decimal::GetAbs() { return value_ < 0 ? Decimal(-value_) : Decimal(value_); }
+
+void Decimal::MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision) {
+  // 1. Multiply with the overflow check.
+  // 2. If overflow, divide by 10^precision using 256-bit magic number division.
+  // 3. If no overflow, divide by 10^precision using 128-bit magic number division.
+
+  // Calculate the 256-bit multiplication result.
+  uint128_t half_words_result[4];
+  {
+    // Split the two inputs into half-words.
+    uint128_t a = value_;
+    uint128_t b = unsigned_input.ToNative();
+    uint128_t half_words_a[2] = {a & BOTTOM_MASK, (a & TOP_MASK) >> 64};
+    uint128_t half_words_b[2] = {b & BOTTOM_MASK, (b & TOP_MASK) >> 64};
+    CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
+  }
+
+  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
+    // TODO(Rohan): Optimize by sending in an array of half words
+    value_ = half_words_result[0] | (half_words_result[1] << 64);
+    UnsignedDivideConstant128BitPowerOfTen(precision);
+    return;
+  }
+
+  // Magic number half words
+  uint128_t magic[4] = {DecimalMagicNumbers::MAGIC_ARRAY[precision][3], DecimalMagicNumbers::MAGIC_ARRAY[precision][2],
+                        DecimalMagicNumbers::MAGIC_ARRAY[precision][1], DecimalMagicNumbers::MAGIC_ARRAY[precision][0]};
+  uint32_t magic_p = DecimalMagicNumbers::MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
+  uint32_t algo = DecimalMagicNumbers::MAGIC_P_AND_ALGO_ARRAY[precision][1];
+
+  value_ = DecimalComputeMagicNumbers256(half_words_result, magic, algo, magic_p);
+}
+
+void Decimal::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
+  // Magic number division from Hacker's Delight [2E 10-9 Unsigned Division].
+
+  // Calculate 256-bit multiplication result.
+  uint128_t half_words_result[4];
+  {
+    uint128_t a = value_;
+    uint128_t half_words_a[2] = {a & BOTTOM_MASK, (a & TOP_MASK) >> 64};
+    uint128_t half_words_b[2] = {DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].lower_,
+                                 DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].upper_};
+    // TODO(Rohan): Calculate only upper half
+    CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
+  }
+
+  uint32_t magic_p = DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].p_ - 128;
+  uint32_t algo = DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].algo_;
+
+  value_ = DecimalComputeMagicNumbers128(half_words_result, algo, magic_p, value_);
+}
+
+void Decimal::UnsignedDivideConstant128Bit(uint128_t constant) {
+  // 1. If the constant is a power of 2, we right shift.
+  // 2. If the magic numbers were precomputed for the constant, we use those.
+  // 3. Otherwise, do a normal division.
+
+  if (constant == 1) return;
+
+  // 1. If possible, power of 2 division.
+  {
+    if ((constant & (constant - 1)) == 0) {
+      uint32_t power_of_two = DecimalMagicNumbers::power_two[constant];
+      value_ = static_cast<uint128_t>(value_) >> power_of_two;
+      return;
+    }
+  }
+
+  // 2. If not possible, regular division.
+  {
+    if (DecimalMagicNumbers::magic_map128_bit_constant_division.count(constant) == 0) {
+      value_ = static_cast<uint128_t>(value_) / constant;
+      return;
+    }
+  }
+
+  // 3. Magic Number division.
+  {
+    // Calculate 256-bit multiplication result.
+    uint128_t half_words_result[4];
+    {
+      uint128_t a = value_;
+      uint128_t half_words_a[2] = {a & BOTTOM_MASK, (a & TOP_MASK) >> 64};
+      uint128_t half_words_b[2] = {DecimalMagicNumbers::magic_map128_bit_constant_division[constant].lower_,
+                                   DecimalMagicNumbers::magic_map128_bit_constant_division[constant].upper_};
+      // TODO(Rohan): Calculate only upper half
+      CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
+    }
+
+    uint32_t magic_p = DecimalMagicNumbers::magic_map128_bit_constant_division[constant].p_ - 128;
+    uint32_t algo = DecimalMagicNumbers::magic_map128_bit_constant_division[constant].algo_;
+
+    value_ = DecimalComputeMagicNumbers128(half_words_result, algo, magic_p, value_);
+  }
+}
+
+void Decimal::SignedMultiplyWithDecimal(Decimal multiplier, uint32_t lower_precision) {
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
+  bool negative_result = (value_ < 0) != (multiplier.ToNative() < 0);
+  value_ = value_ < 0 ? 0 - value_ : value_;
+  MultiplyAndSet(multiplier.GetAbs(), lower_precision);
+  value_ = negative_result ? 0 - value_ : value_;
+}
+
+void Decimal::SignedMultiplyWithConstant(int64_t input) {
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
+  bool negative_result = (value_ < 0) != (input < 0);
+  value_ = value_ < 0 ? 0 - value_ : value_;
+
+  // Calculate 256-bit multiplication result.
+  uint128_t half_words_result[4];
+  {
+    uint128_t a = value_;
+    uint128_t b = input < 0 ? -input : input;
+    uint128_t half_words_a[2] = {a & BOTTOM_MASK, (a & TOP_MASK) >> 64};
+    uint128_t half_words_b[2] = {b & BOTTOM_MASK, (b & TOP_MASK) >> 64};
+    CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
+  }
+
+  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
+    value_ = half_words_result[0] | (half_words_result[1] << 64);
+  } else {
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+  }
+
+  value_ = negative_result ? 0 - value_ : value_;
+}
+
+void Decimal::SignedDivideWithConstant(int64_t input) {
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
+  bool negative_result = (value_ < 0) != (input < 0);
+  value_ = value_ < 0 ? 0 - value_ : value_;
+  uint128_t constant = input < 0 ? -input : input;
+  UnsignedDivideConstant128Bit(constant);
+  value_ = negative_result ? 0 - value_ : value_;
+}
+
+void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_precision) {
+  // 1. Multiply the dividend with 10^(denominator precision), with overflow checking.
+  // 2. If overflow, divide by the denominator with multi-word 256-bit division.
+  // 3. If no overflow, divide by the denominator with magic numbers if available, otherwise use 128-bit division.
+  // Moreover, the result is in the numerator's precision for technical reasons.
+  // If the result were to be in the denominator's precision, the first step would need to be multiplication with
+  // 10^(2*denominator precision - numerator precision) which requires 256-bit multiply and 512-bit overflow check.
+
+  // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
+  bool negative_result = (value_ < 0) != (denominator.ToNative() < 0);
+  value_ = value_ < 0 ? 0 - value_ : value_;
+
+  uint128_t constant = denominator < 0 ? -denominator.ToNative() : denominator.ToNative();
+
+  // 1. Multiply with 10^(denominator precision), keeping result in numerator precision.
+  uint128_t half_words_result[4];
+  {
+    uint128_t half_words_a[2] = {value_ & BOTTOM_MASK, (value_ & TOP_MASK) >> 64};
+    uint128_t half_words_b[2] = {DecimalMagicNumbers::POWER_OF_TEN[denominator_precision][1],
+                                 DecimalMagicNumbers::POWER_OF_TEN[denominator_precision][0]};
+    CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
+  }
+
+  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
+    // 2. If overflow, divide by the denominator with multi-word 256-bit division.
+    value_ = half_words_result[0] | (half_words_result[1] << 64);
+    UnsignedDivideConstant128Bit(constant);
+  } else {
+    if (DecimalMagicNumbers::magic_map256_bit_constant_division.count(constant) > 0) {
+      // 3. If no overflow, and have magic numbers, use magic numbers.
+      value_ = Decimal::UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
+    } else {
+      // 3. If no overflow, and no magic numbers, divide by the denominator with 128-bit division.
+      value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
+                                                half_words_result[0] | (half_words_result[1] << 64), constant);
+    }
+  }
+
+  value_ = negative_result ? 0 - value_ : value_;
+}
+
+uint128_t Decimal::UnsignedMagicDivideConstantNumerator256Bit(const uint128_t (&unsigned_dividend)[4],
+                                                              uint128_t unsigned_constant) {
+  uint128_t magic[4] = {DecimalMagicNumbers::magic_map256_bit_constant_division[unsigned_constant].d_,
+                        DecimalMagicNumbers::magic_map256_bit_constant_division[unsigned_constant].c_,
+                        DecimalMagicNumbers::magic_map256_bit_constant_division[unsigned_constant].b_,
+                        DecimalMagicNumbers::magic_map256_bit_constant_division[unsigned_constant].a_};
+  uint32_t magic_p = DecimalMagicNumbers::magic_map256_bit_constant_division[unsigned_constant].p_ - 256;
+  uint32_t algo = DecimalMagicNumbers::magic_map256_bit_constant_division[unsigned_constant].algo_;
+
+  return DecimalComputeMagicNumbers256(unsigned_dividend, magic, algo, magic_p);
+}
+
 Decimal::Decimal(std::string input, int *precision) {
   value_ = 0;
 
   if (input.empty()) {
-    *precision = 0;
-    return;
+    // TODO(WAN): Find appropriate error code.
+    throw EXECUTION_EXCEPTION("Invalid input.", common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   uint32_t pos = 0;
@@ -1223,16 +1078,15 @@ Decimal::Decimal(std::string input, int *precision) {
   if (is_negative) {
     value_ = -value_;
   }
-  return;
 }
-// TODO(WAN): The Decimal code below has been left as-is, but could probably be simplified and cleaned up further.
-//  I am leaving it alone because I don't think people will need to modify or look at this code often, assuming that
-//  works (it does contain parsing logic etc. that may require changes in the future).
 
 Decimal::Decimal(std::string input, int precision) {
   value_ = 0;
 
-  if (input.empty()) return;
+  if (input.empty()) {
+    // TODO(WAN): Find appropriate error code.
+    throw EXECUTION_EXCEPTION("Invalid input.", common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+  }
 
   uint32_t pos = 0;
 

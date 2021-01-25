@@ -1,0 +1,83 @@
+#include "execution/sql/decimal_magic_numbers.h"
+
+namespace noisepage::execution::sql {
+std::unordered_map<uint128_t, DecimalMagicNumbers::MagicNumber128, DecimalMagicNumbers::Unsigned128BitHash>
+    DecimalMagicNumbers::magic_map128_bit_constant_division = {{5, {0xcccccccccccccccc, 0xcccccccccccccccd, 130, 0}},
+                                                               {7, {0x2492492492492492, 0x4924924924924925, 131, 1}}};
+
+/** Magic numbers for 256-bit division with specific constants. */
+std::unordered_map<uint128_t, DecimalMagicNumbers::MagicNumber256, DecimalMagicNumbers::Unsigned128BitHash>
+    DecimalMagicNumbers::magic_map256_bit_constant_division = {
+        {5, {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
+        {7, {0x2492492492492492, 0x4924924924924924, 0x9249249249249249, 0x2492492492492493, 259, 1}},
+        {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09, 0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},
+        {999, {0x6680a40106680a4, 0x0106680a40106680, 0xa40106680a401066, 0x80a40106680a4011, 266, 1}},
+};
+
+/** Powers of two, used during constant division of a decimal with a power of two. */
+std::unordered_map<uint128_t, uint32_t, DecimalMagicNumbers::Unsigned128BitHash> DecimalMagicNumbers::power_two = {
+    {0x2, 1},
+    {0x4, 2},
+    {0x8, 3},
+    {0x10, 4},
+    {0x20, 5},
+    {0x40, 6},
+    {0x80, 7},
+    {0x100, 8},
+    {0x200, 9},
+    {0x400, 10},
+    {0x800, 11},
+    {0x1000, 12},
+    {0x2000, 13},
+    {0x4000, 14},
+    {0x8000, 15},
+    {0x10000, 16},
+    {0x20000, 17},
+    {0x40000, 18},
+    {0x80000, 19},
+    {0x100000, 20},
+    {0x200000, 21},
+    {0x400000, 22},
+    {0x800000, 23},
+    {0x1000000, 24},
+    {0x2000000, 25},
+    {0x4000000, 26},
+    {0x8000000, 27},
+    {0x10000000, 28},
+    {0x20000000, 29},
+    {0x40000000, 30},
+    {0x80000000, 31},
+    {0x100000000, 32},
+    {0x200000000, 33},
+    {0x400000000, 34},
+    {0x800000000, 35},
+    {0x1000000000, 36},
+    {0x2000000000, 37},
+    {0x4000000000, 38},
+    {0x8000000000, 39},
+    {0x10000000000, 40},
+    {0x20000000000, 41},
+    {0x40000000000, 42},
+    {0x80000000000, 43},
+    {0x100000000000, 44},
+    {0x200000000000, 45},
+    {0x400000000000, 46},
+    {0x800000000000, 47},
+    {0x1000000000000, 48},
+    {0x2000000000000, 49},
+    {0x4000000000000, 50},
+    {0x8000000000000, 51},
+    {0x10000000000000, 52},
+    {0x20000000000000, 53},
+    {0x40000000000000, 54},
+    {0x80000000000000, 55},
+    {0x100000000000000, 56},
+    {0x200000000000000, 57},
+    {0x400000000000000, 58},
+    {0x800000000000000, 59},
+    {0x1000000000000000, 60},
+    {0x2000000000000000, 61},
+    {0x4000000000000000, 62},
+    {0x8000000000000000, 63},
+};
+}  // namespace noisepage::execution::sql
