@@ -160,7 +160,7 @@ class DecimalSumAggregate {
   /**
    * Constructor.
    */
-  DecimalSumAggregate() : sum_(static_cast<decltype(DecimalVal::val_)>(0)) { sum_.is_null_ = true; }
+  DecimalSumAggregate() : sum_(0, 0) { sum_.is_null_ = true; }
 
   /**
    * This class cannot be copied or moved.
@@ -299,12 +299,7 @@ class DecimalMaxAggregate {
   /**
    * Constructor.
    */
-  DecimalMaxAggregate() : max_(std::numeric_limits<decltype(DecimalVal::val_)>::min()) {
-    int128_t minval = 1;
-    minval = minval << 127;
-    max_.val_ = Decimal(minval);
-    max_.is_null_ = true;
-  }
+  DecimalMaxAggregate() : max_(static_cast<uint128_t>(1) << 127, 0) { max_.is_null_ = true; }
 
   /**
    * This class cannot be copied or moved.
@@ -442,13 +437,7 @@ class DecimalMinAggregate {
   /**
    * Constructor.
    */
-  DecimalMinAggregate() : min_(std::numeric_limits<decltype(DecimalVal::val_)>::max()) {
-    uint128_t maxval = 1;
-    maxval = maxval << 127;
-    maxval -= 1;
-    min_.val_ = Decimal(maxval);
-    min_.is_null_ = true;
-  }
+  DecimalMinAggregate() : min_((static_cast<uint128_t>(1) << 127) - 1, 0) { min_.is_null_ = true; }
 
   /**
    * This class cannot be copied or moved.

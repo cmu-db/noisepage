@@ -241,7 +241,7 @@ class EXPORT GenericValue {
     hash_t hash_;
     uintptr_t pointer_;
     Date date_;
-    Decimal Decimal_;
+    Decimal decimal_;
     Timestamp timestamp_;
     float float_;
     double double_;

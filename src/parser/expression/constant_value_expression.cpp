@@ -178,8 +178,7 @@ common::hash_t ConstantValueExpression::Hash() const {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<double>()));
     }
     case type::TypeId::DECIMAL: {
-      return common::HashUtil::CombineHashes(hash,
-                                             common::HashUtil::Hash(Peek<execution::sql::Decimal>().ToNative()));
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<execution::sql::Decimal>().ToNative()));
     }
     case type::TypeId::TIMESTAMP: {
       return common::HashUtil::CombineHashes(hash,
@@ -320,7 +319,7 @@ nlohmann::json ConstantValueExpression::ToJson() const {
       }
       case type::TypeId::DECIMAL: {
         // TODO(WAN): Supposedly this is not supported?
-        j["value"] = static_cast<ino64_t>(Peek<int128_t>());
+        j["value"] = static_cast<int64_t>(Peek<int128_t>());
         break;
       }
       case type::TypeId::TIMESTAMP: {
@@ -370,7 +369,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
       case type::TypeId::DECIMAL: {
         // TODO(WAN): This is meant to be int128_t, but supposedly that doesn't work. But then I'm not sure why
         //  the ToJson 128_t version would work.
-        value_ = execution::sql::DecimalVal(j.at("value").get<int64_t>());
+        value_ = execution::sql::DecimalVal(j.at("value").get<int64_t>(), 0);
         break;
       }
       case type::TypeId::TIMESTAMP: {

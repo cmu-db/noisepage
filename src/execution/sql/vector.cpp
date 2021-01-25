@@ -230,7 +230,7 @@ void Vector::Reference(GenericValue *value) {
       break;
     }
     case TypeId::Decimal: {
-      data_ = reinterpret_cast<byte *>(&value->value_.Decimal_);
+      data_ = reinterpret_cast<byte *>(&value->value_.decimal_);
       break;
     }
     case TypeId::Timestamp: {

@@ -598,18 +598,18 @@ VM_OP_HOT void OpDecimalSetPrecision(noisepage::execution::sql::DecimalVal *resu
 }
 
 VM_OP_HOT void OpDecimalRescalePrecision(noisepage::execution::sql::DecimalVal *result,
-                                         noisepage::execution::sql::DecimalVal *source, int32_t new_precision) {
+                                         noisepage::execution::sql::DecimalVal *source, uint32_t new_precision) {
   result->is_null_ = source->is_null_;
   result->val_ = noisepage::execution::sql::Decimal(source->val_.ToNative());
   if (source->precision_ < new_precision) {
     int128_t value = result->val_.ToNative();
-    for (int i = 0; i < new_precision - source->precision_; i++) {
+    for (uint32_t i = 0; i < new_precision - source->precision_; i++) {
       value *= 10;
     }
     result->val_ = noisepage::execution::sql::Decimal(value);
   } else if (source->precision_ > new_precision) {
     int128_t value = result->val_.ToNative();
-    for (int i = 0; i < source->precision_ - new_precision; i++) {
+    for (uint32_t i = 0; i < source->precision_ - new_precision; i++) {
       value /= 10;
     }
     result->val_ = noisepage::execution::sql::Decimal(value);
@@ -759,29 +759,17 @@ GEN_SQL_COMPARISONS(String, StringVal)
 #undef GEN_SQL_COMPARISONS
 
 // TODO(Rohan): Optimize this by performing a binary search.
-#define GEN_FIXED_DECIMAL_COMPARISONS(NAME, EXPR)                                              \
-  VM_OP_HOT void Op##NAME##Decimal(noisepage::execution::sql::BoolVal *const result,           \
-                                   const noisepage::execution::sql::DecimalVal *const left,    \
-                                   const noisepage::execution::sql::DecimalVal *const right) { \
-    auto left_val = left->val_;                                                                \
-    auto right_val = right->val_;                                                              \
-    auto left_precision = left->precision_;                                                    \
-    auto right_precision = right->precision_;                                                  \
-    if (left_precision < right_precision) {                                                    \
-      int128_t intermediate_value = left_val.ToNative();                                       \
-      for (int i = 0; i < right_precision - left_precision; i++) {                             \
-        intermediate_value *= 10;                                                              \
-      }                                                                                        \
-      left_val = noisepage::execution::sql::Decimal(intermediate_value);                    \
-    } else {                                                                                   \
-      int128_t intermediate_value = right_val.ToNative();                                      \
-      for (int i = 0; i < left_precision - right_precision; i++) {                             \
-        intermediate_value *= 10;                                                              \
-      }                                                                                        \
-      right_val = noisepage::execution::sql::Decimal(intermediate_value);                   \
-    }                                                                                          \
-    result->is_null_ = (left->is_null_ || right->is_null_);                                    \
-    result->val_ = (left_val EXPR right_val);                                                  \
+#define GEN_FIXED_DECIMAL_COMPARISONS(NAME, EXPR)                                                                \
+  VM_OP_HOT void Op##NAME##Decimal(noisepage::execution::sql::BoolVal *const result,                             \
+                                   const noisepage::execution::sql::DecimalVal *const left,                      \
+                                   const noisepage::execution::sql::DecimalVal *const right) {                   \
+    auto left_val = left->val_;                                                                                  \
+    auto right_val = right->val_;                                                                                \
+    auto left_precision = left->precision_;                                                                      \
+    auto right_precision = right->precision_;                                                                    \
+    noisepage::execution::sql::Decimal::MatchPrecisions(&left_val, &right_val, left_precision, right_precision); \
+    result->is_null_ = (left->is_null_ || right->is_null_);                                                      \
+    result->val_ = (left_val EXPR right_val);                                                                    \
   }
 
 GEN_FIXED_DECIMAL_COMPARISONS(GreaterThan, >)
@@ -863,20 +851,7 @@ VM_OP_HOT void OpAddDecimal(noisepage::execution::sql::DecimalVal *const result,
   auto right_val = right->val_;
   auto left_precision = left->precision_;
   auto right_precision = right->precision_;
-  // TODO(Rohan): Optimize this by performing a binary search.
-  if (left_precision < right_precision) {
-    int128_t intermediate_value = left_val.ToNative();
-    for (int i = 0; i < right_precision - left_precision; i++) {
-      intermediate_value *= 10;
-    }
-    left_val = noisepage::execution::sql::Decimal(intermediate_value);
-  } else {
-    int128_t intermediate_value = right_val.ToNative();
-    for (int i = 0; i < left_precision - right_precision; i++) {
-      intermediate_value *= 10;
-    }
-    right_val = noisepage::execution::sql::Decimal(intermediate_value);
-  }
+  noisepage::execution::sql::Decimal::MatchPrecisions(&left_val, &right_val, left_precision, right_precision);
   left_val += right_val;
   result->val_ = left_val;
   result->is_null_ = left->is_null_ || right->is_null_;
@@ -890,20 +865,7 @@ VM_OP_HOT void OpSubDecimal(noisepage::execution::sql::DecimalVal *const result,
   auto right_val = right->val_;
   auto left_precision = left->precision_;
   auto right_precision = right->precision_;
-  // TODO(Rohan): Optimize this by performing a binary search.
-  if (left_precision < right_precision) {
-    int128_t intermediate_value = left_val.ToNative();
-    for (int i = 0; i < right_precision - left_precision; i++) {
-      intermediate_value *= 10;
-    }
-    left_val = noisepage::execution::sql::Decimal(intermediate_value);
-  } else {
-    int128_t intermediate_value = right_val.ToNative();
-    for (int i = 0; i < left_precision - right_precision; i++) {
-      intermediate_value *= 10;
-    }
-    right_val = noisepage::execution::sql::Decimal(intermediate_value);
-  }
+  noisepage::execution::sql::Decimal::MatchPrecisions(&left_val, &right_val, left_precision, right_precision);
   left_val -= right_val;
   result->val_ = left_val;
   result->is_null_ = left->is_null_ || right->is_null_;

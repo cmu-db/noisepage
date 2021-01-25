@@ -128,7 +128,7 @@ TEST_F(RuntimeTypesTest, StringToNegativeDecimalTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionTest) {
-  int returned_precision;
+  uint32_t returned_precision;
   Decimal d11(std::string("1234.567"), &returned_precision);
   Decimal a_1(1234567);
   EXPECT_EQ(a_1, d11);
@@ -202,7 +202,7 @@ TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionNegativeTest) {
-  int returned_precision;
+  uint32_t returned_precision;
   Decimal d11(std::string("-1234.567"), &returned_precision);
   Decimal a_1(-1234567);
   EXPECT_EQ(a_1, d11);
@@ -378,7 +378,7 @@ TEST_F(RuntimeTypesTest, StringToDecimalMultiPrecisionTest) {
   Decimal a_5(12346);
   EXPECT_EQ(a_5, a_5);
 
-  Decimal d_6(std::string("1234.567"), 0);
+  Decimal d_6(std::string("1234.567"), static_cast<uint32_t>(0));
   Decimal a_6(1234);
   EXPECT_EQ(a_6, a_6);
 }
@@ -424,7 +424,7 @@ TEST_F(RuntimeTypesTest, DISABLED_DecimalMultiplicationRegressionTest) {
   while (std::getline(infile, line)) {
     std::stringstream linestream(line);
     std::string decimal1, decimal2, result;
-    unsigned precision_decimal1, precision_decimal2, precision_result;
+    uint32_t precision_decimal1, precision_decimal2, precision_result;
     linestream >> decimal1 >> precision_decimal1 >> decimal2 >> precision_decimal2 >> result >> precision_result;
     Decimal d_1(decimal1, precision_decimal1);
     Decimal d_2(decimal2, precision_decimal2);

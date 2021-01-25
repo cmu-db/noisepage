@@ -123,7 +123,7 @@ struct DecimalVal : public Val {
   /** The internal decimal representation. */
   Decimal val_;
   /** The precision is the number of digits after the decimal point that it is accurate for. */
-  int precision_;
+  uint32_t precision_;
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
@@ -132,7 +132,7 @@ struct DecimalVal : public Val {
    *
    * TODO(WAN): Get rid of default argument.
    */
-  explicit DecimalVal(Decimal val, int precision = 0) noexcept : Val(false), val_(val), precision_(precision) {}
+  explicit DecimalVal(Decimal val, uint32_t precision) noexcept : Val(false), val_(val), precision_(precision) {}
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
@@ -141,14 +141,13 @@ struct DecimalVal : public Val {
    *
    * TODO(WAN): Get rid of default argument.
    */
-  explicit DecimalVal(Decimal::NativeType val, int precision = 0) noexcept
-      : DecimalVal(Decimal{val}, precision) {}
+  explicit DecimalVal(Decimal::NativeType val, uint32_t precision) noexcept : DecimalVal(Decimal{val}, precision) {}
 
   /**
    * @return A NULL decimal value.
    */
   static DecimalVal Null() {
-    DecimalVal val(0);
+    DecimalVal val(0, 0);
     val.is_null_ = true;
     return val;
   }

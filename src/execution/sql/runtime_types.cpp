@@ -861,7 +861,7 @@ void Decimal::MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision) 
   value_ = DecimalComputeMagicNumbers256(half_words_result, magic, algo, magic_p);
 }
 
-void Decimal::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
+void Decimal::UnsignedDivideConstant128BitPowerOfTen(uint32_t exponent) {
   // Magic number division from Hacker's Delight [2E 10-9 Unsigned Division].
 
   // Calculate 256-bit multiplication result.
@@ -869,14 +869,14 @@ void Decimal::UnsignedDivideConstant128BitPowerOfTen(uint32_t power) {
   {
     uint128_t a = value_;
     uint128_t half_words_a[2] = {a & BOTTOM_MASK, (a & TOP_MASK) >> 64};
-    uint128_t half_words_b[2] = {DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].lower_,
-                                 DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].upper_};
+    uint128_t half_words_b[2] = {DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[exponent].lower_,
+                                 DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[exponent].upper_};
     // TODO(Rohan): Calculate only upper half
     CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
   }
 
-  uint32_t magic_p = DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].p_ - 128;
-  uint32_t algo = DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[power].algo_;
+  uint32_t magic_p = DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[exponent].p_ - 128;
+  uint32_t algo = DecimalMagicNumbers::MAGIC_MAP128_BIT_POWER_TEN[exponent].algo_;
 
   value_ = DecimalComputeMagicNumbers128(half_words_result, algo, magic_p, value_);
 }
@@ -959,12 +959,12 @@ void Decimal::SignedMultiplyWithConstant(int64_t input) {
   value_ = negative_result ? 0 - value_ : value_;
 }
 
-void Decimal::SignedDivideWithConstant(int64_t input) {
+void Decimal::SignedDivideWithConstant(int64_t divisor) {
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
-  bool negative_result = (value_ < 0) != (input < 0);
+  bool negative_result = (value_ < 0) != (divisor < 0);
   value_ = value_ < 0 ? 0 - value_ : value_;
-  uint128_t constant = input < 0 ? -input : input;
+  uint128_t constant = divisor < 0 ? -divisor : divisor;
   UnsignedDivideConstant128Bit(constant);
   value_ = negative_result ? 0 - value_ : value_;
 }
@@ -1023,7 +1023,7 @@ uint128_t Decimal::UnsignedMagicDivideConstantNumerator256Bit(const uint128_t (&
   return DecimalComputeMagicNumbers256(unsigned_dividend, magic, algo, magic_p);
 }
 
-Decimal::Decimal(std::string input, int *precision) {
+Decimal::Decimal(std::string input, uint32_t *precision) {
   value_ = 0;
 
   if (input.empty()) {
@@ -1080,7 +1080,7 @@ Decimal::Decimal(std::string input, int *precision) {
   }
 }
 
-Decimal::Decimal(std::string input, int precision) {
+Decimal::Decimal(std::string input, uint32_t precision) {
   value_ = 0;
 
   if (input.empty()) {
@@ -1122,7 +1122,7 @@ Decimal::Decimal(std::string input, int precision) {
 
   // No decimal point case
   if (pos == input.size()) {
-    for (int i = 0; i < precision - 1; i++) {
+    for (uint32_t i = 0; i < precision - 1; i++) {
       value_ *= 10;
     }
     if (is_negative) {
@@ -1134,7 +1134,7 @@ Decimal::Decimal(std::string input, int precision) {
   pos++;
   // Nothing after decimal point case
   if (pos == input.size()) {
-    for (int i = 0; i < precision - 1; i++) {
+    for (uint32_t i = 0; i < precision - 1; i++) {
       value_ *= 10;
     }
     if (is_negative) {
@@ -1143,13 +1143,13 @@ Decimal::Decimal(std::string input, int precision) {
     return;
   }
 
-  for (int i = 1; i < precision; i++) {
+  for (uint32_t i = 1; i < precision; i++) {
     if (pos < input.size()) {
       value_ += input[pos] - '0';
       value_ *= 10;
       pos++;
     } else {
-      for (int j = i; j < precision; j++) {
+      for (uint32_t j = i; j < precision; j++) {
         value_ *= 10;
       }
       if (is_negative) {
@@ -1192,7 +1192,7 @@ Decimal::Decimal(std::string input, int precision) {
   }
 }
 
-std::string Decimal::ToString(int32_t precision) const {
+std::string Decimal::ToString(uint32_t precision) const {
   std::string output;
   int128_t value = value_;
   if (value < 0) {
@@ -1203,8 +1203,8 @@ std::string Decimal::ToString(int32_t precision) const {
   if (precision != 0) {
     int128_t fractional = value;
     std::string fractional_string;
-    for (int i = 0; i < precision; i++) {
-      int remainder = static_cast<int>(fractional % 10);
+    for (uint32_t i = 0; i < precision; i++) {
+      auto remainder = static_cast<uint32_t>(fractional % 10);
       fractional_string.push_back('0' + remainder);
       fractional /= 10;
     }
@@ -1214,7 +1214,7 @@ std::string Decimal::ToString(int32_t precision) const {
     std::string integral_string;
 
     while (integral != 0) {
-      int remainder = static_cast<int>(integral % 10);
+      auto remainder = static_cast<int32_t>(integral % 10);
       integral_string.push_back('0' + remainder);
       integral /= 10;
     }
@@ -1233,7 +1233,7 @@ std::string Decimal::ToString(int32_t precision) const {
   int128_t integral = value;
   std::string integral_string;
   while (integral != 0) {
-    int remainder = static_cast<int>(integral % 10);
+    auto remainder = static_cast<int32_t>(integral % 10);
     integral_string.push_back('0' + remainder);
     integral /= 10;
   }

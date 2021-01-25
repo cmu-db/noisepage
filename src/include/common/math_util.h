@@ -148,8 +148,8 @@ class MathUtil {
 
   /**
    * Compute the number of leading zeroes in num, ASSUMING THAT num IS NOT ZERO.
-   * @param u 128-bit unsigned integer, must not be 0.
-   * @return The number of leading zeroes in 128-bit unsigned integer u.
+   * @param num 128-bit unsigned integer, must not be 0.
+   * @return The number of leading zeroes in 128-bit unsigned integer provided.
    */
   static int32_t GetNumLeadingZeroesAssumingNonZero(uint128_t num) {
     NOISEPAGE_ASSERT(num != 0, "num cannot be 0");

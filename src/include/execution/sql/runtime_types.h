@@ -433,14 +433,14 @@ class EXPORT Decimal {
    * @param precision   Number of digits after the decimal point.
    *                    The precision must be <= 38.
    */
-  Decimal(std::string input, int precision);
+  Decimal(std::string input, uint32_t precision);
 
   /**
    * Convert an input string into a decimal representation, taking as many digits as possible.
    * @param input           The input string to convert.
    * @param[out] precision  The precision that the decimal was read with.
    */
-  Decimal(std::string input, int *precision);
+  Decimal(std::string input, uint32_t *precision);
 
   /**
    * @return The raw underlying encoded decimal value.
@@ -529,11 +529,12 @@ class EXPORT Decimal {
   }
 
   /**
+   * Get the string representation of the current decimal. Requires knowing the precision.
    *
-   * @param precision
-   * @return
+   * @param precision The precision of the current decimal. This must be accurate!
+   * @return The string representation of this decimal.
    */
-  std::string ToString(int32_t precision) const;
+  std::string ToString(uint32_t precision) const;
 
   /** @return The native representation of the decimal. */
   NativeType ToNative() const { return value_; }
@@ -554,7 +555,33 @@ class EXPORT Decimal {
    * @param multiplier          The decimal to multiply by.
    * @param lower_precision     The lower precision of the two decimals.
    */
-  void SignedMultiplyWithDecimal(Decimal multiplier, unsigned lower_precision);
+  void SignedMultiplyWithDecimal(Decimal multiplier, uint32_t lower_precision);
+
+  /**
+   * Match the precisions of the two decimals by rescaling the less precise of the inputs to the higher precision.
+   *
+   * @param left                The left decimal value.
+   * @param right               The right decimal value.
+   * @param left_precision      The precision of the left decimal value.
+   * @param right_precision     The precision of the right decimal value.
+   */
+  static void MatchPrecisions(Decimal *left, Decimal *right, uint32_t left_precision, uint32_t right_precision) {
+    // TODO(Rohan): Optimize this by performing a binary search.
+    int128_t intermediate_value;
+    if (left_precision < right_precision) {
+      intermediate_value = left->ToNative();
+      for (uint32_t i = 0; i < right_precision - left_precision; i++) {
+        intermediate_value *= 10;
+      }
+      *left = Decimal(intermediate_value);
+    } else {
+      intermediate_value = right->ToNative();
+      for (uint32_t i = 0; i < left_precision - right_precision; i++) {
+        intermediate_value *= 10;
+      }
+      *right = Decimal(intermediate_value);
+    }
+  }
 
  private:
   // The encoded decimal value
