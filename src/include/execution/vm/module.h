@@ -160,7 +160,7 @@ class Module {
 
  private:
   // The module containing all TBC (i.e., bytecode) for the TPL program.
-  std::unique_ptr<BytecodeModule> bytecode_module_;  // TODO make sure to make this not shared
+  std::unique_ptr<BytecodeModule> bytecode_module_;
 
   // The module containing compiled machine code for the TPL program.
   std::unique_ptr<LLVMEngine::CompiledModule> jit_module_;

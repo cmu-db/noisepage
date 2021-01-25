@@ -18,11 +18,11 @@ class CompilationManager {
   ~CompilationManager() = default;
 
   // Send a module to the compilation manager for compilation.
-  void addModule(Module *module);
+  void AddModule(Module *module);
 
-  void transferModule(std::unique_ptr<Module> &&module);
+  void TransferModule(std::unique_ptr<Module> &&module);
 
-  void transferContext(std::unique_ptr<util::Region> region);
+  void TransferContext(std::unique_ptr<util::Region> region);
 
  private:
   class AsyncCompileTask;

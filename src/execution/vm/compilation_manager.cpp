@@ -48,13 +48,13 @@ class CompilationManager::AsyncCompileTask : public tbb::task {
   std::once_flag compiled_flag_;
 };
 
-void CompilationManager::addModule(Module *module) {
+void CompilationManager::AddModule(Module *module) {
   auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(module);
   tbb::task::enqueue(*compile_task);
 }
 
-void CompilationManager::transferModule(std::unique_ptr<Module> &&module) { module_.push_back(std::move(module)); }
+void CompilationManager::TransferModule(std::unique_ptr<Module> &&module) { module_.push_back(std::move(module)); }
 
-void CompilationManager::transferContext(std::unique_ptr<util::Region> region) { region_.push_back(std::move(region)); }
+void CompilationManager::TransferContext(std::unique_ptr<util::Region> region) { region_.push_back(std::move(region)); }
 
 }  // namespace noisepage::execution::vm
