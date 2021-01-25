@@ -584,7 +584,8 @@ VM_OP_HOT void OpInitDate(noisepage::execution::sql::DateVal *result, int32_t ye
   result->val_ = noisepage::execution::sql::Date::FromYMD(year, month, day);
 }
 
-VM_OP_HOT void OpInitDecimal(noisepage::execution::sql::DecimalVal *result, int128_t fixed_decimal, uint32_t precision) {
+VM_OP_HOT void OpInitDecimal(noisepage::execution::sql::DecimalVal *result, int128_t fixed_decimal,
+                             uint32_t precision) {
   result->is_null_ = false;
   result->val_ = noisepage::execution::sql::Decimal(fixed_decimal);
   result->precision_ = precision;
