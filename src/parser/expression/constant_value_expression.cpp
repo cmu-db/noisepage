@@ -318,7 +318,7 @@ nlohmann::json ConstantValueExpression::ToJson() const {
         break;
       }
       case type::TypeId::DECIMAL: {
-        // TODO(WAN): Supposedly this is not supported?
+        // TODO(WAN): No native support for serializing int128_t
         j["value"] = static_cast<int64_t>(Peek<int128_t>());
         break;
       }
@@ -367,8 +367,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
         break;
       }
       case type::TypeId::DECIMAL: {
-        // TODO(WAN): This is meant to be int128_t, but supposedly that doesn't work. But then I'm not sure why
-        //  the ToJson 128_t version would work.
+        // TODO(WAN): No native support for serializing int128_t
         value_ = execution::sql::DecimalVal(j.at("value").get<int64_t>(), 0);
         break;
       }

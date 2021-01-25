@@ -1,4 +1,3 @@
-
 statement ok
 CREATE TABLE foo (a DECIMAL(18,5));
 
@@ -154,3 +153,12 @@ SELECT sum(a*b), min(a*b), max(a*b) FROM foo3 group by b;
 1972.39832
 666.21241
 1306.18591
+
+statement ok
+DROP TABLE foo;
+
+statement ok
+DROP TABLE foo2;
+
+statement ok
+DROP TABLE foo3;

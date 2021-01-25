@@ -1031,7 +1031,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     fixed_decimal_128 = fixed_decimal_128 | (fixed_decimal_3_128 << 32);
     fixed_decimal_128 = fixed_decimal_128 | (fixed_decimal_4_128);
 
-    auto precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto precision = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpInitDecimal(sql_fixed_decimal, fixed_decimal_128, precision);
     DISPATCH_NEXT();
   }
@@ -1039,7 +1039,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(DecimalSetPrecision) : {
     auto *result = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto *source = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
-    auto source_precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto source_precision = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpDecimalSetPrecision(result, source, source_precision);
     DISPATCH_NEXT();
   }
@@ -1047,7 +1047,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(DecimalRescalePrecision) : {
     auto *result = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
     auto *source = frame->LocalAt<sql::DecimalVal *>(READ_LOCAL_ID());
-    auto new_precision = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto new_precision = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpDecimalRescalePrecision(result, source, new_precision);
     DISPATCH_NEXT();
   }

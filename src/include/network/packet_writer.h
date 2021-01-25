@@ -113,10 +113,7 @@ class PacketWriter {
     // We only want to allow for certain type sizes to be used
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
-    // TODO(WAN): Either the sizeof(T) == 16 is redundant, or there exists a code path that thrwos the exception.
-    //   Revisit before merge.
-    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8 || sizeof(T) == 16,
-                  "Invalid size for integer");
+    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
 
     if constexpr (std::is_floating_point_v<T>) {
       const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);

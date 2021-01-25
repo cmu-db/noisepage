@@ -151,12 +151,12 @@ class MathUtil {
    * @param num 128-bit unsigned integer, must not be 0.
    * @return The number of leading zeroes in 128-bit unsigned integer provided.
    */
-  static int32_t GetNumLeadingZeroesAssumingNonZero(uint128_t num) {
+  static uint32_t GetNumLeadingZeroesAssumingNonZero(uint128_t num) {
     NOISEPAGE_ASSERT(num != 0, "num cannot be 0");
     uint64_t hi = num >> 64;
     uint64_t lo = num;
     int32_t retval[2] = {__builtin_clzll(hi), __builtin_clzll(lo) + 64};
-    auto idx = static_cast<int32_t>(hi == 0);
+    auto idx = static_cast<uint32_t>(hi == 0);
     return retval[idx];
   }
 
