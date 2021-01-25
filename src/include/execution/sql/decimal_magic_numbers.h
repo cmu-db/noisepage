@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#include "common/hash_util.h"
+
 /*
  * This file contains magic numbers as defined by Hacker's Delight [2E].
  * Magic numbers are used for fast integer division.
