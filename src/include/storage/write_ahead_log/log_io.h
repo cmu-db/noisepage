@@ -124,6 +124,7 @@ class BufferedLogWriter {
    * don't care about all of the file's metadata being persisted, just the contents.
    */
   void Persist() {
+    if (buffer_size_ == 0) return;  // persist with no bytes written should be a no-op
 #if __APPLE__
     // macOS provides fcntl(out_, F_FULLFSYNC) to guarantee that on-disk buffers are flushed. AFAIK there is no portable
     // way to do this on Linux so we'll just keep fsync for now.
