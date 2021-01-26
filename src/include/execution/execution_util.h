@@ -20,7 +20,8 @@ class ExecutionUtil {
    */
   static void InitTPL(std::string_view bytecode_handlers_path) {
     execution::CpuInfo::Instance();
-    execution::vm::LLVMEngine::Initialize(bytecode_handlers_path);
+    auto settings = std::make_unique<const typename vm::LLVMEngine::Settings>(bytecode_handlers_path);
+    execution::vm::LLVMEngine::Initialize(std::move(settings));
   }
 
   /**

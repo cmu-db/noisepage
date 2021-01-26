@@ -35,16 +35,23 @@ class LLVMEngine {
   class CompilerOptions;
   class CompiledModule;
   class CompiledModuleBuilder;
-  class LLVMEngineImpl;
+  class Settings;
 
   // -------------------------------------------------------
   // Public API
   // -------------------------------------------------------
 
   /**
-   * Initialize the whole LLVM subsystem
+   * Initialize the whole LLVM subsystem and LLVM engine settings.
+   * @param settings
    */
-  static void Initialize(std::string_view bytecode_handlers_path);
+  static void Initialize(const Settings &settings);
+
+  /**
+   * Initialize the whole LLVM subsytem and LLVM engine settings.
+   * @param settings
+   */
+  static void Initialize(std::unique_ptr<const Settings> &&settings);
 
   /**
    * Shutdown the whole LLVM subsystem
@@ -60,14 +67,24 @@ class LLVMEngine {
   static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
 
   /**
-   * @return The path to the bytecode handlers bitcode file.
+   * @return A reference to the LLVM engine settings.
    */
-  static const std::string &GetBytecodeHandlersBcPath();
+  static const Settings *GetEngineSettings();
+
+  // -------------------------------------------------------
+  // Private API
+  // -------------------------------------------------------
+ private:
+  /**
+   * Initialize the whole LLVM subsytem.
+   * (avoids repeating implementation within LLVMEngine::Initialize() overloads)
+   */
+  static void InitializeInternal();
 
   // -------------------------------------------------------
   // Compiler Options
   // -------------------------------------------------------
-
+ public:
   /**
    * Options to provide when compiling
    */
@@ -194,32 +211,23 @@ class LLVMEngine {
   };
 
   // -------------------------------------------------------
-  // LLVM Engine Implementation
+  // LLVM Engine Settings
   // -------------------------------------------------------
 
   /**
-   *
+   * Engine-wide settings that apply for the entire process in which the LLVM Engine runs.
    */
-  class LLVMEngineImpl {
+  class Settings {
    public:
-    explicit LLVMEngineImpl(std::string_view bytecode_handlers_path)
-        : bytecode_handlers_path_{bytecode_handlers_path} {}
+    explicit Settings(std::string_view bytecode_handlers_path) : bytecode_handlers_path_{bytecode_handlers_path} {}
 
     /**
-     * JIT compile a TPL bytecode module to native code
-     * @param module The module to compile
-     * @param options The compiler options
-     * @return The JIT compiled module
+     * @return The path to the
      */
-    std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
-
-    /**
-     * @return The path to the bytecode handlers bitcode file.
-     */
-    const std::string &GetBytecodeHandlersBcPath() const noexcept;
+    const std::string &GetBytecodeHandlersBcPath() const noexcept { return bytecode_handlers_path_; }
 
    private:
-    const std::string bytecode_handlers_path_;
+    std::string bytecode_handlers_path_;
   };
 
   // -------------------------------------------------------
@@ -227,9 +235,9 @@ class LLVMEngine {
   // -------------------------------------------------------
 
   /**
-   * The implementation.
+   * Process-wide LLVM engine settings.
    */
-  inline static std::unique_ptr<LLVMEngineImpl> impl_;
+  inline static std::unique_ptr<const Settings> engine_settings;
 };
 
 }  // namespace noisepage::execution::vm

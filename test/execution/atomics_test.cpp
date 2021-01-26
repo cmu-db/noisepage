@@ -17,7 +17,10 @@ namespace noisepage::execution::test {
 
 class AtomicsTest : public TplTest {
  public:
-  AtomicsTest() : region_("atomics_test") { vm::LLVMEngine::Initialize(bytecode_handlers_path_); }
+  AtomicsTest() : region_("atomics_test") {
+    vm::LLVMEngine::Settings settings{bytecode_handlers_path_};
+    vm::LLVMEngine::Initialize(settings);
+  }
 
   util::Region region_;
 
@@ -157,10 +160,6 @@ TEST_F(AtomicsTest, InterpretedCompareExchange2) { CompareExchangeTest<uint16_t>
 TEST_F(AtomicsTest, InterpretedCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", false); }  // NOLINT
 TEST_F(AtomicsTest, InterpretedCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", false); }  // NOLINT
 
-/* TODO(John): These tests are disabled because our testing environment does not
- *  currently make `bytecode_handlers_ir.bc` available to the test programs.
- *  Without this file, compiled tests fail.
- */
 TEST_F(AtomicsTest, CompiledAndOr1) { AndOrTest<uint8_t>("uint8", true); }                        // NOLINT
 TEST_F(AtomicsTest, CompiledAndOr2) { AndOrTest<uint16_t>("uint16", true); }                      // NOLINT
 TEST_F(AtomicsTest, CompiledAndOr4) { AndOrTest<uint32_t>("uint32", true); }                      // NOLINT

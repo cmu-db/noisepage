@@ -329,7 +329,8 @@ static void RunRepl() {
 void InitTPL(std::string_view bytecode_handlers_path) {
   execution::CpuInfo::Instance();
 
-  execution::vm::LLVMEngine::Initialize(bytecode_handlers_path);
+  execution::vm::LLVMEngine::Settings settings{bytecode_handlers_path};
+  execution::vm::LLVMEngine::Initialize(settings);
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
 
@@ -381,7 +382,6 @@ int main(int argc, char **argv) {
   EXECUTION_LOG_INFO("\n{}", noisepage::execution::CpuInfo::Instance()->PrettyPrintInfo());
 
   EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
-  EXECUTION_LOG_INFO("{}", HANDLERS_PATH);
 
   // Either execute a TPL program from a source file, or run REPL
   if (!INPUT_FILE.empty()) {

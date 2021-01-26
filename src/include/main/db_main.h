@@ -802,6 +802,7 @@ class DBMain {
     uint64_t pilot_interval_ = 1e7;
     uint64_t workload_forecast_interval_ = 1e7;
     std::string model_save_path_;
+    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -814,7 +815,6 @@ class DBMain {
     uint64_t optimizer_timeout_ = 5000;
     bool use_query_cache_ = true;
     execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
-    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     uint16_t network_port_ = 15721;
     std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
