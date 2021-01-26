@@ -18,8 +18,20 @@ namespace noisepage::execution::compiler {
  */
 class AnalyzeTranslator : public OperatorTranslator, public PipelineDriver {
  public:
+  /**
+   * Create new translator for the given analyze plan. The compilation occurs within the
+   * provided compilation context and the operator is participating in the provided pipeline.
+   * @param plan The analyze plan.
+   * @param compilation_context The context of compilation this translation is occurring in.
+   * @param pipeline pipeline The pipeline this operator is participating in.
+   */
   AnalyzeTranslator(const planner::AnalyzePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
+  /**
+   * Implement analyze logic where it uses the aggregate values of it's child to fill the pg_statistic table.
+   * @param context The context of the work.
+   * @param function The pipeline generating function.
+   */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
   /**
@@ -37,7 +49,8 @@ class AnalyzeTranslator : public OperatorTranslator, public PipelineDriver {
 
   /**
    *
-   * @return The child's output at the given index.
+   * @return The value (vector) of the attribute at the given index (@em attr_idx) produced by the
+   *         child at the given index (@em child_idx).
    */
   ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override;
 

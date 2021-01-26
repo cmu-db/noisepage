@@ -694,6 +694,7 @@ struct hash<noisepage::execution::sql::Decimal<T>> {
 }  // namespace std
 
 namespace nlohmann {
+/** Struct to help convert Date to and from JSON */
 template <>
 struct adl_serializer<noisepage::execution::sql::Date> {
   /**
@@ -716,6 +717,7 @@ struct adl_serializer<noisepage::execution::sql::Date> {
   }
 };
 
+/** Struct to help convert Timestamp to and from JSON */
 template <>
 struct adl_serializer<noisepage::execution::sql::Timestamp> {
   /**
@@ -738,6 +740,7 @@ struct adl_serializer<noisepage::execution::sql::Timestamp> {
   }
 };
 
+/** Struct to help convert Decimal to and from JSON */
 template <typename T>
 struct adl_serializer<noisepage::execution::sql::Decimal<T>> {
   /**

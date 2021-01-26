@@ -62,7 +62,9 @@ class PgStatistic {
     /** Human readable name of the column */
     std::string_view name_;
   };
+  /** Number of aggregates per column that Analyze uses */
   static constexpr uint8_t NUM_ANALYZE_AGGREGATES = 4;
+  /** Information on each aggregate that Analyze uses to compute statistics */
   static constexpr std::array<PgStatisticColInfo, NUM_ANALYZE_AGGREGATES> ANALYZE_AGGREGATES = {
       {// COUNT(col) - non-null rows
        {parser::ExpressionType::AGGREGATE_COUNT, false, STA_NONNULLROWS.oid_, "non_null_row"},

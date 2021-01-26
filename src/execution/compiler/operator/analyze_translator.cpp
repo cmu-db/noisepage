@@ -3,7 +3,6 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_statistic.h"
-#include "common/error/error_code.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"

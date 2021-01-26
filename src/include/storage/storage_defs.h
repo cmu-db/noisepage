@@ -591,6 +591,7 @@ struct hash<noisepage::storage::VarlenEntry> {
 }  // namespace std
 
 namespace nlohmann {
+/** Struct to help convert VarlenEntry to and from JSON */
 template <>
 struct adl_serializer<noisepage::storage::VarlenEntry> {
   /**

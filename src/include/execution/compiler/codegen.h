@@ -239,6 +239,7 @@ class CodeGen {
    * Return the appropriate aggregate type for the given input aggregation expression.
    * @param agg_type The aggregate expression type.
    * @param ret_type The return type of the aggregate.
+   * @param child_type The type of the child of the aggregate.
    * @return The corresponding TPL aggregate type.
    */
   [[nodiscard]] ast::Expr *AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type,
@@ -1176,7 +1177,9 @@ class CodeGen {
 
   /**
    * Call \@aggResult(). Finalizes and returns the result of the aggregation.
+   * @param exec_ctx The execution context that we are running in.
    * @param agg A pointer to the aggregator.
+   * @param expression_type Type of aggregate expression
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggregatorResult(ast::Expr *exec_ctx, ast::Expr *agg,
