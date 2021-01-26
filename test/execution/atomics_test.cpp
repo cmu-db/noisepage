@@ -17,9 +17,16 @@ namespace noisepage::execution::test {
 
 class AtomicsTest : public TplTest {
  public:
-  AtomicsTest() : region_("atomics_test") { vm::LLVMEngine::Initialize(); }
+  AtomicsTest() : region_("atomics_test") { vm::LLVMEngine::Initialize(bytecode_handlers_path_); }
 
   util::Region region_;
+
+  /**
+   * The path to the bytecode handlers file, relative to the location from which the test is run.
+   * TODO(Kyle): Is this the best way to deal with this? What about dynamically detecting the
+   * project root at the time the test is initialized and locating the file from there?
+   */
+  const char *const bytecode_handlers_path_{"../bin/bytecode_handlers_ir.bc"};
 
   template <typename T>
   void AndOrTest(const std::string &tpl_type, const bool compiled) {
@@ -154,13 +161,13 @@ TEST_F(AtomicsTest, InterpretedCompareExchange8) { CompareExchangeTest<uint64_t>
  *  currently make `bytecode_handlers_ir.bc` available to the test programs.
  *  Without this file, compiled tests fail.
  */
-// TEST_F(AtomicsTest, CompiledAndOr1) { AndOrTest<uint8_t>("uint8", true); }                        // NOLINT
-// TEST_F(AtomicsTest, CompiledAndOr2) { AndOrTest<uint16_t>("uint16", true); }                      // NOLINT
-// TEST_F(AtomicsTest, CompiledAndOr4) { AndOrTest<uint32_t>("uint32", true); }                      // NOLINT
-// TEST_F(AtomicsTest, CompiledAndOr8) { AndOrTest<uint64_t>("uint64", true); }                      // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", true); }    // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", true); }  // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", true); }  // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", true); }  // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr1) { AndOrTest<uint8_t>("uint8", true); }                        // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr2) { AndOrTest<uint16_t>("uint16", true); }                      // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr4) { AndOrTest<uint32_t>("uint32", true); }                      // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr8) { AndOrTest<uint64_t>("uint64", true); }                      // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", true); }    // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", true); }  // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", true); }  // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", true); }  // NOLINT
 
 }  // namespace noisepage::execution::test

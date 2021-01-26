@@ -295,7 +295,10 @@ class DBMain {
    */
   class ExecutionLayer {
    public:
-    ExecutionLayer();
+    /**
+     * @param bytecode_handlers_path path to the bytecode handlers bitcode file
+     */
+    explicit ExecutionLayer(const std::string &bytecode_handlers_path);
     ~ExecutionLayer();
   };
 
@@ -399,7 +402,7 @@ class DBMain {
 
       std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
       if (use_execution_) {
-        execution_layer = std::make_unique<ExecutionLayer>();
+        execution_layer = std::make_unique<ExecutionLayer>(bytecode_handlers_path_);
       }
 
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
@@ -757,6 +760,15 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value the new path to the bytecode handler bitcode file
+     * @return self reference for chaining
+     */
+    Builder &SetBytecodeHandlersPath(const std::string &value) {
+      bytecode_handlers_path_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -802,6 +814,7 @@ class DBMain {
     uint64_t optimizer_timeout_ = 5000;
     bool use_query_cache_ = true;
     execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
+    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     uint16_t network_port_ = 15721;
     std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
@@ -866,6 +879,7 @@ class DBMain {
       execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
+      bytecode_handlers_path_ = settings_manager->GetString(settings::Param::bytecode_handlers_path);
 
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);

@@ -56,6 +56,7 @@ llvm::cl::opt<bool> TPCH("tpch", llvm::cl::desc("Should the TPCH database be loa
 llvm::cl::opt<std::string> DATA_DIR("data", llvm::cl::desc("Where to find data files of tables to load"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<std::string> INPUT_FILE(llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<std::string> OUTPUT_NAME("output-name", llvm::cl::desc("Print the output name"), llvm::cl::init("schema10"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
+llvm::cl::opt<std::string> HANDLERS_PATH("handlers-path", llvm::cl::desc("Path to the bytecode handlers bitcode file"), llvm::cl::init("./bytecode_handlers_ir.bc"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 // clang-format on
 
 tbb::task_scheduler_init scheduler;
@@ -325,10 +326,10 @@ static void RunRepl() {
 /**
  * Initialize all TPL subsystems in preparation for execution.
  */
-void InitTPL() {
+void InitTPL(std::string_view bytecode_handlers_path) {
   execution::CpuInfo::Instance();
 
-  execution::vm::LLVMEngine::Initialize();
+  execution::vm::LLVMEngine::Initialize(bytecode_handlers_path);
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
 
@@ -375,11 +376,12 @@ int main(int argc, char **argv) {
   }
 
   // Init TPL
-  noisepage::execution::InitTPL();
+  noisepage::execution::InitTPL(HANDLERS_PATH);
 
   EXECUTION_LOG_INFO("\n{}", noisepage::execution::CpuInfo::Instance()->PrettyPrintInfo());
 
   EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
+  EXECUTION_LOG_INFO("{}", HANDLERS_PATH);
 
   // Either execute a TPL program from a source file, or run REPL
   if (!INPUT_FILE.empty()) {

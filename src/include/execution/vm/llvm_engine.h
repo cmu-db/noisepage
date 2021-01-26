@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "common/macros.h"
@@ -34,6 +35,7 @@ class LLVMEngine {
   class CompilerOptions;
   class CompiledModule;
   class CompiledModuleBuilder;
+  class LLVMEngineImpl;
 
   // -------------------------------------------------------
   // Public API
@@ -42,7 +44,7 @@ class LLVMEngine {
   /**
    * Initialize the whole LLVM subsystem
    */
-  static void Initialize();
+  static void Initialize(std::string_view bytecode_handlers_path);
 
   /**
    * Shutdown the whole LLVM subsystem
@@ -56,6 +58,11 @@ class LLVMEngine {
    * @return The JIT compiled module
    */
   static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
+
+  /**
+   * @return The path to the bytecode handlers bitcode file.
+   */
+  static const std::string &GetBytecodeHandlersBcPath();
 
   // -------------------------------------------------------
   // Compiler Options
@@ -116,11 +123,6 @@ class LLVMEngine {
      * @return the output file name
      */
     const std::string &GetOutputObjectFileName() const { return output_file_name_; }
-
-    /**
-     * @return the path to the bytecode handlers bitcode file.
-     */
-    std::string GetBytecodeHandlersBcPath() const { return "./bytecode_handlers_ir.bc"; }
 
    private:
     bool debug_{false};
@@ -190,6 +192,44 @@ class LLVMEngine {
     std::unique_ptr<TPLMemoryManager> memory_manager_;
     std::unordered_map<std::string, void *> functions_;
   };
+
+  // -------------------------------------------------------
+  // LLVM Engine Implementation
+  // -------------------------------------------------------
+
+  /**
+   *
+   */
+  class LLVMEngineImpl {
+   public:
+    explicit LLVMEngineImpl(std::string_view bytecode_handlers_path)
+        : bytecode_handlers_path_{bytecode_handlers_path} {}
+
+    /**
+     * JIT compile a TPL bytecode module to native code
+     * @param module The module to compile
+     * @param options The compiler options
+     * @return The JIT compiled module
+     */
+    std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
+
+    /**
+     * @return The path to the bytecode handlers bitcode file.
+     */
+    const std::string &GetBytecodeHandlersBcPath() const noexcept;
+
+   private:
+    const std::string bytecode_handlers_path_;
+  };
+
+  // -------------------------------------------------------
+  // Static Data Members
+  // -------------------------------------------------------
+
+  /**
+   * The implementation.
+   */
+  inline static std::unique_ptr<LLVMEngineImpl> impl_;
 };
 
 }  // namespace noisepage::execution::vm

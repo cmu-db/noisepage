@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string_view>
 #include <utility>
 
 #include "execution/util/cpu_info.h"
@@ -17,9 +18,9 @@ class ExecutionUtil {
   /**
    * Initialize all TPL subsystems
    */
-  static void InitTPL() {
+  static void InitTPL(std::string_view bytecode_handlers_path) {
     execution::CpuInfo::Instance();
-    execution::vm::LLVMEngine::Initialize();
+    execution::vm::LLVMEngine::Initialize(bytecode_handlers_path);
   }
 
   /**
