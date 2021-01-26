@@ -17,7 +17,7 @@
 #include "common/macros.h"
 #include "loggers/optimizer_logger.h"
 #include "madoka/madoka.h"
-#include "storage/write_ahead_log/log_io.h"
+#include "storage/posix_io_wrappers.h"
 
 namespace noisepage::optimizer {
 
