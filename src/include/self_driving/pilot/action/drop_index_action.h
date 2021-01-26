@@ -16,12 +16,14 @@ class DropIndexAction : public AbstractAction {
  public:
   /**
    * Construct DropIndexAction
+   * @param db_oid Database id of the index
    * @param index_name The name of the index
    * @param table_name The table to create index on
    * @param columns The columns to build index on
    */
-  DropIndexAction(std::string index_name, std::string table_name, std::vector<IndexColumn> columns)
-      : AbstractAction(ActionType::DROP_INDEX),
+  DropIndexAction(catalog::db_oid_t db_oid, std::string index_name, std::string table_name,
+                  std::vector<IndexColumn> columns)
+      : AbstractAction(ActionType::DROP_INDEX, db_oid),
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),
         columns_(std::move(columns)) {
