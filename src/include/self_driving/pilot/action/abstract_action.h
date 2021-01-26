@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"
 #include "self_driving/pilot/action/action_defs.h"
 
@@ -16,8 +17,10 @@ class AbstractAction {
   /**
    * Constructor for the base AbstractAction.
    * @param family The family that this action belongs to
+   * @param db_oid The ID of the database that this action belongs to
    */
-  explicit AbstractAction(ActionType family) : action_family_(family), id_(action_id_counter++) {}
+  explicit AbstractAction(ActionType family, catalog::db_oid_t db_oid)
+      : action_family_(family), db_oid_(db_oid), id_(action_id_counter++) {}
 
   virtual ~AbstractAction() = default;
 
@@ -30,7 +33,7 @@ class AbstractAction {
   }
 
   /** @return The estimated runtime metrics for this action */
-  const common::ResourceTracker::Metrics &GetActualMetrics() { return estimated_metrics_; }
+  const common::ResourceTracker::Metrics &GetEstimatedMetrics() { return estimated_metrics_; }
 
   /** @return This action's ID */
   action_id_t GetActionID() const { return id_; }
@@ -38,17 +41,32 @@ class AbstractAction {
   /** @return This action's family */
   ActionType GetActionFamily() const { return action_family_; }
 
-  /**
-   * Add an equivalent action
-   * @param id Action ID
-   */
-  void AddEquivalentAction(action_id_t id) { equivalent_action_ids_.emplace_back(id); }
+  /** @return This action's database oid */
+  catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
 
   /**
-   * Get the equivalent action ids
+   * Add an invalidated action
+   * @param id Action ID
+   */
+  void AddInvalidatedAction(action_id_t id) { invalidated_action_ids_.emplace_back(id); }
+
+  /**
+   * Get the invalidated action ids if this action is applied
    * @return Action ID vector
    */
-  const std::vector<action_id_t> &GetEquivalentActions() const { return equivalent_action_ids_; }
+  const std::vector<action_id_t> &GetInvalidatedActions() const { return invalidated_action_ids_; }
+
+  /**
+   * Add an invalidated action
+   * @param id Action ID
+   */
+  void AddEnabledAction(action_id_t id) { enabled_action_ids_.emplace_back(id); }
+
+  /**
+   * Get the enabled action ids if this action is applied
+   * @return Action ID vector
+   */
+  const std::vector<action_id_t> &GetEnabledActions() const { return enabled_action_ids_; }
 
   /**
    * Add a reverse action
@@ -87,10 +105,13 @@ class AbstractAction {
 
   ActionType action_family_;
 
+  catalog::db_oid_t db_oid_;
+
   /** ID is unique for an action among on planning process (one MCTS) */
   action_id_t id_;
 
-  std::vector<action_id_t> equivalent_action_ids_;
+  std::vector<action_id_t> invalidated_action_ids_;
+  std::vector<action_id_t> enabled_action_ids_;
   std::vector<action_id_t> reverse_action_ids_;
 };
 

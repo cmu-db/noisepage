@@ -43,6 +43,9 @@ void IndexActionGenerator::FindMissingIndex(const planner::AbstractPlanNode *pla
         reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetCoverAllColumns())
       return;
 
+    // Get database oid
+    catalog::db_oid_t db_oid = scan_plan->GetDatabaseOid();
+
     // Get table oid
     catalog::table_oid_t table_oid;
     if (plan_type == planner::PlanNodeType::INDEXSCAN)
@@ -85,20 +88,27 @@ void IndexActionGenerator::FindMissingIndex(const planner::AbstractPlanNode *pla
       // TODO(Lin): Don't insert potentially duplicated actions
       // Generate the create index action
       std::string new_index_name = IndexActionUtil::GenerateIndexName(table_name, index_columns);
-      auto create_index_action = std::make_unique<CreateIndexAction>(new_index_name, table_name, index_columns);
+      auto create_index_action = std::make_unique<CreateIndexAction>(db_oid, new_index_name, table_name, index_columns);
       action_id_t create_index_action_id = create_index_action->GetActionID();
+      // Create index would invalidate itself
+      create_index_action->AddInvalidatedAction(create_index_action_id);
       action_map->emplace(create_index_action_id, std::move(create_index_action));
       // Only the create index action is valid
       candidate_actions->emplace_back(create_index_action_id);
 
       // Generate the drop index action
-      auto drop_index_action = std::make_unique<DropIndexAction>(new_index_name, table_name, index_columns);
+      auto drop_index_action = std::make_unique<DropIndexAction>(db_oid, new_index_name, table_name, index_columns);
       action_id_t drop_index_action_id = drop_index_action->GetActionID();
+      // Drop index would invalidate itself
+      drop_index_action->AddInvalidatedAction(drop_index_action_id);
       action_map->emplace(drop_index_action_id, std::move(drop_index_action));
 
       // Populate the reverse actions
       action_map->at(create_index_action_id)->AddReverseAction(drop_index_action_id);
       action_map->at(drop_index_action_id)->AddReverseAction(create_index_action_id);
+      // Populate the enabled actions
+      action_map->at(create_index_action_id)->AddEnabledAction(drop_index_action_id);
+      action_map->at(drop_index_action_id)->AddEnabledAction(create_index_action_id);
     }
   }
 }
