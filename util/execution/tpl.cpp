@@ -329,8 +329,8 @@ static void RunRepl() {
 void InitTPL(std::string_view bytecode_handlers_path) {
   execution::CpuInfo::Instance();
 
-  execution::vm::LLVMEngine::Settings settings{bytecode_handlers_path};
-  execution::vm::LLVMEngine::Initialize(settings);
+  auto settings = std::make_unique<execution::vm::LLVMEngine::Settings>(bytecode_handlers_path);
+  execution::vm::LLVMEngine::Initialize(std::move(settings));
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
 

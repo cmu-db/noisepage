@@ -42,12 +42,6 @@ class LLVMEngine {
   // -------------------------------------------------------
 
   /**
-   * Initialize the whole LLVM subsystem and LLVM engine settings.
-   * @param settings
-   */
-  static void Initialize(const Settings &settings);
-
-  /**
    * Initialize the whole LLVM subsytem and LLVM engine settings.
    * @param settings
    */
@@ -72,19 +66,9 @@ class LLVMEngine {
   static const Settings *GetEngineSettings();
 
   // -------------------------------------------------------
-  // Private API
-  // -------------------------------------------------------
- private:
-  /**
-   * Initialize the whole LLVM subsytem.
-   * (avoids repeating implementation within LLVMEngine::Initialize() overloads)
-   */
-  static void InitializeInternal();
-
-  // -------------------------------------------------------
   // Compiler Options
   // -------------------------------------------------------
- public:
+
   /**
    * Options to provide when compiling
    */
@@ -222,12 +206,12 @@ class LLVMEngine {
     explicit Settings(std::string_view bytecode_handlers_path) : bytecode_handlers_path_{bytecode_handlers_path} {}
 
     /**
-     * @return The path to the
+     * @return The path to the bytecode handlers bitcode file.
      */
     const std::string &GetBytecodeHandlersBcPath() const noexcept { return bytecode_handlers_path_; }
 
    private:
-    std::string bytecode_handlers_path_;
+    const std::string bytecode_handlers_path_;
   };
 
   // -------------------------------------------------------
@@ -236,6 +220,26 @@ class LLVMEngine {
 
   /**
    * Process-wide LLVM engine settings.
+   * 
+   * TODO(Kyle): I'm not particularly happy with this setup - an inline
+   * static variable (essentially just a global with scoping) for managing
+   * the settings for the LLVM engine. The ownership model should be
+   * relatively simple - the LLVMEngine should own its settings, but 
+   * obviously the issue is, currently, LLVMEngine is a totally static
+   * class. This is a nice property, and makes using it in other locations
+   * within the execution engine easy and clean e.g. LLVMEngine::Compile(...).
+   * This leaves us with a couple of options for managing this state that
+   * is "global" to the engine for the entire process, I've tried:
+   * - A weird, mutant PImpl implementation that was essentially just a
+   *   more convoluted version of the current implementation
+   * - A singleton - this is the obvious "first attempt" at solving this
+   *   problem, and it works, but its kind of gross and no one really likes
+   *   singletons
+   * - Removing the state from the LLVMEngine entirely and instead
+   *   "pushing it down" into the module (and fragments) during compilation,
+   *   but this was more complex, required many API changes, and ultimately
+   *   got away from the point above - that this state should be owned by
+   *   the LLVMEngine because that is the natural ownership relationship
    */
   inline static std::unique_ptr<const Settings> engine_settings;
 };

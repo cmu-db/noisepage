@@ -18,8 +18,8 @@ namespace noisepage::execution::test {
 class AtomicsTest : public TplTest {
  public:
   AtomicsTest() : region_("atomics_test") {
-    vm::LLVMEngine::Settings settings{bytecode_handlers_path_};
-    vm::LLVMEngine::Initialize(settings);
+    auto settings = std::make_unique<vm::LLVMEngine::Settings>(bytecode_handlers_path_);
+    vm::LLVMEngine::Initialize(std::move(settings));
   }
 
   util::Region region_;
@@ -29,7 +29,7 @@ class AtomicsTest : public TplTest {
    * TODO(Kyle): Is this the best way to deal with this? What about dynamically detecting the
    * project root at the time the test is initialized and locating the file from there?
    */
-  const char *const bytecode_handlers_path_{"../bin/bytecode_handlers_ir.bc"};
+  const char *const bytecode_handlers_path_{"./bin/bytecode_handlers_ir.bc"};
 
   template <typename T>
   void AndOrTest(const std::string &tpl_type, const bool compiled) {

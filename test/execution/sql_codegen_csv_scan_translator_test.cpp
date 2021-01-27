@@ -21,8 +21,8 @@ class CSVScanTranslatorTest : public SqlBasedTest {
  protected:
   void SetUp() override { SqlBasedTest::SetUp(); }
   static void SetUpTestSuite() {
-    noisepage::execution::vm::LLVMEngine::Settings settings{bytecode_handlers_path_};
-    noisepage::execution::vm::LLVMEngine::Initialize(settings);
+    auto settings = std::make_unique<noisepage::execution::vm::LLVMEngine::Settings>(bytecode_handlers_path_);
+    noisepage::execution::vm::LLVMEngine::Initialize(std::move(settings));
   }
   static void TearDownTestSuite() { noisepage::execution::vm::LLVMEngine::Shutdown(); }
 

@@ -1140,17 +1140,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
 // LLVM Engine
 // ---------------------------------------------------------
 
-void LLVMEngine::Initialize(const Settings &settings) {
-  InitializeInternal();
-  engine_settings = std::make_unique<const Settings>(settings);
-}
-
 void LLVMEngine::Initialize(std::unique_ptr<const Settings> &&settings) {
-  InitializeInternal();
-  engine_settings = std::move(settings);
-}
-
-void LLVMEngine::InitializeInternal() {
   // Global LLVM initialization
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
@@ -1158,6 +1148,8 @@ void LLVMEngine::InitializeInternal() {
 
   // Make all exported TPL symbols available to JITed code
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+
+  engine_settings = std::move(settings);
 }
 
 void LLVMEngine::Shutdown() {
