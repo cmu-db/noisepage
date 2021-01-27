@@ -69,7 +69,8 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
           }
           break;
         }
-        case type::TypeId::VARCHAR: {
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
           auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_) {
             ss << "NULL";

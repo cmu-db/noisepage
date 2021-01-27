@@ -106,7 +106,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
   int num_keys = 500;
   for (int i = 1; i <= num_keys; i++) {
     auto key = std::to_string(i) + "!";
-    top_k.Increment(key, key.size(), i * 1000);
+    top_k.Increment(key, i * 1000);
 
     // If this key is within the last k entries that we are
     // putting into the top-k tracker, then add it to our

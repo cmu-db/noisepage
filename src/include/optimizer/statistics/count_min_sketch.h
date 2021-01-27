@@ -15,6 +15,7 @@
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "common/macros.h"
+#include "execution/sql/value.h"
 #include "loggers/optimizer_logger.h"
 #include "madoka/madoka.h"
 #include "storage/posix_io_wrappers.h"
@@ -30,6 +31,8 @@ namespace noisepage::optimizer {
  */
 template <typename KeyType>
 class CountMinSketch {
+  using NormalizedKeyType = double;
+
  public:
   /**
    * Constructor with specific sketch size.
@@ -74,18 +77,9 @@ class CountMinSketch {
    * @param key the key to increment the count for.
    * @param delta how much to increment the key's count.
    */
-  void Increment(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
-
-  /**
-   * Increase the count for a key by a given amount.
-   * The key does not need to exist in the sketch first.
-   * @param key the key to increment the count for.
-   * @param key_size the length of the key's data.
-   * @param delta how much to increment the key's count.
-   */
-  void Increment(const KeyType &key, const size_t key_size, const uint32_t delta) {
-    sketch_.add(reinterpret_cast<const void *>(&key), key_size, delta);
-    total_count_ += delta;
+  void Increment(const KeyType &key, const uint32_t delta) {
+    auto normalize_key = NormalizeKey(key);
+    Increment(normalize_key, sizeof(normalize_key), delta);
   }
 
   /**
@@ -95,20 +89,9 @@ class CountMinSketch {
    * @param key the key to decrement the count for
    * @param delta how much to decrement the key's count.
    */
-  void Decrement(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
-
-  /**
-   * Decrease the count for a key by a given amount.
-   * @param key the key to decrement the count for
-   * @param key_size the length of the key's data.
-   * @param delta how much to decrement the key's count.
-   */
-  void Decrement(const KeyType &key, const size_t key_size, const uint32_t delta) {
-    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -1 * delta);
-
-    // We have to check whether the delta is greater than the total count
-    // to avoid wrap around.
-    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0UL);
+  void Decrement(const KeyType &key, const uint32_t delta) {
+    auto normalize_key = NormalizeKey(key);
+    Decrement(normalize_key, sizeof(normalize_key), delta);
   }
 
   /**
@@ -118,23 +101,9 @@ class CountMinSketch {
    * correct size defined by the sizeof method.
    * @param key
    */
-  void Remove(const KeyType &key) { Remove(key, sizeof(key)); }
-
-  /**
-   * Remove the given key from the sketch. This attempts to set
-   * the value of the key in the sketch to zero.
-   * @param key
-   * @param key_size
-   */
-  void Remove(const KeyType &key, const size_t key_size) {
-    auto delta = EstimateItemCount(key);
-    sketch_.set(reinterpret_cast<const void *>(&key), sizeof(key), 0);
-
-    // The total count is going to be incorrect now because we don't
-    // know whether the the original delta is accurate or not.
-    // We have to check whether the delta is greater than the total count
-    // to avoid wrap around.
-    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0UL);
+  void Remove(const KeyType &key) {
+    auto normalize_key = NormalizeKey(key);
+    Remove(normalize_key, sizeof(normalize_key));
   }
 
   /**
@@ -144,16 +113,9 @@ class CountMinSketch {
    * @param key the key to get the count for.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const KeyType &key) { return EstimateItemCount(key, sizeof(key)); }
-
-  /**
-   * Compute the approximate count for the given key.
-   * @param key the key to get the count for.
-   * @param key_size the length of the key's data.
-   * @return the approximate count number for the key.
-   */
-  uint64_t EstimateItemCount(const KeyType &key, const size_t key_size) {
-    return sketch_.get(reinterpret_cast<const void *>(&key), key_size);
+  uint64_t EstimateItemCount(const KeyType &key) {
+    auto normalize_key = NormalizeKey(key);
+    return EstimateItemCount(normalize_key, sizeof(normalize_key));
   }
 
   /**
@@ -252,6 +214,101 @@ class CountMinSketch {
    * The underlying sketch implementation
    */
   madoka::Sketch sketch_;
+
+  /**
+   * Increase the count for a key by a given amount.
+   * The key does not need to exist in the sketch first.
+   * @param key the key to increment the count for.
+   * @param key_size the length of the key's data.
+   * @param delta how much to increment the key's count.
+   */
+  void Increment(const NormalizedKeyType &key, const size_t key_size, const uint32_t delta) {
+    sketch_.add(reinterpret_cast<const void *>(&key), key_size, delta);
+    total_count_ += delta;
+  }
+
+  /**
+   * Decrease the count for a key by a given amount.
+   * @param key the key to decrement the count for
+   * @param key_size the length of the key's data.
+   * @param delta how much to decrement the key's count.
+   */
+  void Decrement(const NormalizedKeyType &key, const size_t key_size, const uint32_t delta) {
+    sketch_.add(reinterpret_cast<const void *>(&key), key_size, -1 * delta);
+
+    // We have to check whether the delta is greater than the total count
+    // to avoid wrap around.
+    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0UL);
+  }
+
+  /**
+   * Remove the given key from the sketch. This attempts to set
+   * the value of the key in the sketch to zero.
+   * @param key
+   * @param key_size
+   */
+  void Remove(const NormalizedKeyType &key, const size_t key_size) {
+    auto delta = EstimateItemCount(key);
+    sketch_.set(reinterpret_cast<const void *>(&key), key_size, 0);
+
+    // The total count is going to be incorrect now because we don't
+    // know whether the the original delta is accurate or not.
+    // We have to check whether the delta is greater than the total count
+    // to avoid wrap around.
+    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0UL);
+  }
+
+  /**
+   * Compute the approximate count for the given key.
+   * @param key the key to get the count for.
+   * @param key_size the length of the key's data.
+   * @return the approximate count number for the key.
+   */
+  uint64_t EstimateItemCount(const NormalizedKeyType &key, const size_t key_size) {
+    return sketch_.get(reinterpret_cast<const void *>(&key), key_size);
+  }
+
+  /*
+   * We need these methods to properly handle StringVals. madoka::Sketch casts the key to a byte array. The problem is
+   * that decltype(execution::sql::StringVal::val_) is storage::VarlenEntry and storage::VarlenEntry has a pointer to a
+   * byte array to store the string contents. So madoka::Sketch would end up using the address of this byte array as
+   * part of the key instead of the actual contents. So two storage::VarlenEntry with the same underlying strings would
+   * be treated as different because the addresses for their string contents are different. Converting all keys to
+   * doubles gets around this issue.
+   */
+  static NormalizedKeyType NormalizeKey(const decltype(execution::sql::BoolVal::val_) &key) {
+    return static_cast<NormalizedKeyType>(key);
+  }
+
+  static NormalizedKeyType NormalizeKey(const decltype(execution::sql::Integer::val_) &key) {
+    return static_cast<NormalizedKeyType>(key);
+  }
+
+  static NormalizedKeyType NormalizeKey(const decltype(execution::sql::Real::val_) &key) {
+    return static_cast<NormalizedKeyType>(key);
+  }
+
+  static NormalizedKeyType NormalizeKey(const decltype(execution::sql::DecimalVal::val_) &key) {
+    return static_cast<NormalizedKeyType>(key);
+  }
+
+  static NormalizedKeyType NormalizeKey(const decltype(execution::sql::StringVal::val_) &key) { return key.Hash(); }
+
+  static NormalizedKeyType NormalizeKey(const decltype(execution::sql::DateVal::val_) &key) {
+    return static_cast<NormalizedKeyType>(key.ToNative());
+  }
+
+  static NormalizedKeyType NormalizeKey(const decltype(execution::sql::TimestampVal::val_) &key) {
+    return static_cast<NormalizedKeyType>(key.ToNative());
+  }
+
+  static NormalizedKeyType NormalizeKey(const int &key) { return static_cast<NormalizedKeyType>(key); }
+
+  static NormalizedKeyType NormalizeKey(const std::string &key) {
+    return static_cast<NormalizedKeyType>(std::hash<std::string>()(key));
+  }
+
+  static NormalizedKeyType NormalizeKey(const char *key) { return NormalizeKey(std::string(key)); }
 
   /**
    * Serialize the madoka::Sketch into a byte array.

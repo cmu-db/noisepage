@@ -53,24 +53,14 @@ class TopKElements {
 
   /**
    * Increase the count for the given key by the specified delta.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method
    * @param key the key to target
    * @param delta the amount to increase the key's count
    */
-  void Increment(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
-
-  /**
-   * Increase the count for the given key by the specified delta.
-   * @param key the key to target
-   * @param key_size the length of the key's data
-   * @param delta the amount to increase the key's count
-   */
-  void Increment(const KeyType &key, const size_t key_size, const uint32_t delta) {
+  void Increment(const KeyType &key, const uint32_t delta) {
     NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
 
     // Increment the count for this item in the sketch
-    sketch_->Increment(key, key_size, delta);
+    sketch_->Increment(key, delta);
 
     // If this key already exists in our top-k list, then
     // we need to update its entry
@@ -93,7 +83,7 @@ class TopKElements {
     // This means that we have to ask the sketch the current count
     // for it to determine whether it should be promoted into our
     // top-k list.
-    auto total_cnt = sketch_->EstimateItemCount(key, key_size);
+    auto total_cnt = sketch_->EstimateItemCount(key);
 
     // If the total estimated count for this key is greater than the
     // current min and our top-k is at its max capacity, then we know
@@ -137,24 +127,14 @@ class TopKElements {
 
   /**
    * Decrease the count for the given key by the specified delta.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method.
    * @param key the key to target
    * @param delta the amount to increase the key's count
    */
-  void Decrement(const KeyType &key, const uint32_t delta) { Decrement(key, sizeof(key), delta); }
-
-  /**
-   * Decrease the count for the given key by the specified delta.
-   * @param key the key to target
-   * @param key_size the length of the key's data
-   * @param delta the amount to increase the key's count
-   */
-  void Decrement(const KeyType &key, const size_t key_size, uint32_t delta) {
+  void Decrement(const KeyType &key, uint32_t delta) {
     NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
 
     // Decrement the count for this item in the sketch
-    sketch_->Decrement(key, key_size, delta);
+    sketch_->Decrement(key, delta);
 
     // This is where things get dicey on us.
     // So if this mofo key is in our top-k vector and its count is
@@ -185,20 +165,11 @@ class TopKElements {
 
   /**
    * Remove a key from the top-k tracker as well as the sketch.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method
-   * @param key the key to target
-   */
-  void Remove(const KeyType &key) { Remove(key, sizeof(key)); }
-
-  /**
-   * Remove a key from the top-k tracker as well as the sketch.
    * @param key
-   * @param key_size
    */
-  void Remove(const KeyType &key, const size_t key_size) {
+  void Remove(const KeyType &key) {
     // Always remove the key from the sketch
-    sketch_->Remove(key, key_size);
+    sketch_->Remove(key);
 
     // Then check to see whether it exists in our top-k list
     auto entry = entries_.find(key);

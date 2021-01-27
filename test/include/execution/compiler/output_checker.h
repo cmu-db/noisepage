@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -21,6 +22,8 @@ class OutputChecker {
  public:
   virtual void CheckCorrectness() = 0;
   virtual void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) = 0;
+
+  virtual ~OutputChecker() = default;
 };
 
 /**
@@ -82,6 +85,31 @@ class GenericChecker : public OutputChecker {
 };
 
 /**
+ * Checks if a column is null or not
+ */
+class NullChecker : public OutputChecker {
+ public:
+  /**
+   * Constructor
+   * @param col_idx column offset
+   * @param is_null whether to check if it's null or not null
+   */
+  NullChecker(uint32_t col_idx, bool is_null) : col_idx_{col_idx}, is_null_(is_null) {}
+
+  void CheckCorrectness() override {}
+
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
+    for (const auto &vals : output) {
+      EXPECT_EQ(vals[col_idx_]->is_null_, is_null_);
+    }
+  }
+
+ private:
+  uint32_t col_idx_;
+  bool is_null_;
+};
+
+/**
  * Checks if the number of output tuples is correct
  */
 class NumChecker : public OutputChecker {
@@ -132,6 +160,36 @@ class SingleIntComparisonChecker : public OutputChecker {
   std::function<bool(int64_t, int64_t)> comp_fn_;
   uint32_t col_idx_;
   int64_t rhs_;
+};
+
+/**
+ * Checks that the values in a column satisfy a certain string comparison.
+ */
+class SingleStringComparisonChecker : public OutputChecker {
+ public:
+  /**
+   * Constructor
+   * @param fn comparison function to use
+   * @param col_idx column offset
+   * @param rhs right hand side of comparison function
+   */
+  SingleStringComparisonChecker(std::function<bool(std::string, std::string)> fn, uint32_t col_idx, std::string rhs)
+      : comp_fn_(std::move(fn)), col_idx_{col_idx}, rhs_{std::move(rhs)} {}
+
+  void CheckCorrectness() override {}
+
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
+    for (const auto &vals : output) {
+      const auto &string_val = static_cast<const sql::StringVal *>(vals[col_idx_]);
+      auto str = string_val->StringView();
+      EXPECT_TRUE(comp_fn_(std::string(str), rhs_));
+    }
+  }
+
+ private:
+  std::function<bool(std::string, std::string)> comp_fn_;
+  uint32_t col_idx_;
+  std::string rhs_;
 };
 
 /**
@@ -331,7 +389,8 @@ class OutputStore {
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::VARCHAR: {
+          case noisepage::type::TypeId::VARCHAR:
+          case noisepage::type::TypeId::VARBINARY: {
             auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;

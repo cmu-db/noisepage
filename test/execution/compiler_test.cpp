@@ -3644,7 +3644,4 @@ TEST_F(CompilerTest, TPCHQ1Test) {
 }
 */
 
-// NOLINTNEXTLINE
-TEST_F(CompilerTest, AnalyzeTest) {}
-
 }  // namespace noisepage::execution::compiler::test
