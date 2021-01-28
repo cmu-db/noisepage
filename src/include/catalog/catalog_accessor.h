@@ -341,6 +341,13 @@ class EXPORT CatalogAccessor {
   proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
   /**
+   * Get all the [(proc OID, (argument types))] of procedures matching a given namespace and procedure name.
+   * @param procname The name of the procedure to look up.
+   * @return A vector of [(proc OID, (argument types))] for procedures matching the given namespace and procedure name.
+   */
+  std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> GetProcOids(const std::string &procname);
+
+  /**
    * Sets the proc context pointer column of proc_oid to func_context
    * @param proc_oid The proc_oid whose pointer column we are setting here
    * @param func_context The context object to set to
@@ -361,6 +368,11 @@ class EXPORT CatalogAccessor {
    * @return type_oid of type in pg_type
    */
   type_oid_t GetTypeOidFromTypeId(type::TypeId type);
+
+  /**
+   * @return The TypeID that corresponds to the given type OID.
+   */
+  type::TypeId GetTypeIdFromTypeOid(type_oid_t type_oid);
 
   /**
    * @return BlockStore to be used for CREATE operations

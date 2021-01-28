@@ -6,7 +6,6 @@
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
-#include "catalog/schema.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/functions/function_context.h"
@@ -360,6 +359,47 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
   }
 
   return ret;
+}
+
+std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> PgProcImpl::GetProcOids(
+    const common::ManagedPointer<transaction::TransactionContext> txn,
+    const common::ManagedPointer<DatabaseCatalog> dbc, const namespace_oid_t procns, const std::string &procname) {
+  std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> return_val;
+
+  auto name_pri = procs_name_index_->GetProjectedRowInitializer();
+  byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
+
+  // Look for the procedure in pg_proc_name_index.
+  std::vector<storage::TupleSlot> tuple_slots;
+  {
+    auto name_pr = name_pri.InitializeRow(buffer);
+    auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
+
+    auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
+    name_pr->Set<namespace_oid_t, false>(name_map[indexkeycol_oid_t(1)], procns, false);
+    name_pr->Set<storage::VarlenEntry, false>(name_map[indexkeycol_oid_t(2)], name_varlen, false);
+    procs_name_index_->ScanKey(*txn, *name_pr, &tuple_slots);
+
+    if (name_varlen.NeedReclaim()) {
+      delete[] name_varlen.Content();
+    }
+  }
+
+  if (!tuple_slots.empty()) {
+    for (auto &tuple : tuple_slots) {
+      auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
+      bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
+      auto &pm = pg_proc_all_cols_prm_;
+      auto ind_arg_types = *table_pr->Get<storage::VarlenEntry, false>(pm[PgProc::PROARGTYPES.oid_], nullptr);
+
+      auto proc_oid = *table_pr->Get<proc_oid_t, false>(pm[PgProc::PROOID.oid_], nullptr);
+      auto arg_types = ind_arg_types.DeserializeArray<type_oid_t>();
+      return_val.emplace_back(std::make_pair(proc_oid, arg_types));
+    }
+  }
+
+  delete[] buffer;
+  return return_val;
 }
 
 void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn,

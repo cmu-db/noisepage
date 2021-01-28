@@ -145,6 +145,9 @@ class DatabaseCatalog {
   /** @return The type_oid_t that corresponds to the internal TypeId. */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
+  /** @return The internal TypeID that corresponds to the type_oid_t. */
+  type::TypeId GetTypeForTypeOid(type_oid_t type_oid);
+
   /** @brief Get a list of all of the constraints for the specified table. */
   std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
                                                table_oid_t table);
@@ -169,6 +172,9 @@ class DatabaseCatalog {
   /** @brief Get the OID of the specified procedure. @see PgProcImpl::GetProcOid */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
+  /** @brief Get the matching (OID, argument types) of the specified procedure. @see PgProcImpl::GetProcOids */
+  std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> GetProcOids(
+      common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns, const std::string &procname);
   /** @brief Set the procedure context for the specified procedure. @see PgProcImpl::SetFunctionContextPointer */
   bool SetFunctionContextPointer(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                                  const execution::functions::FunctionContext *func_context);

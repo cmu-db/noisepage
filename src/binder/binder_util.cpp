@@ -30,7 +30,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
   const auto curr_type = value->GetReturnValueType();
 
   // Check if types are mismatched, and convert them if possible.
-  if (curr_type != desired_type) {
+  if (curr_type != desired_type || curr_type == type::TypeId::PLACEHOLDER) {
     switch (curr_type) {
       // NULL conversion.
       case type::TypeId::INVALID: {
@@ -229,6 +229,14 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
                 common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
         }
 
+        break;
+      }
+
+      case type::TypeId::PLACEHOLDER: {
+        if (desired_type != type::TypeId::PLACEHOLDER) {
+          value->SetReturnValueType(type::TypeId::VARCHAR);
+          CheckAndTryPromoteType(value, desired_type);
+        }
         break;
       }
 

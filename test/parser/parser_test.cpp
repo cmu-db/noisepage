@@ -866,7 +866,7 @@ TEST_F(ParserTestBase, OldConstTest) {
   auto select_columns = statement->GetSelectColumns();
   EXPECT_EQ(3, select_columns.size());
 
-  std::vector<type::TypeId> types = {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::REAL};
+  std::vector<type::TypeId> types = {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::PLACEHOLDER};
 
   for (size_t i = 0; i < select_columns.size(); i++) {
     auto column = select_columns[i];
@@ -1065,8 +1065,8 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   auto upd0 = update_stmt->GetUpdateClauses().at(0);
   EXPECT_EQ(upd0->GetColumnName(), "s_quantity");
   auto constant = upd0->GetUpdateValue().CastManagedPointerTo<ConstantValueExpression>();
-  EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::REAL);
-  ASSERT_DOUBLE_EQ(constant->Peek<double>(), 48.0);
+  EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::PLACEHOLDER);
+  ASSERT_EQ(constant->Peek<std::string_view>(), "48.0");
 
   // Test Second Set Condition
   auto upd1 = update_stmt->GetUpdateClauses().at(1);
@@ -1708,7 +1708,7 @@ TEST_F(ParserTestBase, OldTypeCastTest) {
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::TEXT);");
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::VARCHAR);");
 
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::REAL,
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::DECIMAL,
                                      type::TypeId::VARCHAR, type::TypeId::VARCHAR};
 
   for (size_t i = 0; i < queries.size(); i++) {

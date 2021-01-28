@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/postgres/pg_proc.h"
@@ -151,6 +152,19 @@ class PgProcImpl {
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                         common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &arg_types);
+
+  /**
+   * @brief Get the list of [(proc oid, (argument types))] matching a given procedure name from pg_proc.
+   *
+   * @param txn             The transaction to use.
+   * @param dbc             The catalog that pg_proc is in.
+   * @param procns          The namespace of the procedure to look in.
+   * @param procname        The name of the procedure to look for.
+   * @return                A (possibly empty) vector of all the [(proc oid, (argument types))] matching the proc name.
+   */
+  std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> GetProcOids(
+      common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<DatabaseCatalog> dbc,
+      namespace_oid_t procns, const std::string &procname);
 
   /** @brief Bootstrap all the builtin procedures in pg_proc. This assumes exclusive use of dbc->next_oid_. */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,

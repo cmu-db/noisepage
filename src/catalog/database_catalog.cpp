@@ -310,6 +310,11 @@ type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
   return type_oid_t(static_cast<uint8_t>(type));
 }
 
+type::TypeId DatabaseCatalog::GetTypeForTypeOid(const type_oid_t type_oid) {
+  // TODO(WAN): WARNING! Do not change this seeing PgCoreImpl::MakeColumn and PgCoreImpl::CreateColumn.
+  return static_cast<type::TypeId>(type_oid.UnderlyingValue());
+}
+
 void DatabaseCatalog::BootstrapTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                      const table_oid_t table_oid, const namespace_oid_t ns_oid, const std::string &name,
                                      const Schema &schema, const common::ManagedPointer<storage::SqlTable> table_ptr) {
@@ -448,6 +453,11 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
   return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
+}
+
+std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> DatabaseCatalog::GetProcOids(
+    common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns, const std::string &procname) {
+  return pg_proc_.GetProcOids(txn, common::ManagedPointer(this), procns, procname);
 }
 
 template <typename ClassOid, typename Ptr>

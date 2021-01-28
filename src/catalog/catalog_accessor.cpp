@@ -196,6 +196,17 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return catalog::INVALID_PROC_OID;
 }
 
+std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> CatalogAccessor::GetProcOids(const std::string &procname) {
+  std::vector<std::pair<proc_oid_t, std::vector<type_oid_t>>> ret;
+  for (auto ns_oid : search_path_) {
+    ret = dbc_->GetProcOids(txn_, ns_oid, procname);
+    if (!ret.empty()) {
+      return ret;
+    }
+  }
+  return ret;
+}
+
 bool CatalogAccessor::SetFunctionContextPointer(proc_oid_t proc_oid,
                                                 const execution::functions::FunctionContext *func_context) {
   return dbc_->SetFunctionContextPointer(txn_, proc_oid, func_context);
@@ -206,6 +217,8 @@ common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::G
 }
 
 type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
+
+type::TypeId CatalogAccessor::GetTypeIdFromTypeOid(type_oid_t type_oid) { return dbc_->GetTypeForTypeOid(type_oid); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a

@@ -708,7 +708,47 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
 
   auto proc_oid = catalog_accessor_->GetProcOid(expr->GetFuncName(), arg_types);
   if (proc_oid == catalog::INVALID_PROC_OID) {
-    throw BINDER_EXCEPTION("Procedure not registered", common::ErrorCode::ERRCODE_UNDEFINED_FUNCTION);
+    // The argument types may include placeholder types, if so, we guess what the placeholder type should be.
+    // This is required in some cases, for example, the 10.0 in SELECT SIN(10.0) could be either REAL or DECIMAL,
+    // and in Postgres the type of that 10.0 is just left as unknown.
+    // TODO(WAN): However, the performance could be improved. This is pretty dumb.
+    auto proc_candidates = catalog_accessor_->GetProcOids(expr->GetFuncName());
+    // Find a candidate procedure that matches the argument types and try to re-visit everything.
+    for (const auto &candidate : proc_candidates) {
+      const auto &candidate_args = candidate.second;
+      if (candidate_args.size() != arg_types.size()) continue;
+      bool all_ok = true;
+      for (uint32_t i = 0; i < arg_types.size(); i++) {
+        catalog::type_oid_t candidate_type = candidate_args[i];
+
+        if (candidate_type == arg_types[i]) continue;
+
+        bool is_placeholder = arg_types[i] == catalog_accessor_->GetTypeOidFromTypeId(type::TypeId::PLACEHOLDER);
+        if (is_placeholder) {
+          sherpa_->SetDesiredType(children[i], catalog_accessor_->GetTypeIdFromTypeOid(candidate_type));
+        } else {
+          all_ok = false;
+          break;
+        }
+      }
+      if (!all_ok) continue;
+      SqlNodeVisitor::Visit(expr);  // Required because of the sherpa SetDesiredType call above.
+
+      // TODO(WAN): Don't recreate the argument vector every time.
+      arg_types.clear();
+      for (const auto &child : expr->GetChildren()) {
+        arg_types.push_back(catalog_accessor_->GetTypeOidFromTypeId(child->GetReturnValueType()));
+      }
+
+      proc_oid = catalog_accessor_->GetProcOid(expr->GetFuncName(), arg_types);
+      if (proc_oid != catalog::INVALID_PROC_OID) {
+        break;
+      }
+    }
+
+    if (proc_oid == catalog::INVALID_PROC_OID) {
+      throw BINDER_EXCEPTION("Procedure not registered", common::ErrorCode::ERRCODE_UNDEFINED_FUNCTION);
+    }
   }
 
   auto func_context = catalog_accessor_->GetFunctionContext(proc_oid);

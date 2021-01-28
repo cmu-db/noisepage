@@ -49,7 +49,8 @@ void ConstantValueExpression::Validate() const {
   } else if (std::holds_alternative<execution::sql::TimestampVal>(value_)) {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
-    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY ||
+                         return_value_type_ == type::TypeId::PLACEHOLDER,
                      "Invalid TypeId for Val type.");
     NOISEPAGE_ASSERT(
         GetStringVal().is_null_ ||
@@ -70,8 +71,7 @@ T ConstantValueExpression::Peek() const {
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
-                std::is_same_v<T, int64_t>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a false positive
-    // because of constexpr
+                std::is_same_v<T, int64_t>) {
     return static_cast<T>(GetInteger().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
