@@ -110,7 +110,7 @@ SETTING_string(
 // Asynchronous commit txns when WAL is enabled
 SETTING_bool(
     wal_async_commit_enable,
-    "When WAL is enabled, allow commit confirmation before results are durable in the WAL. (default: false)",
+    "Enable commit confirmation before results are durable in the WAL. (default: false)",
     false,
     false,
     noisepage::settings::Callbacks::NoOp

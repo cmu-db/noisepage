@@ -32,6 +32,9 @@ class TransactionManager {
    * @param deferred_action_manager deferred action manager to use for transactions
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
+   * @param wal_async_commit_enable true if commit callbacks should be invoked by TransactionManager at commit time
+   * rather than waiting until durable on disk and being invoked by the WAL worker. Doesn't make sense to set to true if
+   * WAL is not enabled.
    * @param log_manager the log manager in the system, or DISABLED(nulllptr) if logging is turned off.
    */
   TransactionManager(const common::ManagedPointer<TimestampManager> timestamp_manager,
