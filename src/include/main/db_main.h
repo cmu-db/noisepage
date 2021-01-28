@@ -74,6 +74,9 @@ class DBMain {
     /**
      * @param buffer_segment_pool non-null required component
      * @param gc_enabled argument to the TransactionManager
+     * @param wal_async_commit_enable true if commit callbacks should be invoked by TransactionManager at commit time
+     * rather than waiting until durable on disk and being invoked by the WAL worker. Doesn't make sense to set to true
+     * if WAL is not enabled.
      * @param log_manager argument to the TransactionManager
      */
     TransactionLayer(const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool,
