@@ -823,6 +823,7 @@ void PlanGenerator::Visit(const Insert *op) {
   builder.SetPlanNodeId(GetNextPlanNodeID());
   builder.SetDatabaseOid(op->GetDatabaseOid());
   builder.SetTableOid(op->GetTableOid());
+  builder.SetInsertType(parser::InsertType::VALUES);
 
   auto tbl_oid = op->GetTableOid();
   std::vector<catalog::index_oid_t> indexes = accessor_->GetIndexOids(tbl_oid);
@@ -851,14 +852,20 @@ void PlanGenerator::Visit(const InsertSelect *op) {
 
   auto tbl_oid = op->GetTableOid();
   std::vector<catalog::index_oid_t> indexes = accessor_->GetIndexOids(tbl_oid);
-  output_plan_ = planner::InsertPlanNode::Builder()
-                     .SetOutputSchema(std::move(output_schema))
-                     .SetPlanNodeId(GetNextPlanNodeID())
-                     .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetTableOid(op->GetTableOid())
-                     .SetIndexOids(std::move(indexes))
-                     .AddChild(std::move(children_plans_[0]))
-                     .Build();
+  auto builder = planner::InsertPlanNode::Builder();
+  builder.SetOutputSchema(std::move(output_schema))
+      .SetPlanNodeId(GetNextPlanNodeID())
+      .SetDatabaseOid(op->GetDatabaseOid())
+      .SetTableOid(op->GetTableOid())
+      .SetIndexOids(std::move(indexes))
+      .SetInsertType(parser::InsertType::SELECT)
+      .AddChild(std::move(children_plans_[0]));
+  // This is based on what Peloton does/did with query_to_operator_transformer.cpp
+  NOISEPAGE_ASSERT(!op->GetColumns().empty(), "Transformer should added columns");
+  for (auto &col : op->GetColumns()) {
+    builder.AddParameterInfo(col);
+  }
+  output_plan_ = builder.Build();
 }
 
 void PlanGenerator::Visit(const Delete *op) {

@@ -7,6 +7,8 @@
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "optimizer/optimize_result.h"
+#include "optimizer/property_set.h"
+#include "parser/select_statement.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;
@@ -60,7 +62,11 @@ class TrafficCopUtil {
    * @param statement
    * @return
    */
-  static network::QueryType QueryTypeForStatement(common::ManagedPointer<parser::SQLStatement> statement);
+  static network::QueryType QueryTypeForStatement(const common::ManagedPointer<parser::SQLStatement> statement);
+
+ private:
+  static void CollectSelectProperties(common::ManagedPointer<parser::SelectStatement> sel_stmt,
+                                      optimizer::PropertySet *property_set);
 };
 
 }  // namespace noisepage::trafficcop

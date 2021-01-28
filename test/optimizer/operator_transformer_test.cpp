@@ -253,7 +253,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
   OPTIMIZER_LOG_DEBUG("Parsing sql query");
-  std::string insert_sql = "INSERT INTO A (A1) SELECT B1 FROM B WHERE B1 > 0";
+  std::string insert_sql = "INSERT INTO A (A1, A2) SELECT B1, B2 FROM B WHERE B1 > 0";
 
   std::string ref =
       "{\"Op\":\"LogicalInsertSelect\",\"Children\":"

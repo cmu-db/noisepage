@@ -86,8 +86,11 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   // Gets the projected row pointer that we will fill in with values to insert.
   void GetInsertPR(FunctionBuilder *builder) const;
 
-  // Sets the values in the projected row which we will use to insert into the table.
-  void GenSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
+  // Sets the values in the projected row for a value insert which we will use to insert into the table.
+  void GenValueSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
+
+  // Sets the values in the projected row for an insert into select which we will use to insert into the table.
+  void GenSelectSetTablePR(FunctionBuilder *builder, WorkContext *context) const;
 
   // Insert into the table.
   void GenTableInsert(FunctionBuilder *builder) const;

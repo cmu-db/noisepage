@@ -80,6 +80,16 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
+     *
+     * @param insert_type type of insert
+     * @return builder object
+     */
+    Builder &SetInsertType(parser::InsertType insert_type) {
+      insert_type_ = insert_type;
+      return *this;
+    }
+
+    /**
      * Build the delete plan node
      * @return plan node
      */
@@ -113,6 +123,11 @@ class InsertPlanNode : public AbstractPlanNode {
      * vector of indexes used by this node
      */
     std::vector<catalog::index_oid_t> index_oids_;
+
+    /**
+     * Type of insert
+     */
+    parser::InsertType insert_type_;
   };
 
  private:
@@ -126,12 +141,13 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param parameter_info parameters information
    * @param index_oids indexes to insert into
    * @param plan_node_id Plan node id
+   * @param insert_type type of insert
    */
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
                  std::vector<catalog::col_oid_t> &&parameter_info, std::vector<catalog::index_oid_t> &&index_oids,
-                 plan_node_id_t plan_node_id);
+                 plan_node_id_t plan_node_id, parser::InsertType insert_type);
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)
@@ -185,6 +201,12 @@ class InsertPlanNode : public AbstractPlanNode {
   const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
 
   /**
+   *
+   * @return the insert type of plan
+   */
+  const parser::InsertType GetInsertType() const { return insert_type_; }
+
+  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
@@ -225,6 +247,11 @@ class InsertPlanNode : public AbstractPlanNode {
    * Vector of indexes to insert into
    */
   std::vector<catalog::index_oid_t> index_oids_;
+
+  /**
+   * Type of insert
+   */
+  parser::InsertType insert_type_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(InsertPlanNode);

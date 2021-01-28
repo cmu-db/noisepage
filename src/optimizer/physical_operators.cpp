@@ -683,10 +683,12 @@ bool Insert::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *InsertSelect::Copy() const { return new InsertSelect(*this); }
 
-Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid) {
+Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                            std::vector<catalog::col_oid_t> &&columns) {
   auto *insert_op = new InsertSelect();
   insert_op->database_oid_ = database_oid;
   insert_op->table_oid_ = table_oid;
+  insert_op->columns_ = std::move(columns);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(insert_op));
 }
 
