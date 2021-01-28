@@ -51,7 +51,7 @@ class TransactionManager;
 namespace noisepage::selfdriving {
 namespace pilot {
 class AbstractAction;
-class MonteCarloSearchTree;
+class MonteCarloTreeSearch;
 class TreeNode;
 }
 
@@ -106,9 +106,9 @@ class Pilot {
   void PerformPlanning();
 
   /**
-   * Search for best action sequence through Monte Carlo Tree Search.
+   * Search for and apply the best action for the current timestamp
    */
-   void ActionSearch(std::vector<const std::string> *best_action_seq);
+   void ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq);
 
  private:
   /**
@@ -135,7 +135,7 @@ class Pilot {
   uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};
   friend class noisepage::selfdriving::PilotUtil;
-  friend class noisepage::selfdriving::pilot::MonteCarloSearchTree;
+  friend class noisepage::selfdriving::pilot::MonteCarloTreeSearch;
 };
 
 }  // namespace noisepage::selfdriving

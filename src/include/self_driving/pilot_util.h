@@ -65,8 +65,7 @@ class PilotUtil {
    * @param db_oids db_oids relevant to current action
    * @param sql_query query of the action to be executed
    */
-  static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::vector<uint64_t> &db_oids,
-                          const std::string &sql_query);
+  static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid);
 
   /**
    * Retrieve all query plans associated with queries in the interval of forecasted segments
@@ -76,10 +75,9 @@ class PilotUtil {
    * @param end_segment_index end index (inclusive)
    * @return vector of query plans
    */
-  static std::vector<std::unique_ptr<planner::AbstractPlanNode>> GetQueryPlans(common::ManagedPointer<Pilot> pilot,
-                                                                               common::ManagedPointer<WorkloadForecast> forecast,
-                                                                               uint64_t start_segment_index,
-                                                                               uint64_t end_segment_index);
+  static void GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                            uint64_t end_segment_index,
+                            std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs);
 
   /**
    * Compute cost of executed queries in the segments between start and end index (both inclusive)

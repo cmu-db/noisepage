@@ -28,14 +28,13 @@ WorkloadForecast::WorkloadForecast(uint64_t forecast_interval) : forecast_interv
  */
 void WorkloadForecast::CreateSegments() {
   std::unordered_map<execution::query_id_t, uint64_t> curr_segment;
-  std::vector<uint64_t> db_oids;
 
   uint64_t curr_time = query_timestamp_to_id_.begin()->first;
 
   // We assume the traces are sorted by timestamp in increasing order
   for (auto &it : query_timestamp_to_id_) {
     if (it.first > curr_time + forecast_interval_) {
-      forecast_segments_.emplace_back(std::move(curr_segment), std::move(db_oids));
+      forecast_segments_.emplace_back(std::move(curr_segment));
       curr_time = it.first;
       curr_segment = std::unordered_map<execution::query_id_t, uint64_t>();
     }
@@ -43,13 +42,10 @@ void WorkloadForecast::CreateSegments() {
     if (curr_segment.find(it.second) == curr_segment.end()) curr_segment.emplace(it.second, 0);
     curr_segment[it.second] += 1;
 
-    if (std::find(db_oids.begin(), db_oids.end(), query_id_to_dboid_[it.second]) == db_oids.end()) {
-      db_oids.push_back(query_id_to_dboid_[it.second]);
-    }
   }
 
   if (!curr_segment.empty()) {
-    forecast_segments_.emplace_back(std::move(curr_segment), std::move(db_oids));
+    forecast_segments_.emplace_back(std::move(curr_segment));
   }
   num_forecast_segment_ = forecast_segments_.size();
 }

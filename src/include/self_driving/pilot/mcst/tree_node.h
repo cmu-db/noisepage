@@ -32,9 +32,9 @@ class TreeNode {
            uint64_t later_segments_cost);
 
   /**
-   * @return action id at root with least cost
+   * @return action id at node with least cost
    */
-  static action_id_t BestSubtree(common::ManagedPointer<TreeNode> root);
+  common::ManagedPointer<TreeNode> BestSubtree();
 
   /**
    * Recursively sample the vertex whose children will be assigned values through rollout.
@@ -46,7 +46,6 @@ class TreeNode {
    */
   static common::ManagedPointer<TreeNode> Selection(common::ManagedPointer<TreeNode> root,
                                                     common::ManagedPointer<Pilot> pilot,
-                                                    const std::vector<uint64_t> &db_oids,
                                                     const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                                     std::unordered_set<action_id_t> *candidate_actions);
 
@@ -62,7 +61,6 @@ class TreeNode {
    */
   void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                        uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
-                       const std::vector<uint64_t> &db_oids,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions);
 
@@ -70,11 +68,22 @@ class TreeNode {
    * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
    * also apply reverse actions
    * @param pilot pointer to pilot
-   * @param db_oids db_oids relevant to current search tree
    * @param action_map action map of the search tree
    */
-  void BackPropogate(common::ManagedPointer<Pilot> pilot, const std::vector<uint64_t> &db_oids,
+  void BackPropogate(common::ManagedPointer<Pilot> pilot,
                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map);
+
+  /**
+   * Return if current node is a leaf
+   * @return is_leaf_
+   */
+  bool IsLeaf() { return is_leaf_; }
+
+  /**
+   * Get action taken to get to this node from its parent
+   * @return current action
+   */
+  const action_id_t GetCurrentAction() { return current_action_; }
 
  private:
 
@@ -100,13 +109,13 @@ class TreeNode {
   }
 
   /**
-   * Update number of visits to the current node aka number of traversals in the tree
-   * containing the path to current node, and the cost of the node; based on the expansion of a leaf
+   * Update number of visits to the current node aka number of tree traversals to a leaf
+   * containing the path to current node, and the cost of the node; based on the expansion of a successor as a leaf
    * @param num_expansion number of children of the expanded leaf
    * @param leaf_cost previous cost of the leaf
-   * @param new_cost new cost of the leaf
+   * @param expanded_cost new cost of the leaf after expansion
    */
-  void UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t new_cost);
+  void UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t expanded_cost);
 
   bool is_leaf_;
   const uint64_t depth_; // number of edges in path from root

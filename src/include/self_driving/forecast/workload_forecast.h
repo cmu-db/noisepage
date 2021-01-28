@@ -12,7 +12,7 @@
 
 namespace noisepage::selfdriving {
 namespace pilot {
-class MonteCarloSearchTree;
+class MonteCarloTreeSearch;
 }
 
 /**
@@ -37,7 +37,7 @@ class WorkloadForecast {
  private:
   friend class PilotUtil;
   friend class Pilot;
-  friend class pilot::MonteCarloSearchTree;
+  friend class pilot::MonteCarloTreeSearch;
 
   void LoadQueryTrace();
   void LoadQueryText();
@@ -50,7 +50,7 @@ class WorkloadForecast {
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
   std::unordered_map<std::string, execution::query_id_t> query_text_to_id_;
   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
-  uint64_t num_sample_{5};
+  uint64_t num_sample_{2};
 
   std::vector<WorkloadForecastSegment> forecast_segments_;
   uint64_t num_forecast_segment_{0};

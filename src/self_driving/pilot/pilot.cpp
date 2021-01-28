@@ -11,7 +11,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/pilot/mcst/monte_carlo_search_tree.h"
+#include "self_driving/pilot/mcst/monte_carlo_tree_search.h"
 #include "self_driving/pilot_util.h"
 #include "settings/settings_manager.h"
 
@@ -40,29 +40,21 @@ void Pilot::PerformPlanning() {
   forecast_ = std::make_unique<WorkloadForecast>(workload_forecast_interval_);
 
   metrics_thread_->PauseMetrics();
-  std::vector<const std::string> best_action_seq;
+  std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;
   Pilot::ActionSearch(&best_action_seq);
   metrics_thread_->ResumeMetrics();
 }
 
-void Pilot::ActionSearch(std::vector<const std::string> *best_action_seq) {
+void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq) {
   auto num_segs = forecast_->GetNumberOfSegments();
-  for (auto i = 0; i < num_segs; i++) {
-    auto end_segment_index = std::min(i + action_planning_horizon_ - 1, num_segs - 1);
-    std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans =
-        PilotUtil::GetQueryPlans(common::ManagedPointer(this), common::ManagedPointer(forecast_), i, end_segment_index);
-    auto mcst = pilot::MonteCarloSearchTree(common::ManagedPointer(this), common::ManagedPointer(forecast_), plans, i,
-                                            end_segment_index);
-    auto best_action = mcst.BestAction(simulation_number_);
-    best_action_seq->emplace_back(best_action);
+  auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
+  PilotUtil::GetQueryPlans(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index, &plans);
+  auto mcst = pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), plans,
+                                          end_segment_index);
+  mcst.BestAction(1, best_action_seq);
 
-    std::vector<uint64_t> curr_oids;
-    for (auto oid : forecast_->forecast_segments_[i].GetDBOids()) {
-      if (std::find(curr_oids.begin(), curr_oids.end(), oid) == curr_oids.end()) curr_oids.push_back(oid);
-    }
-
-    PilotUtil::ApplyAction(common::ManagedPointer(this), curr_oids, best_action);
-  }
+  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first, best_action_seq->begin()->second);
 }
 
 void Pilot::ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
