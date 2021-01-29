@@ -207,13 +207,13 @@ class Schema {
 
     void Validate() const {
       NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      NOISEPAGE_ASSERT(default_value_ == nullptr || type_ == default_value_->GetReturnValueType() ||
+      NOISEPAGE_ASSERT(default_value_ == nullptr || default_value_->GetReturnValueType() != type::TypeId::INVALID ||
                            (default_value_->GetReturnValueType() == type::TypeId::INVALID &&
                             common::ManagedPointer(default_value_)
                                 .CastManagedPointerTo<parser::ConstantValueExpression>()
                                 ->IsNull()),
-                       "Default value does not have same time as the column.");
-      // TODO(Matt): I don't love that last part that NULL default values come out of the parser woth TypeId::INVALID.
+                       "Default value either: 1) shouldn't exist 2) shouldn't have INVALID type 3) UNLESS it's NULL.");
+      // TODO(Matt): I don't love that last part that NULL default values come out of the parser with TypeId::INVALID.
 
       if (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY) {
         NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
