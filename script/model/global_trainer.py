@@ -111,16 +111,19 @@ class GlobalTrainer:
         """Generate grouped OU data with prediction
         """
 
-        self.resource_data_list, self.impact_data_list = global_data_constructing_util.get_data(self.input_path,
-                                                                                                self.mini_model_map,
-                                                                                                self.model_results_path,
-                                                                                                self.warmup_period,
-                                                                                                self.use_query_predict_cache,
-                                                                                                self.add_noise,
-                                                                                                self.predict_ou_only,
-                                                                                                self.ee_sample_interval,
-                                                                                                self.txn_sample_interval,
-                                                                                                self.network_sample_interval)
+        data_lists = global_data_constructing_util.get_data(self.input_path,
+                                                            self.mini_model_map,
+                                                            self.model_results_path,
+                                                            self.warmup_period,
+                                                            self.use_query_predict_cache,
+                                                            self.add_noise,
+                                                            self.predict_ou_only,
+                                                            self.ee_sample_interval,
+                                                            self.txn_sample_interval,
+                                                            self.network_sample_interval)
+
+        self.resource_data_list = data_lists[0]
+        self.impact_data_list = data_lists[1]
 
     def train(self):
         """Train the global models (needs to call predict_ou_data first to predict the grouped OU data)
@@ -233,7 +236,7 @@ if __name__ == '__main__':
     aparser.add_argument('--impact_model_ratio', type=float, default=0.1,
                          help='Sample ratio to train the global impact model')
     aparser.add_argument('--warmup_period', type=float, default=3, help='OLTPBench warmup period')
-    aparser.add_argument('--use_query_predict_cache', default=False,
+    aparser.add_argument('--use_query_predict_cache', action='store_true',
                          help='Cache the prediction result based on the query to accelerate')
     aparser.add_argument('--add_noise', action='store_true', help='Add noise to the cardinality estimations')
     aparser.add_argument('--predict_ou_only', action='store_true', help='Only predict the OU data (no training)')
