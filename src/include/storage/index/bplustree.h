@@ -3,6 +3,7 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <list>
 #include <queue>
 #include <set>
 #include <shared_mutex>
@@ -144,7 +145,7 @@ class BPlusTree : public BPlusTreeBase {
   // KeyType-NodeID pair
   using KeyNodePointerPair = std::pair<KeyType, BaseNode *>;
   // KeyType - List of ValueType pair
-  using KeyValuePair = std::pair<KeyType, std::unordered_set<ValueType> *>;
+  using KeyValuePair = std::pair<KeyType, std::list<ValueType> *>;
 
   using KeyElementPair = std::pair<KeyType, ValueType>;
 
@@ -714,7 +715,7 @@ class BPlusTree : public BPlusTreeBase {
      * greater to the key provided
      */
     KeyValuePair *FindLocation(const KeyType &element, BPlusTree *tree) {
-      std::unordered_set<ValueType> *dummy_ptr = nullptr;
+      std::list<ValueType> *dummy_ptr = nullptr;
       KeyValuePair dummy_element = std::make_pair(element, dummy_ptr);
       KeyValuePair *iter =
           std::lower_bound(this->Begin(), this->End(), dummy_element,
@@ -834,16 +835,17 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    auto element_gt_search = static_cast<LeafNode *>(node)->FindLocation(key, this);
-    KeyValuePair *element_found = nullptr;
-    if (element_gt_search != node->Begin()) {
-      element_found = element_gt_search - 1;
-    }
-    if (element_found && KeyCmpEqual(element_found->first, key)) {
-      auto itr_list = element_found->second->begin();
-      while (itr_list != element_found->second->end()) {
-        (*result).push_back(*itr_list);
-        itr_list++;
+    for (KeyValuePair *element_p = node->Begin(); element_p != node->End(); element_p++) {
+      if (KeyCmpEqual(element_p->first, key)) {
+        auto itr_list = element_p->second->begin();
+        while (itr_list != element_p->second->end()) {
+          (*result).push_back(*itr_list);
+          itr_list++;
+        }
+
+        // Release the Leaf shared latch
+        current_node->ReleaseNodeSharedLatch();
+        return;
       }
     }
 
@@ -1093,7 +1095,7 @@ class BPlusTree : public BPlusTreeBase {
     for (; itr != (*keys_values).end(); itr++) {
       KeyType k = itr->first;
       std::vector<ValueType> values = (*keys_values)[k];
-      std::unordered_set<ValueType> *values_list_p = FindValueOfKey(k);
+      std::list<ValueType> *values_list_p = FindValueOfKey(k);
       if (values_list_p == nullptr) {
         return false;
       }
@@ -1181,14 +1183,14 @@ class BPlusTree : public BPlusTreeBase {
    * @param metadata Index metadata
    * @param predicate Predicate to be satisfied to add a value to the result
    */
-  void ScanAscending(KeyType index_low_key, KeyType index_high_key, bool low_key_exists, uint32_t num_attrs,
+  bool ScanAscending(KeyType index_low_key, KeyType index_high_key, bool low_key_exists, uint32_t num_attrs,
                      bool high_key_exists, uint32_t limit, std::vector<TupleSlot> *value_list,
                      const IndexMetadata *metadata, std::function<bool(const ValueType)> predicate) {
     root_latch_.lock_shared();
 
     if (root_ == nullptr) {
       root_latch_.unlock_shared();
-      return;
+      return true;
     }
 
     BaseNode *current_node = root_;
@@ -1237,7 +1239,7 @@ class BPlusTree : public BPlusTreeBase {
         if (element_p == node->End()) {
           if (node->GetHighKeyPair().second == nullptr) {
             current_node->ReleaseNodeSharedLatch();
-            return;
+            return true;
           }
           parent = node;
           node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetHighKeyPair().second);
@@ -1245,7 +1247,10 @@ class BPlusTree : public BPlusTreeBase {
 
           // Get shared latch on current node, and release the parent (here, parent is the previous
           // node while iterating at the leaf level).
-          current_node->GetNodeSharedLatch();
+          if (!(current_node->TrySharedLock())) {
+            parent->ReleaseNodeSharedLatch();
+            return false;
+          }
           parent->ReleaseNodeSharedLatch();
 
           element_p = node->Begin();
@@ -1277,7 +1282,10 @@ class BPlusTree : public BPlusTreeBase {
 
         // Get shared latch on current node, and release the parent (here, parent is the previous
         // node while iterating at the leaf level).
-        current_node->GetNodeSharedLatch();
+        if (!(current_node->TrySharedLock())) {
+          parent->ReleaseNodeSharedLatch();
+          return false;
+        }
         parent->ReleaseNodeSharedLatch();
 
         element_p = node->Begin();
@@ -1286,6 +1294,7 @@ class BPlusTree : public BPlusTreeBase {
 
     // Release the latch on the leaf node
     current_node->ReleaseNodeSharedLatch();
+    return true;
   }
 
   /**
@@ -1630,7 +1639,7 @@ class BPlusTree : public BPlusTreeBase {
           }
           itr_list++;
         }
-        (location_greater_key_leaf - 1)->second->insert(element.second);
+        (location_greater_key_leaf - 1)->second->push_back(element.second);
 
         // Release the latch, insertion is complete
         current_node->ReleaseNodeLatch();
@@ -1642,8 +1651,8 @@ class BPlusTree : public BPlusTreeBase {
 
     // Insertion not done yet as key is not present
     if (!finished_insertion) {
-      auto value_list = new std::unordered_set<ValueType>();
-      value_list->insert(element.second);
+      auto value_list = new std::list<ValueType>();
+      value_list->push_back(element.second);
       KeyValuePair key_list_value;
       key_list_value.first = element.first;
       key_list_value.second = value_list;
@@ -1746,7 +1755,7 @@ class BPlusTree : public BPlusTreeBase {
           }
           itr_list++;
         }
-        (location_greater_key_leaf - 1)->second->insert(element.second);
+        (location_greater_key_leaf - 1)->second->push_back(element.second);
 
         // Insertion is complete, release all locks
         current_node->ReleaseNodeLatch();
@@ -1757,8 +1766,8 @@ class BPlusTree : public BPlusTreeBase {
       }
     }
     if (!finished_insertion) {
-      auto value_list = new std::unordered_set<ValueType>();
-      value_list->insert(element.second);
+      auto value_list = new std::list<ValueType>();
+      value_list->push_back(element.second);
       KeyValuePair key_list_value;
       key_list_value.first = element.first;
       key_list_value.second = value_list;
@@ -2239,13 +2248,19 @@ class BPlusTree : public BPlusTreeBase {
       if (KeyCmpEqual((location_greater_key_leaf - 1)->first, element.first)) {
         // Key present in tree => check if value present & delete from value list
         bool found_value = false;
-        auto element_found = location_greater_key_leaf - 1;
-        if (element_found->second->find(element.second) != element_found->second->end()) {
-          found_value = true;
-          if ((element_found->second->size() > 1) || (node->GetSize() > GetLeafNodeSizeLowerThreshold())) {
-            element_found->second->erase(element.second);
-            finished_deletion = true;
+        auto itr_list = (location_greater_key_leaf - 1)->second->begin();
+        while (itr_list != (location_greater_key_leaf - 1)->second->end()) {
+          if (ValueCmpEqual(*itr_list, element.second)) {
+            // Value fround => Delete element from list if won't trigger rebalance
+            found_value = true;
+            if (((location_greater_key_leaf - 1)->second->size() > 1) ||
+                (node->GetSize() > GetLeafNodeSizeLowerThreshold())) {
+              (location_greater_key_leaf - 1)->second->erase(itr_list);
+              finished_deletion = true;
+              break;
+            }
           }
+          itr_list++;
         }
 
         if (!found_value) {
@@ -2259,9 +2274,9 @@ class BPlusTree : public BPlusTreeBase {
           if (finished_deletion) {
             // If now the list is empty delete key-emptylist from the tree
             bool key_deleted = false;
-            if (element_found->second->empty()) {
-              delete element_found->second;
-              key_deleted = node->Erase(element_found - node->Begin());
+            if ((location_greater_key_leaf - 1)->second->empty()) {
+              delete (location_greater_key_leaf - 1)->second;
+              key_deleted = node->Erase((location_greater_key_leaf - 1) - node->Begin());
             }
 
             // Release the latch and return
@@ -2366,9 +2381,15 @@ class BPlusTree : public BPlusTreeBase {
         leaf_position -= 1;
         if (KeyCmpEqual(leaf_position->first, element.first)) {
           bool element_present = false;
-          if (leaf_position->second->find(element.second) != leaf_position->second->end()) {
-            element_present = true;
-            leaf_position->second->erase(element.second);
+          auto itr_list = (leaf_position)->second->begin();
+          while (itr_list != (leaf_position)->second->end()) {
+            if (ValueCmpEqual(*itr_list, element.second)) {
+              // Delete element from list
+              (leaf_position)->second->erase(itr_list);
+              element_present = true;
+              break;
+            }
+            itr_list++;
           }
 
           // Not Found - Return false

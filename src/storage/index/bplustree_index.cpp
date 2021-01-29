@@ -145,8 +145,13 @@ void BPlusTreeIndex<KeyType>::ScanAscending(const transaction::TransactionContex
   if (low_key_exists) index_low_key.SetFromProjectedRow(*low_key, metadata_, num_attrs);
   if (high_key_exists) index_high_key.SetFromProjectedRow(*high_key, metadata_, num_attrs);
 
-  bplustree_->ScanAscending(index_low_key, index_high_key, low_key_exists, num_attrs, high_key_exists, limit,
-                            value_list, &metadata_, predicate);
+  bool scan_completed = false;
+
+  while (!scan_completed) {
+    value_list->clear();
+    scan_completed = bplustree_->ScanAscending(index_low_key, index_high_key, low_key_exists, num_attrs, high_key_exists, limit,
+                              value_list, &metadata_, predicate);
+  }
 }
 
 template <typename KeyType>
