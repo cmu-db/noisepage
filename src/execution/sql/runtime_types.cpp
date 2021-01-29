@@ -931,6 +931,10 @@ void Decimal::SignedMultiplyWithDecimal(Decimal multiplier, uint32_t lower_preci
   bool negative_result = (value_ < 0) != (multiplier.ToNative() < 0);
   value_ = value_ < 0 ? 0 - value_ : value_;
   MultiplyAndSet(multiplier.GetAbs(), lower_precision);
+  // Because we convert to positive above, if the sign changed, we overflowed.
+  if (value_ < 0) {
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+  }
   value_ = negative_result ? 0 - value_ : value_;
 }
 
@@ -1006,6 +1010,11 @@ void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_
       value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
                                                 half_words_result[0] | (half_words_result[1] << 64), constant);
     }
+  }
+
+  // Because we convert to positive above, if the sign changed, we overflowed.
+  if (value_ < 0) {
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   value_ = negative_result ? 0 - value_ : value_;

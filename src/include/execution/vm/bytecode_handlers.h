@@ -615,6 +615,12 @@ VM_OP_HOT void OpDecimalRescalePrecision(noisepage::execution::sql::DecimalVal *
     }
     result->val_ = noisepage::execution::sql::Decimal(value);
   }
+  // When decimals overflow, their sign will change. Because we are only multiplying Decimal::MAX_PRECISION (38)
+  // times, we should not be able to overflow twice, so it suffices to do a single check at the end of the rescale.
+  bool sign_matches = (result->val_ > 0) == (source->val_ > 0);
+  if (!sign_matches) {
+    throw noisepage::EXECUTION_EXCEPTION("Decimal overflow.", noisepage::common::ErrorCode::ERRCODE_DATA_EXCEPTION);
+  }
   result->precision_ = new_precision;
 }
 
