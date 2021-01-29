@@ -749,8 +749,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
     case T_Float: {
       // Per Postgres, T_Float just means that the string looks like a number.
       // T_Float is also used for oversized ints, e.g. BIGINT, and for floats, e.g., DECIMAL, REAL.
-      result = std::make_unique<ConstantValueExpression>(type::TypeId::PLACEHOLDER,
-                                                         execution::sql::StringVal(val.val_.str_));
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(std::string_view{val.val_.str_});
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::PLACEHOLDER, string_val.first,
+                                                         std::move(string_val.second));
       break;
     }
 

@@ -53,7 +53,7 @@ void ConstantValueExpression::Validate() const {
                          return_value_type_ == type::TypeId::PLACEHOLDER,
                      "Invalid TypeId for Val type.");
     NOISEPAGE_ASSERT(
-        GetStringVal().is_null_ ||
+        return_value_type_ == type::TypeId::PLACEHOLDER || GetStringVal().is_null_ ||
             (buffer_ == nullptr && GetStringVal().GetLength() <= execution::sql::StringVal::InlineThreshold()) ||
             (buffer_ != nullptr && GetStringVal().GetLength() > execution::sql::StringVal::InlineThreshold()),
         "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
