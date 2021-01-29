@@ -20,8 +20,11 @@ STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
 
 // TODO(Matt): reconcile with execution::sql::SqlTypeId
 // TODO(Matt): also what is noisepage::parser::ColumnDefinition::DataType?
+// TODO(WAN): Unfortunate code in the binder relies on the enum ordering for determining the return value type of an
+//            OperatorExpression, which is set to be the highest TypeId enum value of its children.
 enum class TypeId : uint8_t {
   INVALID = 0,
+  PLACEHOLDER,  ///< A placeholder type ID means that it is currently a varchar and may be converted.
   BOOLEAN,
   TINYINT,
   SMALLINT,
@@ -36,7 +39,6 @@ enum class TypeId : uint8_t {
   PARAMETER_OFFSET,
   VARIADIC,
   VAR_ARRAY,    ///< pg_type requires a distinct type for var_array.
-  PLACEHOLDER,  ///< A placeholder type ID means that it is currently a varchar and may be converted.
 };
 
 }  // namespace noisepage::type

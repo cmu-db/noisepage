@@ -765,6 +765,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> e
   BINDER_LOG_TRACE("Visiting OperatorExpression ...");
   SqlNodeVisitor::Visit(expr);
   expr->DeriveReturnValueType();
+  // TODO(WAN): Adding on to OperatorExpression's extremely hacky assumptions, we assume that children's operands
+  //            are all of the same type.
+  for (const auto &child : expr->GetChildren()) {
+    sherpa_->SetDesiredType(child, expr->GetReturnValueType());
+  }
+  SqlNodeVisitor::Visit(expr);
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) {

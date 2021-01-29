@@ -30,13 +30,15 @@ void OperatorExpression::DeriveReturnValueType() {
     this->SetReturnValueType(type::TypeId::BOOLEAN);
     return;
   }
+
+  // TODO(WAN): This legacy code makes a hacky assumption that your final return value type will be the enum's
+  //            highest TypeId. This is not so great.
   const auto &children = this->GetChildren();
   const auto &max_type_child = std::max_element(children.begin(), children.end(), [](const auto &t1, const auto &t2) {
     return t1->GetReturnValueType() < t2->GetReturnValueType();
   });
   const auto &type = (*max_type_child)->GetReturnValueType();
   NOISEPAGE_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
-  // TODO(Matt): What is this assertion doing? Why is order of the enum important?
   this->SetReturnValueType(type);
 }
 

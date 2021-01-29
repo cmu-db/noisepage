@@ -35,6 +35,13 @@ void BinderSherpa::SetDesiredTypePair(const common::ManagedPointer<parser::Abstr
     right_type = right->GetReturnValueType();
   }
 
+  if (left_type == type::TypeId::PLACEHOLDER) {
+    SetDesiredType(left, right_type);
+  }
+  if (right_type == type::TypeId::PLACEHOLDER) {
+    SetDesiredType(right, left_type);
+  }
+
   // If the types are mismatched, try to convert types accordingly.
   if (left_type != right_type) {
     /*
