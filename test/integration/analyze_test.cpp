@@ -21,91 +21,79 @@ class PgStatisticOutputChecker : public execution::compiler::test::OutputChecker
  public:
   PgStatisticOutputChecker(int64_t table_oid, int64_t col_oid, int64_t num_rows, int64_t non_null_rows,
                            int64_t distinct_rows, bool topk_null, bool histogram_null)
-      : row_checker_({}) {
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 0, table_oid));
-    auto *table_oid_checker = output_checkers_.back();
+      : pg_stats_row_checker_([=](const std::vector<execution::sql::Val *> &vals) {
+          auto *table_oid_col = static_cast<execution::sql::Integer *>(vals[0]);
+          ASSERT_FALSE(table_oid_col->is_null_);
+          ASSERT_EQ(table_oid_col->val_, table_oid);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 1, col_oid));
-    auto *col_oid_checker = output_checkers_.back();
+          auto *col_oid_col = static_cast<execution::sql::Integer *>(vals[1]);
+          ASSERT_FALSE(col_oid_col->is_null_);
+          ASSERT_EQ(col_oid_col->val_, col_oid);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 2, num_rows));
-    auto *num_rows_checker = output_checkers_.back();
+          auto *num_rows_col = static_cast<execution::sql::Integer *>(vals[2]);
+          ASSERT_FALSE(num_rows_col->is_null_);
+          ASSERT_EQ(num_rows_col->val_, num_rows);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 3, non_null_rows));
-    auto *non_null_checker = output_checkers_.back();
+          auto *non_null_rows_col = static_cast<execution::sql::Integer *>(vals[3]);
+          ASSERT_FALSE(non_null_rows_col->is_null_);
+          ASSERT_EQ(non_null_rows_col->val_, non_null_rows);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 4, distinct_rows));
-    auto *distinct_row_checker = output_checkers_.back();
+          auto *distinct_rows_col = static_cast<execution::sql::Integer *>(vals[4]);
+          ASSERT_FALSE(distinct_rows_col->is_null_);
+          ASSERT_EQ(distinct_rows_col->val_, distinct_rows);
 
-    output_checkers_.emplace_back(new execution::compiler::test::NullChecker(5, topk_null));
-    auto *topk_checker = output_checkers_.back();
+          auto *topk_col = static_cast<execution::sql::StringVal *>(vals[5]);
+          ASSERT_EQ(topk_col->is_null_, topk_null);
 
-    output_checkers_.emplace_back(new execution::compiler::test::NullChecker(6, histogram_null));
-    auto *histogram_checker = output_checkers_.back();
-
-    row_checker_ =
-        execution::compiler::test::MultiChecker({table_oid_checker, col_oid_checker, num_rows_checker, non_null_checker,
-                                                 distinct_row_checker, topk_checker, histogram_checker});
-  }
+          auto *histogram_col = static_cast<execution::sql::StringVal *>(vals[6]);
+          ASSERT_EQ(histogram_col->is_null_, histogram_null);
+        }),
+        pg_stats_checker_(pg_stats_row_checker_, []() {}) {}
 
   PgStatisticOutputChecker(int64_t table_oid, int64_t col_oid, int64_t num_rows, int64_t non_null_rows,
                            int64_t distinct_rows, const std::string &topk, const std::string &histogram)
-      : row_checker_({}) {
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 0, table_oid));
-    auto *table_oid_checker = output_checkers_.back();
+      : pg_stats_row_checker_([=, &topk, &histogram](const std::vector<execution::sql::Val *> &vals) {
+    auto *table_oid_col = static_cast<execution::sql::Integer *>(vals[0]);
+    ASSERT_FALSE(table_oid_col->is_null_);
+    ASSERT_EQ(table_oid_col->val_, table_oid);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 1, col_oid));
-    auto *col_oid_checker = output_checkers_.back();
+    auto *col_oid_col = static_cast<execution::sql::Integer *>(vals[1]);
+          ASSERT_FALSE(col_oid_col->is_null_);
+          ASSERT_EQ(col_oid_col->val_, col_oid);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 2, num_rows));
-    auto *num_rows_checker = output_checkers_.back();
+          auto *num_rows_col = static_cast<execution::sql::Integer *>(vals[2]);
+          ASSERT_FALSE(num_rows_col->is_null_);
+          ASSERT_EQ(num_rows_col->val_, num_rows);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 3, non_null_rows));
-    auto *non_null_checker = output_checkers_.back();
+          auto *non_null_rows_col = static_cast<execution::sql::Integer *>(vals[3]);
+          ASSERT_FALSE(non_null_rows_col->is_null_);
+          ASSERT_EQ(non_null_rows_col->val_, non_null_rows);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleIntComparisonChecker(std::equal_to<>(), 4, distinct_rows));
-    auto *distinct_row_checker = output_checkers_.back();
+          auto *distinct_rows_col = static_cast<execution::sql::Integer *>(vals[4]);
+          ASSERT_FALSE(distinct_rows_col->is_null_);
+          ASSERT_EQ(distinct_rows_col->val_, distinct_rows);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleStringComparisonChecker(std::equal_to<>(), 5, topk));
-    auto *topk_checker = output_checkers_.back();
+          auto *topk_col = static_cast<execution::sql::StringVal *>(vals[5]);
+          ASSERT_FALSE(topk_col->is_null_);
+          ASSERT_EQ(topk_col->val_.StringView(), topk);
 
-    output_checkers_.emplace_back(
-        new execution::compiler::test::SingleStringComparisonChecker(std::equal_to<>(), 6, histogram));
-    auto *histogram_checker = output_checkers_.back();
-
-    row_checker_ =
-        execution::compiler::test::MultiChecker({table_oid_checker, col_oid_checker, num_rows_checker, non_null_checker,
-                                                 distinct_row_checker, topk_checker, histogram_checker});
-  }
-
-  ~PgStatisticOutputChecker() override {
-    for (auto *checker : output_checkers_) {
-      delete checker;
-    }
-  }
+          auto *histogram_col = static_cast<execution::sql::StringVal *>(vals[6]);
+          ASSERT_FALSE(histogram_col->is_null_);
+          ASSERT_EQ(histogram_col->val_.StringView(), histogram);
+        }),
+        pg_stats_checker_(pg_stats_row_checker_, []() {}) {}
 
   DISALLOW_COPY_AND_MOVE(PgStatisticOutputChecker);
 
-  void CheckCorrectness() override { row_checker_.CheckCorrectness(); }
+  void CheckCorrectness() override { pg_stats_checker_.CheckCorrectness(); }
 
   void ProcessBatch(const std::vector<std::vector<execution::sql::Val *>> &output) override {
-    row_checker_.ProcessBatch(output);
+    pg_stats_checker_.ProcessBatch(output);
   }
 
  private:
-  std::vector<execution::compiler::test::OutputChecker *> output_checkers_;
-  execution::compiler::test::MultiChecker row_checker_;
+  execution::compiler::test::RowChecker pg_stats_row_checker_;
+  execution::compiler::test::GenericChecker pg_stats_checker_;
 };
 
 // NOLINTNEXTLINE

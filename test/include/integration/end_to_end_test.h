@@ -5,15 +5,15 @@
 #include <utility>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "binder/bind_node_visitor.h"
 #include "execution/compiler/compilation_context.h"
+#include "execution/compiler/output_checker.h"
+#include "execution/sql_test.h"
+#include "gtest/gtest.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_util.h"
-#include "execution/compiler/output_checker.h"
-#include "execution/sql_test.h"
 
 namespace noisepage::test {
 
@@ -57,7 +57,8 @@ class EndToEndTest : public execution::SqlBasedTest {
     // Execute
     execution::compiler::test::OutputStore store{output_checker, out_plan->GetOutputSchema().Get()};
     execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
-    execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+    execution::compiler::test::MultiOutputCallback callback{
+        std::vector<execution::exec::OutputCallback>{store, printer}};
     execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
     auto exec_ctx = MakeExecCtx(&callback_fn, out_plan->GetOutputSchema().Get());
 
