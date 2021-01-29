@@ -78,8 +78,8 @@ class CountMinSketch {
    * @param delta how much to increment the key's count.
    */
   void Increment(const KeyType &key, const uint32_t delta) {
-    auto normalize_key = NormalizeKey(key);
-    Increment(normalize_key, sizeof(normalize_key), delta);
+    auto normalized_key = NormalizeKey(key);
+    Increment(normalized_key, sizeof(normalized_key), delta);
   }
 
   /**
@@ -90,8 +90,8 @@ class CountMinSketch {
    * @param delta how much to decrement the key's count.
    */
   void Decrement(const KeyType &key, const uint32_t delta) {
-    auto normalize_key = NormalizeKey(key);
-    Decrement(normalize_key, sizeof(normalize_key), delta);
+    auto normalized_key = NormalizeKey(key);
+    Decrement(normalized_key, sizeof(normalized_key), delta);
   }
 
   /**
@@ -102,8 +102,8 @@ class CountMinSketch {
    * @param key
    */
   void Remove(const KeyType &key) {
-    auto normalize_key = NormalizeKey(key);
-    Remove(normalize_key, sizeof(normalize_key));
+    auto normalized_key = NormalizeKey(key);
+    Remove(normalized_key, sizeof(normalized_key));
   }
 
   /**
@@ -114,8 +114,8 @@ class CountMinSketch {
    * @return the approximate count number for the key.
    */
   uint64_t EstimateItemCount(const KeyType &key) {
-    auto normalize_key = NormalizeKey(key);
-    return EstimateItemCount(normalize_key, sizeof(normalize_key));
+    auto normalized_key = NormalizeKey(key);
+    return EstimateItemCount(normalized_key, sizeof(normalized_key));
   }
 
   /**
