@@ -127,10 +127,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       }
       context_->AddNewTable(node->GetTableName(), node->GetColumns());
       for (const auto &col : node->GetColumns()) {
-        if (col->GetDefaultExpression() != nullptr)
+        if (col->GetDefaultExpression() != nullptr) {
+          sherpa_->SetDesiredType(col->GetDefaultExpression(), col->GetValueType());
           col->GetDefaultExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-        if (col->GetCheckExpression() != nullptr)
+        }
+        if (col->GetCheckExpression() != nullptr) {
+          sherpa_->SetDesiredType(col->GetCheckExpression(), col->GetValueType());
           col->GetCheckExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        }
       }
       for (const auto &fk : node->GetForeignKeys()) {
         // foreign key does not have check exprssion nor default expression
