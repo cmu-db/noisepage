@@ -766,9 +766,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> e
   SqlNodeVisitor::Visit(expr);
   expr->DeriveReturnValueType();
   // TODO(WAN): Adding on to OperatorExpression's extremely hacky assumptions, we assume that children's operands
-  //            are all of the same type.
-  for (const auto &child : expr->GetChildren()) {
-    sherpa_->SetDesiredType(child, expr->GetReturnValueType());
+  //            are all of the same type. Unless it is a VARCHAR or a PLACEHOLDER.
+  //            The binder doesn't make sense.
+  if (expr->GetReturnValueType() == type::TypeId::PLACEHOLDER || expr->GetReturnValueType() == type::TypeId::VARCHAR) {
+    for (const auto &child : expr->GetChildren()) {
+      sherpa_->SetDesiredType(child, expr->GetReturnValueType());
+    }
   }
   SqlNodeVisitor::Visit(expr);
 }
