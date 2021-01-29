@@ -67,7 +67,7 @@ void DeferredActionManager::UnregisterIndexForGC(const common::ManagedPointer<st
 void DeferredActionManager::ProcessIndexes() {
   if (indexes_latch_.TryExclusiveLock()) {
     for (const auto &index : indexes_) index->PerformGarbageCollection();
-    indexes_latch_.Unlock();
+    indexes_latch_.UnlockExclusive();
   }
 }
 
