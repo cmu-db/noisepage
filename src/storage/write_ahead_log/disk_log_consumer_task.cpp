@@ -42,8 +42,7 @@ void DiskLogConsumerTask::WriteBuffersToLogFile() {
 }
 
 uint64_t DiskLogConsumerTask::PersistLogFile() {
-  // buffers_ may be empty but we have callbacks to invoke due to read-only txns
-  if (!buffers_->empty()) {
+  if (current_data_written_ > 0) {
     // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
     // any buffer.
     buffers_->front().Persist();
