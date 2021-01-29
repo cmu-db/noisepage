@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "common/error/exception.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/sql/value_util.h"
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
@@ -1497,7 +1498,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
   // Handle type modifiers. Type modifiers (atttypmod in Postgres) default to -1.
   // The meaning of a type modifier is up to the type.
   // For example, a type modifier of 0 is meaningful, but the meaning depends on what type it is associated with.
-  int32_t type_modifier = -1;
+  int32_t type_modifier = root->type_name_->typemod_;
 
   if (type_name->typmods_ != nullptr) {
     auto node = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
@@ -1508,8 +1509,14 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
           case T_Integer: {
             // TODO(WAN): We should probably be capturing the type modifier for more types.
             if (datatype == ColumnDefinition::DataType::DECIMAL) {
+              // TODO(WAN): For decimals, precision and scale are both optional. Right now, scale is ignored.
               auto node2 = reinterpret_cast<Node *>(type_name->typmods_->tail->data.ptr_value);
               type_modifier = static_cast<int32_t>(reinterpret_cast<A_Const *>(node2)->val_.val_.ival_);
+              if (type_modifier > static_cast<int32_t>(execution::sql::Decimal::MAX_PRECISION)) {
+                // TODO(WAN): Yes, this is a hack and we should refactor parser exceptions to have errorcodes.
+                throw PARSER_EXCEPTION(
+                    fmt::format("22003: value \"{}\" is out of range for type integer", type_modifier));
+              }
               break;
             }
             type_modifier = static_cast<int32_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
@@ -1525,6 +1532,9 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
         PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node->type);
       }
     }
+  } else if (datatype == ColumnDefinition::DataType::DECIMAL) {
+    // No precision or scale specified. Pick the maximum possible precision.
+    type_modifier = execution::sql::Decimal::MAX_PRECISION;
   }
 
   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;

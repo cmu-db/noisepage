@@ -221,7 +221,7 @@ class Schema {
                          "Type modifier should be -1 (no limit), or a positive integer.");
       } else if (type_ == type::TypeId::DECIMAL) {
         NOISEPAGE_ASSERT(attr_length_ == 16, "Invalid attribute length.");
-        NOISEPAGE_ASSERT(type_modifier_ > 0, "Type modifier should be a  positive integer.");
+        NOISEPAGE_ASSERT(type_modifier_ > 0, "Type modifier should be a positive integer.");
       } else {
         NOISEPAGE_ASSERT(attr_length_ == 1 || attr_length_ == 2 || attr_length_ == 4 || attr_length_ == 8,
                          "Invalid attribute length.");

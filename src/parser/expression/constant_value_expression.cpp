@@ -188,6 +188,7 @@ common::hash_t ConstantValueExpression::Hash() const {
     case type::TypeId::DATE: {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<execution::sql::Date>().ToNative()));
     }
+    case type::TypeId::PLACEHOLDER:
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
       return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<std::string_view>()));

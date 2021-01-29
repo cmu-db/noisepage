@@ -219,6 +219,7 @@ class ConstantValueExpression : public AbstractExpression {
       case type::TypeId::DATE: {
         return GetDateVal().is_null_;
       }
+      case type::TypeId::PLACEHOLDER:
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         return GetStringVal().is_null_;

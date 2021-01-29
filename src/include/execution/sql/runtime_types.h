@@ -407,12 +407,15 @@ class EXPORT Timestamp {
  * A generic fixed point decimal value. This only serves as a storage container for decimals of various sizes.
  * Operations on decimals require a precision and scale.
  *
- * TODO(WAN): Ask Rohan why we are
+ * TODO(WAN): I don't think we actually support scale.
  */
 class EXPORT Decimal {
  public:
   /** Underlying native data type. */
   using NativeType = int128_t;
+
+  /** The maximum precision supported by a Decimal. */
+  static constexpr uint32_t MAX_PRECISION = 37;
 
   /**
    * Create a decimal value using the given raw underlying encoded value.
@@ -431,7 +434,7 @@ class EXPORT Decimal {
    * @param input       The input string to convert.
    *                    If the input string has more digits than the specified precision, the value is rounded up.
    * @param precision   Number of digits after the decimal point.
-   *                    The precision must be <= 38.
+   *                    The precision must be <= 37.
    */
   Decimal(std::string input, uint32_t precision);
 

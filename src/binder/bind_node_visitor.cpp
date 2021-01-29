@@ -813,8 +813,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::GroupByDescription> n
   BINDER_LOG_TRACE("Visiting GroupByDescription ...");
   SqlNodeVisitor::Visit(node);
   for (auto &col : node->GetColumns()) col->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-  if (node->GetHaving() != nullptr)
+  if (node->GetHaving() != nullptr) {
+    sherpa_->SetDesiredType(node->GetHaving(), node->GetHaving()->GetReturnValueType());
     node->GetHaving()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::JoinDefinition> node) {

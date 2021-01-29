@@ -20,7 +20,8 @@ public class DecimalDivisionGenerator {
     }
 
     public static void main(String[] args) {
-        // Our maximum precision is 38 digits because NoisePage represents fixed decimals
+        // TODO(WAN): In theory, our maximum precision should be 38 not 37, but the implementation breaks.
+        // Our maximum precision is 37 digits because NoisePage represents fixed decimals
         // with an int128_t and 10^k > 2^128 for k > 38.5318.
         int maxPrecisionDigits = 38;
         int numTestCases = 1000000;
