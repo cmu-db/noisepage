@@ -204,7 +204,7 @@ class InsertPlanNode : public AbstractPlanNode {
    *
    * @return the insert type of plan
    */
-  const parser::InsertType GetInsertType() const { return insert_type_; }
+  parser::InsertType GetInsertType() const { return insert_type_; }
 
   /**
    * @return the hashed value of this plan node

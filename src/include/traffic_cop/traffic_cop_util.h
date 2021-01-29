@@ -62,7 +62,7 @@ class TrafficCopUtil {
    * @param statement
    * @return
    */
-  static network::QueryType QueryTypeForStatement(const common::ManagedPointer<parser::SQLStatement> statement);
+  static network::QueryType QueryTypeForStatement(common::ManagedPointer<parser::SQLStatement> statement);
 
  private:
   static void CollectSelectProperties(common::ManagedPointer<parser::SelectStatement> sel_stmt,
