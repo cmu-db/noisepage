@@ -11,6 +11,7 @@
 #include "execution/vm/module.h"
 #include "execution/vm/vm_defs.h"
 #include "spdlog/fmt/fmt.h"
+#include "test_util/fs_util.h"
 #include "test_util/multithread_test_util.h"
 
 namespace noisepage::execution::test {
@@ -18,18 +19,18 @@ namespace noisepage::execution::test {
 class AtomicsTest : public TplTest {
  public:
   AtomicsTest() : region_("atomics_test") {
-    auto settings = std::make_unique<vm::LLVMEngine::Settings>(bytecode_handlers_path_);
+    // TODO(Kyle): it is wasteful to execute this directory search for the bytecode
+    // handlers for each test in this file; we should just perform the search once
+    // and cache the result for each future test.
+    // TODO(Kyle): we could just as easily locate the project root path here and then
+    // manually concatenate the path at which we expect the bytecode handlers file will
+    // be located, but this approach feels more robust, at the cost of some additional search
+    const auto bytecode_path = FindFileFrom("bytecode_handlers_ir.bc", GetProjectRootPath());
+    auto settings = std::make_unique<const vm::LLVMEngine::Settings>(bytecode_path);
     vm::LLVMEngine::Initialize(std::move(settings));
   }
 
   util::Region region_;
-
-  /**
-   * The path to the bytecode handlers file, relative to the location from which the test is run.
-   * TODO(Kyle): Is this the best way to deal with this? What about dynamically detecting the
-   * project root at the time the test is initialized and locating the file from there?
-   */
-  const char *const bytecode_handlers_path_{"./bin/bytecode_handlers_ir.bc"};
 
   template <typename T>
   void AndOrTest(const std::string &tpl_type, const bool compiled) {

@@ -220,11 +220,11 @@ class LLVMEngine {
 
   /**
    * Process-wide LLVM engine settings.
-   * 
+   *
    * TODO(Kyle): I'm not particularly happy with this setup - an inline
    * static variable (essentially just a global with scoping) for managing
    * the settings for the LLVM engine. The ownership model should be
-   * relatively simple - the LLVMEngine should own its settings, but 
+   * relatively simple - the LLVMEngine should own its settings, but
    * obviously the issue is, currently, LLVMEngine is a totally static
    * class. This is a nice property, and makes using it in other locations
    * within the execution engine easy and clean e.g. LLVMEngine::Compile(...).
