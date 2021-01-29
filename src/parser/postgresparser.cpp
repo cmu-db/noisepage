@@ -1511,7 +1511,7 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
             if (datatype == ColumnDefinition::DataType::DECIMAL) {
               // TODO(WAN): For decimals, precision and scale are both optional. Right now, scale is ignored.
               auto node2 = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
-              (void) node2; // The scale is in here, for future use.
+              (void)node2;  // The scale is in here, for future use.
               type_modifier = static_cast<int32_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
               if (type_modifier > static_cast<int32_t>(execution::sql::Decimal::MAX_PRECISION)) {
                 // TODO(WAN): Yes, this is a hack and we should refactor parser exceptions to have errorcodes.

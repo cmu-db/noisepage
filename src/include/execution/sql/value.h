@@ -122,13 +122,13 @@ struct Real : public Val {
 struct DecimalVal : public Val {
   /** The internal decimal representation. */
   Decimal val_;
-  /** The precision is the number of digits after the decimal point that it is accurate for. */
+  /** The precision is the number of significant digits in the number. */
   uint32_t precision_;
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The decimal value.
-   * @param precision The decimal precision, the number of digits after the decimal point.
+   * @param precision The decimal precision, the number of significant digits in the number.
    *
    * TODO(WAN): Get rid of default argument.
    */
@@ -137,7 +137,7 @@ struct DecimalVal : public Val {
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The raw decimal value.
-   * @param precision The decimal precision, the number of digits after the decimal point.
+   * @param precision The decimal precision, the number of significant digits in the number.
    *
    * TODO(WAN): Get rid of default argument.
    */

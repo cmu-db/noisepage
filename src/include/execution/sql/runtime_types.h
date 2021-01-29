@@ -433,7 +433,7 @@ class EXPORT Decimal {
    * Convert an input string into a decimal representation.
    * @param input       The input string to convert.
    *                    If the input string has more digits than the specified precision, the value is rounded up.
-   * @param precision   Number of digits after the decimal point.
+   * @param precision   Number of significant digits.
    *                    The precision must be <= 37.
    */
   Decimal(std::string input, uint32_t precision);
@@ -635,7 +635,7 @@ class EXPORT Decimal {
    * The precision of the result depends on the precision provided.
    *
    * @param unsigned_input  The input decimal to multiply against. Must be unsigned!
-   * @param precision       The number of digits after the decimal point.
+   * @param precision       The number of significant digits.
    *                        To obtain higher precision result, pass in the lower precision of the operands.
    *                        To obtain lower precision result, pass in the higher precision of the operands.
    */
