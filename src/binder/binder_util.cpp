@@ -201,27 +201,23 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::REAL: {
-            {
-              double double_val;
-              try {
-                double_val = std::stod(std::string(str_view));
-              } catch (std::exception &e) {
-                throw BINDER_EXCEPTION(fmt::format("real out of range, string to convert was {}", str_view),
-                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
-              }
-              value->SetValue(type::TypeId::REAL, execution::sql::Real(double_val));
-              break;
+            double double_val;
+            try {
+              double_val = std::stod(std::string(str_view));
+            } catch (std::exception &e) {
+              throw BINDER_EXCEPTION(fmt::format("real out of range, string to convert was {}", str_view),
+                                     common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
+            value->SetValue(type::TypeId::REAL, execution::sql::Real(double_val));
+            break;
           }
 
           case type::TypeId::DECIMAL: {
-            {
-              // TODO(WAN): Error handling, casting, etc. Definitely not Postgres-compliant right now. #1440
-              uint32_t precision;
-              noisepage::execution::sql::Decimal decimal_val(std::string(str_view), &precision);
-              value->SetValue(type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val, precision));
-              break;
-            }
+            // TODO(WAN): Error handling, casting, etc. Definitely not Postgres-compliant right now. #1440
+            uint32_t precision;
+            noisepage::execution::sql::Decimal decimal_val(std::string(str_view), &precision);
+            value->SetValue(type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val, precision));
+            break;
           }
           default:
             throw BINDER_EXCEPTION(
