@@ -540,6 +540,15 @@ class DBMain {
     }
 
     /**
+     * @param value TransactionManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetWalAsyncCommit(const bool value) {
+      wal_async_commit_enable_ = value;
+      return *this;
+    }
+
+    /**
      * @param value LogManager argument
      * @return self reference for chaining
      */
