@@ -18,15 +18,18 @@ namespace noisepage::execution::test {
 
 class AtomicsTest : public TplTest {
  public:
-  AtomicsTest() : region_("atomics_test") {
-    // TODO(Kyle): it is wasteful to execute this directory search for the bytecode
-    // handlers for each test in this file; we should just perform the search once
-    // and cache the result for each future test.
+  static void SetUpTestSuite() {
     // TODO(Kyle): we could just as easily locate the project root path here and then
     // manually concatenate the path at which we expect the bytecode handlers file will
     // be located, but this approach feels more robust, at the cost of some additional search
-    const auto bytecode_path = FindFileFrom("bytecode_handlers_ir.bc", GetProjectRootPath());
-    auto settings = std::make_unique<const vm::LLVMEngine::Settings>(bytecode_path);
+    bytecode_handlers_path =
+        std::make_unique<std::string>(FindFileFrom("bytecode_handlers_ir.bc", GetProjectRootPath()));
+  }
+
+  static void TearDownTestSuite() { bytecode_handlers_path.reset(); }
+
+  AtomicsTest() : region_("atomics_test") {
+    auto settings = std::make_unique<const vm::LLVMEngine::Settings>(*bytecode_handlers_path);
     vm::LLVMEngine::Initialize(std::move(settings));
   }
 
@@ -150,6 +153,12 @@ class AtomicsTest : public TplTest {
       ASSERT_EQ(target.load(), num_threads);
     }
   }
+
+  /**
+   * The path to the bytecode handlers bitcode file; this is
+   * dynamically resolved once for the entire test suite.
+   */
+  static inline std::unique_ptr<std::string> bytecode_handlers_path{};
 };
 
 TEST_F(AtomicsTest, InterpretedAndOr1) { AndOrTest<uint8_t>("uint8", false); }                        // NOLINT

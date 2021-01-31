@@ -26,7 +26,7 @@ namespace detail {
  * @return The absolute path to the descandant file or directory; empty optional indicates failure.
  */
 std::optional<std::filesystem::path> GetAbsolutePathToDescendant(
-    std::string_view name, const std::filesystem::path& src = std::filesystem::current_path()) {
+    std::string_view name, const std::filesystem::path &src = std::filesystem::current_path()) {
   namespace fs = std::filesystem;
   const auto dst = fs::path{name};
   auto current = src;
@@ -62,8 +62,8 @@ std::string GetProjectRootPath() {
 }
 
 /**
- * Determine the absolute path to the file with the given name by performing a recursive search from the specified root
- * path.
+ * Determine the absolute path to the file with the given name by performing a
+ * recursive directory search from the specified root path.
  * @param filename The name of the target file
  * @param root_path The absolute path from which recursive search should begin
  * @return The absolute path to a file with the specified name as a string.
