@@ -1,21 +1,6 @@
 #pragma once
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <unistd.h>
-
-#include <cerrno>
-#include <cstring>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include "common/constants.h"
 #include "common/macros.h"
-#include "loggers/storage_logger.h"
-#include "transaction/transaction_defs.h"
 
 namespace noisepage::storage {
 
@@ -24,7 +9,7 @@ namespace noisepage::storage {
  */
 class PosixIoWrappers {
  public:
-  PosixIoWrappers() = delete;  // Un-instantiable
+  DISALLOW_INSTANTIATION(PosixIoWrappers);
 
   // TODO(Tianyu): Use a better exception than runtime_error.
   /**
@@ -34,19 +19,11 @@ class PosixIoWrappers {
    * @param oflag posix oflag arg
    * @param args posix mode arg
    * @throws runtime_error if the underlying posix call failed
-   * @return a non-negative interger that is the file descriptor if the opened file.
+   * @return a non-negative integer that is the file descriptor if the opened file.
    */
   template <class... Args>
-  static int Open(const char *path, int oflag, Args... args) {
-    while (true) {
-      int ret = open(path, oflag, args...);
-      if (ret == -1) {
-        if (errno == EINTR) continue;
-        throw std::runtime_error("Failed to open file with errno " + std::to_string(errno));
-      }
-      return ret;
-    }
-  }
+  static int Open(const char *path, int oflag, Args... args);
+
   /**
    * Wrapper around posix close call
    * @param fd posix filedes arg
@@ -76,5 +53,8 @@ class PosixIoWrappers {
    */
   static void WriteFully(int fd, const void *buf, size_t nbyte);
 };
+
+extern template int PosixIoWrappers::Open<>(const char *path, int oflag);
+extern template int PosixIoWrappers::Open<int>(const char *path, int oflag, int mode);
 
 }  // namespace noisepage::storage

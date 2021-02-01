@@ -1,6 +1,29 @@
 #include "storage/posix_io_wrappers.h"
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
+
+#include <cerrno>
+#include <cstring>
+#include <string>
+#include <utility>
+
 namespace noisepage::storage {
+
+template <class... Args>
+int PosixIoWrappers::Open(const char *path, int oflag, Args... args) {
+  while (true) {
+    int ret = open(path, oflag, args...);
+    if (ret == -1) {
+      if (errno == EINTR) continue;
+      throw std::runtime_error("Failed to open file with errno " + std::to_string(errno));
+    }
+    return ret;
+  }
+}
 
 void PosixIoWrappers::Close(int fd) {
   while (true) {
@@ -38,5 +61,8 @@ void PosixIoWrappers::WriteFully(int fd, const void *buf, size_t nbyte) {
     written += ret;
   }
 }
+
+template int PosixIoWrappers::Open<>(const char *path, int oflag);
+template int PosixIoWrappers::Open<int>(const char *path, int oflag, int mode);
 
 }  // namespace noisepage::storage
