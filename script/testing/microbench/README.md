@@ -14,7 +14,7 @@ in TimescaleDB. The results will be visualized at [stats.noise.page](https://sta
 ## Requirements
 
 This script assumes that you have numactl package installed. If you are running the script locally you do not need to
- install `numctl` but you will need to specify `--local`. 
+ install `numactl` but you will need to specify `--local`. 
 
 ```
 sudo apt install numactl
