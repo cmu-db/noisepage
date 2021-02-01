@@ -3549,3 +3549,6 @@ FROM t1
 ORDER BY 3,1
 ----
 90 values hashing to c7db44bcd57f63f8a69678fc4dadfb6c
+
+statement ok
+DROP TABLE t1;

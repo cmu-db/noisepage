@@ -1379,3 +1379,6 @@ FROM t1
 ORDER BY 2,3,1
 ----
 90 values hashing to a94a0b4568605d51d7e9a369e55805d8
+
+statement ok
+DROP TABLE t1;
