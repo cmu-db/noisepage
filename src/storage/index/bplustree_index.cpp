@@ -149,8 +149,8 @@ void BPlusTreeIndex<KeyType>::ScanAscending(const transaction::TransactionContex
 
   while (!scan_completed) {
     value_list->clear();
-    scan_completed = bplustree_->ScanAscending(index_low_key, index_high_key, low_key_exists, num_attrs, high_key_exists, limit,
-                              value_list, &metadata_, predicate);
+    scan_completed = bplustree_->ScanAscending(index_low_key, index_high_key, low_key_exists, num_attrs,
+                                               high_key_exists, limit, value_list, &metadata_, predicate);
   }
 }
 
