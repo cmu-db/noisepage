@@ -252,8 +252,8 @@ namespace noisepage::execution::vm {
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitDecimal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,  \
     OperandType::Local)                                                                                               \
-  F(DecimalSetPrecision, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
-  F(DecimalRescalePrecision, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(DecimalSetScale, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(DecimalRescaleScale, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
   F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
     OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \

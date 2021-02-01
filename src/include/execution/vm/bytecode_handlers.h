@@ -584,44 +584,43 @@ VM_OP_HOT void OpInitDate(noisepage::execution::sql::DateVal *result, int32_t ye
   result->val_ = noisepage::execution::sql::Date::FromYMD(year, month, day);
 }
 
-VM_OP_HOT void OpInitDecimal(noisepage::execution::sql::DecimalVal *result, int128_t fixed_decimal,
-                             uint32_t precision) {
+VM_OP_HOT void OpInitDecimal(noisepage::execution::sql::DecimalVal *result, int128_t fixed_decimal, uint32_t scale) {
   result->is_null_ = false;
   result->val_ = noisepage::execution::sql::Decimal(fixed_decimal);
-  result->precision_ = precision;
+  result->scale_ = scale;
 }
 
-VM_OP_HOT void OpDecimalSetPrecision(noisepage::execution::sql::DecimalVal *result,
-                                     noisepage::execution::sql::DecimalVal *source, uint32_t source_precision) {
+VM_OP_HOT void OpDecimalSetScale(noisepage::execution::sql::DecimalVal *result,
+                                 noisepage::execution::sql::DecimalVal *source, uint32_t source_scale) {
   result->is_null_ = source->is_null_;
   result->val_ = source->val_;
-  result->precision_ = source_precision;
+  result->scale_ = source_scale;
 }
 
-VM_OP_HOT void OpDecimalRescalePrecision(noisepage::execution::sql::DecimalVal *result,
-                                         noisepage::execution::sql::DecimalVal *source, uint32_t new_precision) {
+VM_OP_HOT void OpDecimalRescaleScale(noisepage::execution::sql::DecimalVal *result,
+                                     noisepage::execution::sql::DecimalVal *source, uint32_t new_scale) {
   result->is_null_ = source->is_null_;
   result->val_ = noisepage::execution::sql::Decimal(source->val_.ToNative());
-  if (source->precision_ < new_precision) {
+  if (source->scale_ < new_scale) {
     int128_t value = result->val_.ToNative();
-    for (uint32_t i = 0; i < new_precision - source->precision_; i++) {
+    for (uint32_t i = 0; i < new_scale - source->scale_; i++) {
       value *= 10;
     }
     result->val_ = noisepage::execution::sql::Decimal(value);
-  } else if (source->precision_ > new_precision) {
+  } else if (source->scale_ > new_scale) {
     int128_t value = result->val_.ToNative();
-    for (uint32_t i = 0; i < source->precision_ - new_precision; i++) {
+    for (uint32_t i = 0; i < source->scale_ - new_scale; i++) {
       value /= 10;
     }
     result->val_ = noisepage::execution::sql::Decimal(value);
   }
-  // When decimals overflow, their sign will change. Because we are only multiplying Decimal::MAX_PRECISION (38)
+  // When decimals overflow, their sign will change. Because we are only multiplying Decimal::MAX_SCALE (38)
   // times, we should not be able to overflow twice, so it suffices to do a single check at the end of the rescale.
   bool sign_matches = (result->val_ > 0) == (source->val_ > 0);
   if (!sign_matches) {
     throw noisepage::EXECUTION_EXCEPTION("Decimal overflow.", noisepage::common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
-  result->precision_ = new_precision;
+  result->scale_ = new_scale;
 }
 
 VM_OP_HOT void OpInitTimestamp(noisepage::execution::sql::TimestampVal *result, uint64_t usec) {
@@ -766,17 +765,17 @@ GEN_SQL_COMPARISONS(String, StringVal)
 #undef GEN_SQL_COMPARISONS
 
 // TODO(Rohan): Optimize this by performing a binary search.
-#define GEN_FIXED_DECIMAL_COMPARISONS(NAME, EXPR)                                                                \
-  VM_OP_HOT void Op##NAME##Decimal(noisepage::execution::sql::BoolVal *const result,                             \
-                                   const noisepage::execution::sql::DecimalVal *const left,                      \
-                                   const noisepage::execution::sql::DecimalVal *const right) {                   \
-    auto left_val = left->val_;                                                                                  \
-    auto right_val = right->val_;                                                                                \
-    auto left_precision = left->precision_;                                                                      \
-    auto right_precision = right->precision_;                                                                    \
-    noisepage::execution::sql::Decimal::MatchPrecisions(&left_val, &right_val, left_precision, right_precision); \
-    result->is_null_ = (left->is_null_ || right->is_null_);                                                      \
-    result->val_ = (left_val EXPR right_val);                                                                    \
+#define GEN_FIXED_DECIMAL_COMPARISONS(NAME, EXPR)                                                    \
+  VM_OP_HOT void Op##NAME##Decimal(noisepage::execution::sql::BoolVal *const result,                 \
+                                   const noisepage::execution::sql::DecimalVal *const left,          \
+                                   const noisepage::execution::sql::DecimalVal *const right) {       \
+    auto left_val = left->val_;                                                                      \
+    auto right_val = right->val_;                                                                    \
+    auto left_scale = left->scale_;                                                                  \
+    auto right_scale = right->scale_;                                                                \
+    noisepage::execution::sql::Decimal::MatchScales(&left_val, &right_val, left_scale, right_scale); \
+    result->is_null_ = (left->is_null_ || right->is_null_);                                          \
+    result->val_ = (left_val EXPR right_val);                                                        \
   }
 
 GEN_FIXED_DECIMAL_COMPARISONS(GreaterThan, >)
@@ -856,13 +855,13 @@ VM_OP_HOT void OpAddDecimal(noisepage::execution::sql::DecimalVal *const result,
                             const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
-  auto left_precision = left->precision_;
-  auto right_precision = right->precision_;
-  noisepage::execution::sql::Decimal::MatchPrecisions(&left_val, &right_val, left_precision, right_precision);
+  auto left_scale = left->scale_;
+  auto right_scale = right->scale_;
+  noisepage::execution::sql::Decimal::MatchScales(&left_val, &right_val, left_scale, right_scale);
   left_val += right_val;
   result->val_ = left_val;
   result->is_null_ = left->is_null_ || right->is_null_;
-  result->precision_ = left_precision > right_precision ? left_precision : right_precision;
+  result->scale_ = left_scale > right_scale ? left_scale : right_scale;
 }
 
 VM_OP_HOT void OpSubDecimal(noisepage::execution::sql::DecimalVal *const result,
@@ -870,13 +869,13 @@ VM_OP_HOT void OpSubDecimal(noisepage::execution::sql::DecimalVal *const result,
                             const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
-  auto left_precision = left->precision_;
-  auto right_precision = right->precision_;
-  noisepage::execution::sql::Decimal::MatchPrecisions(&left_val, &right_val, left_precision, right_precision);
+  auto left_scale = left->scale_;
+  auto right_scale = right->scale_;
+  noisepage::execution::sql::Decimal::MatchScales(&left_val, &right_val, left_scale, right_scale);
   left_val -= right_val;
   result->val_ = left_val;
   result->is_null_ = left->is_null_ || right->is_null_;
-  result->precision_ = left_precision > right_precision ? left_precision : right_precision;
+  result->scale_ = left_scale > right_scale ? left_scale : right_scale;
 }
 
 VM_OP_HOT void OpMulDecimal(noisepage::execution::sql::DecimalVal *const result,
@@ -884,13 +883,13 @@ VM_OP_HOT void OpMulDecimal(noisepage::execution::sql::DecimalVal *const result,
                             const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
-  auto left_precision = left->precision_;
-  auto right_precision = right->precision_;
-  auto lower_precision = left_precision < right_precision ? left_precision : right_precision;
-  left_val.SignedMultiplyWithDecimal(right_val, lower_precision);
+  auto left_scale = left->scale_;
+  auto right_scale = right->scale_;
+  auto lower_scale = left_scale < right_scale ? left_scale : right_scale;
+  left_val.SignedMultiplyWithDecimal(right_val, lower_scale);
   result->is_null_ = left->is_null_ || right->is_null_;
   result->val_ = left_val;
-  result->precision_ = left_precision > right_precision ? left_precision : right_precision;
+  result->scale_ = left_scale > right_scale ? left_scale : right_scale;
 }
 
 VM_OP_HOT void OpDivDecimal(noisepage::execution::sql::DecimalVal *const result,
@@ -898,12 +897,12 @@ VM_OP_HOT void OpDivDecimal(noisepage::execution::sql::DecimalVal *const result,
                             const noisepage::execution::sql::DecimalVal *const right) {
   auto left_val = left->val_;
   auto right_val = right->val_;
-  auto left_precision = left->precision_;
-  auto right_precision = right->precision_;
-  left_val.SignedDivideWithDecimal(right_val, right_precision);
+  auto left_scale = left->scale_;
+  auto right_scale = right->scale_;
+  left_val.SignedDivideWithDecimal(right_val, right_scale);
   result->is_null_ = left->is_null_ || right->is_null_;
   result->val_ = left_val;
-  result->precision_ = left_precision;
+  result->scale_ = left_scale;
 }
 
 VM_OP_HOT void OpDivReal(noisepage::execution::sql::Real *const result,

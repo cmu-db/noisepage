@@ -1509,11 +1509,10 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
           case T_Integer: {
             // TODO(WAN): We should probably be capturing the type modifier for more types.
             if (datatype == ColumnDefinition::DataType::DECIMAL) {
-              // TODO(WAN): For decimals, precision and scale are both optional. Right now, scale is ignored.
+              // TODO(WAN): For decimals, precision and scale are both optional. Right now, precision is ignored.
               auto node2 = reinterpret_cast<Node *>(type_name->typmods_->head->data.ptr_value);
-              (void)node2;  // The scale is in here, for future use.
-              type_modifier = static_cast<int32_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
-              if (type_modifier > static_cast<int32_t>(execution::sql::Decimal::MAX_PRECISION)) {
+              type_modifier = static_cast<int32_t>(reinterpret_cast<A_Const *>(node2)->val_.val_.ival_);
+              if (type_modifier > static_cast<int32_t>(execution::sql::Decimal::MAX_SCALE)) {
                 // TODO(WAN): Yes, this is a hack and we should refactor parser exceptions to have errorcodes.
                 throw PARSER_EXCEPTION(
                     fmt::format("22003: value \"{}\" is out of range for type integer", type_modifier));
@@ -1534,8 +1533,8 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
       }
     }
   } else if (datatype == ColumnDefinition::DataType::DECIMAL) {
-    // No precision or scale specified. Pick the maximum possible precision.
-    type_modifier = execution::sql::Decimal::MAX_PRECISION;
+    // No precision or scale specified. Pick the maximum possible scale.
+    type_modifier = execution::sql::Decimal::MAX_SCALE;
   }
 
   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;

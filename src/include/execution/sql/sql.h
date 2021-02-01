@@ -41,7 +41,7 @@ enum class SqlTypeId : uint8_t {
   BigInt,     // 8-byte integer
   Real,       // 4-byte float
   Double,     // 8-byte float
-  Decimal,    // Fixed-precision numeric
+  Decimal,    // Fixed-scale numeric
   Date,       // Dates
   Timestamp,  // Timestamps
   Char,       // Fixed-length string

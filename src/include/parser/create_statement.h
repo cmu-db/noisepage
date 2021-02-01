@@ -81,7 +81,7 @@ struct ColumnDefinition {
    * @param is_unique is unique
    * @param default_expr default expression
    * @param check_expr check expression
-   * @param type_modifier max length of varlen, or precision of decimal (atttypmod)
+   * @param type_modifier max length of varlen, or scale of decimal (atttypmod)
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
                    common::ManagedPointer<AbstractExpression> default_expr,
@@ -245,7 +245,7 @@ struct ColumnDefinition {
   /** @return check expression */
   common::ManagedPointer<AbstractExpression> GetCheckExpression() { return check_expr_; }
 
-  /** @return type modifier, max varlen size or precision for DECIMAL */
+  /** @return type modifier, max varlen size or scale for DECIMAL */
   int32_t GetTypeModifier() { return type_modifier_; }
 
   /** @return foreign key sources */

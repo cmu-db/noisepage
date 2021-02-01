@@ -555,21 +555,21 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto fixed_decimal_2 = VisitExpressionForRValue(call->Arguments()[1]);
       auto fixed_decimal_3 = VisitExpressionForRValue(call->Arguments()[2]);
       auto fixed_decimal_4 = VisitExpressionForRValue(call->Arguments()[3]);
-      auto precision = VisitExpressionForRValue(call->Arguments()[4]);
+      auto scale = VisitExpressionForRValue(call->Arguments()[4]);
       GetEmitter()->Emit(Bytecode::InitDecimal, dest, fixed_decimal_1, fixed_decimal_2, fixed_decimal_3,
-                         fixed_decimal_4, precision);
+                         fixed_decimal_4, scale);
       break;
     }
-    case ast::Builtin::DecimalSetPrecision: {
+    case ast::Builtin::DecimalSetScale: {
       auto source_decimal = VisitExpressionForRValue(call->Arguments()[0]);
-      auto source_precision = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::DecimalSetPrecision, dest, source_decimal, source_precision);
+      auto source_scale = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::DecimalSetScale, dest, source_decimal, source_scale);
       break;
     }
-    case ast::Builtin::DecimalRescalePrecision: {
+    case ast::Builtin::DecimalRescaleScale: {
       auto source_decimal = VisitExpressionForRValue(call->Arguments()[0]);
-      auto new_precision = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::DecimalRescalePrecision, dest, source_decimal, new_precision);
+      auto new_scale = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::DecimalRescaleScale, dest, source_decimal, new_scale);
       break;
     }
     case ast::Builtin::TimestampToSql: {
@@ -1355,7 +1355,7 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
       LocalVar input = VisitExpressionForRValue(args[1]);
       Bytecode bytecode = OpForAgg<AggOpKind::Advance>(agg_kind);
 
-      // Hack to handle advancing AvgAggregates with float/double precision numbers. The default
+      // Hack to handle advancing AvgAggregates with float/double scale numbers. The default
       // behavior in OpForAgg() is to use AvgAggregateAdvanceInteger.
       if (agg_kind == ast::BuiltinType::AvgAggregate &&
           args[1]->GetType()->GetPointeeType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
@@ -2631,8 +2631,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
     case ast::Builtin::DecimalToSql:
-    case ast::Builtin::DecimalSetPrecision:
-    case ast::Builtin::DecimalRescalePrecision:
+    case ast::Builtin::DecimalSetScale:
+    case ast::Builtin::DecimalRescaleScale:
     case ast::Builtin::TimestampToSql:
     case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:

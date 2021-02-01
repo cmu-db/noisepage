@@ -66,7 +66,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             {
               double double_val = value->GetDecimal().val_;
               double divisor = 1.0;
-              for (uint32_t i = 0; i < value->GetDecimal().precision_; i++) {
+              for (uint32_t i = 0; i < value->GetDecimal().scale_; i++) {
                 divisor *= 10.0;
               }
               double_val /= divisor;
@@ -214,9 +214,9 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
 
           case type::TypeId::DECIMAL: {
             // TODO(WAN): Error handling, casting, etc. Definitely not Postgres-compliant right now. #1440
-            uint32_t precision;
-            noisepage::execution::sql::Decimal decimal_val(std::string(str_view), &precision);
-            value->SetValue(type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val, precision));
+            uint32_t scale;
+            noisepage::execution::sql::Decimal decimal_val(std::string(str_view), &scale);
+            value->SetValue(type::TypeId::DECIMAL, execution::sql::DecimalVal(decimal_val, scale));
             break;
           }
           default:

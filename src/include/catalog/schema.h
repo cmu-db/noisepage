@@ -60,7 +60,7 @@ class Schema {
      * Instantiates a Column object, primary to be used for building a Schema object (VARLEN attributes only)
      * @param name column name
      * @param type SQL type for this column
-     * @param type_modifier the maximum varlen size or precision for decimal
+     * @param type_modifier the maximum varlen size or scale for decimal
      * @param nullable true if the column is nullable, false otherwise
      * @param default_value for the column
      */

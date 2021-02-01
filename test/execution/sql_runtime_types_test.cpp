@@ -127,156 +127,156 @@ TEST_F(RuntimeTypesTest, StringToNegativeDecimalTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionTest) {
-  uint32_t returned_precision;
-  Decimal d11(std::string("1234.567"), &returned_precision);
+TEST_F(RuntimeTypesTest, StringToDecimalMaxScaleTest) {
+  uint32_t returned_scale;
+  Decimal d11(std::string("1234.567"), &returned_scale);
   Decimal a_1(1234567);
   EXPECT_EQ(a_1, d11);
-  EXPECT_EQ(returned_precision, 3);
+  EXPECT_EQ(returned_scale, 3);
 
-  Decimal d12(std::string("1234.56"), &returned_precision);
+  Decimal d12(std::string("1234.56"), &returned_scale);
   Decimal a_2(123456);
   EXPECT_EQ(a_2, d12);
-  EXPECT_EQ(returned_precision, 2);
+  EXPECT_EQ(returned_scale, 2);
 
-  Decimal d13(std::string("1234."), &returned_precision);
+  Decimal d13(std::string("1234."), &returned_scale);
   Decimal a_3(1234);
   EXPECT_EQ(a_3, d13);
-  EXPECT_EQ(returned_precision, 0);
+  EXPECT_EQ(returned_scale, 0);
 
-  Decimal d14(std::string("1234"), &returned_precision);
+  Decimal d14(std::string("1234"), &returned_scale);
   Decimal a_4(1234);
   EXPECT_EQ(a_4, d14);
-  EXPECT_EQ(returned_precision, 0);
+  EXPECT_EQ(returned_scale, 0);
 
-  Decimal d15(std::string("123"), &returned_precision);
+  Decimal d15(std::string("123"), &returned_scale);
   Decimal a_5(123);
   EXPECT_EQ(a_5, d15);
-  EXPECT_EQ(returned_precision, 0);
+  EXPECT_EQ(returned_scale, 0);
 
-  Decimal d16(std::string("123.5"), &returned_precision);
+  Decimal d16(std::string("123.5"), &returned_scale);
   Decimal a_6(1235);
   EXPECT_EQ(a_6, d16);
-  EXPECT_EQ(returned_precision, 1);
+  EXPECT_EQ(returned_scale, 1);
 
-  Decimal d17(std::string("1234.568"), &returned_precision);
+  Decimal d17(std::string("1234.568"), &returned_scale);
   Decimal a_7(1234568);
   EXPECT_EQ(a_7, d17);
-  EXPECT_EQ(returned_precision, 3);
+  EXPECT_EQ(returned_scale, 3);
 
-  Decimal d18(std::string("1234.5678"), &returned_precision);
+  Decimal d18(std::string("1234.5678"), &returned_scale);
   Decimal a_8(12345678);
   EXPECT_EQ(a_8, d18);
-  EXPECT_EQ(returned_precision, 4);
+  EXPECT_EQ(returned_scale, 4);
 
-  Decimal d19(std::string("1234.56789"), &returned_precision);
+  Decimal d19(std::string("1234.56789"), &returned_scale);
   Decimal a_9(123456789);
   EXPECT_EQ(a_9, d19);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d110(std::string("1234.56785"), &returned_precision);
+  Decimal d110(std::string("1234.56785"), &returned_scale);
   Decimal a_10(123456785);
   EXPECT_EQ(a_10, d110);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d111(std::string("1234.56784"), &returned_precision);
+  Decimal d111(std::string("1234.56784"), &returned_scale);
   Decimal a_11(123456784);
   EXPECT_EQ(a_11, d111);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d112(std::string("1234.56779"), &returned_precision);
+  Decimal d112(std::string("1234.56779"), &returned_scale);
   Decimal a_12(123456779);
   EXPECT_EQ(a_12, d112);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d113(std::string("1234.56775"), &returned_precision);
+  Decimal d113(std::string("1234.56775"), &returned_scale);
   Decimal a_13(123456775);
   EXPECT_EQ(a_13, d113);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d114(std::string("1234.56774"), &returned_precision);
+  Decimal d114(std::string("1234.56774"), &returned_scale);
   Decimal a_14(123456774);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
   EXPECT_EQ(a_14, d114);
 }
 
 // NOLINTNEXTLINE
-TEST_F(RuntimeTypesTest, StringToDecimalMaxPrecisionNegativeTest) {
-  uint32_t returned_precision;
-  Decimal d11(std::string("-1234.567"), &returned_precision);
+TEST_F(RuntimeTypesTest, StringToDecimalMaxScaleNegativeTest) {
+  uint32_t returned_scale;
+  Decimal d11(std::string("-1234.567"), &returned_scale);
   Decimal a_1(-1234567);
   EXPECT_EQ(a_1, d11);
-  EXPECT_EQ(returned_precision, 3);
+  EXPECT_EQ(returned_scale, 3);
 
-  Decimal d12(std::string("-1234.56"), &returned_precision);
+  Decimal d12(std::string("-1234.56"), &returned_scale);
   Decimal a_2(-123456);
   EXPECT_EQ(a_2, d12);
-  EXPECT_EQ(returned_precision, 2);
+  EXPECT_EQ(returned_scale, 2);
 
-  Decimal d13(std::string("-1234."), &returned_precision);
+  Decimal d13(std::string("-1234."), &returned_scale);
   Decimal a_3(-1234);
   EXPECT_EQ(a_3, d13);
-  EXPECT_EQ(returned_precision, 0);
+  EXPECT_EQ(returned_scale, 0);
 
-  Decimal d14(std::string("-1234"), &returned_precision);
+  Decimal d14(std::string("-1234"), &returned_scale);
   Decimal a_4(-1234);
   EXPECT_EQ(a_4, d14);
-  EXPECT_EQ(returned_precision, 0);
+  EXPECT_EQ(returned_scale, 0);
 
-  Decimal d15(std::string("-123"), &returned_precision);
+  Decimal d15(std::string("-123"), &returned_scale);
   Decimal a_5(-123);
   EXPECT_EQ(a_5, d15);
-  EXPECT_EQ(returned_precision, 0);
+  EXPECT_EQ(returned_scale, 0);
 
-  Decimal d16(std::string("-123.5"), &returned_precision);
+  Decimal d16(std::string("-123.5"), &returned_scale);
   Decimal a_6(-1235);
   EXPECT_EQ(a_6, d16);
-  EXPECT_EQ(returned_precision, 1);
+  EXPECT_EQ(returned_scale, 1);
 
-  Decimal d17(std::string("-1234.568"), &returned_precision);
+  Decimal d17(std::string("-1234.568"), &returned_scale);
   Decimal a_7(-1234568);
   EXPECT_EQ(a_7, d17);
-  EXPECT_EQ(returned_precision, 3);
+  EXPECT_EQ(returned_scale, 3);
 
-  Decimal d18(std::string("-1234.5678"), &returned_precision);
+  Decimal d18(std::string("-1234.5678"), &returned_scale);
   Decimal a_8(-12345678);
   EXPECT_EQ(a_8, d18);
-  EXPECT_EQ(returned_precision, 4);
+  EXPECT_EQ(returned_scale, 4);
 
-  Decimal d19(std::string("-1234.56789"), &returned_precision);
+  Decimal d19(std::string("-1234.56789"), &returned_scale);
   Decimal a_9(-123456789);
   EXPECT_EQ(a_9, d19);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d110(std::string("-1234.56785"), &returned_precision);
+  Decimal d110(std::string("-1234.56785"), &returned_scale);
   Decimal a_10(-123456785);
   EXPECT_EQ(a_10, d110);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d111(std::string("-1234.56784"), &returned_precision);
+  Decimal d111(std::string("-1234.56784"), &returned_scale);
   Decimal a_11(-123456784);
   EXPECT_EQ(a_11, d111);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d112(std::string("-1234.56779"), &returned_precision);
+  Decimal d112(std::string("-1234.56779"), &returned_scale);
   Decimal a_12(-123456779);
   EXPECT_EQ(a_12, d112);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d113(std::string("-1234.56775"), &returned_precision);
+  Decimal d113(std::string("-1234.56775"), &returned_scale);
   Decimal a_13(-123456775);
   EXPECT_EQ(a_13, d113);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
 
-  Decimal d114(std::string("-1234.56774"), &returned_precision);
+  Decimal d114(std::string("-1234.56774"), &returned_scale);
   Decimal a_14(-123456774);
-  EXPECT_EQ(returned_precision, 5);
+  EXPECT_EQ(returned_scale, 5);
   EXPECT_EQ(a_14, d114);
 }
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
-  // The precisions MUST match. See the warnings in Decimal::operator+.
+  // The scales MUST match. See the warnings in Decimal::operator+.
 
   Decimal d11(std::string("1234.5678"), 4);
   Decimal d21(std::string("1234.6429"), 4);
@@ -311,7 +311,7 @@ TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DecimalSubtractionTest) {
-  // The precisions MUST match. See the warnings in Decimal::operator-.
+  // The scales MUST match. See the warnings in Decimal::operator-.
 
   Decimal d11(std::string("1234.5678"), 4);
   Decimal d21(std::string("2469.2107"), 4);
@@ -357,7 +357,7 @@ TEST_F(RuntimeTypesTest, DecimalSubtractionTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(RuntimeTypesTest, StringToDecimalMultiPrecisionTest) {
+TEST_F(RuntimeTypesTest, StringToDecimalMultiScaleTest) {
   Decimal d_1(std::string("1234.567"), 4);
   Decimal a_1(12345670);
   EXPECT_EQ(a_1, a_1);
@@ -424,12 +424,12 @@ TEST_F(RuntimeTypesTest, DISABLED_DecimalMultiplicationRegressionTest) {
   while (std::getline(infile, line)) {
     std::stringstream linestream(line);
     std::string decimal1, decimal2, result;
-    uint32_t precision_decimal1, precision_decimal2, precision_result;
-    linestream >> decimal1 >> precision_decimal1 >> decimal2 >> precision_decimal2 >> result >> precision_result;
-    Decimal d_1(decimal1, precision_decimal1);
-    Decimal d_2(decimal2, precision_decimal2);
-    Decimal d(result, precision_result);
-    d_1.SignedMultiplyWithDecimal(d_2, precision_decimal1);
+    uint32_t scale_decimal1, scale_decimal2, scale_result;
+    linestream >> decimal1 >> scale_decimal1 >> decimal2 >> scale_decimal2 >> result >> scale_result;
+    Decimal d_1(decimal1, scale_decimal1);
+    Decimal d_2(decimal2, scale_decimal2);
+    Decimal d(result, scale_result);
+    d_1.SignedMultiplyWithDecimal(d_2, scale_decimal1);
     EXPECT_EQ(d, d_1);
   }
 }
@@ -518,12 +518,12 @@ TEST_F(RuntimeTypesTest, DecimalDivisionRegressionTest) {
   while (std::getline(infile, line)) {
     std::stringstream linestream(line);
     std::string decimal1, decimal2, result;
-    unsigned precision_decimal1, precision_decimal2, precision_result;
-    linestream >> decimal1 >> precision_decimal1 >> decimal2 >> precision_decimal2 >> result >> precision_result;
-    Decimal d_1(decimal1, precision_decimal1);
-    Decimal d_2(decimal2, precision_decimal2);
-    Decimal d(result, precision_result);
-    d_1.SignedDivideWithDecimal(d_2, precision_decimal2);
+    unsigned scale_decimal1, scale_decimal2, scale_result;
+    linestream >> decimal1 >> scale_decimal1 >> decimal2 >> scale_decimal2 >> result >> scale_result;
+    Decimal d_1(decimal1, scale_decimal1);
+    Decimal d_2(decimal2, scale_decimal2);
+    Decimal d(result, scale_result);
+    d_1.SignedDivideWithDecimal(d_2, scale_decimal2);
     EXPECT_EQ(d, d_1);
   }
 }

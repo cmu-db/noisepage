@@ -122,26 +122,26 @@ struct Real : public Val {
 struct DecimalVal : public Val {
   /** The internal decimal representation. */
   Decimal val_;
-  /** The precision is the number of significant digits in the number. */
-  uint32_t precision_;
+  /** The scale is the number of significant digits after the decimal point in the number. */
+  uint32_t scale_;
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The decimal value.
-   * @param precision The decimal precision, the number of significant digits in the number.
+   * @param scale The decimal scale, the number of significant digits after the decimal point.
    *
    * TODO(WAN): Get rid of default argument.
    */
-  explicit DecimalVal(Decimal val, uint32_t precision) noexcept : Val(false), val_(val), precision_(precision) {}
+  explicit DecimalVal(Decimal val, uint32_t scale) noexcept : Val(false), val_(val), scale_(scale) {}
 
   /**
    * Construct a non-NULL decimal value from the given 64-bit decimal value.
    * @param val The raw decimal value.
-   * @param precision The decimal precision, the number of significant digits in the number.
+   * @param scale The decimal scale, the number of significant digits after the decimal point.
    *
    * TODO(WAN): Get rid of default argument.
    */
-  explicit DecimalVal(Decimal::NativeType val, uint32_t precision) noexcept : DecimalVal(Decimal{val}, precision) {}
+  explicit DecimalVal(Decimal::NativeType val, uint32_t scale) noexcept : DecimalVal(Decimal{val}, scale) {}
 
   /**
    * @return A NULL decimal value.
@@ -155,7 +155,7 @@ struct DecimalVal : public Val {
   /**
    * @return A string representing the given decimal.
    */
-  std::string ToString() const { return val_.ToString(precision_); }
+  std::string ToString() const { return val_.ToString(scale_); }
 };
 
 /**

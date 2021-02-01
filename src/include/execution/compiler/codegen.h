@@ -501,18 +501,18 @@ class CodeGen {
   /**
    * Call \@decimalToSql(). Convert a decimal into a SQL fixed decimal.
    * @param fixed_decimal The fixed decimal to convert.
-   * @param precision The precision of the fixed decimal.
+   * @param scale The scale of the fixed decimal.
    * @return The SQL fixed decimal.
    */
-  [[nodiscard]] ast::Expr *DecimalToSql(sql::Decimal fixed_decimal, int32_t precision) const;
+  [[nodiscard]] ast::Expr *DecimalToSql(sql::Decimal fixed_decimal, int32_t scale) const;
 
   /**
-   * Call \@decimalSetPrecision(). Set the precision of a SQL fixed decimal.
+   * Call \@decimalSetScale(). Set the scale of a SQL fixed decimal.
    * @param decimal_value AST expression of the decimal value.
-   * @param precision The new precision.
-   * @return The SQL fixed decimal with the new precision set.
+   * @param scale The new scale.
+   * @return The SQL fixed decimal with the new scale set.
    */
-  [[nodiscard]] ast::Expr *DecimalSetPrecision(ast::Expr *decimal_value, int32_t precision) const;
+  [[nodiscard]] ast::Expr *DecimalSetScale(ast::Expr *decimal_value, int32_t scale) const;
 
   /**
    * Call \@timestampToSql(). Create a timestamp value.

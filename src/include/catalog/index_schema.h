@@ -67,7 +67,7 @@ class IndexSchema {
      * Varlen constructor for index key columns.
      * @param name column name (column name or "expr")
      * @param type the varlen type of the column
-     * @param type_modifier the maximum varlen size or precision for decimal
+     * @param type_modifier the maximum varlen size or scale for decimal
      * @param nullable whether the column is nullable
      * @param definition definition of this attribute
      */

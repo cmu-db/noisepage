@@ -149,10 +149,10 @@ class IntegerSumAggregate : public SumAggregate<Integer> {};
 class RealSumAggregate : public SumAggregate<Real> {};
 
 // TODO(WAN):
-//    In aggregating's Advance(), you need to choose the maximum precision.
-//    From Rohan in #1434 discussion, the precision will always be the same.
+//    In aggregating's Advance(), you need to choose the maximum scale.
+//    From Rohan in #1434 discussion, the scale will always be the same.
 //    I am not sure why this is the case? Why can't you have TPL that arbitrarily constructs a random DecimalVal
-//    of a different precision?
+//    of a different scale?
 
 /** Decimal sums. */
 class DecimalSumAggregate {
@@ -176,7 +176,7 @@ class DecimalSumAggregate {
     if (val.is_null_) {
       return;
     }
-    sum_.precision_ = val.precision_;
+    sum_.scale_ = val.scale_;
     sum_.is_null_ = false;
     sum_.val_ += val.val_;
   }
@@ -190,7 +190,7 @@ class DecimalSumAggregate {
     if (that.sum_.is_null_) {
       return;
     }
-    sum_.precision_ = that.sum_.precision_;
+    sum_.scale_ = that.sum_.scale_;
     sum_.is_null_ = false;
     sum_.val_ += that.sum_.val_;
   }
@@ -313,7 +313,7 @@ class DecimalMaxAggregate {
     if (val.is_null_) {
       return;
     }
-    max_.precision_ = val.precision_;
+    max_.scale_ = val.scale_;
     max_.is_null_ = false;
     max_.val_ = std::max(val.val_, max_.val_);
   }
@@ -325,7 +325,7 @@ class DecimalMaxAggregate {
     if (that.max_.is_null_) {
       return;
     }
-    max_.precision_ = that.max_.precision_;
+    max_.scale_ = that.max_.scale_;
     max_.is_null_ = false;
     max_.val_ = std::max(that.max_.val_, max_.val_);
   }
@@ -451,7 +451,7 @@ class DecimalMinAggregate {
     if (val.is_null_) {
       return;
     }
-    min_.precision_ = val.precision_;
+    min_.scale_ = val.scale_;
     min_.is_null_ = false;
     min_.val_ = std::min(val.val_, min_.val_);
   }
@@ -463,7 +463,7 @@ class DecimalMinAggregate {
     if (that.min_.is_null_) {
       return;
     }
-    min_.precision_ = that.min_.precision_;
+    min_.scale_ = that.min_.scale_;
     min_.is_null_ = false;
     min_.val_ = std::min(that.min_.val_, min_.val_);
   }

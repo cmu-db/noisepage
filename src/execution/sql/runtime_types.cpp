@@ -829,10 +829,10 @@ Decimal Decimal::GetNegation() { return Decimal(-value_); }
 
 Decimal Decimal::GetAbs() { return value_ < 0 ? Decimal(-value_) : Decimal(value_); }
 
-void Decimal::MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision) {
+void Decimal::MultiplyAndSet(const Decimal &unsigned_input, uint32_t scale) {
   // 1. Multiply with the overflow check.
-  // 2. If overflow, divide by 10^precision using 256-bit magic number division.
-  // 3. If no overflow, divide by 10^precision using 128-bit magic number division.
+  // 2. If overflow, divide by 10^scale using 256-bit magic number division.
+  // 3. If no overflow, divide by 10^scale using 128-bit magic number division.
 
   // Calculate the 256-bit multiplication result.
   uint128_t half_words_result[4];
@@ -848,15 +848,15 @@ void Decimal::MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision) 
   if (half_words_result[2] == 0 && half_words_result[3] == 0) {
     // TODO(Rohan): Optimize by sending in an array of half words
     value_ = half_words_result[0] | (half_words_result[1] << 64);
-    UnsignedDivideConstant128BitPowerOfTen(precision);
+    UnsignedDivideConstant128BitPowerOfTen(scale);
     return;
   }
 
   // Magic number half words
-  uint128_t magic[4] = {DecimalMagicNumbers::MAGIC_ARRAY[precision][3], DecimalMagicNumbers::MAGIC_ARRAY[precision][2],
-                        DecimalMagicNumbers::MAGIC_ARRAY[precision][1], DecimalMagicNumbers::MAGIC_ARRAY[precision][0]};
-  uint32_t magic_p = DecimalMagicNumbers::MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
-  uint32_t algo = DecimalMagicNumbers::MAGIC_P_AND_ALGO_ARRAY[precision][1];
+  uint128_t magic[4] = {DecimalMagicNumbers::MAGIC_ARRAY[scale][3], DecimalMagicNumbers::MAGIC_ARRAY[scale][2],
+                        DecimalMagicNumbers::MAGIC_ARRAY[scale][1], DecimalMagicNumbers::MAGIC_ARRAY[scale][0]};
+  uint32_t magic_p = DecimalMagicNumbers::MAGIC_P_AND_ALGO_ARRAY[scale][0] - 256;
+  uint32_t algo = DecimalMagicNumbers::MAGIC_P_AND_ALGO_ARRAY[scale][1];
 
   value_ = DecimalComputeMagicNumbers256(half_words_result, magic, algo, magic_p);
 }
@@ -925,12 +925,12 @@ void Decimal::UnsignedDivideConstant128Bit(uint128_t constant) {
   }
 }
 
-void Decimal::SignedMultiplyWithDecimal(Decimal multiplier, uint32_t lower_precision) {
+void Decimal::SignedMultiplyWithDecimal(Decimal multiplier, uint32_t lower_scale) {
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
   bool negative_result = (value_ < 0) != (multiplier.ToNative() < 0);
   value_ = value_ < 0 ? 0 - value_ : value_;
-  MultiplyAndSet(multiplier.GetAbs(), lower_precision);
+  MultiplyAndSet(multiplier.GetAbs(), lower_scale);
   // Because we convert to positive above, if the sign changed, we overflowed.
   if (value_ < 0) {
     throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"), common::ErrorCode::ERRCODE_DATA_EXCEPTION);
@@ -973,13 +973,13 @@ void Decimal::SignedDivideWithConstant(int64_t divisor) {
   value_ = negative_result ? 0 - value_ : value_;
 }
 
-void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_precision) {
-  // 1. Multiply the dividend with 10^(denominator precision), with overflow checking.
+void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_scale) {
+  // 1. Multiply the dividend with 10^(denominator scale), with overflow checking.
   // 2. If overflow, divide by the denominator with multi-word 256-bit division.
   // 3. If no overflow, divide by the denominator with magic numbers if available, otherwise use 128-bit division.
-  // Moreover, the result is in the numerator's precision for technical reasons.
-  // If the result were to be in the denominator's precision, the first step would need to be multiplication with
-  // 10^(2*denominator precision - numerator precision) which requires 256-bit multiply and 512-bit overflow check.
+  // Moreover, the result is in the numerator's scale for technical reasons.
+  // If the result were to be in the denominator's scale, the first step would need to be multiplication with
+  // 10^(2*denominator scale - numerator scale) which requires 256-bit multiply and 512-bit overflow check.
 
   // The method in Hacker Delight 2-14 is not used because shift needs to be agnostic of underlying T
   // Will be needed to change in the future when storage optimizations happen
@@ -988,12 +988,12 @@ void Decimal::SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_
 
   uint128_t constant = denominator < 0 ? -denominator.ToNative() : denominator.ToNative();
 
-  // 1. Multiply with 10^(denominator precision), keeping result in numerator precision.
+  // 1. Multiply with 10^(denominator scale), keeping result in numerator scale.
   uint128_t half_words_result[4];
   {
     uint128_t half_words_a[2] = {value_ & BOTTOM_MASK, (value_ & TOP_MASK) >> 64};
-    uint128_t half_words_b[2] = {DecimalMagicNumbers::POWER_OF_TEN[denominator_precision][1],
-                                 DecimalMagicNumbers::POWER_OF_TEN[denominator_precision][0]};
+    uint128_t half_words_b[2] = {DecimalMagicNumbers::POWER_OF_TEN[denominator_scale][1],
+                                 DecimalMagicNumbers::POWER_OF_TEN[denominator_scale][0]};
     CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
   }
 
@@ -1032,7 +1032,7 @@ uint128_t Decimal::UnsignedMagicDivideConstantNumerator256Bit(const uint128_t (&
   return DecimalComputeMagicNumbers256(unsigned_dividend, magic, algo, magic_p);
 }
 
-Decimal::Decimal(std::string input, uint32_t *precision) {
+Decimal::Decimal(std::string input, uint32_t *scale) {
   value_ = 0;
 
   if (input.empty()) {
@@ -1060,7 +1060,7 @@ Decimal::Decimal(std::string input, uint32_t *precision) {
     if (is_negative) {
       value_ = -value_;
     }
-    *precision = 0;
+    *scale = 0;
     return;
   }
   pos++;
@@ -1070,18 +1070,18 @@ Decimal::Decimal(std::string input, uint32_t *precision) {
     if (is_negative) {
       value_ = -value_;
     }
-    *precision = 0;
+    *scale = 0;
     return;
   }
 
-  *precision = 0;
+  *scale = 0;
   while (pos < input.size()) {
     value_ += input[pos] - '0';
     if (pos < input.size() - 1) {
       value_ *= 10;
     }
     pos++;
-    (*precision) = (*precision) + 1;
+    (*scale) = (*scale) + 1;
   }
 
   if (is_negative) {
@@ -1089,7 +1089,7 @@ Decimal::Decimal(std::string input, uint32_t *precision) {
   }
 }
 
-Decimal::Decimal(std::string input, uint32_t precision) {
+Decimal::Decimal(std::string input, uint32_t scale) {
   value_ = 0;
 
   if (input.empty()) {
@@ -1111,7 +1111,7 @@ Decimal::Decimal(std::string input, uint32_t precision) {
     pos++;
   }
 
-  if (precision == 0) {
+  if (scale == 0) {
     value_ /= 10;
     if (pos != input.size()) {
       if (pos + 1 < input.size()) {
@@ -1131,7 +1131,7 @@ Decimal::Decimal(std::string input, uint32_t precision) {
 
   // No decimal point case
   if (pos == input.size()) {
-    for (uint32_t i = 0; i < precision - 1; i++) {
+    for (uint32_t i = 0; i < scale - 1; i++) {
       value_ *= 10;
     }
     if (is_negative) {
@@ -1143,7 +1143,7 @@ Decimal::Decimal(std::string input, uint32_t precision) {
   pos++;
   // Nothing after decimal point case
   if (pos == input.size()) {
-    for (uint32_t i = 0; i < precision - 1; i++) {
+    for (uint32_t i = 0; i < scale - 1; i++) {
       value_ *= 10;
     }
     if (is_negative) {
@@ -1152,13 +1152,13 @@ Decimal::Decimal(std::string input, uint32_t precision) {
     return;
   }
 
-  for (uint32_t i = 1; i < precision; i++) {
+  for (uint32_t i = 1; i < scale; i++) {
     if (pos < input.size()) {
       value_ += input[pos] - '0';
       value_ *= 10;
       pos++;
     } else {
-      for (uint32_t j = i; j < precision; j++) {
+      for (uint32_t j = i; j < scale; j++) {
         value_ *= 10;
       }
       if (is_negative) {
@@ -1201,7 +1201,7 @@ Decimal::Decimal(std::string input, uint32_t precision) {
   }
 }
 
-std::string Decimal::ToString(uint32_t precision) const {
+std::string Decimal::ToString(uint32_t scale) const {
   std::string output;
   int128_t value = value_;
   if (value < 0) {
@@ -1209,10 +1209,10 @@ std::string Decimal::ToString(uint32_t precision) const {
     value = 0 - value;
   }
 
-  if (precision != 0) {
+  if (scale != 0) {
     int128_t fractional = value;
     std::string fractional_string;
-    for (uint32_t i = 0; i < precision; i++) {
+    for (uint32_t i = 0; i < scale; i++) {
       auto remainder = static_cast<uint32_t>(fractional % 10);
       fractional_string.push_back('0' + remainder);
       fractional /= 10;

@@ -135,7 +135,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
         const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
         uint16_t max_varlen_size = schema.GetColumn(cve->GetColumnOid()).TypeModifier();
         const_val =
-            codegen->CallBuiltin(ast::Builtin::DecimalRescalePrecision, {const_val, codegen->Const32(max_varlen_size)});
+            codegen->CallBuiltin(ast::Builtin::DecimalRescaleScale, {const_val, codegen->Const32(max_varlen_size)});
       }
 
       auto cmp_type = predicate->GetExpressionType();
@@ -347,7 +347,7 @@ ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   if (sql::GetTypeId(type) == sql::TypeId::Decimal) {
     auto vpi_get_expr =
         GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
-    return GetCodeGen()->DecimalSetPrecision(vpi_get_expr, schema.GetColumn(col_oid).TypeModifier());
+    return GetCodeGen()->DecimalSetScale(vpi_get_expr, schema.GetColumn(col_oid).TypeModifier());
   }
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
 }

@@ -397,7 +397,7 @@ ast::Expr *CodeGen::DateToSql(sql::Date date) const {
   return DateToSql(year, month, day);
 }
 
-ast::Expr *CodeGen::DecimalToSql(sql::Decimal fixed_decimal, int32_t precision) const {
+ast::Expr *CodeGen::DecimalToSql(sql::Decimal fixed_decimal, int32_t scale) const {
   const uint128_t flag = (0xFFFFFFFF);
   uint128_t native_val = fixed_decimal.ToNative();
   uint128_t fixed_decimal_1 = native_val >> 96;
@@ -407,13 +407,13 @@ ast::Expr *CodeGen::DecimalToSql(sql::Decimal fixed_decimal, int32_t precision) 
 
   ast::Expr *call =
       CallBuiltin(ast::Builtin::DecimalToSql, {Const32(fixed_decimal_1), Const32(fixed_decimal_2),
-                                               Const32(fixed_decimal_3), Const32(fixed_decimal_4), Const32(precision)});
+                                               Const32(fixed_decimal_3), Const32(fixed_decimal_4), Const32(scale)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
   return call;
 }
 
-ast::Expr *CodeGen::DecimalSetPrecision(ast::Expr *decimal_value, int32_t precision) const {
-  ast::Expr *call = CallBuiltin(ast::Builtin::DecimalSetPrecision, {decimal_value, Const32(precision)});
+ast::Expr *CodeGen::DecimalSetScale(ast::Expr *decimal_value, int32_t scale) const {
+  ast::Expr *call = CallBuiltin(ast::Builtin::DecimalSetScale, {decimal_value, Const32(scale)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
   return call;
 }
@@ -575,8 +575,8 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
       break;
     case type::TypeId::DECIMAL:
-      // The type_mod represents the precision for fixed decimals.
-      val = CallBuiltin(ast::Builtin::DecimalRescalePrecision, {val, Const32(type_mod)});
+      // The type_mod represents the scale for fixed decimals.
+      val = CallBuiltin(ast::Builtin::DecimalRescaleScale, {val, Const32(type_mod)});
       val->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Decimal));
       builtin = nullable ? ast::Builtin::PRSetDecimalNull : ast::Builtin::PRSetDecimal;
       break;

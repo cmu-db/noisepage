@@ -405,17 +405,18 @@ class EXPORT Timestamp {
 
 /**
  * A generic fixed point decimal value. This only serves as a storage container for decimals of various sizes.
- * Operations on decimals require a precision and scale.
+ * Operations on decimals require a scale.
  *
- * TODO(WAN): I don't think we actually support scale.
+ * TODO(WAN): The decimals do not support specifying a precision.
+ *            The precision is always maximum (38) and the scale ranges from 0 to MAX_SCALE (38).
  */
 class EXPORT Decimal {
  public:
   /** Underlying native data type. */
   using NativeType = int128_t;
 
-  /** The maximum precision supported by a Decimal. */
-  static constexpr uint32_t MAX_PRECISION = 37;
+  /** The maximum scale supported by a Decimal. */
+  static constexpr uint32_t MAX_SCALE = 38;
 
   /**
    * Create a decimal value using the given raw underlying encoded value.
@@ -432,18 +433,18 @@ class EXPORT Decimal {
   /**
    * Convert an input string into a decimal representation.
    * @param input       The input string to convert.
-   *                    If the input string has more digits than the specified precision, the value is rounded up.
-   * @param precision   Number of significant digits.
-   *                    The precision must be <= 37.
+   *                    If the input string has more digits than the specified scale, the value is rounded up.
+   * @param scale       Number of significant digits.
+   *                    The scale must be <= MAX_SCALE.
    */
-  Decimal(std::string input, uint32_t precision);
+  Decimal(std::string input, uint32_t scale);
 
   /**
    * Convert an input string into a decimal representation, taking as many digits as possible.
    * @param input           The input string to convert.
-   * @param[out] precision  The precision that the decimal was read with.
+   * @param[out] scale      The scale that the decimal was read with.
    */
-  Decimal(std::string input, uint32_t *precision);
+  Decimal(std::string input, uint32_t *scale);
 
   /**
    * @return The raw underlying encoded decimal value.
@@ -476,7 +477,7 @@ class EXPORT Decimal {
   /**
    * Add the encoded decimal value @em that to this decimal value.
    *
-   * @warning   The other decimal value MUST be of the same precision.
+   * @warning   The other decimal value MUST be of the same scale.
    *            This is currently resolved at runtime in the execution engine VM.
    *
    * @param that The value to add.
@@ -490,7 +491,7 @@ class EXPORT Decimal {
   /**
    * Subtract the encoded decimal value @em that from this decimal value.
    *
-   * @warning   The other decimal value MUST be of the same precision.
+   * @warning   The other decimal value MUST be of the same scale.
    *            This is currently resolved at runtime in the execution engine VM.
    *
    * @param that The value to subtract.
@@ -532,54 +533,54 @@ class EXPORT Decimal {
   }
 
   /**
-   * Get the string representation of the current decimal. Requires knowing the precision.
+   * Get the string representation of the current decimal. Requires knowing the scale.
    *
-   * @param precision The precision of the current decimal. This must be accurate!
+   * @param scale The scale of the current decimal. This must be accurate!
    * @return The string representation of this decimal.
    */
-  std::string ToString(uint32_t precision) const;
+  std::string ToString(uint32_t scale) const;
 
   /** @return The native representation of the decimal. */
   NativeType ToNative() const { return value_; }
 
   /**
    * Divide the current decimal by the given decimal.
-   * The result is in the numerator's (current decimal's) precision.
+   * The result is in the numerator's (current decimal's) scale.
    *
    * @param denominator             The decimal to divide by.
-   * @param denominator_precision   The precision of the denominator.
+   * @param denominator_scale       The scale of the denominator.
    */
-  void SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_precision);
+  void SignedDivideWithDecimal(Decimal denominator, uint32_t denominator_scale);
 
   /**
    * Multiply the current decimal by the given decimal.
-   * The result is in the higher precision of the current decimal and the multiplier.
+   * The result is in the higher scale of the current decimal and the multiplier.
    *
    * @param multiplier          The decimal to multiply by.
-   * @param lower_precision     The lower precision of the two decimals.
+   * @param lower_scale         The lower scale of the two decimals.
    */
-  void SignedMultiplyWithDecimal(Decimal multiplier, uint32_t lower_precision);
+  void SignedMultiplyWithDecimal(Decimal multiplier, uint32_t lower_scale);
 
   /**
-   * Match the precisions of the two decimals by rescaling the less precise of the inputs to the higher precision.
+   * Match the scales of the two decimals by rescaling the less precise of the inputs to the higher scale.
    *
    * @param left                The left decimal value.
    * @param right               The right decimal value.
-   * @param left_precision      The precision of the left decimal value.
-   * @param right_precision     The precision of the right decimal value.
+   * @param left_scale          The scale of the left decimal value.
+   * @param right_scale         The scale of the right decimal value.
    */
-  static void MatchPrecisions(Decimal *left, Decimal *right, uint32_t left_precision, uint32_t right_precision) {
+  static void MatchScales(Decimal *left, Decimal *right, uint32_t left_scale, uint32_t right_scale) {
     // TODO(Rohan): Optimize this by performing a binary search.
     int128_t intermediate_value;
-    if (left_precision < right_precision) {
+    if (left_scale < right_scale) {
       intermediate_value = left->ToNative();
-      for (uint32_t i = 0; i < right_precision - left_precision; i++) {
+      for (uint32_t i = 0; i < right_scale - left_scale; i++) {
         intermediate_value *= 10;
       }
       *left = Decimal(intermediate_value);
     } else {
       intermediate_value = right->ToNative();
-      for (uint32_t i = 0; i < left_precision - right_precision; i++) {
+      for (uint32_t i = 0; i < left_scale - right_scale; i++) {
         intermediate_value *= 10;
       }
       *right = Decimal(intermediate_value);
@@ -632,14 +633,14 @@ class EXPORT Decimal {
 
   /**
    * Multiply the current decimal with an unsigned decimal.
-   * The precision of the result depends on the precision provided.
+   * The scale of the result depends on the scale provided.
    *
    * @param unsigned_input  The input decimal to multiply against. Must be unsigned!
-   * @param precision       The number of significant digits.
-   *                        To obtain higher precision result, pass in the lower precision of the operands.
-   *                        To obtain lower precision result, pass in the higher precision of the operands.
+   * @param scale           The number of significant digits after the decimal point.
+   *                        To obtain higher scale result, pass in the lower scale of the operands.
+   *                        To obtain lower scale result, pass in the higher scale of the operands.
    */
-  void MultiplyAndSet(const Decimal &unsigned_input, uint32_t precision);
+  void MultiplyAndSet(const Decimal &unsigned_input, uint32_t scale);
 
   /** Signed version of MultiplyAndSet with a constant
    * @param input the constant to be multiplied with. */
