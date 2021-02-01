@@ -1,5 +1,5 @@
 statement ok
-CREATE TABLE foo (a DECIMAL(18,5));
+CREATE TABLE foo (a DECIMAL(5,18));
 
 statement ok
 INSERT INTO foo VALUES(3.144);
@@ -8,7 +8,7 @@ statement ok
 INSERT INTO foo VALUES(3243243243.144);
 
 statement ok
-CREATE TABLE foo2 (a DECIMAL(18,5));
+CREATE TABLE foo2 (a DECIMAL(5,18));
 
 statement ok
 INSERT INTO foo2 VALUES(3.144);
@@ -49,14 +49,12 @@ SELECT 2.2312*a FROM foo;
 7.01489
 7236324324.10289
 
-# From Rohan, THIS INTENTIONALLY DOES NOT MATCH POSTGRES because we don't round up.
 query R rowsort
 SELECT 2.2312*a*a FROM foo;
 ----
 22.05481
 23469159969345270731.94308
 
-# From Rohan, THIS INTENTIONALLY DOES NOT MATCH POSTGRES because we don't round up.
 query R rowsort
 SELECT 2.2312*a*2.2312 FROM foo;
 ----
@@ -69,7 +67,6 @@ SELECT a/2.31231 FROM foo;
 1.35967
 1402598805.15328
 
-# From Rohan, THIS INTENTIONALLY DOES NOT MATCH POSTGRES because we don't round up.
 query R rowsort
 SELECT (a*2.31231)/a FROM foo;
 ----
@@ -127,7 +124,7 @@ SELECT * FROM foo, foo2 WHERE foo.a = foo2.a;
 3243243243.14400
 
 statement ok
-CREATE TABLE foo3 (a DECIMAL(18,5), b DECIMAL(18,5));
+CREATE TABLE foo3 (a DECIMAL(5,18), b DECIMAL(5,18));
 
 statement ok
 INSERT INTO foo3 VALUES(3.123, 213.324);
