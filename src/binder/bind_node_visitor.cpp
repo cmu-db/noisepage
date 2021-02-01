@@ -127,13 +127,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       }
       context_->AddNewTable(node->GetTableName(), node->GetColumns());
       for (const auto &col : node->GetColumns()) {
-        if (col->GetDefaultExpression() != nullptr) {
-          sherpa_->SetDesiredType(col->GetDefaultExpression(), col->GetValueType());
+        // TODO(WAN): Interestingly, we can choose to be better than postgres here and reject a category of errors
+        //            where users specify invalid default expressions in CREATE TABLE (...).
+        //            To do so, set the expression type in the sherpa. I'm not touching that can of worms right now.
+        if (col->GetDefaultExpression() != nullptr)
           col->GetDefaultExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-        }
-        if (col->GetCheckExpression() != nullptr) {
+        if (col->GetCheckExpression() != nullptr)
           col->GetCheckExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-        }
       }
       for (const auto &fk : node->GetForeignKeys()) {
         // foreign key does not have check exprssion nor default expression

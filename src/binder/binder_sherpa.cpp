@@ -73,12 +73,14 @@ void BinderSherpa::SetDesiredTypePair(const common::ManagedPointer<parser::Abstr
 void BinderSherpa::CheckDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
   const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
   if (it != desired_expr_types_.end() && it->second != expr->GetReturnValueType()) {
-    // There was a constraint and the expression did not satisfy it. Blow up.
-    throw BINDER_EXCEPTION(
-        fmt::format("BinderSherpa expected expr to have a different type. Expected: {}, Expression type: {}",
-                    type::TypeUtil::TypeIdToString(it->second),
-                    type::TypeUtil::TypeIdToString(expr->GetReturnValueType())),
-        common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+    if (!BinderUtil::IsCastable(it->second, expr->GetReturnValueType())) {
+      // There was a constraint and the expression did not satisfy it. Blow up.
+      throw BINDER_EXCEPTION(
+          fmt::format("BinderSherpa expected expr to have a different type. Expected: {}, Expression type: {}",
+                      type::TypeUtil::TypeIdToString(it->second),
+                      type::TypeUtil::TypeIdToString(expr->GetReturnValueType())),
+          common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+    }
   }
 }
 

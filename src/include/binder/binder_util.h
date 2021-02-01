@@ -51,6 +51,17 @@ class BinderUtil {
   template <typename Input>
   static void TryCastNumericAll(common::ManagedPointer<parser::ConstantValueExpression> value, Input int_val,
                                 type::TypeId desired_type);
+
+  /** @return True if @p current_type can be cast to @p desired_type in CheckAndTryPromoteType.   */
+  static bool IsCastable(type::TypeId current_type, type::TypeId desired_type) {
+    // TODO(WAN): This is essentially a hack that I'm trying to justify.
+    //            If you're poking around here, you either need to hack the binder more by adding special cases here
+    //            or convince someone to rewrite the binder.
+    bool ok = false;
+    ok = ok || (current_type == type::TypeId::INTEGER && desired_type == type::TypeId::REAL);
+    ok = ok || (current_type == type::TypeId::REAL && desired_type == type::TypeId::INTEGER);
+    return ok;
+  }
 };
 
 /// @cond DOXYGEN_IGNORE

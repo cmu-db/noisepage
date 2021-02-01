@@ -332,6 +332,7 @@ nlohmann::json ConstantValueExpression::ToJson() const {
         j["value"] = Peek<execution::sql::Date>().ToNative();
         break;
       }
+        case type::TypeId::PLACEHOLDER:
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         std::string val{Peek<std::string_view>()};
@@ -381,6 +382,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
         value_ = execution::sql::DateVal(execution::sql::Date::FromNative(j.at("value").get<uint32_t>()));
         break;
       }
+      case type::TypeId::PLACEHOLDER:
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         auto string_val = execution::sql::ValueUtil::CreateStringVal(j.at("value").get<std::string>());
