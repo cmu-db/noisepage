@@ -158,7 +158,7 @@ class AtomicsTest : public TplTest {
    * The path to the bytecode handlers bitcode file; this is
    * dynamically resolved once for the entire test suite.
    */
-  static inline std::unique_ptr<std::string> bytecode_handlers_path{};
+  static inline std::unique_ptr<std::string> bytecode_handlers_path{};  // NOLINT
 };
 
 TEST_F(AtomicsTest, InterpretedAndOr1) { AndOrTest<uint8_t>("uint8", false); }                        // NOLINT

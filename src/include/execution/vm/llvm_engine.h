@@ -241,7 +241,7 @@ class LLVMEngine {
    *   got away from the point above - that this state should be owned by
    *   the LLVMEngine because that is the natural ownership relationship
    */
-  inline static std::unique_ptr<const Settings> engine_settings;
+  inline static std::unique_ptr<const Settings> engine_settings;  // NOLINT
 };
 
 }  // namespace noisepage::execution::vm
