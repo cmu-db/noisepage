@@ -14,7 +14,7 @@ in TimescaleDB. The results will be visualized at [stats.noise.page](https://sta
 ## Requirements
 
 This script assumes that you have numactl package installed. If you are running the script locally you do not need to
- install `numctl` but you will need to comment out a line in `MicrobenchmarksRunner._build_benchmark_cmd()`. 
+ install `numactl` but you will need to specify `--local`. 
 
 ```
 sudo apt install numactl
@@ -28,14 +28,14 @@ in the Jenkins repository. It assumes that the microbenchmark binaries can be fo
 benchmark path.
 
 ```
-$ ./run_micro_bench.py --run
+$ ./run_micro_bench.py
 ```
 
 If you only want to run a subset microbenchmark, you can pass in the **name** of the microbenchmark 
 binary (e.g., `data_table_benchmark`) and not the suite name (e.g., `DataTableBenchmark`):
 
 ```
-$ ./run_micro_bench.py --run data_table_benchmark recovery_benchmark
+$ ./run_micro_bench.py data_table_benchmark recovery_benchmark
 ```
 
 ## Local Execution
@@ -47,7 +47,7 @@ flag. That will write the results to a directory in the same path as the script.
 compute the average results for the microbenchmarks for all the local runs:
 
 ```
-$ ./run_micro_bench.py --run --local
+$ ./run_micro_bench.py --local
 ```
 
 This will write the results of each invocation to a directory called "local". See note in the requirements section about `numactl`.
@@ -59,7 +59,7 @@ This makes it easier to do profiling from the script without needing to track do
 variables.
 
 ```
-$ ./run_micro_bench.py --run --perf data_table_benchmark
+$ ./run_micro_bench.py --perf data_table_benchmark
 ```
 
 The script will configure perf to write its trace file to `data_table_benchmark.perf`.
