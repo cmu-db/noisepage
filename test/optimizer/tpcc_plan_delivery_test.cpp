@@ -304,7 +304,11 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
       EXPECT_EQ(expr->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
 
       auto cve = expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-      EXPECT_EQ(cve->Peek<int64_t>(), 1);
+      if (idx == 0) {
+        EXPECT_DOUBLE_EQ(cve->Peek<double>(), 1);
+      } else {
+        EXPECT_EQ(cve->Peek<int64_t>(), 1);
+      }
     }
 
     // Idx Scan, full output schema

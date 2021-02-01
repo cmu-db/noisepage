@@ -58,8 +58,16 @@ class BinderUtil {
     //            If you're poking around here, you either need to hack the binder more by adding special cases here
     //            or convince someone to rewrite the binder.
     bool ok = false;
+    ok = ok || (current_type == type::TypeId::INTEGER && desired_type == type::TypeId::DECIMAL);
+    ok = ok || (current_type == type::TypeId::DECIMAL && desired_type == type::TypeId::INTEGER);
     ok = ok || (current_type == type::TypeId::INTEGER && desired_type == type::TypeId::REAL);
     ok = ok || (current_type == type::TypeId::REAL && desired_type == type::TypeId::INTEGER);
+    ok = ok || (current_type == type::TypeId::INTEGER && desired_type == type::TypeId::TINYINT);
+    ok = ok || (current_type == type::TypeId::TINYINT && desired_type == type::TypeId::INTEGER);
+    ok = ok || (current_type == type::TypeId::INTEGER && desired_type == type::TypeId::SMALLINT);
+    ok = ok || (current_type == type::TypeId::SMALLINT && desired_type == type::TypeId::INTEGER);
+    ok = ok || (current_type == type::TypeId::INTEGER && desired_type == type::TypeId::BIGINT);
+    ok = ok || (current_type == type::TypeId::BIGINT && desired_type == type::TypeId::INTEGER);
     return ok;
   }
 };
