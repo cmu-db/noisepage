@@ -16,7 +16,7 @@ from type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
 
 def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_query_predict_cache, add_noise,
-             ee_sample_interval, txn_sample_interval, network_sample_interval):
+             predict_ou_only, ee_sample_interval, txn_sample_interval, network_sample_interval):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -27,6 +27,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_
     :param warmup_period: warmup period for pipeline data
     :param use_query_predict_cache: whether cache the prediction result based on the query for acceleration
     :param add_noise: whether to add noise to the cardinality estimations
+    :param predict_ou_only: whether to only predict the grouped OU data
     :param ee_sample_interval: sampling interval for the EE OUs
     :param txn_sample_interval: sampling interval for the transaction OUs
     :param network_sample_interval: sampling interval for the network OUs
@@ -41,10 +42,15 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_
                                                              warmup_period, use_query_predict_cache, add_noise,
                                                              ee_sample_interval, txn_sample_interval,
                                                              network_sample_interval)
-        resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
-                                                                                           model_results_path)
-        with open(cache_file, 'wb') as file:
-            pickle.dump((resource_data_list, impact_data_list), file)
+
+        if not predict_ou_only:
+            resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
+                                                                                               model_results_path)
+
+            with open(cache_file, 'wb') as file:
+                pickle.dump((resource_data_list, impact_data_list), file)
+        else:
+            return None, None
 
     return resource_data_list, impact_data_list
 
