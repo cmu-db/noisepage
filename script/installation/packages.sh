@@ -73,6 +73,7 @@ PYTHON_PACKAGES=(\
   "lightgbm" \
   "numpy" \
   "pandas" \
+  "prettytable" \
   "psutil" \
   "psycopg2" \
   "pyarrow" \

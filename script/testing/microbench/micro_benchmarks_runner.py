@@ -18,12 +18,22 @@ class MicroBenchmarksRunner(object):
         return
 
     def run_benchmarks(self, enable_perf):
-        """ Return 0 if all benchmarks succeed, otherwise return the error code
-            code from the last benchmark to fail
+        """ Runs all the microbenchmarks.
+        
+        Parameters
+        ----------
+        enable_perf : bool
+            Whether perf should be enabled for all the benchmarks.
+
+        Returns
+        -------
+        ret_val : int
+            the return value for the last failed benchmark. If no benchmarks
+            fail then it will return 0.
         """
         if not len(self.config.benchmarks):
-            LOG.error("Invlid benchmarks were specified to execute. \
-                Try not specifying a benchmark and it will execute all.")
+            LOG.error('Invlid benchmarks were specified to execute. \
+                Try not specifying a benchmark and it will execute all.')
             return 0
 
         ret_val = 0
@@ -31,10 +41,7 @@ class MicroBenchmarksRunner(object):
 
         # iterate over all benchmarks and run them
         for benchmark_count, bench_name in enumerate(self.config.benchmarks):
-            LOG.info("Running '{}' with {} threads [{}/{}]".format(bench_name,
-                                                                   self.config.num_threads,
-                                                                   benchmark_count,
-                                                                   len(self.config.benchmarks)))
+            LOG.info(f"Running '{bench_name}' with {self.config.num_threads} threads [{benchmark_count}/{len(self.config.benchmarks)}]")
             benchmark_ret_val = self.run_single_benchmark(bench_name, enable_perf)
             if benchmark_ret_val:
                 ret_val = benchmark_ret_val
@@ -47,7 +54,20 @@ class MicroBenchmarksRunner(object):
 
     def run_single_benchmark(self, bench_name, enable_perf):
         """ Execute a single benchmark. The results will be stored in a JSON
-        file and an XML file. """
+        file and an XML file. 
+        
+        Parameters
+        ----------
+        bench_name : str
+            The name of the benchmark to run.
+        enable_perf : bool
+            Whether perf should be enabled for all the benchmarks.
+        
+        Returns
+        -------
+        ret_val : int
+            The return value from the benchmark process. 0 if successful.
+        """
         output_file = "{}.json".format(bench_name)
         cmd = self._build_benchmark_cmd(bench_name, output_file, enable_perf)
 
@@ -60,51 +80,81 @@ class MicroBenchmarksRunner(object):
         if ret_val == 0:
             convert_result_xml(bench_name, output_file)
         else:
-            LOG.error("Unexpected failure of {BENCHMARK} [ret_val={RET_CODE}]".format(
-                BENCHMARK=bench_name, RET_CODE=ret_val))
+            LOG.error(f'Unexpected failure of {bench_name} [ret_val={ret_val}]')
             LOG.error(err)
 
         # return the process exit code
         return ret_val
 
     def _build_benchmark_cmd(self, bench_name, output_file, enable_perf):
-        """ Given the arguments passed in this will construct the command
-        necessary to execute the microbenchmark test """
+        """ Construct the command necessary to execute the microbenchmark test.
+
+        Parameters
+        ----------
+        bench_name : str
+            The name of the benchmark to run.
+        output_file : str
+            The path of the file where the benchmark result should be stored.
+        enable_perf : bool
+            Whether perf should be enabled for all the benchmarks.
+        
+        Returns
+        -------
+        cmd : str
+            The command to be executed in order to run the microbenchmark.
+        """
         benchmark_path = os.path.join(self.config.benchmark_path, bench_name)
-        cmd = "{BENCHMARK} --benchmark_min_time={MIN_TIME} " + \
-              " --benchmark_format=json" + \
-              " --benchmark_out={OUTPUT_FILE}"
-        cmd = cmd.format(BENCHMARK=benchmark_path,
-                         MIN_TIME=self.config.min_time, OUTPUT_FILE=output_file)
+        cmd = f'{benchmark_path} ' + \
+              f' --benchmark_min_time={self.config.min_time} ' + \
+              f' --benchmark_format=json' + \
+              f' --benchmark_out={output_file}'
 
         if enable_perf:
             if not is_package_installed('perf'):
-                raise Exception("Missing perf binary. Please install package.")
+                raise Exception('Missing perf binary. Please install package.')
             perf_cmd = generate_perf_command(bench_name)
-            cmd = "{PERF_CMD} {CMD}".format(PERF_CMD=perf_cmd, CMD=cmd)
+            cmd = f'{perf_cmd} {cmd}'
 
-        if not is_package_installed('numactl', '--show') and not self.config.is_local:
-            raise Exception("Missing numactl binary. Please install package")
-            # pass # if you are running locally but want to access Jenkins artifacts comment the above line
-        numa_cmd = generate_numa_command()
-        cmd = "{NUMA_CMD} {CMD}".format(NUMA_CMD=numa_cmd, CMD=cmd)
+        if self.config.is_local:
+            pass
+        elif not is_package_installed('numactl', '--show'):
+            raise Exception('Missing numactl binary. Please install package')
+        else:
+            numa_cmd = generate_numa_command()
+            cmd = f'{numa_cmd} {cmd}'
         return cmd
 
     def _execute_benchmark(self, cmd):
-        """ Execute the microbenchmark command provided """
-        LOG.debug("Executing command [num_threads={}]: {}".format(self.config.num_threads, cmd))
+        """ Execute the microbenchmark command provided.
+        
+        Parameters
+        ----------
+        cmd : str
+            The command to be executed in order to run the microbenchmark.
+
+        Returns
+        -------
+        ret_code : int
+            The return value from the benchmark process. 0 if successful.
+        err : Error
+            The error that occured. None if successful.
+        """
+        LOG.debug(f'Executing command [num_threads={self.config.num_threads}]: {cmd}')
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
             pretty_format_json = json.dumps(json.loads(output.decode('utf8').replace("'", '"')), indent=4)
-            LOG.debug("OUTPUT: {}".format(pretty_format_json))
+            LOG.debug(f'OUTPUT: {pretty_format_json}')
             return 0, None
         except subprocess.CalledProcessError as err:
+            print(err)
             return err.returncode, err
         except Exception as err:
             return 1, err
 
     def create_local_dirs(self):
-        """ 
+        """ Create directories to be used as historical results for future
+        local runs.
+
         This will create a directory for the build in the LOCAL_REPO_DIR. 
         Each time the microbenchmark script is run it will create another dir
         by incrementing the last dir name created. If the script is run 3 times
@@ -113,8 +163,8 @@ class MicroBenchmarksRunner(object):
         """
         build_dirs = next(os.walk(LOCAL_REPO_DIR))[1]
         last_build = max(build_dirs) if build_dirs else '000'
-        next_build = os.path.join(LOCAL_REPO_DIR, "{:03}".format(int(last_build) + 1))
-        LOG.info("Creating new result directory in local data repository {}".format(next_build))
+        next_build = os.path.join(LOCAL_REPO_DIR, f'{(int(last_build) + 1):03}')
+        LOG.info(f'Creating new result directory in local data repository {next_build}')
         os.mkdir(next_build)
 
         self.last_build = os.path.basename(next_build)
@@ -124,42 +174,90 @@ class MicroBenchmarksRunner(object):
 
 
 def is_package_installed(package_name, validation_command='--version'):
-    """ Check to see if package is installed """
+    """ Check to see if package is installed. 
+    
+    Parameters
+    ----------
+    package_name : str
+        The name of the executable to check.
+    validation_command : str, optional
+        The command to execute to check if the package has been installed.
+        (The default is '--version')
+
+    Returns
+    is_installed : bool
+        Whether the package is installed.
+    """
     try:
-        subprocess.check_output("{PKG} {CMD}".format(PKG=package_name, CMD=validation_command), shell=True)
+        subprocess.check_output(f'{package_name} {validation_command}', shell=True)
         return True
     except:
         return False
 
 
 def generate_perf_command(bench_name):
-    """ Return the command line string to execute perf """
-    perf_output_file = "{}.perf".format(bench_name)
-    LOG.debug("Enabling perf data collection [output={}]".format(perf_output_file))
-    return "perf record --output={}".format(perf_output_file)
+    """ Create the command line string to execute perf.
+    
+    Parameters
+    ----------
+    bench_name : str
+        The name of the benchmark.
+
+    Returns
+    -------
+    perf_cmd : str
+        The command to execute pref data collection.    
+    """
+    perf_output_file = f'{bench_name}.perf'
+    LOG.debug(f'Enabling perf data collection [output={perf_output_file}]')
+    return f'perf record --output={perf_output_file}'
 
 
 def generate_numa_command():
-    """ Return the command line string to execute numactl """
+    """ Create the command line string to execute numactl.
+
+    Returns
+    -------
+    numa_cmd : str
+        The command to execute using NUMA.
+    """
     # use all the cpus from the highest numbered numa node
     nodes = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
     if not nodes:
-        return ""
+        return ''
     highest_cpu_node = int(nodes) - 1
     if highest_cpu_node > 0:
-        LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
-        LOG.debug("Enabling NUMA support")
-        return "numactl --cpunodebind={} --preferred={}".format(highest_cpu_node, highest_cpu_node)
+        LOG.debug(f'Number of NUMA Nodes = {highest_cpu_node}')
+        LOG.debug('Enabling NUMA support')
+        return f'numactl --cpunodebind={highest_cpu_node} --preferred={highest_cpu_node}'
 
 
 def convert_result_xml(bench_name, bench_output_file):
-    """ convert the gbench results to xml file named after the bench__name """
-    xml_output_file = "{}.xml".format(bench_name)
+    """ Convert the gbench results to xml file named after the bench_name.
+    
+    Parameters
+    ----------
+    bench_name : str
+        The name of the microbenchmark.
+    bench_output_file : str
+        The path to the benchmark results file.
+    """
+    xml_output_file = f'{bench_name}.xml'
     GBenchToJUnit(bench_output_file).convert(xml_output_file)
 
 
 def copy_benchmark_result(bench_name, build_dir):
-    """ Copy the benchmark result file. This is used when running in local mode """
-    result_file = "{}.json".format(bench_name)
+    """ Copy the benchmark result file. 
+    
+    This is used when running in local mode. 
+    
+    Parameters
+    ----------
+    bench_name : str
+        The name of the microbenchmark.
+    build_dir : str
+        The path to the build directory.
+    """
+    result_file = f'{bench_name}.json'
     shutil.copy(result_file, build_dir)
-    LOG.debug("Copything result file {FROM} into {TO}".format(FROM=result_file, TO=build_dir))
+    LOG.debug(f'Copything result file {result_file} into {build_dir}')
