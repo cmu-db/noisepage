@@ -60,7 +60,7 @@ class BPlusTreeBase {
   }
 
   /**
-   * @param inner_node_size_upper_threshold lower size threshold for inner node removal to be assigned to this tree
+   * @param inner_node_size_lower_threshold lower size threshold for inner node removal to be assigned to this tree
    */
   void SetInnerNodeSizeLowerThreshold(int inner_node_size_lower_threshold) {
     inner_node_size_lower_threshold_ = inner_node_size_lower_threshold;
@@ -74,7 +74,7 @@ class BPlusTreeBase {
   }
 
   /**
-   * @param inner_node_size_upper_threshold lower size threshold for leaf node removal to be assigned to this tree
+   * @param leaf_node_size_lower_threshold lower size threshold for leaf node removal to be assigned to this tree
    */
   void SetLeafNodeSizeLowerThreshold(int leaf_node_size_lower_threshold) {
     leaf_node_size_lower_threshold_ = leaf_node_size_lower_threshold;
@@ -142,11 +142,11 @@ class BPlusTree : public BPlusTreeBase {
  public:
   class BaseNode;
 
-  // KeyType-NodeID pair
+  /** <KeyType, NodeID> pair */
   using KeyNodePointerPair = std::pair<KeyType, BaseNode *>;
-  // KeyType - List of ValueType pair
+  /** <KeyType, List of ValueType> pair */
   using KeyValuePair = std::pair<KeyType, std::list<ValueType> *>;
-
+  /** <KeyType, ValueType> pair */
   using KeyElementPair = std::pair<KeyType, ValueType>;
 
   /**
@@ -208,21 +208,22 @@ class BPlusTree : public BPlusTreeBase {
    */
   class NodeMetaData {
    public:
-    // Low and High keys in a leaf or inner node. These are explicitly stored so
-    // that the iterator begin and end can fetch the values easily.
-    const KeyNodePointerPair *low_key_p_;
-    const KeyNodePointerPair *high_key_p_;
+    /** Low and High keys in a leaf or inner node. These are explicitly stored so
+     * that the iterator begin and end can fetch the values easily.
+     */
+    const KeyNodePointerPair *low_key_p_; /*!< Low Key */
+    const KeyNodePointerPair *high_key_p_; /*!< High Key */
 
-    // The type of the node
+    /** The type of the node */
     NodeType type_;
 
-    // This is the height of the node
+    /** This is the height of the node */
     int depth_;
 
-    // This counts the total number of items in the node
+    /** This counts the total number of items in the node */
     int item_count_;
 
-    // Latch for each node
+    /** Latch for each node */
     std::shared_mutex node_latch_;
 
     /**
@@ -437,6 +438,9 @@ class BPlusTree : public BPlusTreeBase {
      */
     ElementType *Begin() { return start_; }
 
+    /**
+     * Const function for the Begin() function above
+     */
     const ElementType *Begin() const { return start_; }
 
     /**
@@ -455,6 +459,9 @@ class BPlusTree : public BPlusTreeBase {
      */
     ElementType *End() { return end_; }
 
+    /**
+     * Const function for the End() function above
+     */
     const ElementType *End() const { return end_; }
 
     /**
@@ -465,6 +472,9 @@ class BPlusTree : public BPlusTreeBase {
      */
     const ElementType *REnd() { return start_ - 1; }
 
+    /**
+     * Const function for the REnd() function above
+     */
     const ElementType *REnd() const { return start_ - 1; }
 
     /**
@@ -643,8 +653,10 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     /**
-     * At() - Access element with bounds checking under debug mode
-     */
+      * Function that returns the element at location pointed to by index
+      * @param index Index of the element being looked up
+      * @return Element at index
+      */
     ElementType &At(const int index) {
       // The index must be inside the valid range
       NOISEPAGE_ASSERT(index < GetSize(), "Index out of range.");
@@ -652,6 +664,9 @@ class BPlusTree : public BPlusTreeBase {
       return *(Begin() + index);
     }
 
+    /**
+     * At function that returns a const element
+     */
     const ElementType &At(const int index) const {
       // The index must be inside the valid range
       NOISEPAGE_ASSERT(index < GetSize(), "Index out of range.");
@@ -724,13 +739,13 @@ class BPlusTree : public BPlusTreeBase {
     }
   };
 
-  // Key comparator
+  /** Key comparator */
   const KeyComparator key_cmp_obj_;
 
-  // Raw key eq checker
+  /** Raw key eq checker */
   const KeyEqualityChecker key_eq_obj_;
 
-  // Check whether values are equivalent
+  /** Check whether values are equivalent */
   const ValueEqualityChecker value_eq_obj_;
 
  private:
@@ -2509,6 +2524,12 @@ class BPlusTree : public BPlusTreeBase {
     return heap_usage;
   }
 
+  /**
+   * Constructor for the B+ Tree
+   * @param p_key_cmp_obj Key comparator
+   * @param p_key_eq_obj Key equality checker
+   * @param p_value_eq_obj Value equality checker
+   */
   explicit BPlusTree(KeyComparator p_key_cmp_obj = KeyComparator{},
                      KeyEqualityChecker p_key_eq_obj = KeyEqualityChecker{},
                      ValueEqualityChecker p_value_eq_obj = ValueEqualityChecker{})
