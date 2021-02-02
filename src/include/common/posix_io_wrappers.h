@@ -9,6 +9,7 @@ namespace noisepage::storage {
  */
 class PosixIoWrappers {
  public:
+  /** This class cannot be instantiated. */
   DISALLOW_INSTANTIATION(PosixIoWrappers);
 
   // TODO(Tianyu): Use a better exception than runtime_error.
