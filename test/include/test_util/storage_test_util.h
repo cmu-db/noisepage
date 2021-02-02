@@ -566,7 +566,7 @@ class StorageTestUtil {
     // We probably won't allow tables with fewer than 2 columns
     const uint16_t num_attrs =
         std::uniform_int_distribution<uint16_t>(storage::NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
-    std::vector<uint16_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
+    std::vector<uint16_t> possible_attr_sizes{1, 2, 4, 8, 16}, attr_sizes(num_attrs);
     if (allow_varlen) possible_attr_sizes.push_back(storage::VARLEN_COLUMN);
 
     for (uint16_t i = 0; i < storage::NUM_RESERVED_COLUMNS; i++) {
@@ -582,7 +582,7 @@ class StorageTestUtil {
   static catalog::Schema *RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
     std::vector<type::TypeId> possible_attr_types{type::TypeId::BOOLEAN, type::TypeId::SMALLINT, type::TypeId::INTEGER,
-                                                  type::TypeId::REAL};
+                                                  type::TypeId::REAL, type::TypeId::DECIMAL};
     if (allow_varlen) possible_attr_types.push_back(type::TypeId::VARCHAR);
 
     std::vector<catalog::Schema::Column> columns;

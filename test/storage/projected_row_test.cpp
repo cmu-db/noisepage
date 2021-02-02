@@ -131,8 +131,12 @@ TEST_F(ProjectedRowTests, Alignment) {
     storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::Create(layout, all_col_ids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     storage::ProjectedRow *row = initializer.InitializeRow(buffer);
-    for (uint16_t i = 0; i < row->NumColumns(); i++)
-      StorageTestUtil::CheckAlignment(row->AccessForceNotNull(i), layout.AttrSize(row->ColumnIds()[i]));
+    for (uint16_t i = 0; i < row->NumColumns(); i++) {
+      auto *const attr = row->AccessForceNotNull(i);
+      const auto col_id = row->ColumnIds()[i];
+      const auto attr_size = layout.AttrSize(col_id);
+      StorageTestUtil::CheckAlignment(attr, std::min(attr_size, static_cast<uint16_t>(sizeof(uint64_t))));
+    }
     delete[] buffer;
   }
 }
