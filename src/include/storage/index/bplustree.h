@@ -211,7 +211,7 @@ class BPlusTree : public BPlusTreeBase {
     /** Low and High keys in a leaf or inner node. These are explicitly stored so
      * that the iterator begin and end can fetch the values easily.
      */
-    const KeyNodePointerPair *low_key_p_; /*!< Low Key */
+    const KeyNodePointerPair *low_key_p_;  /*!< Low Key */
     const KeyNodePointerPair *high_key_p_; /*!< High Key */
 
     /** The type of the node */
@@ -653,10 +653,10 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     /**
-      * Function that returns the element at location pointed to by index
-      * @param index Index of the element being looked up
-      * @return Element at index
-      */
+     * Function that returns the element at location pointed to by index
+     * @param index Index of the element being looked up
+     * @return Element at index
+     */
     ElementType &At(const int index) {
       // The index must be inside the valid range
       NOISEPAGE_ASSERT(index < GetSize(), "Index out of range.");
