@@ -53,11 +53,11 @@ class PgStatisticOutputChecker : public execution::compiler::test::OutputChecker
   PgStatisticOutputChecker(int64_t table_oid, int64_t col_oid, int64_t num_rows, int64_t non_null_rows,
                            int64_t distinct_rows, const std::string &topk, const std::string &histogram)
       : pg_stats_row_checker_([=, &topk, &histogram](const std::vector<execution::sql::Val *> &vals) {
-    auto *table_oid_col = static_cast<execution::sql::Integer *>(vals[0]);
-    ASSERT_FALSE(table_oid_col->is_null_);
-    ASSERT_EQ(table_oid_col->val_, table_oid);
+          auto *table_oid_col = static_cast<execution::sql::Integer *>(vals[0]);
+          ASSERT_FALSE(table_oid_col->is_null_);
+          ASSERT_EQ(table_oid_col->val_, table_oid);
 
-    auto *col_oid_col = static_cast<execution::sql::Integer *>(vals[1]);
+          auto *col_oid_col = static_cast<execution::sql::Integer *>(vals[1]);
           ASSERT_FALSE(col_oid_col->is_null_);
           ASSERT_EQ(col_oid_col->val_, col_oid);
 

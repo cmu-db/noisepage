@@ -14,8 +14,8 @@
 
 #include "common/constants.h"
 #include "common/macros.h"
+#include "common/posix_io_wrappers.h"
 #include "loggers/storage_logger.h"
-#include "storage/posix_io_wrappers.h"
 #include "transaction/transaction_defs.h"
 
 namespace noisepage::storage {

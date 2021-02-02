@@ -15,10 +15,10 @@
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "common/macros.h"
+#include "common/posix_io_wrappers.h"
 #include "execution/sql/value.h"
 #include "loggers/optimizer_logger.h"
 #include "madoka/madoka.h"
-#include "storage/posix_io_wrappers.h"
 
 namespace noisepage::optimizer {
 

@@ -78,17 +78,17 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> nod
 
   const auto &db_name = node->GetAnalyzeTable()->GetDatabaseName();
   ValidateDatabaseName(db_name);
-  auto db_oid = db_name.empty() ? this->db_oid_ : catalog_accessor_->GetDatabaseOid(db_name);
+  const auto db_oid = db_name.empty() ? this->db_oid_ : catalog_accessor_->GetDatabaseOid(db_name);
   node->SetDatabaseOid(db_oid);
 
   const auto &table_name = node->GetAnalyzeTable()->GetTableName();
-  auto tb_oid = catalog_accessor_->GetTableOid(table_name);
+  const auto tb_oid = catalog_accessor_->GetTableOid(table_name);
   if (tb_oid == catalog::INVALID_TABLE_OID) {
     throw BINDER_EXCEPTION("Analyze table does not exist", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
   }
   node->SetTableOid(tb_oid);
 
-  auto schema = catalog_accessor_->GetSchema(tb_oid);
+  const auto &schema = catalog_accessor_->GetSchema(tb_oid);
   for (const auto &col : *(node->GetColumns())) {
     if (!BinderContext::ColumnInSchema(schema, col)) {
       throw BINDER_EXCEPTION("Analyze column does not exist", common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
@@ -103,7 +103,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> nod
   }
 
   for (const auto &col : *(node->GetColumns())) {
-    auto col_oid = schema.GetColumn(col).Oid();
+    const auto col_oid = schema.GetColumn(col).Oid();
     node->AddColumnOid(col_oid);
   }
 }
