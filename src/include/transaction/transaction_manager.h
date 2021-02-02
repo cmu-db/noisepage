@@ -32,18 +32,24 @@ class TransactionManager {
    * @param deferred_action_manager deferred action manager to use for transactions
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
+   * @param wal_async_commit_enable true if commit callbacks should be invoked by TransactionManager at commit time
+   * rather than waiting until durable on disk and being invoked by the WAL worker. Doesn't make sense to set to true if
+   * WAL is not enabled.
    * @param log_manager the log manager in the system, or DISABLED(nulllptr) if logging is turned off.
    */
   TransactionManager(const common::ManagedPointer<TimestampManager> timestamp_manager,
                      const common::ManagedPointer<DeferredActionManager> deferred_action_manager,
-                     const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool, bool gc_enabled,
-                     const common::ManagedPointer<storage::LogManager> log_manager)
+                     const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool, const bool gc_enabled,
+                     const bool wal_async_commit_enable, const common::ManagedPointer<storage::LogManager> log_manager)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         buffer_pool_(buffer_pool),
         gc_enabled_(gc_enabled),
+        wal_async_commit_enable_(wal_async_commit_enable),
         log_manager_(log_manager) {
     NOISEPAGE_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
+    NOISEPAGE_ASSERT(!wal_async_commit_enable_ || (wal_async_commit_enable_ && log_manager_ != DISABLED),
+                     "Doesn't make sense to enable async commit without enabling logging.");
   }
 
   /**
@@ -83,10 +89,11 @@ class TransactionManager {
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   const common::ManagedPointer<DeferredActionManager> deferred_action_manager_;
   const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool_;
+  const bool gc_enabled_ = false;
+  const bool wal_async_commit_enable_ = false;
 
   common::Gate txn_gate_;
 
-  bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
   const common::ManagedPointer<storage::LogManager> log_manager_;
 
