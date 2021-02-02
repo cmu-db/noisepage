@@ -1533,8 +1533,8 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
       }
     }
   } else if (datatype == ColumnDefinition::DataType::DECIMAL) {
-    // No precision or scale specified. Pick the maximum possible scale.
-    type_modifier = execution::sql::Decimal::MAX_SCALE;
+    // No precision or scale specified. Pick the default scale.
+    type_modifier = execution::sql::Decimal::DEFAULT_SCALE;
   }
 
   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;

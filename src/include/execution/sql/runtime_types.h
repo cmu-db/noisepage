@@ -415,6 +415,8 @@ class EXPORT Decimal {
   /** Underlying native data type. */
   using NativeType = int128_t;
 
+  /** The default scale for a Decimal. */
+  static constexpr uint32_t DEFAULT_SCALE = 18;
   /** The maximum scale supported by a Decimal. */
   static constexpr uint32_t MAX_SCALE = 38;
 
