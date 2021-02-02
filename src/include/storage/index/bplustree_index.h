@@ -10,10 +10,6 @@
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
-namespace noispage::transaction {
-class TransactionContext;
-}
-
 namespace noisepage::storage::index {
 template <uint8_t KeySize>
 class CompactIntsKey;
