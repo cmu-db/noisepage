@@ -2,8 +2,10 @@
 
 #include <sys/stat.h>
 
+#include <algorithm>
 #include <fstream>
 #include <memory>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -36,13 +38,9 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
 
 MetricsManager::MetricsManager() {
   // construct a bitset of all true (sampling rate 100) by default
-  std::bitset<100> samples;
-  for (uint8_t i = 0; i < 100; i++) {
-    samples.set(i);
-  }
-  NOISEPAGE_ASSERT(samples.all(), "All samples should be set to true.");
+  std::vector<bool> samples_mask(100, true);
   for (uint8_t i = 0; i < NUM_COMPONENTS; i++) {
-    samples_[i] = samples;
+    samples_mask_[i] = samples_mask;
   }
 }
 
@@ -64,12 +62,20 @@ void MetricsManager::Aggregate() {
 
 void MetricsManager::SetMetricSampleRate(const MetricsComponent component, const uint8_t sample_rate) {
   NOISEPAGE_ASSERT(sample_rate >= 0 && sample_rate <= 100, "Invalid sampling rate.");
-  std::bitset<100> samples;
+  // create a bitset with the correct number of trues based on sample rate
+  std::vector<bool> samples_mask(100, false);
   for (uint8_t i = 0; i < sample_rate; i++) {
-    samples.set(i);
+    samples_mask[i] = true;
   }
+  // shuffle the bitset to distribute the samples
+  auto rd = std::random_device{};
+  auto rng = std::default_random_engine{rd()};
+  std::shuffle(samples_mask.begin(), samples_mask.end(), rng);
+  // replace the existing samples mask for this component in the global data structure
+  NOISEPAGE_ASSERT(std::count(samples_mask.begin(), samples_mask.end(), true) == sample_rate,
+                   "Vector should count number of trues equal to sample rate.");
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
-  samples_[static_cast<uint8_t>(component)] = samples;
+  samples_mask_[static_cast<uint8_t>(component)] = samples_mask;
 }
 
 void MetricsManager::ResetMetric(const MetricsComponent component) const {
@@ -124,7 +130,7 @@ void MetricsManager::RegisterThread() {
   const auto thread_id = std::this_thread::get_id();
   NOISEPAGE_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
   auto result =
-      stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_, samples_));
+      stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_, samples_mask_));
   NOISEPAGE_ASSERT(result.second, "Insertion to concurrent map failed.");
   common::thread_context.metrics_store_ = result.first->second;
 }

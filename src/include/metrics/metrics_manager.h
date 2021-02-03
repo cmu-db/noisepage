@@ -101,7 +101,7 @@ class MetricsManager {
 
   std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
 
-  std::array<std::bitset<100>, NUM_COMPONENTS> samples_;
+  std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
 };
 
 }  // namespace noisepage::metrics
