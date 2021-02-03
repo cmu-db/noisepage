@@ -290,16 +290,16 @@ TEST_F(MetricsTests, PipelineCSVTest) {
   // Create table
   insert_txn(port_, true, 0);
 
-  // Enable, interval = 0, 5 inserts means 5 recorded data points
+  // Enable, rate = 100, 5 inserts means 5 recorded data points
   verify_scenario(true, true, 100, 5, 5);
 
-  // Disable, interval = 1, 5 inserts means 0 recorded data points
+  // Disable, rate = 50, 5 inserts means 0 recorded data points
   verify_scenario(false, true, 50, 5, 0);
 
-  // Enable, keep interval, 100 inserts means 2 recorded data points
+  // Enable, keep rate, 100 inserts means 50 recorded data points
   verify_scenario(true, false, 100, 100, 50);
 
-  // Enable, interval = 3, 5 inserts means 1 recorded data points
+  // Enable, rate = 25, 100 inserts means 25 recorded data points
   verify_scenario(true, true, 25, 100, 25);
 }
 
