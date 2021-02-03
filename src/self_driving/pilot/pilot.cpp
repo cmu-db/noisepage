@@ -44,24 +44,24 @@ void Pilot::PerformPlanning() {
 
 void Pilot::ExecuteForecast() {
   NOISEPAGE_ASSERT(forecast_ != nullptr, "Need forecast_ initialized.");
-  bool oldval = settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
-  bool oldcounter = settings_manager_->GetBool(settings::Param::counters_enable);
-  uint64_t oldintv = settings_manager_->GetInt64(settings::Param::pipeline_metrics_interval);
+  const bool old_metrics_enable = settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
+  const bool old_counters_enable = settings_manager_->GetBool(settings::Param::counters_enable);
+  const auto old_sample_rate = settings_manager_->GetInt64(settings::Param::pipeline_metrics_sample_rate);
 
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  if (!oldval) {
+  if (!old_metrics_enable) {
     settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
                                EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-  if (!oldcounter) {
+  if (!old_counters_enable) {
     settings_manager_->SetBool(settings::Param::counters_enable, true, common::ManagedPointer(action_context),
                                EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
-  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, 0, common::ManagedPointer(action_context),
+  settings_manager_->SetInt(settings::Param::pipeline_metrics_sample_rate, 100, common::ManagedPointer(action_context),
                             EmptySetterCallback);
 
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
@@ -71,20 +71,20 @@ void Pilot::ExecuteForecast() {
   PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_data, &pipeline_to_prediction);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
-  if (!oldval) {
+  if (!old_metrics_enable) {
     settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false, common::ManagedPointer(action_context),
                                EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
-  if (!oldcounter) {
+  if (!old_counters_enable) {
     settings_manager_->SetBool(settings::Param::counters_enable, false, common::ManagedPointer(action_context),
                                EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
-  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, oldintv, common::ManagedPointer(action_context),
-                            EmptySetterCallback);
+  settings_manager_->SetInt(settings::Param::pipeline_metrics_sample_rate, old_sample_rate,
+                            common::ManagedPointer(action_context), EmptySetterCallback);
 }
 
 }  // namespace noisepage::selfdriving

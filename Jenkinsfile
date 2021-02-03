@@ -117,7 +117,7 @@ pipeline {
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_interval=0" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_sample_rate=100" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {

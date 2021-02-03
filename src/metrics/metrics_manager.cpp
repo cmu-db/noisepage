@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
+
 namespace noisepage::metrics {
 
 bool FileExists(const std::string &path) {
@@ -32,6 +34,18 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
   }
 }
 
+MetricsManager::MetricsManager() {
+  // construct a bitset of all true (sampling rate 100) by default
+  std::bitset<100> samples;
+  for (uint8_t i = 0; i < 100; i++) {
+    samples.set(i);
+  }
+  NOISEPAGE_ASSERT(samples.all(), "All samples should be set to true.");
+  for (uint8_t i = 0; i < NUM_COMPONENTS; i++) {
+    samples_[i] = samples;
+  }
+}
+
 void MetricsManager::Aggregate() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   for (const auto &metrics_store : stores_map_) {
@@ -46,6 +60,16 @@ void MetricsManager::Aggregate() {
       }
     }
   }
+}
+
+void MetricsManager::SetMetricSampleRate(const MetricsComponent component, const uint8_t sample_rate) {
+  NOISEPAGE_ASSERT(sample_rate >= 0 && sample_rate <= 100, "Invalid sampling rate.");
+  std::bitset<100> samples;
+  for (uint8_t i = 0; i < sample_rate; i++) {
+    samples.set(i);
+  }
+  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+  samples_[static_cast<uint8_t>(component)] = samples;
 }
 
 void MetricsManager::ResetMetric(const MetricsComponent component) const {
@@ -99,8 +123,8 @@ void MetricsManager::RegisterThread() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   const auto thread_id = std::this_thread::get_id();
   NOISEPAGE_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
-  auto result = stores_map_.emplace(thread_id,
-                                    new MetricsStore(common::ManagedPointer(this), enabled_metrics_, sample_interval_));
+  auto result =
+      stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_, samples_));
   NOISEPAGE_ASSERT(result.second, "Insertion to concurrent map failed.");
   common::thread_context.metrics_store_ = result.first->second;
 }
