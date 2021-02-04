@@ -222,13 +222,15 @@ class MetricsStore {
    * interval, false otherwise
    */
   bool ComponentToRecord(const MetricsComponent component) {
-    auto component_index = static_cast<uint8_t>(component);
+    const auto component_index = static_cast<uint8_t>(component);
     if (!enabled_metrics_.test(component_index)) return false;
 
-    sample_count_[component_index] =
-        sample_count_[component_index] >= sample_interval_[component_index] ? 0 : sample_count_[component_index] + 1;
+    // increment the sample count to use as our index into the bitset
+    sample_count_[component_index] = sample_count_[component_index] >= 99 ? 0 : sample_count_[component_index] + 1;
 
-    return sample_count_[component_index] == 0;
+    const auto sample_count = sample_count_[component_index];
+
+    return samples_mask_[component_index][sample_count];
   }
 
   /**
@@ -243,7 +245,7 @@ class MetricsStore {
 
   explicit MetricsStore(common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                         const std::bitset<NUM_COMPONENTS> &enabled_metrics,
-                        const std::array<uint32_t, NUM_COMPONENTS> &sampling_masks);
+                        const std::array<std::vector<bool>, NUM_COMPONENTS> &samples_mask_);
 
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
 
@@ -257,8 +259,8 @@ class MetricsStore {
   std::unique_ptr<ExecuteCommandMetric> execute_command_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
-  const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;
-  std::array<uint32_t, NUM_COMPONENTS> sample_count_{0};
+  const std::array<std::vector<bool>, NUM_COMPONENTS> &samples_mask_;
+  std::array<uint8_t, NUM_COMPONENTS> sample_count_{0};
 };
 
 }  // namespace noisepage::metrics
