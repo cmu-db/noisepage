@@ -6,6 +6,7 @@
 #include <sys/prctl.h>
 #endif
 #include <sys/wait.h>
+#include <csignal>
 #include <thread>  // NOLINT
 
 #include "common/json.h"
