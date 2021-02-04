@@ -136,14 +136,14 @@ void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
                    "You might plausibly want to track statistics at some point, but that should not happen here.");
   // TODO(WAN): Is it true that a replica will never want to send its buffers to the primary?
   // TODO(WAN): Cache the identity check into a bool?
-  if (identity_ != "primary") return;
+  if (identity_ == "primary") {
+    common::json j;
+    // TODO(WAN): Add a size and checksum to message.
+    j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
 
-  common::json j;
-  // TODO(WAN): Add a size and checksum to message.
-  j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
-
-  for (const auto &replica : replicas_) {
-    ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), false);
+    for (const auto &replica : replicas_) {
+      ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), true);
+    }
   }
 
   if (buffer->MarkSerialized()) {
