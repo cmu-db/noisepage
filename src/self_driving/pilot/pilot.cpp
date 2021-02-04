@@ -52,7 +52,7 @@ void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oi
   PilotUtil::GetQueryPlans(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index, &plans);
   auto mcst = pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), plans,
                                           end_segment_index);
-  mcst.BestAction(1, best_action_seq);
+  mcst.BestAction(simulation_number_, best_action_seq);
 
   PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first, best_action_seq->begin()->second);
 }
