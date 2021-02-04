@@ -1,5 +1,6 @@
 #include "messenger/messenger.h"
 
+#include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -79,8 +80,8 @@ class MessengerTests : public TerrierTest {
     return db_main;
   }
 
-  /** A dirty hack that sleeps for a little while so that sockets can clean up. */
-  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(5)); }
+  /** A dirty hack that sleeps for a little while so that sockets can wake up and clean up. */
+  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(2)); }
 };
 
 // NOLINTNEXTLINE
@@ -98,35 +99,82 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   // done[3] is shared memory (mmap) so that the forked processes can coordinate on when they are done.
   // This is done instead of waitpid() because I can't find a way to stop googletest from freaking out on waitpid().
   // done[0] : primary, done[1] : replica1, done[2] : replica2.
+  volatile bool *init = static_cast<volatile bool *>(
+      mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != init, "mmap() failed.");
   volatile bool *done = static_cast<volatile bool *>(
       mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
   NOISEPAGE_ASSERT(MAP_FAILED != done, "mmap() failed.");
 
+  init[0] = false;
+  init[1] = false;
+  init[2] = false;
   done[0] = false;
   done[1] = false;
   done[2] = false;
 
-  auto spin_until_done = [done]() {
-    while (!(done[0] && done[1] && done[2])) {
+  auto *pmutex = static_cast<pthread_mutex_t *>(
+      mmap(nullptr, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pmutex, "mmap() failed.");
+  pthread_mutexattr_t mutexattr;
+  pthread_mutexattr_init(&mutexattr);
+  pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
+  pthread_mutex_init(pmutex, &mutexattr);
+
+  auto *pcond = static_cast<pthread_cond_t *>(
+      mmap(nullptr, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pcond, "mmap() failed.");
+  pthread_condattr_t condattr;
+  pthread_condattr_init(&condattr);
+  pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
+  pthread_cond_init(pcond, &condattr);
+
+  auto sleep_until_init = [init, pmutex, pcond]() {
+    while (!(init[0] && init[1] && init[2])) {
+      pthread_mutex_lock(pmutex);
+      pthread_cond_wait(pcond, pmutex);
+      pthread_mutex_unlock(pmutex);
     }
   };
+
+  auto sleep_until_done = [done, pmutex, pcond]() {
+    while (!(done[0] && done[1] && done[2])) {
+      pthread_mutex_lock(pmutex);
+      pthread_cond_wait(pcond, pmutex);
+      pthread_mutex_unlock(pmutex);
+    }
+  };
+
+  auto wake_all = [pcond]() { pthread_cond_broadcast(pcond); };
 
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
     primary->GetNetworkLayer()->GetServer()->RunServer();
+
+    init[0] = true;
+    wake_all();
+    sleep_until_init();
+    DirtySleep();
 
     while (!(done[1] && done[2])) {
     }
 
     MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
+    primary->ForceShutdown();
   };
 
   VoidFn replica1_fn = [=]() {
     auto replica1 = BuildDBMain(port_replica1, port_messenger_replica1, "replica1");
     replica1->GetNetworkLayer()->GetServer()->RunServer();
+
+    init[1] = true;
+    wake_all();
+    sleep_until_init();
+    DirtySleep();
 
     // Set up a connection to the primary.
     auto messenger = replica1->GetMessengerLayer()->GetMessenger();
@@ -166,13 +214,20 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
+    replica1->ForceShutdown();
   };
 
   VoidFn replica2_fn = [=]() {
     auto replica2 = BuildDBMain(port_replica2, port_messenger_replica2, "replica2");
     replica2->GetNetworkLayer()->GetServer()->RunServer();
+
+    init[2] = true;
+    wake_all();
+    sleep_until_init();
+    DirtySleep();
 
     // Set up a connection to the primary.
     auto messenger = replica2->GetMessengerLayer()->GetMessenger();
@@ -212,20 +267,39 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     MESSENGER_LOG_TRACE("Replica 2 done.");
     done[2] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 2 exit.");
+    replica2->ForceShutdown();
   };
 
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn, replica2_fn});
 
   // Spin until all done.
-  while (!(done[0] && done[1] && done[2])) {
-  }
+  sleep_until_done();
+
+  pthread_mutex_destroy(pmutex);
+  pthread_mutexattr_destroy(&mutexattr);
+  pthread_cond_destroy(pcond);
+  pthread_condattr_destroy(&condattr);
 
   DirtySleep();
-
-  UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
-  NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(init)), 3 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pmutex), sizeof(pthread_mutex_t));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pcond), sizeof(pthread_cond_t));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
 }
 
 // NOLINTNEXTLINE
@@ -240,17 +314,45 @@ TEST_F(MessengerTests, BasicListenTest) {
 
   uint16_t port_listen = 8030;
 
+  volatile bool *init = static_cast<volatile bool *>(
+      mmap(nullptr, 2 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != init, "mmap() failed.");
   volatile bool *done = static_cast<volatile bool *>(
       mmap(nullptr, 2 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
   NOISEPAGE_ASSERT(MAP_FAILED != done, "mmap() failed.");
 
+  init[0] = false;
+  init[1] = false;
   done[0] = false;
   done[1] = false;
 
-  auto spin_until_done = [done]() {
+  auto *pmutex = static_cast<pthread_mutex_t *>(
+      mmap(nullptr, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pmutex, "mmap() failed.");
+  pthread_mutexattr_t mutexattr;
+  pthread_mutexattr_init(&mutexattr);
+  pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
+  pthread_mutex_init(pmutex, &mutexattr);
+
+  auto *pcond = static_cast<pthread_cond_t *>(
+      mmap(nullptr, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pcond, "mmap() failed.");
+  pthread_condattr_t condattr;
+  pthread_condattr_init(&condattr);
+  pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
+  pthread_cond_init(pcond, &condattr);
+
+  auto sleep_until_init = [init]() {
+    while (!(init[0] && init[1])) {
+    }
+  };
+
+  auto sleep_until_done = [done]() {
     while (!(done[0] && done[1])) {
     }
   };
+
+  auto wake_all = [pcond]() { pthread_cond_broadcast(pcond); };
 
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
@@ -269,18 +371,29 @@ TEST_F(MessengerTests, BasicListenTest) {
           }
         });
 
+    init[0] = true;
+    wake_all();
+    sleep_until_init();
+    DirtySleep();
+
     while (!done[1]) {
     }
 
     MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
+    primary->ForceShutdown();
   };
 
   VoidFn replica1_fn = [=]() {
     auto replica1 = BuildDBMain(port_replica1, port_messenger_replica1, "replica1");
     replica1->GetNetworkLayer()->GetServer()->RunServer();
+    init[1] = true;
+    wake_all();
+    sleep_until_init();
+    DirtySleep();
 
     // Set up a connection to the primary via the listen endpoint.
     auto messenger = replica1->GetMessengerLayer()->GetMessenger();
@@ -314,20 +427,39 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
+    replica1->ForceShutdown();
   };
 
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn});
 
   // Spin until all done.
-  while (!(done[0] && done[1])) {
-  }
+  sleep_until_done();
+
+  pthread_mutex_destroy(pmutex);
+  pthread_mutexattr_destroy(&mutexattr);
+  pthread_cond_destroy(pcond);
+  pthread_condattr_destroy(&condattr);
 
   DirtySleep();
-
-  UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
-  NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(init)), 2 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pmutex), sizeof(pthread_mutex_t));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pcond), sizeof(pthread_cond_t));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
 }
 
 }  // namespace noisepage::messenger

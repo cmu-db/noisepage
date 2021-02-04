@@ -60,6 +60,14 @@ void Callbacks::WalNumBuffers(void *const old_value, void *const new_value, DBMa
     action_context->SetState(common::ActionState::FAILURE);
 }
 
+void Callbacks::WalSerializationInterval(void *const old_value, void *const new_value, DBMain *const db_main,
+                                         common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int new_interval = *static_cast<int *>(new_value);
+  db_main->GetLogManager()->SetSerializationInterval(new_interval);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 void Callbacks::MetricsLogging(void *const old_value, void *const new_value, DBMain *const db_main,
                                common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
@@ -115,11 +123,12 @@ void Callbacks::MetricsPipeline(void *const old_value, void *const new_value, DB
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
-void Callbacks::MetricsPipelineSamplingInterval(void *old_value, void *new_value, DBMain *db_main,
-                                                common::ManagedPointer<common::ActionContext> action_context) {
+void Callbacks::MetricsPipelineSampleRate(void *old_value, void *new_value, DBMain *db_main,
+                                          common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int interval = *static_cast<int *>(new_value);
-  db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, interval);
+  db_main->GetMetricsManager()->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE,
+                                                    static_cast<uint8_t>(interval));
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
@@ -153,6 +162,17 @@ void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, 
     db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
   else
     db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::QUERY_TRACE);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
+void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value, DBMain *const db_main,
+                                    common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool new_status = *static_cast<bool *>(new_value);
+  if (new_status)
+    db_main->GetPilotThread()->EnablePilot();
+  else
+    db_main->GetPilotThread()->DisablePilot();
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

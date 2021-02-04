@@ -178,6 +178,7 @@ TEST_F(SettingsTests, ParamCallbackTest) {
 
 // NOLINTNEXTLINE
 TEST_F(SettingsTests, LogManagerSettingsTest) {
+  // Test the wal_num_buffers setting
   const common::action_id_t action_id(1);
 
   // Check default value is correctly passed to log manager
@@ -195,6 +196,25 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
   // Check new value is propagated
   EXPECT_EQ(new_num_buffers, settings_manager_->GetInt64(Param::wal_num_buffers));
   EXPECT_EQ(new_num_buffers, log_manager_->TestGetNumBuffers());
+
+  // Test the wal_serialization_interval setting
+  const common::action_id_t action_id2(2);
+
+  // Check default value is correctly passed to log manager
+  auto serializatio_interval = settings_manager_->GetInt64(Param::wal_serialization_interval);
+  EXPECT_EQ(serializatio_interval, log_manager_->GetSerializationInterval());
+
+  // Change value
+  auto new_serializatio_interval = serializatio_interval + 1;
+
+  auto action_context2 = std::make_unique<common::ActionContext>(action_id2);
+  setter_callback_fn setter_callback2 = SettingsTests::EmptySetterCallback;
+  settings_manager_->SetInt(Param::wal_serialization_interval, new_serializatio_interval,
+                            common::ManagedPointer(action_context2), setter_callback2);
+
+  // Check new value is propagated
+  EXPECT_EQ(new_serializatio_interval, settings_manager_->GetInt(Param::wal_serialization_interval));
+  EXPECT_EQ(new_serializatio_interval, log_manager_->GetSerializationInterval());
 }
 
 // Test concurrent modification to buffer pool size.
