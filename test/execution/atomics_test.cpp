@@ -19,9 +19,9 @@ namespace noisepage::execution::test {
 class AtomicsTest : public TplTest {
  public:
   static void SetUpTestSuite() {
-    // TODO(Kyle): we could just as easily locate the project root path here and then
+    // TODO(Kyle): We could just as easily locate the project root path here and then
     // manually concatenate the path at which we expect the bytecode handlers file will
-    // be located, but this approach feels more robust, at the cost of some additional search
+    // be located, but this approach feels more robust, at the cost of some additional search.
     bytecode_handlers_path =
         std::make_unique<std::string>(FindFileFrom("bytecode_handlers_ir.bc", GetProjectRootPath()));
   }
