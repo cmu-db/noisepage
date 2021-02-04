@@ -1,12 +1,17 @@
+#include "self_driving/model_server/model_server_manager.h"
+
+#if __APPLE__
+// nothing to include since macOS doesn't have prctl.h
+#else
+#include <sys/prctl.h>
+#endif
 #include <sys/wait.h>
-#include <csignal>
 #include <thread>  // NOLINT
 
 #include "common/json.h"
 #include "loggers/model_server_logger.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
-#include "self_driving/model_server/model_server_manager.h"
 
 namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
@@ -17,7 +22,7 @@ static constexpr const char *MODEL_IPC_PATH = "model-server-ipc";
  * Use 128 as convention to indicate failure in a subprocess:
  * https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
  */
-static constexpr const unsigned char MODEL_SERVER_ERROR_BINARY = 128;
+static constexpr const unsigned char MODEL_SERVER_SUBPROCESS_ERROR = 128;
 
 common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
     const common::ManagedPointer<messenger::Messenger> &messenger, const std::string &ipc_path,
@@ -80,6 +85,11 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
 }
 
 void ModelServerManager::StartModelServer(const std::string &model_path) {
+#if __APPLE__
+  // do nothing
+#else
+  pid_t parent_pid = ::getpid();
+#endif
   py_pid_ = ::fork();
   if (py_pid_ < 0) {
     MODEL_SERVER_LOG_ERROR("Failed to fork to spawn model process");
@@ -112,12 +122,27 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
     // waitpid() returns indicating the ModelServer child process no longer active, thus disconnected
     connected_.store(false);
 
-    if (WIFEXITED(status) && WEXITSTATUS(status) == MODEL_SERVER_ERROR_BINARY) {
+    if (WIFEXITED(status) && WEXITSTATUS(status) == MODEL_SERVER_SUBPROCESS_ERROR) {
       MODEL_SERVER_LOG_ERROR("Stop model server");
       shut_down_.store(true);
     }
   } else {
     // Child process. Run the ModelServer Python script.
+#if __APPLE__
+    // do nothing
+#else
+    // Install the parent death signal on the child process
+    int status = ::prctl(PR_SET_PDEATHSIG, SIGTERM);
+    if (status == -1) {
+      MODEL_SERVER_LOG_ERROR("Failed to install parent death signal");
+      ::_exit(MODEL_SERVER_SUBPROCESS_ERROR);
+    }
+    if (getppid() != parent_pid) {
+      // The original parent exited just before the prctl() call
+      MODEL_SERVER_LOG_ERROR("Parent exited before prctl() call");
+      ::_exit(MODEL_SERVER_SUBPROCESS_ERROR);
+    }
+#endif
     std::string ipc_path = MODEL_IPC_PATH;
     char exec_name[model_path.size() + 1];
     ::strncpy(exec_name, model_path.data(), sizeof(exec_name));
@@ -126,7 +151,7 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
     if (execvp(args[0], args) < 0) {
       MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
       // Shutting down
-      ::_exit(MODEL_SERVER_ERROR_BINARY);
+      ::_exit(MODEL_SERVER_SUBPROCESS_ERROR);
     }
   }
 }

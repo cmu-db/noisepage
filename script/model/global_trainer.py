@@ -84,12 +84,12 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
 
 class GlobalTrainer:
     """
-    Trainer for the mini models
+    Trainer for the global models
     """
 
     def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map,
-                 warmup_period, use_query_predict_cache, add_noise, ee_sample_interval, txn_sample_interval,
-                 network_sample_interval):
+                 warmup_period, use_query_predict_cache, add_noise, predict_ou_only, ee_sample_interval,
+                 txn_sample_interval, network_sample_interval):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
@@ -99,38 +99,41 @@ class GlobalTrainer:
         self.warmup_period = warmup_period
         self.use_query_predict_cache = use_query_predict_cache
         self.add_noise = add_noise
+        self.predict_ou_only = predict_ou_only
         self.ee_sample_interval = ee_sample_interval
         self.txn_sample_interval = txn_sample_interval
         self.network_sample_interval = network_sample_interval
 
-    def train(self):
-        """Train the mini-models
+        self.resource_data_list = None
+        self.impact_data_list = None
 
-        :return: the map of the trained models
+    def predict_ou_data(self):
+        """Generate grouped OU data with prediction
         """
-        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
-                                                                                      self.mini_model_map,
-                                                                                      self.model_results_path,
-                                                                                      self.warmup_period,
-                                                                                      self.use_query_predict_cache,
-                                                                                      self.add_noise,
-                                                                                      self.ee_sample_interval,
-                                                                                      self.txn_sample_interval,
-                                                                                      self.network_sample_interval)
 
-        return self._train_global_models(resource_data_list, impact_data_list)
+        data_lists = global_data_constructing_util.get_data(self.input_path,
+                                                            self.mini_model_map,
+                                                            self.model_results_path,
+                                                            self.warmup_period,
+                                                            self.use_query_predict_cache,
+                                                            self.add_noise,
+                                                            self.predict_ou_only,
+                                                            self.ee_sample_interval,
+                                                            self.txn_sample_interval,
+                                                            self.network_sample_interval)
 
-    def _train_global_models(self, resource_data_list, impact_data_list):
-        """Train the global models
+        self.resource_data_list = data_lists[0]
+        self.impact_data_list = data_lists[1]
 
-        :param resource_data_list: list of GlobalResourceData
-        :param impact_data_list: list of GlobalImpactData
-        :return: (global resource model, global impact model)
+    def train(self):
+        """Train the global models (needs to call predict_ou_data first to predict the grouped OU data)
+
+        :return: (global_resource_model, global_impact_model, global_direct_model)
         """
         # First train the resource prediction model
         # Get the features and labels
-        x = np.array([d.x for d in resource_data_list])
-        y = np.array([d.y for d in resource_data_list])
+        x = np.array([d.x for d in self.resource_data_list])
+        y = np.array([d.y for d in self.resource_data_list])
 
         # Training
         metrics_path = "{}/global_resource_model_metrics.csv".format(self.model_results_path)
@@ -140,12 +143,12 @@ class GlobalTrainer:
 
         # Put the prediction global resource util back to the GlobalImpactData
         y_pred = global_resource_model.predict(x)
-        for i, data in enumerate(resource_data_list):
+        for i, data in enumerate(self.resource_data_list):
             data.y_pred = y_pred[i]
 
-        global_impact_model = self._train_model_with_derived_data(impact_data_list, "impact")
+        global_impact_model = self._train_model_with_derived_data(self.impact_data_list, "impact")
 
-        global_direct_model = self._train_model_with_derived_data(impact_data_list, "direct")
+        global_direct_model = self._train_model_with_derived_data(self.impact_data_list, "direct")
 
         return global_resource_model, global_impact_model, global_direct_model
 
@@ -233,9 +236,10 @@ if __name__ == '__main__':
     aparser.add_argument('--impact_model_ratio', type=float, default=0.1,
                          help='Sample ratio to train the global impact model')
     aparser.add_argument('--warmup_period', type=float, default=3, help='OLTPBench warmup period')
-    aparser.add_argument('--use_query_predict_cache', default=False,
+    aparser.add_argument('--use_query_predict_cache', action='store_true',
                          help='Cache the prediction result based on the query to accelerate')
-    aparser.add_argument('--add_noise', default=False, help='Add noise to the cardinality estimations')
+    aparser.add_argument('--add_noise', action='store_true', help='Add noise to the cardinality estimations')
+    aparser.add_argument('--predict_ou_only', action='store_true', help='Only predict the OU data (no training)')
     aparser.add_argument('--ee_sample_interval', type=int, default=49,
                          help='Sampling interval for the execution engine OUs')
     aparser.add_argument('--txn_sample_interval', type=int, default=49,
@@ -253,12 +257,14 @@ if __name__ == '__main__':
         model_map, data_info.instance = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
                             args.impact_model_ratio, model_map, args.warmup_period, args.use_query_predict_cache,
-                            args.add_noise, args.ee_sample_interval, args.txn_sample_interval,
+                            args.add_noise, args.predict_ou_only, args.ee_sample_interval, args.txn_sample_interval,
                             args.network_sample_interval)
-    resource_model, impact_model, direct_model = trainer.train()
-    with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
-        pickle.dump(resource_model, file)
-    with open(args.save_path + '/global_impact_model.pickle', 'wb') as file:
-        pickle.dump(impact_model, file)
-    with open(args.save_path + '/global_direct_model.pickle', 'wb') as file:
-        pickle.dump(direct_model, file)
+    trainer.predict_ou_data()
+    if not args.predict_ou_only:
+        resource_model, impact_model, direct_model = trainer.train()
+        with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
+            pickle.dump(resource_model, file)
+        with open(args.save_path + '/global_impact_model.pickle', 'wb') as file:
+            pickle.dump(impact_model, file)
+        with open(args.save_path + '/global_direct_model.pickle', 'wb') as file:
+            pickle.dump(direct_model, file)
