@@ -1,12 +1,12 @@
 #include "self_driving/model_server/model_server_manager.h"
 
 #if __APPLE__
-// nothing to include since macOS doesn't have prctl.h
+// macOS doesn't have prctl.h, but needs csignal for ::kill.
+#include <csignal>
 #else
 #include <sys/prctl.h>
 #endif
 #include <sys/wait.h>
-#include <csignal>
 #include <thread>  // NOLINT
 
 #include "common/json.h"
