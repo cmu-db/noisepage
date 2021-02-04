@@ -203,6 +203,10 @@ class LLVMEngine {
    */
   class Settings {
    public:
+    /**
+     * Construct a settings instance from the relevant configuration parameters.
+     * @param bytecode_handlers_path The path to the bytecode handlers bitcode file.
+     */
     explicit Settings(std::string_view bytecode_handlers_path) : bytecode_handlers_path_{bytecode_handlers_path} {}
 
     /**
