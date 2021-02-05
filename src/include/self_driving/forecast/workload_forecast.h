@@ -32,7 +32,7 @@ class WorkloadForecast {
    * Get number of forecasted segments
    * @return number of forecasted segments
    */
-  uint64_t GetNumberOfSegments() { return num_forecast_segment_; };
+  uint64_t GetNumberOfSegments() { return num_forecast_segment_; }
 
  private:
   friend class PilotUtil;

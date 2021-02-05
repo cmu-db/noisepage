@@ -41,7 +41,6 @@ void WorkloadForecast::CreateSegments() {
 
     if (curr_segment.find(it.second) == curr_segment.end()) curr_segment.emplace(it.second, 0);
     curr_segment[it.second] += 1;
-
   }
 
   if (!curr_segment.empty()) {

@@ -1,8 +1,9 @@
 #pragma once
 
 #include <map>
-#include <vector>
+#include <memory>
 #include <unordered_set>
+#include <vector>
 
 #include "common/managed_pointer.h"
 #include "self_driving/pilot/action/action_defs.h"
@@ -25,7 +26,8 @@ class TreeNode {
    * Constructor for tree node
    * @param parent pointer to parent
    * @param current_action action that leads its parent to the current node, root has NULL action
-   * @param current_segment_cost cost of executing current segment with actions applied on path from root to current node
+   * @param current_segment_cost cost of executing current segment with actions applied on path from root to current
+   * node
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    */
   TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, const uint64_t current_segment_cost,
@@ -44,10 +46,10 @@ class TreeNode {
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions that can be applied at curent node
    */
-  static common::ManagedPointer<TreeNode> Selection(common::ManagedPointer<TreeNode> root,
-                                                    common::ManagedPointer<Pilot> pilot,
-                                                    const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-                                                    std::unordered_set<action_id_t> *candidate_actions);
+  static common::ManagedPointer<TreeNode> Selection(
+      common::ManagedPointer<TreeNode> root, common::ManagedPointer<Pilot> pilot,
+      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
+      std::unordered_set<action_id_t> *candidate_actions);
 
   /**
    * Expand each child of current node and update its cost and num of visits accordingly
@@ -86,7 +88,6 @@ class TreeNode {
   const action_id_t GetCurrentAction() { return current_action_; }
 
  private:
-
   /**
    * Sample child based on cost and number of visits
    * @return pointer to sampled child
@@ -118,15 +119,15 @@ class TreeNode {
   void UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t expanded_cost);
 
   bool is_leaf_;
-  const uint64_t depth_; // number of edges in path from root
+  const uint64_t depth_;  // number of edges in path from root
   const action_id_t current_action_;
-  const uint64_t ancestor_cost_; // cost of executing segments with actions applied on path from root to current node
+  const uint64_t ancestor_cost_;  // cost of executing segments with actions applied on path from root to current node
   const common::ManagedPointer<TreeNode> parent_;
 
-  uint64_t number_of_visits_; // number of leaf in subtree rooted at node
+  uint64_t number_of_visits_;  // number of leaf in subtree rooted at node
   std::vector<std::unique_ptr<TreeNode>> children_;
   uint64_t cost_{UINT64_MAX};
 };
-}
+}  // namespace pilot
 
-}  // namespace noisepage::selfdriving::pilot
+}  // namespace noisepage::selfdriving

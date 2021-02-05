@@ -11,7 +11,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/pilot/mcst/monte_carlo_tree_search.h"
+#include "self_driving/pilot/mcts/monte_carlo_tree_search.h"
 #include "self_driving/pilot_util.h"
 #include "settings/settings_manager.h"
 
@@ -54,7 +54,8 @@ void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oi
                                           end_segment_index);
   mcst.BestAction(simulation_number_, best_action_seq);
 
-  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first, best_action_seq->begin()->second);
+  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first,
+                         best_action_seq->begin()->second);
 }
 
 void Pilot::ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
@@ -83,10 +84,11 @@ void Pilot::ExecuteForecast(std::map<std::pair<execution::query_id_t, execution:
 
   std::vector<execution::query_id_t> pipeline_qids;
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
-                                     common::ManagedPointer(forecast_), start_segment_index, end_segment_index,
-                                     &pipeline_qids);
+                                                          common::ManagedPointer(forecast_), start_segment_index,
+                                                          end_segment_index, &pipeline_qids);
 
-  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_qids, pipeline_data, pipeline_to_prediction);
+  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_qids, pipeline_data,
+                                   pipeline_to_prediction);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
   if (!old_metrics_enable) {

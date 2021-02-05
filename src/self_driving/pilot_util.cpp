@@ -29,7 +29,8 @@
 
 namespace noisepage::selfdriving {
 
-void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid) {
+void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query,
+                            catalog::db_oid_t db_oid) {
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
   transaction::TransactionContext *txn;
@@ -51,30 +52,44 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
 
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
-    auto binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
-    binder->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
+    auto out_plan = PilotUtil::GetOutPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr,
+                                          common::ManagedPointer(parse_tree), db_oid, pilot->stats_storage_,
+                                          pilot->forecast_->optimizer_timeout_);
 
-    auto out_plan =
-        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
-                                             common::ManagedPointer(parse_tree), db_oid, pilot->stats_storage_,
-                                             std::move(cost_model), pilot->forecast_->optimizer_timeout_)
-            ->TakePlanNodeOwnership();
+    auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
+                                                                       execution::compiler::CompilationMode::OneShot);
 
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
         common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager());
 
-    auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                       execution::compiler::CompilationMode::OneShot);
     exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
-void PilotUtil::GetQueryPlans(
-    common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast, uint64_t end_segment_index,
-    std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs) {
+std::unique_ptr<planner::AbstractPlanNode> PilotUtil::GetOutPlan(
+    transaction::TransactionContext *txn, common::ManagedPointer<catalog::CatalogAccessor> accessor,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
+    common::ManagedPointer<std::vector<type::TypeId>> param_types,
+    common::ManagedPointer<parser::ParseResult> stmt_list, catalog::db_oid_t db_oid,
+    common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout) {
+  auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
+  binder.BindNameToNode(stmt_list, params, param_types);
+  // Creating exec_ctx
+  std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
+
+  auto out_plan = trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                                       common::ManagedPointer(stmt_list), db_oid, stats_storage,
+                                                       std::move(cost_model), optimizer_timeout)
+                      ->TakePlanNodeOwnership();
+  return out_plan;
+}
+
+void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                              uint64_t end_segment_index,
+                              std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs) {
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
   transaction::TransactionContext *txn = txn_manager->BeginTransaction();
@@ -85,19 +100,11 @@ void PilotUtil::GetQueryPlans(
       auto db_oid = static_cast<catalog::db_oid_t>(forecast->query_id_to_dboid_[it.first]);
       auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
-      auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
-      // binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
-      binder.BindNameToNode(common::ManagedPointer(stmt_list),
-                            common::ManagedPointer(&forecast->query_id_to_params_[it.first][0]),
-                            common::ManagedPointer(&(forecast->query_id_to_param_types_[it.first])));
-      // Creating exec_ctx
-      std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
+      auto out_plan = PilotUtil::GetOutPlan(
+          txn, common::ManagedPointer(accessor), common::ManagedPointer(&forecast->query_id_to_params_[it.first][0]),
+          common::ManagedPointer(&(forecast->query_id_to_param_types_[it.first])), common::ManagedPointer(stmt_list),
+          db_oid, pilot->stats_storage_, forecast->optimizer_timeout_);
 
-      auto out_plan =
-          trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
-                                               common::ManagedPointer(stmt_list), db_oid, pilot->stats_storage_,
-                                               std::move(cost_model), forecast->optimizer_timeout_)
-              ->TakePlanNodeOwnership();
       plan_vecs->emplace_back(std::move(out_plan));
     }
   }
@@ -144,10 +151,9 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
   return total_cost / num_queries;
 }
 
-const std::list<metrics::PipelineMetricRawData::PipelineData> & PilotUtil::CollectPipelineFeatures(
+const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
     common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-    uint64_t start_segment_index, uint64_t end_segment_index,
-    std::vector<execution::query_id_t> *pipeline_qids) {
+    uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids) {
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
   transaction::TransactionContext *txn;
@@ -175,28 +181,20 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> & PilotUtil::Colle
     std::unique_ptr<catalog::CatalogAccessor> accessor =
         catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
-    auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
-    binder.BindNameToNode(common::ManagedPointer(stmt_list), common::ManagedPointer(&(forecast->query_id_to_params_[qid][0])),
-                          common::ManagedPointer(&(forecast->query_id_to_param_types_[qid])));
-
-    // Creating exec_ctx
-    std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
-
-    auto out_plan =
-        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
-                                             common::ManagedPointer(stmt_list), db_oid, pilot->stats_storage_,
-                                             std::move(cost_model), forecast->optimizer_timeout_)
-            ->TakePlanNodeOwnership();
-
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor), exec_settings, metrics_manager);
+    auto out_plan = PilotUtil::GetOutPlan(
+        txn, common::ManagedPointer(accessor), common::ManagedPointer(&(forecast->query_id_to_params_[qid][0])),
+        common::ManagedPointer(&(forecast->query_id_to_param_types_[qid])), common::ManagedPointer(stmt_list), db_oid,
+        pilot->stats_storage_, forecast->optimizer_timeout_);
 
     execution::compiler::ExecutableQuery::query_identifier.store(qid);
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                        execution::compiler::CompilationMode::OneShot);
     pipeline_qids->push_back(qid);
     for (auto &params : forecast->query_id_to_params_[qid]) {
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+          db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
+          common::ManagedPointer(accessor), exec_settings, metrics_manager);
+
       exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
     }
@@ -291,7 +289,8 @@ void PilotUtil::GroupFeaturesByOU(
     }
     SELFDRIVING_LOG_INFO(fmt::format("Fixed qid: {}; ppl_id: {}", static_cast<uint>(pipeline_qids.at(pipeline_idx)),
                                      static_cast<uint32_t>(data_it.pipeline_id_)));
-    pipeline_to_ou_position->emplace_back(pipeline_qids.at(pipeline_idx), data_it.pipeline_id_, std::move(ou_positions));
+    pipeline_to_ou_position->emplace_back(pipeline_qids.at(pipeline_idx), data_it.pipeline_id_,
+                                          std::move(ou_positions));
   }
 }
 

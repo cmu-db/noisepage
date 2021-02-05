@@ -2,6 +2,7 @@
 
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -12,12 +13,20 @@
 #include "parser/expression/constant_value_expression.h"
 
 namespace noisepage {
+namespace catalog {
+class CatalogAccessor;
+}
+
 namespace modelserver {
 class ModelServerManager;
 }
 
 namespace transaction {
 class TransactionManager;
+}
+
+namespace optimizer {
+class StatsStorage;
 }
 
 namespace planner {
@@ -38,6 +47,10 @@ class PilotUtil {
    * Executing forecasted queries and collect pipeline features for cost estimation to be used in action selection
    * @param pilot pointer to the pilot to access settings, metrics, and transaction managers, and catalog
    * @param forecast pointer to object storing result of workload forecast
+   * @param start_segment_index start index of segments of interest (inclusive)
+   * @param end_segment_index end index of segments of interest (inclusive)
+   * @param pipeline_qids vector of real pipeline qids to be populated (necessary to restore the qids to the original
+   * forecasted qids due to the auto-incremental nature of the qids in pipeline metrics)
    * @returns const pointer to the collected pipeline data
    */
   static const std::list<metrics::PipelineMetricRawData::PipelineData> &CollectPipelineFeatures(
@@ -49,21 +62,23 @@ class PilotUtil {
    * To recover the result for each pipeline, also maintain a multimap pipeline_to_ou_position
    * @param model_save_path model save path
    * @param model_server_manager model server manager
+   * @param pipeline_qids vector of real qids (those from forecast) for pipelines in pipeline data; necessary since the
+   * auto-incremental nature of qid in pipeline metrics
    * @param pipeline_data collected pipeline metrics after executing the forecasted queries
    * @param pipeline_to_prediction list of tuples of query id, pipeline id and result of prediction
    */
-  static void InferenceWithFeatures(
-      const std::string &model_save_path, common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
-      const std::vector<execution::query_id_t> &pipeline_qids,
-      const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
-      std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-               std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
+  static void InferenceWithFeatures(const std::string &model_save_path,
+                                    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+                                    const std::vector<execution::query_id_t> &pipeline_qids,
+                                    const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
+                                    std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
+                                             std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
 
   /**
-   * Apply an action supplied through its query string to databases specified
-   * @param pointer to the pilot
-   * @param db_oids db_oids relevant to current action
+   * Apply an action supplied through its query string to the database specified
+   * @param pilot pointer to the pilot
    * @param sql_query query of the action to be executed
+   * @param db_oid oid of the database where this action should be applied
    */
   static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid);
 
@@ -71,13 +86,32 @@ class PilotUtil {
    * Retrieve all query plans associated with queries in the interval of forecasted segments
    * @param pilot pointer to the pilot
    * @param forecast pointer to the forecast segments
-   * @param start_segment_index start index (inclusive)
    * @param end_segment_index end index (inclusive)
-   * @return vector of query plans
+   * @param plan_vecs the vector that would store the generated abstract plans of forecasted queries before the end
+   * index
    */
   static void GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t end_segment_index,
                             std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs);
+
+  /**
+   * Generate abstract plan from a query's parse result and parameters
+   * @param txn current transaction
+   * @param accessor pointer to catalog accessor
+   * @param params pointer to parameters of the query, nullptr for actions
+   * @param param_types pointer to parameters of the query, nullptr for actions
+   * @param stmt_list statement list that's the parse result
+   * @param db_oid database oid for the query
+   * @param stats_storage stats storage
+   * @param optimizer_timeout optimizer timeout
+   * @return the abstract plan generated
+   */
+  static std::unique_ptr<planner::AbstractPlanNode> GetOutPlan(
+      transaction::TransactionContext *txn, common::ManagedPointer<catalog::CatalogAccessor> accessor,
+      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
+      common::ManagedPointer<std::vector<type::TypeId>> param_types,
+      common::ManagedPointer<parser::ParseResult> stmt_list, catalog::db_oid_t db_oid,
+      common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout);
 
   /**
    * Compute cost of executed queries in the segments between start and end index (both inclusive)
