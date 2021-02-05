@@ -59,8 +59,8 @@ class TPCCTests : public TerrierTest {
     if (metrics_enabled) {
       db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
       db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
-      db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
-      db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 100);
+      db_main->GetMetricsManager()->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, 100);
+      db_main->GetMetricsManager()->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 1);
     }
 
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
