@@ -135,7 +135,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
     // record average cost of this pipeline among the same queries with diff param
     if (prev_qid == ppl_to_pred.first.first) {
-      query_cost.end()->second += ppl_sum / ppl_to_pred.second.size();
+      query_cost.back().second += ppl_sum / ppl_to_pred.second.size();
     } else {
       query_cost.emplace_back(ppl_to_pred.first.first, ppl_sum / ppl_to_pred.second.size());
       prev_qid = ppl_to_pred.first.first;
