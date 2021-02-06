@@ -148,6 +148,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
       num_queries += forecast->forecast_segments_[i].id_to_num_exec_[qcost.first];
     }
   }
+  NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");
   return total_cost / num_queries;
 }
 

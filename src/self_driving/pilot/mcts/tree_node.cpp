@@ -101,7 +101,9 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                            action_map.at(action_id)->GetDatabaseOid());
 
     uint64_t child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
-    uint64_t later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
+    uint64_t later_segments_cost = 0;
+    if (start_segment_index != end_segment_index)
+      later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
 
     children_.push_back(
         std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, child_segment_cost, later_segments_cost));
