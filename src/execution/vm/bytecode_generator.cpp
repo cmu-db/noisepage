@@ -1301,7 +1301,7 @@ Bytecode OpForAgg<AggOpKind::Free>(const ast::BuiltinType::Kind agg_kind) {
     }
 #define ENTRY(Type, Init, Advance, GetResult, Merge, Reset, Free) \
   case ast::BuiltinType::Type:                                    \
-    return Bytecode::Reset;
+    return Bytecode::Free;
       AGG_CODES(ENTRY)
 #undef ENTRY
   }
