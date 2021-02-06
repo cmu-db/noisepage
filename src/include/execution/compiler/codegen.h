@@ -1171,7 +1171,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *AggregatorResult(ast::Expr *agg);
 
   /**
-   * Call \@aggFree(). Frees all resources associated with the aggregation.
+   * Call \@aggFree(). Frees all resources associated with the aggregator.
    * @param agg A pointer to the aggregator.
    * @return The call.
    */
