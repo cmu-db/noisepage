@@ -91,6 +91,8 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                                const std::unordered_set<action_id_t> &candidate_actions) {
   auto start_segment_index = tree_start_segment_index + depth_;
   auto end_segment_index = tree_end_segment_index;
+  NOISEPAGE_ASSERT(start_segment_index <= end_segment_index,
+                   "start segment index should be no greater than the end segment index");
 
   for (const auto &action_id : candidate_actions) {
     // expand each action not yet applied
