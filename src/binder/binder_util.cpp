@@ -66,9 +66,15 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
         // TODO(Matt): see issue #977
         switch (desired_type) {
           case type::TypeId::DATE: {
-            auto parsed_date = execution::sql::Date::FromString(str_view);
-            value->SetValue(type::TypeId::DATE, execution::sql::DateVal(parsed_date));
-            break;
+            try {
+                auto parsed_date = execution::sql::Date::FromString(str_view);
+                value->SetValue(type::TypeId::DATE, execution::sql::DateVal(parsed_date));
+                break;
+            }
+            catch (ConversionException &exception) {
+                throw BINDER_EXCEPTION(exception.what(),
+                                common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
+            }
           }
           case type::TypeId::TIMESTAMP: {
             auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
