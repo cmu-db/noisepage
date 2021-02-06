@@ -68,6 +68,8 @@ class EndToEndTest : public execution::SqlBasedTest {
 
     // Check correctness
     output_checker->CheckCorrectness();
+
+    delete binder;
   }
 };
 
