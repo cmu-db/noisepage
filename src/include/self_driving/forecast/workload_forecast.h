@@ -34,11 +34,34 @@ class WorkloadForecast {
    */
   uint64_t GetNumberOfSegments() { return num_forecast_segment_; }
 
- private:
-  friend class PilotUtil;
-  friend class Pilot;
-  friend class pilot::MonteCarloTreeSearch;
+  const WorkloadForecastSegment &GetSegmentByIndex(uint64_t segment_index) {
+    NOISEPAGE_ASSERT(segment_index < num_forecast_segment_, "invalid index");
+    return forecast_segments_[segment_index];
+  }
 
+  const std::string GetQuerytextByQid(execution::query_id_t qid) {
+    NOISEPAGE_ASSERT(query_id_to_text_.find(qid) != query_id_to_text_.end(), "invalid qid");
+    return query_id_to_text_.at(qid);
+  }
+
+  std::vector<std::vector<parser::ConstantValueExpression>> *const GetQueryparamsByQid(execution::query_id_t qid) {
+    NOISEPAGE_ASSERT(query_id_to_params_.find(qid) != query_id_to_params_.end(), "invalid qid");
+    return &(query_id_to_params_.at(qid));
+  }
+
+  std::vector<type::TypeId> *const GetParamtypesByQid(execution::query_id_t qid) {
+    NOISEPAGE_ASSERT(query_id_to_param_types_.find(qid) != query_id_to_param_types_.end(), "invalid qid");
+    return &(query_id_to_param_types_.at(qid));
+  }
+
+  uint64_t GetDboidByQid(execution::query_id_t qid) {
+    NOISEPAGE_ASSERT(query_id_to_dboid_.find(qid) != query_id_to_dboid_.end(), "invalid qid");
+    return query_id_to_dboid_.at(qid);
+  }
+
+  uint64_t GetOptimizerTimeout() { return optimizer_timeout_; }
+
+ private:
   void LoadQueryTrace();
   void LoadQueryText();
   void CreateSegments();

@@ -5,10 +5,10 @@
 
 #include "common/action_context.h"
 #include "execution/exec_defs.h"
+#include "loggers/selfdriving_logger.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "optimizer/statistics/stats_storage.h"
-#include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/pilot/mcts/monte_carlo_tree_search.h"
@@ -48,12 +48,15 @@ void Pilot::PerformPlanning() {
 void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq) {
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
-  std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
-  PilotUtil::GetQueryPlans(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index, &plans);
-  auto mcst = pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), plans,
-                                          end_segment_index);
-  mcst.BestAction(simulation_number_, best_action_seq);
 
+  auto mcst =
+      pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
+  mcst.BestAction(simulation_number_, best_action_seq);
+  for (auto i = 0; i < best_action_seq->size(); i++) {
+    SELFDRIVING_LOG_INFO(fmt::format("Action Selected: timestamp: {}; action string: {} applied to database {}", i,
+                                     best_action_seq->at(i).first,
+                                     static_cast<uint32_t>(best_action_seq->at(i).second)));
+  }
   PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first,
                          best_action_seq->begin()->second);
 }

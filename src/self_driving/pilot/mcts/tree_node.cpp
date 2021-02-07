@@ -61,25 +61,34 @@ common::ManagedPointer<TreeNode> TreeNode::SampleChild() {
     children_weights.push_back(child_obj);
   }
   std::discrete_distribution<int> children_dist(children_weights.begin(), children_weights.end());
-  auto device = std::mt19937 {std::random_device {}()};
+  auto device = std::mt19937{std::random_device{}()};
   return common::ManagedPointer(children_.at(children_dist(device)));
 }
 
 common::ManagedPointer<TreeNode> TreeNode::Selection(
     common::ManagedPointer<TreeNode> root, common::ManagedPointer<Pilot> pilot,
     const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-    std::unordered_set<action_id_t> *candidate_actions) {
-  common::ManagedPointer<TreeNode> curr = root;
-  while (!curr->is_leaf_) {
-    curr = curr->SampleChild();
-    for (auto invalid_action : action_map.at(curr->current_action_)->GetInvalidatedActions()) {
+    std::unordered_set<action_id_t> *candidate_actions, uint64_t end_segment_index) {
+  common::ManagedPointer<TreeNode> curr;
+  std::vector<action_id_t> actions_on_path;
+  do {
+    curr = root;
+    actions_on_path.clear();
+    while (!curr->is_leaf_) {
+      curr = curr->SampleChild();
+      actions_on_path.push_back(curr->current_action_);
+    }
+  } while (curr->depth_ > end_segment_index);
+
+  for (auto action : actions_on_path) {
+    for (auto invalid_action : action_map.at(action)->GetInvalidatedActions()) {
       candidate_actions->erase(invalid_action);
     }
-    for (auto enabled_action : action_map.at(curr->current_action_)->GetEnabledActions()) {
+    for (auto enabled_action : action_map.at(action)->GetEnabledActions()) {
       candidate_actions->insert(enabled_action);
     }
-    PilotUtil::ApplyAction(pilot, action_map.at(curr->current_action_)->GetSQLCommand(),
-                           action_map.at(curr->current_action_)->GetDatabaseOid());
+    PilotUtil::ApplyAction(pilot, action_map.at(action)->GetSQLCommand(),
+                           action_map.at(action)->GetDatabaseOid());
   }
   return curr;
 }

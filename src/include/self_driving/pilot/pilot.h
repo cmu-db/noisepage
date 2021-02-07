@@ -119,10 +119,12 @@ class Pilot {
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
   /**
-   *
-   * @param pipeline_to_prediction
-   * @param start_segment_index
-   * @param end_segment_index
+   * Execute, collect pipeline metrics, and get ou prediction for each pipeline under different query parameters for
+   * queries between start and end segment indices (both inclusive) in workload forecast.
+   * @param pipeline_to_prediction to be populated, map from a pipeline in forecasted queries to the list of ou
+   * prediction for different parameters, each ou prediction is a 2D double array
+   * @param start_segment_index start segment index in forecast to be considered
+   * @param end_segment_index end segment index in forecast to be considered
    */
   void ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
                                 std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction,

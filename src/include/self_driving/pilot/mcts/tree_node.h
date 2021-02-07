@@ -42,14 +42,15 @@ class TreeNode {
    * Recursively sample the vertex whose children will be assigned values through rollout.
    * @param root pointer to root of the search tree
    * @param pilot pointer to pilot
-   * @param db_oids db_oids relevant to subtree rooted at current node
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions that can be applied at curent node
+   * @param end_segment_index last segment index to be considered in forecast (needed so that when sampled leaf is
+   * beyond this index, we repeat the selection process)
    */
   static common::ManagedPointer<TreeNode> Selection(
       common::ManagedPointer<TreeNode> root, common::ManagedPointer<Pilot> pilot,
       const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-      std::unordered_set<action_id_t> *candidate_actions);
+      std::unordered_set<action_id_t> *candidate_actions, uint64_t end_segment_index);
 
   /**
    * Expand each child of current node and update its cost and num of visits accordingly
@@ -57,7 +58,6 @@ class TreeNode {
    * @param forecast pointer to forecasted workload
    * @param tree_start_segment_index start_segment_index of the search tree
    * @param tree_end_segment_index end_segment_index of the search tree
-   * @param db_oids db_oids relevant to subtree rooted at current node
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree
    */

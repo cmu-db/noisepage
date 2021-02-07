@@ -25,15 +25,10 @@ class MonteCarloTreeSearch {
    * Constructor for the monte carlo search tree
    * @param pilot pointer to pilot
    * @param forecast pointer to workload forecast
-   * @param plans vector of query plans that the search tree is responsible for
-   * @param action_planning_horizon planning horizon (max depth of the tree, number of forecast segments to be
-   * considered)
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    */
   MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
-                       common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                       const std::vector<std::unique_ptr<planner::AbstractPlanNode>> &plans,
-                       uint64_t end_segment_index);
+                       common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index);
 
   /**
    * Returns query string of the best action to take at the root of the current tree
