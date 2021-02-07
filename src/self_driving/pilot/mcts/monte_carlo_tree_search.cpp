@@ -40,8 +40,8 @@ void MonteCarloTreeSearch::BestAction(uint64_t simulation_number,
   for (auto i = 0; i < simulation_number; i++) {
     std::unordered_set<action_id_t> candidate_actions;
     for (auto action_id : candidate_actions_) candidate_actions.insert(action_id);
-    auto vertex = TreeNode::Selection(common::ManagedPointer(root_), pilot_, action_map_, &candidate_actions,
-                                      end_segment_index_);
+    auto vertex =
+        TreeNode::Selection(common::ManagedPointer(root_), pilot_, action_map_, &candidate_actions, end_segment_index_);
 
     vertex->ChildrenRollout(pilot_, forecast_, 0, end_segment_index_, action_map_, candidate_actions);
     vertex->BackPropogate(pilot_, action_map_);

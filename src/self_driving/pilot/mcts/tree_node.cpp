@@ -87,8 +87,7 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
     for (auto enabled_action : action_map.at(action)->GetEnabledActions()) {
       candidate_actions->insert(enabled_action);
     }
-    PilotUtil::ApplyAction(pilot, action_map.at(action)->GetSQLCommand(),
-                           action_map.at(action)->GetDatabaseOid());
+    PilotUtil::ApplyAction(pilot, action_map.at(action)->GetSQLCommand(), action_map.at(action)->GetDatabaseOid());
   }
   return curr;
 }
