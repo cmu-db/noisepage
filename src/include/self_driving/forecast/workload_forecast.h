@@ -11,6 +11,8 @@
 #include "self_driving/forecast/workload_forecast_segment.h"
 
 namespace noisepage::selfdriving {
+class PilotUtil;
+
 namespace pilot {
 class MonteCarloTreeSearch;
 }
@@ -34,6 +36,8 @@ class WorkloadForecast {
    */
   uint64_t GetNumberOfSegments() { return num_forecast_segment_; }
 
+ private:
+  friend class PilotUtil;
   const WorkloadForecastSegment &GetSegmentByIndex(uint64_t segment_index) {
     NOISEPAGE_ASSERT(segment_index < num_forecast_segment_, "invalid index");
     return forecast_segments_[segment_index];
@@ -61,7 +65,6 @@ class WorkloadForecast {
 
   uint64_t GetOptimizerTimeout() { return optimizer_timeout_; }
 
- private:
   void LoadQueryTrace();
   void LoadQueryText();
   void CreateSegments();
