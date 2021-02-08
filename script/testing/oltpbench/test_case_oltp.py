@@ -34,7 +34,8 @@ class TestCaseOLTPBench(TestCase):
         self.loader_threads = int(args.get("loader_threads", constants.OLTPBENCH_DEFAULT_LOADER_THREADS))
         self.client_time = int(args.get("client_time", constants.OLTPBENCH_DEFAULT_TIME))
         self.weights = str(args.get("weights"))
-        self.transaction_isolation = str(args.get("transaction_isolation", constants.OLTPBENCH_DEFAULT_TRANSACTION_ISOLATION))
+        self.transaction_isolation = str(
+            args.get("transaction_isolation", constants.OLTPBENCH_DEFAULT_TRANSACTION_ISOLATION))
         self.query_mode = args.get("query_mode")
         self.db_restart = args.get("db_restart", constants.OLTPBENCH_DEFAULT_DATABASE_RESTART)
         self.db_create = args.get("db_create", constants.OLTPBENCH_DEFAULT_DATABASE_CREATE)
@@ -123,7 +124,6 @@ class TestCaseOLTPBench(TestCase):
         if not os.path.exists(self.test_result_dir):
             os.makedirs(self.test_result_dir)
 
-
     def _create_and_load_db(self):
         """
         Create the database and load the data before the actual test execution.
@@ -135,7 +135,7 @@ class TestCaseOLTPBench(TestCase):
             CREATE=self.db_create,
             LOAD=self.db_load)
         rc, stdout, stderr = run_command(cmd,
-                                        cwd=self.test_command_cwd)
+                                         cwd=self.test_command_cwd)
         if rc != ErrorCode.SUCCESS:
             LOG.info(stdout.read())
             LOG.error(stderr.read())
@@ -194,7 +194,7 @@ class TestCaseOLTPBench(TestCase):
             print("Directory Contents: {}".format(os.path.dirname(self.test_histogram_path)))
             print("\n".join(os.listdir(os.path.dirname(self.test_histogram_path))))
             print("=" * 50)
-            raise RuntimeError(f"Unable to find OLTPBench result file: {self.test_histogram_path}")
+            raise FileNotFoundError(f"Unable to find OLTPBench result file: {self.test_histogram_path}")
 
         with open(self.test_histogram_path) as oltp_result_file:
             test_result = json.load(oltp_result_file)
