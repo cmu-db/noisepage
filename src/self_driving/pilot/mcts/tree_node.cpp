@@ -12,8 +12,8 @@
 
 namespace noisepage::selfdriving::pilot {
 
-TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action,
-                   const uint64_t current_segment_cost, uint64_t later_segments_cost)
+TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t current_segment_cost,
+                   uint64_t later_segments_cost)
     : is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
       current_action_(current_action),

@@ -132,9 +132,9 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
   execution::query_id_t prev_qid = pipeline_to_prediction.begin()->first.first;
   query_cost.emplace_back(prev_qid, 0);
 
-  for (auto pipeline_to_pred : pipeline_to_prediction) {
+  for (auto const &pipeline_to_pred : pipeline_to_prediction) {
     auto pipeline_sum = 0;
-    for (auto pipeline_res : pipeline_to_pred.second) {
+    for (auto const &pipeline_res : pipeline_to_pred.second) {
       for (auto ou_res : pipeline_res) {
         // sum up the latency of ous
         pipeline_sum += ou_res[ou_res.size() - 1];
@@ -142,7 +142,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
     // record average cost of this pipeline among the same queries with diff param
     if (prev_qid == pipeline_to_pred.first.first) {
-      query_cost.back().second += pipeline_sum / pipeline_to_pred.second.size();
+      query_cost.back().second += (double) pipeline_sum / pipeline_to_pred.second.size();
     } else {
       query_cost.emplace_back(pipeline_to_pred.first.first, pipeline_sum / pipeline_to_pred.second.size());
       prev_qid = pipeline_to_pred.first.first;
@@ -256,8 +256,8 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
   }
 
   // populate pipeline_to_prediction using pipeline_to_ou_position and inference_result
-  std::vector<std::vector<double>> pipeline_result;
   for (auto pipeline_to_ou : pipeline_to_ou_position) {
+    std::vector<std::vector<double>> pipeline_result;
     for (auto ou_it : std::get<2>(pipeline_to_ou)) {
       // for a fixed set of query parameter, collect all of this pipeline's associated operating unit's prediction
       // result, prediction result of one ou is a double vector

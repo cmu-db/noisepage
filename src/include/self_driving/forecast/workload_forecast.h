@@ -43,17 +43,17 @@ class WorkloadForecast {
     return forecast_segments_[segment_index];
   }
 
-  const std::string GetQuerytextByQid(execution::query_id_t qid) {
+  std::string GetQuerytextByQid(execution::query_id_t qid) {
     NOISEPAGE_ASSERT(query_id_to_text_.find(qid) != query_id_to_text_.end(), "invalid qid");
     return query_id_to_text_.at(qid);
   }
 
-  std::vector<std::vector<parser::ConstantValueExpression>> *const GetQueryparamsByQid(execution::query_id_t qid) {
+  std::vector<std::vector<parser::ConstantValueExpression>> *GetQueryparamsByQid(execution::query_id_t qid) {
     NOISEPAGE_ASSERT(query_id_to_params_.find(qid) != query_id_to_params_.end(), "invalid qid");
     return &(query_id_to_params_.at(qid));
   }
 
-  std::vector<type::TypeId> *const GetParamtypesByQid(execution::query_id_t qid) {
+  std::vector<type::TypeId> *GetParamtypesByQid(execution::query_id_t qid) {
     NOISEPAGE_ASSERT(query_id_to_param_types_.find(qid) != query_id_to_param_types_.end(), "invalid qid");
     return &(query_id_to_param_types_.at(qid));
   }

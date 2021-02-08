@@ -30,7 +30,7 @@ class TreeNode {
    * node
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    */
-  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, const uint64_t current_segment_cost,
+  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t current_segment_cost,
            uint64_t later_segments_cost);
 
   /**
@@ -85,7 +85,7 @@ class TreeNode {
    * Get action taken to get to this node from its parent
    * @return current action
    */
-  const action_id_t GetCurrentAction() { return current_action_; }
+  action_id_t GetCurrentAction() { return current_action_; }
 
  private:
   /**
