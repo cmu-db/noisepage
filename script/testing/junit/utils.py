@@ -30,7 +30,6 @@ def parse_command_line_args():
 
     args = vars(aparser.parse_args())
 
-    # TODO(WAN): What is the below server_args code doing?
     args['server_args'] = map_server_args(args.get('server_arg'))
     del args['server_arg']
 
@@ -39,6 +38,26 @@ def parse_command_line_args():
 
 
 def map_server_args(server_arg_arr):
+    """
+    Map server arguments from an array of strings into a dictionary.
+
+    For example,
+    Input: ["--arg1=10", "--args2=hello", "--debug"]
+    Output: {
+                '--arg1': "10",
+                '--arg2': "hello",
+                '--debug': None,
+            }
+
+    Parameters
+    ----------
+    server_arg_arr : [str]
+        The server arguments as an array of strings.
+    Returns
+    -------
+    server_arg_map : dict
+        The server arguments in dictionary form.
+    """
     server_arg_map = {}
     for server_arg in server_arg_arr:
         if '=' in server_arg:
