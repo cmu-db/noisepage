@@ -136,16 +136,14 @@ class ExecutionOperatingUnitFeature {
   /**
    * Returns a vector of doubles consisting of 7 features starting with num_rows
    */
-  std::vector<double> GetAllAttributes() const {
-    std::vector<double> all_attributes;
-    all_attributes.push_back(num_rows_);
-    all_attributes.push_back(key_size_);
-    all_attributes.push_back(num_keys_);
-    all_attributes.push_back(cardinality_);
-    all_attributes.push_back(GetMemFactor());
-    all_attributes.push_back(num_loops_);
-    all_attributes.push_back(num_concurrent_);
-    return all_attributes;
+  void GetAllAttributes(std::vector<double> *all_attributes) const {
+    all_attributes->push_back(num_rows_);
+    all_attributes->push_back(key_size_);
+    all_attributes->push_back(num_keys_);
+    all_attributes->push_back(cardinality_);
+    all_attributes->push_back(GetMemFactor());
+    all_attributes->push_back(num_loops_);
+    all_attributes->push_back(num_concurrent_);
   }
 
   /** @return The ID of the translator for this ExecutionOperatingUnitFeature. */
