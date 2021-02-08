@@ -91,7 +91,10 @@ TEST_F(BlockCompactorTest, CompactionTest) {
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
     transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                                 common::ManagedPointer(&deferred_action_manager),
-                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
+                                                common::ManagedPointer(&buffer_pool_),
+                                                true,
+                                                false,
+                                                DISABLED};
     storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
                                  common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
                                  DISABLED};
@@ -175,7 +178,10 @@ TEST_F(BlockCompactorTest, GatherTest) {
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
     transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                                 common::ManagedPointer(&deferred_action_manager),
-                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
+                                                common::ManagedPointer(&buffer_pool_),
+                                                true,
+                                                false,
+                                                DISABLED};
     storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
                                  common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
                                  DISABLED};
@@ -282,7 +288,10 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
     transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                                 common::ManagedPointer(&deferred_action_manager),
-                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
+                                                common::ManagedPointer(&buffer_pool_),
+                                                true,
+                                                false,
+                                                DISABLED};
     storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
                                  common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
                                  DISABLED};

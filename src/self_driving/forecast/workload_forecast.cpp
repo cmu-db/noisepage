@@ -38,6 +38,8 @@ void WorkloadForecast::CreateSegments() {
       curr_time = it.first;
       curr_segment = std::unordered_map<execution::query_id_t, uint64_t>();
     }
+
+    if (curr_segment.find(it.second) == curr_segment.end()) curr_segment.emplace(it.second, 0);
     curr_segment[it.second] += 1;
   }
 

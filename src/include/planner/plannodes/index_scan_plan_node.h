@@ -111,6 +111,15 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
+     * @param cover_all_columns whether the index covers all predicate columns
+     * @return builder object
+     */
+    Builder &SetCoverAllColumns(bool cover_all_columns) {
+      cover_all_columns_ = cover_all_columns;
+      return *this;
+    }
+
+    /**
      * Build the Index scan plan node
      * @return plan node
      */
@@ -125,6 +134,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
     uint64_t index_size_{0};
+    bool cover_all_columns_{false};
   };
 
  private:
@@ -141,6 +151,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param lo_index_cols lower bound of the scan (or exact key when scan type = Exact).
    * @param hi_index_cols upper bound of the scan
    * @param index_size number of tuples in index
+   * @param cover_all_columns whether the index covers all predicate columns
    * @param plan_node_id Plan node id
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
@@ -151,7 +162,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
                     uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset,
-                    uint64_t index_size, uint64_t table_num_tuple, plan_node_id_t plan_node_id);
+                    uint64_t index_size, uint64_t table_num_tuple, bool cover_all_columns, plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -218,6 +229,11 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
 
   /**
+   * @return whether the index covers all predicate columns
+   */
+  bool GetCoverAllColumns() const { return cover_all_columns_; }
+
+  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
@@ -237,6 +253,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
   uint64_t table_num_tuple_;
   uint64_t index_size_;
+  bool cover_all_columns_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(IndexScanPlanNode);
