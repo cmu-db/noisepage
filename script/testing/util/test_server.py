@@ -198,10 +198,3 @@ class TestServer:
                     self.db_instance.stop_db(self.is_dry_run)
 
         return exit_codes
-
-
-    def print_db_logs(self):
-        """	
-        Print out the remaining DBMS logs.
-        """
-        self.db_instance.print_db_logs()
