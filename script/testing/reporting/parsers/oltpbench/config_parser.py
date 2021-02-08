@@ -21,8 +21,6 @@ def parse_config_file(path):
     """
     config_root = xml.parse(path).getroot()
     return {
-        # The current API uses duration. When we update the schema we can flip this back
-        # TODO(WAN): I have no idea what the above comment is talking about.
         'client_time': parse_client_time(config_root),
         'transaction_weights': parse_transaction_weights(config_root)
     }
