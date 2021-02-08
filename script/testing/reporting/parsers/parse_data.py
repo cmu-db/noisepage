@@ -12,19 +12,26 @@ from .oltpbench.summary_parser import parse_summary_file
 
 
 def parse_oltpbench_data(results_dir):
-    """ 
+    """
     Collect the information needed to send to the performance storage service
-    from the files produced by OLTPBench
+    from the files produced by OLTPBench.
 
-    Args:
-        results_dir (str): The directory where the OLTPBench results were stored
-
-    Returns: 
-        metadata (dict): The metadata of the OLTPBench test
-        timestamp (int): When the test was run in milliseconds
-        type (str): The benchmark type (i.e. tpcc)
-        parameters (dict): The parameters that were used to run the test
-        metrics (dict): The metrics gathered from the result of the test
+    Args
+    -----
+    results_dir : str
+        The directory where the OLTPBench results were stored
+    Returns
+    --------
+    metadata : dict
+        The metadata of the OLTPBench test
+    timestamp : int
+        When the test was run in milliseconds
+    type : str
+        The benchmark type (i.e. tpcc)
+    parameters : dict
+        The parameters that were used to run the test
+    metrics : dict
+        The metrics gathered from the result of the test
     """
     env_metadata = _parse_jenkins_env_vars()
     files_metadata, timestamp, benchmark_type, parameters, metrics = parse_oltpbench_files(
