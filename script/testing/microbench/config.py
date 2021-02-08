@@ -12,10 +12,9 @@ class Config(object):
     """ Configuration for run_micro_bench. All information is read-only. """
 
     def __init__(self, benchmark_path=BENCHMARK_PATH, benchmarks=BENCHMARKS_TO_RUN, lax_tolerance=LAX_TOLERANCE,
-                 min_time=MIN_TIME,
-                 num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False, jenkins_folders=[],
-                 branch=None, publish_results_env='none',
-                 publish_results_username=None, publish_results_password=None):
+                 min_time=MIN_TIME, num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False,
+                 jenkins_folders=[], branch=None, publish_results_env='none', publish_results_username=None,
+                 publish_results_password=None):
 
         validate_benchmark_path(benchmark_path)
         # path to benchmark binaries
