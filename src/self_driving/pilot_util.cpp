@@ -33,6 +33,8 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
                             catalog::db_oid_t db_oid) {
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
+
+  // Initialize transaction context, and necessary arguments for query plan generation
   transaction::TransactionContext *txn;
 
   execution::exec::ExecutionSettings exec_settings{};
@@ -43,15 +45,19 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   std::string query = sql_query;
   auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
   auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
+
   if (statement->GetQueryType() == network::QueryType::QUERY_SET) {
+    // The set statements are executed differently (through settings_manager_)
     const auto &set_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableSetStatement>();
     pilot->settings_manager_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
   } else {
+    // For all other actions, we apply the action by running it as query in a committed transaction
     std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
     txn = txn_manager->BeginTransaction();
 
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
+    // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     auto out_plan = PilotUtil::GenerateQueryPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr,
                                                  common::ManagedPointer(parse_tree), db_oid, pilot->stats_storage_,
                                                  pilot->forecast_->GetOptimizerTimeout());
@@ -272,13 +278,20 @@ void PilotUtil::GroupFeaturesByOU(
     const std::vector<execution::query_id_t> &pipeline_qids,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features) {
-  auto pipeline_idx = 0;
-
+  // if no pipeline data is recorded, there's no work to be done
   if (pipeline_data.empty()) return;
+
+  // Otherwise, we look over all entries in pipeline_data
+  // prev_qid and pipeline_idx is to keep mapping the current qid to the qid at pipeline_idx in pipeline_qids to
+  // account for multiple executions of the same query
+  auto pipeline_idx = 0;
   execution::query_id_t prev_qid = pipeline_data.begin()->query_id_;
   for (const auto &data_it : pipeline_data) {
     std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>> ou_positions;
+    // for each operating unit of the pipeline, we push it to the corresponding collection in ou_to_features for block
+    // inference
     for (const auto &ou_it : data_it.features_) {
+      // ou_to_positions will allow us to retrieve the inference results of all ous of a pipeline later
       if (ou_to_features->find(ou_it.GetExecutionOperatingUnitType()) == ou_to_features->end()) {
         ou_positions.emplace_back(ou_it.GetExecutionOperatingUnitType(), 0);
         ou_to_features->emplace(ou_it.GetExecutionOperatingUnitType(), std::vector<std::vector<double>>());
@@ -286,6 +299,9 @@ void PilotUtil::GroupFeaturesByOU(
         ou_positions.emplace_back(ou_it.GetExecutionOperatingUnitType(),
                                   ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).size());
       }
+
+      // To perform the inference, the predictors for each ou is structured according to the order in
+      // https://github.com/cmu-db/noisepage/blob/master/script/model/type.py#L83-L92
       std::vector<double> predictors;
       predictors.push_back(metrics::MetricsUtil::GetHardwareContext().cpu_mhz_);
       predictors.push_back(data_it.execution_mode_);
@@ -293,6 +309,7 @@ void PilotUtil::GroupFeaturesByOU(
       ou_to_features->at(ou_it.GetExecutionOperatingUnitType()).push_back(predictors);
     }
 
+    // If we observe a change in qid in the recorded pipeline data, we also advance to the next qid in pipeline_qids
     if (data_it.query_id_ != prev_qid) {
       pipeline_idx += 1;
       prev_qid = data_it.query_id_;

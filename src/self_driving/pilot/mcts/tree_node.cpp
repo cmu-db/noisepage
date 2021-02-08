@@ -61,7 +61,8 @@ common::ManagedPointer<TreeNode> TreeNode::SampleChild() {
     children_weights.push_back(child_obj);
   }
   std::discrete_distribution<int> children_dist(children_weights.begin(), children_weights.end());
-  auto device = std::mt19937{std::random_device{}()};
+  std::random_device rd;
+  std::mt19937 device(rd());
   return common::ManagedPointer(children_.at(children_dist(device)));
 }
 
