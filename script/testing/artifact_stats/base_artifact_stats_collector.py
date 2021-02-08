@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 
-class BaseArtifactStatsCollector(object):
+class BaseArtifactStatsCollector(ABC):
     """
     This is the base class to use if you want to collect a new artifact metric.
     You can override the setup, run_collector, and teardown methods for your
