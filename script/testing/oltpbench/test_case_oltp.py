@@ -175,7 +175,16 @@ class TestCaseOLTPBench(TestCase):
         xml.write(self.xml_config)
 
     def _validate_result(self):
-        """read the results file"""
+        """
+        Verify that the results do not indicate an error in the OLTPBench test.
+
+        Raises
+        -------
+        FileNotFoundError
+            If self.test_histogram_path does not exist.
+        RuntimeError
+            If the self.test_histogram_path file has unexpected results.
+        """
 
         # Make sure the file exists before we try to open it.
         # If it's not there, we'll dump out the contents of the directory to make it
