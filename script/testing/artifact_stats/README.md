@@ -2,10 +2,10 @@
 These metrics are non-operational measurements of the DBMS.
 
 ## Current Metrics
+- Binary size
 - Compile time
 - Memory usage on startup
 - (coming soon) Idle CPU utilization
-- (coming soon) Binary size
 
 ## How to add a metric
 1) Create a file for your collector in `/script/testing/artifact_stats/collectors`.
