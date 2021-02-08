@@ -28,10 +28,8 @@ def parse_summary_file(path):
     metrics : dict
         The summary measurements that were gathered from the test.
     """
-    gvbp = get_value_by_pattern
-
     def get_latency_val(latency_dist, pattern):
-        value = gvbp(latency_dist, pattern, None)
+        value = get_value_by_pattern(latency_dist, pattern, None)
         return float("{:.4}".format(value)) if value else value
 
     with open(path) as summary_file:
@@ -43,14 +41,14 @@ def parse_summary_file(path):
                 'db_version': summary.get('DBMS Version', UNKNOWN_RESULT)
             }
         }
-        timestamp = int(gvbp(summary, 'timestamp', str(time())))
+        timestamp = int(get_value_by_pattern(summary, 'timestamp', str(time())))
         benchmark_type = summary.get('Benchmark Type', UNKNOWN_RESULT)
         parameters = {
             'scale_factor': summary.get('scalefactor', '-1.0'),
             'terminals': int(summary.get('terminals', -1))
         }
         metrics = {
-            'throughput': gvbp(summary, 'throughput', '-1.0'),
+            'throughput': get_value_by_pattern(summary, 'throughput', '-1.0'),
             'latency': {key: get_latency_val(latency_dist, pattern)
                         for key, pattern in LATENCY_ATTRIBUTE_MAPPING}
         }
