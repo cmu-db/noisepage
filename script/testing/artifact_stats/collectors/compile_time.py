@@ -18,6 +18,11 @@ class CompileTimeCollector(BaseArtifactStatsCollector):
     def run_collector(self):
         """
         Read the file with compilation times, which is assumed to exist.
+
+        Raises
+        -------
+        FileNotFoundError
+            If no file exists at `self.compile_time_file_path`.
         """
         if not os.path.exists(self.compile_time_file_path):
             raise FileNotFoundError(f'{self.compile_time_file_path} not found.')
