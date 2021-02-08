@@ -98,7 +98,7 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
                               std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs) {
   std::unordered_set<execution::query_id_t> qids;
   auto catalog = pilot->catalog_;
-  for (auto idx = 0; idx <= end_segment_index; idx++) {
+  for (uint64_t idx = 0; idx <= end_segment_index; idx++) {
     for (auto &it : forecast->GetSegmentByIndex(idx).GetIdToNumexec()) {
       qids.insert(it.first);
     }
