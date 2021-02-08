@@ -40,6 +40,11 @@ def parse_client_time(config_root):
     -------
     client_time : int
         The duration that the test should be executed for.
+
+    Raises
+    -------
+    KeyError
+        If the relevant key (works.work.time) is not present in the XML file.
     """
     try:
         return int(config_root.find('works').find('work').find('time').text)
@@ -62,6 +67,13 @@ def parse_transaction_weights(config_root):
         An array of dictionaries formatted as
             {"name": str(transaction_name), weight: int(value)}
         that corresponds to the transaction types and weights.
+
+    Raises
+    -------
+    KeyError
+        If works.work.weights or transactiontype is not a key in the XML file.
+    RuntimeError
+        If there there are a different number of transaction types and weights.
     """
     try:
         transaction_types = \
