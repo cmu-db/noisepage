@@ -8,6 +8,7 @@
 #include "common/managed_pointer.h"
 #include "self_driving/pilot/action/action_defs.h"
 
+#define EPSILON 1e-3
 #define NULL_ACTION INT32_MAX
 
 namespace noisepage::selfdriving {
@@ -106,7 +107,7 @@ class TreeNode {
       total_visits += child->number_of_visits_;
     }
     NOISEPAGE_ASSERT(total_visits > 0, "num visit of the subtree rooted at a node cannot be zero");
-    return child_sum / total_visits;
+    return child_sum / (total_visits + EPSILON);
   }
 
   /**

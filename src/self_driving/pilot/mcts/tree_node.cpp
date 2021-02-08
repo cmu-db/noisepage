@@ -27,7 +27,7 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
   NOISEPAGE_ASSERT(!is_leaf_, "Trying to return best action on a leaf node");
   // Get child of least cost
-  NOISEPAGE_ASSERT(children_.size() > 0, "Trying to return best action for unexpanded nodes");
+  NOISEPAGE_ASSERT(!children_.empty(), "Trying to return best action for unexpanded nodes");
   auto best_child = common::ManagedPointer(children_[0]);
   for (auto &child : children_)
     if (child->cost_ < best_child->cost_) best_child = common::ManagedPointer(child);
