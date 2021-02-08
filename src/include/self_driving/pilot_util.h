@@ -87,6 +87,7 @@ class PilotUtil {
    * @param pilot pointer to the pilot
    * @param forecast pointer to the forecast segments
    * @param end_segment_index end index (inclusive)
+   * @param txn the transaction context that would be used for action generation as well
    * @param plan_vecs the vector that would store the generated abstract plans of forecasted queries before the end
    * index
    */
