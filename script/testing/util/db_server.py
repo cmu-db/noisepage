@@ -82,6 +82,7 @@ class NoisePageServer:
                                            stderr=subprocess.PIPE)
         LOG.info(f'Ran: {db_run_command} [PID={db_process.pid}]')
 
+        logs = []
         while True:
             log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
             check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
@@ -90,8 +91,12 @@ class NoisePageServer:
                 LOG.info(f'DB process is verified as running in {round(now - start_time, 2)} sec.')
                 self.db_process = db_process
                 return True
-            if now - start_time >= 5:
-                LOG.error(f'DBMS [PID={db_process.pid} took more than five seconds to start up. Killing.')
+            else:
+                logs.append(log_line)
+
+            if now - start_time >= 60:
+                LOG.error('\n'.join(logs))
+                LOG.error(f'DBMS [PID={db_process.pid} took more than 60 seconds to start up. Killing.')
                 db_process.kill()
                 return False
 
