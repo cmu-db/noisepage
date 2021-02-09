@@ -445,15 +445,15 @@ pipeline {
                         // --pattern_iter determines how many times a sequence of TPCC phases is run. Set to 3 so that
                         // enough trace could be generated for training and testing.
                         sh script :'''
-                        cd script/forecasting
-                        ./forecaster.py --gen_data --pattern_iter=3 --model_save_path=model.pickle --models=LSTM
+                        cd build
+                        PYTHONPATH=.. python3 -m script.forecasting.forecaster --gen_data --pattern_iter=3 --model_save_path=model.pickle --models=LSTM
                         ''', label: 'Generate trace and perform training'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
-                        cd script/forecasting
-                        ./forecaster.py --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
+                        cd build
+                        PYTHONPATH=.. python3 -m script.forecasting.forecaster --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
                         ''', label: 'Perform inference on the trained model'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
