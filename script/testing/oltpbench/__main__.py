@@ -99,8 +99,9 @@ if __name__ == "__main__":
 
     exit_code = ErrorCode.ERROR
     try:
-        oltpbench = TestOLTPBench(args)
         tests = generate_tests(args)
+        # Because generate_tests MUTATES args, has to come first.
+        oltpbench = TestOLTPBench(args)
         exit_code = oltpbench.run(tests)
     except:
         LOG.error("Exception trying to run OLTPBench tests.")
