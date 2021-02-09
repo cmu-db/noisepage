@@ -132,10 +132,6 @@ class TestServer:
         suite_result : constants.ErrorCode
             SUCCESS if all the tests succeeded. ERROR otherwise.
         """
-        # TODO(WAN): I dislike this magic...
-        if not isinstance(test_suite, List):
-            test_suite = [test_suite]
-
         result = constants.ErrorCode.ERROR
         try:
             self.run_pre_suite()
@@ -168,11 +164,13 @@ class TestServer:
         """
         exit_codes = {}
         dbms_started = self.db_instance.run_db(self.is_dry_run)
+        first_run = True
         for test_case in test_suite:
             try:
-                if test_case.db_restart and self.db_instance.db_process:
+                if test_case.db_restart and self.db_instance.db_process and not first_run:
                     self.db_instance.stop_db(self.is_dry_run)
                     dbms_started = self.db_instance.run_db(self.is_dry_run)
+                first_run = False
                 if not self.is_dry_run:
                     try:
                         exit_code = self.run_test(test_case)

@@ -22,7 +22,7 @@ def run_test(test_server, test_command):
     test_case = TestCaseJUnit(args, test_command=test_command)
     errcode = ErrorCode.ERROR
     try:
-        errcode = test_server.run(test_case)
+        errcode = test_server.run([test_case])
     except KeyboardInterrupt:
         LOG.error("KeyboardInterrupt received. Terminating.")
         raise
