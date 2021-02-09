@@ -167,12 +167,12 @@ class TestServer:
             A dictionary mapping test cases to their exit codes.
         """
         exit_codes = {}
+        dbms_started = self.db_instance.run_db(self.is_dry_run)
         for test_case in test_suite:
-            dbms_started = False
             try:
                 if test_case.db_restart and self.db_instance.db_process:
                     self.db_instance.stop_db(self.is_dry_run)
-                dbms_started = self.db_instance.run_db(self.is_dry_run)
+                    dbms_started = self.db_instance.run_db(self.is_dry_run)
                 if not self.is_dry_run:
                     try:
                         exit_code = self.run_test(test_case)
@@ -193,8 +193,10 @@ class TestServer:
                 exit_codes[test_case] = constants.ErrorCode.ERROR
                 # Terminate early in case the DBMS was unable to start.
                 break
-            finally:
-                if dbms_started:
-                    self.db_instance.stop_db(self.is_dry_run)
+
+        # The DBMS is not restarted between tests as you may want the DBMS to
+        # persist create/load data.
+        if dbms_started:
+            self.db_instance.stop_db(self.is_dry_run)
 
         return exit_codes
