@@ -2,11 +2,13 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <unordered_map>
 #include <utility>
 
 #include "common/container/concurrent_blocking_queue.h"
+#include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
@@ -120,6 +122,10 @@ class ReplicationManager {
 
   bool replication_enabled_ = false;
 
+  uint64_t buffer_id_ = 1;
+  uint64_t last_buffer_id_ = 0;
+  std::priority_queue<nlohmann::json, std::vector<nlohmann::json>, std::function<bool(nlohmann::json, nlohmann::json)>>
+      received_buffer_queue_;
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 };
 

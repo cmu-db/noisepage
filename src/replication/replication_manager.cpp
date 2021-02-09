@@ -11,6 +11,12 @@
 #include "storage/recovery/replication_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
 
+namespace {
+
+bool CompareJsonBuffer(nlohmann::json left, nlohmann::json right) { return left.at("buf_id") > right.at("buf_id"); }
+
+}  // namespace
+
 namespace noisepage::replication {
 
 Replica::Replica(common::ManagedPointer<messenger::Messenger> messenger, const std::string &replica_name,
@@ -27,6 +33,7 @@ ReplicationManager::ReplicationManager(
       identity_(network_identity),
       port_(port),
       provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1), false)),
+      received_buffer_queue_(CompareJsonBuffer),
       empty_buffer_queue_(empty_buffer_queue) {
   // TODO(WAN): provider_ arguments
   auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
@@ -139,10 +146,11 @@ void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
   if (identity_ == "primary") {
     common::json j;
     // TODO(WAN): Add a size and checksum to message.
+    j["buf_id"] = buffer_id_++;
     j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
 
     for (const auto &replica : replicas_) {
-      ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), true);
+      ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), false);
     }
   }
 
@@ -166,13 +174,39 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
       REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
       break;
     case MessageType::REPLICATE_BUFFER: {
-      REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {}", msg.GetRoutingId()));
       // Parse the buffer from the received message and add it to the provided replication logs.
       {
         nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
-        std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
         // TODO(WAN): Sanity-check the received message.
-        provider_->AddBufferFromMessage(content);
+
+        uint64_t msg_id = message.at("buf_id");
+        REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), msg_id));
+
+        // Check if the message needs to be buffered.
+        if (msg_id > last_buffer_id_ + 1) {
+          // The message should be buffered if there are gaps in between the last seen buffer.
+          received_buffer_queue_.push(message);
+        } else {
+          // Otherwise, pull out the log record from the message and hand them to the replication log provider.
+          std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
+          provider_->AddBufferFromMessage(content);
+          last_buffer_id_ = msg_id;
+          // This may unleash the rest of the buffered messages.
+          while (!received_buffer_queue_.empty()) {
+            message = received_buffer_queue_.top();
+            msg_id = message.at("buf_id");
+            // Stop once you're missing a buffer.
+            if (msg_id > last_buffer_id_ + 1) {
+              break;
+            }
+            // Otherwise, send the top buffer's contents along.
+            received_buffer_queue_.pop();
+            NOISEPAGE_ASSERT(msg_id == last_buffer_id_ + 1, "Duplicate buffer? Old buffer?");
+            content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
+            provider_->AddBufferFromMessage(content);
+            last_buffer_id_ = msg_id;
+          }
+        }
       }
       // TODO(WAN): Is it actually necessary to buffer the message first? A crashed replica is indistinguishable from
       //  a replica that just came up right? If buffering is not necessary, move this up so that replying is faster.
