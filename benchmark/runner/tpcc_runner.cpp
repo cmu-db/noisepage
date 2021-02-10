@@ -45,11 +45,11 @@ class TPCCRunner : public benchmark::Fixture {
     db_main_ = db_main_builder.Build();
 
     auto metrics_manager = db_main_->GetMetricsManager();
-    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION, 0);
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION);
-    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::GARBAGECOLLECTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
-    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
   }
 

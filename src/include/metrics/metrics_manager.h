@@ -23,6 +23,8 @@ namespace noisepage::metrics {
  */
 class MetricsManager {
  public:
+  MetricsManager();
+
   /**
    * Aggregate metrics from all threads which have collected stats, combine with what was previously collected
    *
@@ -75,12 +77,9 @@ class MetricsManager {
 
   /**
    * @param component to update
-   * @param sample_interval the interval between recording two metrics for the component. 0 means recording every metric
+   * @param sample_rate sampling rate of 0 to 100, expressed as a percentage of data points. 100 means all data, 0 none
    */
-  void SetMetricSampleInterval(const MetricsComponent component, uint32_t sample_interval) {
-    common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    sample_interval_[static_cast<uint8_t>(component)] = sample_interval;
-  }
+  void SetMetricSampleRate(MetricsComponent component, uint8_t sample_rate);
 
   /**
    * @param component to be disabled
@@ -102,7 +101,7 @@ class MetricsManager {
 
   std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
 
-  std::array<uint32_t, NUM_COMPONENTS> sample_interval_{0x0};
+  std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
 };
 
 }  // namespace noisepage::metrics
