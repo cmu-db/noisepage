@@ -65,8 +65,8 @@ def report_artifact_stats_result(env, metrics, username, password):
     env : string
         The type of environment that we are running in.
         Valid options are the keys to PERFORMANCE_STORAGE_SERVICE_API.
-    metrics : ???
-        what this
+    metrics : dict
+        A dictionary containing all of the artifact stats gathered.
     username : str
         The username to the performance storage service.
     password : str
