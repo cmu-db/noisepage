@@ -384,7 +384,6 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
               codegen->AggHashTableIteratorHasNext(codegen->MakeExpr(aht_iter)),
               codegen->MakeStmt(codegen->AggHashTableIteratorNext(codegen->MakeExpr(aht_iter))));
     {
-      
       // var aggRow = @ahtIterGetRow()
       function->Append(codegen->DeclareVarWithInit(
           agg_row_var_, codegen->AggHashTableIteratorGetRow(codegen->MakeExpr(aht_iter), agg_payload_type_)));
