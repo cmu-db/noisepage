@@ -19,8 +19,8 @@ def parse_summary_file(path):
     metadata : dict
         An object containing metadata information.
     timestamp : int
-        The timestamp when the benchmark was created, in milliseconds.
-        TODO(WAN): wtf is this?
+        The timestamp when the benchmark was created.
+        Measured in milliseconds since January 1, 1970, 00:00:00 GMT.
     benchmark_type : str
         The benchmark that was run (e.g., tatp, noop).
     parameters : dict
