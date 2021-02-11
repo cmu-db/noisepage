@@ -189,7 +189,7 @@ void StaticAggregationTranslator::BeginPipelineWork(const Pipeline &pipeline, Fu
 void StaticAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsProducePipeline(pipeline)) {
     auto *codegen = GetCodeGen();
-    for (size_t agg_term_idx = 0; agg_term_idx < GetAggPlan().GetAggregateTerms().size(); agg_term_idx++) {
+    for (auto agg_term_idx : GetAggPlan().GetMemoryAllocatingAggregatorIndexes()) {
       ast::Expr *agg_term = GetAggregateTermPtr(global_aggs_.Get(codegen), agg_term_idx);
       function->Append(GetCodeGen()->AggregatorFree(agg_term));
     }

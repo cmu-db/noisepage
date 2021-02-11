@@ -366,7 +366,8 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
     if (build_pipeline_.IsParallel()) {
       TearDownAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
     }
-  } else {
+  } else if (GetAggPlan().RequiresCleanup()) {
+    // If any of the aggregators are required to be cleaned up, then we need to go through the hash table and free them
     auto *codegen = GetCodeGen();
     // var iterBase: AHTIterator
     ast::Identifier aht_iter_base = codegen->MakeFreshIdentifier("iterBase");
@@ -387,7 +388,7 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
       // var aggRow = @ahtIterGetRow()
       function->Append(codegen->DeclareVarWithInit(
           agg_row_var_, codegen->AggHashTableIteratorGetRow(codegen->MakeExpr(aht_iter), agg_payload_type_)));
-      for (size_t agg_term_idx = 0; agg_term_idx < GetAggPlan().GetAggregateTerms().size(); agg_term_idx++) {
+      for (auto agg_term_idx : GetAggPlan().GetMemoryAllocatingAggregatorIndexes()) {
         auto *agg_term = GetAggregateTermPtr(agg_row_var_, agg_term_idx);
         function->Append(GetCodeGen()->AggregatorFree(agg_term));
       }
