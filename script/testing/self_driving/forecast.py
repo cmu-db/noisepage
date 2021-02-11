@@ -1,34 +1,30 @@
-#!/usr/bin/env python3
 """
-The forecast scripts generates metrics traces needed for workload forecasting.
+The forecast script generates metrics traces needed for workload forecasting.
 """
-
-from oltpbench.test_case_oltp import TestCaseOLTPBench
-from oltpbench.run_oltpbench import TestOLTPBench
-from oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
-from util.constants import (LOG, ErrorCode, DEFAULT_DB_HOST, DEFAULT_DB_PORT)
-from util.common import run_command
-from util.db_server import NoisePageServer
-from self_driving.constants import (
-    DEFAULT_TPCC_TIME_SEC,
-    DEFAULT_TPCC_WEIGHTS,
-    DEFAULT_QUERY_TRACE_FILE,
-    DEFAULT_OLTP_SERVER_ARGS,
-    DEFAULT_OLTP_TEST_CASE,
-    DEFAULT_WORKLOAD_PATTERN)
 
 from pathlib import Path
+from typing import List
 from xml.etree import ElementTree
-from typing import Dict, List, Optional, Tuple
+
+from ..oltpbench.test_case_oltp import TestCaseOLTPBench
+from ..oltpbench.test_oltpbench import TestOLTPBench
+from ..util.common import run_command
+from ..util.constants import LOG, ErrorCode
+from .constants import (DEFAULT_OLTP_SERVER_ARGS, DEFAULT_OLTP_TEST_CASE,
+                        DEFAULT_QUERY_TRACE_FILE, DEFAULT_TPCC_TIME_SEC,
+                        DEFAULT_TPCC_WEIGHTS)
 
 
 def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
     """
-     Modify a OLTP config file to follow a certain pattern in its duration.
+    Modify an OLTPBench config file to follow a certain pattern in its duration.
 
-    :param xml_config_file:
-    :param rate_pattern:
-    :return:
+    Parameters
+    ----------
+    xml_config_file : str
+        The file to be modified.
+    rate_pattern : List[int]
+        The pattern to be used.
     """
     xml = ElementTree.parse(xml_config_file)
     root = xml.getroot()
@@ -60,11 +56,20 @@ def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
 def gen_oltp_trace(
         tpcc_weight: str, tpcc_rates: List[int], pattern_iter: int) -> bool:
     """
-    Generates the trace by running OLTP TPCC benchmark on the built database
-    :param tpcc_weight:  Weight for the TPCC workload
-    :param tpcc_rates: Arrival rates for each phase in a pattern
-    :param pattern_iter:  Number of patterns
-    :return: True when data generation succeeds
+    Generate the trace by running OLTPBench's TPCC benchmark on the built DBMS.
+
+    Parameters
+    ----------
+    tpcc_weight : str
+        The weight for the TPCC workload.
+    tpcc_rates : List[int]
+        The arrival rates for each phase in a pattern.
+    pattern_iter : int
+        The number of patterns.
+
+    Returns
+    -------
+    True on success.
     """
     # Remove the old query_trace/query_text.csv
     Path(DEFAULT_QUERY_TRACE_FILE).unlink(missing_ok=True)
@@ -94,7 +99,6 @@ def gen_oltp_trace(
 
     # Run the actual test
     ret_val, _, stderr = run_command(test_case.test_command,
-                                     test_case.test_error_msg,
                                      cwd=test_case.test_command_cwd)
     if ret_val != ErrorCode.SUCCESS:
         LOG.error(stderr)
