@@ -71,7 +71,9 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               value->SetValue(type::TypeId::DATE, execution::sql::DateVal(parsed_date));
               break;
             } catch (ConversionException &exception) {
-              throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_DATETIME_VALUE_OUT_OF_RANGE);
+              // For now, treat all conversion errors as 22007.
+              // TODO: Differentiate between 22007 and 22008. See comments in PR #1462.
+              throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
             }
           }
           case type::TypeId::TIMESTAMP: {
@@ -80,6 +82,8 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
               break;
             } catch (ConversionException &exception) {
+              // For now, treat all conversion errors as 22007.
+              // TODO: Differentiate between 22007 and 22008. See comments in PR #1462.
               throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
             }
           }
