@@ -150,7 +150,7 @@ void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
     j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
 
     for (const auto &replica : replicas_) {
-      ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), false);
+      ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), true);
     }
   }
 
