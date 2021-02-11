@@ -1,12 +1,12 @@
 import os
 from glob import glob
 
-from microbench.google_benchmark.gbench_run_result import GBenchRunResult
-from microbench.google_benchmark.gbench_historical_results import GBenchHistoricalResults
-from microbench.jenkins.jenkins import Jenkins
-from microbench.constants import LOCAL_REPO_DIR, JENKINS_URL
-from microbench.benchmarks import BENCHMARKS_TO_RUN
-from util.constants import LOG
+from ..util.constants import LOG
+from .benchmarks import BENCHMARKS_TO_RUN
+from .constants import JENKINS_URL, LOCAL_REPO_DIR
+from .google_benchmark.gbench_historical_results import GBenchHistoricalResults
+from .google_benchmark.gbench_run_result import GBenchRunResult
+from .jenkins.jenkins import Jenkins
 
 
 class ArtifactProcessor(object):
@@ -89,7 +89,8 @@ class ArtifactProcessor(object):
             artifact = self.artifacts.get(key)
             (suite_name, test_name) = key
             LOG.debug("# of artifacts for {SUITE}.{TEST}: {NUM_ARTIFACTS} [required={REQUIRED_ARTIFACTS}]".format(
-                SUITE=suite_name, TEST=test_name, NUM_ARTIFACTS=artifact.get_num_results(), REQUIRED_ARTIFACTS=self.required_num_results))
+                SUITE=suite_name, TEST=test_name, NUM_ARTIFACTS=artifact.get_num_results(),
+                REQUIRED_ARTIFACTS=self.required_num_results))
             if artifact.get_num_results() < self.required_num_results:
                 return False
         return True
@@ -214,7 +215,8 @@ class ArtifactProcessor(object):
         """
         key = (gbench_result.suite_name, gbench_result.test_name)
         LOG.debug("Loading {REF_TYPE} history data for {SUITE_NAME}.{TEST_NAME} [{BENCH_NAME}]".format(
-            REF_TYPE=ref_type, SUITE_NAME=gbench_result.suite_name, TEST_NAME=gbench_result.test_name, BENCH_NAME=bench_name
+            REF_TYPE=ref_type, SUITE_NAME=gbench_result.suite_name, TEST_NAME=gbench_result.test_name,
+            BENCH_NAME=bench_name
         ))
         comparison = {
             "suite": gbench_result.suite_name,
@@ -229,7 +231,7 @@ class ArtifactProcessor(object):
         if ref_type != 'none':
             historical_results = self.artifacts.get(key)
             if historical_results.get_mean_throughput() <= 0 or \
-               not comparison.get('throughput') or comparison.get('throughput') <= 0:
+                    not comparison.get('throughput') or comparison.get('throughput') <= 0:
                 return comparison
 
             comparison['num_results'] = historical_results.get_num_results()

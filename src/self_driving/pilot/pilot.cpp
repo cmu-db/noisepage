@@ -5,11 +5,13 @@
 
 #include "common/action_context.h"
 #include "execution/exec_defs.h"
+#include "loggers/selfdriving_logger.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/pilot/mcts/monte_carlo_tree_search.h"
 #include "self_driving/pilot_util.h"
 #include "settings/settings_manager.h"
 
@@ -38,12 +40,35 @@ void Pilot::PerformPlanning() {
   forecast_ = std::make_unique<WorkloadForecast>(workload_forecast_interval_);
 
   metrics_thread_->PauseMetrics();
-  ExecuteForecast();
+  std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;
+  Pilot::ActionSearch(&best_action_seq);
   metrics_thread_->ResumeMetrics();
 }
 
-void Pilot::ExecuteForecast() {
+void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq) {
+  auto num_segs = forecast_->GetNumberOfSegments();
+  auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
+
+  auto mcst =
+      pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
+  mcst.BestAction(simulation_number_, best_action_seq);
+  for (uint64_t i = 0; i < best_action_seq->size(); i++) {
+    SELFDRIVING_LOG_INFO(fmt::format("Action Selected: timestamp: {}; action string: {} applied to database {}", i,
+                                     best_action_seq->at(i).first,
+                                     static_cast<uint32_t>(best_action_seq->at(i).second)));
+  }
+  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first,
+                         best_action_seq->begin()->second);
+}
+
+void Pilot::ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
+                                     std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction,
+                            uint64_t start_segment_index, uint64_t end_segment_index) {
   NOISEPAGE_ASSERT(forecast_ != nullptr, "Need forecast_ initialized.");
+  // first we make sure the pipeline metrics flag as well as the counters is enabled. Also set the sample rate to be 0
+  // so that every query execution is being recorded
+
+  // record previous parameters to be restored at the end of this function
   const bool old_metrics_enable = settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
   const bool old_counters_enable = settings_manager_->GetBool(settings::Param::counters_enable);
   const auto old_sample_rate = settings_manager_->GetInt64(settings::Param::pipeline_metrics_sample_rate);
@@ -64,12 +89,16 @@ void Pilot::ExecuteForecast() {
   settings_manager_->SetInt(settings::Param::pipeline_metrics_sample_rate, 100, common::ManagedPointer(action_context),
                             EmptySetterCallback);
 
+  std::vector<execution::query_id_t> pipeline_qids;
+  // Collect pipeline metrics of forecasted queries within the interval of segments
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
-                                                          common::ManagedPointer(forecast_));
-  std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t, std::vector<std::vector<double>>>>
-      pipeline_to_prediction;
-  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_data, &pipeline_to_prediction);
+                                                          common::ManagedPointer(forecast_), start_segment_index,
+                                                          end_segment_index, &pipeline_qids);
+  // Then we perform inference through model server to get ou prediction results for all pipelines
+  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_qids, pipeline_data,
+                                   pipeline_to_prediction);
 
+  // restore the old parameters
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
   if (!old_metrics_enable) {
     settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false, common::ManagedPointer(action_context),

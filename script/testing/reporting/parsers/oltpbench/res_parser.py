@@ -1,32 +1,38 @@
 import csv
-import json
 
-from reporting.utils import get_value_by_pattern
-from reporting.constants import LATENCY_ATTRIBUTE_MAPPING
+from ...constants import LATENCY_ATTRIBUTE_MAPPING
+from ...utils import get_value_by_pattern
 
 
 def parse_res_file(path):
-    """Read data from file ends with ".res".
-
-    Args:
-        path (str): The position of the res file.
-
-    Returns:
-        incremental_metrics (list, json array): The throughput at different time.
-
     """
+    Read data from an OLTPBench-generated file that ends with ".res".
+
+    Parameters
+    ----------
+    path : str
+        Path to a ".res" file.
+
+    Returns
+    -------
+    incremental_metrics : [dict]
+        The throughput of the test at different times.
+    """
+    gvbp = get_value_by_pattern
+
+    def get_latency_val(row, pattern):
+        value = gvbp(row, pattern, None)
+        return float("{:.4}".format(value)) if value else value
+
+    incremental_metrics = []
     with open(path) as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
-        incremental_metrics = []
         for row in reader:
-            metrics_instance = {
-                "time": float(get_value_by_pattern(row, 'time', None)),
-                "throughput": float(get_value_by_pattern(row, 'throughput', None))
-            }
-            latency = {}
-            for key, pattern in LATENCY_ATTRIBUTE_MAPPING:
-                value = get_value_by_pattern(row, pattern, None)
-                latency[key] = float("{:.4}".format(value)) if value else value
-            metrics_instance['latency'] = latency
-            incremental_metrics.append(metrics_instance)
-        return incremental_metrics
+            incremental_metrics.append({
+                "time": float(gvbp(row, 'time', None)),
+                "throughput": float(gvbp(row, 'throughput', None)),
+                "latency": {key: get_latency_val(row, pat)
+                            for key, pat in LATENCY_ATTRIBUTE_MAPPING}
+            })
+
+    return incremental_metrics

@@ -4,12 +4,12 @@ This file contains data loading logic from the query trace file produced. Hardco
 query trace producer.
 """
 
-from util.constants import LOG
-
-from typing import Dict, Tuple
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 import csv
+from typing import Dict
+
+import numpy as np
+
+from ..testing.util.constants import LOG
 
 
 class DataLoader:
