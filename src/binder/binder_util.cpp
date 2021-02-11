@@ -71,13 +71,17 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               value->SetValue(type::TypeId::DATE, execution::sql::DateVal(parsed_date));
               break;
             } catch (ConversionException &exception) {
-              throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
+              throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_DATETIME_VALUE_OUT_OF_RANGE);
             }
           }
           case type::TypeId::TIMESTAMP: {
-            auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
-            value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
-            break;
+            try {
+              auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
+              value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
+              break;
+            } catch (ConversionException &exception) {
+              throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
+            }
           }
           case type::TypeId::BOOLEAN: {
             if (std::find(network::POSTGRES_BOOLEAN_STR_TRUES.cbegin(), network::POSTGRES_BOOLEAN_STR_TRUES.cend(),
