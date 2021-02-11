@@ -1,70 +1,95 @@
-#!/usr/bin/python3
-
 import xml.etree.ElementTree as xml
-import json
 
 
 def parse_config_file(path):
     """
-    Read data from file ends with ".expconfig".
+    Read data from a file that ends with ".expconfig".
 
-    Args:
-        path (str): The location of the expconfig file.
+    Parameters
+    ----------
+    path : str
+        Path to an ".expconfig" file.
 
-    Returns:
-        parameters (json): Information about the parameters the test was run with.
-                It contains the follow attributes.
-            client_time (int): The length of time the text executed
-            transaction_weights (json array): The weight used for benchmark.
-
+    Returns
+    -------
+    parameters : dict
+        The parameters that the test was run with. The keys to the dict are:
+        client_time : int
+            The duration that the test should be executed for.
+        transaction_weights : [dict]
+            The weights used for the benchmark.
     """
     config_root = xml.parse(path).getroot()
     return {
-        # The current API uses duration. When we update the schema we can flip this back
-        'client_time': int(parse_client_time(config_root)),
-        # 'client_time': int(parse_client_time(config_root)),
+        'client_time': parse_client_time(config_root),
         'transaction_weights': parse_transaction_weights(config_root)
     }
 
 
 def parse_client_time(config_root):
+    """
+    Parse the client time (the duration that the test should be executed for)
+    from the XML configuration.
+
+    Parameters
+    ----------
+    config_root : xml.Element
+        The root of the XML config file.
+
+    Returns
+    -------
+    client_time : int
+        The duration that the test should be executed for.
+
+    Raises
+    -------
+    KeyError
+        If the relevant key (works.work.time) is not present in the XML file.
+    """
     try:
-        return config_root.find('works').find('work').find('time').text
+        return int(config_root.find('works').find('work').find('time').text)
     except:
-        raise KeyError('Could not parse config xml for time')
+        raise KeyError("Couldn't parse the config file for works.work.time.")
 
 
 def parse_transaction_weights(config_root):
     """
-    Find the transaction types and weights in the xml and match up the 
-    weight with its transaction type
+    Parse the transaction types and weights from the XML configuration.
 
-    Args:
-        config_root( xml.Element): The root of the config xml
+    Parameters
+    ----------
+    config_root : xml.Element
+        The root of the XML config file.
 
-    Returns:
-        transaction_weights (json array): An array of objects formatted
-        as {"name": "transaction name (str)", weight: value(int)}
+    Returns
+    -------
+    transaction_weights : [dict]
+        An array of dictionaries formatted as
+            {"name": str(transaction_name), weight: int(value)}
+        that corresponds to the transaction types and weights.
+
+    Raises
+    -------
+    KeyError
+        If works.work.weights or transactiontype is not a key in the XML file.
+    RuntimeError
+        If there there are a different number of transaction types and weights.
     """
     try:
-        transaction_types = config_root.find(
-            'transactiontypes').findall('transactiontype')
-        weights_values = config_root.find(
-            'works').find('work').findall('weights')
+        transaction_types = \
+            config_root.find('transactiontypes').findall('transactiontype')
+        weights_values = \
+            config_root.find('works').find('work').findall('weights')
     except:
         raise KeyError(
-            'Could not parse config xml for transaction types or weights')
+            "Couldn't parse the config file for txn types and weights.")
 
     if len(transaction_types) != len(weights_values):
-        raise RuntimeError(
-            'number of transaction types do not match the number of weights')
+        raise RuntimeError("Mismatched number of txn types and weights.")
 
-    transaction_weights_xml = zip(transaction_types, weights_values)
-    transaction_weights = []
-    for transaction_type, weight in transaction_weights_xml:
-        transaction_name = transaction_type.find('name').text
-        weight_value = int(weight.text)
-        transaction_weights.append(
-            {'name': transaction_name, 'weight': weight_value})
+    weights = []
+    for txn_type, weight in zip(transaction_types, weights_values):
+        txn_name = txn_type.find('name').text
+        weights.append({'name': txn_name, 'weight': int(weight.text)})
 
-    return transaction_weights
+    return weights

@@ -18,6 +18,8 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "replication/replication_manager.h"
 #include "self_driving/model_server/model_server_manager.h"
+#include "self_driving/pilot/pilot.h"
+#include "self_driving/pilot/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -74,17 +76,23 @@ class DBMain {
     /**
      * @param buffer_segment_pool non-null required component
      * @param gc_enabled argument to the TransactionManager
+     * @param wal_async_commit_enable true if commit callbacks should be invoked by TransactionManager at commit time
+     * rather than waiting until durable on disk and being invoked by the WAL worker. Doesn't make sense to set to true
+     * if WAL is not enabled.
      * @param log_manager argument to the TransactionManager
      */
     TransactionLayer(const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool,
-                     const bool gc_enabled, const common::ManagedPointer<storage::LogManager> log_manager) {
+                     const bool gc_enabled, const bool wal_async_commit_enable,
+                     const common::ManagedPointer<storage::LogManager> log_manager) {
       NOISEPAGE_ASSERT(buffer_segment_pool != nullptr, "Need a buffer segment pool for Transaction layer.");
+      NOISEPAGE_ASSERT(!wal_async_commit_enable || (wal_async_commit_enable && log_manager != DISABLED),
+                       "Doesn't make sense to enable async commit without enabling logging.");
       timestamp_manager_ = std::make_unique<transaction::TimestampManager>();
       deferred_action_manager_ =
           std::make_unique<transaction::DeferredActionManager>(common::ManagedPointer(timestamp_manager_));
-      txn_manager_ = std::make_unique<transaction::TransactionManager>(common::ManagedPointer(timestamp_manager_),
-                                                                       common::ManagedPointer(deferred_action_manager_),
-                                                                       buffer_segment_pool, gc_enabled, log_manager);
+      txn_manager_ = std::make_unique<transaction::TransactionManager>(
+          common::ManagedPointer(timestamp_manager_), common::ManagedPointer(deferred_action_manager_),
+          buffer_segment_pool, gc_enabled, wal_async_commit_enable, log_manager);
     }
 
     /**
@@ -398,8 +406,9 @@ class DBMain {
         log_manager->Start();
       }
 
-      auto txn_layer = std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool), use_gc_,
-                                                          common::ManagedPointer(log_manager));
+      auto txn_layer =
+          std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool), use_gc_,
+                                             wal_async_commit_enable_, common::ManagedPointer(log_manager));
 
       auto storage_layer =
           std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_, block_store_reuse_,
@@ -469,7 +478,22 @@ class DBMain {
             std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
       }
 
-      replication_manager->EnableReplication();
+      std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
+      std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
+      if (use_pilot_thread_) {
+        NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
+        pilot = std::make_unique<selfdriving::Pilot>(
+            model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
+            common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
+            common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
+        pilot_thread = std::make_unique<selfdriving::PilotThread>(
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
+      }
+
+      if (use_replication_) {
+        replication_manager->EnableReplication();
+      }
 
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
@@ -486,6 +510,8 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->pilot_thread_ = std::move(pilot_thread);
+      db_main->pilot_ = std::move(pilot);
       db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
       db_main->replication_manager_ = std::move(replication_manager);
@@ -553,6 +579,15 @@ class DBMain {
      */
     Builder &SetUseLogging(const bool value) {
       use_logging_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value TransactionManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetWalAsyncCommit(const bool value) {
+      wal_async_commit_enable_ = value;
       return *this;
     }
 
@@ -794,7 +829,7 @@ class DBMain {
     bool use_metrics_thread_ = false;
     bool query_trace_metrics_ = false;
     bool pipeline_metrics_ = false;
-    uint32_t pipeline_metrics_interval_ = 9;
+    uint8_t pipeline_metrics_sample_rate_ = 10;
     bool transaction_metrics_ = false;
     bool logging_metrics_ = false;
     bool gc_metrics_ = false;
@@ -808,7 +843,13 @@ class DBMain {
     int32_t wal_persist_interval_ = 100;
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
+    bool wal_async_commit_enable_ = false;
     bool use_gc_ = false;
+    bool use_pilot_thread_ = false;
+    bool pilot_planning_ = false;
+    uint64_t pilot_interval_ = 1e7;
+    uint64_t workload_forecast_interval_ = 1e7;
+    std::string model_save_path_;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -858,6 +899,7 @@ class DBMain {
       use_logging_ = settings_manager->GetBool(settings::Param::wal_enable);
       if (use_logging_) {
         wal_file_path_ = settings_manager->GetString(settings::Param::wal_file_path);
+        wal_async_commit_enable_ = settings_manager->GetBool(settings::Param::wal_async_commit_enable);
         wal_num_buffers_ = static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_num_buffers));
         wal_serialization_interval_ = settings_manager->GetInt(settings::Param::wal_serialization_interval);
         wal_persist_interval_ = settings_manager->GetInt(settings::Param::wal_persist_interval);
@@ -867,8 +909,13 @@ class DBMain {
 
       use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
       use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
+      use_pilot_thread_ = settings_manager->GetBool(settings::Param::use_pilot_thread);
+      pilot_planning_ = settings_manager->GetBool(settings::Param::pilot_planning);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+      pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
+      workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
+      model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
@@ -887,7 +934,7 @@ class DBMain {
 
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
-      pipeline_metrics_interval_ = settings_manager->GetInt(settings::Param::pipeline_metrics_interval);
+      pipeline_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::pipeline_metrics_sample_rate);
       transaction_metrics_ = settings_manager->GetBool(settings::Param::transaction_metrics_enable);
       logging_metrics_ = settings_manager->GetBool(settings::Param::logging_metrics_enable);
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
@@ -911,8 +958,8 @@ class DBMain {
      */
     std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
-      metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE,
-                                               pipeline_metrics_interval_);
+      metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE,
+                                           pipeline_metrics_sample_rate_);
 
       if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
       if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
@@ -991,6 +1038,18 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
+  common::ManagedPointer<selfdriving::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<selfdriving::PilotThread> GetPilotThread() const {
+    return common::ManagedPointer(pilot_thread_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
   common::ManagedPointer<trafficcop::TrafficCop> GetTrafficCop() const { return common::ManagedPointer(traffic_cop_); }
 
   /**
@@ -1036,6 +1095,8 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
+  std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<replication::ReplicationManager> replication_manager_;

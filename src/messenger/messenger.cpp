@@ -504,7 +504,8 @@ void Messenger::ProcessMessage(const ZmqMessage &msg) {
       // Special function: ECHO server.
       // ROUTER sockets must send their intended recipient as the first sndmore packet.
       // router_data must be the identity of a peer that connected directly to the router socket.
-      MESSENGER_LOG_TRACE(fmt::format("Callback: echo {} {}", msg.GetRoutingId(), msg.GetRawPayload()));
+      MESSENGER_LOG_TRACE(
+          fmt::format("[PID={}] Callback: echo {} {}", ::getpid(), msg.GetRoutingId(), msg.GetRawPayload()));
       zmq::message_t router_data(msg.GetRoutingId().data(), msg.GetRoutingId().size());
       if (zmq_default_socket_->send(router_data, zmq::send_flags::sndmore).has_value()) {
         ZmqMessage reply = ZmqMessage::Build(0, msg.GetSourceCallbackId(), identity_, msg.GetMessage());
@@ -518,7 +519,7 @@ void Messenger::ProcessMessage(const ZmqMessage &msg) {
     default: {
       NOISEPAGE_ASSERT(recv_cb_id > static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS), "Bad message ID.");
       // Default: there should be a stored callback.
-      MESSENGER_LOG_TRACE(fmt::format("Callback: invoking stored callback {}", recv_cb_id));
+      MESSENGER_LOG_TRACE(fmt::format("[PID={}] Callback: invoking stored callback {}", ::getpid(), recv_cb_id));
       auto &callback = callbacks_.at(recv_cb_id);
       callback(common::ManagedPointer(this), msg);
       callbacks_.erase(recv_cb_id);

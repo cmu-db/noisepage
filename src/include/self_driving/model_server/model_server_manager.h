@@ -13,9 +13,9 @@
 #pragma once
 
 #include <atomic>
-#include <condition_variable>
+#include <condition_variable>  // NOLINT
 #include <string>
-#include <thread>
+#include <thread>  // NOLINT
 #include <utility>
 #include <vector>
 

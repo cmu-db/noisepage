@@ -872,6 +872,10 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->pg_proc_.procs_);
       break;
     }
+    case (catalog::postgres::PgStatistic::STATISTIC_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_stat_.statistics_);
+      break;
+    }
     default:
       table_ptr = db_catalog_ptr->GetTable(common::ManagedPointer(txn), table_oid);
   }
@@ -984,6 +988,10 @@ common::ManagedPointer<storage::index::Index> RecoveryManager::GetCatalogIndex(
 
     case (catalog::postgres::PgProc::PRO_NAME_INDEX_OID.UnderlyingValue()): {
       return db_catalog->pg_proc_.procs_name_index_;
+    }
+
+    case (catalog::postgres::PgStatistic::STATISTIC_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_stat_.statistic_oid_index_;
     }
 
     default:

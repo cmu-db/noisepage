@@ -94,6 +94,11 @@ class Builder {
   static Schema GetProcTableSchema();
 
   /**
+   * @return schema object for pg_statistic table
+   */
+  static Schema GetStatisticTableSchema();
+
+  /**
    * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_namespace
    */
@@ -224,6 +229,12 @@ class Builder {
    * @return schema object for the name index on pg_proc
    */
   static IndexSchema GetProcNameIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the table/oid index on pg_statistic
+   */
+  static IndexSchema GetStatisticOidIndexSchema(db_oid_t db);
 
   /**
    * Instantiate a new unique index with the given schema and oid

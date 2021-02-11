@@ -175,6 +175,11 @@ SELECT item_name FROM shipment WHERE qty <= (SELECT SUM(amount) FROM part WHERE 
 14 values hashing to eeafa4e65b8e56d2198e1a4703307d57
 
 query T nosort
+SELECT item_name FROM shipment WHERE qty <= (SELECT SUM(amount) FROM part WHERE shipment.pno = part.pno) order by item_name;
+----
+14 values hashing to eeafa4e65b8e56d2198e1a4703307d57
+
+query T nosort
 SELECT item_name FROM shipment WHERE qty < (SELECT SUM(amount) FROM part INNER JOIN shipment s on part.pno = s.pno) order by item_name;
 ----
 14 values hashing to eeafa4e65b8e56d2198e1a4703307d57

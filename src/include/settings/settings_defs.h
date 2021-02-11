@@ -115,6 +115,15 @@ SETTING_string(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Asynchronous commit txns when WAL is enabled
+SETTING_bool(
+    wal_async_commit_enable,
+    "Enable commit confirmation before results are durable in the WAL. (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     wal_num_buffers,
@@ -133,8 +142,8 @@ SETTING_int(
     100,
     1,
     10000,
-    false,
-    noisepage::settings::Callbacks::NoOp
+    true,
+    noisepage::settings::Callbacks::WalSerializationInterval
 )
 
 // Log file persisting interval
@@ -184,6 +193,26 @@ SETTING_int(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int64(
+    workload_forecast_interval,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: ns)",
+    10000000,
+    10000000,
+    1000000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    pilot_interval,
+    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000, unit: ns)",
+    1000000,
+    1000000,
+    10000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",
@@ -198,6 +227,22 @@ SETTING_bool(
     true,
     false,
     noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    use_pilot_thread,
+    "Use a thread for the pilot (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    pilot_planning,
+    "Start planning in pilot (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::PilotEnablePlanning
 )
 
 SETTING_bool(
@@ -249,14 +294,13 @@ SETTING_bool(
 )
 
 SETTING_int(
-    pipeline_metrics_interval,
-    "Sampling rate of metrics collection for the ExecutionEngine pipelines with 0 = 100%, 1 = 50%, "
-    "9 = 10%, X = 1/(X+1)% (default: 9 for 10%).",
-    9,
-    0,
+    pipeline_metrics_sample_rate,
+    "Sampling rate of metrics collection for the ExecutionEngine pipelines.",
     10,
+    0,
+    100,
     true,
-    noisepage::settings::Callbacks::MetricsPipelineSamplingInterval
+    noisepage::settings::Callbacks::MetricsPipelineSampleRate
 )
 
 SETTING_bool(
@@ -382,6 +426,15 @@ SETTING_string(
     model_server_path,
     "The python model server script to invoke (default: ../../script/model/model_server.py)",
     "../../script/model/model_server.py",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+// Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH)
+SETTING_string(
+    model_save_path,
+    "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
+    "/../script/model/terrier_model_server_trained/mini_model_test.pickle",
     false,
     noisepage::settings::Callbacks::NoOp
 )

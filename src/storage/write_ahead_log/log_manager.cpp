@@ -72,4 +72,10 @@ void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment
   log_serializer_task_->AddBufferToFlushQueue(buffer_segment);
 }
 
+void LogManager::SetSerializationInterval(int32_t interval) {
+  NOISEPAGE_ASSERT(interval > 0, "Log serialization interval should be greater than 0");
+  serialization_interval_ = std::chrono::microseconds(interval);
+  if (log_serializer_task_ != nullptr) log_serializer_task_->SetSerializationInterval(interval);
+}
+
 }  // namespace noisepage::storage

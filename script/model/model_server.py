@@ -37,6 +37,7 @@ from data_class import opunit_data
 from mini_trainer import MiniTrainer
 from util import logging_util
 from type import OpUnit
+from info import data_info
 
 logging_util.init_logging('info')
 
@@ -259,7 +260,7 @@ class ModelServer:
 
         # Pickle dump the model
         with save_path.open(mode='wb') as f:
-            pickle.dump(model_map, f)
+            pickle.dump((model_map, data_info.instance), f)
 
         return True, ""
 
@@ -276,20 +277,23 @@ class ModelServer:
         if not save_path.exists():
             return None
 
+        # use the path string as the key of the cache
+        save_path_str = str(save_path)
+
         # Load from cache
-        if self.cache.get(save_path, None) is not None:
-            return self.cache[save_path]
+        if self.cache.get(save_path_str, None) is not None:
+            return self.cache[save_path_str]
 
         # Load into cache
         with save_path.open(mode='rb') as f:
-            model = pickle.load(f)
+            model, data_info.instance = pickle.load(f)
 
             # TODO(ricky): model checking here?
             if len(model) == 0:
                 logging.warning(f"Empty model at {str(save_path)}")
                 return None
 
-            self.cache[str(save_path)] = model
+            self.cache[save_path_str] = model
             return model
 
     def _infer(self, data: Dict) -> Tuple[List, bool, str]:

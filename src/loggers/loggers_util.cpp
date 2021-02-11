@@ -15,6 +15,7 @@
 #include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
 #include "loggers/replication_logger.h"
+#include "loggers/selfdriving_logger.h"
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
@@ -43,6 +44,7 @@ void LoggersUtil::Initialize() {
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
     replication::InitReplicationLogger();
+    selfdriving::InitSelfDrivingLogger();
     settings::InitSettingsLogger();
     storage::InitIndexLogger();
     storage::InitStorageLogger();
