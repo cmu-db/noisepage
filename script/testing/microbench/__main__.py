@@ -1,18 +1,19 @@
+import argparse
+import json
+import logging
 import os
 import sys
-import argparse
-import logging
-import json
 
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
-from microbench.artifact_processor import ArtifactProcessor
-from microbench.micro_benchmarks_runner import MicroBenchmarksRunner
-from microbench.config import Config
-from microbench.results_output import send_results, table_dump
-from microbench.constants import (BENCHMARK_THREADS, BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH, MIN_REF_VALUES)
-from util.constants import LOG, PERFORMANCE_STORAGE_SERVICE_API
+from ..util.constants import LOG, PERFORMANCE_STORAGE_SERVICE_API
+from .artifact_processor import ArtifactProcessor
+from .config import Config
+from .constants import (BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH,
+                        BENCHMARK_THREADS, MIN_REF_VALUES)
+from .micro_benchmarks_runner import MicroBenchmarksRunner
+from .results_output import send_results, table_dump
 
 # =========================================================
 # MAIN

@@ -5,8 +5,9 @@ String utilsFileName  = 'Jenkinsfile-utils'
 pipeline {
     agent none
     environment {
-        //Do not change.
-        //Performance Storage Service(Django) authentication information. The credentials can only be changed on Jenkins webpage
+        // Do not change.
+        // Performance Storage Service(Django) authentication information.
+        // The credentials can only be changed on the Jenkins webpage.
         PSS_CREATOR = credentials('pss-creator')
     }
     options {
@@ -37,7 +38,7 @@ pipeline {
 
                 sh script: '''
                 cd build
-                python3 ../script/testing/artifact_stats/run_artifact_stats.py --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                PYTHONPATH=.. python3 -m script.testing.artifact_stats --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label: 'Artifact Stats'
             }
             post {
@@ -61,19 +62,19 @@ pipeline {
                 catchError(stageResult: 'Failure'){
                     sh script:'''
                     cd build
-                    timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                     ''', label: 'OLTPBench (HDD WAL)'
                 }
                 catchError(stageResult: 'Failure'){
                     sh script:'''
                     cd build
-                    timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                     ''', label: 'OLTPBench (RamDisk WAL)'
                 }
                 catchError(stageResult: 'Failure'){
                     sh script:'''
                     cd build
-                    timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                     ''', label: 'OLTPBench (No WAL)'
                 }
 
@@ -105,7 +106,7 @@ pipeline {
                 //  WAL Path: Ramdisk
                 sh script:'''
                 cd script/testing
-                python3 microbench/run_microbench.py --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                PYTHONPATH=.. python3 -m script.testing.microbench --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label:'Microbenchmark'
 
                 archiveArtifacts 'script/testing/*.json'

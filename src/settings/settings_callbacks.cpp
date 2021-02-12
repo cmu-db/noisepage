@@ -123,11 +123,12 @@ void Callbacks::MetricsPipeline(void *const old_value, void *const new_value, DB
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
-void Callbacks::MetricsPipelineSamplingInterval(void *old_value, void *new_value, DBMain *db_main,
-                                                common::ManagedPointer<common::ActionContext> action_context) {
+void Callbacks::MetricsPipelineSampleRate(void *old_value, void *new_value, DBMain *db_main,
+                                          common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int interval = *static_cast<int *>(new_value);
-  db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, interval);
+  db_main->GetMetricsManager()->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE,
+                                                    static_cast<uint8_t>(interval));
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

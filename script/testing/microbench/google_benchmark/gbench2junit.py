@@ -1,8 +1,8 @@
 import json
 from xml.etree import ElementTree
 
-from microbench.google_benchmark.gbench_test_result import GBenchTestResult
-from util.constants import LOG
+from ...util.constants import LOG
+from .gbench_test_result import GBenchTestResult
 
 
 class GBenchToJUnit(object):
