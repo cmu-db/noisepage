@@ -4,6 +4,7 @@
 #include "execution/execution_util.h"
 #include "execution/vm/module.h"
 #include "main/db_main.h"
+#include "test_util/fs_util.h"
 #include "test_util/tpcc/workload_cached.h"
 
 namespace noisepage::runner {
@@ -25,22 +26,23 @@ class TPCCRunner : public benchmark::Fixture {
   };
 
   void SetUp(const benchmark::State &state) final {
-    noisepage::execution::ExecutionUtil::InitTPL();
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
-    auto db_main_builder = DBMain::Builder()
-                               .SetUseGC(true)
-                               .SetSettingsParameterMap(std::move(param_map))
-                               .SetUseCatalog(true)
-                               .SetUseGCThread(true)
-                               .SetUseMetrics(true)
-                               .SetUseMetricsThread(true)
-                               .SetBlockStoreSize(1000)
-                               .SetBlockStoreReuse(1000)
-                               .SetRecordBufferSegmentSize(1000000)
-                               .SetRecordBufferSegmentReuse(1000000)
-                               .SetUseSettingsManager(true)
-                               .SetUseStatsStorage(true);
+    auto db_main_builder =
+        DBMain::Builder()
+            .SetUseGC(true)
+            .SetSettingsParameterMap(std::move(param_map))
+            .SetUseCatalog(true)
+            .SetUseGCThread(true)
+            .SetUseMetrics(true)
+            .SetUseMetricsThread(true)
+            .SetBlockStoreSize(1000)
+            .SetBlockStoreReuse(1000)
+            .SetRecordBufferSegmentSize(1000000)
+            .SetRecordBufferSegmentReuse(1000000)
+            .SetUseSettingsManager(true)
+            .SetUseStatsStorage(true)
+            .SetBytecodeHandlersPath(common::FindFileFrom("bytecode_handlers_ir.bc", common::GetProjectRootPath()));
 
     db_main_ = db_main_builder.Build();
 
@@ -54,7 +56,6 @@ class TPCCRunner : public benchmark::Fixture {
   }
 
   void TearDown(const benchmark::State &state) final {
-    noisepage::execution::ExecutionUtil::ShutdownTPL();
     // free db main here so we don't need to use the loggers anymore
     db_main_.reset();
   }
