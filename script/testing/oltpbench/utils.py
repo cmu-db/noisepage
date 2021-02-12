@@ -38,6 +38,8 @@ def parse_command_line_args():
     aparser.add_argument("--dry-run",
                          action='store_true',
                          help="Start and stop DB server without running the OLTPBench tests")
+    aparser.add_argument("--github-token", 
+                         help="GitHub token for calling REST API")
 
     args = vars(aparser.parse_args())
 

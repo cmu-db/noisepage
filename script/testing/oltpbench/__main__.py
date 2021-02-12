@@ -97,6 +97,9 @@ def generate_tests(args):
 if __name__ == "__main__":
     args = parse_command_line_args()
 
+    if args.github_token:
+        os.environ['GITHUB_TOKEN'] = args.github_token
+
     exit_code = ErrorCode.ERROR
     try:
         tests = generate_tests(args)

@@ -9,6 +9,7 @@ pipeline {
         // Performance Storage Service(Django) authentication information.
         // The credentials can only be changed on the Jenkins webpage.
         PSS_CREATOR = credentials('pss-creator')
+        GITHUB_TOKEN = credentials('github-token-read-only')
     }
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
@@ -38,7 +39,7 @@ pipeline {
 
                 sh script: '''
                 cd build
-                PYTHONPATH=.. python3 -m script.testing.artifact_stats --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                PYTHONPATH=.. python3 -m script.testing.artifact_stats --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW} --github-token=${GITHUB_TOKEN}
                 ''', label: 'Artifact Stats'
             }
             post {
@@ -62,19 +63,19 @@ pipeline {
                 catchError(stageResult: 'Failure'){
                     sh script:'''
                     cd build
-                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW} --github-token=${GITHUB_TOKEN}
                     ''', label: 'OLTPBench (HDD WAL)'
                 }
                 catchError(stageResult: 'Failure'){
                     sh script:'''
                     cd build
-                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW} --github-token=${GITHUB_TOKEN}
                     ''', label: 'OLTPBench (RamDisk WAL)'
                 }
                 catchError(stageResult: 'Failure'){
                     sh script:'''
                     cd build
-                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW} --github-token=${GITHUB_TOKEN}
                     ''', label: 'OLTPBench (No WAL)'
                 }
 
@@ -106,7 +107,7 @@ pipeline {
                 //  WAL Path: Ramdisk
                 sh script:'''
                 cd script/testing
-                PYTHONPATH=.. python3 -m script.testing.microbench --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                PYTHONPATH=.. python3 -m script.testing.microbench --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW} --github-token=${GITHUB_TOKEN}
                 ''', label:'Microbenchmark'
 
                 archiveArtifacts 'script/testing/*.json'

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import os
 import sys
 
 from ..reporting.report_result import report_artifact_stats_result
@@ -75,10 +76,16 @@ if __name__ == "__main__":
                         type=str,
                         help="Performance Storage Service password")
 
+    parser.add_argument("--github-token", 
+                        help="GitHub token for calling REST API")
+
     args = parser.parse_args()
 
     if args.debug:
         LOG.setLevel(logging.DEBUG)
+
+    if args.github_token:
+        os.environ['GITHUB_TOKEN'] = args.github_token
 
     # Get the BaseBinaryMetricsCollector subclasses imported from binary_metrics.binary_metrics_collectors
     # Effectively this adds each binary metric collector class into an array to be instantiated later.

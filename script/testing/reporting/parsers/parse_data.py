@@ -2,6 +2,7 @@ import os
 import re
 from decimal import Decimal
 
+import requests
 import distro
 
 from ...util.constants import LOG
@@ -96,7 +97,7 @@ def _parse_jenkins_env_vars():
         },
         'github': {
             'git_branch': os.environ['GIT_BRANCH'],
-            'git_commit_id': os.environ['GIT_COMMIT'],
+            'git_commit_id': _get_git_commit_id(os.environ['GIT_BRANCH']),
         },
         'environment': {
             'os_version': ' '.join(distro.linux_distribution()),
@@ -106,6 +107,59 @@ def _parse_jenkins_env_vars():
     }
     return metadata
 
+def _get_git_commit_id(git_branch):
+    """
+    Get the commit hash.
+    
+    Parameters
+    ----------
+    git_branch : str
+        The branch that the code is from. For pull-requests this will be 
+        PR-####.
+
+    Returns
+    -------
+    str
+        The commit hash for the latest commit on the branch.
+    """
+    pr_number_match = re.search('PR-\d+', git_branch)
+    if pr_number_match:
+        # Get the hash from the last commit to the PR.
+        try:
+            pr_number = int(pr_number_match.group(1))
+            commits = _get_git_pr_commits(pr_number)
+            latest_commit = commits[-1]
+            return latest_commit.get('sha')
+        except:
+            # If there are problems with API call just use the env variable.
+            pass
+    # Non-PRs won't have a merge commit so this value is valid.
+    return os.environ['GIT_COMMIT']
+
+def _get_git_pr_commits(pr_number):
+    """
+    Get all the commits for a PR.
+
+    Parameters
+    ----------
+    pr_number : int
+        The number of the PR. For PR-1234 the pr_number would be 1234.
+
+    Returns
+    -------
+    list of dict
+        A list of commits as dicts.
+    """
+    headers = {}
+    if os.environ.get('GITHUB_TOKEN'):
+        # If there is a token use it. Otherwise it will use unauthenticated
+        # call that has a low rate limit.
+        headers['Authorization'] = f'token {os.environ.get("GITHUB_TOKEN")}'
+
+    response = requests.get(f'https://api.github.com/repos/cmu-db/noisepage/pulls/{pr_number}/commits',
+                            headers=headers)
+    response.raise_for_status()
+    return response.json()
 
 def parse_oltpbench_files(results_dir):
     """

@@ -95,6 +95,9 @@ if __name__ == "__main__":
                         type=str,
                         help="Performance Storage Service password")
 
+    parser.add_argument("--github-token", 
+                        help="GitHub token for calling REST API")
+
     args = parser.parse_args()
 
     # -------------------------------------------------------
@@ -104,6 +107,9 @@ if __name__ == "__main__":
     if args.debug:
         LOG.setLevel(logging.DEBUG)
     LOG.debug("args: {}".format(args))
+
+    if args.github_token:
+        os.environ['GITHUB_TOKEN'] = args.github_token
 
     config_args = {
         'publish_results_env': args.publish_results
