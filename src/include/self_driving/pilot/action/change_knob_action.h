@@ -26,19 +26,18 @@ class ChangeKnobAction : public AbstractAction {
    * @param settings_manager SettingsManager (used to find our the current knob value before applying the change_value)
    */
   ChangeKnobAction(settings::Param param, std::string param_name, T change_value,
-                   common::ManagedPointer<settings::SettingsManager> settings_manager)
-      : AbstractAction(ActionType::CHANGE_KNOB),
-        param_(param),
-        param_name_(std::move(param_name)),
-        change_value_(change_value),
-        settings_manager_(settings_manager) {}
+                   common::ManagedPointer<settings::SettingsManager> settings_manager);
 
   const std::string &GetSQLCommand() override;
+
+  bool IsValid() override;
 
  private:
   settings::Param param_;
   std::string param_name_;
   T change_value_;
+  T param_min_value_;
+  T param_max_value_;
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
 };
 

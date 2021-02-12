@@ -277,9 +277,12 @@ class ModelServer:
         if not save_path.exists():
             return None
 
+        # use the path string as the key of the cache
+        save_path_str = str(save_path)
+
         # Load from cache
-        if self.cache.get(save_path, None) is not None:
-            return self.cache[save_path]
+        if self.cache.get(save_path_str, None) is not None:
+            return self.cache[save_path_str]
 
         # Load into cache
         with save_path.open(mode='rb') as f:
@@ -290,7 +293,7 @@ class ModelServer:
                 logging.warning(f"Empty model at {str(save_path)}")
                 return None
 
-            self.cache[str(save_path)] = model
+            self.cache[save_path_str] = model
             return model
 
     def _infer(self, data: Dict) -> Tuple[List, bool, str]:

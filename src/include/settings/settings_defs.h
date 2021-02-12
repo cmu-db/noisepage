@@ -107,6 +107,15 @@ SETTING_string(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Asynchronous commit txns when WAL is enabled
+SETTING_bool(
+    wal_async_commit_enable,
+    "Enable commit confirmation before results are durable in the WAL. (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     wal_num_buffers,
@@ -125,8 +134,8 @@ SETTING_int(
     100,
     1,
     10000,
-    false,
-    noisepage::settings::Callbacks::NoOp
+    true,
+    noisepage::settings::Callbacks::WalSerializationInterval
 )
 
 // Log file persisting interval
@@ -277,14 +286,13 @@ SETTING_bool(
 )
 
 SETTING_int(
-    pipeline_metrics_interval,
-    "Sampling rate of metrics collection for the ExecutionEngine pipelines with 0 = 100%, 1 = 50%, "
-    "9 = 10%, X = 1/(X+1)% (default: 9 for 10%).",
-    9,
-    0,
+    pipeline_metrics_sample_rate,
+    "Sampling rate of metrics collection for the ExecutionEngine pipelines.",
     10,
+    0,
+    100,
     true,
-    noisepage::settings::Callbacks::MetricsPipelineSamplingInterval
+    noisepage::settings::Callbacks::MetricsPipelineSampleRate
 )
 
 SETTING_bool(

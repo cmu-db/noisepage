@@ -85,9 +85,12 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-    transaction::TransactionManager txn_manager{
-        common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-        common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
+    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool_),
+                                                true,
+                                                false,
+                                                common::ManagedPointer(log_manager_)};
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
@@ -177,9 +180,12 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     log_manager_->Start();
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-    transaction::TransactionManager txn_manager{
-        common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-        common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
+    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool_),
+                                                true,
+                                                false,
+                                                common::ManagedPointer(log_manager_)};
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
@@ -265,7 +271,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry{common::ManagedPointer(metrics_manager)};
     // we need transactions, TPCC database, and GC
@@ -276,9 +282,12 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     log_manager_->Start();
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-    transaction::TransactionManager txn_manager{
-        common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-        common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
+    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool_),
+                                                true,
+                                                false,
+                                                common::ManagedPointer(log_manager_)};
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
@@ -368,14 +377,17 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 0);
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-    transaction::TransactionManager txn_manager{
-        common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-        common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
+    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool_),
+                                                true,
+                                                false,
+                                                common::ManagedPointer(log_manager_)};
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);

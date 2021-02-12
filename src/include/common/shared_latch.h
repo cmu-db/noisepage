@@ -1,18 +1,13 @@
 #pragma once
 
-#include <tbb/reader_writer_lock.h>
+#include <shared_mutex>
 
 #include "common/macros.h"
 
 namespace noisepage::common {
 
 /**
- * A cheap and easy shared (reader-writer) latch, currently wraps tbb::reader_writer_lock. From Intel's docs:
- *
- * A reader_writer_lock is scalable and nonrecursive. The implementation handles lock requests on a first-come
- * first-serve basis except that writers have preference over readers. Waiting threads busy wait, which can degrade
- * system performance if the wait is long. However, if the wait is typically short, a reader_writer_lock can provide
- * performance competitive with other mutexes.
+ * A cheap(?) and easy shared (reader-writer) latch, currently wraps std::shared_mutex.
  */
 class SharedLatch {
  public:
@@ -24,7 +19,7 @@ class SharedLatch {
   /**
    * Acquire shared lock on mutex.
    */
-  void LockShared() { latch_.lock_read(); }
+  void LockShared() { latch_.lock_shared(); }
 
   /**
    * Try to acquire exclusive lock on mutex.
@@ -36,12 +31,17 @@ class SharedLatch {
    * Try to acquire shared lock on mutex.
    * @return true if lock acquired, false otherwise.
    */
-  bool TryLockShared() { return latch_.try_lock_read(); }
+  bool TryLockShared() { return latch_.try_lock_shared(); }
 
   /**
-   * Release lock.
+   * Release exclusive ownership of lock.
    */
-  void Unlock() { latch_.unlock(); }
+  void UnlockExclusive() { latch_.unlock(); }
+
+  /**
+   * Release shared ownership of lock.
+   */
+  void UnlockShared() { latch_.unlock_shared(); }
 
   /**
    * Scoped read latch that guarantees releasing the latch when destructed.
@@ -56,7 +56,7 @@ class SharedLatch {
     /**
      * Release write lock (if acquired).
      */
-    ~ScopedSharedLatch() { rw_latch_->Unlock(); }
+    ~ScopedSharedLatch() { rw_latch_->UnlockShared(); }
     DISALLOW_COPY_AND_MOVE(ScopedSharedLatch)
 
    private:
@@ -76,14 +76,14 @@ class SharedLatch {
     /**
      * Release read lock (if acquired).
      */
-    ~ScopedExclusiveLatch() { rw_latch_->Unlock(); }
+    ~ScopedExclusiveLatch() { rw_latch_->UnlockExclusive(); }
     DISALLOW_COPY_AND_MOVE(ScopedExclusiveLatch)
    private:
     SharedLatch *const rw_latch_;
   };
 
  private:
-  tbb::reader_writer_lock latch_;
+  std::shared_mutex latch_;
 };
 
 }  // namespace noisepage::common

@@ -10,20 +10,13 @@
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "network/connection_handle_factory.h"
-#include "network/noisepage_server.h"
-#include "storage/garbage_collector.h"
-#include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
-#include "traffic_cop/traffic_cop_defs.h"
-#include "transaction/deferred_action_manager.h"
-#include "transaction/transaction_manager.h"
 
 namespace noisepage::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
  protected:
-  void SetUp() override {
+  void StartServer(const bool wal_async_commit_enable) {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     noisepage::settings::SettingsManager::ConstructParamMap(param_map);
 
@@ -38,6 +31,7 @@ class TrafficCopTests : public TerrierTest {
                    .SetUseLogging(true)
                    .SetUseNetwork(true)
                    .SetUseExecution(true)
+                   .SetWalAsyncCommit(wal_async_commit_enable)
                    .Build();
 
     db_main_->GetNetworkLayer()->GetServer()->RunServer();
@@ -55,6 +49,7 @@ class TrafficCopTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, EmptyCommitTest) {
+  StartServer(false);
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -68,6 +63,7 @@ TEST_F(TrafficCopTests, EmptyCommitTest) {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, EmptyAbortTest) {
+  StartServer(false);
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -81,6 +77,7 @@ TEST_F(TrafficCopTests, EmptyAbortTest) {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, EmptyStatementTest) {
+  StartServer(false);
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -95,6 +92,7 @@ TEST_F(TrafficCopTests, EmptyStatementTest) {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, BadParseTest) {
+  StartServer(false);
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -112,6 +110,7 @@ TEST_F(TrafficCopTests, BadParseTest) {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, BadBindingTest) {
+  StartServer(false);
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -128,6 +127,7 @@ TEST_F(TrafficCopTests, BadBindingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, BasicTest) {
+  StartServer(false);
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -149,6 +149,7 @@ TEST_F(TrafficCopTests, BasicTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
+  StartServer(false);
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -176,6 +177,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ArithmeticErrorTest) {
+  StartServer(false);
   pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                           port_, catalog::DEFAULT_DATABASE));
 
@@ -186,6 +188,25 @@ TEST_F(TrafficCopTests, ArithmeticErrorTest) {
     std::string error(e.what());
     std::string expect("ERROR:  ASin is undefined outside [-1,1]\n");
     EXPECT_EQ(error, expect);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, AsyncCommitTest) {
+  StartServer(true);
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+    txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+    txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+
+    pqxx::result r = txn1.exec("SELECT * FROM TableA");
+    EXPECT_EQ(r.size(), 1);
+    txn1.commit();
+  } catch (const std::exception &e) {
+    EXPECT_TRUE(false);
   }
 }
 

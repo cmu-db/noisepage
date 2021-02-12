@@ -1,5 +1,9 @@
 # Testing Scripts
 
+## Documentation
+
+Read and follow this: https://numpydoc.readthedocs.io/en/latest/format.html
+
 ## Folder structure
 All tests are compatible with python3
 - `util`: all the common utilities for running all kinds of tests
@@ -54,8 +58,19 @@ If you specify the `--query-mode extended`, you then can also indicate the prepa
 - run the post-suite task (test suite specific) 
 - print out the logs to the stdout
 
-## How to create a new test type
+### Adding a new test case
 The classes in the `util` folder can be used and extend to help you create a new test type.
+
+All test cases should inherit from the `TestCase` class. Anyone is free to modify any attribute from the base class.
+- Mandatory attributes
+  - `test_command` (`List(str)`): the command to run the test case
+- Optional attributes
+  - `test_command_cwd` (`str`): the working directory to run the test command
+- Optional functions
+  - `run_pre_test`: the pre-test tasks required for the test
+    - config the xml file, etc.
+  - `run_post_test`: the post-test tasks required for the test
+    - e.g. parse the output json, etc.
 
 ### Base classes
 - `NoisePageServer`

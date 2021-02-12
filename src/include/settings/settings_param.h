@@ -13,6 +13,8 @@ class DBMain;
 
 namespace noisepage::selfdriving::pilot {
 class ChangeKnobActionGenerator;
+template <class T>
+class ChangeKnobAction;
 namespace test {
 class GenerateChangeKnobAction_GenerateAction_Test;
 }
@@ -75,6 +77,9 @@ class ParamInfo {
   friend class noisepage::DBMain;
   friend class SettingsManager;
   friend class selfdriving::pilot::ChangeKnobActionGenerator;
+  friend class selfdriving::pilot::ChangeKnobAction<bool>;
+  friend class selfdriving::pilot::ChangeKnobAction<int32_t>;
+  friend class selfdriving::pilot::ChangeKnobAction<int64_t>;
   friend class selfdriving::pilot::test::GenerateChangeKnobAction_GenerateAction_Test;
   std::string name_;
   parser::ConstantValueExpression value_;

@@ -14,6 +14,7 @@ void ChangeKnobActionGenerator::GenerateActions(const std::vector<std::unique_pt
                                                 std::vector<action_id_t> *candidate_actions) {
   NOISEPAGE_ASSERT(settings_manager != nullptr, "No SettingsManager provided!");
   GenerateActionForType<bool>(settings_manager, action_map, candidate_actions);
+  GenerateActionForType<int32_t>(settings_manager, action_map, candidate_actions);
   GenerateActionForType<int64_t>(settings_manager, action_map, candidate_actions);
 }
 
@@ -24,6 +25,8 @@ void ChangeKnobActionGenerator::GenerateActionForType(
   common::ManagedPointer<std::map<settings::Param, std::vector<std::pair<T, T>>>> knob_change_value_map = nullptr;
   if constexpr (std::is_same<T, bool>::value) {  // NOLINT
     knob_change_value_map = ChangeKnobValueConfig::GetBoolChangeValueMap();
+  } else if constexpr (std::is_same<T, int32_t>::value) {  // NOLINT
+    knob_change_value_map = ChangeKnobValueConfig::GetIntChangeValueMap();
   } else if constexpr (std::is_same<T, int64_t>::value) {  // NOLINT
     knob_change_value_map = ChangeKnobValueConfig::GetInt64ChangeValueMap();
   } else {
@@ -58,6 +61,9 @@ void ChangeKnobActionGenerator::GenerateActionForType(
 
       // Populate the reverse actions
       action_map->at(first_action_id)->AddReverseAction(second_action_id);
+
+      // Note: change knob actions do not have any enabled/invalidated actions since they're based on deltas and
+      // always valid (unless exceeds the knob setting limit, which is handled by `ChangeKnobAction::IsValid()`).
     }
   }
 }

@@ -421,6 +421,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           if (is_default_expression) {
             auto stored_expr = ins_col.StoredExpression()->Copy();
             ins_val = common::ManagedPointer(stored_expr);
+            sherpa_->SetDesiredType(common::ManagedPointer(ins_val), ins_col.Type());
             sherpa_->GetParseResult()->AddExpression(std::move(stored_expr));
           }
 

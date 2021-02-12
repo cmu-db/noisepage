@@ -267,3 +267,28 @@ SELECT c2 FROM insert13 WHERE c1 IS NOT NULL
 
 statement ok
 DROP TABLE insert13
+
+# Support default value expressions of compatible types
+statement ok
+CREATE TABLE insert14 (id integer default '1')
+
+statement ok
+INSERT INTO insert14 VALUES (DEFAULT)
+
+query I nosort
+SELECT * from insert14
+----
+1
+
+statement ok
+DROP TABLE insert14
+
+# Support default value expressions of incompatible types up until insert (postgres behavior)
+statement ok
+CREATE TABLE insert15 (id smallint default 239040928093)
+
+statement error
+INSERT INTO insert15 VALUES (DEFAULT)
+
+statement ok
+DROP TABLE insert15

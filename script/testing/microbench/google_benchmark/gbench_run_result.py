@@ -2,8 +2,8 @@ import json
 import os
 from datetime import datetime
 
-from microbench.google_benchmark.gbench_test_result import GBenchTestResult
-from util.constants import LOG
+from ...util.constants import LOG
+from .gbench_test_result import GBenchTestResult
 
 
 class GBenchRunResult(object):
