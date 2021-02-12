@@ -1,6 +1,3 @@
-#!/usr/bin/python3
-
-
 def get_value_by_pattern(dict_obj, pattern, default):
     """
     This is similar to .get() for a dict but it matches the
@@ -22,6 +19,21 @@ def add_mem_metrics(metrics, mem_metrics):
 
 def add_overall_mem_metrics(metrics, mem_metrics):
     """
+
+    Parameters
+    ----------
+    metrics : dict
+        The memory metrics to be updated.
+
+    mem_metrics : MemoryMetrics
+        The memory metrics to obtain the average from.
+
+    Returns
+    -------
+
+    """
+
+    """
     Add the average memory metrics to the overal reporting metrics
     """
     avg_mem_info = mem_metrics.get_avg()
@@ -37,7 +49,7 @@ def add_overall_mem_metrics(metrics, mem_metrics):
 
 def add_incremental_mem_metrics(metrics, mem_metrics):
     """
-    Add the memory info to the incremental metrics by time
+    Add the memory info to the incremental metrics by time.
     """
     incremental_metrics = metrics.get('incremental_metrics', [])
     for metrics in incremental_metrics:

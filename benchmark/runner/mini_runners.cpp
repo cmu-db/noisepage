@@ -2018,7 +2018,7 @@ void InitializeRunnersState() {
   auto catalog = db_main->GetCatalogLayer()->GetCatalog();
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
   DbMainSetParam<settings::Param::pipeline_metrics_enable, bool>(true);
-  DbMainSetParam<settings::Param::pipeline_metrics_interval, int>(0);
+  DbMainSetParam<settings::Param::pipeline_metrics_sample_rate, int>(100);
 
   // Create the database
   auto txn = txn_manager->BeginTransaction();

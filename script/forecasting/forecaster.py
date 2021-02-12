@@ -14,27 +14,23 @@ TODO:
     - Multiple models (currently only simple-one-layer-untuned LSTM used)
     - API and interaction with Pilot
 """
-import sys
-from pathlib import Path
-sys.path.insert(0, str((Path.cwd() / '..' / 'testing').absolute()))
-
 import argparse
 import json
 import pickle
-import numpy as np
 from functools import lru_cache
-from typing import List, Tuple, Dict, Optional, Union
-from util.constants import LOG
-from self_driving.forecast import gen_oltp_trace
-from self_driving.constants import (
-    DEFAULT_TPCC_WEIGHTS,
-    DEFAULT_QUERY_TRACE_FILE,
-    DEFAULT_WORKLOAD_PATTERN,
-    DEFAULT_ITER_NUM)
-from models import ForecastModel, get_models
-from cluster import QueryCluster
-from data_loader import DataLoader
+from typing import Dict, List, Optional, Tuple, Union
 
+import numpy as np
+
+from ..testing.self_driving.constants import (DEFAULT_ITER_NUM,
+                                              DEFAULT_QUERY_TRACE_FILE,
+                                              DEFAULT_TPCC_WEIGHTS,
+                                              DEFAULT_WORKLOAD_PATTERN)
+from ..testing.self_driving.forecast import gen_oltp_trace
+from ..testing.util.constants import LOG
+from .cluster import QueryCluster
+from .data_loader import DataLoader
+from .models import ForecastModel, get_models
 
 # Interval duration for aggregation in microseconds
 INTERVAL_MICRO_SEC = 500000
