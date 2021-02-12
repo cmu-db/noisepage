@@ -18,10 +18,7 @@ namespace noisepage::execution::test {
 
 class AtomicsTest : public CompiledTplTest {
  public:
-  AtomicsTest() : region_("atomics_test") {
-    auto settings = std::make_unique<const vm::LLVMEngine::Settings>(GetBytecodeHandlersPath());
-    vm::LLVMEngine::Initialize(std::move(settings));
-  }
+  AtomicsTest() : region_("atomics_test") {}
 
   util::Region region_;
 
