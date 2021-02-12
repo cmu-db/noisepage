@@ -35,7 +35,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
-  if (log_manager_ != DISABLED) {
+  if (log_manager_ != DISABLED && !wal_async_commit_enable_) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
@@ -43,6 +43,15 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, commit_callback,
                                       commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn,
                                       timestamp_manager_.Get());
+  } else if (log_manager_ != DISABLED && wal_async_commit_enable_) {
+    // We still want to send this record to the LogManager, but we'll swap in the EmptyCallback to send with the
+    // LogRecord, and invoke the provided callback immediately. The WAL worker will still be responsible for removing it
+    // from the running transactions table once the record has been serialized. Otherwise the serializer might
+    // dereference bad memory if the GC prunes any varlens this transaction might be holding.
+    byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
+    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, TransactionUtil::EmptyCallback,
+                                      nullptr, oldest_active_txn, txn->IsReadOnly(), txn, timestamp_manager_.Get());
+    commit_callback(commit_callback_arg);
   } else {
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
     // system proceeds correctly

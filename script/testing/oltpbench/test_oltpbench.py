@@ -1,55 +1,43 @@
-#!/usr/bin/python3
-import os
-import sys
-import subprocess
-import json
-import traceback
-import shutil
-from util.constants import ErrorCode
-from util.constants import LOG
-from util.common import run_command
-from util.test_server import TestServer
-from xml.etree import ElementTree
-from oltpbench import constants
+from ..util.common import expect_command
+from ..util.test_server import TestServer
+from . import constants
 
 
 class TestOLTPBench(TestServer):
-    """ Class to run OLTP Bench tests """
+    """
+    TestOLTPBench will build OLTPBench in the pre-suite.
+    All other behavior is identical to TestServer.
+    """
 
     def __init__(self, args):
-        TestServer.__init__(self, args)
+        super().__init__(args, quiet=False)
 
     def run_pre_suite(self):
+        super().run_pre_suite()
         if not self.is_dry_run:
-            self.install_oltp()
+            self._clean_oltpbench()
+            self._download_oltpbench()
+            self._build_oltpbench()
 
-    def install_oltp(self):
-        self.clean_oltp()
-        self.download_oltp()
-        self.build_oltp()
+    def _clean_oltpbench(self):
+        """
+        Remove the OLTPBench directory from a hardcoded default location.
+        Raises an exception if anything goes wrong.
+        """
+        expect_command(constants.OLTPBENCH_GIT_CLEAN_COMMAND)
 
-    def clean_oltp(self):
-        rc, stdout, stderr = run_command(constants.OLTPBENCH_GIT_CLEAN_COMMAND,
-                                         "Error: unable to clean OLTP repo")
-        if rc != ErrorCode.SUCCESS:
-            LOG.info(stdout.read())
-            LOG.error(stderr.read())
-            sys.exit(rc)
+    def _download_oltpbench(self):
+        """
+        Clone the OLTPBench directory to a hardcoded default location.
+        Raises an exception if anything goes wrong.
+        """
+        expect_command(constants.OLTPBENCH_GIT_CLONE_COMMAND)
 
-    def download_oltp(self):
-        rc, stdout, stderr = run_command(
-            constants.OLTPBENCH_GIT_COMMAND,
-            "Error: unable to git clone OLTP source code")
-        if rc != ErrorCode.SUCCESS:
-            LOG.info(stdout.read())
-            LOG.error(stderr.read())
-            sys.exit(rc)
-
-    def build_oltp(self):
+    def _build_oltpbench(self):
+        """
+        Build OLTPBench in its hardcoded default location.
+        Raises an exception if anything goes wrong.
+        Assumes that _download_oltpbench() has already been run.
+        """
         for command in constants.OLTPBENCH_ANT_COMMANDS:
-            error_msg = "Error: unable to run \"{}\"".format(command)
-            rc, stdout, stderr = run_command(command, error_msg)
-            if rc != ErrorCode.SUCCESS:
-                LOG.info(stdout.read())
-                LOG.error(stderr.read())
-                sys.exit(rc)
+            expect_command(command)

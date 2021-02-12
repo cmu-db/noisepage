@@ -73,7 +73,7 @@ class IndexBenchmark : public benchmark::Fixture {
     deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
     txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
                                                        common::ManagedPointer(deferred_action_manager_),
-                                                       common::ManagedPointer(&buffer_pool_), true, DISABLED);
+                                                       common::ManagedPointer(&buffer_pool_), true, false, DISABLED);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
                                         common::ManagedPointer(deferred_action_manager_),
                                         common::ManagedPointer(txn_manager_), DISABLED);
