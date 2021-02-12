@@ -122,8 +122,15 @@ class NoisePageServer:
 
         return_code = self.db_process.poll()
         if return_code is None:
-            self.db_process.terminate()
-            self.db_process.wait()
+            try:
+                # Try to kill the process politely and wait for 60 seconds.
+                self.db_process.terminate()
+                self.db_process.wait(60)
+            except:
+                # Otherwise, try to kill the process forcefully and wait another 60 seconds.
+                # If the process hasn't died yet, then something terrible has happened and we raise an error.
+                self.db_process.kill()
+                self.db_process.wait(60)
             LOG.info(f"DBMS stopped successfully, code: {self.db_process.returncode}")
             self.db_process = None
         else:
