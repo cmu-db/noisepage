@@ -42,13 +42,13 @@ class LLVMEngine {
   // -------------------------------------------------------
 
   /**
-   * Initialize the whole LLVM subsytem and LLVM engine settings.
-   * @param settings
+   * Initialize the whole LLVM subsytem and LLVM engine settings
+   * @param settings The settings with which the engine should be initialized
    */
   static void Initialize(std::unique_ptr<const Settings> &&settings);
 
   /**
-   * Shutdown the whole LLVM subsystem
+   * Shutdown the whole LLVM subsystem.
    */
   static void Shutdown();
 
@@ -61,7 +61,7 @@ class LLVMEngine {
   static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
 
   /**
-   * @return A reference to the LLVM engine settings.
+   * @return A non-mutating pointer to the LLVM engine settings
    */
   static const Settings *GetEngineSettings();
 

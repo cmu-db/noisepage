@@ -12,16 +12,16 @@
 #endif
 
 // Necessary grossness for stringizing macro expansion.
-#define STR(x) #x
-#define XSTR(x) STR(x)
+#define AS_STRING(x) #x
+#define AS_EXPANDED_STRING(x) AS_STRING(x)
 
-namespace noisepage {
+namespace noisepage::common {
 std::string GetProjectRootPath() {
   // Here, we rely on the project root path being "injected" into the
   // translation unit during compilation because this allows us to
   // define this function agnostic of the particular name of the root
   // directory as it exists on any one particular system.
-  return XSTR(NOISEPAGE_PROJECT_ROOT);
+  return AS_EXPANDED_STRING(NOISEPAGE_PROJECT_ROOT);
 }
 
 std::string FindFileFrom(std::string_view filename, std::string_view root_path) {
@@ -39,4 +39,7 @@ std::string FindFileFrom(std::string_view filename, std::string_view root_path) 
   // None of the existing ones in the project appear to fit this use case
   throw std::runtime_error{"Requested file not found"};
 }
-}  // namespace noisepage
+}  // namespace noisepage::common
+
+#undef AS_STRING
+#undef AS_EXPANDED_STRING

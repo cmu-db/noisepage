@@ -978,9 +978,6 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_SELF_DRIVING_E2E_TEST_SOURCES})
     add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} self_driving_e2e_test ${EXCLUDE_OR_NOT} NO_UNITY FALSE)
 endforeach ()
 
-# TODO(Kyle): this is not ideal because it requires manual synchronization with 
-# the prefixes and folder names in the list below, how can we avoid duplication?
-
 # The jumbotest for specific prefixes that require bitcode. 
 set(PREFIXES_REQUIRING_BITCODE "")
 # The jumbotests for entire folders that require bitcode.
