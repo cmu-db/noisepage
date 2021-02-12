@@ -124,7 +124,7 @@ class NoisePageServer:
         if return_code is None:
             self.db_process.terminate()
             self.db_process.wait()
-            LOG.info("DBMS stopped successfully.")
+            LOG.info(f"DBMS stopped successfully, code: {self.db_process.returncode}")
             self.db_process = None
         else:
             msg = f"DBMS already terminated, code: {self.db_process.returncode}"
