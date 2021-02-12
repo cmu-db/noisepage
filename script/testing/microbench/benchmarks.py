@@ -1,4 +1,4 @@
-from microbench.constants import DEFAULT_FAILURE_THRESHOLD
+from .constants import DEFAULT_FAILURE_THRESHOLD
 
 # The benchmark names and their associated threasholds
 BENCHMARKS_TO_RUN = {

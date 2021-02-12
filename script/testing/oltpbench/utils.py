@@ -1,20 +1,21 @@
-#!/usr/bin/python3
-
 import argparse
 
-from util.constants import PERFORMANCE_STORAGE_SERVICE_API
+from ..util.constants import PERFORMANCE_STORAGE_SERVICE_API
 
 
 def parse_command_line_args():
-    '''Command line argument parsing methods'''
+    """
+    Parse the command line arguments accepted by the OLTPBench module.
+    """
 
     aparser = argparse.ArgumentParser(description="Timeseries")
 
     aparser.add_argument("--config-file",
-                         help="File containing a collection of test cases")
-    aparser.add_argument("--db-host", help="DB Hostname")
-    aparser.add_argument("--db-port", type=int, help="DB Port")
-    aparser.add_argument("--db-output-file", help="DB output log file")
+                         help="File containing a collection of test cases.",
+                         required=True)
+    aparser.add_argument("--db-host", help="DB Hostname.")
+    aparser.add_argument("--db-port", type=int, help="DB Port.")
+    aparser.add_argument("--db-output-file", help="DB output log file.")
     aparser.add_argument("--build-type",
                          default="debug",
                          choices=["debug", "release", "relwithdebinfo"],
