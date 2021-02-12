@@ -1,9 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
-#include "module.h"
+#include "execution/vm/module.h"
 
 #include "execution/ast/context.h"
 

@@ -123,7 +123,6 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
   // -------------------------------------------------------
 
   callbacks->TakeOwnership(std::move(module));
-  ast::AstPrettyPrint::Dump(std::cerr, root_);
 }
 
 void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks) {

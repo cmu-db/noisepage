@@ -420,7 +420,8 @@ class DBMain {
         // want a better way
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
-            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_, use_query_cache_, execution_mode_);
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_,
+            use_query_cache_, execution_mode_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;

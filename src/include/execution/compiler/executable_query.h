@@ -82,7 +82,8 @@ class ExecutableQuery {
      * @param query_state The query state.
      * @param mode The execution mode to run the query with.
      */
-    void Run(std::byte query_state[], vm::ExecutionMode mode, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) const;
+    void Run(std::byte query_state[], vm::ExecutionMode mode,
+             const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) const;
 
     /**
      * @return True if this fragment is compiled and executable.

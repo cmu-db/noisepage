@@ -24,7 +24,7 @@ namespace noisepage::execution::compiler {
 
 ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fn,
                                     common::SanctionedSharedPtr<vm::Module>::Ptr module)
-    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(module) {}
+    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {}
 
 ExecutableQuery::Fragment::~Fragment() = default;
 
@@ -81,7 +81,7 @@ ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const ex
     : plan_(plan),
       exec_settings_(exec_settings),
       errors_region_(std::make_unique<util::Region>("errors_region")),
-      context_region_(std::make_shared<util::Region>("context_region")),
+      context_region_(std::make_shared<util::Region>("context_region")),  // NOLINT
       errors_(std::make_unique<sema::ErrorReporter>(errors_region_.get())),
       ast_context_(std::make_unique<ast::Context>(context_region_.get(), errors_.get())),
       query_state_size_(0),

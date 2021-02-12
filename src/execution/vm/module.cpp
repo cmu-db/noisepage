@@ -24,7 +24,7 @@ class Module::AsyncCompileTask : public tbb::task {
   // Construct an asynchronous compilation task to compile the the module
   explicit AsyncCompileTask(common::SanctionedSharedPtr<vm::Module>::Ptr module,
                             common::SanctionedSharedPtr<util::Region>::Ptr context_region)
-      : module_(module), context_region_(context_region) {}
+      : module_(std::move(module)), context_region_(std::move(context_region)) {}
 
   // Execute
   tbb::task *execute() override {

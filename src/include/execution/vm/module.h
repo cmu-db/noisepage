@@ -42,8 +42,8 @@ class Module {
    * @param llvm_module The compiled code.
    */
   Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module);
-  //TODO(Wuwen): Delete this line. Only for demo
-  ~Module()  = default;
+  // TODO(Wuwen): Delete this line. Only for demo
+  ~Module() = default;
 
   /**
    * This class cannot be copied or moved.
@@ -79,8 +79,9 @@ class Module {
    * @return True if the function was found and the output parameter was set.
    */
   template <typename Ret, typename... ArgTypes>
-  bool GetFunction(const std::string &name, ExecutionMode exec_mode,
-                   std::function<Ret(ArgTypes...)> *func, const common::SanctionedSharedPtr<vm::Module>::Ptr &module = nullptr, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region = nullptr);
+  bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> *func,
+                   const common::SanctionedSharedPtr<vm::Module>::Ptr &module = nullptr,
+                   const common::SanctionedSharedPtr<util::Region>::Ptr &context_region = nullptr);
 
   /**
    * Return the raw function implementation for the function in this module with the given function
@@ -153,7 +154,8 @@ class Module {
 
   // Compile this module into machine code. This is a non-blocking call that
   // triggers a compilation in the background.
-  void CompileToMachineCodeAsync(const common::SanctionedSharedPtr<vm::Module>::Ptr &module, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region);
+  void CompileToMachineCodeAsync(const common::SanctionedSharedPtr<vm::Module>::Ptr &module,
+                                 const common::SanctionedSharedPtr<util::Region>::Ptr &context_region);
 
   // Gets the flag that indicates if the JIT compilation has occurred.
   std::once_flag GetCompiledFlag();
@@ -199,7 +201,9 @@ inline void CopyAll(uint8_t *buffer, const HeadT &head, const RestT &... rest) {
 
 template <typename Ret, typename... ArgTypes>
 inline bool Module::GetFunction(const std::string &name, const ExecutionMode exec_mode,
-                                std::function<Ret(ArgTypes...)> *func, const common::SanctionedSharedPtr<vm::Module>::Ptr &module, const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) {
+                                std::function<Ret(ArgTypes...)> *func,
+                                const common::SanctionedSharedPtr<vm::Module>::Ptr &module,
+                                const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) {
   // Lookup function
   const FunctionInfo *func_info = bytecode_module_->LookupFuncInfoByName(name);
 
