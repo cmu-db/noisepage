@@ -4,14 +4,15 @@ This file contains model template and implementation for Forecaster. All forecas
 ForecastModel, and override the _do_fit and _do_predict abstract methods
 """
 
-from util.constants import LOG
-
 from abc import ABC, abstractmethod
+from typing import Dict, List, Tuple
+
 import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.preprocessing import MinMaxScaler
-from typing import List, Optional, Tuple, Dict
+
+from ..testing.util.constants import LOG
 
 
 def get_models(model_args: Dict) -> Dict:

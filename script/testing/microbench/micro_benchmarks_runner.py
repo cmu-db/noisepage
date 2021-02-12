@@ -1,11 +1,11 @@
-import os
-import subprocess
-import shutil
 import json
+import os
+import shutil
+import subprocess
 
-from microbench.google_benchmark.gbench2junit import GBenchToJUnit
-from microbench.constants import LOCAL_REPO_DIR
-from util.constants import LOG
+from ..util.constants import LOG
+from .constants import LOCAL_REPO_DIR
+from .google_benchmark.gbench2junit import GBenchToJUnit
 
 
 class MicroBenchmarksRunner(object):
@@ -19,7 +19,7 @@ class MicroBenchmarksRunner(object):
 
     def run_benchmarks(self, enable_perf):
         """ Runs all the microbenchmarks.
-        
+
         Parameters
         ----------
         enable_perf : bool
@@ -54,15 +54,15 @@ class MicroBenchmarksRunner(object):
 
     def run_single_benchmark(self, bench_name, enable_perf):
         """ Execute a single benchmark. The results will be stored in a JSON
-        file and an XML file. 
-        
+        file and an XML file.
+
         Parameters
         ----------
         bench_name : str
             The name of the benchmark to run.
         enable_perf : bool
             Whether perf should be enabled for all the benchmarks.
-        
+
         Returns
         -------
         ret_val : int
@@ -97,7 +97,7 @@ class MicroBenchmarksRunner(object):
             The path of the file where the benchmark result should be stored.
         enable_perf : bool
             Whether perf should be enabled for all the benchmarks.
-        
+
         Returns
         -------
         cmd : str
@@ -126,7 +126,7 @@ class MicroBenchmarksRunner(object):
 
     def _execute_benchmark(self, cmd):
         """ Execute the microbenchmark command provided.
-        
+
         Parameters
         ----------
         cmd : str
@@ -174,8 +174,8 @@ class MicroBenchmarksRunner(object):
 
 
 def is_package_installed(package_name, validation_command='--version'):
-    """ Check to see if package is installed. 
-    
+    """ Check to see if package is installed.
+
     Parameters
     ----------
     package_name : str
@@ -197,7 +197,7 @@ def is_package_installed(package_name, validation_command='--version'):
 
 def generate_perf_command(bench_name):
     """ Create the command line string to execute perf.
-    
+
     Parameters
     ----------
     bench_name : str
@@ -206,7 +206,7 @@ def generate_perf_command(bench_name):
     Returns
     -------
     perf_cmd : str
-        The command to execute pref data collection.    
+        The command to execute pref data collection.
     """
     perf_output_file = f'{bench_name}.perf'
     LOG.debug(f'Enabling perf data collection [output={perf_output_file}]')
@@ -223,7 +223,7 @@ def generate_numa_command():
     """
     # use all the cpus from the highest numbered numa node
     nodes = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
-    if not nodes:
+    if not nodes or int(nodes) == 1:
         return ''
     highest_cpu_node = int(nodes) - 1
     if highest_cpu_node > 0:
@@ -234,7 +234,7 @@ def generate_numa_command():
 
 def convert_result_xml(bench_name, bench_output_file):
     """ Convert the gbench results to xml file named after the bench_name.
-    
+
     Parameters
     ----------
     bench_name : str
@@ -247,10 +247,10 @@ def convert_result_xml(bench_name, bench_output_file):
 
 
 def copy_benchmark_result(bench_name, build_dir):
-    """ Copy the benchmark result file. 
-    
-    This is used when running in local mode. 
-    
+    """ Copy the benchmark result file.
+
+    This is used when running in local mode.
+
     Parameters
     ----------
     bench_name : str
