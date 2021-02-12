@@ -91,7 +91,7 @@ class NoisePageServer:
                 LOG.info(f'DB process is verified as running in {round(now - start_time, 2)} sec.')
                 self.db_process = db_process
                 return True
-            else:
+            elif log_line.strip() != '':
                 logs.append(log_line)
 
             if now - start_time >= 60:
@@ -123,6 +123,7 @@ class NoisePageServer:
         return_code = self.db_process.poll()
         if return_code is None:
             self.db_process.terminate()
+            self.db_process.wait()
             LOG.info("DBMS stopped successfully.")
             self.db_process = None
         else:
