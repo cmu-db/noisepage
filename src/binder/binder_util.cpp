@@ -72,7 +72,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               break;
             } catch (ConversionException &exception) {
               // For now, treat all conversion errors as 22007.
-              // TODO: Differentiate between 22007 and 22008. See comments in PR #1462.
+              // TODO(amogkam): Differentiate between 22007 and 22008. See comments in PR #1462.
               throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
             }
           }
