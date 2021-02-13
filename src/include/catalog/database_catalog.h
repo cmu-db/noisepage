@@ -176,6 +176,12 @@ class DatabaseCatalog {
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
+  // TODO(Joe) add comments
+  std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(
+      common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, col_oid_t col_oid);
+  std::unique_ptr<optimizer::TableStats> GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                            table_oid_t table_oid);
+
  private:
   /**
    * The maximum number of tuples to be read out at a time when scanning tables during teardown.

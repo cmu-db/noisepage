@@ -13,7 +13,7 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
-#include "optimizer/statistics/column_stats.h"
+#include "optimizer/statistics/new_column_stats.h"
 
 namespace noisepage::optimizer {
 
@@ -133,9 +133,9 @@ class Group {
    * Get stats for a column
    * @param column_name Column to get stats for
    */
-  common::ManagedPointer<ColumnStats> GetStats(const std::string &column_name) {
+  common::ManagedPointer<ColumnStatsBase> GetStats(const std::string &column_name) {
     NOISEPAGE_ASSERT(stats_.count(column_name) != 0U, "Column Stats missing");
-    return common::ManagedPointer<ColumnStats>(stats_[column_name].get());
+    return common::ManagedPointer<ColumnStatsBase>(stats_[column_name].get());
   }
 
   /**
@@ -149,7 +149,7 @@ class Group {
    * @param column_name Column to add stats
    * @param stats Stats to add
    */
-  void AddStats(const std::string &column_name, std::unique_ptr<ColumnStats> stats) {
+  void AddStats(const std::string &column_name, std::unique_ptr<ColumnStatsBase> stats) {
     stats_[column_name] = std::move(stats);
   }
 
@@ -219,7 +219,7 @@ class Group {
    * 1. Use table alias ID  + column offset to identify column
    * 2. Support stats for arbitrary expressions
    */
-  std::unordered_map<std::string, std::unique_ptr<ColumnStats>> stats_;
+  std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> stats_;
 
   /**
    * Number of rows

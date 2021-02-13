@@ -73,7 +73,7 @@ class StatsCalculator : public OperatorVisitor {
    */
   void AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
                          common::ManagedPointer<TableStats> table_stats,
-                         std::unordered_map<std::string, std::unique_ptr<ColumnStats>> *stats);
+                         std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> *stats);
 
   /**
    * Return estimated cardinality for a filter
@@ -83,7 +83,7 @@ class StatsCalculator : public OperatorVisitor {
    * @returns Estimated cardinality
    */
   size_t EstimateCardinalityForFilter(
-      size_t num_rows, const std::unordered_map<std::string, std::unique_ptr<ColumnStats>> &predicate_stats,
+      size_t num_rows, const std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> &predicate_stats,
       const std::vector<AnnotatedExpression> &predicates);
 
   /**
@@ -99,10 +99,12 @@ class StatsCalculator : public OperatorVisitor {
    * Creates default ColumnStats
    * @param col ColumnValueExpression
    */
-  std::unique_ptr<ColumnStats> CreateDefaultStats(common::ManagedPointer<parser::ColumnValueExpression> tv_expr) {
-    return std::make_unique<ColumnStats>(tv_expr->GetDatabaseOid(), tv_expr->GetTableOid(), tv_expr->GetColumnOid(), 0,
-                                         0.F, false, std::vector<double>{}, std::vector<double>{},
-                                         std::vector<double>{}, true);
+  std::unique_ptr<ColumnStatsBase> CreateDefaultStats(common::ManagedPointer<parser::ColumnValueExpression> tv_expr) {
+    // TODO(Joe) see if we need this
+    return nullptr;
+    /*return std::make_unique<ColumnStatsBase>(tv_expr->GetDatabaseOid(), tv_expr->GetTableOid(),
+       tv_expr->GetColumnOid(), 0, 0.F, false, std::vector<double>{}, std::vector<double>{}, std::vector<double>{},
+       true);*/
   }
 
   /**

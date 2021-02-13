@@ -6,19 +6,26 @@
 #include "loggers/optimizer_logger.h"
 
 namespace noisepage::optimizer {
-common::ManagedPointer<TableStats> StatsStorage::GetTableStats(catalog::db_oid_t database_id,
-                                                               catalog::table_oid_t table_id) {
+
+StatsStorage::StatsStorage(catalog::CatalogAccessor *accessor) : accessor_(accessor) {}
+
+// TODO(Joe) deal with dirty stats
+common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
+                                                               const catalog::table_oid_t table_id) {
   StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
   auto table_it = table_stats_storage_.find(stats_storage_key);
 
   if (table_it != table_stats_storage_.end()) {
     return common::ManagedPointer<TableStats>(table_it->second);
   }
-  return common::ManagedPointer<TableStats>(nullptr);
+
+  InsertTableStats(database_id, table_id, accessor_->GetTableStatistics(table_id));
+
+  return common::ManagedPointer<TableStats>(table_stats_storage_.at({database_id, table_id}));
 }
 
 bool StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                                    TableStats table_stats) {
+                                    std::unique_ptr<TableStats> table_stats) {
   StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
   auto table_it = table_stats_storage_.find(stats_storage_key);
 

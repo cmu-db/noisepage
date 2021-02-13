@@ -10,6 +10,8 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "optimizer/statistics/new_column_stats.h"
+#include "optimizer/statistics/table_stats.h"
 #include "type/type_id.h"
 
 namespace noisepage::storage {
@@ -354,6 +356,10 @@ class EXPORT CatalogAccessor {
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
+
+  // TODO(Joe) add comments
+  std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(table_oid_t table_oid, col_oid_t col_oid);
+  std::unique_ptr<optimizer::TableStats> GetTableStatistics(table_oid_t table_oid);
 
   /**
    * Returns the type oid of the given TypeId in pg_type

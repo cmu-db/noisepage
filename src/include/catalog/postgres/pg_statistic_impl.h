@@ -1,9 +1,13 @@
 #pragma once
 
+#include <catalog/database_catalog.h>
+#include <main/db_main.h>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_statistic.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "optimizer/statistics/new_column_stats.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
 
@@ -81,8 +85,15 @@ class PgStatisticImpl {
    */
   bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid);
 
-  const db_oid_t db_oid_;
+  std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(
+      common::ManagedPointer<transaction::TransactionContext> txn,
+      common::ManagedPointer<DatabaseCatalog> database_catalog, table_oid_t table_oid, col_oid_t col_oid);
 
+  std::unique_ptr<optimizer::TableStats> GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                            common::ManagedPointer<DatabaseCatalog> database_catalog,
+                                                            table_oid_t table_oid);
+
+  const db_oid_t db_oid_;
   /**
    * The table and indexes that define pg_statistic.
    * Created by: Builder::CreateDatabaseCatalog.

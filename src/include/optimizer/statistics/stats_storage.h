@@ -64,6 +64,9 @@ namespace noisepage::optimizer {
  */
 class StatsStorage {
  public:
+  // TODO(Joe) Add comments
+  StatsStorage(catalog::CatalogAccessor *accessor);
+
   /**
    * Using given database and table ids,
    * select a pointer to the TableStats objects in the table stats storage map.
@@ -71,7 +74,8 @@ class StatsStorage {
    * @param table_id - oid of table
    * @return pointer to a TableStats object
    */
-  common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
+  common::ManagedPointer<TableStats> GetTableStats(const catalog::db_oid_t database_id,
+                                                   const catalog::table_oid_t table_id);
 
  protected:
   /**
@@ -84,7 +88,8 @@ class StatsStorage {
    * @param table_stats - TableStats object to be inserted
    * @return whether TableStats object was successfully inserted
    */
-  bool InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, TableStats table_stats);
+  bool InsertTableStats(const catalog::db_oid_t database_id, const catalog::table_oid_t table_id,
+                        std::unique_ptr<TableStats> table_stats);
 
   /**
    * If there is a corresponding pointer to a TableStats object, then remove
@@ -103,6 +108,10 @@ class StatsStorage {
   FRIEND_TEST(StatsStorageTests, InsertTableStatsTest);
   FRIEND_TEST(StatsStorageTests, DeleteTableStatsTest);
 
+  /**
+   * Accessor
+   */
+  catalog::CatalogAccessor *accessor_;
   /**
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
    * TableStats pointers. This represents the storage for TableStats objects.

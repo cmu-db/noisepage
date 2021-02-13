@@ -17,7 +17,7 @@ void TableStats::UpdateNumRows(size_t new_num_rows) {
   }
 }
 
-bool TableStats::AddColumnStats(std::unique_ptr<ColumnStats> col_stats) {
+bool TableStats::AddColumnStats(std::unique_ptr<ColumnStatsBase> col_stats) {
   auto it = column_stats_.find(col_stats->GetColumnID());
   if (it != column_stats_.end()) {
     OPTIMIZER_LOG_TRACE("There already exists a ColumnStats object with the same oid.");
@@ -39,10 +39,10 @@ bool TableStats::HasColumnStats(catalog::col_oid_t column_id) const {
   return (column_stats_.find(column_id) != column_stats_.end());
 }
 
-common::ManagedPointer<ColumnStats> TableStats::GetColumnStats(catalog::col_oid_t column_id) {
+common::ManagedPointer<ColumnStatsBase> TableStats::GetColumnStats(catalog::col_oid_t column_id) {
   auto col_it = column_stats_.find(column_id);
   if (col_it == column_stats_.end()) return nullptr;
-  return common::ManagedPointer<ColumnStats>(col_it->second);
+  return common::ManagedPointer<ColumnStatsBase>(col_it->second);
 }
 
 bool TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
