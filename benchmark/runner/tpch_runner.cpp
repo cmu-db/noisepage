@@ -4,6 +4,7 @@
 #include "execution/execution_util.h"
 #include "execution/vm/module.h"
 #include "main/db_main.h"
+#include "test_util/fs_util.h"
 #include "test_util/tpch/workload.h"
 
 namespace noisepage::runner {
@@ -26,17 +27,19 @@ class TPCHRunner : public benchmark::Fixture {
   tpch::Workload::BenchmarkType type_ = tpch::Workload::BenchmarkType::TPCH;
 
   void SetUp(const benchmark::State &state) final {
-    noisepage::execution::ExecutionUtil::InitTPL();
-    auto db_main_builder = DBMain::Builder()
-                               .SetUseGC(true)
-                               .SetUseCatalog(true)
-                               .SetUseGCThread(true)
-                               .SetUseMetrics(true)
-                               .SetUseMetricsThread(true)
-                               .SetBlockStoreSize(1000000)
-                               .SetBlockStoreReuse(1000000)
-                               .SetRecordBufferSegmentSize(1000000)
-                               .SetRecordBufferSegmentReuse(1000000);
+    auto db_main_builder =
+        DBMain::Builder()
+            .SetUseGC(true)
+            .SetUseCatalog(true)
+            .SetUseGCThread(true)
+            .SetUseMetrics(true)
+            .SetUseMetricsThread(true)
+            .SetBlockStoreSize(1000000)
+            .SetBlockStoreReuse(1000000)
+            .SetRecordBufferSegmentSize(1000000)
+            .SetRecordBufferSegmentReuse(1000000)
+            .SetBytecodeHandlersPath(common::FindFileFrom("bytecode_handlers_ir.bc", common::GetProjectRootPath()));
+
     db_main_ = db_main_builder.Build();
 
     auto metrics_manager = db_main_->GetMetricsManager();
@@ -45,7 +48,6 @@ class TPCHRunner : public benchmark::Fixture {
   }
 
   void TearDown(const benchmark::State &state) final {
-    noisepage::execution::ExecutionUtil::ShutdownTPL();
     // free db main here so we don't need to use the loggers anymore
     db_main_.reset();
   }

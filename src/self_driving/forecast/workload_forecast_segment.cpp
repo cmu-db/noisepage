@@ -1,7 +1,5 @@
 #include "self_driving/forecast/workload_forecast_segment.h"
 
-#include <utility>
-
 #include "execution/exec_defs.h"
 
 namespace noisepage::selfdriving {

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
+import logging
 import os
 from datetime import datetime
-import logging
 
 # absolute paths
 DIR_UTIL = os.path.dirname(os.path.realpath(__file__))
@@ -53,10 +53,6 @@ FILE_COLLECT_MEM_INFO = os.path.join(DIR_TESTING, "collect_mem_info.py")
 
 # Command paths
 LSOF_PATH_LINUX = "lsof"
-LSOF_PATH_MACOS = "/usr/sbin/lsof"
-
-# OS family
-OS_FAMILY_DARWIN = "darwin"
 
 # Memory info collection
 MEM_INFO_SPLITTER = ","
@@ -67,10 +63,14 @@ INCREMENTAL_METRIC_FREQ = 5  # collect incremental metrics every 5 seconds by de
 
 # error code
 class ErrorCode:
+    """
+    Error codes used throughout various modules.
+    """
     SUCCESS = 0
     ERROR = 1
 
 
+# I don't know why this exists but I'm afraid of touching it.
 # psutil command line strings
 class CommandLineStr:
     TRUE = "TRUE"
