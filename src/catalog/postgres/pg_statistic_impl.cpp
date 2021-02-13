@@ -167,7 +167,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
       return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            std::move(top_k), std::move(histogram));
+                                                            std::move(top_k), std::move(histogram), type);
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
@@ -179,7 +179,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
       return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            std::move(top_k), std::move(histogram));
+                                                            std::move(top_k), std::move(histogram), type);
     }
     case type::TypeId::REAL: {
       // TODO(Joe) we'll have to fix this with deserialization
@@ -188,7 +188,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
       return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            std::move(top_k), std::move(histogram));
+                                                            std::move(top_k), std::move(histogram), type);
     }
     case type::TypeId::DECIMAL: {
       // TODO(Joe) we'll have to fix this with deserialization
@@ -197,7 +197,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
       return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            std::move(top_k), std::move(histogram));
+                                                            std::move(top_k), std::move(histogram), type);
     }
     case type::TypeId::TIMESTAMP: {
       // TODO(Joe) we'll have to fix this with deserialization
@@ -206,7 +206,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
       return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            std::move(top_k), std::move(histogram));
+                                                            std::move(top_k), std::move(histogram), type);
     }
     case type::TypeId::DATE: {
       // TODO(Joe) we'll have to fix this with deserialization
@@ -215,7 +215,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
       return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            std::move(top_k), std::move(histogram));
+                                                            std::move(top_k), std::move(histogram), type);
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
@@ -225,7 +225,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
       return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            std::move(top_k), std::move(histogram));
+                                                            std::move(top_k), std::move(histogram), type);
     }
     default:
       // TODO(Joe) fix error message

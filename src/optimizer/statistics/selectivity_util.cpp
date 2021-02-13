@@ -4,6 +4,60 @@
 #include "parser/expression_defs.h"
 
 namespace noisepage::optimizer {
+
+double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> table_stats,
+                                           const ValueCondition &condition) {
+  auto column_stats_base = table_stats->GetColumnStats(condition.GetColumnID());
+  auto type = column_stats_base->GetTypeId();
+  // TODO(Joe) find a better way
+
+  switch (type) {
+    case type::TypeId::BOOLEAN: {
+      // TODO(Joe) we'll have to fix this with deserialization
+      using T = execution::sql::BoolVal;
+      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      return ComputeSelectivity<T>(column_stats, condition);
+    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT: {
+      using T = execution::sql::Integer;
+      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      return ComputeSelectivity<T>(column_stats, condition);
+    }
+    case type::TypeId::REAL: {
+      using T = execution::sql::Real;
+      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      return ComputeSelectivity<T>(column_stats, condition);
+    }
+    case type::TypeId::DECIMAL: {
+      using T = execution::sql::DecimalVal;
+      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      return ComputeSelectivity<T>(column_stats, condition);
+    }
+    case type::TypeId::TIMESTAMP: {
+      using T = execution::sql::TimestampVal;
+      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      return ComputeSelectivity<T>(column_stats, condition);
+    }
+    case type::TypeId::DATE: {
+      using T = execution::sql::DateVal;
+      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      return ComputeSelectivity<T>(column_stats, condition);
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      using T = execution::sql::StringVal;
+      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      return ComputeSelectivity<T>(column_stats, condition);
+    }
+    default:
+      // TODO(Joe) fix error message
+      UNREACHABLE("Invalid type");
+  }
+}
+
 template <typename T>
 double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats<T>> column_stats,
                                            const ValueCondition &condition) {

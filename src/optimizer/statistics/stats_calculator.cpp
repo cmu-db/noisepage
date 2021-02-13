@@ -14,7 +14,7 @@
 #include "optimizer/optimizer_context.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/statistics/column_stats.h"
-#include "optimizer/statistics/selectivity.h"
+#include "optimizer/statistics/selectivity_util.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
@@ -292,7 +292,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
     }
 
     ValueCondition condition(col_name, expr_type, std::move(value));
-    selectivity = Selectivity::ComputeSelectivity(predicate_table_stats, condition);
+    selectivity = SelectivityUtil::ComputeSelectivity(predicate_table_stats, condition);
   } else if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND ||
              expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {
     double left_selectivity = CalculateSelectivityForPredicate(predicate_table_stats, expr->GetChild(0));

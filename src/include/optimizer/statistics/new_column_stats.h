@@ -20,8 +20,9 @@ class ColumnStatsBase {
   virtual size_t GetNumRows() = 0;
   virtual double GetFracNull() = 0;
   virtual void SetNumRows(size_t num_rows) = 0;
-  // TODO(Joe) Should we add top k and histogram methods?
+  virtual type::TypeId GetTypeId() = 0;
   virtual std::unique_ptr<ColumnStatsBase> Copy() = 0;
+  // TODO(Joe) Should we add top k and histogram methods?
 };
 
 class UselessDefaultColumnsStatsPleaseGetRidOfMeEventually : public ColumnStatsBase {
@@ -32,6 +33,7 @@ class UselessDefaultColumnsStatsPleaseGetRidOfMeEventually : public ColumnStatsB
   size_t GetNumRows() override { return 0; }
   double GetFracNull() override { return 0.0; }
   void SetNumRows(size_t num_rows) override {}
+  type::TypeId GetTypeId() { return type::TypeId::BOOLEAN; }
   std::unique_ptr<ColumnStatsBase> Copy() override {
     return std::make_unique<UselessDefaultColumnsStatsPleaseGetRidOfMeEventually>(col_oid_);
   }
@@ -64,14 +66,15 @@ class NewColumnStats : public ColumnStatsBase {
    */
   NewColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
                  size_t num_rows, double frac_null, std::unique_ptr<TopKElements<CppType>> top_k,
-                 std::unique_ptr<Histogram<CppType>> histogram)
+                 std::unique_ptr<Histogram<CppType>> histogram, type::TypeId type_id)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
         num_rows_(num_rows),
         frac_null_(frac_null),
         top_k_(std::move(top_k)),
-        histogram_(std::move(histogram)) {}
+        histogram_(std::move(histogram)),
+        type_id_(type_id) {}
 
   /**
    * Default constructor for deserialization
@@ -114,6 +117,8 @@ class NewColumnStats : public ColumnStatsBase {
    */
   common::ManagedPointer<TopKElements<CppType>> GetTopK() { return common::ManagedPointer(top_k_); }
 
+  type::TypeId GetTypeId() override { return type_id_; }
+
   std::unique_ptr<ColumnStatsBase> Copy() override {
     return std::make_unique<NewColumnStats<T>>(database_id_, table_id_, column_id_, num_rows_, frac_null_,
                                                std::make_unique(top_k_), std::make_unique(histogram_));
@@ -154,5 +159,10 @@ class NewColumnStats : public ColumnStatsBase {
    * Histogram for the column values.
    */
   std::unique_ptr<Histogram<CppType>> histogram_;
+
+  /**
+   * Type Id of underlying column.
+   */
+  type::TypeId type_id_;
 };
 }  // namespace noisepage::optimizer

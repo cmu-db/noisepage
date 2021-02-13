@@ -5,6 +5,7 @@
 
 #include "common/managed_pointer.h"
 #include "optimizer/statistics/new_column_stats.h"
+#include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
 #include "parser/expression/constant_value_expression.h"
 
@@ -31,6 +32,8 @@ static constexpr double DEFAULT_SELECTIVITY_VALUE = 0.5;
  */
 class SelectivityUtil {
  public:
+  static double ComputeSelectivity(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition);
+
   /**
    * Compute selectivity of a condition
    * @param column_stats Column Statistics

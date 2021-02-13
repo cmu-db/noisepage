@@ -27,12 +27,15 @@ bool TableStats::AddColumnStats(std::unique_ptr<ColumnStatsBase> col_stats) {
   return true;
 }
 
+// TODO(Joe) this is never used
 double TableStats::GetCardinality(catalog::col_oid_t column_id) {
+  // TODO(Joe) I don't think this should ever happen
   if (!HasColumnStats(column_id)) {
     return 0;
   }
 
-  return GetColumnStats(column_id)->GetCardinality();
+  // TODO(Joe) is this right?
+  return GetColumnStats(column_id)->GetNumRows();
 }
 
 bool TableStats::HasColumnStats(catalog::col_oid_t column_id) const {
