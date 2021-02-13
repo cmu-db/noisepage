@@ -160,7 +160,9 @@ pipeline {
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
@@ -213,7 +215,9 @@ pipeline {
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -250,7 +254,9 @@ pipeline {
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -291,7 +297,9 @@ pipeline {
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
