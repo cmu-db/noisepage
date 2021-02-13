@@ -283,14 +283,30 @@ def construct_server_argument(attr, value, meta):
     # will append the necessary '=' for non-flag arguments, which would 
     # obviously confound relative path expansion if applied first.
     VALUE_PREPROCESSORS = [
-        lower_booleans,
         resolve_relative_paths,
+        lower_booleans,
         handle_flags,
     ]
 
     preprocessed_attr  = apply_all(ATTR_PREPROCESSORS, attr, meta)
     preprocessed_value = apply_all(VALUE_PREPROCESSORS, value, meta)
     return f"-{preprocessed_attr}{preprocessed_value}"
+
+def applies_to(*target_types):
+    """
+    A decorator that produces a no-op function in the event that the 'target'
+    (i.e. first) argument provided to a preprocessing function is not an 
+    instance of one of the types specified in the decorator arguments.
+
+    This function should not be invoked directly; it is intended to be used
+    as a decorator for preprocessor functions to deal with the fact that 
+    certain preprocessing operations are only applicable to certain types.
+    """
+    def wrap_outer(f):
+        def wrap_inner(target, meta):
+            return f(target, meta) if any(isinstance(target, ty) for ty in target_types) else target
+        return wrap_inner
+    return wrap_outer
 
 # -----------------------------------------------------------------------------
 # Attribute Preprocessors
@@ -307,6 +323,7 @@ def construct_server_argument(attr, value, meta):
 #   def preprocessor(value: str, meta: Dict) -> str:
 #       ...
 
+@applies_to(bool)
 def lower_booleans(value, meta):
     """
     Lower boolean string values to the format expected by the DBMS server.
@@ -326,33 +343,9 @@ def lower_booleans(value, meta):
     -------
     The preprocessed server argument value
     """
-    return str(value).lower() if isinstance(value, bool) else value
+    return str(value).lower()
 
-def handle_flags(value, meta):
-    """
-    Handle DBMS server arguments with no associated value.
-
-    Some arguments to the DBMS are flags that do not have an associated value;
-    in these cases, we do not want to format the complete argument as
-    `-attribute=value` and instead want to format it as `-attribute` alone.
-    This preprocessor encapsulates the logic for this transformation.
-
-    TODO(Kyle): Do we actually support any arguments like this? 
-    I can't seem to come up with any actual examples...
-
-    Arguments
-    ---------
-    value : str 
-        The DBMS server argument value
-    meta : Dict
-        Dictionary of meta-information available to all preprocessors
-
-    Returns
-    -------
-    The preprocessed server argument value
-    """
-    return f"={value}" if value is not None else ""
-
+@applies_to(str)
 def resolve_relative_paths(value, meta):
     """
     Resolve relative paths in the DBMS server arguments to their equivalent absolute paths.
@@ -389,6 +382,32 @@ def resolve_relative_paths(value, meta):
     # It might be worth it to find some portable way to completely resolve these.
     return os.path.join(meta["bin_dir"], value) if is_relative else value
 
+@applies_to(int, str, bool)
+def handle_flags(value, meta):
+    """
+    Handle DBMS server arguments with no associated value.
+
+    Some arguments to the DBMS are flags that do not have an associated value;
+    in these cases, we do not want to format the complete argument as
+    `-attribute=value` and instead want to format it as `-attribute` alone.
+    This preprocessor encapsulates the logic for this transformation.
+
+    TODO(Kyle): Do we actually support any arguments like this? 
+    I can't seem to come up with any actual examples...
+
+    Arguments
+    ---------
+    value : str 
+        The DBMS server argument value
+    meta : Dict
+        Dictionary of meta-information available to all preprocessors
+
+    Returns
+    -------
+    The preprocessed server argument value
+    """
+    return f"={value}" if value is not None else ""
+
 # -----------------------------------------------------------------------------
 # Utility
 
@@ -418,4 +437,4 @@ def apply_all(functions, init_obj, meta):
     obj = init_obj
     for function in functions:
         obj = function(obj, meta)
-    return obj 
+    return obj
