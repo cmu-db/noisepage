@@ -54,8 +54,8 @@
 #   HEADER noisepage libraries.
 #   HEADER noisepage binary.
 #   HEADER util_static and util_shared libraries.
-#   HEADER gen_opt_bc binary.
 #   HEADER hack_bytecode_handlers_ir target.
+#   HEADER gen_opt_bc binary.
 #   HEADER tpl binary.
 #   HEADER Tests.
 #   HEADER Benchmarks.
@@ -714,6 +714,33 @@ if (${NOISEPAGE_ENABLE_SHARED})
 endif ()
 
 #######################################################################################################################
+# HEADER hack_bytecode_handlers_ir target.
+# hack_bytecode_handlers_ir     :   This target is not actually used to build the bytecode handlers, because the
+#                                   bytecode handlers have to be built with clang and it is possible that the current
+#                                   compiler is gcc -- you simply cannot mix two compilers in one CMake project
+#                                   without jumping through SuperProject hoops. The target is created to get the
+#                                   relevant entry in compile_commands.json, which is then parsed and run manually
+#                                   with clang... :(
+#######################################################################################################################
+
+add_library(hack_bytecode_handlers_ir EXCLUDE_FROM_ALL util/execution/bytecode_handlers_ir.cpp)
+target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
+set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
+
+function(target_requires_bitcode TARGET)
+    # If the target requires optimized bitcodes, the gen_opt_bc binary must be built prior to generation
+    add_dependencies(${TARGET} gen_opt_bc)
+    add_custom_command(
+            TARGET ${TARGET}
+            DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
+            POST_BUILD
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMAND cmake -E echo "Generating optimized bitcodes..."
+            COMMAND ${BUILD_SUPPORT_DIR}/generate-bitcodes.sh ${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CLANG}
+    )
+endfunction()
+
+#######################################################################################################################
 # HEADER gen_opt_bc binary.
 # gen_opt_bc            :   Generates optimized bitcode from the LLVM IR file generated as a tpl post-build target.
 #######################################################################################################################
@@ -731,36 +758,7 @@ else ()
     find_program(CLANG NAMES "clang++-8" "clang++" REQUIRED)
 endif ()
 
-add_dependencies(noisepage_static gen_opt_bc)
-add_custom_command(
-        TARGET noisepage_static  # As a proxy for noisepage_objlib since object libraries don't support POST_BUILD.
-        DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
-        POST_BUILD
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMAND cmake -E echo "Generating optimized bitcode ..."
-        COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
-        COMMAND ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
-        COMMAND cmake -E echo "Running: ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc"
-        COMMAND ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc
-        COMMAND cmake -E echo "Running: mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
-        COMMAND mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
-        COMMAND cmake -E echo "Generated optimized bitcode at ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc."
-        USES_TERMINAL
-)
-
-#######################################################################################################################
-# HEADER hack_bytecode_handlers_ir target.
-# hack_bytecode_handlers_ir     :   This target is not actually used to build the bytecode handlers, because the
-#                                   bytecode handlers have to be built with clang and it is possible that the current
-#                                   compiler is gcc -- you simply cannot mix two compilers in one CMake project
-#                                   without jumping through SuperProject hoops. The target is created to get the
-#                                   relevant entry in compile_commands.json, which is then parsed and run manually
-#                                   with clang... :(
-#######################################################################################################################
-
-add_library(hack_bytecode_handlers_ir EXCLUDE_FROM_ALL util/execution/bytecode_handlers_ir.cpp)
-target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
-set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
+target_requires_bitcode(noisepage_static)
 
 #######################################################################################################################
 # HEADER tpl binary.
@@ -769,7 +767,7 @@ set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 #######################################################################################################################
 
 add_executable(tpl util/execution/tpl.cpp)
-add_dependencies(tpl noisepage_static)  # gen_opt_bc needs to run.
+target_requires_bitcode(tpl)
 target_compile_options(tpl PRIVATE "-Werror" "-Wall")
 target_link_libraries(tpl PUBLIC noisepage_static util_static)
 set_target_properties(tpl PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -840,6 +838,8 @@ function(add_test_util_lib TYPE)
     add_library(noisepage_test_util_${TYPE_LOWER} ${TYPE} ${NOISEPAGE_TEST_UTIL_SRCS})
     add_custom_command(TARGET noisepage_test_util_${TYPE_LOWER} DEPENDS gtest gtest_main gmock gmock_main)
     target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
+    # Inject the source directory path into the translation units for test utility lib
+    target_compile_definitions(noisepage_test_util_${TYPE_LOWER} PRIVATE NOISEPAGE_PROJECT_ROOT=${CMAKE_SOURCE_DIR})
     target_include_directories(noisepage_test_util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
     target_include_directories(noisepage_test_util_${TYPE_LOWER} SYSTEM PUBLIC
             ${CMAKE_BINARY_DIR}/_deps/src/googletest/googlemock/include/
@@ -862,6 +862,7 @@ function(add_noisepage_test
         TEST_LABEL                  # The label of this test. Will be added as a dependency of this label.
         SHOULD_EXCLUDE_FROM_ALL     # EXCLUDE_ALL if we should exclude from default ALL target, NO_EXCLUDE otherwise.
         SHOULD_UNITY_BUILD          # UNITY if we should unity build, NO_UNITY otherwise.
+        REQUIRES_BITCODE            # BITCODE if this test requires bitcodes to be generated, NO_BITCODE otherwise.
         )
     set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
 
@@ -890,6 +891,10 @@ function(add_noisepage_test
     else ()
         target_link_libraries(${TEST_NAME} PRIVATE noisepage_test_util_static)
     endif ()
+
+    if (${REQUIRES_BITCODE} STREQUAL "BITCODE")
+        target_requires_bitcode(${TEST_NAME})
+    endif()
 
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
@@ -930,6 +935,9 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/type/*.cpp"
         )
 
+# The individual tests that require bytecode_handlers_ir.bc present in the test directory.
+set(TESTS_REQUIRING_BITCODE atomics_test)
+
 foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
     file(RELATIVE_PATH NOISEPAGE_TEST_CPP_REL "${PROJECT_SOURCE_DIR}/test" ${NOISEPAGE_TEST_CPP})
     get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
@@ -943,9 +951,14 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
         set(EXCLUDE_OR_NOT "NO_EXCLUDE")
     endif ()
 
-    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} unittest ${EXCLUDE_OR_NOT} NO_UNITY)
-endforeach ()
+    if (${NOISEPAGE_TEST} IN_LIST TESTS_REQUIRING_BITCODE) 
+        set(TEST_REQUIRES_BITCODE "BITCODE")
+    else ()
+        set(TEST_REQUIRES_BITCODE "NO_BITCODE")
+    endif ()
 
+    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} unittest ${EXCLUDE_OR_NOT} NO_UNITY ${TEST_REQUIRES_BITCODE})
+endforeach ()
 
 file(GLOB_RECURSE NOISEPAGE_SELF_DRIVING_E2E_TEST_SOURCES
         "test/self_driving_e2e/*.cpp"
@@ -962,9 +975,13 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_SELF_DRIVING_E2E_TEST_SOURCES})
         set(EXCLUDE_OR_NOT "NO_EXCLUDE")
     endif ()
 
-    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} self_driving_e2e_test ${EXCLUDE_OR_NOT} NO_UNITY)
+    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} self_driving_e2e_test ${EXCLUDE_OR_NOT} NO_UNITY FALSE)
 endforeach ()
 
+# The jumbotest for specific prefixes that require bitcode. 
+set(PREFIXES_REQUIRING_BITCODE "")
+# The jumbotests for entire folders that require bitcode.
+set(FOLDERS_REQUIRING_BITCODE execution)
 
 function(add_jumbotest
         FOLDER_PATH     # The folder to jumbo together.
@@ -996,12 +1013,24 @@ function(add_jumbotest
             foreach (PREFIXED_FILE ${JUMBO_SOURCES})
                 list(REMOVE_ITEM JUMBO_SOURCES_ALL ${PREFIXED_FILE})
             endforeach ()
-            add_noisepage_test(jumbotest_${FOLDER_NAME}_${PREFIX} "${JUMBO_SOURCES}" "jumbotests" ${EXCLUDE_OR_NOT} ${UNITY_OR_NOT})
+
+            if (${PREFIX} IN_LIST PREFIXES_REQUIRING_BITCODE) 
+                set(TEST_REQUIRES_BITCODE "BITCODE")
+            else ()
+                set(TEST_REQUIRES_BITCODE "NO_BITCODE")
+            endif ()
+
+            add_noisepage_test(jumbotest_${FOLDER_NAME}_${PREFIX} "${JUMBO_SOURCES}" "jumbotests" ${EXCLUDE_OR_NOT} ${UNITY_OR_NOT} ${TEST_REQUIRES_BITCODE})
         endforeach ()
         set(TEST_NAME_SUFFIX "_other")
     endif ()
     if (NOT "${JUMBO_SOURCES_ALL}" STREQUAL "")
-        add_noisepage_test(jumbotest_${FOLDER_NAME}${TEST_NAME_SUFFIX} "${JUMBO_SOURCES_ALL}" "jumbotests" ${EXCLUDE_OR_NOT} ${UNITY_OR_NOT})
+        if (${FOLDER_NAME} IN_LIST FOLDERS_REQUIRING_BITCODE) 
+            set(TEST_REQUIRES_BITCODE "BITCODE")
+        else ()
+            set(TEST_REQUIRES_BITCODE "NO_BITCODE")
+        endif ()
+        add_noisepage_test(jumbotest_${FOLDER_NAME}${TEST_NAME_SUFFIX} "${JUMBO_SOURCES_ALL}" "jumbotests" ${EXCLUDE_OR_NOT} ${UNITY_OR_NOT} ${TEST_REQUIRES_BITCODE})
     endif ()
 endfunction()
 
