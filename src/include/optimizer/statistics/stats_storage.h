@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/macros.h"
@@ -65,7 +66,7 @@ namespace noisepage::optimizer {
 class StatsStorage {
  public:
   // TODO(Joe) Add comments
-  StatsStorage(catalog::CatalogAccessor *accessor);
+  explicit StatsStorage(catalog::CatalogAccessor *accessor);
 
   /**
    * Using given database and table ids,
@@ -74,31 +75,26 @@ class StatsStorage {
    * @param table_id - oid of table
    * @return pointer to a TableStats object
    */
-  common::ManagedPointer<TableStats> GetTableStats(const catalog::db_oid_t database_id,
-                                                   const catalog::table_oid_t table_id);
+  common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
 
- protected:
+ private:
   /**
-   * If there is no corresponding pointer to a TableStats object
-   * for the given database and table ids in the stats storage map, then this function inserts
-   * a TableStats pointer in the table stats storage map and returns true. Else, it returns false.
+   * Inserts a TableStats pointer in the table stats storage map.
    * (note: you must std::move the TableStats object you pass in.)
    * @param database_id - oid of database
    * @param table_id - oid of table
    * @param table_stats - TableStats object to be inserted
-   * @return whether TableStats object was successfully inserted
    */
-  bool InsertTableStats(const catalog::db_oid_t database_id, const catalog::table_oid_t table_id,
+  void InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                         std::unique_ptr<TableStats> table_stats);
 
   /**
-   * If there is a corresponding pointer to a TableStats object, then remove
-   * it and return true. Else, return false.
+   * Remove a TableStats object.
    * @param database_id - oid of database
    * @param table_id - oid of table
    * @return whether TableStats object was successfully removed
    */
-  bool DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
+  void DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
 
  private:
   /**

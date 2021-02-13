@@ -37,50 +37,38 @@ void StatsCalculator::Visit(const LogicalGet *op) {
     return;
   }
 
-  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   auto table_stats = context_->GetStatsStorage()->GetTableStats(op->GetDatabaseOid(), op->GetTableOid());
-  if (table_stats == nullptr) {
-    // no table stats
-    // Fill with defaults to prevent an infinite loop from above
-    for (auto &col : required_cols_) {
-      NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
-      auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-      root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
-    }
-    return;
-  }
+  NOISEPAGE_ASSERT(table_stats != nullptr, "Every table should have statistics");
 
   // First, get the required stats of the base table
-  std::unordered_map<std::string, std::unique_ptr<ColumnStats>> required_stats;
-  for (auto &col : required_cols_) {
+  std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> required_stats;
+  for (const auto &col : required_cols_) {
     // Make a copy for required stats since we may want to modify later
     AddBaseTableStats(col, table_stats, &required_stats);
   }
 
   // Compute selectivity at the first time
   if (root_group->GetNumRows() == -1) {
-    std::unordered_map<std::string, std::unique_ptr<ColumnStats>> predicate_stats;
-    for (auto &annotated_expr : op->GetPredicates()) {
+    std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> predicate_stats;
+    for (const auto &annotated_expr : op->GetPredicates()) {
       ExprSet expr_set;
       auto predicate = annotated_expr.GetExpr();
       parser::ExpressionUtil::GetTupleValueExprs(&expr_set, predicate);
-      for (auto &col : expr_set) {
+      for (const auto &col : expr_set) {
         AddBaseTableStats(col, table_stats, &predicate_stats);
       }
     }
 
-    // Use predicates to estimate cardinality. If we were unable to find any column stats from the catalog, default to 0
-    if (table_stats->GetColumnCount() == 0) {
-      root_group->SetNumRows(0);
-    } else {
-      auto est = EstimateCardinalityForFilter(table_stats->GetNumRows(), predicate_stats, op->GetPredicates());
-      root_group->SetNumRows(static_cast<int>(est));
-    }
+    NOISEPAGE_ASSERT(table_stats->GetColumnCount() != 0, "Should have table stats for all tables");
+    // Use predicates to estimate cardinality.
+    auto est = EstimateCardinalityForFilter(table_stats->GetNumRows(), predicate_stats, op->GetPredicates());
+    root_group->SetNumRows(static_cast<int>(est));
   }
 
   // Add the stats to the group
   for (auto &column_name_stats_pair : required_stats) {
-    auto &column_name = column_name_stats_pair.first;
+    const auto &column_name = column_name_stats_pair.first;
     auto &column_stats = column_name_stats_pair.second;
     column_stats->SetNumRows(root_group->GetNumRows());
     root_group->AddStats(column_name, std::move(column_stats));
@@ -89,9 +77,9 @@ void StatsCalculator::Visit(const LogicalGet *op) {
 
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   // TODO(boweic): Implement stats calculation for logical query derive get
-  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   root_group->SetNumRows(0);
-  for (auto &col : required_cols_) {
+  for (const auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
@@ -101,14 +89,14 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
 void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   // Check if there's join condition
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
-  auto left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
-  auto right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
-  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto *left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
 
   // Calculate output num rows first
   if (root_group->GetNumRows() == -1) {
     size_t curr_rows = left_child_group->GetNumRows() * right_child_group->GetNumRows();
-    for (auto &annotated_expr : op->GetJoinPredicates()) {
+    for (const auto &annotated_expr : op->GetJoinPredicates()) {
       // See if there are join conditions
       if (annotated_expr.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL &&
           annotated_expr.GetExpr()->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
@@ -127,18 +115,18 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   }
 
   size_t num_rows = root_group->GetNumRows();
-  for (auto &col : required_cols_) {
+  for (const auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto col_name = tv_expr->GetFullName();
-    std::unique_ptr<ColumnStats> column_stats;
+    std::unique_ptr<ColumnStatsBase> column_stats;
 
     // Make a copy from the child stats
     if (left_child_group->HasColumnStats(col_name)) {
-      column_stats = std::make_unique<ColumnStats>(*left_child_group->GetStats(col_name));
+      column_stats = left_child_group->GetStats(col_name)->Copy();
     } else {
       NOISEPAGE_ASSERT(right_child_group->HasColumnStats(col_name), "Name must be in right group");
-      column_stats = std::make_unique<ColumnStats>(*right_child_group->GetStats(col_name));
+      column_stats = right_child_group->GetStats(col_name)->Copy();
     }
 
     // Reset num_rows
@@ -152,14 +140,14 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
 void StatsCalculator::Visit(const LogicalSemiJoin *op) {
   // Check if there's join condition
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
-  auto left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
-  auto right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
-  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto *left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
 
   // Calculate output num rows first
   if (root_group->GetNumRows() == -1) {
     size_t curr_rows = left_child_group->GetNumRows() * right_child_group->GetNumRows();
-    for (auto &annotated_expr : op->GetJoinPredicates()) {
+    for (const auto &annotated_expr : op->GetJoinPredicates()) {
       // See if there are join conditions
       if (annotated_expr.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL &&
           annotated_expr.GetExpr()->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
@@ -178,18 +166,18 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
   }
 
   size_t num_rows = root_group->GetNumRows();
-  for (auto &col : required_cols_) {
+  for (const auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto col_name = tv_expr->GetFullName();
-    std::unique_ptr<ColumnStats> column_stats;
+    std::unique_ptr<ColumnStatsBase> column_stats;
 
     // Make a copy from the child stats
     if (left_child_group->HasColumnStats(col_name)) {
-      column_stats = std::make_unique<ColumnStats>(*left_child_group->GetStats(col_name));
+      column_stats = left_child_group->GetStats(col_name)->Copy();
     } else {
       NOISEPAGE_ASSERT(right_child_group->HasColumnStats(col_name), "Name must be in right group");
-      column_stats = std::make_unique<ColumnStats>(*right_child_group->GetStats(col_name));
+      column_stats = right_child_group->GetStats(col_name)->Copy();
     }
 
     // Reset num_rows
@@ -203,62 +191,56 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *o
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Aggregate must have 1 child");
 
   // First, set num rows
-  auto child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   context_->GetMemo().GetGroupByID(gexpr_->GetGroupID())->SetNumRows(child_group->GetNumRows());
-  for (auto &col : required_cols_) {
+  for (const auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     NOISEPAGE_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
-    context_->GetMemo()
-        .GetGroupByID(gexpr_->GetGroupID())
-        ->AddStats(col_name, std::make_unique<ColumnStats>(*child_group->GetStats(col_name)));
+    context_->GetMemo().GetGroupByID(gexpr_->GetGroupID())->AddStats(col_name, child_group->GetStats(col_name)->Copy());
   }
 }
 
 void StatsCalculator::Visit(const LogicalLimit *op) {
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Limit must have 1 child");
-  auto child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
-  auto group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   group->SetNumRows(std::min(static_cast<int>(op->GetLimit()), child_group->GetNumRows()));
-  for (auto &col : required_cols_) {
+  for (const auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     NOISEPAGE_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
-    auto stats = std::make_unique<ColumnStats>(*child_group->GetStats(col_name));
+    auto stats = child_group->GetStats(col_name)->Copy();
     stats->SetNumRows(group->GetNumRows());
     group->AddStats(col_name, std::move(stats));
   }
 }
 
+// TODO(Joe) do we really need to copy these?
 void StatsCalculator::AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
                                         common::ManagedPointer<TableStats> table_stats,
-                                        std::unordered_map<std::string, std::unique_ptr<ColumnStats>> *stats) {
+                                        std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> *stats) {
   NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
   auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-  if (table_stats->GetColumnCount() == 0 || !table_stats->HasColumnStats(tv_expr->GetColumnOid())) {
-    // We do not have stats for the table yet, use default value
-    stats->insert(std::make_pair(tv_expr->GetFullName(), CreateDefaultStats(tv_expr)));
-  } else {
-    stats->insert(std::make_pair(tv_expr->GetFullName(),
-                                 std::make_unique<ColumnStats>(*table_stats->GetColumnStats(tv_expr->GetColumnOid()))));
-  }
+  NOISEPAGE_ASSERT(table_stats->HasColumnStats(tv_expr->GetColumnOid()), "ColumnStats should exist for every column");
+  stats->insert(std::make_pair(tv_expr->GetFullName(), table_stats->GetColumnStats(tv_expr->GetColumnOid())->Copy()));
 }
 
 size_t StatsCalculator::EstimateCardinalityForFilter(
-    size_t num_rows, const std::unordered_map<std::string, std::unique_ptr<ColumnStats>> &predicate_stats,
+    size_t num_rows, const std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> &predicate_stats,
     const std::vector<AnnotatedExpression> &predicates) {
   // First, construct the table stats as the interface needed it to compute selectivity
   // TODO(boweic): We may want to modify the interface of selectivity computation to not use table_stats
-  std::vector<common::ManagedPointer<ColumnStats>> predicate_stats_vec;
-  auto table_stats = new TableStats();
-  for (auto &predicate : predicate_stats) {
-    table_stats->AddColumnStats(std::make_unique<ColumnStats>(*predicate.second));
+  std::vector<common::ManagedPointer<ColumnStatsBase>> predicate_stats_vec;
+  auto *table_stats = new TableStats();
+  for (const auto &predicate : predicate_stats) {
+    table_stats->AddColumnStats(predicate.second->Copy());
   }
 
   double selectivity = 1.F;
-  for (auto &annotated_expr : predicates) {
+  for (const auto &annotated_expr : predicates) {
     // Loop over conjunction exprs
     selectivity *=
         CalculateSelectivityForPredicate(common::ManagedPointer<TableStats>(table_stats), annotated_expr.GetExpr());

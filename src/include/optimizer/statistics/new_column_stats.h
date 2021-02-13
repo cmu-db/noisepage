@@ -16,9 +16,28 @@ namespace noisepage::optimizer {
 class ColumnStatsBase {
  public:
   virtual catalog::col_oid_t GetColumnID() const = 0;
-  virtual size_t &GetNumRows() = 0;
-  virtual double &GetFracNull() = 0;
+
+  virtual size_t GetNumRows() = 0;
+  virtual double GetFracNull() = 0;
+  virtual void SetNumRows(size_t num_rows) = 0;
   // TODO(Joe) Should we add top k and histogram methods?
+  virtual std::unique_ptr<ColumnStatsBase> Copy() = 0;
+};
+
+class UselessDefaultColumnsStatsPleaseGetRidOfMeEventually : public ColumnStatsBase {
+ public:
+  explicit UselessDefaultColumnsStatsPleaseGetRidOfMeEventually(catalog::col_oid_t col_oid) : col_oid_(col_oid) {}
+  ~UselessDefaultColumnsStatsPleaseGetRidOfMeEventually() = default;
+  catalog::col_oid_t GetColumnID() const override { return col_oid_; }
+  size_t GetNumRows() override { return 0; }
+  double GetFracNull() override { return 0.0; }
+  void SetNumRows(size_t num_rows) override {}
+  std::unique_ptr<ColumnStatsBase> Copy() override {
+    return std::make_unique<UselessDefaultColumnsStatsPleaseGetRidOfMeEventually>(col_oid_);
+  }
+
+ private:
+  catalog::col_oid_t col_oid_;
 };
 
 /**
@@ -39,23 +58,20 @@ class NewColumnStats : public ColumnStatsBase {
    * @param table_id - table oid of column
    * @param column_id - column oid of column
    * @param num_rows - number of rows in column
-   // TODO(Joe) will have to update this param
-   * @param num_null - number of null rows
+   * @param frac_null - fraction of null rows
    * @param top_k - TopKElements for this column
    * @param histogram - Histogram for this column
    */
   NewColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
-                 size_t num_rows, size_t num_null, std::unique_ptr<TopKElements<CppType>> top_k,
+                 size_t num_rows, double frac_null, std::unique_ptr<TopKElements<CppType>> top_k,
                  std::unique_ptr<Histogram<CppType>> histogram)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
         num_rows_(num_rows),
+        frac_null_(frac_null),
         top_k_(std::move(top_k)),
-        histogram_(std::move(histogram)) {
-    // TODO(Joe) will have to change this after ANALYZE merges
-    frac_null_ = num_null / num_rows;
-  }
+        histogram_(std::move(histogram)) {}
 
   /**
    * Default constructor for deserialization
@@ -69,16 +85,22 @@ class NewColumnStats : public ColumnStatsBase {
   catalog::col_oid_t GetColumnID() const override { return column_id_; }
 
   /**
+   * Sets the number of rows int he column
+   * @param num_rows number of rows
+   */
+  void SetNumRows(size_t num_rows) override { num_rows_ = num_rows; }
+
+  /**
    * Gets the number of rows in the column
    * @return the number of rows
    */
-  size_t &GetNumRows() override { return this->num_rows_; }
+  size_t GetNumRows() override { return this->num_rows_; }
 
   /**
    * Gets the fraction of null values in the table.
    * @return Fraction of nulls
    */
-  double &GetFracNull() override { return this->frac_null_; }
+  double GetFracNull() override { return this->frac_null_; }
 
   /**
    * Gets the pointer to the histogram for the column.
@@ -91,6 +113,11 @@ class NewColumnStats : public ColumnStatsBase {
    * @return pointer to top k object
    */
   common::ManagedPointer<TopKElements<CppType>> GetTopK() { return common::ManagedPointer(top_k_); }
+
+  std::unique_ptr<ColumnStatsBase> Copy() override {
+    return std::make_unique<NewColumnStats<T>>(database_id_, table_id_, column_id_, num_rows_, frac_null_,
+                                               std::make_unique(top_k_), std::make_unique(histogram_));
+  }
 
  private:
   /**

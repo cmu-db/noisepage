@@ -1,13 +1,14 @@
 #pragma once
 
-#include <catalog/database_catalog.h>
-#include <main/db_main.h>
+#include <memory>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_statistic.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "optimizer/statistics/new_column_stats.h"
+#include "optimizer/statistics/table_stats.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
 

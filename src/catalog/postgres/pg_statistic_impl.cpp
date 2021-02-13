@@ -152,6 +152,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
 
   auto null_rows = *PgStatistic::STA_NULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
   auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
+  double frac_null = static_cast<double>(null_rows) / static_cast<double>(num_rows);
 
   delete[] key_buffer;
 
@@ -165,7 +166,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       using CppType = decltype(T::val_);
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, null_rows,
+      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
                                                             std::move(top_k), std::move(histogram));
     }
     case type::TypeId::TINYINT:
@@ -177,7 +178,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       using CppType = decltype(T::val_);
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, null_rows,
+      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
                                                             std::move(top_k), std::move(histogram));
     }
     case type::TypeId::REAL: {
@@ -186,7 +187,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       using CppType = decltype(T::val_);
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, null_rows,
+      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
                                                             std::move(top_k), std::move(histogram));
     }
     case type::TypeId::DECIMAL: {
@@ -195,7 +196,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       using CppType = decltype(T::val_);
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, null_rows,
+      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
                                                             std::move(top_k), std::move(histogram));
     }
     case type::TypeId::TIMESTAMP: {
@@ -204,7 +205,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       using CppType = decltype(T::val_);
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, null_rows,
+      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
                                                             std::move(top_k), std::move(histogram));
     }
     case type::TypeId::DATE: {
@@ -213,7 +214,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       using CppType = decltype(T::val_);
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, null_rows,
+      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
                                                             std::move(top_k), std::move(histogram));
     }
     case type::TypeId::VARCHAR:
@@ -223,11 +224,11 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
       using CppType = decltype(T::val_);
       auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
       auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, null_rows,
+      return std::make_unique<optimizer::NewColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
                                                             std::move(top_k), std::move(histogram));
     }
     default:
-      // TODO (Joe) fix error message
+      // TODO(Joe) fix error message
       UNREACHABLE("Invalid type");
   }
 }
@@ -352,7 +353,7 @@ std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
         break;
       }
       default:
-        // TODO (Joe) fix error message
+        // TODO(Joe) fix error message
         UNREACHABLE("Invalid type");
     }
   }

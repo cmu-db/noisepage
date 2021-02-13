@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -26,9 +27,9 @@ class TableStats {
    * @param col_stats_list - initial list of ColumnStats objects to be inserted in the TableStats object
    */
   TableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, size_t num_rows,
-             std::vector<std::unique_ptr<ColumnStatsBase>> &col_stats_list)
+             std::vector<std::unique_ptr<ColumnStatsBase>> *col_stats_list)
       : database_id_(database_id), table_id_(table_id), num_rows_(num_rows) {
-    for (auto &col_stat : col_stats_list) {  // taking each ColumnStats object and storing it in a map
+    for (auto &col_stat : *col_stats_list) {  // taking each ColumnStats object and storing it in a map
       column_stats_.emplace(col_stat->GetColumnID(), std::move(col_stat));
     }
   }

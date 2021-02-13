@@ -13,7 +13,7 @@ void TableStats::UpdateNumRows(size_t new_num_rows) {
   num_rows_ = new_num_rows;
   for (auto &col_to_stats_pair : column_stats_) {
     auto &col_stats_ptr = col_to_stats_pair.second;
-    col_stats_ptr->GetNumRows() = new_num_rows;
+    col_stats_ptr->SetNumRows(new_num_rows);
   }
 }
 
@@ -60,7 +60,6 @@ nlohmann::json TableStats::ToJson() const {
   j["database_id"] = database_id_;
   j["table_id"] = table_id_;
   j["num_rows"] = num_rows_;
-  j["is_base_table"] = is_base_table_;
   return j;
 }
 
@@ -68,7 +67,6 @@ void TableStats::FromJson(const nlohmann::json &j) {
   database_id_ = j.at("database_id").get<catalog::db_oid_t>();
   table_id_ = j.at("table_id").get<catalog::table_oid_t>();
   num_rows_ = j.at("num_rows").get<size_t>();
-  is_base_table_ = j.at("is_base_table").get<bool>();
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(TableStats);

@@ -96,15 +96,13 @@ class StatsCalculator : public OperatorVisitor {
                                           common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**
-   * Creates default ColumnStats
+   * Creates default ColumnStats.
+   * TODO(Joe) I'M USELESS. I'M ONLY USED FOR PLACES WHERE WE HAVEN'T IMPLEMENTS STATS CALCULATIONS
+   *  YET. PLEASE DELETE ME. EXISTENCE IS PAIN.
    * @param col ColumnValueExpression
    */
   std::unique_ptr<ColumnStatsBase> CreateDefaultStats(common::ManagedPointer<parser::ColumnValueExpression> tv_expr) {
-    // TODO(Joe) see if we need this
-    return nullptr;
-    /*return std::make_unique<ColumnStatsBase>(tv_expr->GetDatabaseOid(), tv_expr->GetTableOid(),
-       tv_expr->GetColumnOid(), 0, 0.F, false, std::vector<double>{}, std::vector<double>{}, std::vector<double>{},
-       true);*/
+    return std::make_unique<UselessDefaultColumnsStatsPleaseGetRidOfMeEventually>(tv_expr->GetColumnOid());
   }
 
   /**
