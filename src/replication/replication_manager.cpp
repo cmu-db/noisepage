@@ -146,7 +146,7 @@ void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
   if (identity_ == "primary") {
     common::json j;
     // TODO(WAN): Add a size and checksum to message.
-    j["buf_id"] = buffer_id_++;
+    j["buf_id"] = next_buffer_sent_id_++;
     j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
 
     for (const auto &replica : replicas_) {
@@ -183,28 +183,28 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
         REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), msg_id));
 
         // Check if the message needs to be buffered.
-        if (msg_id > last_buffer_id_ + 1) {
+        if (msg_id > last_record_applied_id_ + 1) {
           // The message should be buffered if there are gaps in between the last seen buffer.
           received_buffer_queue_.push(message);
         } else {
           // Otherwise, pull out the log record from the message and hand them to the replication log provider.
           std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
           provider_->AddBufferFromMessage(content);
-          last_buffer_id_ = msg_id;
+          last_record_applied_id_ = msg_id;
           // This may unleash the rest of the buffered messages.
           while (!received_buffer_queue_.empty()) {
             message = received_buffer_queue_.top();
             msg_id = message.at("buf_id");
             // Stop once you're missing a buffer.
-            if (msg_id > last_buffer_id_ + 1) {
+            if (msg_id > last_record_applied_id_ + 1) {
               break;
             }
             // Otherwise, send the top buffer's contents along.
             received_buffer_queue_.pop();
-            NOISEPAGE_ASSERT(msg_id == last_buffer_id_ + 1, "Duplicate buffer? Old buffer?");
+            NOISEPAGE_ASSERT(msg_id == last_record_applied_id_ + 1, "Duplicate buffer? Old buffer?");
             content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
             provider_->AddBufferFromMessage(content);
-            last_buffer_id_ = msg_id;
+            last_record_applied_id_ = msg_id;
           }
         }
       }

@@ -77,12 +77,6 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
   connection_ctx->SetAccessor(nullptr);
 }
 
-void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer) {
-  NOISEPAGE_ASSERT(replication_log_provider_ != DISABLED,
-                   "Should not be handing off logs if no log provider was given");
-  replication_log_provider_->HandBufferToReplication(std::move(buffer));
-}
-
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
                                              const bool explicit_txn_block,
@@ -437,7 +431,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings, metrics);
+      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_);
 
   exec_ctx->SetParams(portal->Parameters());
 
@@ -476,7 +470,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     }
     // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
     // might not have any output otherwise
-    return {ResultType::COMPLETE, exec_ctx->RowsAffected()};
+    return {ResultType::COMPLETE, exec_ctx->GetRowsAffected()};
   }
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,

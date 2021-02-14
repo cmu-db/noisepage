@@ -2104,7 +2104,7 @@ GEN_SCALAR_PARAM_GET(String, StringVal)
 
 VM_OP_WARM void OpReplicationGetLastRecordId(noisepage::execution::sql::Integer *result,
                                              noisepage::execution::exec::ExecutionContext *exec_ctx) {
-  *result = noisepage::execution::sql::Integer(30);
+  *result = noisepage::execution::sql::Integer(exec_ctx->ReplicationGetLastRecordId());
 }
 
 // ---------------------------------

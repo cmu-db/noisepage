@@ -100,8 +100,17 @@ class ReplicationManager {
     return common::ManagedPointer(provider_);
   }
 
+  /**
+   * @return    On the primary, returns the last record ID that was successfully transmitted to all replicas.
+   *            On a replica, returns the last record ID that was successfully applied.
+   */
+  uint64_t GetLastRecordId() const { return IsPrimary() ? next_buffer_sent_id_ - 1 : last_record_applied_id_; }
+
   void EnableReplication() { replication_enabled_ = true; }
   void DisableReplication() { replication_enabled_ = false; }
+
+  /** @return   True if this is the primary node and false if this is a replica. */
+  bool IsPrimary() const { return identity_ == "primary"; }
 
  private:
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
@@ -124,8 +133,8 @@ class ReplicationManager {
 
   bool replication_enabled_ = false;
 
-  uint64_t buffer_id_ = 1;
-  uint64_t last_buffer_id_ = 0;
+  uint64_t next_buffer_sent_id_ = 1;
+  uint64_t last_record_applied_id_ = 0;
   std::priority_queue<nlohmann::json, std::vector<nlohmann::json>, std::function<bool(nlohmann::json, nlohmann::json)>>
       received_buffer_queue_;
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
