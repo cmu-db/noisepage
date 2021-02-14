@@ -9,7 +9,8 @@ namespace noisepage::optimizer {
 
 // TODO(Joe) deal with dirty stats
 common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
-                                                               const catalog::table_oid_t table_id, catalog::CatalogAccessor *accessor) {
+                                                               const catalog::table_oid_t table_id,
+                                                               catalog::CatalogAccessor *accessor) {
   StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
   auto table_it = table_stats_storage_.find(stats_storage_key);
 

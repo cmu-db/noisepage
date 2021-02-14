@@ -38,7 +38,8 @@ void StatsCalculator::Visit(const LogicalGet *op) {
   }
 
   auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
-  auto table_stats = context_->GetStatsStorage()->GetTableStats(op->GetDatabaseOid(), op->GetTableOid(), context_->GetOptimizerContext()->GetCatalogAccessor());
+  auto table_stats = context_->GetStatsStorage()->GetTableStats(op->GetDatabaseOid(), op->GetTableOid(),
+                                                                context_->GetCatalogAccessor());
   NOISEPAGE_ASSERT(table_stats != nullptr, "Every table should have statistics");
 
   // First, get the required stats of the base table

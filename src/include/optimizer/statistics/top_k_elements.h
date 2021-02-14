@@ -40,9 +40,7 @@ class TopKElements {
    * @param k the number of keys to keep track of in the top-k list
    * @param width the size of the underlying sketch
    */
-  explicit TopKElements(size_t k, uint64_t width) : numk_{k}, sketch_(width) {
-    entries_.reserve(numk_);
-  }
+  explicit TopKElements(size_t k, uint64_t width) : numk_{k}, sketch_(width) { entries_.reserve(numk_); }
 
   // TODO(Joe) comment
   TopKElements(const TopKElements &other) : entries_(other.entries_), sketch_(other.sketch_) {}
@@ -72,7 +70,7 @@ class TopKElements {
     NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
 
     // Increment the count for this item in the sketch
-    sketch_->Increment(key, key_size, delta);
+    sketch_.Increment(key, key_size, delta);
 
     // If this key already exists in our top-k list, then
     // we need to update its entry
@@ -96,7 +94,7 @@ class TopKElements {
     // This means that we have to ask the sketch the current count
     // for it to determine whether it should be promoted into our
     // top-k list.
-    auto total_cnt = sketch_->EstimateItemCount(key, key_size);
+    auto total_cnt = sketch_.EstimateItemCount(key, key_size);
 
     // If the total estimated count for this key is greater than the
     // current min and our top-k is at its max capacity, then we know
@@ -162,7 +160,7 @@ class TopKElements {
     OPTIMIZER_LOG_TRACE("Decrement(key={0}, delta={1}) // [size={2}]", key, delta, GetSize());
 
     // Decrement the count for this item in the sketch
-    sketch_->Decrement(key, key_size, delta);
+    sketch_.Decrement(key, key_size, delta);
 
     // This is where things get dicey on us.
     // So if this mofo key is in our top-k vector and its count is
@@ -209,7 +207,7 @@ class TopKElements {
     OPTIMIZER_LOG_TRACE("Remove(key={0}) // [size={2}]", key, GetSize());
 
     // Always remove the key from the sketch
-    sketch_->Remove(key, key_size);
+    sketch_.Remove(key, key_size);
 
     // Then check to see whether it exists in our top-k list
     auto entry = entries_.find(key);
@@ -231,7 +229,7 @@ class TopKElements {
    * @param key key the key to get the count for.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const KeyType &key) const {
+  uint64_t EstimateItemCount(const KeyType &key) {
     // If the key is in our top-k entries list, then
     // we'll give them that value.
     auto entry = entries_.find(key);
@@ -240,7 +238,7 @@ class TopKElements {
     }
     // Otherwise give them whatever the sketch thinks is the
     // the count.
-    return sketch_->EstimateItemCount(key);
+    return sketch_.EstimateItemCount(key);
   }
 
   /**

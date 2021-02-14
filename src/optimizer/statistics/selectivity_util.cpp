@@ -31,7 +31,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
       auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    case type::TypeId::DECIMAL: {
+    /*case type::TypeId::DECIMAL: {
       using T = execution::sql::DecimalVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
@@ -51,7 +51,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
       using T = execution::sql::StringVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
-    }
+    }*/
     default:
       // TODO(Joe) fix error message
       UNREACHABLE("Invalid type");

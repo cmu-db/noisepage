@@ -34,16 +34,23 @@ class Histogram {
       : max_bins_{max_bins}, bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
 
   // TODO(Joe) comment
-  Histogram(const Histogram &other) : max_bins_(other.max_bins_), bins_(other.bins_), total_(other.total_), minimum_(other.minimum_), maximum_(other.maximum_) {}
+  Histogram(const Histogram &other)
+      : max_bins_(other.max_bins_),
+        bins_(other.bins_),
+        total_(other.total_),
+        minimum_(other.minimum_),
+        minimum_key_(other.minimum_key_),
+        maximum_(other.maximum_),
+        maximum_key_(other.maximum_key_) {}
 
-/*  // TODO(Joe) comment
-  Histogram &operator=(const Histogram &other) {
-    max_bins_ = other.max_bins_;
-    bins_ = other.bins_;
-    total_ = other.total_;
-    minimum_ = other.minimum_;
-    maximum_ = other.maximum_;
-  }*/
+  /*  // TODO(Joe) comment
+    Histogram &operator=(const Histogram &other) {
+      max_bins_ = other.max_bins_;
+      bins_ = other.bins_;
+      total_ = other.total_;
+      minimum_ = other.minimum_;
+      maximum_ = other.maximum_;
+    }*/
 
   /**
    * Internal representation of a point/count pair in the histogram.
@@ -58,14 +65,13 @@ class Histogram {
     Bin(double point, double count) : point_{point}, count_{count} {}
 
     // TODO(Joe) comment
-    Bin(const Bin &other) : point_(other.point_), count_(other.count_) {
-    }
+    Bin(const Bin &other) : point_(other.point_), count_(other.count_) {}
 
-/*    // TODO(Joe) comment
-    Bin &operator=(const Bin &other) {
-      point_ = other.point_;
-      count_ = other.count_;
-    }*/
+    /*    // TODO(Joe) comment
+        Bin &operator=(const Bin &other) {
+          point_ = other.point_;
+          count_ = other.count_;
+        }*/
 
     /**
      * Merge the count from the given bin into this bin.
@@ -164,7 +170,7 @@ class Histogram {
   void Increment(const KeyType &key) {
     auto point = static_cast<double>(key);
     Bin bin{point, 1};
-    InsertBin(bin);
+    InsertBin(bin, key);
     if (bins_.size() > max_bins_) {
       MergeTwoBinsWithMinGap();
     }
@@ -243,14 +249,16 @@ class Histogram {
   }
 
   /**
+   * @pre Undefined on an empty histogram
    * @return the largest value that we have in this histogram
    */
-  double GetMaxValue() const { return maximum_; }
+  KeyType GetMaxValue() const { return maximum_key_; }
 
   /**
+   * @pre Undefined on an empty histogram
    * @return the smallest value that we have in this histogram
    */
-  double GetMinValue() const { return minimum_; }
+  KeyType GetMinValue() const { return minimum_key_; }
 
   /**
    * @return the total number of unique values that are recorded in this histogram
@@ -300,9 +308,19 @@ class Histogram {
   double minimum_;
 
   /**
+   * The key corresponding to the minimum value
+   */
+  KeyType minimum_key_;
+
+  /**
    * The largest value that we have in this histogram
    */
   double maximum_;
+
+  /**
+   * The key corresponding to the maximum value
+   */
+  KeyType maximum_key_;
 
   /**
    * Insert a new bin into our histogram. We use our own binary search
@@ -310,13 +328,15 @@ class Histogram {
    * This also updates our min/max boundaries.
    * @param bin the bin to insert into the histogram.
    */
-  void InsertBin(const Bin &bin) {
+  void InsertBin(const Bin &bin, KeyType key) {
     total_ += bin.GetCount();
     if (bin.GetPoint() < minimum_) {
       minimum_ = bin.GetPoint();
+      minimum_key_ = key;
     }
     if (bin.GetPoint() > maximum_) {
       maximum_ = bin.GetPoint();
+      maximum_key_ = key;
     }
 
     int index = BinarySearch(bins_, 0, static_cast<int>(bins_.size()) - 1, bin);

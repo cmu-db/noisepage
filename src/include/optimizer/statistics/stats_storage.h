@@ -65,7 +65,6 @@ namespace noisepage::optimizer {
  */
 class StatsStorage {
  public:
-
   /**
    * Using given database and table ids,
    * select a pointer to the TableStats objects in the table stats storage map.
@@ -73,7 +72,8 @@ class StatsStorage {
    * @param table_id - oid of table
    * @return pointer to a TableStats object
    */
-  common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::CatalogAccessor *accessor);
+  common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                                                   catalog::CatalogAccessor *accessor);
 
  private:
   /**
