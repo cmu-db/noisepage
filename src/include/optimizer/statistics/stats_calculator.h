@@ -96,16 +96,6 @@ class StatsCalculator : public OperatorVisitor {
                                           common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**
-   * Creates default ColumnStats.
-   * TODO(Joe) I'M USELESS. I'M ONLY USED FOR PLACES WHERE WE HAVEN'T IMPLEMENTS STATS CALCULATIONS
-   *  YET. PLEASE DELETE ME. EXISTENCE IS PAIN.
-   * @param col ColumnValueExpression
-   */
-  std::unique_ptr<ColumnStatsBase> CreateDefaultStats(common::ManagedPointer<parser::ColumnValueExpression> tv_expr) {
-    return std::make_unique<UselessDefaultColumnsStatsPleaseGetRidOfMeEventually>(tv_expr->GetColumnOid());
-  }
-
-  /**
    * GroupExpression
    */
   GroupExpression *gexpr_;

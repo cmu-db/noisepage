@@ -25,23 +25,6 @@ class ColumnStatsBase {
   // TODO(Joe) Should we add top k and histogram methods?
 };
 
-class UselessDefaultColumnsStatsPleaseGetRidOfMeEventually : public ColumnStatsBase {
- public:
-  explicit UselessDefaultColumnsStatsPleaseGetRidOfMeEventually(catalog::col_oid_t col_oid) : col_oid_(col_oid) {}
-  ~UselessDefaultColumnsStatsPleaseGetRidOfMeEventually() = default;
-  catalog::col_oid_t GetColumnID() const override { return col_oid_; }
-  size_t GetNumRows() override { return 0; }
-  double GetFracNull() override { return 0.0; }
-  void SetNumRows(size_t num_rows) override {}
-  type::TypeId GetTypeId() override { return type::TypeId::BOOLEAN; }
-  std::unique_ptr<ColumnStatsBase> Copy() override {
-    return std::make_unique<UselessDefaultColumnsStatsPleaseGetRidOfMeEventually>(col_oid_);
-  }
-
- private:
-  catalog::col_oid_t col_oid_;
-};
-
 /**
  * Represents the statistics of a given column. Stores relevant oids,
  * top K elements which uses the count min sketch algorithm to estimate the cardinality
