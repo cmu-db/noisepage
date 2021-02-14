@@ -39,6 +39,14 @@ class CountMinSketch {
     sketch_.create(width);
   }
 
+  // TODO(Joe) Comment
+  CountMinSketch(const CountMinSketch &other) : total_count_(other.total_count_) {
+    sketch_.copy(other.sketch_);
+  }
+
+  /*// TODO(Joe) comment
+  CountMinSketch &operator=(const CountMinSketch &other) { sketch_ = other.sketch_; }*/
+
   /**
    * Increase the count for a key by a given amount.
    * The key does not need to exist in the sketch first.

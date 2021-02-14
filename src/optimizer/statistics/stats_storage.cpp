@@ -7,11 +7,9 @@
 
 namespace noisepage::optimizer {
 
-StatsStorage::StatsStorage(catalog::CatalogAccessor *accessor) : accessor_(accessor) {}
-
 // TODO(Joe) deal with dirty stats
 common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
-                                                               const catalog::table_oid_t table_id) {
+                                                               const catalog::table_oid_t table_id, catalog::CatalogAccessor *accessor) {
   StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
   auto table_it = table_stats_storage_.find(stats_storage_key);
 
@@ -20,7 +18,7 @@ common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db
   }
 
   // TODO(Joe) would be nice to only pull in columns that we need instead of the whole table
-  InsertTableStats(database_id, table_id, accessor_->GetTableStatistics(table_id));
+  InsertTableStats(database_id, table_id, accessor->GetTableStatistics(table_id));
 
   return common::ManagedPointer<TableStats>(table_stats_storage_.at({database_id, table_id}));
 }

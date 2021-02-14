@@ -121,7 +121,7 @@ class NewColumnStats : public ColumnStatsBase {
 
   std::unique_ptr<ColumnStatsBase> Copy() override {
     return std::make_unique<NewColumnStats<T>>(database_id_, table_id_, column_id_, num_rows_, frac_null_,
-                                               std::make_unique(top_k_), std::make_unique(histogram_));
+                                               std::make_unique<TopKElements<CppType>>(*top_k_), std::make_unique<Histogram<CppType>>(*histogram_), type_id_);
   }
 
  private:

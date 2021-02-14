@@ -6,7 +6,7 @@
 
 namespace noisepage::optimizer {
 
-double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats, const ValueCondition &condition) {
+/*double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats, const ValueCondition &condition) {
   switch (condition.GetType()) {
     case parser::ExpressionType::COMPARE_LESS_THAN:
       return LessThan(stats, condition);
@@ -133,7 +133,7 @@ double Selectivity::Like(common::ManagedPointer<TableStats> table_stats, const V
     return DEFAULT_SELECTIVITY;
   }
 
-  /*
+  *//*
   TODO(wz2): Enable once ExecutionEngine for sampling LIKE selectivity is ready
   auto column_stats = table_stats->GetColumnStats(condition.GetColumnID());
   size_t matched_count = 0;
@@ -163,9 +163,9 @@ double Selectivity::Like(common::ManagedPointer<TableStats> table_stats, const V
   OPTIMIZER_LOG_TRACE("total sample size %lu matched tupe %lu", total_count, matched_count);
 
   return total_count == 0 ? DEFAULT_SELECTIVITY : static_cast<double>(matched_count) / static_cast<double>(total_count);
-  */
+  *//*
 
   return DEFAULT_SELECTIVITY;
-}
+}*/
 
 }  // namespace noisepage::optimizer

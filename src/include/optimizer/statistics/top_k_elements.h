@@ -40,15 +40,18 @@ class TopKElements {
    * @param k the number of keys to keep track of in the top-k list
    * @param width the size of the underlying sketch
    */
-  explicit TopKElements(size_t k, uint64_t width) : numk_{k} {
+  explicit TopKElements(size_t k, uint64_t width) : numk_{k}, sketch_(width) {
     entries_.reserve(numk_);
-    sketch_ = new CountMinSketch<KeyType>(width);
   }
 
-  /**
-   * Deconstructor
-   */
-  ~TopKElements() { delete sketch_; }
+  // TODO(Joe) comment
+  TopKElements(const TopKElements &other) : entries_(other.entries_), sketch_(other.sketch_) {}
+
+  /*// TODO(Joe) comment
+  TopKElements &operator=(const TopKElements &other) {
+    entries_ = other.entries_;
+    *sketch_ = *other.sketch_;
+  }*/
 
   /**
    * Increase the count for the given key by the specified delta.
@@ -320,7 +323,7 @@ class TopKElements {
   /**
    * Internal sketch to keep track of all keys in the tracker.
    */
-  CountMinSketch<KeyType> *sketch_;
+  CountMinSketch<KeyType> sketch_;
 
   /**
    * Internal helper method that figures out what the smallest

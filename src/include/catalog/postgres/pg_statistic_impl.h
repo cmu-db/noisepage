@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_statistic.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
@@ -24,6 +23,10 @@ class Index;
 namespace noisepage::transaction {
 class TransactionContext;
 }  // namespace noisepage::transaction
+
+namespace noisepage::catalog {
+class DatabaseCatalog;
+}  // namespace noisepage::catalog
 
 namespace noisepage::catalog::postgres {
 class Builder;

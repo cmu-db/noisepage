@@ -65,8 +65,6 @@ namespace noisepage::optimizer {
  */
 class StatsStorage {
  public:
-  // TODO(Joe) Add comments
-  explicit StatsStorage(catalog::CatalogAccessor *accessor);
 
   /**
    * Using given database and table ids,
@@ -75,7 +73,7 @@ class StatsStorage {
    * @param table_id - oid of table
    * @return pointer to a TableStats object
    */
-  common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
+  common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::CatalogAccessor *accessor);
 
  private:
   /**
@@ -104,10 +102,6 @@ class StatsStorage {
   FRIEND_TEST(StatsStorageTests, InsertTableStatsTest);
   FRIEND_TEST(StatsStorageTests, DeleteTableStatsTest);
 
-  /**
-   * Accessor
-   */
-  catalog::CatalogAccessor *accessor_;
   /**
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
    * TableStats pointers. This represents the storage for TableStats objects.

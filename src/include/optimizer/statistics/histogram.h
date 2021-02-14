@@ -33,6 +33,18 @@ class Histogram {
   explicit Histogram(const uint8_t max_bins)
       : max_bins_{max_bins}, bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
 
+  // TODO(Joe) comment
+  Histogram(const Histogram &other) : max_bins_(other.max_bins_), bins_(other.bins_), total_(other.total_), minimum_(other.minimum_), maximum_(other.maximum_) {}
+
+/*  // TODO(Joe) comment
+  Histogram &operator=(const Histogram &other) {
+    max_bins_ = other.max_bins_;
+    bins_ = other.bins_;
+    total_ = other.total_;
+    minimum_ = other.minimum_;
+    maximum_ = other.maximum_;
+  }*/
+
   /**
    * Internal representation of a point/count pair in the histogram.
    */
@@ -44,6 +56,16 @@ class Histogram {
      * @param count the count that this bin has recorded.
      */
     Bin(double point, double count) : point_{point}, count_{count} {}
+
+    // TODO(Joe) comment
+    Bin(const Bin &other) : point_(other.point_), count_(other.count_) {
+    }
+
+/*    // TODO(Joe) comment
+    Bin &operator=(const Bin &other) {
+      point_ = other.point_;
+      count_ = other.count_;
+    }*/
 
     /**
      * Merge the count from the given bin into this bin.
