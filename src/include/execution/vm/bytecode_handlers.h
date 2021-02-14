@@ -2099,6 +2099,15 @@ GEN_SCALAR_PARAM_GET(String, StringVal)
 #undef GEN_SCALAR_PARAM_GET
 
 // ---------------------------------
+// Replication functions
+// ---------------------------------
+
+VM_OP_WARM void OpReplicationGetLastRecordId(noisepage::execution::sql::Integer *result,
+                                             noisepage::execution::exec::ExecutionContext *exec_ctx) {
+  *result = noisepage::execution::sql::Integer(30);
+}
+
+// ---------------------------------
 // Testing only functions
 // ---------------------------------
 

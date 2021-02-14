@@ -1,11 +1,13 @@
 #pragma once
 
-#include <condition_variable>
-#include <mutex>
+#include <condition_variable>  // NOLINT
+#include <memory>
+#include <mutex>  // NOLINT
 #include <queue>
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/json_header.h"

@@ -1,6 +1,6 @@
 #include "replication/replication_manager.h"
 
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <fstream>
 #include <optional>
 

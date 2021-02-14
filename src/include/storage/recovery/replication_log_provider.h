@@ -1,6 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <queue>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "network/network_io_utils.h"
 #include "storage/recovery/abstract_log_provider.h"
