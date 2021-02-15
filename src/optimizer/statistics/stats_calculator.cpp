@@ -83,7 +83,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   for (const auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-    //TODO(Joe) fix nullptr
+    // TODO(Joe) fix nullptr
     root_group->AddStats(tv_expr->GetFullName(), nullptr);
   }
 }

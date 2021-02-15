@@ -15,8 +15,8 @@ namespace noisepage::optimizer {
 
 class ColumnStatsBase {
  public:
+  virtual ~ColumnStatsBase() = default;
   virtual catalog::col_oid_t GetColumnID() const = 0;
-
   virtual size_t GetNumRows() = 0;
   virtual double GetFracNull() = 0;
   virtual void SetNumRows(size_t num_rows) = 0;
@@ -63,6 +63,8 @@ class NewColumnStats : public ColumnStatsBase {
    * Default constructor for deserialization
    */
   NewColumnStats() = default;
+
+  ~NewColumnStats() override = default;
 
   /**
    * Gets the column oid of the column
