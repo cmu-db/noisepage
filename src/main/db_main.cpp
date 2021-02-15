@@ -5,6 +5,7 @@
 #undef __SETTING_GFLAGS_DEFINE__     // NOLINT
 
 #include "execution/execution_util.h"
+#include "storage/recovery/replication_log_provider.h"
 
 namespace noisepage {
 
@@ -23,9 +24,18 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
-  if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
-    network_layer_->GetServer()->StopServer();
+  if (!force_shutdown_called_) {
+    if (replication_manager_ != DISABLED) {
+      replication_manager_->GetReplicationLogProvider()->EndReplication();
+    }
+    if (recovery_manager_ != DISABLED) {
+      recovery_manager_->WaitForRecoveryToFinish();
+    }
+    if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
+      network_layer_->GetServer()->StopServer();
+    }
   }
+  force_shutdown_called_ = true;
 }
 
 DBMain::~DBMain() { ForceShutdown(); }

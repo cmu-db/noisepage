@@ -29,7 +29,7 @@ class ReplicationLogProvider final : public AbstractLogProvider {
   void EndReplication() {
     std::unique_lock<std::mutex> lock(replication_latch_);
     replication_active_ = false;
-    replication_cv_.notify_one();
+    replication_cv_.notify_all();
   }
 
   /**
@@ -105,9 +105,8 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     std::unique_lock<std::mutex> lock(replication_latch_);
     // We wake up from CV if:
     //  2. Someone ends replication
-    //  3. We have a current buffer and it has more bytes availible
+    //  3. We have a current buffer and it has more bytes available
     //  4. A new packet has arrived
-    // TODO(WAN): asan on shutdown due to replication_active_, look at teardown order?
     replication_cv_.wait(lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords(); });
     return replication_active_;
   }

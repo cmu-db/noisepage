@@ -1088,18 +1088,20 @@ class DBMain {
   std::unique_ptr<TransactionLayer> txn_layer_;
   std::unique_ptr<StorageLayer> storage_layer_;
   std::unique_ptr<CatalogLayer> catalog_layer_;
-  std::unique_ptr<storage::RecoveryManager> recovery_manager_;
   std::unique_ptr<storage::GarbageCollectorThread>
       gc_thread_;  // thread needs to die before manual invocations of GC in CatalogLayer and others
   std::unique_ptr<optimizer::StatsStorage> stats_storage_;
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<MessengerLayer> messenger_layer_;
+  std::unique_ptr<replication::ReplicationManager> replication_manager_;  // Depends on messenger.
+  std::unique_ptr<storage::RecoveryManager> recovery_manager_;  // Depends on replication manager.
   std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
   std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
-  std::unique_ptr<MessengerLayer> messenger_layer_;
-  std::unique_ptr<replication::ReplicationManager> replication_manager_;
+
+  bool force_shutdown_called_ = false;
 };
 
 }  // namespace noisepage
