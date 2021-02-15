@@ -735,8 +735,15 @@ function(target_requires_bitcode TARGET)
             DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
             POST_BUILD
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND cmake -E echo "Generating optimized bitcodes..."
-            COMMAND ${BUILD_SUPPORT_DIR}/generate-bitcodes.sh ${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CLANG}
+            COMMAND cmake -E echo "Generating optimized bitcode ..."
+            COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+            COMMAND ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
+            COMMAND cmake -E echo "Running: ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc"
+            COMMAND ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc
+            COMMAND cmake -E echo "Running: mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+            COMMAND mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
+            COMMAND cmake -E echo "Generated optimized bitcode at ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc."
+            USES_TERMINAL
     )
 endfunction()
 
