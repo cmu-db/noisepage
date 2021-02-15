@@ -92,7 +92,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
 }
 
 void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
-  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+  std::scoped_lock latch(output_synchronization_);
 
   // Write out the rows for this batch
   for (uint32_t row = 0; row < num_tuples; row++) {
