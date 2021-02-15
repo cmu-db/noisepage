@@ -12,7 +12,8 @@ namespace noisepage::execution::sql::test {
 
 class SystemFunctionsTests : public TplTest {
  public:
-  SystemFunctionsTests() : ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr, settings_, nullptr) {}
+  SystemFunctionsTests()
+      : ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr, settings_, nullptr, DISABLED) {}
 
   exec::ExecutionContext *Ctx() { return &ctx_; }
 

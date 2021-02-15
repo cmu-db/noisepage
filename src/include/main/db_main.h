@@ -1110,7 +1110,7 @@ class DBMain {
   std::unique_ptr<NetworkLayer> network_layer_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<replication::ReplicationManager> replication_manager_;  // Depends on messenger.
-  std::unique_ptr<storage::RecoveryManager> recovery_manager_;  // Depends on replication manager.
+  std::unique_ptr<storage::RecoveryManager> recovery_manager_;            // Depends on replication manager.
   std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
   std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;

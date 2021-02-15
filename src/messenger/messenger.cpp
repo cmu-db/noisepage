@@ -393,7 +393,7 @@ ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message,
-                            CallbackFn callback, uint64_t recv_cb_id) {
+                            CallbackFn callback, uint64_t remote_cb_id) {
   // Note that a ConnectionId cannot be used from multiple threads. This is an inherent ZeroMQ limitation.
   // If you need another thread to connect to the same ConnectionDestination, just get a new ConnectionId.
   // This allows us to avoid taking latches around the socket that the ConnectionId wraps.
@@ -405,7 +405,7 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, 
   callbacks_mutex_.unlock();
 
   // Build and send the message.
-  ZmqMessage msg = ZmqMessage::Build(send_msg_id, recv_cb_id, connection_id->routing_id_, message);
+  ZmqMessage msg = ZmqMessage::Build(send_msg_id, remote_cb_id, connection_id->routing_id_, message);
   ZmqUtil::SendMsgPayload(common::ManagedPointer(connection_id->socket_), msg);
   MESSENGER_LOG_TRACE(
       fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), connection_id->target_name_, msg.GetRawPayload()));

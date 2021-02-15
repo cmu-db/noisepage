@@ -147,8 +147,12 @@ void LogSerializerTask::HandFilledBufferToWriter() {
   // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
   if (filled_buffer_ != nullptr) filled_buffer_->PrepareForSerialization();
   // Replicate the buffer, if it exists.
-  if (filled_buffer_ != nullptr && replication_manager_ != DISABLED) {
-    replication_manager_->ReplicateBuffer(filled_buffer_);
+  if (filled_buffer_ != nullptr) {
+    if (replication_manager_ != DISABLED) {
+      replication_manager_->ReplicateBuffer(filled_buffer_);
+    } else {
+      filled_buffer_->MarkSerialized();
+    }
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
