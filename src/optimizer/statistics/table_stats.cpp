@@ -5,7 +5,6 @@
 
 #include "common/json.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/statistics/column_stats.h"
 
 namespace noisepage::optimizer {
 

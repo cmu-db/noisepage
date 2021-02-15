@@ -15,7 +15,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
     case type::TypeId::BOOLEAN: {
       // TODO(Joe) we'll have to fix this with deserialization
       using T = execution::sql::BoolVal;
-      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
     case type::TypeId::TINYINT:
@@ -23,33 +23,33 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
       using T = execution::sql::Integer;
-      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
     case type::TypeId::REAL: {
       using T = execution::sql::Real;
-      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
     /*case type::TypeId::DECIMAL: {
       using T = execution::sql::DecimalVal;
-      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
     case type::TypeId::TIMESTAMP: {
       using T = execution::sql::TimestampVal;
-      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
     case type::TypeId::DATE: {
       using T = execution::sql::DateVal;
-      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
       using T = execution::sql::StringVal;
-      auto column_stats = column_stats_base.CastManagedPointerTo<NewColumnStats<T>>();
+      auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }*/
     default:
@@ -59,7 +59,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
 }
 
 template <typename T>
-double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats<T>> column_stats,
+double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<ColumnStats<T>> column_stats,
                                            const ValueCondition &condition) {
   switch (condition.GetType()) {
     case parser::ExpressionType::COMPARE_LESS_THAN:
@@ -90,7 +90,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats
 }
 
 template <typename T>
-double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
+double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<ColumnStats<T>> column_stats,
                                           const ValueCondition &condition) {
   const auto value = condition.GetPointerToValue()->Peek<decltype(T::val_)>();
 
@@ -115,7 +115,7 @@ double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<
 }
 
 template <typename T>
-double SelectivityUtil::Equal(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+double SelectivityUtil::Equal(common::ManagedPointer<ColumnStats<T>> column_stats, const ValueCondition &condition) {
   // Convert value type to raw value (double)
   const auto value = condition.GetPointerToValue()->Peek<decltype(T::val_)>();
   if (column_stats == nullptr) {
@@ -139,23 +139,23 @@ double SelectivityUtil::Equal(common::ManagedPointer<NewColumnStats<T>> column_s
 
 // Explicit instantitation of template functions.
 template double SelectivityUtil::Equal<execution::sql::Real>(
-    common::ManagedPointer<NewColumnStats<execution::sql::Real>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::Real>> column_stats, const ValueCondition &condition);
 template double SelectivityUtil::Equal<execution::sql::Integer>(
-    common::ManagedPointer<NewColumnStats<execution::sql::Integer>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::Integer>> column_stats, const ValueCondition &condition);
 template double SelectivityUtil::Equal<execution::sql::BoolVal>(
-    common::ManagedPointer<NewColumnStats<execution::sql::BoolVal>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::BoolVal>> column_stats, const ValueCondition &condition);
 
 template double SelectivityUtil::LessThanOrEqualTo<execution::sql::Real>(
-    common::ManagedPointer<NewColumnStats<execution::sql::Real>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::Real>> column_stats, const ValueCondition &condition);
 template double SelectivityUtil::LessThanOrEqualTo<execution::sql::Integer>(
-    common::ManagedPointer<NewColumnStats<execution::sql::Integer>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::Integer>> column_stats, const ValueCondition &condition);
 template double SelectivityUtil::LessThanOrEqualTo<execution::sql::BoolVal>(
-    common::ManagedPointer<NewColumnStats<execution::sql::BoolVal>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::BoolVal>> column_stats, const ValueCondition &condition);
 
 template double SelectivityUtil::ComputeSelectivity<execution::sql::Real>(
-    common::ManagedPointer<NewColumnStats<execution::sql::Real>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::Real>> column_stats, const ValueCondition &condition);
 template double SelectivityUtil::ComputeSelectivity<execution::sql::Integer>(
-    common::ManagedPointer<NewColumnStats<execution::sql::Integer>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::Integer>> column_stats, const ValueCondition &condition);
 template double SelectivityUtil::ComputeSelectivity<execution::sql::BoolVal>(
-    common::ManagedPointer<NewColumnStats<execution::sql::BoolVal>> column_stats, const ValueCondition &condition);
+    common::ManagedPointer<ColumnStats<execution::sql::BoolVal>> column_stats, const ValueCondition &condition);
 }  // namespace noisepage::optimizer

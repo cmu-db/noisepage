@@ -13,7 +13,7 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
-#include "optimizer/statistics/new_column_stats.h"
+#include "optimizer/statistics/column_stats.h"
 
 namespace noisepage::optimizer {
 

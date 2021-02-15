@@ -13,7 +13,6 @@
 #include "optimizer/memo.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/physical_operators.h"
-#include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/selectivity_util.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"

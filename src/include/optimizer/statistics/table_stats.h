@@ -8,7 +8,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "optimizer/statistics/new_column_stats.h"
+#include "optimizer/statistics/column_stats.h"
 
 namespace noisepage::optimizer {
 /**

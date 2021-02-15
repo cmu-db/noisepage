@@ -4,7 +4,7 @@
 #include <limits>
 
 #include "common/managed_pointer.h"
-#include "optimizer/statistics/new_column_stats.h"
+#include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
 #include "parser/expression/constant_value_expression.h"
@@ -41,7 +41,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double ComputeSelectivity(common::ManagedPointer<NewColumnStats<T>> column_stats,
+  static double ComputeSelectivity(common::ManagedPointer<ColumnStats<T>> column_stats,
                                    const ValueCondition &condition);
 
   /**
@@ -51,7 +51,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double LessThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+  static double LessThan(common::ManagedPointer<ColumnStats<T>> column_stats, const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = LessThanOrEqualTo(column_stats, condition) - Equal(column_stats, condition);
     // Leave some room for acceptable error because of double calculations.
@@ -68,8 +68,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
-                                  const ValueCondition &condition);
+  static double LessThanOrEqualTo(common::ManagedPointer<ColumnStats<T>> column_stats, const ValueCondition &condition);
 
   /**
    * Computes Greater Than Selectivity
@@ -78,7 +77,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double GreaterThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+  static double GreaterThan(common::ManagedPointer<ColumnStats<T>> column_stats, const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = 1 - LessThanOrEqualTo(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
@@ -95,7 +94,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double GreaterThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
+  static double GreaterThanOrEqualTo(common::ManagedPointer<ColumnStats<T>> column_stats,
                                      const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = 1.0 - LessThan(column_stats, condition) - column_stats->GetFracNull();
@@ -113,7 +112,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double Equal(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition);
+  static double Equal(common::ManagedPointer<ColumnStats<T>> column_stats, const ValueCondition &condition);
 
   /**
    * Computes Not Equal Selectivity
@@ -122,7 +121,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double NotEqual(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+  static double NotEqual(common::ManagedPointer<ColumnStats<T>> column_stats, const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY_VALUE;
     double res = 1 - Equal(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
@@ -141,7 +140,7 @@ class SelectivityUtil {
    * Peloton: Complete implementation once we support LIKE Operator
    */
   template <typename T>
-  static double Like(UNUSED_ATTRIBUTE common::ManagedPointer<NewColumnStats<T>> column_stats,
+  static double Like(UNUSED_ATTRIBUTE common::ManagedPointer<ColumnStats<T>> column_stats,
                      UNUSED_ATTRIBUTE const ValueCondition &condition) {
     return DEFAULT_SELECTIVITY_VALUE;
   }
@@ -153,7 +152,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double NotLike(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+  static double NotLike(common::ManagedPointer<ColumnStats<T>> column_stats, const ValueCondition &condition) {
     return DEFAULT_SELECTIVITY_VALUE;
   }
 
@@ -164,7 +163,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double In(UNUSED_ATTRIBUTE common::ManagedPointer<NewColumnStats<T>> column_stats,
+  static double In(UNUSED_ATTRIBUTE common::ManagedPointer<ColumnStats<T>> column_stats,
                    UNUSED_ATTRIBUTE const ValueCondition &condition) {
     return DEFAULT_SELECTIVITY_VALUE;
   }
@@ -176,7 +175,7 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double DistinctFrom(UNUSED_ATTRIBUTE common::ManagedPointer<NewColumnStats<T>> column_stats,
+  static double DistinctFrom(UNUSED_ATTRIBUTE common::ManagedPointer<ColumnStats<T>> column_stats,
                              UNUSED_ATTRIBUTE const ValueCondition &condition) {
     return DEFAULT_SELECTIVITY_VALUE;
   }
