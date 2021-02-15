@@ -1114,8 +1114,6 @@ class DBMain {
   std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
   std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
-
-  bool force_shutdown_called_ = false;
 };
 
 }  // namespace noisepage

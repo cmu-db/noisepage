@@ -30,15 +30,16 @@ void RecoveryManager::StartRecovery() {
   NOISEPAGE_ASSERT(recovery_task_ == nullptr, "Recovery already started");
   recovery_task_ =
       thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
-  recovery_task_loop_ = true;
+  recovery_task_loop_again_ = true;
 }
 
 void RecoveryManager::WaitForRecoveryToFinish() {
-  recovery_task_loop_ = false;
+  recovery_task_loop_again_ = false;
   NOISEPAGE_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
   if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
     throw std::runtime_error("Recovery task termination failed");
   }
+  recovery_task_ = nullptr;
 }
 
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {

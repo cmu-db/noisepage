@@ -50,7 +50,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
     void RunTask() override {
-      while (recovery_manager_->recovery_task_loop_) {
+      while (recovery_manager_->recovery_task_loop_again_) {
         recovery_manager_->Recover();
       }
     }
@@ -112,6 +112,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   void WaitForRecoveryToFinish();
 
+  /* @return True if the recovery task is still running. */
+  bool IsRecoveryTaskRunning() const { return recovery_task_ != nullptr; }
+
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;
@@ -152,7 +155,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // Background recovery task
   common::ManagedPointer<RecoveryTask> recovery_task_ = nullptr;
-  bool recovery_task_loop_ = false;
+  bool recovery_task_loop_again_ = false;
 
   // Its possible during recovery that the schemas for catalog tables may not yet exist in pg_class. Thus, we hardcode
   // them here

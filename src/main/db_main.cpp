@@ -24,18 +24,15 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
-  if (!force_shutdown_called_) {
-    if (replication_manager_ != DISABLED) {
-      replication_manager_->GetReplicationLogProvider()->EndReplication();
-    }
-    if (recovery_manager_ != DISABLED) {
-      recovery_manager_->WaitForRecoveryToFinish();
-    }
-    if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
-      network_layer_->GetServer()->StopServer();
-    }
+  if (replication_manager_ != DISABLED) {
+    replication_manager_->GetReplicationLogProvider()->EndReplication();
   }
-  force_shutdown_called_ = true;
+  if (recovery_manager_ != DISABLED && recovery_manager_->IsRecoveryTaskRunning()) {
+    recovery_manager_->WaitForRecoveryToFinish();
+  }
+  if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
+    network_layer_->GetServer()->StopServer();
+  }
 }
 
 DBMain::~DBMain() { ForceShutdown(); }

@@ -375,10 +375,12 @@ void Messenger::RunTask() {
 }
 
 void Messenger::Terminate() {
+  if (is_messenger_running_) {
+    // Shut down the ZeroMQ context. This causes all existing sockets to abort with ETERM.
+    zmq_ctx_->shutdown();
+    MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger terminated.", ::getpid()));
+  }
   is_messenger_running_ = false;
-  // Shut down the ZeroMQ context. This causes all existing sockets to abort with ETERM.
-  zmq_ctx_->shutdown();
-  MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger terminated.", ::getpid()));
 }
 
 void Messenger::ListenForConnection(const ConnectionDestination &target, const std::string &identity,
