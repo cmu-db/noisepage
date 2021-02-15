@@ -8,14 +8,6 @@
 
 namespace noisepage::optimizer {
 
-void TableStats::UpdateNumRows(size_t new_num_rows) {
-  num_rows_ = new_num_rows;
-  for (auto &col_to_stats_pair : column_stats_) {
-    auto &col_stats_ptr = col_to_stats_pair.second;
-    col_stats_ptr->SetNumRows(new_num_rows);
-  }
-}
-
 bool TableStats::AddColumnStats(std::unique_ptr<ColumnStatsBase> col_stats) {
   auto it = column_stats_.find(col_stats->GetColumnID());
   if (it != column_stats_.end()) {
@@ -26,35 +18,28 @@ bool TableStats::AddColumnStats(std::unique_ptr<ColumnStatsBase> col_stats) {
   return true;
 }
 
-// TODO(Joe) this is never used
-double TableStats::GetCardinality(catalog::col_oid_t column_id) {
-  // TODO(Joe) I don't think this should ever happen
-  if (!HasColumnStats(column_id)) {
-    return 0;
-  }
-
-  // TODO(Joe) is this right?
-  return GetColumnStats(column_id)->GetNumRows();
-}
-
 bool TableStats::HasColumnStats(catalog::col_oid_t column_id) const {
   return (column_stats_.find(column_id) != column_stats_.end());
 }
 
 common::ManagedPointer<ColumnStatsBase> TableStats::GetColumnStats(catalog::col_oid_t column_id) {
   auto col_it = column_stats_.find(column_id);
-  if (col_it == column_stats_.end()) return nullptr;
+  NOISEPAGE_ASSERT(col_it != column_stats_.end(), "Every valid column should have an associated column stats");
   return common::ManagedPointer<ColumnStatsBase>(col_it->second);
 }
 
-bool TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
-  auto col_it = column_stats_.find(column_id);
+std::vector<common::ManagedPointer<ColumnStatsBase>> TableStats::GetColumnStats() {
+ std::vector<common::ManagedPointer<ColumnStatsBase>> column_stats;
+ for(const auto &[_, column_stat] : column_stats_) {
+   column_stats.emplace_back(common::ManagedPointer(column_stat));
+ }
+ return column_stats;
+}
 
-  if (col_it != column_stats_.end()) {
-    column_stats_.erase(col_it);
-    return true;
-  }
-  return false;
+void TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
+  auto col_it = column_stats_.find(column_id);
+  NOISEPAGE_ASSERT(col_it != column_stats_.end(), "Every column should have an associated column stats object");
+  column_stats_.erase(col_it);
 }
 
 nlohmann::json TableStats::ToJson() const {

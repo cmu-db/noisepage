@@ -66,6 +66,7 @@ class ColumnStats : public ColumnStatsBase {
    */
   ColumnStats() = default;
 
+  //TODO(Joe) comment
   ~ColumnStats() override = default;
 
   /**

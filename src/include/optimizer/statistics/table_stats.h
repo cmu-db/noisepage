@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -40,12 +41,6 @@ class TableStats {
   TableStats() = default;
 
   /**
-   * Updates the number of rows in the table and all of its columns
-   * @param new_num_rows - the new number of rows to update to
-   */
-  void UpdateNumRows(size_t new_num_rows);
-
-  /**
    * Adds a ColumnStats object to the map of ColumnStats objects
    * @param col_stats - ColumnStats object to add
    * @return whether the ColumnStats object is successfully added
@@ -56,13 +51,6 @@ class TableStats {
    * Removes all the ColumnStats objects in the ColumnStats map
    */
   void ClearColumnStats() { column_stats_.clear(); }
-
-  /**
-   * Gets the cardinality of a column in the table, given its column id
-   * @param column_id - the column oid
-   * @return the cardinality of the column
-   */
-  double GetCardinality(catalog::col_oid_t column_id);
 
   /**
    * Gets the number of columns in the table
@@ -85,17 +73,26 @@ class TableStats {
   common::ManagedPointer<ColumnStatsBase> GetColumnStats(catalog::col_oid_t column_id);
 
   /**
+   * Retrieves all ColumnStats objects in the ColumnStats map
+   * @return pointers to all ColumnStats objects
+   */
+  std::vector<common::ManagedPointer<ColumnStatsBase>> GetColumnStats();
+
+  /**
    * Removes the ColumnStats object for the given column oid in the ColumnStats map
    * @param column_id - the oid of the column
-   * @return whether the ColumnStats object was successfully removed
    */
-  bool RemoveColumnStats(catalog::col_oid_t column_id);
+  void RemoveColumnStats(catalog::col_oid_t column_id);
 
   /**
    * Gets the number of rows in the table
    * @return the number of rows
    */
   size_t GetNumRows() const { return num_rows_; }
+
+  std::shared_lock<std::shared_mutex> LockShared() {
+    return std::shared_lock<std::shared_mutex>>(table_latch_);
+  }
 
   /**
    * Serializes a table stats object
@@ -128,6 +125,7 @@ class TableStats {
    * stores the ColumnStats objects for the columns in the table
    */
   std::unordered_map<catalog::col_oid_t, std::unique_ptr<ColumnStatsBase>> column_stats_;
+
 };
 DEFINE_JSON_HEADER_DECLARATIONS(TableStats);
 }  // namespace noisepage::optimizer
