@@ -438,4 +438,12 @@ SETTING_string(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_string(
+    bytecode_handlers_path,
+    "The path to the bytecode handlers bitcode file (default: ./bytecode_handlers_ir.bc)",
+    "./bytecode_handlers_ir.bc",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
     // clang-format on
