@@ -3,21 +3,22 @@
 
 #include "common/worker_pool.h"
 #include "execution/ast/context.h"
+#include "execution/compiled_tpl_test.h"
 #include "execution/compiler/compiler.h"
 #include "execution/sema/error_reporter.h"
-#include "execution/tpl_test.h"
 #include "execution/util/region.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm_defs.h"
 #include "spdlog/fmt/fmt.h"
+#include "test_util/fs_util.h"
 #include "test_util/multithread_test_util.h"
 
 namespace noisepage::execution::test {
 
-class AtomicsTest : public TplTest {
+class AtomicsTest : public CompiledTplTest {
  public:
-  AtomicsTest() : region_("atomics_test") { vm::LLVMEngine::Initialize(); }
+  AtomicsTest() : region_("atomics_test") {}
 
   util::Region region_;
 
@@ -150,17 +151,13 @@ TEST_F(AtomicsTest, InterpretedCompareExchange2) { CompareExchangeTest<uint16_t>
 TEST_F(AtomicsTest, InterpretedCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", false); }  // NOLINT
 TEST_F(AtomicsTest, InterpretedCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", false); }  // NOLINT
 
-/* TODO(John): These tests are disabled because our testing environment does not
- *  currently make `bytecode_handlers_ir.bc` available to the test programs.
- *  Without this file, compiled tests fail.
- */
-// TEST_F(AtomicsTest, CompiledAndOr1) { AndOrTest<uint8_t>("uint8", true); }                        // NOLINT
-// TEST_F(AtomicsTest, CompiledAndOr2) { AndOrTest<uint16_t>("uint16", true); }                      // NOLINT
-// TEST_F(AtomicsTest, CompiledAndOr4) { AndOrTest<uint32_t>("uint32", true); }                      // NOLINT
-// TEST_F(AtomicsTest, CompiledAndOr8) { AndOrTest<uint64_t>("uint64", true); }                      // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", true); }    // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", true); }  // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", true); }  // NOLINT
-// TEST_F(AtomicsTest, CompiledCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", true); }  // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr1) { AndOrTest<uint8_t>("uint8", true); }                        // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr2) { AndOrTest<uint16_t>("uint16", true); }                      // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr4) { AndOrTest<uint32_t>("uint32", true); }                      // NOLINT
+TEST_F(AtomicsTest, CompiledAndOr8) { AndOrTest<uint64_t>("uint64", true); }                      // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", true); }    // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", true); }  // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", true); }  // NOLINT
+TEST_F(AtomicsTest, CompiledCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", true); }  // NOLINT
 
 }  // namespace noisepage::execution::test
