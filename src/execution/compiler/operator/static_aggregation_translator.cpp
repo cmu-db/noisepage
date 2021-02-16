@@ -186,6 +186,16 @@ void StaticAggregationTranslator::BeginPipelineWork(const Pipeline &pipeline, Fu
   }
 }
 
+void StaticAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsProducePipeline(pipeline)) {
+    auto *codegen = GetCodeGen();
+    for (auto agg_term_idx : GetAggPlan().GetMemoryAllocatingAggregatorIndexes()) {
+      ast::Expr *agg_term = GetAggregateTermPtr(global_aggs_.Get(codegen), agg_term_idx);
+      function->Append(GetCodeGen()->AggregatorFree(agg_term));
+    }
+  }
+}
+
 void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
 

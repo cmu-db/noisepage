@@ -1293,20 +1293,37 @@ Bytecode OpForAgg<AggOpKind::Reset>(const ast::BuiltinType::Kind agg_kind) {
   }
 }
 
+template <>
+Bytecode OpForAgg<AggOpKind::Free>(const ast::BuiltinType::Kind agg_kind) {
+  switch (agg_kind) {
+    default: {
+      UNREACHABLE("Impossible aggregate type");
+    }
+#define ENTRY(Type, Init, Advance, GetResult, Merge, Reset, Free) \
+  case ast::BuiltinType::Type:                                    \
+    return Bytecode::Free;
+      AGG_CODES(ENTRY)
+#undef ENTRY
+  }
+}
+
 }  // namespace
 
 void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::AggInit:
-    case ast::Builtin::AggReset: {
+    case ast::Builtin::AggReset:
+    case ast::Builtin::AggFree: {
       for (const auto &arg : call->Arguments()) {
         const auto agg_kind = arg->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
         LocalVar input = VisitExpressionForRValue(arg);
         Bytecode bytecode;
         if (builtin == ast::Builtin::AggInit) {
           bytecode = OpForAgg<AggOpKind::Init>(agg_kind);
-        } else {
+        } else if (builtin == ast::Builtin::AggReset) {
           bytecode = OpForAgg<AggOpKind::Reset>(agg_kind);
+        } else {
+          bytecode = OpForAgg<AggOpKind::Free>(agg_kind);
         }
         GetEmitter()->Emit(bytecode, input);
       }
@@ -2781,7 +2798,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::AggAdvance:
     case ast::Builtin::AggMerge:
     case ast::Builtin::AggReset:
-    case ast::Builtin::AggResult: {
+    case ast::Builtin::AggResult:
+    case ast::Builtin::AggFree: {
       VisitBuiltinAggregatorCall(call, builtin);
       break;
     }
