@@ -44,4 +44,11 @@ using TransactionEndAction = std::function<void(DeferredActionManager *)>;
  * and in cases such as GC knowing the actual time enables optimizations.
  */
 using DeferredAction = std::function<void(timestamp_t)>;
+
+/** 
+ * Describes the retention policy of a transaction.
+ * DISABLE_LOG: transaction will not be logged.
+ * ENABLE_LOG: transaction will be logged.
+ */
+enum class RetentionPolicy : uint8_t { DISABLE_LOG = 0, ENABLE_LOG };
 }  // namespace noisepage::transaction
