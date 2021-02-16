@@ -1124,6 +1124,12 @@ ast::Expr *CodeGen::AggregatorResult(ast::Expr *exec_ctx, ast::Expr *agg,
   return CallBuiltin(ast::Builtin::AggResult, {agg});
 }
 
+ast::Expr *CodeGen::AggregatorFree(ast::Expr *agg) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::AggFree, {agg});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
 // ---------------------------------------------------------
 // Sorters
 // ---------------------------------------------------------
