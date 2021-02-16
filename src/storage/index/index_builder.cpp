@@ -97,7 +97,7 @@ Index *IndexBuilder::BuildBwTreeGenericKey(IndexMetadata metadata) const {
   return index;
 }
 
-Index *IndexBuilder::BuildBPlusTreeIntsKey(IndexMetadata metadata) const {
+Index *IndexBuilder::BuildBPlusTreeIntsKey(IndexMetadata &&metadata) const {
   metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
   const auto key_size = metadata.KeySize();
   NOISEPAGE_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");

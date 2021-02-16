@@ -1407,6 +1407,12 @@ TEST_F(BPlusTreeTests, MultiThreadedInsertTest) {
     EXPECT_EQ(results[0], keys[i]);
   }
 
+  // Verify Structural Integrity
+  std::set<int64_t> keys_present(keys.begin(), keys.end());
+  auto low_key = *(std::min_element(keys_present.begin(), keys_present.end()));
+  auto high_key = *(std::max_element(keys_present.begin(), keys_present.end()));
+  EXPECT_EQ(tree->StructuralIntegrityVerification(low_key, high_key, &keys_present, tree->GetRoot()), true);
+
   delete tree;
 }
 
@@ -1461,6 +1467,12 @@ TEST_F(BPlusTreeTests, MultiThreadedDeleteTest) {
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], keys[i]);
   }
+
+  // Verify Structural Integrity
+  std::set<int64_t> rem_keys(keys.begin() + deleted_keys, keys.end());
+  auto low_key = *(std::min_element(rem_keys.begin(), rem_keys.end()));
+  auto high_key = *(std::max_element(rem_keys.begin(), rem_keys.end()));
+  EXPECT_EQ(tree->StructuralIntegrityVerification(low_key, high_key, &rem_keys, tree->GetRoot()), true);
 
   delete tree;
 }

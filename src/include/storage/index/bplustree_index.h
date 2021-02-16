@@ -25,7 +25,7 @@ class BPlusTreeIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  explicit BPlusTreeIndex(IndexMetadata metadata);
+  explicit BPlusTreeIndex(IndexMetadata &&metadata);
 
   const std::unique_ptr<BPlusTree<KeyType, TupleSlot>> bplustree_;
   mutable common::SpinLatch transaction_context_latch_;  // latch used to protect transaction context

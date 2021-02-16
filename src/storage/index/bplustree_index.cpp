@@ -8,7 +8,7 @@
 namespace noisepage::storage::index {
 
 template <typename KeyType>
-BPlusTreeIndex<KeyType>::BPlusTreeIndex(IndexMetadata metadata)
+BPlusTreeIndex<KeyType>::BPlusTreeIndex(IndexMetadata &&metadata)
     : Index(std::move(metadata)), bplustree_{new BPlusTree<KeyType, TupleSlot>} {}
 
 template <typename KeyType>

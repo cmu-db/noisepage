@@ -108,7 +108,10 @@ class BPlusTreeBase {
  * Concurrency:
  *  Each node (leaf and inner) contains one shared latch to gain access to the node.
  *  Writers are prioritized in this lock. Additionally, to guarantee safety of the root pointer of the
- *  tree there is an additional latch for the root (root has 2 latches now). Latches are acquired from
+ *  tree there is an additional latch for the root (root has 2 latches now). The root pointer requires the
+ *  additional latch because the root note itself can be modified and changed, and at this point, other
+ *  threads should not be allowed to enter/modify the tree. This latch can be thought of as a global
+ *  latch protecting the entire B+ Tree data structure. Latches are acquired from
  *  top to bottom. Thus, before accessing a child node pointer, it is ensured that the pointer cannot be
  *  deleted no matter what (the parent latch is also being held at that point).
  *
@@ -141,11 +144,11 @@ class BPlusTree : public BPlusTreeBase {
  public:
   class BaseNode;
 
-  /** <KeyType, NodeID> pair */
+  /** <KeyType, BaseNode *> pair - represents an element in the inner node */
   using KeyNodePointerPair = std::pair<KeyType, BaseNode *>;
-  /** <KeyType, List of ValueType> pair */
+  /** <KeyType, List of ValueType> pair - represents an element in the leaf node */
   using KeyValuePair = std::pair<KeyType, std::list<ValueType> *>;
-  /** <KeyType, ValueType> pair */
+  /** <KeyType, ValueType> pair - used for inserts and deletes which operates using a key-value pair */
   using KeyElementPair = std::pair<KeyType, ValueType>;
 
   /**
@@ -487,7 +490,7 @@ class BPlusTree : public BPlusTreeBase {
       // Placement new + copy constructor using end pointer
       new (end_) ElementType{element};
 
-      // Move it pointing to the enxt available slot, if not reached the end
+      // Move it pointing to the next available slot, if not reached the end
       end_++;
     }
 
@@ -512,7 +515,7 @@ class BPlusTree : public BPlusTreeBase {
      * Inserts at location provided.
      */
     bool InsertElementIfPossible(const ElementType &element, ElementType *location) {
-      if (GetSize() >= this->GetItemCount()) return false;
+      if (this->GetSize() >= this->GetItemCount()) return false;
       if (end_ - location > 0)
         std::memmove(reinterpret_cast<void *>(location + 1), reinterpret_cast<void *>(location),
                      (end_ - location) * sizeof(ElementType));
@@ -799,7 +802,7 @@ class BPlusTree : public BPlusTreeBase {
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
     for (KeyValuePair *element_p = node->Begin(); element_p != node->End(); element_p++) {
-      if (element_p->first == key) {
+      if (KeyCmpEqual(element_p->first, key)) {
         return true;
       }
     }
@@ -1066,8 +1069,7 @@ class BPlusTree : public BPlusTreeBase {
    * NOTE: This function does not acquire any latches, used by tests
    */
   bool DuplicateKeyValuesCheck(std::unordered_map<KeyType, std::set<ValueType>> *keys_values) {
-    auto itr = (*keys_values).begin();
-    for (; itr != (*keys_values).end(); itr++) {
+    for (auto itr = (*keys_values).begin(); itr != (*keys_values).end(); itr++) {
       KeyType k = itr->first;
       std::set<ValueType> values = (*keys_values)[k];
       std::vector<ValueType> result;
@@ -1105,8 +1107,7 @@ class BPlusTree : public BPlusTreeBase {
    * NOTE: This function does not acquire any latches, used by tests
    */
   bool DuplicateKeyValueUniqueInsertCheck(std::unordered_map<KeyType, std::vector<ValueType>> *keys_values) {
-    auto itr = (*keys_values).begin();
-    for (; itr != (*keys_values).end(); itr++) {
+    for (auto itr = (*keys_values).begin(); itr != (*keys_values).end(); itr++) {
       KeyType k = itr->first;
       std::vector<ValueType> values = (*keys_values)[k];
       std::list<ValueType> *values_list_p = FindValueOfKey(k);
@@ -1171,7 +1172,7 @@ class BPlusTree : public BPlusTreeBase {
         heap_size += sizeof(BaseNode) + current_node->GetSize() * sizeof(KeyValuePair);
         for (KeyValuePair *element_p = current_node->Begin(); element_p != current_node->End(); element_p++) {
           if (element_p->second != nullptr) {
-            // destroy the list of values in a key
+            // Add the size of values to be counted as heap usage
             heap_size += element_p->second->size() * sizeof(ValueType);
           }
         }
