@@ -751,11 +751,6 @@ add_custom_command(
 # (e.g. Make, Ninja) is now 'aware' of the target-level dependency.
 add_custom_target(bitcode_generator DEPENDS "${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc")
 
-# A declarative convenience wrapper for expressing dependency on bitcode.
-function(target_requires_bitcode TARGET)
-    add_dependencies(${TARGET} bitcode_generator)
-endfunction()
-
 #######################################################################################################################
 # HEADER gen_opt_bc binary.
 # gen_opt_bc            :   Generates optimized bitcode from the LLVM IR file generated as a tpl post-build target.
@@ -767,7 +762,7 @@ target_include_directories(gen_opt_bc PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
 set_target_properties(gen_opt_bc PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
-target_requires_bitcode(noisepage_static)
+add_dependencies(noisepage_static bitcode_generator)
 
 #######################################################################################################################
 # HEADER tpl binary.
@@ -776,7 +771,7 @@ target_requires_bitcode(noisepage_static)
 #######################################################################################################################
 
 add_executable(tpl util/execution/tpl.cpp)
-target_requires_bitcode(tpl)
+add_dependencies(tpl bitcode_generator)
 target_compile_options(tpl PRIVATE "-Werror" "-Wall")
 target_link_libraries(tpl PUBLIC noisepage_static util_static)
 set_target_properties(tpl PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -902,7 +897,7 @@ function(add_noisepage_test
     endif ()
 
     if (${REQUIRES_BITCODE} STREQUAL "BITCODE")
-        target_requires_bitcode(${TEST_NAME})
+        add_dependencies(${TEST_NAME} bitcode_generator)
     endif()
 
     set_target_properties(${TEST_NAME} PROPERTIES
