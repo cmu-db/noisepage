@@ -61,25 +61,23 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
-    auto out_plan = PilotUtil::GenerateQueryPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr,
-                                                 statement->ParseResult(), db_oid, pilot->stats_storage_,
-                                                 pilot->forecast_->GetOptimizerTimeout());
+    auto out_plan =
+        PilotUtil::GenerateQueryPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr, statement->ParseResult(),
+                                     db_oid, pilot->stats_storage_, pilot->forecast_->GetOptimizerTimeout());
 
     if (query_type == network::QueryType::QUERY_DROP_INDEX) {
       // Drop index does not need execution of compiled query
-      execution::sql::DDLExecutors::DropIndexExecutor(
-          common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-              .CastManagedPointerTo<planner::DropIndexPlanNode>(),
-          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+      execution::sql::DDLExecutors::DropIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+                                                          .CastManagedPointerTo<planner::DropIndexPlanNode>(),
+                                                      common::ManagedPointer<catalog::CatalogAccessor>(accessor));
     } else {
       if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
         // TODO(lin): We actually don't need to populate the index tuples after creating the index placeholder for the
         //  "what-if" API. But since we need to execute the query to get the features, we need to compile and execute
         //  the query for now.
-        execution::sql::DDLExecutors::CreateIndexExecutor(
-            common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-                .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
-            common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+        execution::sql::DDLExecutors::CreateIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+                                                              .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
+                                                          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
       }
 
       auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
@@ -90,7 +88,6 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
           common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager());
 
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-      //std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
@@ -138,9 +135,9 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
   }
 }
 
-uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                                uint64_t start_segment_index, uint64_t end_segment_index) {
-  // Compute cost as average latency of queries weighted by their num of exec
+double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                              uint64_t start_segment_index, uint64_t end_segment_index) {
+  // Compute cost as total latency of queries based on their num of exec
   // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
   // (where each entry corresponds to a different query param)
   // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
@@ -154,7 +151,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
   query_cost.emplace_back(prev_qid, 0);
 
   for (auto const &pipeline_to_pred : pipeline_to_prediction) {
-    auto pipeline_sum = 0;
+    double pipeline_sum = 0;
     for (auto const &pipeline_res : pipeline_to_pred.second) {
       for (auto ou_res : pipeline_res) {
         // sum up the latency of ous
@@ -163,13 +160,13 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
     // record average cost of this pipeline among the same queries with diff param
     if (prev_qid == pipeline_to_pred.first.first) {
-      query_cost.back().second += static_cast<double>(pipeline_sum) / pipeline_to_pred.second.size();
+      query_cost.back().second += pipeline_sum / pipeline_to_pred.second.size();
     } else {
       query_cost.emplace_back(pipeline_to_pred.first.first, pipeline_sum / pipeline_to_pred.second.size());
       prev_qid = pipeline_to_pred.first.first;
     }
   }
-  uint128_t total_cost = 0, num_queries = 0;
+  double total_cost = 0, num_queries = 0;
   for (auto qcost : query_cost) {
     for (auto i = start_segment_index; i <= end_segment_index; i++) {
       total_cost += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first) * qcost.second;
@@ -177,7 +174,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
   }
   NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");
-  return total_cost / num_queries;
+  return total_cost;
 }
 
 const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
