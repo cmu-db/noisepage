@@ -28,7 +28,7 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   ChangeKnobActionGenerator().GenerateActions(plans, pilot->settings_manager_, &action_map_, &candidate_actions_);
 
   for (auto const &it : action_map_) {
-    SELFDRIVING_LOG_INFO("{} {}", it.first, it.second->GetSQLCommand());
+    SELFDRIVING_LOG_INFO("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
   }
 
   pilot->txn_manager_->Abort(txn);

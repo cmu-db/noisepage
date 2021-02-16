@@ -33,7 +33,7 @@ class CreateIndexAction : public AbstractAction {
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),
         columns_(std::move(columns)) {
-    NOISEPAGE_ASSERT(!columns_.empty(), "Should not create index without any column!");
+    NOISEPAGE_ASSERT(!columns_.empty(), "Should not create index without any columns!");
 
     sql_command_ = "create index " + index_name_ + " on " + table_name_ + "(";
 

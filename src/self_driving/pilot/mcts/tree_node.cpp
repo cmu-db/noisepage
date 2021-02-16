@@ -35,8 +35,8 @@ common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
   auto best_child = common::ManagedPointer(children_[0]);
   for (auto &child : children_) {
     if (child->cost_ < best_child->cost_) best_child = common::ManagedPointer(child);
-    SELFDRIVING_LOG_INFO("Depth {} Action {} Child {} Cost {}", depth_, current_action_, child->GetCurrentAction(),
-                         child->cost_);
+    SELFDRIVING_LOG_INFO("Finding best action: Depth {} Action {} Child {} Cost {}", depth_, current_action_,
+                         child->GetCurrentAction(), child->cost_);
   }
   return best_child;
 }
