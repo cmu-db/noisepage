@@ -366,6 +366,34 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
     if (build_pipeline_.IsParallel()) {
       TearDownAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
     }
+  } else if (GetAggPlan().RequiresCleanup()) {
+    // If any of the aggregators are required to be cleaned up, then we need to go through the hash table and free them
+    auto *codegen = GetCodeGen();
+    // var iterBase: AHTIterator
+    ast::Identifier aht_iter_base = codegen->MakeFreshIdentifier("iterBase");
+    ast::Expr *aht_iter_type = codegen->BuiltinType(ast::BuiltinType::AHTIterator);
+    function->Append(codegen->DeclareVarNoInit(aht_iter_base, aht_iter_type));
+
+    // var ahtIter = &ahtIterBase
+    ast::Identifier aht_iter = codegen->MakeFreshIdentifier("iter");
+    ast::Expr *aht_iter_init = codegen->AddressOf(codegen->MakeExpr(aht_iter_base));
+    function->Append(codegen->DeclareVarWithInit(aht_iter, aht_iter_init));
+
+    Loop loop(function,
+              codegen->MakeStmt(
+                  codegen->AggHashTableIteratorInit(codegen->MakeExpr(aht_iter), global_agg_ht_.GetPtr(codegen))),
+              codegen->AggHashTableIteratorHasNext(codegen->MakeExpr(aht_iter)),
+              codegen->MakeStmt(codegen->AggHashTableIteratorNext(codegen->MakeExpr(aht_iter))));
+    {
+      // var aggRow = @ahtIterGetRow()
+      function->Append(codegen->DeclareVarWithInit(
+          agg_row_var_, codegen->AggHashTableIteratorGetRow(codegen->MakeExpr(aht_iter), agg_payload_type_)));
+      for (auto agg_term_idx : GetAggPlan().GetMemoryAllocatingAggregatorIndexes()) {
+        auto *agg_term = GetAggregateTermPtr(agg_row_var_, agg_term_idx);
+        function->Append(GetCodeGen()->AggregatorFree(agg_term));
+      }
+    }
+    loop.EndLoop();
   }
 }
 
