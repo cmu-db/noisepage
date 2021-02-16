@@ -59,21 +59,19 @@ class PgStatistic {
     bool distinct_;
     /** Oid of the column */
     catalog::col_oid_t column_oid_;
-    /** Human readable name of the column */
-    std::string_view name_;
   };
   /** Number of aggregates per column that Analyze uses */
   static constexpr uint8_t NUM_ANALYZE_AGGREGATES = 4;
   /** Information on each aggregate that Analyze uses to compute statistics */
   static constexpr std::array<PgStatisticColInfo, NUM_ANALYZE_AGGREGATES> ANALYZE_AGGREGATES = {
       {// COUNT(col) - non-null rows
-       {parser::ExpressionType::AGGREGATE_COUNT, false, STA_NONNULLROWS.oid_, "non_null_row"},
+       {parser::ExpressionType::AGGREGATE_COUNT, false, STA_NONNULLROWS.oid_},
        // COUNT(DISTINCT col) - distinct values
-       {parser::ExpressionType::AGGREGATE_COUNT, true, STA_DISTINCTROWS.oid_, "distinct_row"},
+       {parser::ExpressionType::AGGREGATE_COUNT, true, STA_DISTINCTROWS.oid_},
        // TOPK(col)
-       {parser::ExpressionType::AGGREGATE_TOP_K, false, STA_TOPK.oid_, "top_k"},
+       {parser::ExpressionType::AGGREGATE_TOP_K, false, STA_TOPK.oid_},
        // HISTOGRAM(col)
-       {parser::ExpressionType::AGGREGATE_HISTOGRAM, false, STA_HISTOGRAM.oid_, "histogram"}}};
+       {parser::ExpressionType::AGGREGATE_HISTOGRAM, false, STA_HISTOGRAM.oid_}}};
 };
 
 }  // namespace noisepage::catalog::postgres

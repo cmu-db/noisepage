@@ -48,8 +48,7 @@ AnalyzeTranslator::AnalyzeTranslator(const planner::AnalyzePlanNode &plan, Compi
   pg_statistic_column_lookup_[catalog::postgres::PgStatistic::STA_NUMROWS.oid_] = num_rows_;
 
   for (const auto &col_info : catalog::postgres::PgStatistic::ANALYZE_AGGREGATES) {
-    auto agg_name = col_info.name_;
-    auto agg_var = codegen->MakeFreshIdentifier(std::string(agg_name));
+    auto agg_var = codegen->MakeFreshIdentifier("stat_col_" + std::to_string(col_info.column_oid_.UnderlyingValue()));
     aggregate_variables_.emplace_back(agg_var);
     pg_statistic_column_lookup_[col_info.column_oid_] = agg_var;
   }
