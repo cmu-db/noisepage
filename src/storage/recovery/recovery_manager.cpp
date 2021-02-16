@@ -28,13 +28,13 @@ namespace noisepage::storage {
 
 void RecoveryManager::StartRecovery() {
   NOISEPAGE_ASSERT(recovery_task_ == nullptr, "Recovery already started");
+  recovery_task_loop_again_ = true;  // RecoveryTask will loop by default to enable replication use cases.
   recovery_task_ =
       thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
-  recovery_task_loop_again_ = true;
 }
 
 void RecoveryManager::WaitForRecoveryToFinish() {
-  recovery_task_loop_again_ = false;
+  recovery_task_loop_again_ = false;  // Stop looping RecoveryTask.
   NOISEPAGE_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
   if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
     throw std::runtime_error("Recovery task termination failed");

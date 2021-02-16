@@ -50,16 +50,21 @@ class RecoveryManager : public common::DedicatedThreadOwner {
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
     void RunTask() override {
-      while (recovery_manager_->recovery_task_loop_again_) {
+      // If RunTask is invoked at all, we want to perform recovery at least once, necessitating a do-while loop.
+      // In particular, the following ordering of calls is disastrous with a normal while loop:
+      //    RunTask() (nothing happens yet) -> Terminate() (sets flag to stop looping) -> no recovery happens
+      // However, that ordering of calls is exactly what could happen by the simple invocation of:
+      //    RecoveryManager::StartRecovery() -> RecoveryManager::WaitForRecoveryToFinish()
+      do {
         recovery_manager_->Recover();
-      }
+      } while (recovery_manager_->recovery_task_loop_again_);
     }
 
     /**
      * Terminate does nothing, the task will terminate when RunTask() returns. In the future if we need to support
      * interrupting recovery, this can be handled here.
      */
-    void Terminate() override {}
+    void Terminate() override { recovery_manager_->recovery_task_loop_again_ = false; }
 
    private:
     RecoveryManager *recovery_manager_;
@@ -102,14 +107,10 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog::postgres::Builder::GetTypeTableSchema();
   }
 
-  /**
-   * Starts a background recovery task. Recovery will fully recover until the log provider stops providing logs.
-   */
+  /** Starts a background recovery thread, which does not stop until WaitForRecoveryToFinish() is called. */
   void StartRecovery();
 
-  /**
-   * Blocks until recovery finishes, if it has not already, and stops background thread.
-   */
+  /** Blocks until the current recovery finishes (runs out of logs), then stops the background thread. */
   void WaitForRecoveryToFinish();
 
   /* @return True if the recovery task is still running. */
@@ -155,6 +156,14 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // Background recovery task
   common::ManagedPointer<RecoveryTask> recovery_task_ = nullptr;
+  /**
+   * The RecoveryManager is used for applying records to replicas in replication.
+   * This is a change from the initial RecoveryManager design where recovery happens in one shot on startup.
+   * Currently, this is achieved by "just" looping the recovery task at the end of recovery based on this variable.
+   * Unfortunately, this is slightly error-prone in practice -- tread with caution here.
+   * One consequence is that non-replication uses of the RecoveryManager must manually call WaitForRecoveryToFinish()
+   * for the recovery task to end, but this seems natural enough.
+   */
   bool recovery_task_loop_again_ = false;
 
   // Its possible during recovery that the schemas for catalog tables may not yet exist in pg_class. Thus, we hardcode
