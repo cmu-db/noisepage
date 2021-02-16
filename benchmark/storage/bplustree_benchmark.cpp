@@ -38,27 +38,29 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, RandomInsert)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
-
-    auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
-      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
-
-      for (uint32_t i = start_key; i < end_key; i++) {
-        storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
-        p1.first = key_permutation_[i];
-        p1.second = key_permutation_[i];
-        tree->Insert(p1, predicate_);
-      }
-    };
-
-    uint64_t elapsed_ms;
     {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      auto tree = std::make_unique<storage::index::BPlusTree<int64_t, int64_t>>();
+
+      auto workload = [&](uint32_t id) {
+        uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+        uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
+
+        for (uint32_t i = start_key; i < end_key; i++) {
+          storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+          p1.first = key_permutation_[i];
+          p1.second = key_permutation_[i];
+          tree->Insert(p1, predicate_);
+        }
+      };
+
+      uint64_t elapsed_ms;
+      {
+        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+        MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      }
+
+      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     }
-    delete tree;
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * num_keys_);
 }
@@ -70,27 +72,28 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, SequentialInsert)(benchmark::State &state
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
-
-    auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
-      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
-
-      for (uint32_t i = start_key; i < end_key; i++) {
-        storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
-        p1.first = i;
-        p1.second = i;
-        tree->Insert(p1, predicate_);
-      }
-    };
-
-    uint64_t elapsed_ms;
     {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      auto tree = std::make_unique<storage::index::BPlusTree<int64_t, int64_t>>();
+
+      auto workload = [&](uint32_t id) {
+        uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+        uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
+
+        for (uint32_t i = start_key; i < end_key; i++) {
+          storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+          p1.first = i;
+          p1.second = i;
+          tree->Insert(p1, predicate_);
+        }
+      };
+
+      uint64_t elapsed_ms;
+      {
+        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+        MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      }
+      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     }
-    delete tree;
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * num_keys_);
 }
@@ -100,39 +103,40 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, RandomInsertRandomRead)(benchmark::State 
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   thread_pool.Startup();
 
-  auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
-  for (uint32_t i = 0; i < num_keys_; i++) {
-    storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
-    p1.first = key_permutation_[i];
-    p1.second = key_permutation_[i];
-    tree->Insert(p1, predicate_);
-  }
-
-  // NOLINTNEXTLINE
-  for (auto _ : state) {
-    auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
-      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
-
-      std::vector<int64_t> values;
-      values.reserve(1);
-
-      for (uint32_t i = start_key; i < end_key; i++) {
-        tree->FindValueOfKey(key_permutation_[i], &values);
-        values.clear();
-      }
-    };
-
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+  {
+    auto tree = std::make_unique<storage::index::BPlusTree<int64_t, int64_t>>();
+    for (uint32_t i = 0; i < num_keys_; i++) {
+      storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+      p1.first = key_permutation_[i];
+      p1.second = key_permutation_[i];
+      tree->Insert(p1, predicate_);
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-  }
 
-  delete tree;
-  state.SetItemsProcessed(state.iterations() * num_keys_);
+    // NOLINTNEXTLINE
+    for (auto _ : state) {
+      auto workload = [&](uint32_t id) {
+        uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+        uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
+
+        std::vector<int64_t> values;
+        values.reserve(1);
+
+        for (uint32_t i = start_key; i < end_key; i++) {
+          tree->FindValueOfKey(key_permutation_[i], &values);
+          values.clear();
+        }
+      };
+
+      uint64_t elapsed_ms;
+      {
+        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+        MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      }
+      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    }
+
+    state.SetItemsProcessed(state.iterations() * num_keys_);
+  }
 }
 
 // NOLINTNEXTLINE
@@ -140,39 +144,40 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, RandomInsertSequentialRead)(benchmark::St
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   thread_pool.Startup();
 
-  auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
-  for (uint32_t i = 0; i < num_keys_; i++) {
-    storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
-    p1.first = key_permutation_[i];
-    p1.second = key_permutation_[i];
-    tree->Insert(p1, predicate_);
-  }
-
-  // NOLINTNEXTLINE
-  for (auto _ : state) {
-    auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
-      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
-
-      std::vector<int64_t> values;
-      values.reserve(1);
-
-      for (uint32_t i = start_key; i < end_key; i++) {
-        tree->FindValueOfKey(i, &values);
-        values.clear();
-      }
-    };
-
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+  {
+    auto tree = std::make_unique<storage::index::BPlusTree<int64_t, int64_t>>();
+    for (uint32_t i = 0; i < num_keys_; i++) {
+      storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+      p1.first = key_permutation_[i];
+      p1.second = key_permutation_[i];
+      tree->Insert(p1, predicate_);
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-  }
 
-  delete tree;
-  state.SetItemsProcessed(state.iterations() * num_keys_);
+    // NOLINTNEXTLINE
+    for (auto _ : state) {
+      auto workload = [&](uint32_t id) {
+        uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+        uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
+
+        std::vector<int64_t> values;
+        values.reserve(1);
+
+        for (uint32_t i = start_key; i < end_key; i++) {
+          tree->FindValueOfKey(i, &values);
+          values.clear();
+        }
+      };
+
+      uint64_t elapsed_ms;
+      {
+        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+        MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      }
+      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    }
+
+    state.SetItemsProcessed(state.iterations() * num_keys_);
+  }
 }
 
 // NOLINTNEXTLINE
@@ -180,39 +185,40 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, SequentialInsertRandomRead)(benchmark::St
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   thread_pool.Startup();
 
-  auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
-  for (uint32_t i = 0; i < num_keys_; i++) {
-    storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
-    p1.first = i;
-    p1.second = i;
-    tree->Insert(p1, predicate_);
-  }
-
-  // NOLINTNEXTLINE
-  for (auto _ : state) {
-    auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
-      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
-
-      std::vector<int64_t> values;
-      values.reserve(1);
-
-      for (uint32_t i = start_key; i < end_key; i++) {
-        tree->FindValueOfKey(key_permutation_[i], &values);
-        values.clear();
-      }
-    };
-
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+  {
+    auto tree = std::make_unique<storage::index::BPlusTree<int64_t, int64_t>>();
+    for (uint32_t i = 0; i < num_keys_; i++) {
+      storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+      p1.first = i;
+      p1.second = i;
+      tree->Insert(p1, predicate_);
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-  }
 
-  delete tree;
-  state.SetItemsProcessed(state.iterations() * num_keys_);
+    // NOLINTNEXTLINE
+    for (auto _ : state) {
+      auto workload = [&](uint32_t id) {
+        uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+        uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
+
+        std::vector<int64_t> values;
+        values.reserve(1);
+
+        for (uint32_t i = start_key; i < end_key; i++) {
+          tree->FindValueOfKey(key_permutation_[i], &values);
+          values.clear();
+        }
+      };
+
+      uint64_t elapsed_ms;
+      {
+        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+        MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      }
+      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    }
+
+    state.SetItemsProcessed(state.iterations() * num_keys_);
+  }
 }
 
 // NOLINTNEXTLINE
@@ -220,39 +226,40 @@ BENCHMARK_DEFINE_F(BPlusTreeBenchmark, SequentialInsertSequentialRead)(benchmark
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   thread_pool.Startup();
 
-  auto *const tree = new storage::index::BPlusTree<int64_t, int64_t>;
-  for (uint32_t i = 0; i < num_keys_; i++) {
-    storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
-    p1.first = i;
-    p1.second = i;
-    tree->Insert(p1, predicate_);
-  }
-
-  // NOLINTNEXTLINE
-  for (auto _ : state) {
-    auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
-      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
-
-      std::vector<int64_t> values;
-      values.reserve(1);
-
-      for (uint32_t i = start_key; i < end_key; i++) {
-        tree->FindValueOfKey(i, &values);
-        values.clear();
-      }
-    };
-
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+  {
+    auto tree = std::make_unique<storage::index::BPlusTree<int64_t, int64_t>>();
+    for (uint32_t i = 0; i < num_keys_; i++) {
+      storage::index::BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+      p1.first = i;
+      p1.second = i;
+      tree->Insert(p1, predicate_);
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-  }
 
-  delete tree;
-  state.SetItemsProcessed(state.iterations() * num_keys_);
+    // NOLINTNEXTLINE
+    for (auto _ : state) {
+      auto workload = [&](uint32_t id) {
+        uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+        uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
+
+        std::vector<int64_t> values;
+        values.reserve(1);
+
+        for (uint32_t i = start_key; i < end_key; i++) {
+          tree->FindValueOfKey(i, &values);
+          values.clear();
+        }
+      };
+
+      uint64_t elapsed_ms;
+      {
+        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+        MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
+      }
+      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    }
+
+    state.SetItemsProcessed(state.iterations() * num_keys_);
+  }
 }
 
 // ----------------------------------------------------------------------------
