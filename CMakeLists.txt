@@ -727,18 +727,29 @@ add_library(hack_bytecode_handlers_ir EXCLUDE_FROM_ALL util/execution/bytecode_h
 target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
 set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 
-function(target_requires_bitcode TARGET)
-    # If the target requires optimized bitcodes, the gen_opt_bc binary must be built prior to generation
-    add_dependencies(${TARGET} gen_opt_bc)
-    add_custom_command(
-            TARGET ${TARGET}
-            DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
-            POST_BUILD
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND cmake -E echo "Generating optimized bitcodes..."
-            COMMAND ${BUILD_SUPPORT_DIR}/generate-bitcodes.sh ${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CLANG}
-    )
-endfunction()
+# On MacOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
+# NOTE(Kyle): It is important that CLANG is resolved prior to the commands
+# below, so the location of the following definition matters.
+if (APPLE)
+    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
+else ()
+    find_program(CLANG NAMES "clang++-8" "clang++" REQUIRED)
+endif ()
+
+# Run the build-support script that generates and optimizes bitcode.
+add_custom_command(
+        OUTPUT "${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+        DEPENDS gen_opt_bc "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND ${BUILD_SUPPORT_DIR}/generate-bitcodes.sh ${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${CLANG}
+)
+
+# Here, we create a custom target that merely wraps the output file
+# from the custom command above; this ensures that the custom command
+# is actually only ever invoked once even when multiple indepdendent
+# targets that require bitcode are built because the build system 
+# (e.g. Make, Ninja) is now 'aware' of the target-level dependency.
+add_custom_target(bitcode_generator DEPENDS "${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc")
 
 #######################################################################################################################
 # HEADER gen_opt_bc binary.
@@ -751,14 +762,7 @@ target_include_directories(gen_opt_bc PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
 set_target_properties(gen_opt_bc PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
-# On MacOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
-if (APPLE)
-    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
-else ()
-    find_program(CLANG NAMES "clang++-8" "clang++" REQUIRED)
-endif ()
-
-target_requires_bitcode(noisepage_static)
+add_dependencies(noisepage_static bitcode_generator)
 
 #######################################################################################################################
 # HEADER tpl binary.
@@ -767,7 +771,7 @@ target_requires_bitcode(noisepage_static)
 #######################################################################################################################
 
 add_executable(tpl util/execution/tpl.cpp)
-target_requires_bitcode(tpl)
+add_dependencies(tpl bitcode_generator)
 target_compile_options(tpl PRIVATE "-Werror" "-Wall")
 target_link_libraries(tpl PUBLIC noisepage_static util_static)
 set_target_properties(tpl PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -893,7 +897,7 @@ function(add_noisepage_test
     endif ()
 
     if (${REQUIRES_BITCODE} STREQUAL "BITCODE")
-        target_requires_bitcode(${TEST_NAME})
+        add_dependencies(${TEST_NAME} bitcode_generator)
     endif()
 
     set_target_properties(${TEST_NAME} PROPERTIES

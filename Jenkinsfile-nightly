@@ -106,7 +106,7 @@ pipeline {
                 //  WAL Path: Ramdisk
                 sh script:'''
                 cd script/testing
-                PYTHONPATH=.. python3 -m script.testing.microbench --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                PYTHONPATH=../.. python3 -m script.testing.microbench --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                 ''', label:'Microbenchmark'
 
                 archiveArtifacts 'script/testing/*.json'

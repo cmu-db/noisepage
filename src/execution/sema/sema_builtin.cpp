@@ -554,8 +554,9 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
   const auto &args = call->Arguments();
   switch (builtin) {
     case ast::Builtin::AggInit:
-    case ast::Builtin::AggReset: {
-      // All arguments to @aggInit() or @aggReset() must be SQL aggregators
+    case ast::Builtin::AggReset:
+    case ast::Builtin::AggFree: {
+      // All arguments to @aggInit(), @aggReset(), or @aggFree must be SQL aggregators
       for (uint32_t idx = 0; idx < call->NumArgs(); idx++) {
         if (!IsPointerToAggregatorValue(args[idx]->GetType())) {
           GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[idx]->GetType());
@@ -3409,7 +3410,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::AggAdvance:
     case ast::Builtin::AggMerge:
     case ast::Builtin::AggReset:
-    case ast::Builtin::AggResult: {
+    case ast::Builtin::AggResult:
+    case ast::Builtin::AggFree: {
       CheckBuiltinAggregatorCall(call, builtin);
       break;
     }
