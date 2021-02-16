@@ -9,6 +9,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
+#include "execution/sql/ddl_executors.h"
 #include "loggers/selfdriving_logger.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
@@ -43,34 +44,54 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   execution::exec::OutputCallback callback = consumer;
 
   std::string query = sql_query;
+  printf("Applying action: %s\n", sql_query.c_str());
   auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
   auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
 
-  if (statement->GetQueryType() == network::QueryType::QUERY_SET) {
+  auto query_type = statement->GetQueryType();
+
+  if (query_type == network::QueryType::QUERY_SET) {
     // The set statements are executed differently (through settings_manager_)
     const auto &set_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableSetStatement>();
     pilot->settings_manager_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
   } else {
     // For all other actions, we apply the action by running it as query in a committed transaction
-    std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
     txn = txn_manager->BeginTransaction();
 
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     auto out_plan = PilotUtil::GenerateQueryPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr,
-                                                 common::ManagedPointer(parse_tree), db_oid, pilot->stats_storage_,
+                                                 statement->ParseResult(), db_oid, pilot->stats_storage_,
                                                  pilot->forecast_->GetOptimizerTimeout());
 
-    auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                       execution::compiler::CompilationMode::OneShot);
+    if (query_type == network::QueryType::QUERY_DROP_INDEX) {
+      // Drop index does not need execution of compiled query
+      execution::sql::DDLExecutors::DropIndexExecutor(
+          common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+              .CastManagedPointerTo<planner::DropIndexPlanNode>(),
+          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+    } else {
+      if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
+        // TODO(lin): We actually don't need to populate the index tuples after creating the index placeholder for the
+        //  "what-if" API. But since we need to execute the query to get the features, we need to compile and execute
+        //  the query for now.
+        execution::sql::DDLExecutors::CreateIndexExecutor(
+            common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+                .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
+            common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+      }
 
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager());
+      auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
+                                                                         execution::compiler::CompilationMode::OneShot);
 
-    exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+          db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
+          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager());
+
+      exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+      //std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
