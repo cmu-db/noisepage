@@ -23,7 +23,7 @@ class ReplicationLogProvider final : public AbstractLogProvider {
    *
    * @param replication_timeout         The replication timeout. TODO(WAN): kill this?
    */
-  ReplicationLogProvider(std::chrono::seconds replication_timeout)
+  explicit ReplicationLogProvider(std::chrono::seconds replication_timeout)
       : replication_active_(true), replication_timeout_(replication_timeout) {}
 
   /**
