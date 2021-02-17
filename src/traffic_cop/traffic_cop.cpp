@@ -483,7 +483,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
     const network::connection_id_t connection_id, const std::string &database_name) {
   auto *const txn = txn_manager_->BeginTransaction();
   txn->SetRetentionPolicy(transaction::RetentionPolicy::DISABLE_RETENTION);
-  
+
   const auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
   if (db_oid == catalog::INVALID_DATABASE_OID) {
