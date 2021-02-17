@@ -199,8 +199,7 @@ class BufferedLogWriter {
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   uint32_t buffer_size_ = 0;
-  /**  */
-  std::atomic<int8_t> serialize_refcount_ = 0;
+  std::atomic<int8_t> serialize_refcount_ = 0;  ///< The number of would-be serializers that haven't serialized yet.
 
   bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
 
