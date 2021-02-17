@@ -44,7 +44,7 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   execution::exec::OutputCallback callback = consumer;
 
   std::string query = sql_query;
-  printf("Applying action: %s\n", sql_query.c_str());
+  SELFDRIVING_LOG_INFO("Applying action: %s\n", sql_query.c_str());
   auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
   auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
 
