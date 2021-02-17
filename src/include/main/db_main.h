@@ -125,7 +125,7 @@ class DBMain {
 
   /**
    * BlockStore and GarbageCollector
-   * Additionally, a shared empty buffer queue that people push to.
+   * Additionally, a shared empty buffer queue that people pull from and push to.
    */
   class StorageLayer {
    public:
@@ -495,6 +495,14 @@ class DBMain {
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
       }
 
+      // TODO(WAN): I now consider this hacky.
+      //  The original motivation is that you do NOT want the catalog's bootstrapping transaction to be replicated
+      //  to the replicas, which will perform their own bootstrapping (and therefore the bootstrapping would conflict).
+      //  However, with the addition of the RetentionPolicy enum, we really should be able to just say that the catalog
+      //  bootstrap has a RetentionPolicy::LOCAL so that it still gets written to the local WAL but not sent to the
+      //  replicas. Unfortuantely, the current implementation of retention policies is a little hacky and it is not
+      //  currently clear to me how we can fix that, so in the interests of getting some basic replication merged
+      //  we are simply disabling replication until the bootstrap is complete.
       if (use_replication_) {
         replication_manager->EnableReplication();
       }
