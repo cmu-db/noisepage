@@ -2,6 +2,7 @@
 #include <cmath>
 #include <random>
 
+#include "loggers/selfdriving_logger.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/pilot/action/abstract_action.h"
 #include "self_driving/pilot/mcts/tree_node.h"
@@ -23,8 +24,7 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
   if (parent != nullptr) parent->is_leaf_ = false;
   cost_ = ancestor_cost_ + later_segments_cost;
   SELFDRIVING_LOG_INFO(
-      "Creating Tree Node: Depth {} Action {} Cost {} Current_Segment_Cost {} Later_Segment_Cost {} "
-      "Ancestor_Cost {}",
+      "Creating Tree Node: Depth {} Action {} Cost {} Current_Segment_Cost {} Later_Segment_Cost {} Ancestor_Cost {}",
       depth_, current_action_, cost_, current_segment_cost, later_segments_cost, ancestor_cost_);
 }
 

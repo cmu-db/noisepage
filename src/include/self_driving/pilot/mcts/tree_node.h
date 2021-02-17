@@ -118,7 +118,7 @@ class TreeNode {
    * @return recomputed cost of current node
    */
   double ComputeMinCostFromChildren() {
-    NOISEPAGE_ASSERT(children_.size() > 0, "number of children cannot be zero");
+    NOISEPAGE_ASSERT(!children_.empty(), "number of children cannot be zero");
     double min_cost = children_[0]->cost_;
     for (auto &child : children_) min_cost = std::min(min_cost, child->cost_);
     return min_cost;
