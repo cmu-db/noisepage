@@ -32,7 +32,7 @@ ReplicationManager::ReplicationManager(
     : messenger_(messenger),
       identity_(network_identity),
       port_(port),
-      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1), false)),
+      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1))),
       received_buffer_queue_(CompareJsonBuffer),
       empty_buffer_queue_(empty_buffer_queue) {
   // TODO(WAN): provider_ arguments
