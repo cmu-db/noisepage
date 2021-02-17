@@ -136,6 +136,21 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AggregatePlanNode::From
   return exprs;
 }
 
+bool AggregatePlanNode::RequiresCleanup() const {
+  return std::any_of(aggregate_terms_.begin(), aggregate_terms_.end(),
+                     [](auto agg_term) { return agg_term->RequiresCleanup(); });
+}
+
+std::vector<size_t> AggregatePlanNode::GetMemoryAllocatingAggregatorIndexes() const {
+  std::vector<size_t> memory_allocating_aggregator_indexes;
+  for (size_t agg_term_idx = 0; agg_term_idx < aggregate_terms_.size(); agg_term_idx++) {
+    if (aggregate_terms_[agg_term_idx]->RequiresCleanup()) {
+      memory_allocating_aggregator_indexes.emplace_back(agg_term_idx);
+    }
+  }
+  return memory_allocating_aggregator_indexes;
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(AggregatePlanNode);
 
 }  // namespace noisepage::planner
