@@ -137,7 +137,6 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
-  // TODO(WAN): Come up with a better way of "sharing" buffers?
   // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
   if (filled_buffer_ != nullptr) filled_buffer_->PrepareForSerialization();
   // Replicate the buffer, if it exists.

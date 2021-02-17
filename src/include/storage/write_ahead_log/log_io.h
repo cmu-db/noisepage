@@ -168,6 +168,8 @@ class BufferedLogWriter {
    * Currently, BufferedLogWriter is used to serialize both over the disk and over the network.
    * To avoid copying, we refcount the serialization usages of the BufferedLogWriter.
    * This function initializes the refcount.
+   *
+   * TODO(WAN): Come up with a better way of "sharing" buffers?
    */
   void PrepareForSerialization() {
     NOISEPAGE_ASSERT(serialize_refcount_.load() == 0, "This buffer is already being serialized.");
