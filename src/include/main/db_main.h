@@ -476,7 +476,7 @@ class DBMain {
       }
 
       std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
-      if (model_server_enable_) {
+      if (use_model_server_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
         model_server_manager =
             std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
@@ -485,7 +485,7 @@ class DBMain {
       std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
       std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
-        NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
+        NOISEPAGE_ASSERT(use_model_server_, "Pilot requires model server manager.");
         pilot = std::make_unique<selfdriving::Pilot>(
             model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
             common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
@@ -807,7 +807,7 @@ class DBMain {
      * @return self reference for chaining
      */
     Builder &SetUseModelServer(const bool value) {
-      model_server_enable_ = value;
+      use_model_server_ = value;
       return *this;
     }
 
@@ -835,6 +835,33 @@ class DBMain {
     // These are meant to be reasonable defaults, mostly for tests. New settings should probably just mirror their
     // default values here. Larger scale tests and benchmarks may need to to use setters on the Builder to adjust these
     // before building DBMain. The real system should use the SettingsManager.
+
+    // clang-tidy complains about excessive padding if you're not careful about ordering things.
+    // This leads to somewhat unfortunate grouping but that shouldn't be too big an issue.
+
+    uint64_t record_buffer_segment_size_ = 1e5;
+    uint64_t record_buffer_segment_reuse_ = 1e4;
+    uint64_t wal_num_buffers_ = 100;
+    uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
+    uint64_t pilot_interval_ = 1e7;
+    uint64_t workload_forecast_interval_ = 1e7;
+    uint64_t block_store_size_ = 1e5;
+    uint64_t block_store_reuse_ = 1e3;
+    uint64_t optimizer_timeout_ = 5000;
+
+    std::string wal_file_path_ = "wal.log";
+    std::string model_save_path_;
+    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
+    std::string network_identity_ = "primary";
+    std::string uds_file_directory_ = "/tmp/";
+    std::string replication_hosts_path_ = "replication.conf";
+    /**
+     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
+     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
+     * in use cases where such assumptions are no longer true.
+     */
+    std::string model_server_path_ = "../../script/model/model_server.py";
+
     bool use_settings_manager_ = false;
     bool use_thread_registry_ = false;
     bool use_metrics_ = false;
@@ -848,51 +875,34 @@ class DBMain {
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
-    uint64_t record_buffer_segment_size_ = 1e5;
-    uint64_t record_buffer_segment_reuse_ = 1e4;
-    std::string wal_file_path_ = "wal.log";
-    uint64_t wal_num_buffers_ = 100;
+
     int32_t wal_serialization_interval_ = 100;
     int32_t wal_persist_interval_ = 100;
-    uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
+    int32_t gc_interval_ = 1000;
+
+    uint16_t connection_thread_count_ = 4;
+    uint16_t network_port_ = 15721;
+    uint16_t messenger_port_ = 9022;
+    uint16_t replication_port_ = 15445;
+
+    execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
+
     bool use_logging_ = false;
     bool wal_async_commit_enable_ = false;
     bool use_gc_ = false;
-    bool use_pilot_thread_ = false;
-    bool pilot_planning_ = false;
-    uint64_t pilot_interval_ = 1e7;
-    uint64_t workload_forecast_interval_ = 1e7;
-    std::string model_save_path_;
-    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     bool use_catalog_ = false;
     bool create_default_database_ = true;
-    uint64_t block_store_size_ = 1e5;
-    uint64_t block_store_reuse_ = 1e3;
-    int32_t gc_interval_ = 1000;
     bool use_gc_thread_ = false;
     bool use_stats_storage_ = false;
     bool use_execution_ = false;
     bool use_traffic_cop_ = false;
-    uint64_t optimizer_timeout_ = 5000;
     bool use_query_cache_ = true;
-    execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
-    uint16_t network_port_ = 15721;
-    std::string network_identity_ = "primary";
-    std::string uds_file_directory_ = "/tmp/";
-    uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
     bool use_messenger_ = false;
     bool use_replication_ = false;
-    uint16_t messenger_port_ = 9022;
-    uint16_t replication_port_ = 15445;
-    std::string replication_hosts_path_ = "replication.conf";
-    bool model_server_enable_ = false;
-    /**
-     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
-     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
-     * in use cases where such assumptions are no longer true.
-     */
-    std::string model_server_path_ = "../../script/model/model_server.py";
+    bool use_model_server_ = false;
+    bool use_pilot_thread_ = false;
+    bool pilot_planning_ = false;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -961,7 +971,7 @@ class DBMain {
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
       replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
-      model_server_enable_ = settings_manager->GetBool(settings::Param::model_server_enable);
+      use_model_server_ = settings_manager->GetBool(settings::Param::model_server_enable);
       model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);
 
       return settings_manager;
