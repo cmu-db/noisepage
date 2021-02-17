@@ -50,6 +50,8 @@ if __name__ == "__main__":
         replica1 = servers[1]
         replica2 = servers[2]
 
+        time.sleep(5)
+
         exec_sql(primary, "CREATE TABLE foo (a INTEGER);")
         exec_sql(primary, "INSERT INTO foo VALUES (1);")
 

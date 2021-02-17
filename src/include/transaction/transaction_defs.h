@@ -45,10 +45,12 @@ using TransactionEndAction = std::function<void(DeferredActionManager *)>;
  */
 using DeferredAction = std::function<void(timestamp_t)>;
 
-/** 
- * Describes the retention policy of a transaction.
- * DISABLE_LOG: transaction will not be logged.
- * ENABLE_LOG: transaction will be logged.
+/**
+ * The retention policy of a transaction determines the retention policy for all of the buffers that are potentially
+ * created by a transaction.
  */
-enum class RetentionPolicy : uint8_t { DISABLE_LOG = 0, ENABLE_LOG };
+enum class RetentionPolicy : uint8_t {
+  DISABLE_RETENTION = 0,  ///< Disable retention of buffers entirely.
+  RETENTION_ALL           ///< Serialize buffers to disk, and also send buffers out to replicas.
+};
 }  // namespace noisepage::transaction

@@ -18,10 +18,13 @@ namespace noisepage::storage {
  */
 class ReplicationLogProvider final : public AbstractLogProvider {
  public:
-  ReplicationLogProvider(std::chrono::seconds replication_timeout, bool synchronous_replication)
-      : replication_active_(true),
-        replication_timeout_(replication_timeout),
-        synchronous_replication_(synchronous_replication) {}
+  /**
+   * Create a new ReplicationLogProvider.
+   *
+   * @param replication_timeout         The replication timeout. TODO(WAN): kill this?
+   */
+  ReplicationLogProvider(std::chrono::seconds replication_timeout)
+      : replication_active_(true), replication_timeout_(replication_timeout) {}
 
   /**
    * Notifies the log provider that replication is ending.
@@ -42,7 +45,7 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     replication_cv_.notify_one();
   }
 
-  // buffer the message
+  /** Buffer the message. */
   void AddBufferFromMessage(const std::string &content) {
     std::vector<unsigned char> bytes(content.begin(), content.end());
     network::ReadBufferView view(bytes.size(), bytes.begin());
@@ -68,11 +71,10 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     STORAGE_LOG_INFO("Replica Synced");
   }
 
+  /** @return True if there are more records. False otherwise. */
   bool NonBlockingHasMoreRecords() const {
     return (curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !arrived_buffer_queue_.empty();
   }
-
-  bool IsSynchronousReplication() const { return synchronous_replication_; }
 
  private:
   /** True if replication is currently active. */
@@ -81,9 +83,6 @@ class ReplicationLogProvider final : public AbstractLogProvider {
   // TODO(Gus): Put in settings manager
   /** The number of seconds before replication times out. */
   std::chrono::seconds replication_timeout_;
-
-  // True if synchronous replication is enabled
-  bool synchronous_replication_;
 
   // Current buffer to read logs from
   std::unique_ptr<network::ReadBuffer> curr_buffer_ = nullptr;

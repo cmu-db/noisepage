@@ -135,6 +135,7 @@ class DBMain {
      * @param block_store_reuse_limit argument to the BlockStore
      * @param use_gc enable GarbageCollector
      * @param log_manager needed for safe destruction of StorageLayer
+     * @param empty_buffer_queue The common buffer queue that all empty buffers are pulled from and returned to.
      */
     StorageLayer(const common::ManagedPointer<TransactionLayer> txn_layer, const uint64_t block_store_size_limit,
                  const uint64_t block_store_reuse_limit, const bool use_gc,
@@ -703,7 +704,7 @@ class DBMain {
     }
 
     /**
-     * @param port Network identity. Must be unique across all replicas.
+     * @param identity Network identity. Must be unique across all replicas.
      * @return self reference for chaining
      */
     Builder &SetNetworkIdentity(const std::string &identity) {

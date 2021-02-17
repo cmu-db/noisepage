@@ -204,14 +204,10 @@ class TransactionContext {
    */
   void SetMustAbort() { must_abort_ = true; }
 
-  /**
-   * Sets the retention policy of the transaction context.
-   */
+  /** Set the retention policy of the entire transaction. */
   void SetRetentionPolicy(RetentionPolicy retention_policy) { retention_policy_ = retention_policy; }
-  
-  /**
-   * Returns the retention policy of the transaction context.
-   */
+
+  /** @return The retention policy of the entire transaction. */
   RetentionPolicy GetRetentionPolicy() { return retention_policy_; }
 
  private:
@@ -245,6 +241,12 @@ class TransactionContext {
   bool must_abort_ = false;
 
   /**
+   * The retention policy of a transaction controls the retention policy for all of the buffers that are created by
+   * the transaction.
+   */
+  RetentionPolicy retention_policy_ = RetentionPolicy::RETENTION_ALL;
+
+  /**
    * @warning This method is ONLY for recovery
    * Copy the log record into the transaction's redo buffer.
    * @param record log record to copy
@@ -260,7 +262,5 @@ class TransactionContext {
     new_record->txn_begin_ = start_time_;
     return new_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
-
-  RetentionPolicy retention_policy_ = RetentionPolicy::ENABLE_LOG;
 };
 }  // namespace noisepage::transaction

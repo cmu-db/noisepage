@@ -80,6 +80,7 @@ class EXPORT ExecutionContext {
    * @param accessor the catalog accessor of this query
    * @param exec_settings The execution settings to run with.
    * @param metrics_manager The metrics manager for recording metrics
+   * @param replication_manager The replication manager to handle communication between primary and replicas.
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,

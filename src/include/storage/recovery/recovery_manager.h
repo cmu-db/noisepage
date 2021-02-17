@@ -113,7 +113,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   /** Blocks until the current recovery finishes (runs out of logs), then stops the background thread. */
   void WaitForRecoveryToFinish();
 
-  /* @return True if the recovery task is still running. */
+  /** @return True if the recovery task is still running. */
   bool IsRecoveryTaskRunning() const { return recovery_task_ != nullptr; }
 
  private:

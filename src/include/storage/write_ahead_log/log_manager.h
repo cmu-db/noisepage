@@ -48,16 +48,18 @@ class LogManager : public common::DedicatedThreadOwner {
   /**
    * Constructs a new LogManager, writing its logs out to the given file.
    *
-   * @param log_file_path path to the desired log file location. If the log file does not exist, one will be created;
-   *                      otherwise, changes are appended to the end of the file.
-   * @param num_buffers Number of buffers to use for buffering logs
-   * @param serialization_interval Interval time between log serializations
-   * @param persist_interval Interval time between log flushing
-   * @param persist_threshold data written threshold to trigger log file persist
-   * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
-   *                    buffers from
-   * @param replication_manager The replication manager that handles shipping logs over the network.
-   * @param thread_registry DedicatedThreadRegistry dependency injection
+   * @param log_file_path           Path to the desired log file location.
+   *                                If the log file does not exist, one will be created;
+   *                                otherwise, changes are appended to the end of the file.
+   * @param num_buffers             Number of buffers to use for buffering logs
+   * @param serialization_interval  Interval time between log serializations
+   * @param persist_interval        Interval time between log flushing
+   * @param persist_threshold       Data written threshold to trigger log file persist.
+   * @param buffer_pool             The object pool to draw log buffers from.
+   *                                This must be the same pool transactions draw their buffers from.
+   * @param empty_buffer_queue      The queue that empty buffers should be drawn from and returned to.
+   * @param replication_manager     The replication manager that handles shipping logs over the network.
+   * @param thread_registry         DedicatedThreadRegistry dependency injection
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,

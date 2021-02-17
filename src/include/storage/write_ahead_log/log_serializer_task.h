@@ -28,11 +28,12 @@ namespace noisepage::storage {
 class LogSerializerTask : public common::DedicatedThreadTask {
  public:
   /**
-   * @param serialization_interval Interval time for when to trigger serialization
-   * @param buffer_pool buffer pool to use to release serialized buffers
-   * @param empty_buffer_queue pointer to queue to pop empty buffers from
-   * @param filled_buffer_queue pointer to queue to push filled buffers to
-   * @param disk_log_writer_thread_cv pointer to condition variable to notify consumer when a new buffer has handed over
+   * @param serialization_interval      Interval time for when to trigger serialization.
+   * @param buffer_pool                 Buffer pool to use to release serialized buffers.
+   * @param empty_buffer_queue          Pointer to queue to pop empty buffers from.
+   * @param filled_buffer_queue         Pointer to queue to push filled buffers to.
+   * @param disk_log_writer_thread_cv   Pointer to cvar to notify consumer when a new buffer has handed over.
+   * @param replication_manager         Pointer to replication manager that some serialized logs will be pushed to.
    */
   explicit LogSerializerTask(
       const std::chrono::microseconds serialization_interval, RecordBufferSegmentPool *buffer_pool,
