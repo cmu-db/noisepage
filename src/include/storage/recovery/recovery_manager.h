@@ -61,8 +61,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     }
 
     /**
-     * Terminate does nothing, the task will terminate when RunTask() returns. In the future if we need to support
-     * interrupting recovery, this can be handled here.
+     * Terminate stops the recovery task loop from looping again.
+     * This allows the current iteration of recovery to complete.
      */
     void Terminate() override { recovery_manager_->recovery_task_loop_again_ = false; }
 
