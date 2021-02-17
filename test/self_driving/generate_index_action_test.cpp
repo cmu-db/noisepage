@@ -69,7 +69,7 @@ TEST_F(GenerateIndexAction, GenerateSingleColumnIndexAction) {
   std::string create_index_command = action_map.at(candidate_actions[0])->GetSQLCommand();
   std::vector<IndexColumn> columns{IndexColumn("col2")};
   std::string index_name = IndexActionUtil::GenerateIndexName(table_name, columns);
-  std::string expected_command = "create index " + index_name + " on " + table_name + "(col2, );";
+  std::string expected_command = "create index " + index_name + " on " + table_name + "(col2);";
   EXPECT_EQ(create_index_command, expected_command);
 
   // Check that the two actions are reverse actions to each other
@@ -105,7 +105,7 @@ TEST_F(GenerateIndexAction, GenerateMultipleColumnIndexAction) {
   std::string create_index_command = action_map.at(candidate_actions[0])->GetSQLCommand();
   std::vector<IndexColumn> columns{IndexColumn("col2"), IndexColumn("col3")};
   std::string index_name = IndexActionUtil::GenerateIndexName(table_name, columns);
-  std::string expected_command = "create index " + index_name + " on " + table_name + "(col2, col3, );";
+  std::string expected_command = "create index " + index_name + " on " + table_name + "(col2, col3);";
   EXPECT_EQ(create_index_command, expected_command);
 }
 
@@ -126,7 +126,7 @@ TEST_F(GenerateIndexAction, GenerateUncoveredColumnIndexAction) {
   std::string create_index_command = action_map.at(candidate_actions[0])->GetSQLCommand();
   std::vector<IndexColumn> columns{IndexColumn("col1"), IndexColumn("col3")};
   std::string index_name = IndexActionUtil::GenerateIndexName(table_name, columns);
-  std::string expected_command = "create index " + index_name + " on " + table_name + "(col1, col3, );";
+  std::string expected_command = "create index " + index_name + " on " + table_name + "(col1, col3);";
   EXPECT_EQ(create_index_command, expected_command);
 }
 
@@ -148,7 +148,7 @@ TEST_F(GenerateIndexAction, GenerateInequalityColumnIndexAction) {
   std::string create_index_command = action_map.at(candidate_actions[0])->GetSQLCommand();
   std::vector<IndexColumn> columns{IndexColumn("col3"), IndexColumn("col2")};
   std::string index_name = IndexActionUtil::GenerateIndexName(table_name, columns);
-  std::string expected_command = "create index " + index_name + " on " + table_name + "(col3, col2, );";
+  std::string expected_command = "create index " + index_name + " on " + table_name + "(col3, col2);";
   EXPECT_EQ(create_index_command, expected_command);
 }
 
