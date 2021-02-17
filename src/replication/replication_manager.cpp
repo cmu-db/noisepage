@@ -115,15 +115,15 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
           if (block) {
             // If this isn't a blocking send, then completed will fall out of scope.
             completed = true;
-            cvar_.notify_all();
+            blocking_send_cvar_.notify_all();
           }
         },
         static_cast<uint64_t>(type));
 
     if (block) {
-      std::unique_lock<std::mutex> lock(mutex_);
+      std::unique_lock<std::mutex> lock(blocking_send_mutex_);
       // If the caller requested to block until the operation was completed, the thread waits.
-      cvar_.wait(lock, [&completed] { return completed; });
+      blocking_send_cvar_.wait(lock, [&completed] { return completed; });
       lock.unlock();
     }
   } catch (const MessengerException &e) {

@@ -64,38 +64,50 @@ class Replica {
  */
 class ReplicationManager {
  public:
+  /** The type of message that is being sent. */
   enum class MessageType : uint8_t { RESERVED = 0, ACK, HEARTBEAT, REPLICATE_BUFFER };
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
+  /**
+   * On construction, the replication manager establishes a listen destination on the messenger and connect to all the
+   * replicas specified in the replication.conf file located at @p replication_hosts_path.
+   *
+   * @param messenger                   The messenger instance to use.
+   * @param network_identity            The identity of this node in the network.
+   * @param port                        The port to listen on.
+   * @param replication_hosts_path      The path to the replication.conf file.
+   * @param empty_buffer_queue          A queue of empty buffers that the replication manager may return buffers to.
+   */
   ReplicationManager(
       common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
       const std::string &replication_hosts_path,
       common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
 
+  /** Default destructor. */
   ~ReplicationManager();
 
-  void ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port);
-
-  // sync/async seems relatively easy to do in this framework, though I need to fix up the multithreaded block case
-  // just capture a bool in the callback and flip it on response, have the cvar wait on that
-  // I don't think this should actually send the message, though - it should buffer the message to be sent instead
+  /**
+   * Send a message to the specified replica.
+   *
+   * @param replica_name    The replica to send to.
+   * @param type            The type of message that is being sent.
+   * @param msg             The message that is being sent.
+   * @param block           True if the call should block until an acknowledgement is received. False otherwise.
+   */
   void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
 
+  /**
+   * Send a buffer to all the replicas as a REPLICATE_BUFFER message.
+   *
+   * @param buffer          The buffer to be replicated.
+   */
   void ReplicateBuffer(storage::BufferedLogWriter *buffer);
 
   /** @return The port that replication is running on. */
   uint16_t GetPort() const { return port_; }
 
-  std::vector<std::string> GetCurrentReplicaList() const {
-    std::vector<std::string> replicas;
-    replicas.reserve(replicas_.size());
-    for (const auto &replica : replicas_) {
-      replicas.emplace_back(replica.first);
-    }
-    return replicas;
-  }
-
+  /** @return The replication log provider that (ordered) replication logs are pushed to. */
   common::ManagedPointer<storage::ReplicationLogProvider> GetReplicationLogProvider() const {
     return common::ManagedPointer(provider_);
   }
@@ -106,7 +118,10 @@ class ReplicationManager {
    */
   uint64_t GetLastRecordId() const { return IsPrimary() ? next_buffer_sent_id_ - 1 : last_record_applied_id_; }
 
+  /** Enable replication. */
   void EnableReplication() { replication_enabled_ = true; }
+
+  /** Disable replication. */
   void DisableReplication() { replication_enabled_ = false; }
 
   /** @return   True if this is the primary node and false if this is a replica. */
@@ -116,27 +131,44 @@ class ReplicationManager {
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
   void ReplicaHeartbeat(const std::string &replica_name);
 
+  /**
+   * Build the list of replicas as specified in replication.conf.
+   *
+   * @param replication_hosts_path      The path to the replication_hosts.conf file.
+   */
   void BuildReplicaList(const std::string &replication_hosts_path);
 
-  // todo(wan): division of functionality?'
-  // todo(wan): RM would become a dependency to most components
+  /**
+   * Connect to the specified replica.
+   *
+   * @param replica_name                The name to assign the replica.
+   * @param hostname                    The hostname where the replica is available.
+   * @param port                        The port where the replica is available.
+   */
+  void ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port);
 
   common::ManagedPointer<messenger::ConnectionId> GetReplicaConnection(const std::string &replica_name);
 
-  common::ManagedPointer<messenger::Messenger> messenger_;
-  std::string identity_;                               ///< The identity of this replica.
-  uint16_t port_;                                      ///< The port that replication runs on.
-  std::unordered_map<std::string, Replica> replicas_;  ///< Replica Name -> Connection ID.
-  std::unique_ptr<storage::ReplicationLogProvider> provider_;
-  std::mutex mutex_;
-  std::condition_variable cvar_;
+  common::ManagedPointer<messenger::Messenger> messenger_;  ///< The messenger used for all send/receive operations.
+  std::string identity_;                                    ///< The identity of this replica.
+  uint16_t port_;                                           ///< The port that replication runs on.
+  std::unordered_map<std::string, Replica> replicas_;       ///< Replica Name -> Connection ID.
 
-  bool replication_enabled_ = false;
+  std::unique_ptr<storage::ReplicationLogProvider> provider_;  ///< The replicated buffers provided by the primary.
+  std::mutex blocking_send_mutex_;                             ///< Mutex used for blocking sends.
+  std::condition_variable blocking_send_cvar_;                 ///< Cvar used for blocking sends.
 
-  uint64_t next_buffer_sent_id_ = 1;
-  uint64_t last_record_applied_id_ = 0;
+  // TODO(WAN): I believe this can be removed with Tianlei's PR
+  bool replication_enabled_ = false;  ///< True if replication is currently enabled and false otherwise.
+
+  uint64_t next_buffer_sent_id_ = 1;     ///< The ID of the next buffer to sent.
+  uint64_t last_record_applied_id_ = 0;  ///< The ID of the last record to be applied.
+
+  /** The received buffers are queued up until the "next" received buffer is the right one. */
   std::priority_queue<nlohmann::json, std::vector<nlohmann::json>, std::function<bool(nlohmann::json, nlohmann::json)>>
       received_buffer_queue_;
+
+  /** Once used, buffers are returned to a central empty buffer queue. */
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 };
 
