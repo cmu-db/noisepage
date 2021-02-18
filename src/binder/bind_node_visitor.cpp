@@ -68,8 +68,44 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> nod
   BINDER_LOG_TRACE("Visiting AnalyzeStatement ...");
   SqlNodeVisitor::Visit(node);
 
+  if (node->GetAnalyzeTable() == nullptr) {
+    // Currently we only support ANALYZE for a single table at a time. A nice feature to add in the future is to analyze
+    // all tables
+    throw BINDER_EXCEPTION("Analyze must specify a single table", common::ErrorCode::ERRCODE_INVALID_TABLE_DEFINITION);
+  }
+
   InitTableRef(node->GetAnalyzeTable());
-  ValidateDatabaseName(node->GetAnalyzeTable()->GetDatabaseName());
+
+  const auto &db_name = node->GetAnalyzeTable()->GetDatabaseName();
+  ValidateDatabaseName(db_name);
+  const auto db_oid = db_name.empty() ? this->db_oid_ : catalog_accessor_->GetDatabaseOid(db_name);
+  node->SetDatabaseOid(db_oid);
+
+  const auto &table_name = node->GetAnalyzeTable()->GetTableName();
+  const auto tb_oid = catalog_accessor_->GetTableOid(table_name);
+  if (tb_oid == catalog::INVALID_TABLE_OID) {
+    throw BINDER_EXCEPTION("Analyze table does not exist", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+  }
+  node->SetTableOid(tb_oid);
+
+  const auto &schema = catalog_accessor_->GetSchema(tb_oid);
+  for (const auto &col : *(node->GetColumns())) {
+    if (!BinderContext::ColumnInSchema(schema, col)) {
+      throw BINDER_EXCEPTION("Analyze column does not exist", common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+    }
+  }
+
+  // If no column is specified then default to all columns
+  if (node->GetColumns()->empty()) {
+    for (const auto &col : schema.GetColumns()) {
+      node->GetColumns()->emplace_back(col.Name());
+    }
+  }
+
+  for (const auto &col : *(node->GetColumns())) {
+    const auto col_oid = schema.GetColumn(col).Oid();
+    node->AddColumnOid(col_oid);
+  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) {

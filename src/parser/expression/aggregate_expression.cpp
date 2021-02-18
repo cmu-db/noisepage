@@ -39,6 +39,10 @@ void AggregateExpression::DeriveReturnValueType() {
     case ExpressionType::AGGREGATE_AVG:
       this->SetReturnValueType(type::TypeId::REAL);
       break;
+    case ExpressionType::AGGREGATE_TOP_K:
+    case ExpressionType::AGGREGATE_HISTOGRAM:
+      this->SetReturnValueType(type::TypeId::VARBINARY);
+      break;
     default:
       throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));
   }
@@ -66,6 +70,22 @@ common::hash_t AggregateExpression::Hash() const {
   common::hash_t hash = AbstractExpression::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(distinct_));
   return hash;
+}
+bool AggregateExpression::RequiresCleanup() const {
+  auto expr_type = this->GetExpressionType();
+  switch (expr_type) {
+    case ExpressionType::AGGREGATE_COUNT:
+    case ExpressionType::AGGREGATE_MAX:
+    case ExpressionType::AGGREGATE_MIN:
+    case ExpressionType::AGGREGATE_SUM:
+    case ExpressionType::AGGREGATE_AVG:
+      return false;
+    case ExpressionType::AGGREGATE_TOP_K:
+    case ExpressionType::AGGREGATE_HISTOGRAM:
+      return true;
+    default:
+      throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));
+  }
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(AggregateExpression);

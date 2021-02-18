@@ -1545,6 +1545,59 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+#define GEN_BINARY_AGGREGATE(SQL_TYPE, AGG_TYPE)                                \
+  OP(AGG_TYPE##Init) : {                                                        \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Init(agg);                                                    \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Advance) : {                                                     \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    auto *val = frame->LocalAt<sql::SQL_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Advance(agg, val);                                            \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Merge) : {                                                       \
+    auto *agg_1 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());             \
+    auto *agg_2 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());             \
+    Op##AGG_TYPE##Merge(agg_1, agg_2);                                          \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Reset) : {                                                       \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Reset(agg);                                                   \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##GetResult) : {                                                   \
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());           \
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID()); \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##GetResult(result, exec_ctx, agg);                             \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Free) : {                                                        \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Free(agg);                                                    \
+    DISPATCH_NEXT();                                                            \
+  }
+
+  GEN_BINARY_AGGREGATE(BoolVal, BooleanTopKAggregate);
+  GEN_BINARY_AGGREGATE(Integer, IntegerTopKAggregate);
+  GEN_BINARY_AGGREGATE(Real, RealTopKAggregate);
+  GEN_BINARY_AGGREGATE(DecimalVal, DecimalTopKAggregate);
+  GEN_BINARY_AGGREGATE(StringVal, StringTopKAggregate);
+  GEN_BINARY_AGGREGATE(DateVal, DateTopKAggregate);
+  GEN_BINARY_AGGREGATE(TimestampVal, TimestampTopKAggregate);
+  GEN_BINARY_AGGREGATE(BoolVal, BooleanHistogramAggregate);
+  GEN_BINARY_AGGREGATE(Integer, IntegerHistogramAggregate);
+  GEN_BINARY_AGGREGATE(Real, RealHistogramAggregate);
+  GEN_BINARY_AGGREGATE(DecimalVal, DecimalHistogramAggregate);
+  GEN_BINARY_AGGREGATE(StringVal, StringHistogramAggregate);
+  GEN_BINARY_AGGREGATE(DateVal, DateHistogramAggregate);
+  GEN_BINARY_AGGREGATE(TimestampVal, TimestampHistogramAggregate);
+
+#undef GEN_BINARY_AGGREGATE
+
   // -------------------------------------------------------
   // Hash Joins
   // -------------------------------------------------------

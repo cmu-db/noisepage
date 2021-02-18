@@ -1250,6 +1250,50 @@ VM_OP_HOT void OpAvgAggregateGetResult(noisepage::execution::sql::Real *result,
 
 VM_OP_HOT void OpAvgAggregateFree(noisepage::execution::sql::AvgAggregate *agg) { agg->~AvgAggregate(); }
 
+#define GEN_BINARY_AGGREGATE(SQL_TYPE, AGG_TYPE)                                                 \
+  VM_OP_HOT void Op##AGG_TYPE##Init(noisepage::execution::sql::AGG_TYPE *agg) {                  \
+    new (agg) noisepage::execution::sql::AGG_TYPE();                                             \
+  }                                                                                              \
+  VM_OP_HOT void Op##AGG_TYPE##Advance(noisepage::execution::sql::AGG_TYPE *agg,                 \
+                                       const noisepage::execution::sql::SQL_TYPE *val) {         \
+    agg->Advance(*val);                                                                          \
+  }                                                                                              \
+  VM_OP_HOT void Op##AGG_TYPE##Merge(noisepage::execution::sql::AGG_TYPE *agg_1,                 \
+                                     const noisepage::execution::sql::AGG_TYPE *agg_2) {         \
+    agg_1->Merge(*agg_2);                                                                        \
+  }                                                                                              \
+  VM_OP_HOT void Op##AGG_TYPE##Reset(noisepage::execution::sql::AGG_TYPE *agg) { agg->Reset(); } \
+  VM_OP_HOT void Op##AGG_TYPE##GetResult(noisepage::execution::sql::StringVal *result,           \
+                                         noisepage::execution::exec::ExecutionContext *ctx,      \
+                                         const noisepage::execution::sql::AGG_TYPE *agg) {       \
+    *result = agg->GetResult(ctx);                                                               \
+  }                                                                                              \
+  VM_OP_HOT void Op##AGG_TYPE##Free(noisepage::execution::sql::AGG_TYPE *agg) { agg->~AGG_TYPE(); }
+
+// ---------------------------------------------------------
+// TOP K
+// ---------------------------------------------------------
+GEN_BINARY_AGGREGATE(BoolVal, BooleanTopKAggregate);
+GEN_BINARY_AGGREGATE(Integer, IntegerTopKAggregate);
+GEN_BINARY_AGGREGATE(Real, RealTopKAggregate);
+GEN_BINARY_AGGREGATE(DecimalVal, DecimalTopKAggregate);
+GEN_BINARY_AGGREGATE(StringVal, StringTopKAggregate);
+GEN_BINARY_AGGREGATE(DateVal, DateTopKAggregate);
+GEN_BINARY_AGGREGATE(TimestampVal, TimestampTopKAggregate);
+
+// ---------------------------------------------------------
+// Histogram
+// ---------------------------------------------------------
+GEN_BINARY_AGGREGATE(BoolVal, BooleanHistogramAggregate);
+GEN_BINARY_AGGREGATE(Integer, IntegerHistogramAggregate);
+GEN_BINARY_AGGREGATE(Real, RealHistogramAggregate);
+GEN_BINARY_AGGREGATE(DecimalVal, DecimalHistogramAggregate);
+GEN_BINARY_AGGREGATE(StringVal, StringHistogramAggregate);
+GEN_BINARY_AGGREGATE(DateVal, DateHistogramAggregate);
+GEN_BINARY_AGGREGATE(TimestampVal, TimestampHistogramAggregate);
+
+#undef GEN_BINARY_AGGREGATE
+
 // ---------------------------------------------------------
 // Hash Joins
 // ---------------------------------------------------------

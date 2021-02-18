@@ -92,6 +92,20 @@ class Context;
   NON_PRIM(DateMaxAggregate, noisepage::execution::sql::DateMaxAggregate)                         \
   NON_PRIM(StringMinAggregate, noisepage::execution::sql::StringMinAggregate)                     \
   NON_PRIM(StringMaxAggregate, noisepage::execution::sql::StringMaxAggregate)                     \
+  NON_PRIM(BooleanTopKAggregate, noisepage::execution::sql::BooleanTopKAggregate)                 \
+  NON_PRIM(IntegerTopKAggregate, noisepage::execution::sql::IntegerTopKAggregate)                 \
+  NON_PRIM(RealTopKAggregate, noisepage::execution::sql::RealTopKAggregate)                       \
+  NON_PRIM(DecimalTopKAggregate, noisepage::execution::sql::DecimalTopKAggregate)                 \
+  NON_PRIM(StringTopKAggregate, noisepage::execution::sql::StringTopKAggregate)                   \
+  NON_PRIM(DateTopKAggregate, noisepage::execution::sql::DateTopKAggregate)                       \
+  NON_PRIM(TimestampTopKAggregate, noisepage::execution::sql::TimestampTopKAggregate)             \
+  NON_PRIM(BooleanHistogramAggregate, noisepage::execution::sql::BooleanHistogramAggregate)       \
+  NON_PRIM(IntegerHistogramAggregate, noisepage::execution::sql::IntegerHistogramAggregate)       \
+  NON_PRIM(RealHistogramAggregate, noisepage::execution::sql::RealHistogramAggregate)             \
+  NON_PRIM(DecimalHistogramAggregate, noisepage::execution::sql::DecimalHistogramAggregate)       \
+  NON_PRIM(StringHistogramAggregate, noisepage::execution::sql::StringHistogramAggregate)         \
+  NON_PRIM(DateHistogramAggregate, noisepage::execution::sql::DateHistogramAggregate)             \
+  NON_PRIM(TimestampHistogramAggregate, noisepage::execution::sql::TimestampHistogramAggregate)   \
                                                                                                   \
   /* SQL Table operations */                                                                      \
   NON_PRIM(ProjectedRow, noisepage::storage::ProjectedRow)                                        \
@@ -390,7 +404,9 @@ class BuiltinType : public Type {
    * @return True if this type is a SQL aggregator type (i.e., IntegerSumAggregate,
    *         CountAggregate, etc.); false otherwise.
    */
-  bool IsSqlAggregateType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::StringMaxAggregate; }
+  bool IsSqlAggregateType() const {
+    return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::TimestampHistogramAggregate;
+  }
 
   /**
    * @return The kind of this builtin.

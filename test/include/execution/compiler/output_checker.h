@@ -331,7 +331,8 @@ class OutputStore {
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::VARCHAR: {
+          case noisepage::type::TypeId::VARCHAR:
+          case noisepage::type::TypeId::VARBINARY: {
             auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;

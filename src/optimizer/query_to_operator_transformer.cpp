@@ -623,17 +623,28 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
   }
 }
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::AnalyzeStatement> op) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::AnalyzeStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming AnalyzeStatement to operators ...");
   std::vector<catalog::col_oid_t> columns;
-  auto tb_oid = accessor_->GetTableOid(op->GetAnalyzeTable()->GetTableName());
-  auto schema = accessor_->GetSchema(tb_oid);
-  for (const auto &col : *(op->GetColumns())) columns.emplace_back(schema.GetColumn(col).Oid());
+  auto db_oid = op->GetDatabaseOid();
+  auto tb_oid = op->GetTableOid();
+
+  for (auto col_oid : op->GetColumnOids()) {
+    columns.emplace_back(col_oid);
+  }
+
   auto analyze_expr = std::make_unique<OperatorNode>(
-      LogicalAnalyze::Make(accessor_->GetDatabaseOid(op->GetAnalyzeTable()->GetDatabaseName()), tb_oid,
-                           std::move(columns))
-          .RegisterWithTxnContext(accessor_->GetTxn().Get()),
+      LogicalAnalyze::Make(db_oid, tb_oid, std::move(columns)).RegisterWithTxnContext(accessor_->GetTxn().Get()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
+  auto aggregate_expr = std::make_unique<OperatorNode>(
+      LogicalAggregateAndGroupBy::Make().RegisterWithTxnContext(accessor_->GetTxn().Get()),
+      std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
+  auto get_expr =
+      std::make_unique<OperatorNode>(LogicalGet::Make(db_oid, tb_oid, {}, op->GetAnalyzeTable()->GetAlias(), false)
+                                         .RegisterWithTxnContext(accessor_->GetTxn().Get()),
+                                     std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
+  aggregate_expr->PushChild(std::move(get_expr));
+  analyze_expr->PushChild(std::move(aggregate_expr));
   output_expr_ = std::move(analyze_expr);
 }
 
