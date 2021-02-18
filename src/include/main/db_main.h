@@ -862,7 +862,7 @@ class DBMain {
     std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     std::string network_identity_ = "primary";
     std::string uds_file_directory_ = "/tmp/";
-    std::string replication_hosts_path_ = "./replication.conf";
+    std::string replication_hosts_path_ = "./replication.config";
     /**
      * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
      * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly

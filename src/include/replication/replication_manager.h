@@ -86,12 +86,12 @@ class ReplicationManager {
 
   /**
    * On construction, the replication manager establishes a listen destination on the messenger and connect to all the
-   * replicas specified in the replication.conf file located at @p replication_hosts_path.
+   * replicas specified in the replication.config file located at @p replication_hosts_path.
    *
    * @param messenger                   The messenger instance to use.
    * @param network_identity            The identity of this node in the network.
    * @param port                        The port to listen on.
-   * @param replication_hosts_path      The path to the replication.conf file.
+   * @param replication_hosts_path      The path to the replication.config file.
    * @param empty_buffer_queue          A queue of empty buffers that the replication manager may return buffers to.
    */
   ReplicationManager(
@@ -158,9 +158,9 @@ class ReplicationManager {
   void ReplicaHeartbeat(const std::string &replica_name);
 
   /**
-   * Build the list of replicas as specified in replication.conf.
+   * Build the list of replicas as specified in replication.config.
    *
-   * @param replication_hosts_path      The path to the replication_hosts.conf file.
+   * @param replication_hosts_path      The path to the replication.config file.
    */
   void BuildReplicaList(const std::string &replication_hosts_path);
 

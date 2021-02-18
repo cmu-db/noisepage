@@ -686,14 +686,14 @@ set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 #######################################################################################################################
 # HEADER noisepage miscellaneous files needed for operation.
-# replication.conf      :   The identities, hostnames, and ports, of all primaries and replicas.
+# replication.config    :   The identities, hostnames, and ports, of all primaries and replicas.
 #######################################################################################################################
 
-# replication.conf specifies the identities, hostnames, and ports, and is needed when replication is enabled.
+# replication.config specifies the identities, hostnames, and ports, and is needed when replication is enabled.
 add_custom_command(
         TARGET noisepage
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "${BUILD_SUPPORT_DIR}/data/replication.conf" "${CMAKE_BINARY_DIR}/bin/replication.conf"
+        COMMAND ${CMAKE_COMMAND} -E copy "${BUILD_SUPPORT_DIR}/data/replication.config" "${CMAKE_BINARY_DIR}/bin/replication.config"
         )
 
 #######################################################################################################################

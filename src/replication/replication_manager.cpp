@@ -49,7 +49,7 @@ ReplicationManager::ReplicationManager(
 ReplicationManager::~ReplicationManager() = default;
 
 void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_path) {
-  // The replication_hosts.conf file is expected to have the following format:
+  // The replication.config file is expected to have the following format:
   //   IGNORED LINE (can be used for comments)
   //   REPLICA NAME
   //   REPLICA HOSTNAME
