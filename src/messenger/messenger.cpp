@@ -414,7 +414,7 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, 
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, const std::string &recv_id,
-                            const std::string &message, CallbackFn callback, uint64_t recv_cb_id) {
+                            const std::string &message, CallbackFn callback, uint64_t remote_cb_id) {
   uint64_t send_msg_id = GetNextSendMessageId();
 
   // Register the callback that will be invoked when a response to this message is received.
@@ -425,7 +425,7 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, 
   // Build and send the message. Note that ConnectionRouter is a ROUTER socket.
   zmq::message_t router_data(recv_id.data(), recv_id.size());
   if (router_id->socket_->send(router_data, zmq::send_flags::sndmore).has_value()) {
-    ZmqMessage reply = ZmqMessage::Build(send_msg_id, recv_cb_id, router_id->identity_, message);
+    ZmqMessage reply = ZmqMessage::Build(send_msg_id, remote_cb_id, router_id->identity_, message);
     ZmqUtil::SendMsgIdentity(common::ManagedPointer(router_id->socket_.get()), router_id->identity_);
     ZmqUtil::SendMsgPayload(common::ManagedPointer(router_id->socket_.get()), reply);
     MESSENGER_LOG_TRACE(fmt::format("[PID={}] Messenger ({}) SENT-TO {}: {} ", ::getpid(), router_id->identity_,
