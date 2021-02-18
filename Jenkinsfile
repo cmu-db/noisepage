@@ -118,6 +118,7 @@ pipeline {
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_sample_rate=100" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -211,6 +212,7 @@ pipeline {
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -248,6 +250,7 @@ pipeline {
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -289,6 +292,7 @@ pipeline {
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {

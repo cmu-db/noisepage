@@ -1,39 +1,51 @@
-#!/usr/bin/python3
+import argparse
 
-import time
-
+from ..util.constants import LOG
 from ..util.db_server import NoisePageServer
+from .utils_sql import replica_sync, sql_check, sql_exec
 
 
-def _run_sql(node : NoisePageServer, sql, expect_result, delay):
-    print(f"Executing SQL on {node.server_args['network_identity']}: {sql}")
-    result = node.execute(sql, expect_result=expect_result)
-    time.sleep(delay)
-    return result
+def test_insert_primary_select_replica(servers):
+    """
 
+    Parameters
+    ----------
+    servers : [NoisePageServer]
+        The list of servers, where the first element must be the primary.
 
-def exec_sql(node, sql, delay=0):
-    return _run_sql(node, sql, False, delay)
+    Returns
+    -------
+    True if all tests succeeded. False otherwise.
+    """
+    primary = servers[0]
+    replica1 = servers[1]
+    replica2 = servers[2]
 
+    try:
+        sql_exec(primary, "CREATE TABLE foo (a INTEGER);")
+        sql_exec(primary, "INSERT INTO foo VALUES (1);")
 
-def query_sql(node, sql, delay=0):
-    return _run_sql(node, sql, True, delay)
+        replica_sync(primary, [replica1])
+        sql_check(replica1, "SELECT a FROM foo ORDER BY a ASC;", [(1,)])
 
+        sql_exec(primary, "INSERT INTO foo VALUES (2);")
+        replica_sync(primary, [replica1, replica2])
+        sql_check(replica2, "SELECT a FROM foo ORDER BY a ASC;", [(1,), (2,)])
+    except AssertionError as e:
+        LOG.error(e)
+        return False
+    return True
 
-def get_last_record_id(node):
-    return query_sql(primary, "SELECT replication_get_last_record_id();")
-
-
-def wait_until_replicated(node, last_record_id):
-    while True:
-        r = query_sql(node, "SELECT replication_get_last_record_id();", delay=3)
-        print(r, last_record_id)
-        if r >= last_record_id:
-            return
 
 if __name__ == "__main__":
-    # TODO(WAN): configurable build type
-    servers = [NoisePageServer(build_type="debug", port=15721 + i, server_args={
+    aparser = argparse.ArgumentParser(description="Simple replication tests.")
+    aparser.add_argument("--build-type",
+                         default="debug",
+                         choices=["debug", "release", "relwithdebinfo"],
+                         help="Build type (default: %(default)s")
+    args = vars(aparser.parse_args())
+
+    servers = [NoisePageServer(build_type=args['build_type'], port=15721 + i, server_args={
         "port": 15721 + i,
         "messenger_port": 9022 + i,
         "replication_port": 15445 + i,
@@ -46,25 +58,10 @@ if __name__ == "__main__":
         for server in servers:
             server.run_db()
 
-        primary = servers[0]
-        replica1 = servers[1]
-        replica2 = servers[2]
-
-        time.sleep(5)
-
-        exec_sql(primary, "CREATE TABLE foo (a INTEGER);")
-        exec_sql(primary, "INSERT INTO foo VALUES (1);")
-
-        wait_until_replicated(replica1, get_last_record_id(primary))
-        q1 = query_sql(replica1, "SELECT a FROM foo ORDER BY a ASC;")
-        assert [(1,)] == q1, q1
-
-        exec_sql(primary, "INSERT INTO foo VALUES (2);")
-        wait_until_replicated(replica1, get_last_record_id(primary))
-        wait_until_replicated(replica2, get_last_record_id(primary))
-        q2 = query_sql(replica2, "SELECT a FROM foo ORDER BY a ASC;")
-        assert [(1,),(2,)] == q2, q2
-    # TODO(WAN): catch assertion errors
+        test_insert_primary_select_replica(servers)
     finally:
         for server in servers:
-            server.stop_db()
+            try:
+                server.stop_db()
+            except:
+                pass

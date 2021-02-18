@@ -407,8 +407,8 @@ SETTING_int(
 
 SETTING_string(
     replication_hosts_path,
-    "The path to the hosts.conf file for replication (default: ../../build-support/data/replication.conf)",
-    "../../build-support/data/replication.conf",
+    "The path to the hosts.conf file for replication (default: ./replication.conf)",
+    "./replication.conf",
     false,
     noisepage::settings::Callbacks::NoOp
 )
