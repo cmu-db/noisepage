@@ -255,12 +255,12 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
   } catch (const MessengerException &e) {
     REPLICATION_LOG_TRACE(
         fmt::format("Replica {}: last heartbeat {}, heartbeat failed.", replica_name, replica.last_heartbeat_));
-    auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
-    auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
-    if (epoch_now_ms.count() - replica.last_heartbeat_ >= REPLICATION_CARDIAC_ARREST_MS) {
-      REPLICATION_LOG_WARN(fmt::format("Replica {}: last heartbeat {}, declared dead {}.", replica_name,
-                                       replica.last_heartbeat_, epoch_now_ms.count()));
-    }
+  }
+  auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
+  auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
+  if (epoch_now_ms.count() - replica.last_heartbeat_ >= REPLICATION_CARDIAC_ARREST_MS) {
+    REPLICATION_LOG_WARN(fmt::format("Replica {}: last heartbeat {}, declared dead {}.", replica_name,
+                                     replica.last_heartbeat_, epoch_now_ms.count()));
   }
   REPLICATION_LOG_TRACE(fmt::format("Replica {}: heartbeat end.", replica_name));
 }

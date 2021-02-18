@@ -25,9 +25,10 @@ namespace noisepage::replication {
 
 class ReplicationManager;
 
+// TODO(WAN): I am currently not sure what methods will be specific to communicating with a replica.
+//  If you see logic in ReplicationManager that can be pushed into Replica please let me know.
 /** Abstraction around a replica. */
 class Replica {
-  // todo(wan): justify existence? what other methods are specific to communicating with a replica?
  public:
   /**
    * Create a replica.
@@ -46,8 +47,8 @@ class Replica {
  private:
   friend ReplicationManager;
 
-  messenger::ConnectionDestination replica_info_;
-  messenger::ConnectionId connection_;
+  messenger::ConnectionDestination replica_info_;  ///< The connection metadata for this replica.
+  messenger::ConnectionId connection_;             ///< The connection to this replica.
   uint64_t last_heartbeat_;  ///< Time (unix epoch) that the replica heartbeat was last successful.
 };
 
@@ -56,7 +57,7 @@ class Replica {
  *
  * Housekeeping duties include:
  * - Maintaining a list of all known database replicas and the presumed state of each replica.
- * - Sending periodic heartbeats to other database replicas.
+ * - Sending periodic heartbeats to other database replicas. TODO(WAN): Heartbeat works, but is unused.
  *
  * The ReplicationManager can be invoked by other components in order to send specific replication-related data.
  * For example:
@@ -67,14 +68,19 @@ class Replica {
  * the subsystems that the ReplicationManager interfaces with. The ReplicationManager is responsible for invoking
  * the appropriate functions.
  *
- * (this logic is pushed to the ReplicationManager to avoid littering the rest of the codebase with retry/failure etc)
+ * Code is mainly pushed into the ReplicationManager to avoid other system components needing retry/failure logic.
  *
  * All replication communication happens over REPLICATION_DEFAULT_PORT.
  */
 class ReplicationManager {
  public:
   /** The type of message that is being sent. */
-  enum class MessageType : uint8_t { RESERVED = 0, ACK, HEARTBEAT, REPLICATE_BUFFER };
+  enum class MessageType : uint8_t {
+    RESERVED = 0,     ///< Reserved.
+    ACK,              ///< Acknowledgement of received message.
+    HEARTBEAT,        ///< Replica heartbeat.
+    REPLICATE_BUFFER  ///< Buffer received from the log manager that should be replicated.
+  };
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
@@ -137,7 +143,18 @@ class ReplicationManager {
   bool IsPrimary() const { return identity_ == "primary"; }
 
  private:
+  /** The main event loop that all nodes run. This handles receiving messages. */
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
+
+  /**
+   * Request a heartbeat from the specified replica.
+   * Note that this function does not wait for a response and will update the replica's last heartbeat time in the
+   * background. This means that ReplicaHeartbeat may need to be invoked again to realize that the replica is dead.
+   *
+   * If REPLICATION_CARDIAC_ARREST_MS seconds have passed since the last acknowledgement, the replica is marked dead.
+   *
+   * @param replica_name                The replica to request a heartbeat from.
+   */
   void ReplicaHeartbeat(const std::string &replica_name);
 
   /**
@@ -156,6 +173,7 @@ class ReplicationManager {
    */
   void ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port);
 
+  /** @return The connection ID associated with a particular replica. */
   common::ManagedPointer<messenger::ConnectionId> GetReplicaConnection(const std::string &replica_name);
 
   common::ManagedPointer<messenger::Messenger> messenger_;  ///< The messenger used for all send/receive operations.
@@ -167,7 +185,7 @@ class ReplicationManager {
   std::mutex blocking_send_mutex_;                             ///< Mutex used for blocking sends.
   std::condition_variable blocking_send_cvar_;                 ///< Cvar used for blocking sends.
 
-  // TODO(WAN): I believe this can be removed with Tianlei's PR
+  // TODO(WAN): I think it is better to use retention policies instead of enabling/disabling replication.
   bool replication_enabled_ = false;  ///< True if replication is currently enabled and false otherwise.
 
   uint64_t next_buffer_sent_id_ = 1;     ///< The ID of the next buffer to sent.
