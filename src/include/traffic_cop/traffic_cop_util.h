@@ -7,7 +7,6 @@
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "optimizer/optimize_result.h"
-#include "parser/select_statement.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;
