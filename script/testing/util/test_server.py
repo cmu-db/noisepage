@@ -103,7 +103,8 @@ class TestServer:
 
         ret_val = constants.ErrorCode.ERROR
         try:
-            with open(test_case.test_output_file, "a+") as test_output_fd:
+            LOG.info(f"Logging output (overwrite) to: {test_case.test_output_file}")
+            with open(test_case.test_output_file, "w") as test_output_fd:
                 ret_val, _, _ = run_command(test_case.test_command,
                                             stdout=test_output_fd,
                                             stderr=test_output_fd,
