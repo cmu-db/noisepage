@@ -95,6 +95,8 @@ if __name__ == "__main__":
         set_env_vars()
         test_server = TestServer(args, quiet=True)
         errcodes = [run_tests_junit(test_server)] + run_tests_tracefiles(test_server)
+    except KeyboardInterrupt:
+        traceback.print_exc(file=sys.stderr)
     finally:
         unset_env_vars()
 
