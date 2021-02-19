@@ -275,6 +275,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
     auto left_expr = expr->GetChild(1 - right_index);
     NOISEPAGE_ASSERT(left_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto col_name = left_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
+    auto col_oid = left_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnOid();
 
     auto expr_type = expr->GetExpressionType();
     if (right_index == 0) {
@@ -292,7 +293,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
                                                                 execution::sql::Integer(pve->GetValueIdx()));
     }
 
-    ValueCondition condition(col_name, expr_type, std::move(value));
+    ValueCondition condition(col_oid, col_name, expr_type, std::move(value));
     selectivity = SelectivityUtil::ComputeSelectivity(predicate_table_stats, condition);
   } else if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND ||
              expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {

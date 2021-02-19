@@ -13,7 +13,6 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
 
   switch (type) {
     case type::TypeId::BOOLEAN: {
-      // TODO(Joe) we'll have to fix this with deserialization
       using T = execution::sql::BoolVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
