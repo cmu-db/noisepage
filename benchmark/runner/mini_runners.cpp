@@ -446,7 +446,7 @@ class MiniRunners : public benchmark::Fixture {
 
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor), exec_settings, metrics_manager_);
+        common::ManagedPointer(accessor), exec_settings, metrics_manager_, DISABLED);
 
     execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
@@ -491,7 +491,7 @@ class MiniRunners : public benchmark::Fixture {
     auto exec_settings = MiniRunners::GetExecutionSettings();
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor),
-                                                                        exec_settings, metrics_manager_);
+                                                                        exec_settings, metrics_manager_, DISABLED);
 
     execution::sql::TableGenerator table_generator(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
     if (is_build) {
@@ -549,7 +549,7 @@ class MiniRunners : public benchmark::Fixture {
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
                                                                           out_schema, common::ManagedPointer(accessor),
-                                                                          exec_settings, metrics_manager);
+                                                                          exec_settings, metrics_manager, DISABLED);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -578,7 +578,7 @@ class MiniRunners : public benchmark::Fixture {
     auto exec_settings = GetExecutionSettings();
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor),
-                                                                        exec_settings, metrics_manager_);
+                                                                        exec_settings, metrics_manager_, DISABLED);
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
     selfdriving::PipelineOperatingUnits units;
@@ -940,7 +940,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   execution::exec::OutputCallback callback = consumer;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
                                                                       schema.get(), common::ManagedPointer(accessor),
-                                                                      exec_settings, metrics_manager_);
+                                                                      exec_settings, metrics_manager_, DISABLED);
 
   auto exec_query =
       execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
@@ -1006,7 +1006,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     execution::exec::OutputCallback callback = consumer;
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
                                                                         nullptr, common::ManagedPointer(accessor),
-                                                                        exec_settings, metrics_manager);
+                                                                        exec_settings, metrics_manager, DISABLED);
 
     // A brief discussion of the features:
     // NUM_ROWS: size of the index
@@ -2027,9 +2027,9 @@ void InitializeRunnersState() {
   // Load the database
   auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   auto exec_settings = MiniRunners::GetExecutionSettings();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
-                                                                      nullptr, common::ManagedPointer(accessor),
-                                                                      exec_settings, db_main->GetMetricsManager());
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+      db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings,
+      db_main->GetMetricsManager(), DISABLED);
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
   table_gen.GenerateMiniRunnersData(settings, config);
