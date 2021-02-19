@@ -50,7 +50,10 @@ class CountMinSketch {
     sketch_.create(width);
   }
 
-  // TODO(Joe) Comment
+  /**
+   * Copy Constructor that copies the contents of another CountMinSketch
+   * @param other CountMinSketch to copy
+   */
   CountMinSketch(const CountMinSketch &other) : total_count_(other.total_count_) { sketch_.copy(other.sketch_); }
 
   /**

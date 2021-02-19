@@ -7,6 +7,11 @@
 
 namespace noisepage::optimizer {
 
+/*
+ * Currently when getting statistics for a table we get and cache the statistics for the entire table. If we find that
+ * large tables are filling up the cache when we only need some of the columns, we may want to revisit this so we only
+ * cache the columns we use.
+ */
 common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
                                                                const catalog::table_oid_t table_id,
                                                                catalog::CatalogAccessor *accessor) {
@@ -32,6 +37,18 @@ common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db
   InsertTableStats(database_id, table_id, accessor->GetTableStatistics(table_id));
 
   return common::ManagedPointer<TableStats>(table_stats_storage_.at(stats_storage_key));
+}
+
+/*
+ * Currently when getting the statistics for a column we get and cache the statistics for the entire table. If we find
+ * that large tables are filling up the cache, we may want to revisit this so we only cache the column requested.
+ */
+common::ManagedPointer<ColumnStatsBase> StatsStorage::GetColumnStats(catalog::db_oid_t database_id,
+                                                                     catalog::table_oid_t table_id,
+                                                                     catalog::col_oid_t column_oid,
+                                                                     catalog::CatalogAccessor *accessor) {
+  auto table_stats = GetTableStats(database_id, table_id, accessor);
+  return common::ManagedPointer<ColumnStatsBase>(table_stats->GetColumnStats(column_oid));
 }
 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,

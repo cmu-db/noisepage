@@ -68,7 +68,9 @@ class ColumnStats : public ColumnStatsBase {
    */
   ColumnStats() = default;
 
-  // TODO(Joe) comment
+  /**
+   * Default destructor
+   */
   ~ColumnStats() override = default;
 
   /**
@@ -126,6 +128,10 @@ class ColumnStats : public ColumnStatsBase {
    */
   void MarkStale() override { stale_ = true; }
 
+  /**
+   * Make a copy of ColumnStats
+   * @return a copy of the underlying object
+   */
   std::unique_ptr<ColumnStatsBase> Copy() override {
     return std::make_unique<ColumnStats<T>>(database_id_, table_id_, column_id_, num_rows_, frac_null_,
                                             distinct_values_, std::make_unique<TopKElements<CppType>>(*top_k_),

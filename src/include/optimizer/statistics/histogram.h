@@ -28,7 +28,7 @@ namespace noisepage::optimizer {
  *
  * Histogram supports any key type that can be easily converted into a double. However in order to get meaningful
  * results from the histogram the ordering of the keys should be perserved in this conversion. So for example if
- * key1 > key2 then ConvertToKey(key1) > ConvertToKey(key2) where ConvertToKey(k) converts k to a double.
+ * key1 > key2 then ConvertToPoint(key1) > ConvertToPoint(key2) where ConvertToPoint(k) converts k to a double.
  *
  * Histogram currently supports strings by hashing them, but since hashing doesn't perserve lexographical ordering it's
  * pretty much useless
@@ -38,7 +38,9 @@ class Histogram {
   static constexpr uint8_t DEFAULT_MAX_BINS = 64;
 
  public:
-  // TODO(Joe) Comment
+  /**
+   * Constructor defaults to DEFAULT_MAX_BINS for bin size
+   */
   Histogram() : max_bins_(DEFAULT_MAX_BINS), bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
   /**
    * Constructor.
@@ -47,7 +49,10 @@ class Histogram {
   explicit Histogram(const uint8_t max_bins)
       : max_bins_{max_bins}, bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
 
-  // TODO(Joe) comment
+  /**
+   * Copy constructor
+   * @param other Histogram to copy
+   */
   Histogram(const Histogram &other)
       : max_bins_(other.max_bins_),
         bins_(other.bins_),
@@ -67,7 +72,10 @@ class Histogram {
      */
     Bin(double point, double count) : point_{point}, count_{count} {}
 
-    // TODO(Joe) comment
+    /**
+     * Copy Constructor
+     * @param other Bin to copy
+     */
     Bin(const Bin &other) : point_(other.point_), count_(other.count_) {}
 
     /**
@@ -212,7 +220,7 @@ class Histogram {
    * @param key the key to update
    */
   void Increment(const KeyType &key) {
-    auto point = ConvertToKey(key);
+    auto point = ConvertToPoint(key);
     Bin bin{point, 1};
     InsertBin(bin);
     if (bins_.size() > max_bins_) {
@@ -221,24 +229,24 @@ class Histogram {
   }
 
   /**
-   * For the given key point (where p1 < b < pB), return an estimate
+   * For the given key key (where p1 < b < pB), return an estimate
    * of the number of points in the interval [-Inf, b]
-   * @param point the value point to estimate
+   * @param key the value key to estimate
    * @return the estimate of the # of points
    */
-  double EstimateItemCount(KeyType point) {
-    double point_key = ConvertToKey(point);
+  double EstimateItemCount(KeyType key) {
+    double point = ConvertToPoint(key);
 
     if (bins_.empty()) return 0.0;
 
-    if (point_key >= bins_.back().GetPoint()) {
+    if (point >= bins_.back().GetPoint()) {
       return total_;
     }
-    if (point_key < bins_.front().GetPoint()) {
+    if (point < bins_.front().GetPoint()) {
       return 0.0;
     }
 
-    Bin bin{point_key, 1};
+    Bin bin{point, 1};
     int i = BinarySearch(bins_, 0, static_cast<int>(bins_.size()) - 1, bin);
     if (i < 0) {
       // -1 because we want index to be element less than b
@@ -248,9 +256,9 @@ class Histogram {
     double pi, pi1, mi, mi1;
     std::tie(pi, pi1, mi, mi1) = GetInterval(bins_, i);
 
-    double mb = mi + (mi1 - mi) / (pi1 - pi) * (point_key - pi);
+    double mb = mi + (mi1 - mi) / (pi1 - pi) * (point - pi);
 
-    double s = ((mi + mb) / 2.0) * ((point_key - pi) / (pi1 - pi));
+    double s = ((mi + mb) / 2.0) * ((point - pi) / (pi1 - pi));
 
     for (int j = 0; j < i; j++) {
       s += bins_[j].GetCount();
@@ -315,7 +323,6 @@ class Histogram {
   }
 
   /**
-   * @pre Undefined on an empty histogram
    * @return the largest value that we have in this histogram
    */
   double GetMaxValue() const { return maximum_; }
@@ -325,10 +332,9 @@ class Histogram {
    * @param value value to compare to max
    * @return true if value is greater than or equal to max, false otherwise
    */
-  bool IsGreaterThanOrEqualToMax(KeyType value) const { return ConvertToKey(value) >= maximum_; }
+  bool IsGreaterThanOrEqualToMaxValue(KeyType value) const { return ConvertToPoint(value) >= maximum_; }
 
   /**
-   * @pre Undefined on an empty histogram
    * @return the smallest value that we have in this histogram
    */
   double GetMinValue() const { return minimum_; }
@@ -338,7 +344,7 @@ class Histogram {
    * @param value value to compare to min
    * @return true if value is less than min, false otherwise
    */
-  bool IsLessThanMin(KeyType value) const { return ConvertToKey(value) < minimum_; }
+  bool IsLessThanMinValue(KeyType value) const { return ConvertToPoint(value) < minimum_; }
 
   /**
    * @return the total number of values that are recorded in this histogram
@@ -421,7 +427,7 @@ class Histogram {
     os << "Histogram: "
        << "total=[" << h.total_ << "] "
        << "num_bins=[" << h.bins_.size() << "]" << std::endl;
-    for (Bin b : h.bins_) {
+    for (const Bin &b : h.bins_) {
       os << "  " << b << std::endl;
     }
     return os;
@@ -544,25 +550,27 @@ class Histogram {
   }
 
   /*
-   * We need a way to convert the SQL types to and from doubles to work with the Histogram.
+   * We need a way to convert the SQL types to doubles to work with the Histogram.
    */
-  static double ConvertToKey(const decltype(execution::sql::BoolVal::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const decltype(execution::sql::BoolVal::val_) &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const decltype(execution::sql::Integer::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const decltype(execution::sql::Integer::val_) &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const int &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const int &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const decltype(execution::sql::Real::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const decltype(execution::sql::Real::val_) &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const decltype(execution::sql::DecimalVal::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const decltype(execution::sql::DecimalVal::val_) &key) {
+    return static_cast<double>(key);
+  }
 
-  static double ConvertToKey(const decltype(execution::sql::StringVal::val_) &key) { return key.Hash(); }
+  static double ConvertToPoint(const decltype(execution::sql::StringVal::val_) &key) { return key.Hash(); }
 
-  static double ConvertToKey(const decltype(execution::sql::DateVal::val_) &key) {
+  static double ConvertToPoint(const decltype(execution::sql::DateVal::val_) &key) {
     return static_cast<double>(key.ToNative());
   }
 
-  static double ConvertToKey(const decltype(execution::sql::TimestampVal::val_) &key) {
+  static double ConvertToPoint(const decltype(execution::sql::TimestampVal::val_) &key) {
     return static_cast<double>(key.ToNative());
   }
 };

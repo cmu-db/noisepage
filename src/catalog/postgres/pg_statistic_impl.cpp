@@ -153,7 +153,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
 
   std::unique_ptr<optimizer::ColumnStatsBase> column_stats;
   auto type = database_catalog->GetSchema(txn, table_oid).GetColumn(col_oid).Type();
-  column_stats = CreateColumnStats(all_cols_pr, pg_statistic_all_cols_prm_, table_oid, col_oid, type);
+  column_stats = CreateColumnStats(all_cols_pr, table_oid, col_oid, type);
 
   delete[] key_buffer;
   return column_stats;
@@ -162,7 +162,6 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
 std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
     common::ManagedPointer<transaction::TransactionContext> txn,
     common::ManagedPointer<DatabaseCatalog> database_catalog, table_oid_t table_oid) {
-  // TODO(Joe) remove duplication from delete
   const auto &oid_pri = statistic_oid_index_->GetProjectedRowInitializer();
   const auto &oid_prm = statistic_oid_index_->GetKeyOidToOffsetMap();
 
@@ -185,7 +184,6 @@ std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
                                  false);
 
     statistic_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, pr_hi, 0, &index_results);
-    // TODO(WAN): Is there an assertion that we can make here?
   }
   NOISEPAGE_ASSERT(!index_results.empty(), "Every table should have column stats");
 
@@ -197,7 +195,7 @@ std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
 
     auto col_oid = *PgStatistic::STAATTNUM.Get(all_cols_pr, pg_statistic_all_cols_prm_);
     auto type = database_catalog->GetSchema(txn, table_oid).GetColumn(col_oid).Type();
-    col_stats_list.emplace_back(CreateColumnStats(all_cols_pr, pg_statistic_all_cols_prm_, table_oid, col_oid, type));
+    col_stats_list.emplace_back(CreateColumnStats(all_cols_pr, table_oid, col_oid, type));
   }
   delete[] buffer;
   delete[] key_buffer;
@@ -205,17 +203,15 @@ std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
 }
 
 std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
-    common::ManagedPointer<storage::ProjectedRow> all_cols_pr, storage::ProjectionMap pg_statistic_all_cols_prm,
-    table_oid_t table_oid, col_oid_t col_oid, type::TypeId type) {
-  auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
-  auto non_null_rows = *PgStatistic::STA_NONNULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
+    common::ManagedPointer<storage::ProjectedRow> all_cols_pr, table_oid_t table_oid, col_oid_t col_oid,
+    type::TypeId type) {
+  auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
+  auto non_null_rows = *PgStatistic::STA_NONNULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
   double frac_null = num_rows == 0 ? 0 : static_cast<double>(num_rows - non_null_rows) / static_cast<double>(num_rows);
-  auto distinct_values = *PgStatistic::STA_DISTINCTROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
-  // TODO(Joe)
-  const auto *top_k_str = PgStatistic::STA_TOPK.Get(all_cols_pr, pg_statistic_all_cols_prm);
-  const auto *histogram_str = PgStatistic::STA_HISTOGRAM.Get(all_cols_pr, pg_statistic_all_cols_prm);
+  auto distinct_values = *PgStatistic::STA_DISTINCTROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
+  const auto *top_k_str = PgStatistic::STA_TOPK.Get(all_cols_pr, pg_statistic_all_cols_prm_);
+  const auto *histogram_str = PgStatistic::STA_HISTOGRAM.Get(all_cols_pr, pg_statistic_all_cols_prm_);
 
-  // TODO(Joe) see if there's a better way of doing this
   switch (type) {
     case type::TypeId::BOOLEAN:
       return CreateColumnStats<execution::sql::BoolVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
@@ -238,15 +234,12 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     case type::TypeId::DATE:
       return CreateColumnStats<execution::sql::DateVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
                                                         top_k_str, histogram_str, type);
-      break;
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY:
       return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
                                                           top_k_str, histogram_str, type);
-      break;
     default:
-      // TODO(Joe) fix error message
-      UNREACHABLE("Invalid type");
+      UNREACHABLE("Invalid column type");
   }
 }
 

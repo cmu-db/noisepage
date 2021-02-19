@@ -82,8 +82,9 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   for (const auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-    // TODO(Joe) fix nullptr
-    root_group->AddStats(tv_expr->GetFullName(), nullptr);
+    auto column_stats = context_->GetStatsStorage()->GetColumnStats(
+        tv_expr->GetDatabaseOid(), tv_expr->GetTableOid(), tv_expr->GetColumnOid(), context_->GetCatalogAccessor());
+    root_group->AddStats(tv_expr->GetFullName(), column_stats->Copy());
   }
 }
 
@@ -219,7 +220,6 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   }
 }
 
-// TODO(Joe) do we really need to copy these?
 void StatsCalculator::AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
                                         common::ManagedPointer<TableStats> table_stats,
                                         std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> *stats) {

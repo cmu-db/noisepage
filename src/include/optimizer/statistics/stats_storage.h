@@ -75,7 +75,18 @@ class StatsStorage {
   common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                                    catalog::CatalogAccessor *accessor);
 
-  // TODO(Joe) Comment
+  common::ManagedPointer<ColumnStatsBase> GetColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                                                         catalog::col_oid_t column_oid,
+                                                         catalog::CatalogAccessor *accessor);
+
+  /**
+   * Mark column statistic objects in the cache as having stale information. Next time someone tries to retrieve this
+   * column we will get an updated version from the catalog. Columns will get stale whenever someone runs ANALYZE on
+   * them
+   * @param database_id database oid of database containing the column
+   * @param table_id table oid of table containing the column
+   * @param col_ids column oids of columns to mark stale
+   */
   void MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                       const std::vector<catalog::col_oid_t> &col_ids);
 

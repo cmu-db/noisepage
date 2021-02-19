@@ -358,8 +358,19 @@ class EXPORT CatalogAccessor {
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
 
-  // TODO(Joe) add comments
+  /**
+   * Gets the statistics of a column from pg_statistic
+   * @param table_oid table oid of table
+   * @param col_oid column oid of column
+   * @return column statistics
+   */
   std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(table_oid_t table_oid, col_oid_t col_oid);
+
+  /**
+   * Gets the statistics of a table from pg_statistic
+   * @param table_oid table oid of table
+   * @return table statistics
+   */
   std::unique_ptr<optimizer::TableStats> GetTableStatistics(table_oid_t table_oid);
 
   /**

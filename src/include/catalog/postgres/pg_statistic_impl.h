@@ -89,21 +89,59 @@ class PgStatisticImpl {
    */
   bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid);
 
-  // TODO(Joe) comment
+  /**
+   * Retrieve the column statistic entry for a particular column from pg_statistic.
+   *
+   * @param txn                 The transaction to use
+   * @param database_catalog    A pointer to the database catalog
+   * @param table_oid           The OID of the table containing the column
+   * @param col_oid             The OID of the column to retrieve statistics for
+   * @return                    Column statistics for the column
+   */
   std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<DatabaseCatalog> database_catalog, table_oid_t table_oid, col_oid_t col_oid);
 
-  // TODO(Joe) comment
+  /**
+   * Retrieve all column statistic entries for a particular table from pg_statistic.
+   *
+   * @param txn                 The transaction to use
+   * @param database_catalog    A pointer to the database catalog
+   * @param table_oid           The OID of the table
+   * @return                    Table statistics for the table
+   */
   std::unique_ptr<optimizer::TableStats> GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
                                                             common::ManagedPointer<DatabaseCatalog> database_catalog,
                                                             table_oid_t table_oid);
 
-  // TODO(Joe) Comment include info about how parameters need to be initialized and filled blah blah
+  /**
+   * Helper method that creates a column statistics object from a projected row
+   *
+   * @pre Projected row must be initialed with row contents
+   *
+   * @param all_cols_pr     Projected row from pg_statistic table. Must already be initialized with a row's contents
+   * @param table_oid       Table oid that the column belongs to
+   * @param col_oid         Column oid of the column
+   * @param type            Type id of column
+   * @return
+   */
   std::unique_ptr<optimizer::ColumnStatsBase> CreateColumnStats(
-      common::ManagedPointer<storage::ProjectedRow> all_cols_pr, storage::ProjectionMap pg_statistic_all_cols_prm,
-      table_oid_t table_oid, col_oid_t col_oid, type::TypeId type);
+      common::ManagedPointer<storage::ProjectedRow> all_cols_pr, table_oid_t table_oid, col_oid_t col_oid,
+      type::TypeId type);
 
+  /**
+   * Helper method that creates a columns statistics object from supplied information
+   * @tparam T                  SQL type of the column
+   * @param table_oid           Table oid that the column belongs to
+   * @param col_oid             Column oid of the column
+   * @param num_rows            Number of rows that the column has
+   * @param frac_null           Fractions of values that are null in the column
+   * @param distinct_values     Number of distinct values in the collum
+   * @param top_k_str           Serialized version of TopKElements object or nullptr
+   * @param histogram_str       Serialized version of Histogram object or nullptr
+   * @param type                Type id of column
+   * @return                    Column statistics
+   */
   template <typename T>
   std::unique_ptr<optimizer::ColumnStatsBase> CreateColumnStats(
       table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, double frac_null, size_t distinct_values,

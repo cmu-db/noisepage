@@ -9,7 +9,6 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
                                            const ValueCondition &condition) {
   auto column_stats_base = table_stats->GetColumnStats(condition.GetColumnID());
   auto type = column_stats_base->GetTypeId();
-  // TODO(Joe) find a better way
 
   switch (type) {
     case type::TypeId::BOOLEAN: {
@@ -52,8 +51,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
       return ComputeSelectivity<T>(column_stats, condition);
     }
     default:
-      // TODO(Joe) fix error message
-      UNREACHABLE("Invalid type");
+      UNREACHABLE("Invalid column type");
   }
 }
 
@@ -101,8 +99,8 @@ double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<ColumnStats<T>>
   // Use histogram to estimate selectivity
   auto histogram = column_stats->GetHistogram();
 
-  if (histogram->IsLessThanMin(value)) return 0;
-  if (histogram->IsGreaterThanOrEqualToMax(value)) return 1.0 - column_stats->GetFracNull();
+  if (histogram->IsLessThanMinValue(value)) return 0;
+  if (histogram->IsGreaterThanOrEqualToMaxValue(value)) return 1.0 - column_stats->GetFracNull();
   double res =
       static_cast<double>(histogram->EstimateItemCount(value)) / static_cast<double>(column_stats->GetNumRows());
   // There is a possibility that histogram's <= estimate is lesser than it is supposed to be.

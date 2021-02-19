@@ -78,7 +78,8 @@ T ConstantValueExpression::Peek() const {
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Decimal32> || std::is_same_v<T, execution::sql::Decimal64> ||
-                std::is_same_v<T, execution::sql::Decimal128>) {
+                std::is_same_v<T, execution::sql::Decimal128>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a
+                                                                  // false positive
     return static_cast<T>(GetDecimalVal().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr

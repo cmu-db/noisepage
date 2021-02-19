@@ -38,7 +38,9 @@ class TopKElements {
   static constexpr uint64_t DEFAULT_WIDTH = 64;
 
  public:
-  // TODO(Joe) comment
+  /**
+   * TopKElements Constructor using DEFAULT_K for number of keys and DEFAULT_WIDTH for the sketch width
+   */
   TopKElements() : numk_{DEFAULT_K}, sketch_(DEFAULT_WIDTH) { entries_.reserve(numk_); }
 
   /**
@@ -48,7 +50,10 @@ class TopKElements {
    */
   explicit TopKElements(size_t k, uint64_t width) : numk_{k}, sketch_(width) { entries_.reserve(numk_); }
 
-  // TODO(Joe) comment
+  /**
+   * Copy constructor
+   * @param other TopKElements to copy
+   */
   TopKElements(const TopKElements &other) : entries_(other.entries_), sketch_(other.sketch_) {}
 
   /**
