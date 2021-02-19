@@ -34,8 +34,13 @@ class TopKElements {
    * The internal type that we use to keep track of the counts for keys.
    */
   using KeyCountPair = std::pair<KeyType, uint32_t>;
+  static constexpr size_t DEFAULT_K = 16;
+  static constexpr uint64_t DEFAULT_WIDTH = 64;
 
  public:
+  // TODO(Joe) comment
+  TopKElements() : numk_{DEFAULT_K}, sketch_(DEFAULT_WIDTH) { entries_.reserve(numk_); }
+
   /**
    * TopKElements Constructor
    * @param k the number of keys to keep track of in the top-k list

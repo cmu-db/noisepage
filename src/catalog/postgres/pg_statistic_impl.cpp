@@ -166,43 +166,41 @@ std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
   const auto &oid_pri = statistic_oid_index_->GetProjectedRowInitializer();
   const auto &oid_prm = statistic_oid_index_->GetKeyOidToOffsetMap();
 
+  byte *const buffer = common::AllocationUtil::AllocateAligned(pg_statistic_all_cols_pri_.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
-  byte *const key_buffer_2 = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
 
   // Look for the column statistic in pg_statistic_index.
   std::vector<storage::TupleSlot> index_results;
   {
-    auto *pr_lo = oid_pri.InitializeRow(key_buffer);
-    auto *pr_hi = oid_pri.InitializeRow(key_buffer_2);
+    auto *pr = oid_pri.InitializeRow(buffer);
+    auto *pr_hi = oid_pri.InitializeRow(key_buffer);
 
     // Low key (class, min col_oid_t)
-    pr_lo->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
-    pr_lo->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::min()),
-                                 false);
+    pr->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
+    pr->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::min()), false);
 
     // High key (class + 1, max col_oid_t)
     pr_hi->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid + 1, false);
     pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::max()),
                                  false);
 
-    statistic_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
+    statistic_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, pr_hi, 0, &index_results);
     // TODO(WAN): Is there an assertion that we can make here?
   }
   NOISEPAGE_ASSERT(!index_results.empty(), "Every table should have column stats");
 
   std::vector<std::unique_ptr<optimizer::ColumnStatsBase>> col_stats_list;
 
-  auto all_cols_pr = common::ManagedPointer(pg_statistic_all_cols_pri_.InitializeRow(key_buffer));
+  auto all_cols_pr = common::ManagedPointer(pg_statistic_all_cols_pri_.InitializeRow(buffer));
   for (const auto &slot : index_results) {
     statistics_->Select(txn, slot, all_cols_pr.Get());
 
     auto col_oid = *PgStatistic::STAATTNUM.Get(all_cols_pr, pg_statistic_all_cols_prm_);
     auto type = database_catalog->GetSchema(txn, table_oid).GetColumn(col_oid).Type();
     col_stats_list.emplace_back(CreateColumnStats(all_cols_pr, pg_statistic_all_cols_prm_, table_oid, col_oid, type));
-
-    delete[] key_buffer;
-    delete[] key_buffer_2;
   }
+  delete[] buffer;
+  delete[] key_buffer;
   return std::make_unique<optimizer::TableStats>(db_oid_, table_oid, &col_stats_list);
 }
 
@@ -211,10 +209,11 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     table_oid_t table_oid, col_oid_t col_oid, type::TypeId type) {
   auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
   auto non_null_rows = *PgStatistic::STA_NONNULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
-  double frac_null = static_cast<double>(num_rows - non_null_rows) / static_cast<double>(num_rows);
+  double frac_null = num_rows == 0 ? 0 : static_cast<double>(num_rows - non_null_rows) / static_cast<double>(num_rows);
   auto distinct_values = *PgStatistic::STA_DISTINCTROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
-  auto top_k_str = *PgStatistic::STA_TOPK.Get(all_cols_pr, pg_statistic_all_cols_prm);
-  auto histogram_str = *PgStatistic::STA_HISTOGRAM.Get(all_cols_pr, pg_statistic_all_cols_prm);
+  // TODO(Joe)
+  const auto *top_k_str = PgStatistic::STA_TOPK.Get(all_cols_pr, pg_statistic_all_cols_prm);
+  const auto *histogram_str = PgStatistic::STA_HISTOGRAM.Get(all_cols_pr, pg_statistic_all_cols_prm);
 
   // TODO(Joe) see if there's a better way of doing this
   switch (type) {
@@ -254,10 +253,14 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
 template <typename T>
 std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, double frac_null, size_t distinct_values,
-    const storage::VarlenEntry &top_k_str, const storage::VarlenEntry &histogram_str, type::TypeId type) {
+    const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, type::TypeId type) {
   using CppType = decltype(T::val_);
-  auto top_k = optimizer::TopKElements<CppType>::Deserialize(top_k_str.Content(), top_k_str.Size());
-  auto histogram = optimizer::Histogram<CppType>::Deserialize(histogram_str.Content(), histogram_str.Size());
+  auto top_k = top_k_str != nullptr
+                   ? optimizer::TopKElements<CppType>::Deserialize(top_k_str->Content(), top_k_str->Size())
+                   : optimizer::TopKElements<CppType>();
+  auto histogram = histogram_str != nullptr
+                       ? optimizer::Histogram<CppType>::Deserialize(histogram_str->Content(), histogram_str->Size())
+                       : optimizer::Histogram<CppType>();
   return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null, distinct_values,
                                                      std::make_unique<optimizer::TopKElements<CppType>>(top_k),
                                                      std::make_unique<optimizer::Histogram<CppType>>(histogram), type);

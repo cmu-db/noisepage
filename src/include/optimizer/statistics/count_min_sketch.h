@@ -116,7 +116,7 @@ class CountMinSketch {
    * @param key the key to get the count for.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const KeyType &key) {
+  uint64_t EstimateItemCount(const KeyType &key) const {
     auto normalized_key = NormalizeKey(key);
     return EstimateItemCount(normalized_key, sizeof(normalized_key));
   }
@@ -267,7 +267,7 @@ class CountMinSketch {
    * @param key_size the length of the key's data.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const NormalizedKeyType &key, const size_t key_size) {
+  uint64_t EstimateItemCount(const NormalizedKeyType &key, const size_t key_size) const {
     return sketch_.get(reinterpret_cast<const void *>(&key), key_size);
   }
 

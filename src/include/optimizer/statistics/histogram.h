@@ -35,7 +35,11 @@ namespace noisepage::optimizer {
  */
 template <typename KeyType>
 class Histogram {
+  static constexpr uint8_t DEFAULT_MAX_BINS = 64;
+
  public:
+  // TODO(Joe) Comment
+  Histogram() : max_bins_(DEFAULT_MAX_BINS), bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
   /**
    * Constructor.
    * @param max_bins maximum number of bins in histogram.

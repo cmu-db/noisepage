@@ -373,14 +373,11 @@ class TopKAggregate {
   static_assert(std::is_base_of_v<Val, T>, "Template type must subclass value");
   using CppType = decltype(T::val_);
 
-  static constexpr size_t K = 16;
-  static constexpr uint64_t WIDTH = 64;
-
  public:
   /**
    * Constructor.
    */
-  TopKAggregate() : top_k_(K, WIDTH) {}
+  TopKAggregate() : top_k_() {}
 
   /**
    * This class cannot be copied or moved.
@@ -470,13 +467,11 @@ class HistogramAggregate {
   static_assert(std::is_base_of_v<Val, T>, "Template type must subclass value");
   using CppType = decltype(T::val_);
 
-  static constexpr uint8_t MAX_BINS = 64;
-
  public:
   /**
    * Constructor.
    */
-  HistogramAggregate() : histogram_(MAX_BINS) {}
+  HistogramAggregate() : histogram_() {}
 
   /**
    * This class cannot be copied or moved.
