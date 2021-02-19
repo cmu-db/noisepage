@@ -11,6 +11,24 @@ namespace noisepage::common {
 std::string GetProjectRootPath();
 
 /**
+ * Determine the absolute path to the build directory for the current build (e.g. noisepage/build/)
+ * @return The absolute path to the build directory, as a string.
+ */
+std::string GetBuildRootPath();
+
+/**
+ * Determine the absolute path to the build artifact identified by `name`.
+ *
+ * By using this function, you are expressing the assumption that the
+ * artifact identified by `name` is located in the binary directory for
+ * the current build; that is, `name` is located at `build/bin/<name>`.
+ *
+ * @param name The name of the artifact in question
+ * @return The absolute path to the binary artifact, as a string.
+ */
+std::string GetBinaryArtifactPath(std::string_view name);
+
+/**
  * Determine the absolute path to the file with the given name by performing a
  * recursive directory search from the specified root path.
  * @param filename The name of the target file

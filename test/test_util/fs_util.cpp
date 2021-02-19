@@ -11,6 +11,10 @@
 #error "NOISEPAGE_PROJECT_ROOT is not defined!"
 #endif
 
+#ifndef NOISEPAGE_BUILD_ROOT
+#error "NOISEPAGE_BUILD_ROOT is not defined!"
+#endif
+
 // Necessary grossness for stringizing macro expansion.
 #define AS_STRING(x) #x
 #define AS_EXPANDED_STRING(x) AS_STRING(x)
@@ -22,6 +26,18 @@ std::string GetProjectRootPath() {
   // define this function agnostic of the particular name of the root
   // directory as it exists on any one particular system.
   return AS_EXPANDED_STRING(NOISEPAGE_PROJECT_ROOT);
+}
+
+std::string GetBuildRootPath() {
+  // As above, relying on the path to be injected by the preprocessor.
+  return AS_EXPANDED_STRING(NOISEPAGE_BUILD_ROOT);
+}
+
+std::string GetBinaryArtifactPath(std::string_view name) {
+  auto path = std::string{AS_EXPANDED_STRING(NOISEPAGE_BUILD_ROOT)};
+  path.append("/bin/");
+  path.append(name);
+  return path;
 }
 
 std::string FindFileFrom(std::string_view filename, std::string_view root_path) {
