@@ -25,6 +25,10 @@ namespace noisepage {
 class RecoveryBenchmark;
 }  // namespace noisepage
 
+namespace noisepage::replication {
+class ReplicationManager;
+}  // namespace noisepage::replication
+
 namespace noisepage::transaction {
 class TransactionManager;
 }  // namespace noisepage::transaction
@@ -76,6 +80,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param catalog system catalog to interface with sql tables
    * @param txn_manager txn manager to use for re-executing recovered transactions
    * @param deferred_action_manager manager to use for deferred deletes
+   * @param replication_manager replication manager to acknowledge applied changes
    * @param thread_registry thread registry to register tasks
    * @param store block store used for SQLTable creation during recovery
    */
@@ -83,6 +88,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            const common::ManagedPointer<catalog::Catalog> catalog,
                            const common::ManagedPointer<transaction::TransactionManager> txn_manager,
                            const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                           const common::ManagedPointer<replication::ReplicationManager> replication_manager,
                            const common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry,
                            const common::ManagedPointer<BlockStore> store)
       : DedicatedThreadOwner(thread_registry),
@@ -90,6 +96,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog_(catalog),
         txn_manager_(txn_manager),
         deferred_action_manager_(deferred_action_manager),
+        replication_manager_(replication_manager),
         block_store_(store),
         recovered_txns_(0) {
     // Initialize catalog_table_schemas_ map
@@ -132,6 +139,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // DeferredActions manager to defer record deletes
   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+
+  // Replication manager to acknowledge when commits are finished.
+  const common::ManagedPointer<replication::ReplicationManager> replication_manager_;
 
   // TODO(Gus): The recovery manager should be passed a specific block store for table construction. Block store
   // management/assignment is probably a larger system issue that needs to be adddressed. Block store, used to create

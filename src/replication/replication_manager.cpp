@@ -13,7 +13,11 @@
 
 namespace {
 
-bool CompareJsonBuffer(nlohmann::json left, nlohmann::json right) { return left.at("buf_id") > right.at("buf_id"); }
+bool CompareMessages(const noisepage::messenger::ZmqMessage &left, const noisepage::messenger::ZmqMessage &right) {
+  nlohmann::json left_json = nlohmann::json::parse(left.GetMessage());
+  nlohmann::json right_json = nlohmann::json::parse(right.GetMessage());
+  return left_json.at("buf_id") > right_json.at("buf_id");
+}
 
 }  // namespace
 
@@ -33,7 +37,7 @@ ReplicationManager::ReplicationManager(
       identity_(network_identity),
       port_(port),
       provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1))),
-      received_buffer_queue_(CompareJsonBuffer),
+      received_message_queue_(CompareMessages),
       empty_buffer_queue_(empty_buffer_queue) {
   // TODO(WAN): provider_ arguments
   auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
@@ -180,45 +184,44 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
         nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
         // TODO(WAN): Sanity-check the received message.
 
+        uint64_t source_callback_id = msg.GetSourceCallbackId();
         uint64_t msg_id = message.at("buf_id");
         REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), msg_id));
 
         // Check if the message needs to be buffered.
-        if (msg_id > last_record_applied_id_ + 1) {
+        if (msg_id > last_record_received_id_ + 1) {
           // The message should be buffered if there are gaps in between the last seen buffer.
-          received_buffer_queue_.push(message);
+          received_message_queue_.push(msg);
         } else {
           // Otherwise, pull out the log record from the message and hand them to the replication log provider.
+          // TODO(WAN): And now we parse the same JSON repeatedly.. we could parse once and store <uint64,json> instead?
           std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
-          provider_->AddBufferFromMessage(content);
-          last_record_applied_id_ = msg_id;
+          provider_->AddBufferFromMessage(source_callback_id, content);
+          last_record_received_id_ = msg_id;
           // This may unleash the rest of the buffered messages.
-          while (!received_buffer_queue_.empty()) {
-            message = received_buffer_queue_.top();
+          while (!received_message_queue_.empty()) {
+            auto &temporary = received_message_queue_.top();
+            source_callback_id = temporary.GetSourceCallbackId();
+            message = nlohmann::json::parse(temporary.GetMessage());
             msg_id = message.at("buf_id");
             // Stop once you're missing a buffer.
-            if (msg_id > last_record_applied_id_ + 1) {
+            if (msg_id > last_record_received_id_ + 1) {
               break;
             }
             // Otherwise, send the top buffer's contents along.
-            received_buffer_queue_.pop();
-            NOISEPAGE_ASSERT(msg_id == last_record_applied_id_ + 1, "Duplicate buffer? Old buffer?");
+            received_message_queue_.pop();
+            NOISEPAGE_ASSERT(msg_id == last_record_received_id_ + 1, "Duplicate buffer? Old buffer?");
             content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
-            provider_->AddBufferFromMessage(content);
-            last_record_applied_id_ = msg_id;
+            provider_->AddBufferFromMessage(source_callback_id, content);
+            last_record_received_id_ = msg_id;
           }
         }
       }
       // TODO(WAN): Is it actually necessary to buffer the message first? A crashed replica is indistinguishable from
       //  a replica that just came up right? If buffering is not necessary, move this up so that replying is faster.
       //  We want to reply as quickly as possible -- the sender may be waiting for our confirmation.
-      // Acknowledge receipt of the buffer to the sender.
+      // TODO(WAN): To support async, acknowledge receipt of the buffer to the sender here.
       // TODO(WAN): Add a size and checksum to message.
-      {
-        common::json j;
-        j["callback_id"] = msg.GetSourceCallbackId();
-        ReplicaSend(std::string(msg.GetRoutingId()), MessageType::ACK, j.dump(), false);
-      }
       break;
     }
     default:

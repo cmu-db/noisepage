@@ -17,6 +17,12 @@ namespace noisepage::storage {
  */
 class AbstractLogProvider {
  public:
+  /** The type of log provider that this is. */
+  enum class LogProviderType : uint8_t { RESERVED = 0, DISK, REPLICATION };
+
+  /** @return The type of this log provider. */
+  virtual LogProviderType GetType() const = 0;
+
   /**
    * Provide next available log record
    * @warning Can be a blocking call if provider is waiting to receive more logs

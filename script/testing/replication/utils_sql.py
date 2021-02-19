@@ -81,7 +81,7 @@ def sql_check(node, sql, expected_result):
 
 def replica_sync(primary, replicas, quiet=False):
     """
-    Wait until the specified node has applied the desired last record ID.
+    Wait until the specified node has applied the last record ID on the primary.
 
     Parameters
     ----------

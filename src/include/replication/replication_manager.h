@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "common/container/concurrent_blocking_queue.h"
-#include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
@@ -129,9 +128,9 @@ class ReplicationManager {
 
   /**
    * @return    On the primary, returns the last record ID that was successfully transmitted to all replicas.
-   *            On a replica, returns the last record ID that was successfully applied.
+   *            On a replica, returns the last record ID that was successfully received.
    */
-  uint64_t GetLastRecordId() const { return IsPrimary() ? next_buffer_sent_id_ - 1 : last_record_applied_id_; }
+  uint64_t GetLastRecordId() const { return IsPrimary() ? next_buffer_sent_id_ - 1 : last_record_received_id_; }
 
   /** Enable replication. */
   void EnableReplication() { replication_enabled_ = true; }
@@ -188,12 +187,13 @@ class ReplicationManager {
   // TODO(WAN): I think it is better to use retention policies instead of enabling/disabling replication.
   bool replication_enabled_ = false;  ///< True if replication is currently enabled and false otherwise.
 
-  uint64_t next_buffer_sent_id_ = 1;     ///< The ID of the next buffer to sent.
-  uint64_t last_record_applied_id_ = 0;  ///< The ID of the last record to be applied.
+  uint64_t next_buffer_sent_id_ = 1;      ///< The ID of the next buffer to sent.
+  uint64_t last_record_received_id_ = 0;  ///< The ID of the last record to be received.
 
-  /** The received buffers are queued up until the "next" received buffer is the right one. */
-  std::priority_queue<nlohmann::json, std::vector<nlohmann::json>, std::function<bool(nlohmann::json, nlohmann::json)>>
-      received_buffer_queue_;
+  /** The received messages are queued up until the "next" received message is the right one. */
+  std::priority_queue<messenger::ZmqMessage, std::vector<messenger::ZmqMessage>,
+                      std::function<bool(messenger::ZmqMessage, messenger::ZmqMessage)>>
+      received_message_queue_;
 
   /** Once used, buffers are returned to a central empty buffer queue. */
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;

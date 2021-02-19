@@ -17,9 +17,12 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_registry.h"
+#include "common/json.h"
+#include "replication/replication_manager.h"
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/index/index_metadata.h"
+#include "storage/recovery/replication_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -45,6 +48,12 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
+    if (replication_manager_ != DISABLED &&
+        log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
+      auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
+      if (!rep_log_provider->NonBlockingHasMoreRecords()) break;
+    }
+
     auto pair = log_provider->GetNextRecord();
     auto *log_record = pair.first;
 
@@ -94,6 +103,21 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
       DeferRecordDeletes(txn.first, true);
     }
     buffered_changes_map_.clear();
+  }
+
+  if (replication_manager_ != DISABLED &&
+      log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
+    auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
+    rep_log_provider->LatchPrimaryAckables();
+    std::vector<uint64_t> &ackables = rep_log_provider->GetPrimaryAckables();
+    std::vector<uint64_t> ackables_copy = ackables;
+    ackables.clear();
+    rep_log_provider->UnlatchPrimaryAckables();
+    for (const uint64_t primary_cb_id : ackables_copy) {
+      common::json j;
+      j["callback_id"] = primary_cb_id;
+      replication_manager_->ReplicaSend("primary", replication::ReplicationManager::MessageType::ACK, j.dump(), false);
+    }
   }
 }
 
