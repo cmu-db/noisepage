@@ -112,7 +112,7 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 
 void InsertTranslator::PerformInsertWork(
     WorkContext *context, FunctionBuilder *function,
-    std::function<void(WorkContext *, FunctionBuilder *)> generate_set_table_pr) const {
+    const std::function<void(WorkContext *, FunctionBuilder *)> &generate_set_table_pr) const {
   // var insert_pr = @getTablePR(&inserter)
   GetInsertPR(function);
   // For each attribute, @prSet(insert_pr, ...)
