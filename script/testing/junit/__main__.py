@@ -60,7 +60,8 @@ def run_tests_tracefiles(test_server):
 
         return errcode
 
-    return [run_tracefile(test_server, item) for item in os.listdir(noise_trace_dir) if item.endswith(TESTFILES_SUFFIX)]
+    return [run_tracefile(test_server, item)
+            for item in sorted(os.listdir(noise_trace_dir)) if item.endswith(TESTFILES_SUFFIX)]
 
 
 if __name__ == "__main__":
