@@ -1,6 +1,5 @@
 import sys
 import traceback
-from typing import List
 
 from . import constants
 from .common import print_file, run_command, update_mem_info
@@ -104,7 +103,8 @@ class TestServer:
 
         ret_val = constants.ErrorCode.ERROR
         try:
-            with open(test_case.test_output_file, "a+") as test_output_fd:
+            LOG.info(f"Logging output (overwrite) to: {test_case.test_output_file}")
+            with open(test_case.test_output_file, "w") as test_output_fd:
                 ret_val, _, _ = run_command(test_case.test_command,
                                             stdout=test_output_fd,
                                             stderr=test_output_fd,
@@ -114,7 +114,6 @@ class TestServer:
                 collect_mem_thread.stop()
 
             test_case.run_post_test()
-            self.db_instance.delete_wal()
 
         return ret_val
 
@@ -139,7 +138,9 @@ class TestServer:
             has_error = any([x is None or x != constants.ErrorCode.SUCCESS
                              for x in exit_codes.values()])
             result = constants.ErrorCode.ERROR if has_error else constants.ErrorCode.SUCCESS
-        except:
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
+        except Exception:
             traceback.print_exc(file=sys.stdout)
         finally:
             self.run_post_suite()
@@ -179,14 +180,18 @@ class TestServer:
                         else:
                             print_file(test_case.test_output_file)
                         exit_codes[test_case] = exit_code
-                    except:
+                    except KeyboardInterrupt:
+                        raise KeyboardInterrupt
+                    except Exception:
                         print_file(test_case.test_output_file)
                         if not self.continue_on_error:
                             raise
                         else:
                             traceback.print_exc(file=sys.stdout)
                             exit_codes[test_case] = constants.ErrorCode.ERROR
-            except:
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+            except Exception:
                 traceback.print_exc(file=sys.stdout)
                 exit_codes[test_case] = constants.ErrorCode.ERROR
                 # Terminate early in case the DBMS was unable to start.
@@ -196,5 +201,6 @@ class TestServer:
         # persist create/load data.
         if dbms_started:
             self.db_instance.stop_db(self.is_dry_run)
+            self.db_instance.delete_wal()
 
         return exit_codes
