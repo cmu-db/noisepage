@@ -113,7 +113,6 @@ class TestServer:
                 collect_mem_thread.stop()
 
             test_case.run_post_test()
-            self.db_instance.delete_wal()
 
         return ret_val
 
@@ -201,5 +200,6 @@ class TestServer:
         # persist create/load data.
         if dbms_started:
             self.db_instance.stop_db(self.is_dry_run)
+            self.db_instance.delete_wal()
 
         return exit_codes
