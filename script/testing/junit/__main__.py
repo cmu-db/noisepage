@@ -99,7 +99,7 @@ if __name__ == "__main__":
         unset_env_vars()
 
     # Compute the final exit code.
-    final_code = 0
+    final_code = 0 if len(errcodes) > 0 else 1
     for c in errcodes:
         final_code = final_code or c
 
