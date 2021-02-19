@@ -31,7 +31,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    /*case type::TypeId::DECIMAL: {
+    case type::TypeId::DECIMAL: {
       using T = execution::sql::DecimalVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
@@ -51,7 +51,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> ta
       using T = execution::sql::StringVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
-    }*/
+    }
     default:
       // TODO(Joe) fix error message
       UNREACHABLE("Invalid type");
@@ -102,8 +102,8 @@ double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<ColumnStats<T>>
   // Use histogram to estimate selectivity
   auto histogram = column_stats->GetHistogram();
 
-  if (value < histogram->GetMinValue()) return 0;
-  if (value >= histogram->GetMaxValue()) return 1.0 - column_stats->GetFracNull();
+  if (histogram->IsLessThanMin(value)) return 0;
+  if (histogram->IsGreaterThanOrEqualToMax(value)) return 1.0 - column_stats->GetFracNull();
   double res =
       static_cast<double>(histogram->EstimateItemCount(value)) / static_cast<double>(column_stats->GetNumRows());
   // There is a possibility that histogram's <= estimate is lesser than it is supposed to be.

@@ -46,12 +46,6 @@ class TopKElements {
   // TODO(Joe) comment
   TopKElements(const TopKElements &other) : entries_(other.entries_), sketch_(other.sketch_) {}
 
-  /*// TODO(Joe) comment
-  TopKElements &operator=(const TopKElements &other) {
-    entries_ = other.entries_;
-    *sketch_ = *other.sketch_;
-  }*/
-
   /**
    * Increase the count for the given key by the specified delta.
    * @param key the key to target
@@ -192,7 +186,7 @@ class TopKElements {
    * @param key key the key to get the count for.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const KeyType &key) {
+  uint64_t EstimateItemCount(const KeyType &key) const {
     // If the key is in our top-k entries list, then
     // we'll give them that value.
     auto entry = entries_.find(key);
@@ -247,7 +241,7 @@ class TopKElements {
    * @param top_k_elements Top K Elements to merge with this
    */
   void Merge(const TopKElements<KeyType> &top_k_elements) {
-    sketch_->Merge(*(top_k_elements.sketch_));
+    sketch_.Merge(top_k_elements.sketch_);
 
     for (auto &[key, count] : top_k_elements.entries_) {
       Increment(key, count);
@@ -259,7 +253,7 @@ class TopKElements {
    */
   void Clear() {
     entries_.clear();
-    sketch_->Clear();
+    sketch_.Clear();
     ComputeNewMinKey();
   }
 
@@ -273,7 +267,7 @@ class TopKElements {
     j["entries"] = nlohmann::json(entries_);
     j["min_key"] = min_key_;
     j["min_count"] = min_count_;
-    j["sketch"] = sketch_->ToJson();
+    j["sketch"] = sketch_.ToJson();
     return j;
   }
 
@@ -289,7 +283,7 @@ class TopKElements {
     top_k_elements.entries_ = j.at("entries").get<std::unordered_map<KeyType, int64_t>>();
     top_k_elements.min_key_ = j.at("min_key").get<KeyType>();
     top_k_elements.min_count_ = j.at("min_count").get<uint64_t>();
-    *(top_k_elements.sketch_) = CountMinSketch<KeyType>::FromJson(j.at("sketch"));
+    top_k_elements.sketch_ = CountMinSketch<KeyType>::FromJson(j.at("sketch"));
     return top_k_elements;
   }
 

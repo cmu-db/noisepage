@@ -17,8 +17,8 @@ common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db
     auto table_stat = common::ManagedPointer(table_it->second);
 
     // Update any stale columns
-    for(auto column_stat : table_stat->GetColumnStats()) {
-      if(column_stat->IsStale()) {
+    for (auto column_stat : table_stat->GetColumnStats()) {
+      if (column_stat->IsStale()) {
         auto col_oid = column_stat->GetColumnID();
         table_stat->RemoveColumnStats(col_oid);
         auto new_column_stat = accessor->GetColumnStatistics(table_id, col_oid);
@@ -31,7 +31,17 @@ common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db
 
   InsertTableStats(database_id, table_id, accessor->GetTableStatistics(table_id));
 
-  return common::ManagedPointer<TableStats>(table_stats_storage_.at({database_id, table_id}));
+  return common::ManagedPointer<TableStats>(table_stats_storage_.at(stats_storage_key));
+}
+
+void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                                  const std::vector<catalog::col_oid_t> &col_ids) {
+  StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
+  NOISEPAGE_ASSERT(table_stats_storage_.count(stats_storage_key) != 0,
+                   "There is no TableStats object with the given oids");
+  for (const auto &col_id : col_ids) {
+    table_stats_storage_.at(stats_storage_key)->GetColumnStats(col_id)->MarkStale();
+  }
 }
 
 void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,

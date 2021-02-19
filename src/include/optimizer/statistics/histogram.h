@@ -25,6 +25,13 @@ namespace noisepage::optimizer {
  *    A Streaming Parallel Decision Tree Algorithm
  *    http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf
  * Specifically Algorithm 1, 3, and 4.
+ *
+ * Histogram supports any key type that can be easily converted into a double. However in order to get meaningful
+ * results from the histogram the ordering of the keys should be perserved in this conversion. So for example if
+ * key1 > key2 then ConvertToKey(key1) > ConvertToKey(key2) where ConvertToKey(k) converts k to a double.
+ *
+ * Histogram currently supports strings by hashing them, but since hashing doesn't perserve lexographical ordering it's
+ * pretty much useless
  */
 template <typename KeyType>
 class Histogram {
@@ -42,18 +49,7 @@ class Histogram {
         bins_(other.bins_),
         total_(other.total_),
         minimum_(other.minimum_),
-        minimum_key_(other.minimum_key_),
-        maximum_(other.maximum_),
-        maximum_key_(other.maximum_key_) {}
-
-  /*  // TODO(Joe) comment
-    Histogram &operator=(const Histogram &other) {
-      max_bins_ = other.max_bins_;
-      bins_ = other.bins_;
-      total_ = other.total_;
-      minimum_ = other.minimum_;
-      maximum_ = other.maximum_;
-    }*/
+        maximum_(other.maximum_) {}
 
   /**
    * Internal representation of a point/count pair in the histogram.
@@ -69,12 +65,6 @@ class Histogram {
 
     // TODO(Joe) comment
     Bin(const Bin &other) : point_(other.point_), count_(other.count_) {}
-
-    /*    // TODO(Joe) comment
-        Bin &operator=(const Bin &other) {
-          point_ = other.point_;
-          count_ = other.count_;
-        }*/
 
     /**
      * Merge the count from the given bin into this bin.
@@ -220,7 +210,7 @@ class Histogram {
   void Increment(const KeyType &key) {
     auto point = ConvertToKey(key);
     Bin bin{point, 1};
-    InsertBin(bin, key);
+    InsertBin(bin);
     if (bins_.size() > max_bins_) {
       MergeTwoBinsWithMinGap();
     }
@@ -232,17 +222,19 @@ class Histogram {
    * @param point the value point to estimate
    * @return the estimate of the # of points
    */
-  double EstimateItemCount(double point) {
+  double EstimateItemCount(KeyType point) {
+    double point_key = ConvertToKey(point);
+
     if (bins_.empty()) return 0.0;
 
-    if (point >= bins_.back().GetPoint()) {
+    if (point_key >= bins_.back().GetPoint()) {
       return total_;
     }
-    if (point < bins_.front().GetPoint()) {
+    if (point_key < bins_.front().GetPoint()) {
       return 0.0;
     }
 
-    Bin bin{point, 1};
+    Bin bin{point_key, 1};
     int i = BinarySearch(bins_, 0, static_cast<int>(bins_.size()) - 1, bin);
     if (i < 0) {
       // -1 because we want index to be element less than b
@@ -252,9 +244,9 @@ class Histogram {
     double pi, pi1, mi, mi1;
     std::tie(pi, pi1, mi, mi1) = GetInterval(bins_, i);
 
-    double mb = mi + (mi1 - mi) / (pi1 - pi) * (point - pi);
+    double mb = mi + (mi1 - mi) / (pi1 - pi) * (point_key - pi);
 
-    double s = ((mi + mb) / 2.0) * ((point - pi) / (pi1 - pi));
+    double s = ((mi + mb) / 2.0) * ((point_key - pi) / (pi1 - pi));
 
     for (int j = 0; j < i; j++) {
       s += bins_[j].GetCount();
@@ -322,13 +314,27 @@ class Histogram {
    * @pre Undefined on an empty histogram
    * @return the largest value that we have in this histogram
    */
-  KeyType GetMaxValue() const { return maximum_key_; }
+  double GetMaxValue() const { return maximum_; }
+
+  /**
+   * Compares a value to the max value in the histogram
+   * @param value value to compare to max
+   * @return true if value is greater than or equal to max, false otherwise
+   */
+  bool IsGreaterThanOrEqualToMax(KeyType value) const { return ConvertToKey(value) >= maximum_; }
 
   /**
    * @pre Undefined on an empty histogram
    * @return the smallest value that we have in this histogram
    */
-  KeyType GetMinValue() const { return minimum_key_; }
+  double GetMinValue() const { return minimum_; }
+
+  /**
+   * Compares a value to the min value in the histogram
+   * @param value value to compare to min
+   * @return true if value is less than min, false otherwise
+   */
+  bool IsLessThanMin(KeyType value) const { return ConvertToKey(value) < minimum_; }
 
   /**
    * @return the total number of values that are recorded in this histogram
@@ -439,19 +445,9 @@ class Histogram {
   double minimum_;
 
   /**
-   * The key corresponding to the minimum value
-   */
-  KeyType minimum_key_;
-
-  /**
    * The largest value that we have in this histogram
    */
   double maximum_;
-
-  /**
-   * The key corresponding to the maximum value
-   */
-  KeyType maximum_key_;
 
   /**
    * Insert a new bin into our histogram. We use our own binary search
@@ -459,15 +455,13 @@ class Histogram {
    * This also updates our min/max boundaries.
    * @param bin the bin to insert into the histogram.
    */
-  void InsertBin(const Bin &bin, KeyType key) {
+  void InsertBin(const Bin &bin) {
     total_ += bin.GetCount();
     if (bin.GetPoint() < minimum_) {
       minimum_ = bin.GetPoint();
-      minimum_key_ = key;
     }
     if (bin.GetPoint() > maximum_) {
       maximum_ = bin.GetPoint();
-      maximum_key_ = key;
     }
 
     int index = BinarySearch(bins_, 0, static_cast<int>(bins_.size()) - 1, bin);
@@ -546,11 +540,13 @@ class Histogram {
   }
 
   /*
-   * We need a way to convert the SQL types to doubles to work with the Histogram.
+   * We need a way to convert the SQL types to and from doubles to work with the Histogram.
    */
   static double ConvertToKey(const decltype(execution::sql::BoolVal::val_) &key) { return static_cast<double>(key); }
 
   static double ConvertToKey(const decltype(execution::sql::Integer::val_) &key) { return static_cast<double>(key); }
+
+  static double ConvertToKey(const int &key) { return static_cast<double>(key); }
 
   static double ConvertToKey(const decltype(execution::sql::Real::val_) &key) { return static_cast<double>(key); }
 
@@ -565,8 +561,6 @@ class Histogram {
   static double ConvertToKey(const decltype(execution::sql::TimestampVal::val_) &key) {
     return static_cast<double>(key.ToNative());
   }
-
-  static double ConvertToKey(const int &key) { return static_cast<double>(key); }
 };
 
 }  // namespace noisepage::optimizer

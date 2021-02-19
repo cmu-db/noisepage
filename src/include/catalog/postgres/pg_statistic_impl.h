@@ -89,13 +89,25 @@ class PgStatisticImpl {
    */
   bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid);
 
+  // TODO(Joe) comment
   std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<DatabaseCatalog> database_catalog, table_oid_t table_oid, col_oid_t col_oid);
 
+  // TODO(Joe) comment
   std::unique_ptr<optimizer::TableStats> GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
                                                             common::ManagedPointer<DatabaseCatalog> database_catalog,
                                                             table_oid_t table_oid);
+
+  // TODO(Joe) Comment include info about how parameters need to be initialized and filled blah blah
+  std::unique_ptr<optimizer::ColumnStatsBase> CreateColumnStats(
+      common::ManagedPointer<storage::ProjectedRow> all_cols_pr, storage::ProjectionMap pg_statistic_all_cols_prm,
+      table_oid_t table_oid, col_oid_t col_oid, type::TypeId type);
+
+  template <typename T>
+  std::unique_ptr<optimizer::ColumnStatsBase> CreateColumnStats(
+      table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, double frac_null, size_t distinct_values,
+      const storage::VarlenEntry &top_k_str, const storage::VarlenEntry &histogram_str, type::TypeId type);
 
   const db_oid_t db_oid_;
   /**

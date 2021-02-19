@@ -27,10 +27,13 @@ class TableStats {
    * @param is_base_table - says whether the table is a base table
    * @param col_stats_list - initial list of ColumnStats objects to be inserted in the TableStats object
    */
-  TableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, size_t num_rows,
+  TableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
              std::vector<std::unique_ptr<ColumnStatsBase>> *col_stats_list)
-      : database_id_(database_id), table_id_(table_id), num_rows_(num_rows) {
+      : database_id_(database_id), table_id_(table_id) {
+    // Every column should have the same number of rows
+    num_rows_ = col_stats_list->empty() ? 0 : (*col_stats_list)[0]->GetNumRows();
     for (auto &col_stat : *col_stats_list) {  // taking each ColumnStats object and storing it in a map
+      NOISEPAGE_ASSERT(col_stat->GetNumRows() == num_rows_, "Every column should have the same number of rows");
       column_stats_.emplace(col_stat->GetColumnID(), std::move(col_stat));
     }
   }
@@ -90,10 +93,6 @@ class TableStats {
    */
   size_t GetNumRows() const { return num_rows_; }
 
-  std::shared_lock<std::shared_mutex> LockShared() {
-    return std::shared_lock<std::shared_mutex>>(table_latch_);
-  }
-
   /**
    * Serializes a table stats object
    * @return table stats object serialized to json
@@ -125,7 +124,6 @@ class TableStats {
    * stores the ColumnStats objects for the columns in the table
    */
   std::unordered_map<catalog::col_oid_t, std::unique_ptr<ColumnStatsBase>> column_stats_;
-
 };
 DEFINE_JSON_HEADER_DECLARATIONS(TableStats);
 }  // namespace noisepage::optimizer

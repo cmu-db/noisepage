@@ -151,85 +151,12 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
   auto found_tuple_slot = results[0];
   statistics_->Select(txn, found_tuple_slot, all_cols_pr.Get());
 
-  auto null_rows = *PgStatistic::STA_NULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
-  auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
-  double frac_null = static_cast<double>(null_rows) / static_cast<double>(num_rows);
+  std::unique_ptr<optimizer::ColumnStatsBase> column_stats;
+  auto type = database_catalog->GetSchema(txn, table_oid).GetColumn(col_oid).Type();
+  column_stats = CreateColumnStats(all_cols_pr, pg_statistic_all_cols_prm_, table_oid, col_oid, type);
 
   delete[] key_buffer;
-
-  auto type = database_catalog->GetSchema(txn, table_oid).GetColumn(col_oid).Type();
-
-  // TODO(Joe) come up with better way for this
-  switch (type) {
-    case type::TypeId::BOOLEAN: {
-      // TODO(Joe) we'll have to fix this with deserialization
-      using T = execution::sql::BoolVal;
-      using CppType = decltype(T::val_);
-      auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-      auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                         std::move(top_k), std::move(histogram), type);
-    }
-    case type::TypeId::TINYINT:
-    case type::TypeId::SMALLINT:
-    case type::TypeId::INTEGER:
-    case type::TypeId::BIGINT: {
-      // TODO(Joe) we'll have to fix this with deserialization
-      using T = execution::sql::Integer;
-      using CppType = decltype(T::val_);
-      auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-      auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                         std::move(top_k), std::move(histogram), type);
-    }
-    case type::TypeId::REAL: {
-      // TODO(Joe) we'll have to fix this with deserialization
-      using T = execution::sql::Real;
-      using CppType = decltype(T::val_);
-      auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-      auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                         std::move(top_k), std::move(histogram), type);
-    }
-    // TODO(Joe) Uncomment this when you have hash shit from ANALYZE PR
-    /*case type::TypeId::DECIMAL: {
-      // TODO(Joe) we'll have to fix this with deserialization
-      using T = execution::sql::DecimalVal;
-      using CppType = decltype(T::val_);
-      auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            nullptr, std::move(histogram), type);
-    }
-    case type::TypeId::TIMESTAMP: {
-      // TODO(Joe) we'll have to fix this with deserialization
-      using T = execution::sql::TimestampVal;
-      using CppType = decltype(T::val_);
-      auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            nullptr, std::move(histogram), type);
-    }
-    case type::TypeId::DATE: {
-      // TODO(Joe) we'll have to fix this with deserialization
-      using T = execution::sql::DateVal;
-      using CppType = decltype(T::val_);
-      auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                            nullptr, std::move(histogram), type);
-    }*/
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY: {
-      // TODO(Joe) we'll have to fix this with deserialization
-      using T = execution::sql::StringVal;
-      using CppType = decltype(T::val_);
-      auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-      auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-      return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null,
-                                                         std::move(top_k), std::move(histogram), type);
-    }
-    default:
-      // TODO(Joe) fix error message
-      UNREACHABLE("Invalid type");
-  }
+  return column_stats;
 }
 
 std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
@@ -270,95 +197,70 @@ std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
     statistics_->Select(txn, slot, all_cols_pr.Get());
 
     auto col_oid = *PgStatistic::STAATTNUM.Get(all_cols_pr, pg_statistic_all_cols_prm_);
-    auto null_rows = *PgStatistic::STA_NULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
-    auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
-    // TODO(Joe) replace these with real values
     auto type = database_catalog->GetSchema(txn, table_oid).GetColumn(col_oid).Type();
+    col_stats_list.emplace_back(CreateColumnStats(all_cols_pr, pg_statistic_all_cols_prm_, table_oid, col_oid, type));
 
-    // TODO(Joe) come up with better way for this
-    switch (type) {
-      case type::TypeId::BOOLEAN: {
-        // TODO(Joe) we'll have to fix this with deserialization
-        using T = execution::sql::BoolVal;
-        using CppType = decltype(T::val_);
-        auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-        auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-        col_stats_list.push_back(std::make_unique<optimizer::ColumnStats<T>>(
-            db_oid_, table_oid, col_oid, num_rows, null_rows, std::move(top_k), std::move(histogram), type));
-        break;
-      }
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT: {
-        // TODO(Joe) we'll have to fix this with deserialization
-        using T = execution::sql::Integer;
-        using CppType = decltype(T::val_);
-        auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-        auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-        col_stats_list.push_back(std::make_unique<optimizer::ColumnStats<T>>(
-            db_oid_, table_oid, col_oid, num_rows, null_rows, std::move(top_k), std::move(histogram), type));
-        break;
-      }
-      case type::TypeId::REAL: {
-        // TODO(Joe) we'll have to fix this with deserialization
-        using T = execution::sql::Real;
-        using CppType = decltype(T::val_);
-        auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-        auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-        col_stats_list.push_back(std::make_unique<optimizer::ColumnStats<T>>(
-            db_oid_, table_oid, col_oid, num_rows, null_rows, std::move(top_k), std::move(histogram), type));
-        break;
-      }
-      /*case type::TypeId::DECIMAL: {
-        // TODO(Joe) we'll have to fix this with deserialization
-        using T = execution::sql::DecimalVal;
-        using CppType = decltype(T::val_);
-        auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-        col_stats_list.push_back(std::make_unique<optimizer::ColumnStats<T>>(
-            db_oid_, table_oid, col_oid, num_rows, null_rows, nullptr, std::move(histogram), type));
-        break;
-      }
-      case type::TypeId::TIMESTAMP: {
-        // TODO(Joe) we'll have to fix this with deserialization
-        using T = execution::sql::TimestampVal;
-        using CppType = decltype(T::val_);
-        auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-        col_stats_list.push_back(std::make_unique<optimizer::ColumnStats<T>>(
-            db_oid_, table_oid, col_oid, num_rows, null_rows, nullptr, std::move(histogram), type));
-        break;
-      }
-      case type::TypeId::DATE: {
-        // TODO(Joe) we'll have to fix this with deserialization
-        using T = execution::sql::DateVal;
-        using CppType = decltype(T::val_);
-        auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-        col_stats_list.push_back(std::make_unique<optimizer::ColumnStats<T>>(
-            db_oid_, table_oid, col_oid, num_rows, null_rows, nullptr, std::move(histogram), type));
-        break;
-      }*/
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
-        // TODO(Joe) we'll have to fix this with deserialization
-        using T = execution::sql::StringVal;
-        using CppType = decltype(T::val_);
-        auto top_k = std::make_unique<optimizer::TopKElements<CppType>>(4, 5);
-        auto histogram = std::make_unique<optimizer::Histogram<CppType>>(666);
-        col_stats_list.push_back(std::make_unique<optimizer::ColumnStats<T>>(
-            db_oid_, table_oid, col_oid, num_rows, null_rows, std::move(top_k), std::move(histogram), type));
-        break;
-      }
-      default:
-        // TODO(Joe) fix error message
-        UNREACHABLE("Invalid type");
-    }
+    delete[] key_buffer;
+    delete[] key_buffer_2;
   }
+  return std::make_unique<optimizer::TableStats>(db_oid_, table_oid, &col_stats_list);
+}
 
-  delete[] key_buffer;
-  delete[] key_buffer_2;
+std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
+    common::ManagedPointer<storage::ProjectedRow> all_cols_pr, storage::ProjectionMap pg_statistic_all_cols_prm,
+    table_oid_t table_oid, col_oid_t col_oid, type::TypeId type) {
+  auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
+  auto non_null_rows = *PgStatistic::STA_NONNULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
+  double frac_null = static_cast<double>(num_rows - non_null_rows) / static_cast<double>(num_rows);
+  auto distinct_values = *PgStatistic::STA_DISTINCTROWS.Get(all_cols_pr, pg_statistic_all_cols_prm);
+  auto top_k_str = *PgStatistic::STA_TOPK.Get(all_cols_pr, pg_statistic_all_cols_prm);
+  auto histogram_str = *PgStatistic::STA_HISTOGRAM.Get(all_cols_pr, pg_statistic_all_cols_prm);
 
-  // TODO(Joe) fix num rows
-  return std::make_unique<optimizer::TableStats>(db_oid_, table_oid, 666, &col_stats_list);
+  // TODO(Joe) see if there's a better way of doing this
+  switch (type) {
+    case type::TypeId::BOOLEAN:
+      return CreateColumnStats<execution::sql::BoolVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                        top_k_str, histogram_str, type);
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT:
+      return CreateColumnStats<execution::sql::Integer>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                        top_k_str, histogram_str, type);
+    case type::TypeId::REAL:
+      return CreateColumnStats<execution::sql::Real>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                     top_k_str, histogram_str, type);
+    case type::TypeId::DECIMAL:
+      return CreateColumnStats<execution::sql::DecimalVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                           top_k_str, histogram_str, type);
+    case type::TypeId::TIMESTAMP:
+      return CreateColumnStats<execution::sql::TimestampVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                             top_k_str, histogram_str, type);
+    case type::TypeId::DATE:
+      return CreateColumnStats<execution::sql::DateVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                        top_k_str, histogram_str, type);
+      break;
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY:
+      return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                          top_k_str, histogram_str, type);
+      break;
+    default:
+      // TODO(Joe) fix error message
+      UNREACHABLE("Invalid type");
+  }
+}
+
+template <typename T>
+std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
+    table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, double frac_null, size_t distinct_values,
+    const storage::VarlenEntry &top_k_str, const storage::VarlenEntry &histogram_str, type::TypeId type) {
+  using CppType = decltype(T::val_);
+  auto top_k = optimizer::TopKElements<CppType>::Deserialize(top_k_str.Content(), top_k_str.Size());
+  auto histogram = optimizer::Histogram<CppType>::Deserialize(histogram_str.Content(), histogram_str.Size());
+  return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null, distinct_values,
+                                                     std::make_unique<optimizer::TopKElements<CppType>>(top_k),
+                                                     std::make_unique<optimizer::Histogram<CppType>>(histogram), type);
 }
 
 }  // namespace noisepage::catalog::postgres

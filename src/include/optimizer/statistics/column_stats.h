@@ -20,6 +20,7 @@ class ColumnStatsBase {
   virtual size_t GetNumRows() = 0;
   virtual double GetFracNull() = 0;
   virtual void SetNumRows(size_t num_rows) = 0;
+  virtual size_t GetDistinctValues() = 0;
   virtual type::TypeId GetTypeId() = 0;
   virtual bool IsStale() = 0;
   virtual void MarkStale() = 0;
@@ -49,13 +50,14 @@ class ColumnStats : public ColumnStatsBase {
    * @param histogram - Histogram for this column
    */
   ColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
-              size_t num_rows, double frac_null, std::unique_ptr<TopKElements<CppType>> top_k,
+              size_t num_rows, double frac_null, size_t distinct_values, std::unique_ptr<TopKElements<CppType>> top_k,
               std::unique_ptr<Histogram<CppType>> histogram, type::TypeId type_id)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
         num_rows_(num_rows),
         frac_null_(frac_null),
+        distinct_values_(distinct_values),
         top_k_(std::move(top_k)),
         histogram_(std::move(histogram)),
         type_id_(type_id),
@@ -66,7 +68,7 @@ class ColumnStats : public ColumnStatsBase {
    */
   ColumnStats() = default;
 
-  //TODO(Joe) comment
+  // TODO(Joe) comment
   ~ColumnStats() override = default;
 
   /**
@@ -85,13 +87,19 @@ class ColumnStats : public ColumnStatsBase {
    * Gets the number of rows in the column
    * @return the number of rows
    */
-  size_t GetNumRows() override { return this->num_rows_; }
+  size_t GetNumRows() override { return num_rows_; }
 
   /**
-   * Gets the fraction of null values in the table.
+   * Gets the fraction of null values in the column.
    * @return Fraction of nulls
    */
-  double GetFracNull() override { return this->frac_null_; }
+  double GetFracNull() override { return frac_null_; }
+
+  /**
+   * Gets the number of distinct values in the column
+   * @return distinct values
+   */
+  size_t GetDistinctValues() override { return distinct_values_; }
 
   /**
    * Gets the pointer to the histogram for the column.
@@ -120,7 +128,7 @@ class ColumnStats : public ColumnStatsBase {
 
   std::unique_ptr<ColumnStatsBase> Copy() override {
     return std::make_unique<ColumnStats<T>>(database_id_, table_id_, column_id_, num_rows_, frac_null_,
-                                            std::make_unique<TopKElements<CppType>>(*top_k_),
+                                            distinct_values_, std::make_unique<TopKElements<CppType>>(*top_k_),
                                             std::make_unique<Histogram<CppType>>(*histogram_), type_id_);
   }
 
@@ -151,6 +159,11 @@ class ColumnStats : public ColumnStatsBase {
   double frac_null_;
 
   /**
+   * number of distinct values in column
+   */
+  size_t distinct_values_;
+
+  /**
    * Top-K elements based on frequency.
    */
   std::unique_ptr<TopKElements<CppType>> top_k_;
@@ -168,6 +181,6 @@ class ColumnStats : public ColumnStatsBase {
   /**
    * Whether these statistics are stale, i.e. pg_statistic has been updated for this column with newer statistics
    */
-  boolean stale_;
+  bool stale_;
 };
 }  // namespace noisepage::optimizer

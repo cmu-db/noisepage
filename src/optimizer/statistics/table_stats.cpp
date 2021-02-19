@@ -29,11 +29,11 @@ common::ManagedPointer<ColumnStatsBase> TableStats::GetColumnStats(catalog::col_
 }
 
 std::vector<common::ManagedPointer<ColumnStatsBase>> TableStats::GetColumnStats() {
- std::vector<common::ManagedPointer<ColumnStatsBase>> column_stats;
- for(const auto &[_, column_stat] : column_stats_) {
-   column_stats.emplace_back(common::ManagedPointer(column_stat));
- }
- return column_stats;
+  std::vector<common::ManagedPointer<ColumnStatsBase>> column_stats;
+  for (const auto &[_, column_stat] : column_stats_) {
+    column_stats.emplace_back(common::ManagedPointer(column_stat));
+  }
+  return column_stats;
 }
 
 void TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {

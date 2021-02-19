@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
@@ -73,6 +74,10 @@ class StatsStorage {
    */
   common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                                    catalog::CatalogAccessor *accessor);
+
+  // TODO(Joe) Comment
+  void MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                      const std::vector<catalog::col_oid_t> &col_ids);
 
  private:
   /**

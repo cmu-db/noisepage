@@ -53,9 +53,6 @@ class CountMinSketch {
   // TODO(Joe) Comment
   CountMinSketch(const CountMinSketch &other) : total_count_(other.total_count_) { sketch_.copy(other.sketch_); }
 
-  /*// TODO(Joe) comment
-  CountMinSketch &operator=(const CountMinSketch &other) { sketch_ = other.sketch_; }*/
-
   /**
    * Move constructor
    * @param other sketch to move into this
