@@ -67,7 +67,7 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
-   * Tear-down and destroy the thread-local aggregation hash table, if needed.
+   * Tear-down and destroy the thread-local aggregation hash table and aggregators, if needed.
    * @param pipeline Current pipeline.
    * @param function The pipeline generating function.
    */

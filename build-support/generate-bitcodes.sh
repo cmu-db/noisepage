@@ -10,6 +10,8 @@ BINARY_DIR=$2
 # The path to clang
 CLANG_PATH=$3
 
+echo "Generating optimized bitcodes..."
+
 # Run the compiler
 echo "Running: ${PROJECT_ROOT}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG_PATH} ${BINARY_DIR} ${PROJECT_ROOT}/util/execution/bytecode_handlers_ir.cpp ${BINARY_DIR}/bin/bytecode_handlers_ir.bc"
 ${PROJECT_ROOT}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG_PATH} ${BINARY_DIR} ${PROJECT_ROOT}/util/execution/bytecode_handlers_ir.cpp ${BINARY_DIR}/bin/bytecode_handlers_ir.bc || exit 1
