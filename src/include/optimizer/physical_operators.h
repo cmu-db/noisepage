@@ -1021,9 +1021,7 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return Columns to insert into
-   */
+  /** @return Columns to insert into */
   const std::vector<catalog::col_oid_t> &GetColumns() const { return columns_; }
 
  private:
@@ -1037,9 +1035,7 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    */
   catalog::table_oid_t table_oid_;
 
-  /**
-   * Columns to insert into
-   */
+  /** Columns to insert into */
   std::vector<catalog::col_oid_t> columns_;
 };
 

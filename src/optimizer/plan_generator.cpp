@@ -835,7 +835,7 @@ void PlanGenerator::Visit(const Insert *op) {
   }
 
   // This is based on what Peloton does/did with query_to_operator_transformer.cpp
-  NOISEPAGE_ASSERT(!op->GetColumns().empty(), "Transformer should added columns");
+  NOISEPAGE_ASSERT(!op->GetColumns().empty(), "Transformer should have added columns");
   for (auto &col : op->GetColumns()) {
     builder.AddParameterInfo(col);
   }

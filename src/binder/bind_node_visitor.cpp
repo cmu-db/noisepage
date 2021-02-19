@@ -313,7 +313,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
   auto binder_table_data = context_->GetTableMapping(table->GetTableName());
   const auto &table_schema = std::get<2>(*binder_table_data);
 
-  // Perform input validation and parsing of strings into dates.
+  // Perform input validation and and input conversion, e.g., parsing of strings into dates.
   {
     // Test that all the insert columns exist.
     for (const auto &col : *node->GetInsertColumns()) {

@@ -80,7 +80,6 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     *
      * @param insert_type type of insert
      * @return builder object
      */
@@ -124,9 +123,7 @@ class InsertPlanNode : public AbstractPlanNode {
      */
     std::vector<catalog::index_oid_t> index_oids_;
 
-    /**
-     * Type of insert
-     */
+    /** Type of insert */
     parser::InsertType insert_type_;
   };
 
@@ -200,10 +197,7 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
 
-  /**
-   *
-   * @return the insert type of plan
-   */
+  /** @return the insert type of plan */
   parser::InsertType GetInsertType() const { return insert_type_; }
 
   /**
@@ -248,9 +242,7 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   std::vector<catalog::index_oid_t> index_oids_;
 
-  /**
-   * Type of insert
-   */
+  /** Type of insert */
   parser::InsertType insert_type_;
 };
 

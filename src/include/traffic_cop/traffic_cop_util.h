@@ -7,7 +7,6 @@
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "optimizer/optimize_result.h"
-#include "optimizer/property_set.h"
 #include "parser/select_statement.h"
 
 namespace noisepage::catalog {
@@ -17,6 +16,7 @@ class CatalogAccessor;
 namespace noisepage::parser {
 class ParseResult;
 class SQLStatement;
+class SelectStatement;
 }  // namespace noisepage::parser
 
 namespace noisepage::planner {
@@ -26,6 +26,7 @@ class AbstractPlanNode;
 namespace noisepage::optimizer {
 class StatsStorage;
 class AbstractCostModel;
+class PropertySet;
 }  // namespace noisepage::optimizer
 
 namespace noisepage::transaction {

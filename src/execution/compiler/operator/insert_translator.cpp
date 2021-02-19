@@ -81,32 +81,16 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 
   switch (plan.GetInsertType()) {
     case parser::InsertType::SELECT: {
-      // var insert_pr = @getTablePR(&inserter)
-      GetInsertPR(function);
-      // For each attribute, @prSet(insert_pr, ...)
-      GenSelectSetTablePR(function, context);
-      // var insert_slot = @tableInsert(&inserter)
-      GenTableInsert(function);
-      function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
-      const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
-      for (const auto &index_oid : index_oids) {
-        GenIndexInsert(context, function, index_oid);
-      }
+      PerformInsertWork(context, function, [&](WorkContext *context, FunctionBuilder *function) {
+        GenSelectSetTablePR(function, context);
+      });
       break;
     }
     case parser::InsertType::VALUES: {
       for (uint32_t idx = 0; idx < GetPlanAs<planner::InsertPlanNode>().GetBulkInsertCount(); idx++) {
-        // var insert_pr = @getTablePR(&inserter)
-        GetInsertPR(function);
-        // For each attribute, @prSet(insert_pr, ...)
-        GenValueSetTablePR(function, context, idx);
-        // var insert_slot = @tableInsert(&inserter)
-        GenTableInsert(function);
-        function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
-        const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
-        for (const auto &index_oid : index_oids) {
-          GenIndexInsert(context, function, index_oid);
-        }
+        PerformInsertWork(context, function, [&](WorkContext *context, FunctionBuilder *function) {
+          GenValueSetTablePR(function, context, idx);
+        });
       }
       break;
     }
@@ -124,6 +108,22 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_inserts_));
 
   GenInserterFree(function);
+}
+
+void InsertTranslator::PerformInsertWork(
+    WorkContext *context, FunctionBuilder *function,
+    std::function<void(WorkContext *, FunctionBuilder *)> generate_set_table_pr) const {
+  // var insert_pr = @getTablePR(&inserter)
+  GetInsertPR(function);
+  // For each attribute, @prSet(insert_pr, ...)
+  generate_set_table_pr(context, function);
+  // var insert_slot = @tableInsert(&inserter)
+  GenTableInsert(function);
+  function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
+  const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
+  for (const auto &index_oid : index_oids) {
+    GenIndexInsert(context, function, index_oid);
+  }
 }
 
 void InsertTranslator::DeclareInserter(noisepage::execution::compiler::FunctionBuilder *builder) const {

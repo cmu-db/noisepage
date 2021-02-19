@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "binder/binder_context.h"
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
 #include "type/type_id.h"
@@ -26,6 +25,7 @@ class SQLStatement;
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
 }  // namespace catalog
 
 namespace binder {

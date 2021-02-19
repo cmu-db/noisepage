@@ -806,9 +806,7 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return OIDs of the columns that this operator is inserting into for the target table
-   */
+  /** @return OIDs of the columns that this operator is inserting into for the target table */
   const std::vector<catalog::col_oid_t> &GetColumns() const { return columns_; }
 
  private:
@@ -822,9 +820,7 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
    */
   catalog::table_oid_t table_oid_;
 
-  /**
-   * OIDs of the columns that this operator is inserting into for the target table
-   */
+  /** OIDs of the columns that this operator is inserting into for the target table */
   std::vector<catalog::col_oid_t> columns_;
 };
 
