@@ -1,6 +1,5 @@
 import sys
 import traceback
-from typing import List
 
 from . import constants
 from .common import print_file, run_command, update_mem_info
