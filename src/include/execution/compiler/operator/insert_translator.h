@@ -56,6 +56,7 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
    * Implement main insertion logic
    * @param context The context of the work.
    * @param function The pipeline generating function.
+   * @param generate_set_table_pr function to generate the TPL that sets the fields of the projected row
    */
   void PerformInsertWork(WorkContext *context, FunctionBuilder *function,
                          std::function<void(WorkContext *, FunctionBuilder *)> generate_set_table_pr) const;
