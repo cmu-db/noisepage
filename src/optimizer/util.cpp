@@ -76,6 +76,7 @@ parser::AbstractExpression *OptimizerUtil::GenerateColumnValueExpr(const catalog
   col_expr->DeriveReturnValueType();
   return col_expr;
 }
+
 parser::AbstractExpression *OptimizerUtil::GenerateAggregateExpr(const catalog::Schema::Column &column,
                                                                  parser::ExpressionType aggregate_type, bool distinct,
                                                                  const std::string &alias, catalog::db_oid_t db_oid,
@@ -85,6 +86,7 @@ parser::AbstractExpression *OptimizerUtil::GenerateAggregateExpr(const catalog::
   agg_child.emplace_back(std::move(col_expr));
   return new parser::AggregateExpression(aggregate_type, std::move(agg_child), distinct);
 }
+
 parser::AbstractExpression *OptimizerUtil::GenerateStarAggregateExpr(parser::ExpressionType aggregate_type,
                                                                      bool distinct) {
   auto star_expr = std::make_unique<parser::StarExpression>();

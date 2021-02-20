@@ -395,7 +395,7 @@ class TopKAggregate {
     if (val.is_null_) {
       return;
     }
-    null_ = false;
+    is_null_ = false;
     top_k_.Increment(val.val_, 1);
   }
 
@@ -405,10 +405,10 @@ class TopKAggregate {
 
   */
   void Merge(const TopKAggregate &that) {
-    if (that.null_) {
+    if (that.is_null_) {
       return;
     }
-    null_ = false;
+    is_null_ = false;
 
     top_k_.Merge(that.GetTopK());
   }
@@ -417,7 +417,7 @@ class TopKAggregate {
    * Reset the aggregate.
    */
   void Reset() {
-    null_ = true;
+    is_null_ = true;
     top_k_.Clear();
   }
 
@@ -427,7 +427,7 @@ class TopKAggregate {
    * @return the serialized result of the TopK.
    */
   StringVal GetResult(exec::ExecutionContext *ctx) const {
-    if (null_) {
+    if (is_null_) {
       return StringVal::Null();
     }
     size_t size;
@@ -446,7 +446,7 @@ class TopKAggregate {
  private:
   // Histogram keeping track of the topK elements.
   optimizer::TopKElements<CppType> top_k_;
-  bool null_{true};
+  bool is_null_{true};
 };
 
 /** Boolean Top K Aggregate */
@@ -491,7 +491,7 @@ class HistogramAggregate {
     if (val.is_null_) {
       return;
     }
-    null_ = false;
+    is_null_ = false;
     histogram_.Increment(val.val_);
   }
 
@@ -500,10 +500,10 @@ class HistogramAggregate {
    * @param that const reference of a Histogram object to be merged
    */
   void Merge(const HistogramAggregate &that) {
-    if (that.null_) {
+    if (that.is_null_) {
       return;
     }
-    null_ = false;
+    is_null_ = false;
 
     histogram_.Merge(that.GetHistogram());
   }
@@ -512,7 +512,7 @@ class HistogramAggregate {
    * Reset the aggregate.
    */
   void Reset() {
-    null_ = true;
+    is_null_ = true;
     histogram_.Clear();
   }
 
@@ -522,7 +522,7 @@ class HistogramAggregate {
    * @return the serialized result of the histogram
    */
   StringVal GetResult(exec::ExecutionContext *ctx) const {
-    if (null_) {
+    if (is_null_) {
       return StringVal::Null();
     }
     size_t size;
@@ -540,7 +540,7 @@ class HistogramAggregate {
 
  private:
   optimizer::Histogram<CppType> histogram_;
-  bool null_{true};
+  bool is_null_{true};
 };
 
 /** Boolean Histogram Aggregate */
