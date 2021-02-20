@@ -213,7 +213,10 @@ void UpdateTranslator::GenTableUpdate(FunctionBuilder *builder) const {
 
   auto *cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, update_call);
   If success(builder, cond);
-  builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  {
+    GenUpdaterFree(builder);
+    builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  }
   success.EndIf();
 }
 
@@ -253,7 +256,10 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
   auto *index_insert_call = GetCodeGen()->CallBuiltin(builtin, {GetCodeGen()->AddressOf(updater_)});
   auto *cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(builder, cond);
-  { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
+  {
+    GenUpdaterFree(builder);
+    builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  }
   success.EndIf();
 }
 
@@ -269,6 +275,7 @@ void UpdateTranslator::GenTableDelete(FunctionBuilder *builder) const {
   If check(builder, delete_failed);
   {
     // The delete was not successful; abort the transaction.
+    GenUpdaterFree(builder);
     builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
   }
   check.EndIf();

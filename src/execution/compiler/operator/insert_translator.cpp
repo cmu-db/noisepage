@@ -194,12 +194,15 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 
-  // if (!@indexInsert(&inserter)) { Abort(); }
+  // if (!@indexInsert(&inserter)) { storageInterfaceFree(&inserter); abortTxn(queryState.execCtx); }
   const auto &builtin = index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert;
   auto *index_insert_call = GetCodeGen()->CallBuiltin(builtin, {GetCodeGen()->AddressOf(inserter_)});
   auto *cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(builder, cond);
-  { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
+  {
+    GenInserterFree(builder);
+    builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  }
   success.EndIf();
 }
 

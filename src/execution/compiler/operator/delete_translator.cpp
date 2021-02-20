@@ -92,6 +92,7 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
   If check(builder, delete_failed);
   {
     // The delete was not successful; abort the transaction.
+    GenDeleterFree(builder);
     builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
   }
   check.Else();
