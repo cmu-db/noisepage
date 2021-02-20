@@ -56,8 +56,7 @@ class EndToEndTest : public execution::SqlBasedTest {
 
     // Execute
     execution::compiler::test::OutputStore store{output_checker, out_plan->GetOutputSchema().Get()};
-    execution::compiler::test::MultiOutputCallback callback{
-        std::vector<execution::exec::OutputCallback>{store}};
+    execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store}};
     execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
     auto exec_ctx = MakeExecCtx(&callback_fn, out_plan->GetOutputSchema().Get());
 
