@@ -246,7 +246,7 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
   std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
-    auto res = model_server_manager->DoInference(
+    auto res = model_server_manager->InferMiniRunnerModel(
         selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
         project_build_path + model_save_path, ou_map_it.second);
     if (!res.second) {

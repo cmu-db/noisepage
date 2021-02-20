@@ -19,6 +19,7 @@ TODO(Ricky):
 """
 
 from __future__ import annotations
+import enum
 import sys
 import atexit
 from enum import Enum, auto, IntEnum
@@ -33,13 +34,22 @@ from pathlib import Path
 import numpy as np
 import zmq
 
-from data_class import opunit_data
+from model import model
+from model.data_class import opunit_data
 from mini_trainer import MiniTrainer
-from util import logging_util
-from type import OpUnit
-from info import data_info
+from model.util import logging_util
+from model.type import OpUnit
+from model.info import data_info
+from forecasting.forecaster import Forecaster, parse_model_config
 
 logging_util.init_logging('info')
+
+
+class ModelType(enum.IntEnum):
+    """ModelType
+    """
+    FORECAST = 0,
+    MINI_RUNNER = 1
 
 
 class Callback(IntEnum):
@@ -113,9 +123,9 @@ class Message:
         return pprint.pformat(self.__dict__)
 
 
-class ModelServer:
+class MiniRunnerModelServer:
     """
-    ModelServer(MS) class that runs in a loop to handle commands from the ModelServerManager from C++
+    MiniRunnerModelServer that handles training and inference for MiniRunner models
     """
 
     # Training parameters
@@ -123,6 +133,246 @@ class ModelServer:
     TRIM_RATIO = 0.2
     EXPOSE_ALL = True
     TXN_SAMPLE_INTERVAL = 49
+
+    def __init__(self) -> MiniRunnerModelServer:
+        # Gobal model map cache
+        self.cache = dict()
+
+
+    def _load_model_map(self, save_path: str) -> Optional[Dict]:
+        """
+        Check if a trained model exists at the path.
+        Load the model into cache if it is not.
+        :param save_path: path to model to load
+        :return: None if no model exists at path, or Model map saved at path
+        """
+        save_path = Path(save_path)
+
+        # Check model exists
+        if not save_path.exists():
+            return None
+
+        # use the path string as the key of the cache
+        save_path_str = str(save_path)
+
+        # Load from cache
+        if self.cache.get(save_path, None) is not None:
+            return self.cache[save_path_str]
+
+        # Load into cache
+        with save_path.open(mode='rb') as f:
+            model, data_info.instance = pickle.load(f)
+
+            # TODO(ricky): model checking here?
+            if len(model) == 0:
+                logging.warning(f"Empty model at {str(save_path)}")
+                return None
+
+            self.cache[save_path_str] = model
+            return model
+
+
+    def train(self, data: Dict) -> Tuple[bool, str]:
+        """
+        Train a model with the given model name and seq_files directory
+        :param data: {
+            methods: [lr, XXX, ...],
+            input_path: PATH_TO_SEQ_FILES_FOLDER, or None
+            save_path: PATH_TO_SAVE_MODEL_MAP
+        }
+        :return: if training succeeds, {True and empty string}, else {False, error message}
+        """
+        ml_models = data["methods"]
+        seq_files_dir = data["input_path"]
+        save_path = data["save_path"]
+
+        # Do path checking up-front
+        save_path = Path(save_path)
+        save_dir = save_path.parent
+        try:
+            # Exist ok, and Creates parent if ok
+            save_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            return False, "FAIL_PERMISSION_ERROR"
+
+        # Create result model metrics in the same directory
+        save_file_name = save_path.stem
+        result_path = save_path.with_name(
+            str(save_file_name) + "_metric_results")
+        result_path.mkdir(parents=True, exist_ok=True)
+
+        test_ratio = MiniRunnerModelServer.TEST_RATIO
+        trim = MiniRunnerModelServer.TRIM_RATIO
+        expose_all = MiniRunnerModelServer.EXPOSE_ALL
+        txn_sample_interval = MiniRunnerModelServer.TXN_SAMPLE_INTERVAL
+
+        trainer = MiniTrainer(seq_files_dir, result_path, ml_models,
+                              test_ratio, trim, expose_all, txn_sample_interval)
+        # Perform training from MiniTrainer and input files directory
+        model_map = trainer.train()
+
+        # Pickle dump the model
+        with save_path.open(mode='wb') as f:
+            pickle.dump((model_map, data_info.instance), f)
+
+        return True, ""
+
+    def infer(self, data: Dict) -> Tuple[Any, bool, str]:
+        """
+        Do inference on the model, give the data file, and the model_map_path
+        :param data: {
+            features: 2D float arrays [[float]],
+            opunit: Opunit integer for the model
+            model_path: model path
+        }
+        :return: {List of predictions, if inference succeeds, error message}
+        """
+        features = data["features"]
+        opunit = data["opunit"]
+        model_path = data["model_path"]
+
+        # Load the model map
+        model_map = self._load_model_map(model_path)
+        if model_map is None:
+            logging.error(
+                f"Model map at {str(model_path)} has not been trained")
+            return [], False, "MODEL_MAP_NOT_TRAINED"
+
+        # Parameter validation
+        if not isinstance(opunit, str):
+            return [], False, "INVALID_OPUNIT"
+        try:
+            opunit = OpUnit[opunit]
+        except KeyError as e:
+            logging.error(f"{opunit} is not a valid Opunit name")
+            return [], False, "INVALID_OPUNIT"
+
+        features = np.array(features)
+        logging.debug(f"Using model on {opunit}")
+
+        model = model_map[opunit]
+        if model is None:
+            logging.error(f"Model for {opunit} doesn't exist")
+            return [], False, "MODEL_NOT_FOUND"
+
+        y_pred = model.predict(features)
+        return y_pred.tolist(), True, ""
+
+
+class ForecastModelServer:
+    """
+    ForecastModelServer that handles training and inference for Forecast models
+    """
+
+    def _update_parameters(self, interval):
+        # TODO(wz2): Possibly expose parameters
+
+        # Number of Microseconds per second
+        MICRO_SEC_PER_SEC = 1000000
+
+        # Number of data points in a sequence
+        self.SEQ_LEN = 10 * MICRO_SEC_PER_SEC // interval
+
+        # Number of data points for the horizon
+        self.HORIZON_LEN = 30 * MICRO_SEC_PER_SEC // interval
+
+        # Number of data points for testing set
+        self.EVAL_DATA_SIZE = self.SEQ_LEN + 2 * self.HORIZON_LEN
+
+
+    def train(self, data: Dict) -> Tuple[bool, str]:
+        """
+        Train a model with the given model name and seq_files directory
+        :param data: {
+            model_names: [LSTM...]
+            models_config: PATH_TO_JSON model config file
+            input_path: PATH_TO_TRACE, or None
+            save_path: PATH_TO_SAVE_MODEL_MAP
+            interval_micro_sec: Interval duration for aggregation in microseconds
+        }
+        :return: if training succeeds, {True and empty string}, else {False, error message}
+        """
+        input_path = data["input_path"]
+        save_path = data["save_path"]
+        model_names = data["methods"]
+        models_config = data.get("models_config")
+        interval = data["interval_micro_sec"]
+        self._update_parameters(interval)
+
+        # Parse models arguments
+        models_kwargs = parse_model_config(model_names, models_config)
+
+        # Do path checking up-front
+        save_path = Path(save_path)
+        save_dir = save_path.parent
+        try:
+            # Exist ok, and Creates parent if ok
+            save_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            return False, "FAIL_PERMISSION_ERROR"
+
+        forecaster = Forecaster(
+            trace_file=input_path,
+            interval_us=interval,
+            test_mode=False,
+            seq_len=self.SEQ_LEN,
+            eval_size=self.EVAL_DATA_SIZE,
+            horizon_len=self.HORIZON_LEN)
+
+        models = forecaster.train(models_kwargs)
+
+        # Pickle dump the model
+        with save_path.open(mode='wb') as f:
+            pickle.dump(models, f)
+
+        return True, ""
+
+    def infer(self, data: Dict) -> Tuple[Any, bool, str]:
+        """
+        Do inference on the model, give the data file, and the model_map_path
+        :param data: {
+            input_path: PATH_TO_TRACE, or None
+            model_path: model path
+            model_names: [LSTM...]
+            models_config: PATH_TO_JSON model config file
+            interval_micro_sec: Interval duration for aggregation in microseconds
+        }
+        :return: {Dict<cluster, Dict<query>, List<preds>>, if inference succeeds, error message}
+        """
+        input_path = data["input_path"]
+        model_names = data["model_names"]
+        models_config = data.get("models_config")
+        interval = data["interval_micro_sec"]
+        model_path = data["model_path"]
+        self._update_parameters(interval)
+
+        # Do inference on a trained model
+        with open(model_path, "rb") as f:
+            models = pickle.load(f)
+
+        forecaster = Forecaster(
+            trace_file=input_path,
+            test_mode=True,
+            interval_us=interval,
+            seq_len=self.SEQ_LEN,
+            eval_size=self.EVAL_DATA_SIZE,
+            horizon_len=self.HORIZON_LEN)
+
+        # FIXME:
+        # Assuming all the queries in the current trace file are from
+        # the same cluster for now
+
+        # Only forecast with first element of model_names
+        result = {};
+        query_pred = forecaster.predict(0, models[0][model_names[0]])
+        for qid, ts in query_pred.items():
+            result[int(qid)] = ts
+        return {0: result}, True, ""
+
+class ModelServer:
+    """
+    ModelServer(MS) class that runs in a loop to handle commands from the ModelServerManager from C++
+    """
 
     def __init__(self, end_point: str) -> ModelServer:
         """
@@ -150,6 +400,9 @@ class ModelServer:
         # Notify the ModelServerManager that I am connected
         self._send_msg(0, 0, ModelServer._make_response(
             Callback.CONNECTED, "", True, ""))
+
+        # Model trainers/inferers
+        self.model_managers = { ModelType.FORECAST: ForecastModelServer(), ModelType.MINI_RUNNER: MiniRunnerModelServer() }
 
     def cleanup_zmq(self):
         """
@@ -205,139 +458,18 @@ class ModelServer:
         msg = Message.from_json(tokens[2])
         return msg_id, recv_id, msg
 
-    @staticmethod
-    def _transform_opunit_data(raw_data: Dict) -> List[opunit_data.OpUnitData]:
-        """
-        Transform the raw training data from ModelServerManger for each data unit
-        :param raw_data: {
-            opunit: (x, y)
-        }
-        :return:
-        """
-        # TODO(ricky): serialize the opunit by name rather than index
-        return [opunit_data.OpUnitData(
-            OpUnit(x[0]), x[1][0], x[1][1]) for x in raw_data]
-
-    def _train_model(self, data: Dict) -> Tuple[bool, str]:
-        """
-        Train a model with the given model name and seq_files directory
-        :param data: {
-            methods: [lr, XXX, ...],
-            seq_files: PATH_TO_SEQ_FILES_FOLDER, or None
-            save_path: PATH_TO_SAVE_MODEL_MAP
-        }
-        :return: if training succeeds, {True and empty string}, else {False, error message}
-        """
-        ml_models = data["methods"]
-        seq_files_dir = data["seq_files"]
-        save_path = data["save_path"]
-
-        # Do path checking up-front
-        save_path = Path(save_path)
-        save_dir = save_path.parent
-        try:
-            # Exist ok, and Creates parent if ok
-            save_dir.mkdir(parents=True, exist_ok=True)
-        except PermissionError as e:
-            return False, "FAIL_PERMISSION_ERROR"
-
-        # Create result model metrics in the same directory
-        save_file_name = save_path.stem
-        result_path = save_path.with_name(
-            str(save_file_name) + "_metric_results")
-        result_path.mkdir(parents=True, exist_ok=True)
-
-        test_ratio = ModelServer.TEST_RATIO
-        trim = ModelServer.TRIM_RATIO
-        expose_all = ModelServer.EXPOSE_ALL
-        txn_sample_interval = ModelServer.TXN_SAMPLE_INTERVAL
-
-        trainer = MiniTrainer(seq_files_dir, result_path, ml_models,
-                              test_ratio, trim, expose_all, txn_sample_interval)
-        # Perform training from MiniTrainer and input files directory
-        model_map = trainer.train()
-        self.cache[str(save_path)] = model_map
-
-        # Pickle dump the model
-        with save_path.open(mode='wb') as f:
-            pickle.dump((model_map, data_info.instance), f)
-
-        return True, ""
-
-    def _load_model_map(self, save_path: str) -> Optional[Dict]:
-        """
-        Check if a trained model exists at the path.
-        Load the model into cache if it is not.
-        :param save_path: path to model to load
-        :return: None if no model exists at path, or Model map saved at path
-        """
-        save_path = Path(save_path)
-
-        # Check model exists
-        if not save_path.exists():
-            return None
-
-        # use the path string as the key of the cache
-        save_path_str = str(save_path)
-
-        # Load from cache
-        if self.cache.get(save_path_str, None) is not None:
-            return self.cache[save_path_str]
-
-        # Load into cache
-        with save_path.open(mode='rb') as f:
-            model, data_info.instance = pickle.load(f)
-
-            # TODO(ricky): model checking here?
-            if len(model) == 0:
-                logging.warning(f"Empty model at {str(save_path)}")
-                return None
-
-            self.cache[save_path_str] = model
-            return model
-
     def _infer(self, data: Dict) -> Tuple[List, bool, str]:
         """
-        Do inference on the model, give the data file, and the model_map_path
+        Do inference on the model
         :param data: {
-            features: 2D float arrays [[float]],
-            opunit: Opunit integer for the model
+            type: model type
             model_path: model path
+            ...
         }
         :return: {List of predictions, if inference succeeds, error message}
         """
-        features = data["features"]
-        opunit = data["opunit"]
-        model_path = data["model_path"]
-
-        # Parameter validation
-        if not isinstance(opunit, str):
-            return [], False, "INVALID_OPUNIT"
-        try:
-            opunit = OpUnit[opunit]
-        except KeyError as e:
-            logging.error(f"{opunit} is not a valid Opunit name")
-            return [], False, "INVALID_OPUNIT"
-
-        features = np.array(features)
-        logging.debug(f"Using model on {opunit}")
-
-        # Load the model map
-        model_map = self._load_model_map(model_path)
-        if model_map is None:
-            logging.error(
-                f"Model map at {str(model_path)} has not been trained")
-            return [], False, "MODEL_MAP_NOT_TRAINED"
-
-        model = model_map[opunit]
-
-        if model is None:
-            logging.error(f"Model for {opunit} doesn't exist")
-            return [], False, "MODEL_NOT_FOUND"
-
-        y_pred = model.predict(features)
-
-        return y_pred.tolist(), True, ""
+        model_type = data["type"]
+        return self.model_managers[ModelType[model_type]].infer(data)
 
     def _recv(self) -> str:
         """
@@ -372,7 +504,8 @@ class ModelServer:
             return self._make_response(Callback.NOOP, "", True), False
         elif cmd == Command.TRAIN:
             try:
-                ok, res = self._train_model(data)
+                model_type = data["type"]
+                ok, res = self.model_managers[ModelType[model_type]].train(data)
                 if ok:
                     response = self._make_response(Callback.NOOP, res, True)
                 else:

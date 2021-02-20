@@ -1,7 +1,7 @@
 import numpy as np
 
-from info import data_info
-from type import OpUnit, Target, ExecutionFeature
+from ..info import data_info
+from ..type import OpUnit, Target, ExecutionFeature
 
 _TRANSFORM_EPSILON = 1
 

@@ -1,5 +1,5 @@
-from util import io_util
-from info import data_info
+from ..util import io_util
+from ..info import data_info
 
 
 def create_metrics_and_prediction_files(metrics_path, prediction_path, test_only):

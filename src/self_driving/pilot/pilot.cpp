@@ -17,13 +17,15 @@
 
 namespace noisepage::selfdriving {
 
-Pilot::Pilot(std::string model_save_path, common::ManagedPointer<catalog::Catalog> catalog,
+Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
+             common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<metrics::MetricsThread> metrics_thread,
              common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
              common::ManagedPointer<settings::SettingsManager> settings_manager,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage,
              common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval)
     : model_save_path_(std::move(model_save_path)),
+      forecast_model_save_path_(std::move(forecast_model_save_path)),
       catalog_(catalog),
       metrics_thread_(metrics_thread),
       model_server_manager_(model_server_manager),
@@ -34,6 +36,15 @@ Pilot::Pilot(std::string model_save_path, common::ManagedPointer<catalog::Catalo
   forecast_ = nullptr;
   while (!model_server_manager_->ModelServerStarted()) {
   }
+}
+
+void Pilot::PerformForecasterTrain() {
+  std::vector<std::string> models{"LSTM"};
+  std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
+  modelserver::ModelServerFuture<std::string> future;
+  model_server_manager_->TrainForecastModel(models, input_path, forecast_model_save_path_, workload_forecast_interval_,
+                                            common::ManagedPointer(&future));
+  future.Wait();
 }
 
 void Pilot::PerformPlanning() {
