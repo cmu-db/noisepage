@@ -197,7 +197,7 @@ bool ModelServerManager::TrainModel(ModelType::Type model, const std::vector<std
                                     common::ManagedPointer<ModelServerFuture<std::string>> future) {
   nlohmann::json j;
   j["cmd"] = "TRAIN";
-  if (arguments) {
+  if (arguments != nullptr) {
     j["data"] = *arguments;
   } else {
     j["data"] = {};
@@ -271,7 +271,7 @@ std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::Inf
   j["input_path"] = input_path;
   j["model_names"] = model_names;
   j["interval_micro_sec"] = interval_micro_sec;
-  if (models_config != NULL) {
+  if (models_config != nullptr) {
     j["models_config"] = *models_config;
   }
 
@@ -281,9 +281,9 @@ std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::Inf
   for (auto &cid_pair : data.first) {
     std::unordered_map<uint64_t, std::vector<double>> cid_data;
     for (auto &qid_pair : cid_pair.second) {
-      cid_data[std::stoi(qid_pair.first, NULL)] = std::move(qid_pair.second);
+      cid_data[std::stoi(qid_pair.first, nullptr)] = std::move(qid_pair.second);
     }
-    result[std::stoi(cid_pair.first, NULL)] = std::move(cid_data);
+    result[std::stoi(cid_pair.first, nullptr)] = std::move(cid_data);
   }
   return {result, data.second};
 }
