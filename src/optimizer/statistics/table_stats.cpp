@@ -22,13 +22,13 @@ bool TableStats::HasColumnStats(catalog::col_oid_t column_id) const {
   return (column_stats_.find(column_id) != column_stats_.end());
 }
 
-common::ManagedPointer<ColumnStatsBase> TableStats::GetColumnStats(catalog::col_oid_t column_id) {
+common::ManagedPointer<ColumnStatsBase> TableStats::GetColumnStats(catalog::col_oid_t column_id) const {
   auto col_it = column_stats_.find(column_id);
   NOISEPAGE_ASSERT(col_it != column_stats_.end(), "Every valid column should have an associated column stats");
   return common::ManagedPointer<ColumnStatsBase>(col_it->second);
 }
 
-std::vector<common::ManagedPointer<ColumnStatsBase>> TableStats::GetColumnStats() {
+std::vector<common::ManagedPointer<ColumnStatsBase>> TableStats::GetColumnStats() const {
   std::vector<common::ManagedPointer<ColumnStatsBase>> column_stats;
   for (const auto &[_, column_stat] : column_stats_) {
     column_stats.emplace_back(common::ManagedPointer(column_stat));
@@ -36,10 +36,12 @@ std::vector<common::ManagedPointer<ColumnStatsBase>> TableStats::GetColumnStats(
   return column_stats;
 }
 
-void TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
+std::unique_ptr<ColumnStatsBase> TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
   auto col_it = column_stats_.find(column_id);
   NOISEPAGE_ASSERT(col_it != column_stats_.end(), "Every column should have an associated column stats object");
+  auto col_stats = std::move(col_it->second);
   column_stats_.erase(col_it);
+  return col_stats;
 }
 
 nlohmann::json TableStats::ToJson() const {

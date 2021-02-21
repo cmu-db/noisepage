@@ -5,9 +5,8 @@
 
 namespace noisepage::optimizer {
 
-double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<TableStats> table_stats,
-                                           const ValueCondition &condition) {
-  auto column_stats_base = table_stats->GetColumnStats(condition.GetColumnID());
+double SelectivityUtil::ComputeSelectivity(const TableStats &table_stats, const ValueCondition &condition) {
+  auto column_stats_base = table_stats.GetColumnStats(condition.GetColumnID());
   auto type = column_stats_base->GetTypeId();
 
   switch (type) {

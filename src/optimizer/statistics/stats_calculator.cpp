@@ -41,22 +41,21 @@ void StatsCalculator::Visit(const LogicalGet *op) {
                                                                 context_->GetCatalogAccessor());
   NOISEPAGE_ASSERT(table_stats != nullptr, "Every table should have statistics");
 
-  // First, get the required stats of the base table
-  std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> required_stats;
-  for (const auto &col : required_cols_) {
-    // Make a copy for required stats since we may want to modify later
-    AddBaseTableStats(col, table_stats, &required_stats);
-  }
-
   // Compute selectivity at the first time
   if (root_group->GetNumRows() == -1) {
-    std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> predicate_stats;
+    std::unordered_map<std::string, common::ManagedPointer<ColumnStatsBase>> predicate_stats;
     for (const auto &annotated_expr : op->GetPredicates()) {
       ExprSet expr_set;
       auto predicate = annotated_expr.GetExpr();
       parser::ExpressionUtil::GetTupleValueExprs(&expr_set, predicate);
       for (const auto &col : expr_set) {
-        AddBaseTableStats(col, table_stats, &predicate_stats);
+        NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
+        auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
+        NOISEPAGE_ASSERT(table_stats->HasColumnStats(tv_expr->GetColumnOid()),
+                         "ColumnStats should exist for every column");
+
+        predicate_stats.insert(
+            std::make_pair(tv_expr->GetFullName(), table_stats->GetColumnStats(tv_expr->GetColumnOid())));
       }
     }
 
@@ -64,6 +63,16 @@ void StatsCalculator::Visit(const LogicalGet *op) {
     // Use predicates to estimate cardinality.
     auto est = EstimateCardinalityForFilter(table_stats->GetNumRows(), predicate_stats, op->GetPredicates());
     root_group->SetNumRows(static_cast<int>(est));
+  }
+
+  // Get the required stats of the base table
+  std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> required_stats;
+  for (const auto &col : required_cols_) {
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
+    auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
+    NOISEPAGE_ASSERT(table_stats->HasColumnStats(tv_expr->GetColumnOid()), "ColumnStats should exist for every column");
+    required_stats.insert(
+        std::make_pair(tv_expr->GetFullName(), table_stats->RemoveColumnStats(tv_expr->GetColumnOid())));
   }
 
   // Add the stats to the group
@@ -84,7 +93,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto column_stats = context_->GetStatsStorage()->GetColumnStats(
         tv_expr->GetDatabaseOid(), tv_expr->GetTableOid(), tv_expr->GetColumnOid(), context_->GetCatalogAccessor());
-    root_group->AddStats(tv_expr->GetFullName(), column_stats->Copy());
+    root_group->AddStats(tv_expr->GetFullName(), std::move(column_stats));
   }
 }
 
@@ -220,31 +229,21 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   }
 }
 
-void StatsCalculator::AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
-                                        common::ManagedPointer<TableStats> table_stats,
-                                        std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> *stats) {
-  NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
-  auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-  NOISEPAGE_ASSERT(table_stats->HasColumnStats(tv_expr->GetColumnOid()), "ColumnStats should exist for every column");
-  stats->insert(std::make_pair(tv_expr->GetFullName(), table_stats->GetColumnStats(tv_expr->GetColumnOid())->Copy()));
-}
-
 size_t StatsCalculator::EstimateCardinalityForFilter(
-    size_t num_rows, const std::unordered_map<std::string, std::unique_ptr<ColumnStatsBase>> &predicate_stats,
+    size_t num_rows, const std::unordered_map<std::string, common::ManagedPointer<ColumnStatsBase>> &predicate_stats,
     const std::vector<AnnotatedExpression> &predicates) {
   // First, construct the table stats as the interface needed it to compute selectivity
   // TODO(boweic): We may want to modify the interface of selectivity computation to not use table_stats
   std::vector<common::ManagedPointer<ColumnStatsBase>> predicate_stats_vec;
-  auto *table_stats = new TableStats();
+  TableStats table_stats;
   for (const auto &predicate : predicate_stats) {
-    table_stats->AddColumnStats(predicate.second->Copy());
+    table_stats.AddColumnStats(predicate.second->Copy());
   }
 
   double selectivity = 1.F;
   for (const auto &annotated_expr : predicates) {
     // Loop over conjunction exprs
-    selectivity *=
-        CalculateSelectivityForPredicate(common::ManagedPointer<TableStats>(table_stats), annotated_expr.GetExpr());
+    selectivity *= CalculateSelectivityForPredicate(table_stats, annotated_expr.GetExpr());
   }
 
   // Update selectivity
@@ -253,10 +252,10 @@ size_t StatsCalculator::EstimateCardinalityForFilter(
 
 // Calculate the selectivity given the predicate and the stats of columns in the
 // predicate
-double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<TableStats> predicate_table_stats,
+double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predicate_table_stats,
                                                          common::ManagedPointer<parser::AbstractExpression> expr) {
   double selectivity = 1.F;
-  if (predicate_table_stats->GetColumnCount() == 0) {
+  if (predicate_table_stats.GetColumnCount() == 0) {
     return selectivity;
   }
 

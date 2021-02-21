@@ -11,13 +11,22 @@
 #include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/shared_latch.h"
 #include "optimizer/statistics/table_stats.h"
 
 namespace noisepage::optimizer {
-/**
- * Hashable type for database and table oid pair
- */
-using StatsStorageKey = std::pair<noisepage::catalog::db_oid_t, noisepage::catalog::table_oid_t>;
+/** Hashable type for database and table oid pair */
+struct StatsStorageKey {
+  StatsStorageKey(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) : db_oid_(db_oid), table_oid_(table_oid) {}
+  catalog::db_oid_t db_oid_;
+  catalog::table_oid_t table_oid_;
+};
+/** Thread safe value for cache */
+struct StatsStorageValue {
+  explicit StatsStorageValue(std::unique_ptr<TableStats> table_stats) : table_stats_(std::move(table_stats)) {}
+  std::unique_ptr<TableStats> table_stats_;
+  common::SharedLatch shared_latch_;
+};
 }  // namespace noisepage::optimizer
 
 namespace std {  // NOLINT
@@ -32,9 +41,9 @@ struct hash<noisepage::optimizer::StatsStorageKey> {
    * @return the hash for the StatsStorageKey
    */
   size_t operator()(const noisepage::optimizer::StatsStorageKey &stats_storage_key) const {
-    noisepage::common::hash_t hash = noisepage::common::HashUtil::Hash(get<0>(stats_storage_key));
-    hash =
-        noisepage::common::HashUtil::CombineHashes(hash, noisepage::common::HashUtil::Hash(get<1>(stats_storage_key)));
+    noisepage::common::hash_t hash = noisepage::common::HashUtil::Hash(stats_storage_key.db_oid_);
+    hash = noisepage::common::HashUtil::CombineHashes(hash,
+                                                      noisepage::common::HashUtil::Hash(stats_storage_key.table_oid_));
     return hash;
   }
 };
@@ -52,7 +61,7 @@ struct equal_to<noisepage::optimizer::StatsStorageKey> {
    */
   bool operator()(const noisepage::optimizer::StatsStorageKey &lhs,
                   const noisepage::optimizer::StatsStorageKey &rhs) const {
-    return get<0>(lhs) == get<0>(rhs) && get<1>(lhs) == get<1>(rhs);
+    return lhs.db_oid_ == rhs.db_oid_ && lhs.table_oid_ == rhs.table_oid_;
   }
 };
 }  // namespace std
@@ -66,18 +75,32 @@ namespace noisepage::optimizer {
 class StatsStorage {
  public:
   /**
-   * Using given database and table ids,
-   * select a pointer to the TableStats objects in the table stats storage map.
+   * Returns a copy of the TableStats object for a specific table
+   *
+   * Currently all consumers of this method require their own copy of the statistics objects. Instead of them having to
+   * create their own copies, we just create a copy for them. This helps simplify thread safety and reduce contention.
+   * If a new consumer doesn't need a copy we may want to consider changing this to return a ManagedPointer to prevent
+   * unnecessary copying.
+   *
    * @param database_id - oid of database
    * @param table_id - oid of table
+   * @param column_oids - oids of columns
+   * @param accessor - catalog accessor
    * @return pointer to a TableStats object
    */
-  common::ManagedPointer<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                                                   catalog::CatalogAccessor *accessor);
+  std::unique_ptr<TableStats> GetTableStats(const catalog::db_oid_t database_id, const catalog::table_oid_t table_id,
+                                            catalog::CatalogAccessor *accessor);
 
-  common::ManagedPointer<ColumnStatsBase> GetColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                                                         catalog::col_oid_t column_oid,
-                                                         catalog::CatalogAccessor *accessor);
+  /**
+   * TODO(Joe)
+   * @param database_id - oid of database
+   * @param table_id - oid of table
+   * @param column_oid - oid of column
+   * @param accessor - catalog accessor
+   * @return pointer to a ColumnStats object
+   */
+  std::unique_ptr<ColumnStatsBase> GetColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                                                  catalog::col_oid_t column_oid, catalog::CatalogAccessor *accessor);
 
   /**
    * Mark column statistic objects in the cache as having stale information. Next time someone tries to retrieve this
@@ -92,25 +115,6 @@ class StatsStorage {
 
  private:
   /**
-   * Inserts a TableStats pointer in the table stats storage map.
-   * (note: you must std::move the TableStats object you pass in.)
-   * @param database_id - oid of database
-   * @param table_id - oid of table
-   * @param table_stats - TableStats object to be inserted
-   */
-  void InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                        std::unique_ptr<TableStats> table_stats);
-
-  /**
-   * Remove a TableStats object.
-   * @param database_id - oid of database
-   * @param table_id - oid of table
-   * @return whether TableStats object was successfully removed
-   */
-  void DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
-
- private:
-  /**
    * The following tests check to make sure the protected insert/delete functions work.
    */
   FRIEND_TEST(StatsStorageTests, GetTableStatsTest);
@@ -121,6 +125,38 @@ class StatsStorage {
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
    * TableStats pointers. This represents the storage for TableStats objects.
    */
-  std::unordered_map<StatsStorageKey, std::unique_ptr<TableStats>> table_stats_storage_;
+  std::unordered_map<StatsStorageKey, StatsStorageValue> table_stats_storage_;
+
+  /**
+   * latch for inserting into stats storage cache. Prevents one thread from accidentally replacing a TableStats object
+   * inserted by another thread for the same table.
+   */
+  std::mutex insert_latch_;
+
+  /**
+   * Inserts a TableStats pointer in the table stats storage map.
+   * @param database_id - oid of database
+   * @param table_id - oid of table
+   * @param table_stats - TableStats object to be inserted
+   */
+  void InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                        catalog::CatalogAccessor *accessor);
+
+  /**
+   * Remove a TableStats object.
+   * @param database_id - oid of database
+   * @param table_id - oid of table
+   * @return whether TableStats object was successfully removed
+   */
+  void DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
+
+  /**
+   * Update the stale columns of a TableStats
+   * @param database_id - oid of database
+   * @param table_id - oid of table
+   * @param accessor - catalog accessor
+   */
+  static void UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorageValue *stats_storage_value,
+                          catalog::CatalogAccessor *accessor);
 };
 }  // namespace noisepage::optimizer

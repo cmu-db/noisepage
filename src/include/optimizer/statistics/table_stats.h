@@ -73,25 +73,42 @@ class TableStats {
    * @param column_id - the oid of the column
    * @return the pointer to the ColumnStats object
    */
-  common::ManagedPointer<ColumnStatsBase> GetColumnStats(catalog::col_oid_t column_id);
+  common::ManagedPointer<ColumnStatsBase> GetColumnStats(catalog::col_oid_t column_id) const;
 
   /**
    * Retrieves all ColumnStats objects in the ColumnStats map
    * @return pointers to all ColumnStats objects
    */
-  std::vector<common::ManagedPointer<ColumnStatsBase>> GetColumnStats();
+  std::vector<common::ManagedPointer<ColumnStatsBase>> GetColumnStats() const;
 
   /**
-   * Removes the ColumnStats object for the given column oid in the ColumnStats map
+   * Removes and returns the ColumnStats object for the given column oid in the ColumnStats map
    * @param column_id - the oid of the column
+   * @return - the removed ColumnStats object
    */
-  void RemoveColumnStats(catalog::col_oid_t column_id);
+  std::unique_ptr<ColumnStatsBase> RemoveColumnStats(catalog::col_oid_t column_id);
 
   /**
    * Gets the number of rows in the table
    * @return the number of rows
    */
   size_t GetNumRows() const { return num_rows_; }
+
+  bool HasStaleValues() const {
+    return std::any_of(column_stats_.begin(), column_stats_.end(), [](const auto &it) { return it.second->IsStale(); });
+  }
+
+  /**
+   * Make a deep copy of TableStats
+   * @return a copy of the underlying object
+   */
+  std::unique_ptr<TableStats> Copy() {
+    std::vector<std::unique_ptr<ColumnStatsBase>> column_copies;
+    for (const auto &[col_oid, col_stat] : column_stats_) {
+      column_copies.emplace_back(col_stat->Copy());
+    }
+    return std::make_unique<TableStats>(database_id_, table_id_, &column_copies);
+  }
 
   /**
    * Serializes a table stats object

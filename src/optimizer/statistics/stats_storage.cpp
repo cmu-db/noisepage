@@ -12,67 +12,87 @@ namespace noisepage::optimizer {
  * large tables are filling up the cache when we only need some of the columns, we may want to revisit this so we only
  * cache the columns we use.
  */
-common::ManagedPointer<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
-                                                               const catalog::table_oid_t table_id,
-                                                               catalog::CatalogAccessor *accessor) {
-  StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
+std::unique_ptr<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
+                                                        const catalog::table_oid_t table_id,
+                                                        catalog::CatalogAccessor *accessor) {
+  StatsStorageKey stats_storage_key{database_id, table_id};
   auto table_it = table_stats_storage_.find(stats_storage_key);
 
-  if (table_it != table_stats_storage_.end()) {
-    auto table_stat = common::ManagedPointer(table_it->second);
-
-    // Update any stale columns
-    for (auto column_stat : table_stat->GetColumnStats()) {
-      if (column_stat->IsStale()) {
-        auto col_oid = column_stat->GetColumnID();
-        table_stat->RemoveColumnStats(col_oid);
-        auto new_column_stat = accessor->GetColumnStatistics(table_id, col_oid);
-        table_stat->AddColumnStats(std::move(new_column_stat));
-      }
-    }
-
-    return table_stat;
+  if (table_it == table_stats_storage_.end()) {
+    InsertTableStats(database_id, table_id, accessor);
+    table_it = table_stats_storage_.find(stats_storage_key);
   }
 
-  InsertTableStats(database_id, table_id, accessor->GetTableStatistics(table_id));
+  auto &stats_storage_value = table_it->second;
 
-  return common::ManagedPointer<TableStats>(table_stats_storage_.at(stats_storage_key));
+  UpdateStaleColumns(table_id, &stats_storage_value, accessor);
+
+  common::SharedLatch::ScopedSharedLatch table_latch{&stats_storage_value.shared_latch_};
+
+  return stats_storage_value.table_stats_->Copy();
 }
 
 /*
  * Currently when getting the statistics for a column we get and cache the statistics for the entire table. If we find
  * that large tables are filling up the cache, we may want to revisit this so we only cache the column requested.
  */
-common::ManagedPointer<ColumnStatsBase> StatsStorage::GetColumnStats(catalog::db_oid_t database_id,
-                                                                     catalog::table_oid_t table_id,
-                                                                     catalog::col_oid_t column_oid,
-                                                                     catalog::CatalogAccessor *accessor) {
+std::unique_ptr<ColumnStatsBase> StatsStorage::GetColumnStats(catalog::db_oid_t database_id,
+                                                              catalog::table_oid_t table_id,
+                                                              catalog::col_oid_t column_oid,
+                                                              catalog::CatalogAccessor *accessor) {
   auto table_stats = GetTableStats(database_id, table_id, accessor);
-  return common::ManagedPointer<ColumnStatsBase>(table_stats->GetColumnStats(column_oid));
+  NOISEPAGE_ASSERT(table_stats->HasColumnStats(column_oid), "Should have stats for all columns");
+  return table_stats->RemoveColumnStats(column_oid);
 }
 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                   const std::vector<catalog::col_oid_t> &col_ids) {
-  StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
+  StatsStorageKey stats_storage_key{database_id, table_id};
   NOISEPAGE_ASSERT(table_stats_storage_.count(stats_storage_key) != 0,
                    "There is no TableStats object with the given oids");
   for (const auto &col_id : col_ids) {
-    table_stats_storage_.at(stats_storage_key)->GetColumnStats(col_id)->MarkStale();
+    table_stats_storage_.at(stats_storage_key).table_stats_->GetColumnStats(col_id)->MarkStale();
   }
 }
 
 void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                                    std::unique_ptr<TableStats> table_stats) {
-  StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
-  NOISEPAGE_ASSERT(table_stats_storage_.count(stats_storage_key) == 0,
-                   "There already exists a TableStats object with the given oids.");
-  table_stats_storage_.emplace(stats_storage_key, std::move(table_stats));
+                                    catalog::CatalogAccessor *accessor) {
+  std::unique_lock<std::mutex> latch(insert_latch_);
+  StatsStorageKey stats_storage_key{database_id, table_id};
+  if (table_stats_storage_.count(stats_storage_key) == 0) {
+    auto table_stats = accessor->GetTableStatistics(table_id);
+    table_stats_storage_.emplace(stats_storage_key, std::move(table_stats));
+  }
 }
 
 void StatsStorage::DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id) {
-  StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
+  // TODO(Joe)
+  /*StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
   NOISEPAGE_ASSERT(table_stats_storage_.count(stats_storage_key) != 0,
                    "There is no TableStats object with the given oids");
-  table_stats_storage_.erase(table_stats_storage_.find(stats_storage_key));
+  table_stats_storage_.erase(table_stats_storage_.find(stats_storage_key));*/
 }
+
+void StatsStorage::UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorageValue *stats_storage_value,
+                                      catalog::CatalogAccessor *accessor) {
+  {
+    common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value.shared_latch_};
+    if (!stats_storage_value->table_stats_->HasStaleValues()) {
+      return;
+    }
+  }
+
+  common::SharedLatch::ScopedExclusiveLatch exclusive_table_latch{&stats_storage_value.shared_latch_};
+
+  auto &table_stats = stats_storage_value->table_stats_;
+  for (auto column_stat : table_stats->GetColumnStats()) {
+    if (column_stat->IsStale()) {
+      auto col_oid = column_stat->GetColumnID();
+      table_stats->RemoveColumnStats(col_oid);
+      auto new_column_stat = accessor->GetColumnStatistics(table_id, col_oid);
+      table_stats->AddColumnStats(std::move(new_column_stat));
+    }
+  }
+}
+
 }  // namespace noisepage::optimizer

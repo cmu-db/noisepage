@@ -32,7 +32,7 @@ static constexpr double DEFAULT_SELECTIVITY_VALUE = 0.5;
  */
 class SelectivityUtil {
  public:
-  static double ComputeSelectivity(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition);
+  static double ComputeSelectivity(const TableStats &table_stats, const ValueCondition &condition);
 
   /**
    * Compute selectivity of a condition
