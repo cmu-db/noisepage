@@ -339,54 +339,13 @@ statement ok
 DROP TABLE insert17;
 
 statement ok
-CREATE TABLE insert16(a INTEGER, b VARCHAR(100));
-
-statement ok
-CREATE TABLE insert17(a INTEGER, b VARCHAR(100));
-
-statement ok
-INSERT INTO insert16(a,b) SELECT * FROM insert17;
-
-query IT rowsort
-SELECT * FROM insert16;
-----
-
-statement ok
-INSERT INTO insert17(a,b) VALUES (24, 'beta fish'), (42, 'Joseph');
-
-query IT rowsort
-SELECT * FROM insert17;
-----
-24
-beta fish
-42
-Joseph
-
-statement ok
-INSERT INTO insert16(a, b) SELECT * FROM insert17;
-
-query IT rowsort
-SELECT * FROM insert16;
-----
-24
-beta fish
-42
-Joseph
-
-statement ok
-DROP TABLE insert16;
-
-statement ok
-DROP TABLE insert17;
-
-statement ok
 CREATE TABLE insert18(a INTEGER, b VARCHAR(100));
 
 statement ok
 CREATE TABLE insert19(a INTEGER, b VARCHAR(100));
 
 statement ok
-INSERT INTO insert18 SELECT * FROM insert19;
+INSERT INTO insert18(a,b) SELECT * FROM insert19;
 
 query IT rowsort
 SELECT * FROM insert18;
@@ -404,7 +363,7 @@ beta fish
 Joseph
 
 statement ok
-INSERT INTO insert18 SELECT * FROM insert19;
+INSERT INTO insert18(a, b) SELECT * FROM insert19;
 
 query IT rowsort
 SELECT * FROM insert18;
@@ -421,25 +380,66 @@ statement ok
 DROP TABLE insert19;
 
 statement ok
-CREATE TABLE insert20 (id integer, val integer DEFAULT 42);
+CREATE TABLE insert20(a INTEGER, b VARCHAR(100));
 
 statement ok
-CREATE TABLE insert21 (a integer);
+CREATE TABLE insert21(a INTEGER, b VARCHAR(100));
 
 statement ok
-INSERT INTO insert21 VALUES (666);
+INSERT INTO insert20 SELECT * FROM insert21;
 
-statement ok
-INSERT INTO insert20 (id) SELECT * FROM insert21;
-
-query II rowsort
+query IT rowsort
 SELECT * FROM insert20;
 ----
-666
+
+statement ok
+INSERT INTO insert21(a,b) VALUES (24, 'beta fish'), (42, 'Joseph');
+
+query IT rowsort
+SELECT * FROM insert21;
+----
+24
+beta fish
 42
+Joseph
+
+statement ok
+INSERT INTO insert20 SELECT * FROM insert21;
+
+query IT rowsort
+SELECT * FROM insert20;
+----
+24
+beta fish
+42
+Joseph
 
 statement ok
 DROP TABLE insert20;
 
 statement ok
 DROP TABLE insert21;
+
+statement ok
+CREATE TABLE insert22 (id integer, val integer DEFAULT 42);
+
+statement ok
+CREATE TABLE insert23 (a integer);
+
+statement ok
+INSERT INTO insert23 VALUES (666);
+
+statement ok
+INSERT INTO insert22 (id) SELECT * FROM insert23;
+
+query II rowsort
+SELECT * FROM insert22;
+----
+666
+42
+
+statement ok
+DROP TABLE insert22;
+
+statement ok
+DROP TABLE insert23;
