@@ -351,6 +351,21 @@ else ()
     message(STATUS "Colorized output: OFF (unknown compiler ${CMAKE_CXX_COMPILER_ID})")
 endif ()
 
+if ("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    # Num Logical Cores = Compile Pool + Link Pool (1) + 1
+    # The extra 1 at the end is there for good luck.
+    # A pool controls the _maximum_ parallelism of the jobs assigned to the pool.
+
+    # Force single-threaded linking because linking can consume a ton of memory.
+    cmake_host_system_information(RESULT NINJA_COMPILE_POOL_SIZE QUERY "NUMBER_OF_LOGICAL_CORES")
+    set(NINJA_LINK_POOL_SIZE 1)
+    math(EXPR NINJA_COMPILE_POOL_SIZE "${NINJA_COMPILE_POOL_SIZE} - ${NINJA_LINK_POOL_SIZE} - 1")
+    set_property(GLOBAL PROPERTY JOB_POOLS link_pool=${NINJA_LINK_POOL_SIZE} compile_pool=${NINJA_COMPILE_POOL_SIZE})
+    # Set linking and compiling limits globally for all targets by modifying the default pool options.
+    set(CMAKE_JOB_POOL_COMPILE compile_pool)
+    set(CMAKE_JOB_POOL_LINK link_pool)
+    message(STATUS "Ninja detected. Global pools: link=${NINJA_LINK_POOL_SIZE} compile=${NINJA_COMPILE_POOL_SIZE}")
+endif()
 
 #######################################################################################################################
 # HEADER Dependencies for finding dependencies. : )
