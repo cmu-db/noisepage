@@ -1222,9 +1222,8 @@ ast::Expr *CodeGen::CSVReaderClose(ast::Expr *reader) {
   return call;
 }
 
-ast::Expr *CodeGen::StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid,
+ast::Expr *CodeGen::StorageInterfaceInit(ast::Expr *si_ptr, ast::Expr *exec_ctx, uint32_t table_oid,
                                          ast::Identifier col_oids, bool need_indexes) {
-  ast::Expr *si_ptr = AddressOf(si);
   ast::Expr *table_oid_expr = Const64(static_cast<int64_t>(table_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
   ast::Expr *need_indexes_expr = ConstBool(need_indexes);

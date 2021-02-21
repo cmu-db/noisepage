@@ -1358,15 +1358,15 @@ class CodeGen {
   [[nodiscard]] ast::Expr *CSVReaderClose(ast::Expr *reader);
 
   /**
-   * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
-   * @param si The storage interface to initialize
+   * Call \@storageInterfaceInit(si_ptr, execCtx, table_oid, col_oids, need_indexes)
+   * @param si_ptr A pointer to the storage interface to initialize.
    * @param exec_ctx The execution context that we are running in.
    * @param table_oid The oid of the table being accessed.
    * @param col_oids The identifier of the array of column oids to access.
    * @param need_indexes Whether the storage interface will need to use indexes
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids,
+  ast::Expr *StorageInterfaceInit(ast::Expr *si_ptr, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids,
                                   bool need_indexes);
 
   // ---------------------------------------------------------------------------

@@ -38,7 +38,7 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Initialize the counters.
+   * Initialize the storage interface and counters.
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
@@ -51,6 +51,13 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
+
+  /**
+   * Tear down the storage interface.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * @return The child's output at the given index.
@@ -98,8 +105,8 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   // Gets all the column oids in a schema.
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema);
 
-  // Storage interface inserter struct which we use to insert.
-  ast::Identifier inserter_;
+  // Storage interface for inserts.
+  StateDescriptor::Entry si_inserter_;
 
   // Projected row that the inserter spits out for us to insert with.
   ast::Identifier insert_pr_;
