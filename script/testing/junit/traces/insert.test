@@ -333,10 +333,10 @@ SELECT * FROM insert16;
 666
 
 statement ok
-DROP TABLE insert16
+DROP TABLE insert16;
 
 statement ok
-DROP TABLE insert17
+DROP TABLE insert17;
 
 statement ok
 CREATE TABLE insert16(a INTEGER, b VARCHAR(100));
