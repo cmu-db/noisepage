@@ -3643,5 +3643,4 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   executable->Run(common::ManagedPointer(exec_ctx), MODE); checker.CheckCorrectness();
 }
 */
-
 }  // namespace noisepage::execution::compiler::test

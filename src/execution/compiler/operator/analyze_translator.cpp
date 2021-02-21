@@ -60,7 +60,7 @@ void AnalyzeTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
 
   NOISEPAGE_ASSERT(plan.GetChild(0)->GetOutputSchema()->NumColumns() ==
                        catalog::postgres::PgStatistic::NUM_ANALYZE_AGGREGATES * plan.GetColumnOids().size() + 1,
-                   fmt::format("We should 1 aggregate for the number of rows and then {} aggregates per column",
+                   fmt::format("We should have 1 aggregate for the number of rows and then {} aggregates per column",
                                catalog::postgres::PgStatistic::NUM_ANALYZE_AGGREGATES)
                        .c_str());
 
