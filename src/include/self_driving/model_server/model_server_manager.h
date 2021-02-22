@@ -54,6 +54,7 @@ class ModelType {
         return "MINI_RUNNER";
       default:
         NOISEPAGE_ASSERT(false, "Invalid ModelType::Type");
+        return "";
     }
   }
 };
