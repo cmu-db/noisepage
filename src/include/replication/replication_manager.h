@@ -82,6 +82,8 @@ class ReplicationManager {
   };
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
+  /** Maximum wait time for synchronous replication. */
+  static constexpr std::chrono::seconds REPLICATION_MAX_BLOCKING_WAIT_TIME = std::chrono::seconds(10);
 
   /**
    * On construction, the replication manager establishes a listen destination on the messenger and connect to all the

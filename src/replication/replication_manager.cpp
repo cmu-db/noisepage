@@ -127,7 +127,10 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
     if (block) {
       std::unique_lock<std::mutex> lock(blocking_send_mutex_);
       // If the caller requested to block until the operation was completed, the thread waits.
-      blocking_send_cvar_.wait(lock, [&completed] { return completed; });
+      if (!blocking_send_cvar_.wait_for(lock, REPLICATION_MAX_BLOCKING_WAIT_TIME, [&completed] { return completed; })) {
+        // TODO(WAN): Additionally, this is hackily a messenger exception so that it gets handled by the catch.
+        throw MESSENGER_EXCEPTION("TODO(WAN): Handle a replica dying in synchronous replication.");
+      }
       lock.unlock();
     }
   } catch (const MessengerException &e) {
