@@ -157,6 +157,6 @@ class StatsStorage {
    * @param accessor - catalog accessor
    */
   static void UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorageValue *stats_storage_value,
-                          catalog::CatalogAccessor *accessor);
+                                 catalog::CatalogAccessor *accessor);
 };
 }  // namespace noisepage::optimizer

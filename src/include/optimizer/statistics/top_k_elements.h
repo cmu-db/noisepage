@@ -57,6 +57,17 @@ class TopKElements {
   TopKElements(const TopKElements &other) : entries_(other.entries_), sketch_(other.sketch_) {}
 
   /**
+   * Copy assignment operator
+   * @param other TopKElements to copy
+   * @return
+   */
+  TopKElements &operator=(const TopKElements &other) {
+    entries_ = other.entries_;
+    sketch_ = other.sketch_;
+    return *this;
+  }
+
+  /**
    * Increase the count for the given key by the specified delta.
    * @param key the key to target
    * @param delta the amount to increase the key's count

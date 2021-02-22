@@ -79,6 +79,17 @@ class Histogram {
     Bin(const Bin &other) : point_(other.point_), count_(other.count_) {}
 
     /**
+     * Copy assignment operator
+     * @param other Bin to copy
+     * @return this after copying
+     */
+    Bin &operator=(const Bin &other) {
+      point_ = other.point_;
+      count_ = other.count_;
+      return *this;
+    }
+
+    /**
      * Merge the count from the given bin into this bin.
      * The point will be a weighted average of the two bins' points.
      * @param bin

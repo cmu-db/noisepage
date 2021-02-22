@@ -69,9 +69,81 @@ class ColumnStats : public ColumnStatsBase {
   ColumnStats() = default;
 
   /**
+   * Copy constructor
+   * @param other ColumnStats to copy
+   */
+  ColumnStats(const ColumnStats &other)
+      : database_id_(other.database_id_),
+        table_id_(other.table_id_),
+        column_id_(other.column_id_),
+        num_rows_(other.num_rows_),
+        frac_null_(other.frac_null_),
+        distinct_values_(other.distinct_values_),
+        type_id_(other.type_id_),
+        stale_(other.stale_) {
+    top_k_ = std::make_unique<TopKElements<CppType>>(*other.top_k_);
+    histogram_ = std::make_unique<Histogram<CppType>>(*other.histogram_);
+  }
+
+  /**
+   * Move constructor
+   * @param other ColumnStats to move
+   */
+  ColumnStats(const ColumnStats &&other)
+      : database_id_(other.database_id_),
+        table_id_(other.table_id_),
+        column_id_(other.column_id_),
+        num_rows_(other.num_rows_),
+        frac_null_(other.frac_null_),
+        distinct_values_(other.distinct_values_),
+        type_id_(other.type_id_),
+        stale_(other.stale_) {
+    top_k_ = std::move(other.top_k_);
+    histogram_ = std::move(other.histogram_);
+  }
+
+  /**
    * Default destructor
    */
   ~ColumnStats() override = default;
+
+  /**
+   * Copy assignment operator
+   * @param other ColumnStats to copy
+   * @return this after copying
+   */
+  ColumnStats &operator=(const ColumnStats &other) {
+    database_id_ = other.database_id_;
+    table_id_ = other.table_id_;
+    column_id_ = other.column_id_;
+    num_rows_ = other.num_rows_;
+    frac_null_ = other.frac_null_;
+    distinct_values_ = other.distinct_values_;
+    top_k_ = std::make_unique<TopKElements<CppType>>(*other.top_k_);
+    histogram_ = std::make_unique<Histogram<CppType>>(*other.histogram_);
+    type_id_ = other.type_id_;
+    stale_ = other.stale_;
+    return *this;
+  }
+
+  /**
+   * Move assignment operator
+   * @param other ColumnStats to copy
+   * @return this after moving
+   */
+  ColumnStats &operator=(const ColumnStats &&other) {
+    database_id_ = other.database_id_;
+    table_id_ = other.table_id_;
+    column_id_ = other.column_id_;
+    num_rows_ = other.num_rows_;
+    frac_null_ = other.frac_null_;
+    distinct_values_ = other.distinct_values_;
+    top_k_ = std::move(other.top_k_);
+    histogram_ = std::move(other.histogram_);
+    type_id_ = other.type_id_;
+    stale_ = other.stale_;
+    return *this;
+  }
 
   /**
    * Gets the column oid of the column
@@ -132,11 +204,7 @@ class ColumnStats : public ColumnStatsBase {
    * Make a copy of ColumnStats
    * @return a copy of the underlying object
    */
-  std::unique_ptr<ColumnStatsBase> Copy() override {
-    return std::make_unique<ColumnStats<T>>(database_id_, table_id_, column_id_, num_rows_, frac_null_,
-                                            distinct_values_, std::make_unique<TopKElements<CppType>>(*top_k_),
-                                            std::make_unique<Histogram<CppType>>(*histogram_), type_id_);
-  }
+  std::unique_ptr<ColumnStatsBase> Copy() override { return std::make_unique<ColumnStats<T>>(*this); }
 
  private:
   /**

@@ -58,19 +58,31 @@ class CountMinSketch {
 
   /**
    * Move constructor
-   * @param other sketch to move into this
+   * @param other CountMinSketch to move into this
    */
   CountMinSketch(CountMinSketch &&other) noexcept : total_count_(std::move(other.total_count_)) {
     sketch_.copy(other.sketch_);
   }
 
   /**
+   * Copy assignment operator
+   * @param other CountMinSketch to copy
+   * @return this after copying
+   */
+  CountMinSketch &operator=(CountMinSketch &other) {
+    total_count_ = other.total_count_;
+    sketch_.copy(other.sketch_);
+    return *this;
+  }
+
+  /**
    * Move assignment operator
-   * @param other sketch to move into this
+   * @param other CountMinSketch to move into this
    * @return this after moving
    */
   CountMinSketch &operator=(CountMinSketch &&other) noexcept {
     total_count_ = std::move(other.total_count_);
+    // No good way to move the sketch so we just copy it
     sketch_.copy(other.sketch_);
     return *this;
   }
