@@ -72,8 +72,6 @@ class CountMinSketch {
   /**
    * Increase the count for a key by a given amount.
    * The key does not need to exist in the sketch first.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method.
    * @param key the key to increment the count for.
    * @param delta how much to increment the key's count.
    */
@@ -84,8 +82,6 @@ class CountMinSketch {
 
   /**
    * Decrease the count for a key by a given amount.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method.
    * @param key the key to decrement the count for
    * @param delta how much to decrement the key's count.
    */
@@ -97,8 +93,6 @@ class CountMinSketch {
   /**
    * Remove the given key from the sketch. This attempts to set
    * the value of the key in the sketch to zero.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method.
    * @param key
    */
   void Remove(const KeyType &key) {
@@ -108,8 +102,6 @@ class CountMinSketch {
 
   /**
    * Compute the approximate count for the given key.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method.
    * @param key the key to get the count for.
    * @return the approximate count number for the key.
    */
@@ -374,7 +366,7 @@ class CountMinSketch {
       std::string file_name =
           "noisepage_" + std::to_string(reinterpret_cast<const size_t>(reinterpret_cast<const void *>(this)));
       temp_dir.append(file_name);
-      *fd = storage::PosixIoWrappers::Open(temp_dir.c_str(), O_CREAT | O_RDWR, S_IRWXU);
+      *fd = storage::PosixIoWrappers::Open(temp_dir.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
       return temp_dir.string();
     } catch (std::filesystem::filesystem_error &e) {
       throw OPTIMIZER_EXCEPTION(fmt::format("Failed to get temporary directory path: {}", e.what()));

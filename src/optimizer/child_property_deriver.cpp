@@ -258,7 +258,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropView *drop_view) {
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Analyze *analyze) {
-  // Analyze does not provide any property
+  // Analyze does not provide any properties
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{new PropertySet()});
 }
 
