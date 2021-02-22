@@ -27,18 +27,17 @@ class TPCHRunner : public benchmark::Fixture {
   tpch::Workload::BenchmarkType type_ = tpch::Workload::BenchmarkType::TPCH;
 
   void SetUp(const benchmark::State &state) final {
-    auto db_main_builder =
-        DBMain::Builder()
-            .SetUseGC(true)
-            .SetUseCatalog(true)
-            .SetUseGCThread(true)
-            .SetUseMetrics(true)
-            .SetUseMetricsThread(true)
-            .SetBlockStoreSize(1000000)
-            .SetBlockStoreReuse(1000000)
-            .SetRecordBufferSegmentSize(1000000)
-            .SetRecordBufferSegmentReuse(1000000)
-            .SetBytecodeHandlersPath(common::FindFileFrom("bytecode_handlers_ir.bc", common::GetProjectRootPath()));
+    auto db_main_builder = DBMain::Builder()
+                               .SetUseGC(true)
+                               .SetUseCatalog(true)
+                               .SetUseGCThread(true)
+                               .SetUseMetrics(true)
+                               .SetUseMetricsThread(true)
+                               .SetBlockStoreSize(1000000)
+                               .SetBlockStoreReuse(1000000)
+                               .SetRecordBufferSegmentSize(1000000)
+                               .SetRecordBufferSegmentReuse(1000000)
+                               .SetBytecodeHandlersPath(common::GetBinaryArtifactPath("bytecode_handlers_ir.bc"));
 
     db_main_ = db_main_builder.Build();
 
