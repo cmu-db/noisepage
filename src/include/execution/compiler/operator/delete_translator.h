@@ -36,7 +36,9 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
-  /** Initialize the storage interface and counters. */
+  /**
+   * Initialize the counters.
+   */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
@@ -46,9 +48,6 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
-
-  /** Tear down the storage interface. */
-  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /** Record the counters. */
   void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
@@ -85,8 +84,8 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
 
  private:
-  // Storage interface for deletes.
-  StateDescriptor::Entry si_deleter_;
+  // Deleter storage interface struct.
+  ast::Identifier deleter_;
 
   // Column oids of the table we are deleting from.
   ast::Identifier col_oids_;
