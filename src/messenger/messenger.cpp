@@ -265,6 +265,19 @@ class ZmqUtil {
   }
 };
 
+/** Utility functions for Messenger maintenance. */
+class MessengerUtil {
+ public:
+  /** Delete the localhost IPC file. */
+  static void DeleteLocalIPC(int16_t port) {
+    ConnectionDestination dest_ipc = Messenger::GetEndpointIPC("localhost", port);
+    const char *ipc_filename_hack = dest_ipc.GetDestination() + std::string("ipc://").length();
+    if (0 == std::remove(ipc_filename_hack)) {
+      MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger deleted IPC file: {}", ::getpid(), ipc_filename_hack));
+    }
+  }
+};
+
 }  // namespace noisepage::messenger
 
 namespace noisepage::messenger {
@@ -341,6 +354,7 @@ Messenger::Messenger(const uint16_t port, std::string identity) : port_(port), i
     MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger listening: {}", ::getpid(), dest_tcp.GetDestination()));
 
     ConnectionDestination dest_ipc = GetEndpointIPC("localhost", port_);
+    MessengerUtil::DeleteLocalIPC(port_);
     zmq_default_socket_->bind(dest_ipc.GetDestination());
     MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger listening: {}", ::getpid(), dest_ipc.GetDestination()));
 
@@ -378,6 +392,7 @@ void Messenger::Terminate() {
   if (is_messenger_running_) {
     // Shut down the ZeroMQ context. This causes all existing sockets to abort with ETERM.
     zmq_ctx_->shutdown();
+    MessengerUtil::DeleteLocalIPC(port_);
     MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger terminated.", ::getpid()));
   }
   is_messenger_running_ = false;

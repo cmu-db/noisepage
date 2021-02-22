@@ -265,7 +265,7 @@ class Messenger : public common::DedicatedThreadTask {
   friend ConnectionRouter;
 
   static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
-  static constexpr const char *MESSENGER_DEFAULT_IPC = "/tmp/noisepage-ipc-{}";
+  static constexpr const char *MESSENGER_DEFAULT_IPC = "./noisepage-ipc-{}";
   static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
   static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::seconds(2);
   /** The maximum timeout that a send or recv operation is allowed to block for. */
