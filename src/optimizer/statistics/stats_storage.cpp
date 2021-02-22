@@ -76,13 +76,13 @@ void StatsStorage::DeleteTableStats(catalog::db_oid_t database_id, catalog::tabl
 void StatsStorage::UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorageValue *stats_storage_value,
                                       catalog::CatalogAccessor *accessor) {
   {
-    common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value.shared_latch_};
+    common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
     if (!stats_storage_value->table_stats_->HasStaleValues()) {
       return;
     }
   }
 
-  common::SharedLatch::ScopedExclusiveLatch exclusive_table_latch{&stats_storage_value.shared_latch_};
+  common::SharedLatch::ScopedExclusiveLatch exclusive_table_latch{&stats_storage_value->shared_latch_};
 
   auto &table_stats = stats_storage_value->table_stats_;
   for (auto column_stat : table_stats->GetColumnStats()) {
