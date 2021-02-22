@@ -18,23 +18,15 @@ TODO:
     - API and interaction with Pilot
 """
 import argparse
-import json
 import pickle
-from functools import lru_cache
-from typing import Dict, List, Optional, Tuple, Union
 
-import numpy as np
-
-from ..testing.self_driving.constants import (DEFAULT_ITER_NUM,
-                                              DEFAULT_QUERY_TRACE_FILE,
-                                              DEFAULT_TPCC_WEIGHTS,
-                                              DEFAULT_WORKLOAD_PATTERN)
-from ..testing.self_driving.forecast import gen_oltp_trace
-from ..testing.util.constants import LOG
-from .forecasting.cluster import QueryCluster
-from .forecasting.data_loader import DataLoader
-from .forecasting.models import ForecastModel, get_models
-from .forecasting.forecaster import Forecaster, parse_model_config
+from ...testing.self_driving.constants import (DEFAULT_ITER_NUM,
+                                               DEFAULT_QUERY_TRACE_FILE,
+                                               DEFAULT_TPCC_WEIGHTS,
+                                               DEFAULT_WORKLOAD_PATTERN)
+from ...testing.self_driving.forecast import gen_oltp_trace
+from ...testing.util.constants import LOG
+from forecaster import Forecaster, parse_model_config
 
 # Interval duration for aggregation in microseconds
 INTERVAL_MICRO_SEC = 500000
@@ -119,7 +111,6 @@ argp.add_argument(
     help="Model to be used for forecasting"
 )
 
-
 if __name__ == "__main__":
     args = argp.parse_args()
 
@@ -134,7 +125,7 @@ if __name__ == "__main__":
         models_kwargs = parse_model_config(args.models, args.models_config)
 
         forecaster = Forecaster(
-            trace_file=trace_file,
+            trace_file=args.trace_file,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,
             eval_size=args.eval_size,

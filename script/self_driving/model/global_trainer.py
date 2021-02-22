@@ -8,12 +8,12 @@ import tqdm
 import random
 from sklearn import model_selection
 
-from model import model
-from model import global_model_config
-from model.info import data_info
-from model.util import io_util, logging_util
-from model.training_util import global_data_constructing_util, result_writing_util
-from model.type import Target
+import model
+import global_model_config
+from info import data_info
+from util import io_util, logging_util
+from training_util import global_data_constructing_util, result_writing_util
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)

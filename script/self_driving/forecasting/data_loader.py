@@ -6,7 +6,7 @@ query trace producer.
 
 import logging
 import csv
-from typing import Dict, Tuple
+from typing import Dict
 import numpy as np
 
 

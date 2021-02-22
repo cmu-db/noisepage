@@ -1,6 +1,3 @@
-import math
-
-
 def convert_string_to_numeric(value):
     """Break up a string that contains ";" to a list of values
 

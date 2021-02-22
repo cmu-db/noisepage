@@ -34,9 +34,7 @@ from pathlib import Path
 import numpy as np
 import zmq
 
-from model import model
-from model.data_class import opunit_data
-from mini_trainer import MiniTrainer
+from model.mini_trainer import MiniTrainer
 from model.util import logging_util
 from model.type import OpUnit
 from model.info import data_info

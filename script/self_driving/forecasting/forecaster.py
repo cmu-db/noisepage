@@ -2,9 +2,10 @@ import logging
 import numpy as np
 from typing import List, Tuple, Dict, Optional, Union
 from functools import lru_cache
-from .models import ForecastModel, get_models
-from .cluster import QueryCluster
-from .data_loader import DataLoader
+from models import ForecastModel, get_models
+from cluster import QueryCluster
+from data_loader import DataLoader
+
 
 class Forecaster:
     """

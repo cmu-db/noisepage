@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import logging
 
-from ..data_class import data_util
+import data_util
 from ..info import data_info
 from .. import global_model_config
 from ..type import ConcurrentCountingMode, OpUnit, Target, ExecutionFeature
