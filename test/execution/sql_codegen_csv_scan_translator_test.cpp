@@ -20,11 +20,15 @@ using namespace std::chrono_literals;  // NOLINT
 class CSVScanTranslatorTest : public SqlBasedTest {
  protected:
   void SetUp() override { SqlBasedTest::SetUp(); }
-  static void SetUpTestSuite() { noisepage::execution::vm::LLVMEngine::Initialize(); }
+  static void SetUpTestSuite() {
+    auto settings = std::make_unique<noisepage::execution::vm::LLVMEngine::Settings>(bytecode_handlers_path_);
+    noisepage::execution::vm::LLVMEngine::Initialize(std::move(settings));
+  }
   static void TearDownTestSuite() { noisepage::execution::vm::LLVMEngine::Shutdown(); }
 
  private:
   tbb::task_scheduler_init anonymous_;
+  static constexpr const char* const bytecode_handlers_path_{"../bin/bytecode_handlers_ir.bc"};
 };
 
 // NOLINTNEXTLINE

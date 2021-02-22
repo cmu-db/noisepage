@@ -301,7 +301,10 @@ class DBMain {
    */
   class ExecutionLayer {
    public:
-    ExecutionLayer();
+    /**
+     * @param bytecode_handlers_path path to the bytecode handlers bitcode file
+     */
+    explicit ExecutionLayer(const std::string &bytecode_handlers_path);
     ~ExecutionLayer();
   };
 
@@ -406,7 +409,7 @@ class DBMain {
 
       std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
       if (use_execution_) {
-        execution_layer = std::make_unique<ExecutionLayer>();
+        execution_layer = std::make_unique<ExecutionLayer>(bytecode_handlers_path_);
       }
 
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
@@ -773,6 +776,15 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value the new path to the bytecode handler bitcode file
+     * @return self reference for chaining
+     */
+    Builder &SetBytecodeHandlersPath(const std::string &value) {
+      bytecode_handlers_path_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -807,6 +819,7 @@ class DBMain {
     uint64_t pilot_interval_ = 1e7;
     uint64_t workload_forecast_interval_ = 1e7;
     std::string model_save_path_;
+    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -884,6 +897,7 @@ class DBMain {
       execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
+      bytecode_handlers_path_ = settings_manager->GetString(settings::Param::bytecode_handlers_path);
 
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);

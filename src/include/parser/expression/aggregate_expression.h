@@ -54,6 +54,9 @@ class AggregateExpression : public AbstractExpression {
   /** @return true if we should eliminate duplicate values in aggregate function calculations */
   bool IsDistinct() const { return distinct_; }
 
+  /** @return true if the aggregator allocates memory that needs to be cleaned up, false otherwise */
+  bool RequiresCleanup() const;
+
   /**
    * Derive the expression type of the current expression.
    */

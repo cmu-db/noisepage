@@ -91,12 +91,12 @@ class NoisePageServer:
                 LOG.info(f'DB process is verified as running in {round(now - start_time, 2)} sec.')
                 self.db_process = db_process
                 return True
-            else:
+            elif log_line.strip() != '':
                 logs.append(log_line)
 
             if now - start_time >= 60:
                 LOG.error('\n'.join(logs))
-                LOG.error(f'DBMS [PID={db_process.pid} took more than 60 seconds to start up. Killing.')
+                LOG.error(f'DBMS [PID={db_process.pid}] took more than 60 seconds to start up. Killing.')
                 db_process.kill()
                 return False
 
@@ -122,8 +122,23 @@ class NoisePageServer:
 
         return_code = self.db_process.poll()
         if return_code is None:
-            self.db_process.terminate()
-            LOG.info("DBMS stopped successfully.")
+            try:
+                # Try to kill the process politely and wait for 60 seconds.
+                self.db_process.terminate()
+                self.db_process.wait(60)
+            except subprocess.TimeoutExpired:
+                # Otherwise, try to kill the process forcefully and wait another 60 seconds.
+                # If the process hasn't died yet, then something terrible has happened and we raise an error.
+                self.db_process.kill()
+                self.db_process.wait(60)
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+            finally:
+                unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
+                if os.path.exists(unix_socket):
+                    os.remove(unix_socket)
+                    LOG.info(f"Removing: {unix_socket}")
+            LOG.info(f"DBMS stopped successfully, code: {self.db_process.returncode}")
             self.db_process = None
         else:
             msg = f"DBMS already terminated, code: {self.db_process.returncode}"
