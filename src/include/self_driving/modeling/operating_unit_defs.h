@@ -110,6 +110,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
   LIMIT,
   /**
    * ANALYZE
+   * We don't model ANALYZE but we keep this OpUnit type since there's an ANALYZE translator (which requires an OpUnit
+   * type). We skip this OpUnit in the OperatingUnitRecorder.
    */
   ANALYZE,
 
