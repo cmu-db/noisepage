@@ -13,7 +13,7 @@ std::string GetBuildRootPath();
 /**
  * Determine the absolute path to the build artifact identified by `name`.
  *
- * By using this function, you are expressing the assumption that the artifact 
+ * By using this function, you are expressing the assumption that the artifact
  * identified by `name` is located in the binary directory for the current build.
  * In other words, `name` is located at: `GetBuildRootPath()/bin/<name>`.
  *
