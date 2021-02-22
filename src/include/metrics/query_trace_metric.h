@@ -10,7 +10,9 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "common/json.h"
 #include "common/managed_pointer.h"
+#include "common/reservoir_sampling.h"
 #include "execution/exec_defs.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
@@ -19,12 +21,60 @@
 
 namespace noisepage::metrics {
 
+class QueryTraceMetadata {
+ public:
+  explicit QueryTraceMetadata() = default;
+
+  void RecordQueryText(execution::query_id_t qid, catalog::db_oid_t db_oid, std::string text, std::string param_type) {
+    if (qid_db_map_.find(qid) == qid_db_map_.end()) {
+      qid_db_map_[qid] = db_oid;
+      qid_text_[qid] = text;
+      qid_param_types_[qid] = param_type;
+    }
+    qid_freqs_[qid]++;
+  }
+
+  void RecordQueryParamSample(execution::query_id_t qid, std::string query_param);
+
+  void Merge(QueryTraceMetadata &other) {
+    qid_db_map_.merge(other.qid_db_map_);
+    qid_text_.merge(other.qid_text_);
+    qid_param_samples_.merge(other.qid_param_samples_);
+    for (auto &it : other.qid_freqs_) {
+      qid_freqs_[it.first] += it.second;
+    }
+
+    for (auto &it : other.qid_param_samples_) {
+      // These are duplicate keys so need to merge reservoir
+      if (qid_param_samples_.find(it.first) != qid_param_samples_.end()) {
+        qid_param_samples_.find(it.first)->second.Merge(it.second);
+      }
+    }
+  }
+
+  void Reset() {
+    qid_db_map_.clear();
+    qid_text_.clear();
+    qid_param_samples_.clear();
+    qid_param_samples_.clear();
+  }
+
+ private:
+  std::unordered_map<execution::query_id_t, catalog::db_oid_t> qid_db_map_;
+  std::unordered_map<execution::query_id_t, std::string> qid_text_;
+  std::unordered_map<execution::query_id_t, std::string> qid_param_types_;
+  std::unordered_map<execution::query_id_t, uint64_t> qid_freqs_;
+  std::unordered_map<execution::query_id_t, common::ReservoirSampling<std::string>> qid_param_samples_;
+};
+
 /**
  * Raw data object for holding stats collected at logging level
  */
 class QueryTraceMetricRawData : public AbstractRawData {
  public:
-  void Aggregate(AbstractRawData *const other) override {
+  static uint64_t QUERY_PARAM_SAMPLE;
+
+  void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<QueryTraceMetricRawData *>(other);
     if (!other_db_metric->query_text_.empty()) {
       query_text_.splice(query_text_.cend(), other_db_metric->query_text_);
@@ -32,12 +82,18 @@ class QueryTraceMetricRawData : public AbstractRawData {
     if (!other_db_metric->query_trace_.empty()) {
       query_trace_.splice(query_trace_.cend(), other_db_metric->query_trace_);
     }
+
+    metadata_.Merge(other_db_metric->metadata_);
   }
 
   /**
    * @return the type of the metric this object is holding the data for
    */
   MetricsComponent GetMetricType() const override { return MetricsComponent::QUERY_TRACE; }
+
+  void ResetAggregation(common::ManagedPointer<util::QueryExecUtil> query_exec_util);
+
+  void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util) final;
 
   /**
    * Writes the data out to ofstreams
@@ -82,13 +138,21 @@ class QueryTraceMetricRawData : public AbstractRawData {
   FRIEND_TEST(MetricsTests, QueryCSVTest);
 
   void RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
-                       const std::string &type_string, const uint64_t timestamp) {
+                       const std::string &type_string, const std::string &type_json, const uint64_t timestamp) {
     query_text_.emplace_back(db_oid, query_id, query_text, type_string, timestamp);
+    metadata_.RecordQueryText(query_id, db_oid, query_text, type_json);
+
+    low_timestamp_ = std::min(low_timestamp_, timestamp);
+    high_timestamp_ = std::max(high_timestamp_, timestamp);
   }
 
   void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
-                        const std::string &param_string) {
+                        const std::string &param_string, const std::string &param_json) {
     query_trace_.emplace_back(db_oid, query_id, timestamp, param_string);
+    metadata_.RecordQueryParamSample(query_id, param_json);
+
+    low_timestamp_ = std::min(low_timestamp_, timestamp);
+    high_timestamp_ = std::max(high_timestamp_, timestamp);
   }
 
   struct QueryText {
@@ -118,6 +182,9 @@ class QueryTraceMetricRawData : public AbstractRawData {
 
   std::list<QueryText> query_text_;
   std::list<QueryTrace> query_trace_;
+  QueryTraceMetadata metadata_;
+  uint64_t low_timestamp_{UINT64_MAX};
+  uint64_t high_timestamp_{0};
 };
 
 /**
@@ -132,24 +199,43 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
                        const uint64_t timestamp) {
     std::ostringstream type_stream;
+    std::vector<std::string> type_strs;
     for (const auto &val : (*param)) {
-      type_stream << type::TypeUtil::TypeIdToString(val.GetReturnValueType()) << ";";
+      auto tstr = type::TypeUtil::TypeIdToString(val.GetReturnValueType());
+      type_strs.push_back(tstr);
+      type_stream << tstr << ";";
     }
-    GetRawData()->RecordQueryText(db_oid, query_id, "\"" + query_text + "\"", type_stream.str(), timestamp);
+
+    std::string type_str;
+    {
+      nlohmann::json j = type_strs;
+      type_str = j.dump();
+    }
+    GetRawData()->RecordQueryText(db_oid, query_id, "\"" + query_text + "\"", type_stream.str(), type_str, timestamp);
   }
   void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
     std::ostringstream param_stream;
-
+    std::vector<std::string> param_strs;
     for (const auto &val : (*param)) {
       if (val.IsNull()) {
+        param_strs.push_back("");
         param_stream << "";
       } else {
-        param_stream << val.ToString();
+        auto valstr = val.ToString();
+        param_strs.push_back(valstr);
+        param_stream << valstr;
       }
+
       param_stream << ";";
     }
-    GetRawData()->RecordQueryTrace(db_oid, query_id, timestamp, param_stream.str());
+
+    std::string param_str;
+    {
+      nlohmann::json j = param_strs;
+      param_str = j.dump();
+    }
+    GetRawData()->RecordQueryTrace(db_oid, query_id, timestamp, param_stream.str(), param_str);
   }
 };
 }  // namespace noisepage::metrics

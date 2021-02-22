@@ -28,7 +28,7 @@ class MetricsThread {
   ~MetricsThread() {
     run_metrics_ = false;
     metrics_thread_.join();
-    metrics_manager_->ToCSV();
+    metrics_manager_->ToOutput();
   }
 
   /**
@@ -64,7 +64,7 @@ class MetricsThread {
       std::this_thread::sleep_for(metrics_period_);
       if (!metrics_paused_) {
         metrics_manager_->Aggregate();
-        metrics_manager_->ToCSV();
+        metrics_manager_->ToOutput();
       }
     }
   }

@@ -14,6 +14,15 @@ namespace noisepage::selfdriving {
 
 using WorkloadForecastPrediction = std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::vector<double>>>;
 
+class WorkloadMetadata {
+ public:
+  std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
+  std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
+  std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
+      query_id_to_params_;
+  std::unordered_map<execution::query_id_t, std::vector<type::TypeId>> query_id_to_param_types_;
+};
+
 /**
  * Breaking predicted queries passed in by the Pilot into segments by their associated timestamps
  * Executing each query while extracting pipeline features
@@ -23,9 +32,14 @@ class WorkloadForecast {
   /**
    * Constructor for WorkloadForecast
    * @param forecast_interval Interval used to partition the queries into segments
-   *
    */
-  explicit WorkloadForecast(uint64_t forecast_interval);
+  explicit WorkloadForecast(uint64_t forecast_interval, uint64_t num_sample);
+
+  /**
+   * Constructor for WorkloadForecast from inference results
+   * @param inference Workload inference
+   */
+  explicit WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &metadata);
 
   /**
    * Get number of forecasted segments
@@ -60,8 +74,6 @@ class WorkloadForecast {
     return query_id_to_dboid_.at(qid);
   }
 
-  uint64_t GetOptimizerTimeout() { return optimizer_timeout_; }
-
   void LoadQueryTrace();
   void LoadQueryText();
   void CreateSegments();
@@ -71,14 +83,12 @@ class WorkloadForecast {
       query_id_to_params_;
   std::unordered_map<execution::query_id_t, std::vector<type::TypeId>> query_id_to_param_types_;
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
-  std::unordered_map<std::string, execution::query_id_t> query_text_to_id_;
   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
-  uint64_t num_sample_{5};
+  uint64_t num_sample_;
 
   std::vector<WorkloadForecastSegment> forecast_segments_;
   uint64_t num_forecast_segment_;
   uint64_t forecast_interval_;
-  uint64_t optimizer_timeout_{10000000};
 };
 
 }  // namespace noisepage::selfdriving

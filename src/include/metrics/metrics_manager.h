@@ -60,9 +60,9 @@ class MetricsManager {
   }
 
   /**
-   * Dump aggregated metrics to CSV files.
+   * Output aggregated metrics.
    */
-  void ToCSV() const;
+  void ToOutput() const;
 
   /**
    * @param component to be enabled
@@ -91,7 +91,27 @@ class MetricsManager {
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
   }
 
+  void SetMetricOutput(const MetricsComponent component, MetricsOutput output) {
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    metrics_output_[static_cast<uint8_t>(component)] = output;
+  }
+
+  metrics::MetricsOutput GetMetricOutput(const MetricsComponent component) {
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    return metrics_output_[static_cast<uint8_t>(component)];
+  }
+
+  void SetQueryExecUtil(common::ManagedPointer<util::QueryExecUtil> query_exec_util) {
+    query_exec_util_ = query_exec_util;
+  }
+
  private:
+  /**
+   * Dump aggregated metrics to CSV files.
+   */
+  void ToCSV(uint8_t component) const;
+  void ToDB(uint8_t component) const;
+
   void ResetMetric(MetricsComponent component) const;
 
   mutable common::SpinLatch latch_;
@@ -102,6 +122,8 @@ class MetricsManager {
   std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
 
   std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
+  std::array<MetricsOutput, NUM_COMPONENTS> metrics_output_;
+  common::ManagedPointer<util::QueryExecUtil> query_exec_util_;
 };
 
 }  // namespace noisepage::metrics

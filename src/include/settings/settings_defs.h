@@ -279,6 +279,16 @@ SETTING_bool(
     noisepage::settings::Callbacks::MetricsQueryTrace
 )
 
+SETTING_int(
+    query_trace_metrics_output,
+    "Output type for Query Traces Metrics (default: CSV)",
+    1,
+    1,
+    3,
+    true,
+    noisepage::settings::Callbacks::MetricsQueryTraceOutput
+)
+
 SETTING_bool(
     execution_metrics_enable,
     "Metrics collection for the Execution component (default: false).",
@@ -409,6 +419,24 @@ SETTING_string(
     forecast_model_save_path,
     "Save path of the forecast model relative to the build path (default: forecast_model.pickle)",
     "forecast_model.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    forecast_sample_limit,
+    "Limit on number of samples for workload forecasting",
+    5,
+    0,
+    100,
+    true,
+    noisepage::settings::Callbacks::ForecastSampleLimit
+)
+
+SETTING_string(
+    startup_ddl_path,
+    "Path to startup DDL (default: startup.sql)",
+    "startup.sql",
     false,
     noisepage::settings::Callbacks::NoOp
 )

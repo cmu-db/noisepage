@@ -1170,6 +1170,20 @@ if (${NOISEPAGE_ENABLE_SHARED})
 endif ()
 
 #######################################################################################################################
+# HEADER startup.sql post-copy command.
+# startup.sql           :   Post-copy command for startup.sql into the bin directory
+#######################################################################################################################
+
+add_custom_command(
+        TARGET noisepage  # As a proxy for noisepage_objlib since object libraries don't support POST_BUILD.
+        DEPENDS "${PROJECT_SOURCE_DIR}/src/main/startup.sql"
+        POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND cp ${PROJECT_SOURCE_DIR}/src/main/startup.sql ${CMAKE_BINARY_DIR}/bin/startup.sql
+        USES_TERMINAL
+)
+
+#######################################################################################################################
 # HEADER Miscellaneous.
 # This is where helper scripts and other random CMake stuff goes.
 #######################################################################################################################

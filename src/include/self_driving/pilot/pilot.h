@@ -16,6 +16,7 @@
 #include "execution/exec_defs.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/pilot/action/action_defs.h"
+#include "util/query_exec_util.h"
 
 namespace noisepage {
 namespace messenger {
@@ -85,6 +86,8 @@ class Pilot {
         common::ManagedPointer<optimizer::StatsStorage> stats_storage,
         common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
 
+  static uint64_t GetCurrentPlanIteration() { return Pilot::planning_iteration_; }
+
   /**
    * Get model save path
    * @return save path of the mini model
@@ -96,6 +99,17 @@ class Pilot {
    * @return pointer to model server manager
    */
   common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() { return model_server_manager_; }
+
+  /**
+   * Retrieve workload metadata
+   */
+  std::pair<selfdriving::WorkloadMetadata, bool> RetrieveWorkloadMetadata(uint64_t iteration);
+
+  /**
+   * Record to database
+   */
+  void RecordWorkloadForecastPrediction(uint64_t iteration, const selfdriving::WorkloadForecastPrediction &prediction,
+                                        const WorkloadMetadata &metadata);
 
   /**
    * Performs Pilot Logic, load and execute the predicted queries while extracting pipeline features
@@ -144,9 +158,11 @@ class Pilot {
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   uint64_t workload_forecast_interval_{10000000};
   uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};
+  static uint64_t planning_iteration_;
   friend class noisepage::selfdriving::PilotUtil;
   friend class noisepage::selfdriving::pilot::MonteCarloTreeSearch;
 };

@@ -14,10 +14,33 @@
 
 namespace noisepage::selfdriving {
 
-WorkloadForecast::WorkloadForecast(uint64_t forecast_interval) : forecast_interval_(forecast_interval) {
+WorkloadForecast::WorkloadForecast(uint64_t forecast_interval, uint64_t num_sample)
+    : num_sample_(num_sample), forecast_interval_(forecast_interval) {
   LoadQueryText();
   LoadQueryTrace();
   CreateSegments();
+}
+
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &metadata) {
+  query_id_to_dboid_ = std::move(metadata.query_id_to_dboid_);
+  query_id_to_text_ = std::move(metadata.query_id_to_text_);
+  query_id_to_params_ = std::move(metadata.query_id_to_params_);
+  query_id_to_param_types_ = std::move(metadata.query_id_to_param_types_);
+
+  bool init = false;
+  for (auto &cluster : inference) {
+    for (auto &query_info : cluster.second) {
+      if (!init) {
+        forecast_segments_ = std::vector<WorkloadForecastSegment>(query_info.second.size());
+        init = true;
+      }
+
+      for (size_t seg = 0; seg < query_info.second.size(); seg++) {
+        double freq = query_info.second[seg];
+        forecast_segments_[seg].AddQueryInfo(execution::query_id_t{static_cast<uint32_t>(query_info.first)}, freq);
+      }
+    }
+  }
 }
 
 /**
@@ -27,7 +50,7 @@ WorkloadForecast::WorkloadForecast(uint64_t forecast_interval) : forecast_interv
  * These segments will eventually store the result of workload/query arrival rate prediction.
  */
 void WorkloadForecast::CreateSegments() {
-  std::unordered_map<execution::query_id_t, uint64_t> curr_segment;
+  std::unordered_map<execution::query_id_t, double> curr_segment;
 
   uint64_t curr_time = query_timestamp_to_id_.begin()->first;
 
@@ -36,7 +59,7 @@ void WorkloadForecast::CreateSegments() {
     if (it.first > curr_time + forecast_interval_) {
       forecast_segments_.emplace_back(std::move(curr_segment));
       curr_time = it.first;
-      curr_segment = std::unordered_map<execution::query_id_t, uint64_t>();
+      curr_segment = std::unordered_map<execution::query_id_t, double>();
     }
 
     if (curr_segment.find(it.second) == curr_segment.end()) curr_segment.emplace(it.second, 0);
@@ -113,7 +136,6 @@ void WorkloadForecast::LoadQueryText() {
     query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[1]));
     type_string = val_vec[4];
     query_id_to_text_[query_id] = val_vec[query_text_col];
-    query_text_to_id_[val_vec[query_text_col]] = query_id;
 
     // extract each type in the type_string
     while ((pos = type_string.find(';')) != std::string::npos) {

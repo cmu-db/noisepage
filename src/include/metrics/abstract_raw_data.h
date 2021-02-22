@@ -5,6 +5,10 @@
 #include "common/macros.h"
 #include "metrics/metrics_defs.h"
 
+namespace noisepage::util {
+class QueryExecUtil;
+}
+
 namespace noisepage::metrics {
 /**
  * @brief An always-consistent storage unit for intermediate stats results.
@@ -34,6 +38,8 @@ class AbstractRawData {
    * @return the type of the metric this object is holding the data for
    */
   virtual MetricsComponent GetMetricType() const = 0;
+
+  virtual void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util) {}
 
   /**
    * Writes the data to files, and then clears the data
