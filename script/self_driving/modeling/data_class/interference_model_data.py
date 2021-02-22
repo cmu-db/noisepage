@@ -3,15 +3,15 @@ import numpy as np
 from ..info import hardware_info
 
 
-class GlobalImpactData:
+class InterferenceImpactData:
     """
-    The class used to store the information for the global impact model training and prediction
+    The class used to store the information for the interference impact model training and prediction
     """
 
     def __init__(self, data, resource_data_list):
         """
         :param data: The target GroupedOpUnitData to measure and predict
-        :param resource_data_list: The GlobalResourceData list in the interval that the target GroupedOpUnitData
+        :param resource_data_list: The InterferenceResourceData list in the interval that the target GroupedOpUnitData
                 overlap with
         """
         self.target_grouped_op_unit_data = data
@@ -36,9 +36,9 @@ class GlobalImpactData:
         return y_pred
 
 
-class GlobalResourceData:
+class InterferenceResourceData:
     """
-    The class used to store the information for the global resource model training and prediction
+    The class used to store the information for the interference resource model training and prediction
     """
 
     def __init__(self, start_time, x_list, x, y):

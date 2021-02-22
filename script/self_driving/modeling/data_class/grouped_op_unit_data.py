@@ -8,7 +8,7 @@ import logging
 
 import data_util
 from ..info import data_info
-from .. import global_model_config
+from .. import interference_model_config
 from ..type import ConcurrentCountingMode, OpUnit, Target, ExecutionFeature
 
 
@@ -262,7 +262,7 @@ class GroupedOpUnitData:
         if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
             start_time = self.start_time
         if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
-            start_time = self.start_time + global_model_config.INTERVAL_START
+            start_time = self.start_time + interference_model_config.INTERVAL_START
         return start_time
 
     def get_end_time(self, concurrent_counting_mode):
@@ -277,5 +277,5 @@ class GroupedOpUnitData:
         if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
             end_time = self.start_time + self.y_pred[data_info.instance.target_csv_index[Target.ELAPSED_US]] - 1
         if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
-            end_time = self.start_time + global_model_config.INTERVAL_START + global_model_config.INTERVAL_SIZE
+            end_time = self.start_time + interference_model_config.INTERVAL_START + interference_model_config.INTERVAL_SIZE
         return end_time

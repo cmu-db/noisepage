@@ -23,32 +23,32 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
         io_util.write_csv_result(output_path, key, value)
 
 
-def get_mini_runner_data(filename, model_results_path, txn_sample_interval, model_map={}, predict_cache={}, trim=0.2):
-    """Get the training data from the mini runner
+def get_ou_runner_data(filename, model_results_path, txn_sample_interval, model_map={}, predict_cache={}, trim=0.2):
+    """Get the training data from the ou runner
 
     :param filename: the input data file
     :param model_results_path: results log directory
     :param txn_sample_interval: sampling interval for the transaction OUs
-    :param model_map: the map from OpUnit to the mini model
-    :param predict_cache: cache for the mini model prediction
+    :param model_map: the map from OpUnit to the ou model
+    :param predict_cache: cache for the ou model prediction
     :param trim: % of too high/too low anomalies to prune
     :return: the list of Data for execution operating units
     """
 
     if "txn" in filename:
         # Cannot handle the transaction manager data yet
-        return _txn_get_mini_runner_data(filename, model_results_path, txn_sample_interval)
+        return _txn_get_ou_runner_data(filename, model_results_path, txn_sample_interval)
     if "execution" in filename:
         # Handle the execution data
-        return _execution_get_mini_runner_data(filename, model_map, predict_cache, trim)
+        return _execution_get_ou_runner_data(filename, model_map, predict_cache, trim)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
-        return _interval_get_mini_runner_data(filename, model_results_path)
+        return _interval_get_ou_runner_data(filename, model_results_path)
 
-    return _default_get_mini_runner_data(filename)
+    return _default_get_ou_runner_data(filename)
 
 
-def _default_get_mini_runner_data(filename):
+def _default_get_ou_runner_data(filename):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename, skipinitialspace=True)
     headers = list(df.columns.values)
@@ -61,7 +61,7 @@ def _default_get_mini_runner_data(filename):
     return [OpUnitData(OpUnit[file_name.upper()], x, y)]
 
 
-def _txn_get_mini_runner_data(filename, model_results_path, txn_sample_interval):
+def _txn_get_ou_runner_data(filename, model_results_path, txn_sample_interval):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename)
     file_name = os.path.splitext(os.path.basename(filename))[0]
@@ -114,7 +114,7 @@ def _txn_get_mini_runner_data(filename, model_results_path, txn_sample_interval)
     return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
 
 
-def _interval_get_mini_runner_data(filename, model_results_path):
+def _interval_get_ou_runner_data(filename, model_results_path):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename, skipinitialspace=True)
     headers = list(df.columns.values)
@@ -161,17 +161,17 @@ def _interval_get_mini_runner_data(filename, model_results_path):
     return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
 
 
-def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
-    """Get the training data from the mini runner
+def _execution_get_ou_runner_data(filename, model_map, predict_cache, trim):
+    """Get the training data from the ou runner
 
     :param filename: the input data file
-    :param model_map: the map from OpUnit to the mini model
-    :param predict_cache: cache for the mini model prediction
+    :param model_map: the map from OpUnit to the ou model
+    :param predict_cache: cache for the ou model prediction
     :param trim: % of too high/too low anomalies to prune
     :return: the list of Data for execution operating units
     """
 
-    # Get the mini runner data for the execution engine
+    # Get the ou runner data for the execution engine
     data_map = {}
     raw_data_map = {}
     input_output_boundary = math.nan

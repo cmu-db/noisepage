@@ -6,9 +6,9 @@ import pickle
 import logging
 import tqdm
 
-import global_model_config
+import interference_model_config
 from util import io_util, logging_util
-from training_util import global_data_constructing_util, result_writing_util
+from training_util import interference_data_constructing_util, result_writing_util
 from info import data_info
 from type import Target
 
@@ -40,16 +40,16 @@ class EndtoendEstimator:
 
         :return: the map of the trained models
         """
-        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
-                                                                                      self.mini_model_map,
-                                                                                      self.model_results_path,
-                                                                                      0,
-                                                                                      False,
-                                                                                      False,
-                                                                                      False,
-                                                                                      self.ee_sample_interval,
-                                                                                      self.txn_sample_interval,
-                                                                                      self.network_sample_interval)
+        resource_data_list, impact_data_list = interference_data_constructing_util.get_data(self.input_path,
+                                                                                            self.mini_model_map,
+                                                                                            self.model_results_path,
+                                                                                            0,
+                                                                                            False,
+                                                                                            False,
+                                                                                            False,
+                                                                                            self.ee_sample_interval,
+                                                                                            self.txn_sample_interval,
+                                                                                            self.network_sample_interval)
         return self._global_model_prediction(resource_data_list, impact_data_list)
 
     def _global_model_prediction(self, resource_data_list, impact_data_list):
@@ -98,7 +98,7 @@ class EndtoendEstimator:
                 predicted_resource_util = d.x
             # Remove the OU group itself from the total resource data
             self_resource = (mini_model_y_pred[-1] * max(1, d.target_grouped_op_unit_data.concurrency) /
-                             len(d.resource_data_list) / global_model_config.INTERVAL_SIZE)
+                             len(d.resource_data_list) / interference_model_config.INTERVAL_SIZE)
             predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= self_resource
             predicted_resource_util[predicted_resource_util < 0] = 0
             x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us,
@@ -106,7 +106,7 @@ class EndtoendEstimator:
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred +
-                                                        global_model_config.RATIO_DIVISION_EPSILON))
+                                                        interference_model_config.RATIO_DIVISION_EPSILON))
 
         # Predict
         x = np.array(x)
@@ -145,7 +145,7 @@ class EndtoendEstimator:
 
         if label != "resource":
             # Calculate the accumulated ratio error
-            epsilon = global_model_config.RATIO_DIVISION_EPSILON
+            epsilon = interference_model_config.RATIO_DIVISION_EPSILON
             mini_model_y_pred = np.array(mini_model_y_pred)
             raw_y = np.array(raw_y)
             raw_y_pred = (mini_model_y_pred + epsilon) * y_pred
@@ -195,7 +195,7 @@ class EndtoendEstimator:
                         continue
                     if mark_list is not None and not mark_list[i]:
                         continue
-                    interval_time = _round_to_interval(data.start_time, global_model_config.AVERAGING_INTERVAL)
+                    interval_time = _round_to_interval(data.start_time, interference_model_config.AVERAGING_INTERVAL)
                     if interval_time not in interval_y_map:
                         interval_y_map[interval_time] = []
                         interval_y_pred_map[interval_time] = []

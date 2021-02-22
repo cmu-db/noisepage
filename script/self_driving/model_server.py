@@ -34,10 +34,10 @@ from pathlib import Path
 import numpy as np
 import zmq
 
-from model.mini_trainer import MiniTrainer
-from model.util import logging_util
-from model.type import OpUnit
-from model.info import data_info
+from modeling.ou_model_trainer import OUModelTrainer
+from modeling.util import logging_util
+from modeling.type import OpUnit
+from modeling.info import data_info
 from forecasting.forecaster import Forecaster, parse_model_config
 
 logging_util.init_logging('info')
@@ -204,9 +204,9 @@ class MiniRunnerModelServer:
         expose_all = MiniRunnerModelServer.EXPOSE_ALL
         txn_sample_interval = MiniRunnerModelServer.TXN_SAMPLE_INTERVAL
 
-        trainer = MiniTrainer(seq_files_dir, result_path, ml_models,
-                              test_ratio, trim, expose_all, txn_sample_interval)
-        # Perform training from MiniTrainer and input files directory
+        trainer = OUModelTrainer(seq_files_dir, result_path, ml_models,
+                                 test_ratio, trim, expose_all, txn_sample_interval)
+        # Perform training from OUModelTrainer and input files directory
         model_map = trainer.train()
 
         # Pickle dump the model

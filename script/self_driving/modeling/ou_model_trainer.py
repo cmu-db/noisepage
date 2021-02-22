@@ -21,9 +21,9 @@ np.set_printoptions(edgeitems=10)
 np.set_printoptions(suppress=True)
 
 
-class MiniTrainer:
+class OUModelTrainer:
     """
-    Trainer for the mini models
+    Trainer for the ou models
     """
 
     def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all, txn_sample_interval):
@@ -110,7 +110,7 @@ class MiniTrainer:
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
 
-                    # The default method of determining whether a model is better is by comparing the model error
+                    # The default method of deteroung whether a model is better is by comparing the model error
                     # on the elapsed us. For any opunits in MEM_EVALUATE_OPUNITS, we evaluate by comparing the
                     # model error on memory_b.
                     eval_error = percentage_error[elapsed_us_index]
@@ -146,7 +146,7 @@ class MiniTrainer:
         return best_y_transformer, best_method
 
     def train(self):
-        """Train the mini-models
+        """Train the ou-models
 
         :return: the map of the trained models
         """
@@ -155,13 +155,13 @@ class MiniTrainer:
 
         # Create the results files for the paper
         header = ["OpUnit", "Method"] + [target.name for target in data_info.instance.MINI_MODEL_TARGET_LIST]
-        summary_file = "{}/mini_runner.csv".format(self.model_metrics_path)
+        summary_file = "{}/ou_runner.csv".format(self.model_metrics_path)
         io_util.create_csv_file(summary_file, header)
 
-        # First get the data for all mini runners
+        # First get the data for all ou runners
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
-            data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.txn_sample_interval,
+            data_list = opunit_data.get_ou_runner_data(filename, self.model_metrics_path, self.txn_sample_interval,
                                                          self.model_map, self.stats_map, self.trim)
             for data in data_list:
                 best_y_transformer, best_method = self.train_data(data, summary_file)
@@ -175,15 +175,15 @@ class MiniTrainer:
 # main
 # ==============================================
 if __name__ == '__main__':
-    aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input',
-                         help='Input file path for the mini runners')
-    aparser.add_argument('--model_results_path', default='mini_runner_model_results',
-                         help='Prediction results of the mini models')
-    aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
+    aparser = argparse.ArgumentParser(description='OU Model Trainer')
+    aparser.add_argument('--input_path', default='ou_runner_input',
+                         help='Input file path for the ou runners')
+    aparser.add_argument('--model_results_path', default='ou_runner_model_results',
+                         help='Prediction results of the ou models')
+    aparser.add_argument('--save_path', default='trained_model', help='Path to save the ou models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
                          default=["lr", "rf", "gbm"],
-                         help='ML models for the mini trainer to evaluate')
+                         help='ML models for the ou trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
     aparser.add_argument('--expose_all', default=True, help='Should expose all data to the model')
@@ -193,8 +193,8 @@ if __name__ == '__main__':
     args = aparser.parse_args()
 
     logging_util.init_logging(args.log)
-    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim,
-                          args.expose_all, args.txn_sample_interval)
+    trainer = OUModelTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim,
+                             args.expose_all, args.txn_sample_interval)
     trained_model_map = trainer.train()
-    with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
+    with open(args.save_path + '/ou_model_map.pickle', 'wb') as file:
         pickle.dump((trained_model_map, data_info.instance), file)

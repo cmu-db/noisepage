@@ -10,8 +10,8 @@ import pickle
 from ..util import io_util
 from ..info import hardware_info
 from ..info import data_info
-from ..data_class import global_model_data, grouped_op_unit_data
-from .. import global_model_config
+from ..data_class import interference_model_data, grouped_op_unit_data
+from .. import interference_model_config
 from ..type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
 
@@ -97,11 +97,11 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
     for data in tqdm.tqdm(data_list, desc="Find Interval Data"):
         # For each data, find the intervals that might overlap with it
         interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.EXACT) -
-                                               global_model_config.INTERVAL_SIZE + global_model_config.INTERVAL_SEGMENT)
+                                               interference_model_config.INTERVAL_SIZE + interference_model_config.INTERVAL_SEGMENT)
         while interval_start_time <= data.get_end_time(ConcurrentCountingMode.ESTIMATED):
             if interval_start_time in interval_data_map:
                 interval_data_map[interval_start_time].append(data)
-            interval_start_time += global_model_config.INTERVAL_SEGMENT
+            interval_start_time += interference_model_config.INTERVAL_SEGMENT
 
     # Get the global resource data
     resource_data_map = {}
@@ -117,9 +117,9 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
         while interval_start_time <= data.get_end_time(ConcurrentCountingMode.ESTIMATED):
             if interval_start_time in resource_data_map:
                 resource_data_list.append(resource_data_map[interval_start_time])
-            interval_start_time += global_model_config.INTERVAL_SIZE
+            interval_start_time += interference_model_config.INTERVAL_SIZE
 
-        impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data_list))
+        impact_data_list.append(interference_model_data.GlobalImpactData(data, resource_data_list))
 
     return list(resource_data_map.values()), impact_data_list
 
@@ -145,8 +145,8 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
     """
     # Define a secondary_counting_mode corresponding to the concurrent_counting_mode to derive the concurrent operations
     # in different scenarios
-    end_time = start_time + global_model_config.INTERVAL_SIZE - 1
-    elapsed_us = global_model_config.INTERVAL_SIZE
+    end_time = start_time + interference_model_config.INTERVAL_SIZE - 1
+    elapsed_us = interference_model_config.INTERVAL_SIZE
 
     # The adjusted resource metrics per logical core.
     # TODO: Assuming each physical core has two logical cores via hyper threading for now. Can extend to other scenarios
@@ -193,7 +193,7 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
 
     adjusted_x = np.concatenate((sum_adjusted_x, std_adjusted_x))
 
-    return global_model_data.GlobalResourceData(start_time, adjusted_x_list, adjusted_x, adjusted_y)
+    return interference_model_data.GlobalResourceData(start_time, adjusted_x_list, adjusted_x, adjusted_y)
 
 
 def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
