@@ -12,17 +12,12 @@ namespace noisepage::modelserver {
 
 /**
  * @warning Running this test requires external dependency to be located at specific paths.
- *  The environment BUILD_ABS_PATH needs to be set to be the build directory such that:
- *      1. BUILD_ABS_PATH/../script/model/model_server.py is executable
  */
 class ModelServerTest : public TerrierTest {
  protected:
-  static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
-
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain() {
-    std::string project_build_path = ::getenv(BUILD_ABS_PATH);
-    auto model_server_path = project_build_path + "/../script/self_driving/model_server.py";
+    auto model_server_path = "../script/self_driving/model_server.py";
 
     auto db_main = noisepage::DBMain::Builder()
                        .SetUseSettingsManager(false)
@@ -54,10 +49,6 @@ class ModelServerTest : public TerrierTest {
 TEST_F(ModelServerTest, PipelineTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
-  char *project_build_path = ::getenv(BUILD_ABS_PATH);
-  // BUILD_ABS_PATH environment variable has to be set
-  ASSERT_NE(project_build_path, nullptr);
-  MODEL_SERVER_LOG_INFO("Running in build directory :{}", project_build_path);
 
   auto primary = BuildDBMain();
   primary->GetNetworkLayer()->GetServer()->RunServer();
@@ -84,8 +75,8 @@ TEST_F(ModelServerTest, PipelineTest) {
   std::string save_path = "model_server_test.pickle";
 
   ModelServerFuture<std::string> future;
-  ms_manager->TrainModel(ModelType::Type::MiniRunner, methods, std::string(project_build_path) + "/bin", save_path,
-                         nullptr, common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  ms_manager->TrainModel(ModelType::Type::MiniRunner, methods, "./bin", save_path, nullptr,
+                         common::ManagedPointer<ModelServerFuture<std::string>>(&future));
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
@@ -121,10 +112,6 @@ TEST_F(ModelServerTest, PipelineTest) {
 TEST_F(ModelServerTest, ForecastTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
-  char *project_build_path = ::getenv(BUILD_ABS_PATH);
-  // BUILD_ABS_PATH environment variable has to be set
-  ASSERT_NE(project_build_path, nullptr);
-  MODEL_SERVER_LOG_INFO("Running in build directory :{}", project_build_path);
 
   auto primary = BuildDBMain();
   primary->GetNetworkLayer()->GetServer()->RunServer();
@@ -139,7 +126,7 @@ TEST_F(ModelServerTest, ForecastTest) {
   std::vector<std::string> methods{"LSTM"};
   uint64_t interval = 500000;
   std::string save_path = "model.pickle";
-  std::string input_path = std::string(project_build_path) + "/query_trace.csv";
+  std::string input_path = "./query_trace.csv";
 
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval,
