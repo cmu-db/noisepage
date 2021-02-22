@@ -152,12 +152,12 @@ install_linux() {
   # Update apt-get.
   apt-get -y update
   
-  # Install packages.
+  # Install packages. Note that word splitting is desired behavior.
   if [ "$INSTALL_TYPE" == "build" ] || [ "$INSTALL_TYPE" = "all" ]; then
-    apt-get -y install "$( IFS=$' '; echo "${LINUX_BUILD_PACKAGES[*]}" )"
+    apt-get -y install $( IFS=$' '; echo "${LINUX_BUILD_PACKAGES[*]}" )
   fi
   if [ "$INSTALL_TYPE" == "test" ] || [ "$INSTALL_TYPE" = "all" ]; then
-    apt-get -y install "$( IFS=$' '; echo "${LINUX_TEST_PACKAGES[*]}" )"
+    apt-get -y install $( IFS=$' '; echo "${LINUX_TEST_PACKAGES[*]}" )
   fi
 
   if [ "$INSTALL_TYPE" == "build" ] || [ "$INSTALL_TYPE" = "all" ]; then
