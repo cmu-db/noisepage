@@ -134,7 +134,7 @@ if __name__ == "__main__":
         models_kwargs = parse_model_config(args.models, args.models_config)
 
         forecaster = Forecaster(
-            trace_file=trace_file,
+            trace_file=args.trace_file,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,
             eval_size=args.eval_size,
