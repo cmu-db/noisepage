@@ -2,7 +2,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/postgres/builder.h"
-#include "catalog/postgres/pg_statistic.h"
+#include "catalog/postgres/pg_statistic_impl.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
@@ -47,7 +47,7 @@ AnalyzeTranslator::AnalyzeTranslator(const planner::AnalyzePlanNode &plan, Compi
   pg_statistic_column_lookup_[catalog::postgres::PgStatistic::STAATTNUM.oid_] = col_oid_;
   pg_statistic_column_lookup_[catalog::postgres::PgStatistic::STA_NUMROWS.oid_] = num_rows_;
 
-  for (const auto &col_info : catalog::postgres::PgStatistic::ANALYZE_AGGREGATES) {
+  for (const auto &col_info : catalog::postgres::PgStatisticImpl::ANALYZE_AGGREGATES) {
     auto agg_var = codegen->MakeFreshIdentifier("stat_col_" + std::to_string(col_info.column_oid_.UnderlyingValue()));
     aggregate_variables_.emplace_back(agg_var);
     pg_statistic_column_lookup_[col_info.column_oid_] = agg_var;
@@ -59,9 +59,9 @@ void AnalyzeTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   auto *codegen = GetCodeGen();
 
   NOISEPAGE_ASSERT(plan.GetChild(0)->GetOutputSchema()->NumColumns() ==
-                       catalog::postgres::PgStatistic::NUM_ANALYZE_AGGREGATES * plan.GetColumnOids().size() + 1,
+                       catalog::postgres::PgStatisticImpl::NUM_ANALYZE_AGGREGATES * plan.GetColumnOids().size() + 1,
                    fmt::format("We should have 1 aggregate for the number of rows and then {} aggregates per column",
-                               catalog::postgres::PgStatistic::NUM_ANALYZE_AGGREGATES)
+                               catalog::postgres::PgStatisticImpl::NUM_ANALYZE_AGGREGATES)
                        .c_str());
 
   // var pg_statistic_col_oids: [num_cols]uint32
@@ -173,8 +173,8 @@ void AnalyzeTranslator::InitPgStatisticVariables(WorkContext *context, FunctionB
   function->Append(codegen->DeclareVarWithInit(num_rows_, GetChildOutput(context, 0, 0)));
 
   // var agg_col: type
-  for (size_t i = 0; i < catalog::postgres::PgStatistic::NUM_ANALYZE_AGGREGATES; i++) {
-    auto col_info = catalog::postgres::PgStatistic::ANALYZE_AGGREGATES.at(i);
+  for (size_t i = 0; i < catalog::postgres::PgStatisticImpl::NUM_ANALYZE_AGGREGATES; i++) {
+    auto col_info = catalog::postgres::PgStatisticImpl::ANALYZE_AGGREGATES.at(i);
     auto type = sql::GetTypeId(pg_statistic_table_schema_.GetColumn(col_info.column_oid_).Type());
     function->Append(codegen->DeclareVarNoInit(aggregate_variables_[i], codegen->TplType(type)));
   }
@@ -203,9 +203,9 @@ void AnalyzeTranslator::AssignColumnStatistics(WorkContext *context, FunctionBui
   auto col_oid = plan.GetColumnOids().at(column_offset).UnderlyingValue();
   function->Append(codegen->Assign(codegen->MakeExpr(col_oid_), codegen->IntToSql(col_oid)));
 
-  for (size_t i = 0; i < catalog::postgres::PgStatistic::NUM_ANALYZE_AGGREGATES; i++) {
+  for (size_t i = 0; i < catalog::postgres::PgStatisticImpl::NUM_ANALYZE_AGGREGATES; i++) {
     // Offset into the row of aggregates
-    size_t agg_offset = (column_offset * catalog::postgres::PgStatistic::NUM_ANALYZE_AGGREGATES) + i + 1;
+    size_t agg_offset = (column_offset * catalog::postgres::PgStatisticImpl::NUM_ANALYZE_AGGREGATES) + i + 1;
     auto agg_var = aggregate_variables_.at(i);
     auto *lhs = codegen->MakeExpr(agg_var);
     auto *rhs = GetChildOutput(context, 0, agg_offset);

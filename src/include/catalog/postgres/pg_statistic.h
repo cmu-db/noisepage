@@ -47,31 +47,6 @@ class PgStatistic {
   static constexpr std::array<col_oid_t, NUM_PG_STATISTIC_COLS> PG_STATISTIC_ALL_COL_OIDS = {
       STARELID.oid_,         STAATTNUM.oid_, STA_NUMROWS.oid_,  STA_NONNULLROWS.oid_,
       STA_DISTINCTROWS.oid_, STA_TOPK.oid_,  STA_HISTOGRAM.oid_};
-
- public:
-  /**
-   * Contains information on how to derive values for the columns within pg_statistic
-   */
-  struct PgStatisticColInfo {
-    /** The type of aggregate to use */
-    parser::ExpressionType aggregate_type_;
-    /** Whether the aggregate is distinct */
-    bool distinct_;
-    /** Oid of the column */
-    catalog::col_oid_t column_oid_;
-  };
-  /** Number of aggregates per column that Analyze uses */
-  static constexpr uint8_t NUM_ANALYZE_AGGREGATES = 4;
-  /** Information on each aggregate that Analyze uses to compute statistics */
-  static constexpr std::array<PgStatisticColInfo, NUM_ANALYZE_AGGREGATES> ANALYZE_AGGREGATES = {
-      {// COUNT(col) - non-null rows
-       {parser::ExpressionType::AGGREGATE_COUNT, false, STA_NONNULLROWS.oid_},
-       // COUNT(DISTINCT col) - distinct values
-       {parser::ExpressionType::AGGREGATE_COUNT, true, STA_DISTINCTROWS.oid_},
-       // TOPK(col)
-       {parser::ExpressionType::AGGREGATE_TOP_K, false, STA_TOPK.oid_},
-       // HISTOGRAM(col)
-       {parser::ExpressionType::AGGREGATE_HISTOGRAM, false, STA_HISTOGRAM.oid_}}};
 };
 
 }  // namespace noisepage::catalog::postgres

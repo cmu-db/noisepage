@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/postgres/pg_statistic.h"
+#include "catalog/postgres/pg_statistic_impl.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"
@@ -476,7 +476,7 @@ void InputColumnDeriver::Visit(const Analyze *op) {
   txn_->RegisterAbortAction([=]() { delete count_rows; });
   for (const auto &col_oid : op->GetColumns()) {
     auto col = accessor_->GetSchema(op->GetTableOid()).GetColumn(col_oid);
-    for (const auto &col_info : catalog::postgres::PgStatistic::ANALYZE_AGGREGATES) {
+    for (const auto &col_info : catalog::postgres::PgStatisticImpl::ANALYZE_AGGREGATES) {
       auto *agg_expr = OptimizerUtil::GenerateAggregateExpr(col, col_info.aggregate_type_, col_info.distinct_, "",
                                                             op->GetDatabaseOid(), op->GetTableOid());
       aggregate_inputs.emplace_back(agg_expr);
