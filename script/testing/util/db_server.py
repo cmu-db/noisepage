@@ -10,6 +10,9 @@ from .constants import (DEFAULT_DB_BIN, DEFAULT_DB_HOST,
                         DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_PORT,
                         DEFAULT_DB_USER, DEFAULT_DB_WAL_FILE, DIR_REPO, LOG)
 
+# -----------------------------------------------------------------------------
+# NoisePageServer
+
 class NoisePageServer:
     """
     NoisePageServer represents a NoisePage DBMS instance.
@@ -201,6 +204,9 @@ class NoisePageServer:
             LOG.error(f"Executing SQL failed: {sql}")
             raise e
 
+# -----------------------------------------------------------------------------
+# Server Utilities
+
 def get_binary_directory(build_type):
     """
     Get the path in which the DBMS binary resides.
@@ -299,6 +305,18 @@ def construct_server_argument(attr, value, meta):
     preprocessed_value = apply_all(VALUE_PREPROCESSORS, value, meta)
     return f"-{preprocessed_attr}{preprocessed_value}"
 
+# -----------------------------------------------------------------------------
+# Preprocessing Utilities
+
+class AllTypes:
+    """
+    A dummy catch-all type for value or attribute preprocessors
+    that should ALWAYS be applied, regardless of the type of the
+    value or attribute being processed.
+    """
+    def __init__(self):
+        pass
+
 def applies_to(*target_types):
     """
     A decorator that produces a no-op function in the event that the 'target'
@@ -311,7 +329,11 @@ def applies_to(*target_types):
     """
     def wrap_outer(f):
         def wrap_inner(target, meta):
-            return f(target, meta) if any(isinstance(target, ty) for ty in target_types) else target
+            # The argument is a targeted type if the catch-all type AllTypes 
+            # is provided as an argument to the decorator OR the argument is 
+            # an instance of any of the types provided as an argument
+            arg_is_targeted_type = AllTypes in target_types or any(isinstance(target, ty) for ty in target_types)
+            return f(target, meta) if arg_is_targeted_type else target
         return wrap_inner
     return wrap_outer
 
@@ -350,6 +372,7 @@ def lower_booleans(value, meta):
     -------
     The preprocessed server argument value
     """
+    assert value is True or value is False, "Input must be a first-class boolean type."
     return str(value).lower()
 
 @applies_to(str)
@@ -425,13 +448,13 @@ def apply_all(functions, init_obj, meta):
 
     TODO(Kyle): Initially I wanted to implement this with function composition
     in terms of functools.reduce() which makes it really beautiful, but there
-    we run into issues with mutli-argument callbacks, and the real solution is
+    we run into issues with multi-argument callbacks, and the real solution is
     to use partial application, but this seemed like overkill... maybe revisit.
 
     Arguments
     ---------
     functions : List[function]
-        The collection of functions to invoke =
+        The collection of functions to invoke
     init_obj : object
         Arbitrary object to which functions should be applied
     meta : object
