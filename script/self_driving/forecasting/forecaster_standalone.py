@@ -26,7 +26,7 @@ from ...testing.self_driving.constants import (DEFAULT_ITER_NUM,
                                                DEFAULT_WORKLOAD_PATTERN)
 from ...testing.self_driving.forecast import gen_oltp_trace
 from ...testing.util.constants import LOG
-from forecaster import Forecaster, parse_model_config
+from .forecaster import Forecaster, parse_model_config
 
 # Interval duration for aggregation in microseconds
 INTERVAL_MICRO_SEC = 500000
