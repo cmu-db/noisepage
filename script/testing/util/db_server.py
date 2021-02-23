@@ -18,7 +18,7 @@ class NoisePageServer:
     NoisePageServer represents a NoisePage DBMS instance.
     """
 
-    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args=None,
+    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args={},
                  db_output_file=DEFAULT_DB_OUTPUT_FILE):
         """
         Creates an instance of the DB that can be started, stopped, or restarted.
@@ -37,9 +37,6 @@ class NoisePageServer:
         db_output_file : str, filepath
             The output file that the DB should output its logs to.
         """
-        if server_args is None:
-            server_args = {}
-
         default_server_args = {
             'wal_file_path': DEFAULT_DB_WAL_FILE
         }
@@ -412,7 +409,7 @@ def resolve_relative_paths(value, meta):
     # It might be worth it to find some portable way to completely resolve these.
     return os.path.join(meta["bin_dir"], value) if is_relative else value
 
-@applies_to(int, str, bool)
+@applies_to(AllTypes)
 def handle_flags(value, meta):
     """
     Handle DBMS server arguments with no associated value.
