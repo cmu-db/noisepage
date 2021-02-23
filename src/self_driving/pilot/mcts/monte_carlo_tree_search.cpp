@@ -15,8 +15,8 @@ namespace noisepage::selfdriving::pilot {
 
 MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
                                            common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                                           uint64_t end_segment_index)
-    : pilot_(pilot), forecast_(forecast), end_segment_index_(end_segment_index) {
+                                           uint64_t end_segment_index, bool use_min_cost)
+    : pilot_(pilot), forecast_(forecast), end_segment_index_(end_segment_index), use_min_cost_(use_min_cost) {
   transaction::TransactionContext *txn = pilot->txn_manager_->BeginTransaction();
 
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
@@ -26,6 +26,10 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   // populate action_map_, candidate_actions_
   IndexActionGenerator().GenerateActions(plans, pilot->settings_manager_, &action_map_, &candidate_actions_);
   ChangeKnobActionGenerator().GenerateActions(plans, pilot->settings_manager_, &action_map_, &candidate_actions_);
+
+  for (auto const &it : action_map_) {
+    SELFDRIVING_LOG_INFO("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
+  }
 
   pilot->txn_manager_->Abort(txn);
 
@@ -44,7 +48,7 @@ void MonteCarloTreeSearch::BestAction(uint64_t simulation_number,
         TreeNode::Selection(common::ManagedPointer(root_), pilot_, action_map_, &candidate_actions, end_segment_index_);
 
     vertex->ChildrenRollout(pilot_, forecast_, 0, end_segment_index_, action_map_, candidate_actions);
-    vertex->BackPropogate(pilot_, action_map_);
+    vertex->BackPropogate(pilot_, action_map_, use_min_cost_);
   }
   // return the best action at root
   auto curr_node = common::ManagedPointer(root_);
