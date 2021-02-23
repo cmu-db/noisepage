@@ -11,8 +11,8 @@ namespace noisepage::metrics {
 
 MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                            const std::bitset<NUM_COMPONENTS> &enabled_metrics,
-                           const std::array<uint32_t, NUM_COMPONENTS> &sampling_masks)
-    : metrics_manager_(metrics_manager), enabled_metrics_{enabled_metrics}, sample_interval_(sampling_masks) {
+                           const std::array<std::vector<bool>, NUM_COMPONENTS> &samples_mask)
+    : metrics_manager_(metrics_manager), enabled_metrics_{enabled_metrics}, samples_mask_(samples_mask) {
   logging_metric_ = std::make_unique<LoggingMetric>();
   txn_metric_ = std::make_unique<TransactionMetric>();
   gc_metric_ = std::make_unique<GarbageCollectionMetric>();

@@ -400,6 +400,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   agg_expr_1->DeriveExpressionName();
   EXPECT_EQ(agg_expr_1->GetExpressionName(), "");
 
+  EXPECT_FALSE(agg_expr_1->RequiresCleanup());
+
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_6;
   children_6.emplace_back(
@@ -410,6 +412,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_FALSE(*agg_expr_1 == *agg_expr_6);
   EXPECT_NE(agg_expr_1->Hash(), agg_expr_6->Hash());
   EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TypeId::BOOLEAN);
+  EXPECT_FALSE(agg_expr_6->RequiresCleanup());
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_7;
@@ -417,6 +420,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
       std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
   agg_expr_7->DeriveReturnValueType();
+  EXPECT_FALSE(agg_expr_7->RequiresCleanup());
 
   EXPECT_FALSE(*agg_expr_1 == *agg_expr_7);
   EXPECT_NE(agg_expr_1->Hash(), agg_expr_7->Hash());

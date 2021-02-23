@@ -46,6 +46,7 @@ class EndtoendEstimator:
                                                                                       0,
                                                                                       False,
                                                                                       False,
+                                                                                      False,
                                                                                       self.ee_sample_interval,
                                                                                       self.txn_sample_interval,
                                                                                       self.network_sample_interval)

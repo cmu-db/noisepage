@@ -30,7 +30,9 @@ void DBMain::ForceShutdown() {
 
 DBMain::~DBMain() { ForceShutdown(); }
 
-DBMain::ExecutionLayer::ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
+DBMain::ExecutionLayer::ExecutionLayer(const std::string &bytecode_handlers_path) {
+  execution::ExecutionUtil::InitTPL(bytecode_handlers_path);
+}
 
 DBMain::ExecutionLayer::~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
 

@@ -28,7 +28,7 @@ TEST(OperatorTests, LogicalInsertTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -96,7 +96,7 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -135,7 +135,7 @@ TEST(OperatorTests, LogicalLimitTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -183,7 +183,7 @@ TEST(OperatorTests, LogicalDeleteTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
   catalog::db_oid_t database_oid(123);
@@ -221,7 +221,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -278,7 +278,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -330,7 +330,7 @@ TEST(OperatorTests, LogicalGetTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -490,7 +490,7 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -554,7 +554,7 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -637,7 +637,7 @@ TEST(OperatorTests, LogicalFilterTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -709,7 +709,7 @@ TEST(OperatorTests, LogicalProjectionTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -767,7 +767,7 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -843,7 +843,7 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -918,7 +918,7 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -994,7 +994,7 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1070,7 +1070,7 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1131,7 +1131,7 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1193,7 +1193,7 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1254,7 +1254,7 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1315,7 +1315,7 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1424,7 +1424,7 @@ TEST(OperatorTests, LogicalCreateDatabaseTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1459,7 +1459,7 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1581,7 +1581,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1696,7 +1696,7 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1810,7 +1810,7 @@ TEST(OperatorTests, LogicalCreateNamespaceTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1845,7 +1845,7 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -1974,7 +1974,7 @@ TEST(OperatorTests, LogicalCreateViewTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -2032,7 +2032,7 @@ TEST(OperatorTests, LogicalDropDatabaseTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -2067,7 +2067,7 @@ TEST(OperatorTests, LogicalDropTableTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -2101,7 +2101,7 @@ TEST(OperatorTests, LogicalDropIndexTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -2136,7 +2136,7 @@ TEST(OperatorTests, LogicalDropNamespaceTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -2171,7 +2171,7 @@ TEST(OperatorTests, LogicalDropTriggerTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
@@ -2221,7 +2221,7 @@ TEST(OperatorTests, LogicalDropViewTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 

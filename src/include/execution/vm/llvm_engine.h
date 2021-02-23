@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "common/macros.h"
@@ -34,18 +35,20 @@ class LLVMEngine {
   class CompilerOptions;
   class CompiledModule;
   class CompiledModuleBuilder;
+  class Settings;
 
   // -------------------------------------------------------
   // Public API
   // -------------------------------------------------------
 
   /**
-   * Initialize the whole LLVM subsystem
+   * Initialize the whole LLVM subsytem and LLVM engine settings
+   * @param settings The settings with which the engine should be initialized
    */
-  static void Initialize();
+  static void Initialize(std::unique_ptr<const Settings> &&settings);
 
   /**
-   * Shutdown the whole LLVM subsystem
+   * Shutdown the whole LLVM subsystem.
    */
   static void Shutdown();
 
@@ -56,6 +59,11 @@ class LLVMEngine {
    * @return The JIT compiled module
    */
   static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
+
+  /**
+   * @return A non-mutating pointer to the LLVM engine settings
+   */
+  static const Settings *GetEngineSettings();
 
   // -------------------------------------------------------
   // Compiler Options
@@ -116,11 +124,6 @@ class LLVMEngine {
      * @return the output file name
      */
     const std::string &GetOutputObjectFileName() const { return output_file_name_; }
-
-    /**
-     * @return the path to the bytecode handlers bitcode file.
-     */
-    std::string GetBytecodeHandlersBcPath() const { return "./bytecode_handlers_ir.bc"; }
 
    private:
     bool debug_{false};
@@ -190,6 +193,59 @@ class LLVMEngine {
     std::unique_ptr<TPLMemoryManager> memory_manager_;
     std::unordered_map<std::string, void *> functions_;
   };
+
+  // -------------------------------------------------------
+  // LLVM Engine Settings
+  // -------------------------------------------------------
+
+  /**
+   * Engine-wide settings that apply for the entire process in which the LLVM Engine runs.
+   */
+  class Settings {
+   public:
+    /**
+     * Construct a settings instance from the relevant configuration parameters.
+     * @param bytecode_handlers_path The path to the bytecode handlers bitcode file.
+     */
+    explicit Settings(std::string_view bytecode_handlers_path) : bytecode_handlers_path_{bytecode_handlers_path} {}
+
+    /**
+     * @return The path to the bytecode handlers bitcode file.
+     */
+    const std::string &GetBytecodeHandlersBcPath() const noexcept { return bytecode_handlers_path_; }
+
+   private:
+    const std::string bytecode_handlers_path_;
+  };
+
+  // -------------------------------------------------------
+  // Static Data Members
+  // -------------------------------------------------------
+
+  /**
+   * Process-wide LLVM engine settings.
+   *
+   * TODO(Kyle): I'm not particularly happy with this setup - an inline
+   * static variable (essentially just a global with scoping) for managing
+   * the settings for the LLVM engine. The ownership model should be
+   * relatively simple - the LLVMEngine should own its settings, but
+   * obviously the issue is, currently, LLVMEngine is a totally static
+   * class. This is a nice property, and makes using it in other locations
+   * within the execution engine easy and clean e.g. LLVMEngine::Compile(...).
+   * This leaves us with a couple of options for managing this state that
+   * is "global" to the engine for the entire process, I've tried:
+   * - A weird, mutant PImpl implementation that was essentially just a
+   *   more convoluted version of the current implementation
+   * - A singleton - this is the obvious "first attempt" at solving this
+   *   problem, and it works, but its kind of gross and no one really likes
+   *   singletons
+   * - Removing the state from the LLVMEngine entirely and instead
+   *   "pushing it down" into the module (and fragments) during compilation,
+   *   but this was more complex, required many API changes, and ultimately
+   *   got away from the point above - that this state should be owned by
+   *   the LLVMEngine because that is the natural ownership relationship
+   */
+  inline static std::unique_ptr<const Settings> engine_settings;  // NOLINT
 };
 
 }  // namespace noisepage::execution::vm

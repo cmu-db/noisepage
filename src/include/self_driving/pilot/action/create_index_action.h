@@ -22,20 +22,24 @@ class CreateIndexAction : public AbstractAction {
  public:
   /**
    * Construct CreateIndexAction
+   * @param db_oid Database id of the index
    * @param index_name Name of the index
    * @param table_name The table to create index on
    * @param columns The columns to build index on
    */
-  CreateIndexAction(std::string index_name, std::string table_name, std::vector<IndexColumn> columns)
-      : AbstractAction(ActionType::CREATE_INDEX),
+  CreateIndexAction(catalog::db_oid_t db_oid, std::string index_name, std::string table_name,
+                    std::vector<IndexColumn> columns)
+      : AbstractAction(ActionType::CREATE_INDEX, db_oid),
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),
         columns_(std::move(columns)) {
+    NOISEPAGE_ASSERT(!columns_.empty(), "Should not create index without any columns!");
+
     sql_command_ = "create index " + index_name_ + " on " + table_name_ + "(";
 
     for (auto &column : columns_) sql_command_ += column.GetColumnName() + ", ";
 
-    sql_command_ += ");";
+    sql_command_ = sql_command_.substr(0, sql_command_.size() - 2) + ");";
   }
 
   /**

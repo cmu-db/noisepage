@@ -182,6 +182,7 @@ namespace noisepage::execution::ast {
   F(AggMerge, aggMerge)                                                 \
   F(AggReset, aggReset)                                                 \
   F(AggResult, aggResult)                                               \
+  F(AggFree, aggFree)                                                   \
                                                                         \
   /* Joins */                                                           \
   F(JoinHashTableInit, joinHTInit)                                      \

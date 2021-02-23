@@ -67,6 +67,19 @@ common::hash_t AggregateExpression::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(distinct_));
   return hash;
 }
+bool AggregateExpression::RequiresCleanup() const {
+  auto expr_type = this->GetExpressionType();
+  switch (expr_type) {
+    case ExpressionType::AGGREGATE_COUNT:
+    case ExpressionType::AGGREGATE_MAX:
+    case ExpressionType::AGGREGATE_MIN:
+    case ExpressionType::AGGREGATE_SUM:
+    case ExpressionType::AGGREGATE_AVG:
+      return false;
+    default:
+      throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));
+  }
+}
 
 DEFINE_JSON_BODY_DECLARATIONS(AggregateExpression);
 
