@@ -61,10 +61,6 @@ class PilotUtil;
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
 class Pilot {
- protected:
-  /** @return Name of the environment variable to be set as the absolute path of build directory */
-  static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
-
  public:
   /**
    * Constructor for Pilot

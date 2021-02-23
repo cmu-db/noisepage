@@ -24,7 +24,7 @@ _num_rows_linear_transformer = (_num_rows_linear_train_transform, _num_rows_line
 
 def _num_rows_memory_cardinality_linear_train_transform(x, y):
     # Linearly transform down the target according to the num_rows value in the input
-    tuple_num = np.copy(x[:, data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]])
+    tuple_num = np.copy(x[:, data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]]) + _TRANSFORM_EPSILON
     new_y = y / tuple_num[:, np.newaxis]
     # Transform the memory consumption based on the cardinality
     cardinality = np.copy(x[:, data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]])
@@ -36,7 +36,7 @@ def _num_rows_memory_cardinality_linear_train_transform(x, y):
 
 def _num_rows_memory_cardinality_linear_predict_transform(x, y):
     # Linearly transform up the target according to the num_rows value in the input
-    tuple_num = np.copy(x[:, data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]])
+    tuple_num = np.copy(x[:, data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]]) + _TRANSFORM_EPSILON
     new_y = y * tuple_num[:, np.newaxis]
     # Transform the memory consumption based on the cardinality
     cardinality = np.copy(x[:, data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]])
