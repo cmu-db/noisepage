@@ -94,9 +94,9 @@ class NoisePageServer:
             elif log_line.strip() != '':
                 logs.append(log_line)
 
-            if now - start_time >= 60:
+            if now - start_time >= 600:
                 LOG.error('\n'.join(logs))
-                LOG.error(f'DBMS [PID={db_process.pid} took more than 60 seconds to start up. Killing.')
+                LOG.error(f'DBMS [PID={db_process.pid} took more than 600 seconds to start up. Killing.')
                 db_process.kill()
                 return False
 
