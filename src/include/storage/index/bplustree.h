@@ -219,7 +219,7 @@ class BPlusTree : public BPlusTreeBase {
     /** The type of the node */
     NodeType type_;
 
-    /** This is the height of the node */
+    /** This is the depth of the node within the tree */
     int depth_;
 
     /** This counts the total number of items in the node */

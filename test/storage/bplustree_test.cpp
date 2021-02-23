@@ -22,31 +22,38 @@ class BPlusTreeTests : public TerrierTest {
   void TearDown() override { thread_pool_.Shutdown(); }
 };
 
-void BasicNodeInitializationInsertReadAndFreeTest() {
+/**
+ * This test verifies basic insertion in a node without split. Also makes sure that freeing
+ * the node works without leaks.
+ */
+void BasicNodeInitPushBackTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
   std::vector<BPlusTree<int, TupleSlot>::KeyNodePointerPair> values;
-  for (unsigned i = 0; i < 10; i++) {
+  for (unsigned key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
-    p1.first = i;
+    p1.first = key;
     values.push_back(p1);
     node->PushBack(p1);
-    EXPECT_EQ(node->GetSize(), i + 1);
+    EXPECT_EQ(node->GetSize(), key + 1);
   }
 
   using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
 
-  unsigned i = 0;
+  unsigned key = 0;
   for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i++;
+    EXPECT_EQ(element_p->first, key);
+    key++;
   }
 
   // To Check if we are inserting at the correct place
@@ -65,28 +72,35 @@ void BasicNodeInitializationInsertReadAndFreeTest() {
   delete bplustree;
 }
 
+/**
+ * Works similar to the push back test above, but uses the Insert function instead of
+ * directly using PushBack on the node.
+ */
 void InsertElementInNodeTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
-  for (unsigned i = 0; i < 10; i++) {
+  for (unsigned key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
-    p1.first = i;
+    p1.first = key;
     EXPECT_EQ(node->InsertElementIfPossible(p1, node->Begin()), true);
-    EXPECT_EQ(node->GetSize(), i + 1);
+    EXPECT_EQ(node->GetSize(), key + 1);
   }
 
   using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
 
-  unsigned i = 9;
+  unsigned key = 9;
   for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i--;
+    EXPECT_EQ(element_p->first, key);
+    key--;
   }
 
   // To Check if we are inserting at the correct place
@@ -105,33 +119,39 @@ void InsertElementInNodeTest() {
   delete bplustree;
 }
 
+/**
+ * Randomly insert elements in a node.
+ */
 void InsertElementInNodeRandomTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   std::map<int, int> positions;
-  for (unsigned i = 0; i < 10; i++) {
+  for (unsigned key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
-    p1.first = i;
+    p1.first = key;
     int k;
     k = rand_r(&globalseed) % (node->GetSize() + 1);
     while (positions.find(k) != positions.end()) k = (k + 1) % (node->GetSize() + 1);
     EXPECT_EQ(node->InsertElementIfPossible(p1, node->Begin() + k), true);
-    positions[k] = i;
-    EXPECT_EQ(node->GetSize(), i + 1);
+    positions[k] = key;
+    EXPECT_EQ(node->GetSize(), key + 1);
   }
 
   using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
 
-  unsigned i = 0;
+  unsigned key = 0;
   for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-    EXPECT_EQ(element_p->first, positions[i]);
-    i++;
+    EXPECT_EQ(element_p->first, positions[key]);
+    key++;
   }
 
   // To Check if we are inserting at the correct place
@@ -150,40 +170,46 @@ void InsertElementInNodeRandomTest() {
   delete bplustree;
 }
 
+/**
+ * Explicitly verifies splitting of a node
+ */
 void SplitNodeTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
-  for (unsigned i = 0; i < 10; i++) {
+  for (unsigned key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
-    p1.first = i;
+    p1.first = key;
     EXPECT_EQ(node->InsertElementIfPossible(p1, node->End()), true);
-    EXPECT_EQ(node->GetSize(), i + 1);
+    EXPECT_EQ(node->GetSize(), key + 1);
   }
 
   auto newnode = node->SplitNode();
 
   using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
 
-  unsigned i = 0;
+  unsigned key = 0;
   for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i++;
+    EXPECT_EQ(element_p->first, key);
+    key++;
   }
 
-  EXPECT_EQ(i, 5);
+  EXPECT_EQ(key, 5);
 
   for (ElementType *element_p = newnode->Begin(); element_p != newnode->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i++;
+    EXPECT_EQ(element_p->first, key);
+    key++;
   }
 
-  EXPECT_EQ(i, 10);
+  EXPECT_EQ(key, 10);
 
   EXPECT_EQ(&(node->GetLowKeyPair()), node->GetElasticLowKeyPair());
   EXPECT_EQ(&(node->GetHighKeyPair()), node->GetElasticHighKeyPair());
@@ -205,14 +231,20 @@ void SplitNodeTest() {
   delete bplustree;
 }
 
+/**
+ * Tests whether the FindLocation function correctly fetches the location of a key in the node.
+ */
 void FindLocationTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   std::set<unsigned> s;
   while (node->GetSize() < node->GetItemCount()) {
@@ -247,34 +279,40 @@ void FindLocationTest() {
   delete bplustree;
 }
 
+/**
+ * Tests the PopBegin() function in a node.
+ */
 void PopBeginTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
   std::vector<BPlusTree<int, TupleSlot>::KeyNodePointerPair> values;
-  for (unsigned i = 0; i < 10; i++) {
+  for (unsigned key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
-    p1.first = i;
+    p1.first = key;
     node->PushBack(p1);
-    EXPECT_EQ(node->GetSize(), i + 1);
+    EXPECT_EQ(node->GetSize(), key + 1);
   }
 
   using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
   unsigned i = 0;
   while (node->PopBegin()) {
     i++;
-    unsigned j = i;
+    unsigned key = i;
     for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-      EXPECT_EQ(element_p->first, j);
-      j++;
+      EXPECT_EQ(element_p->first, key);
+      key++;
     }
-    EXPECT_EQ(j, 10);
+    EXPECT_EQ(key, 10);
   }
 
   EXPECT_EQ(i, 10);
@@ -295,33 +333,39 @@ void PopBeginTest() {
   delete bplustree;
 }
 
+/**
+ * Tests the PopEnd() function in a node.
+ */
 void PopEndTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
-  for (unsigned i = 0; i < 10; i++) {
+  for (unsigned key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
-    p1.first = i;
+    p1.first = key;
     node->PushBack(p1);
-    EXPECT_EQ(node->GetSize(), i + 1);
+    EXPECT_EQ(node->GetSize(), key + 1);
   }
 
   // using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
-  unsigned i = 9;
+  unsigned key = 9;
   while (node->PopEnd()) {
     if (node->GetSize() <= 0) break;
-    i--;
+    key--;
     auto last = node->RBegin();
-    EXPECT_EQ(last->first, i);
+    EXPECT_EQ(last->first, key);
   }
 
-  EXPECT_EQ(i, 0);
+  EXPECT_EQ(key, 0);
 
   // To Check if we are inserting at the correct place
   EXPECT_EQ(reinterpret_cast<char *>(node) + sizeof(BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>>),
@@ -339,33 +383,39 @@ void PopEndTest() {
   delete bplustree;
 }
 
+/**
+ * Verify that erasing an element from a node works correctly.
+ */
 void NodeElementEraseTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
-  for (unsigned i = 0; i < 10; i++) {
+  for (unsigned key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
-    p1.first = i;
+    p1.first = key;
     node->PushBack(p1);
-    EXPECT_EQ(node->GetSize(), i + 1);
+    EXPECT_EQ(node->GetSize(), key + 1);
   }
 
   // using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
-  int i = 9;
-  while (node->Erase(i)) {
+  int key = 9;
+  while (node->Erase(key)) {
     if (node->GetSize() <= 0) break;
-    i--;
+    key--;
     auto last = node->RBegin();
-    EXPECT_EQ(last->first, i);
+    EXPECT_EQ(last->first, key);
   }
 
-  EXPECT_EQ(i, 0);
+  EXPECT_EQ(key, 0);
 
   // To Check if we are inserting at the correct place
   EXPECT_EQ(reinterpret_cast<char *>(node) + sizeof(BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>>),
@@ -383,18 +433,24 @@ void NodeElementEraseTest() {
   delete bplustree;
 }
 
+/**
+ * Test merging by explicitly calling MergeNode on two nodes
+ */
 void NodeMergeTest() {
   auto bplustree = new BPlusTree<int, TupleSlot>;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
+  auto size = 10;
+  auto depth = 0;
+  auto item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
   auto next_node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
-      10, BPlusTree<int, TupleSlot>::NodeType::LeafType, 0, 10, p1, p2);
+      size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
-  for (unsigned i = 0; i < 5; i++) {
+  for (unsigned i = 0; i < (item_count / 2); i++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
     p1.first = i;
@@ -408,12 +464,12 @@ void NodeMergeTest() {
   using ElementType = BPlusTree<int, TupleSlot>::KeyNodePointerPair;
   EXPECT_EQ(node->MergeNode(next_node), true);
 
-  unsigned i = 0;
+  unsigned key = 0;
   for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i++;
+    EXPECT_EQ(element_p->first, key);
+    key++;
   }
-  EXPECT_EQ(i, 10);
+  EXPECT_EQ(key, 10);
 
   // To Check if we are inserting at the correct place
   EXPECT_EQ(reinterpret_cast<char *>(node) + sizeof(BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>>),
@@ -434,7 +490,7 @@ void NodeMergeTest() {
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, NodeStructuralTests) {
-  BasicNodeInitializationInsertReadAndFreeTest();
+  BasicNodeInitPushBackTest();
   InsertElementInNodeTest();
   InsertElementInNodeRandomTest();
   SplitNodeTest();
@@ -445,36 +501,44 @@ TEST_F(BPlusTreeTests, NodeStructuralTests) {
   NodeMergeTest();
 }
 
-void BasicBPlusTreeInsertTestNoSplittingOfRoot() {
+/**
+ * Verify inserts into the B+ Tree without the root splitting.
+ */
+void BasicBPlusTreeInsertTestNoSplit() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
+  unsigned key_num = 100;
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  for (unsigned i = 0; i < 100; i++) {
+  for (unsigned key = 0; key < key_num; key++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = i;
+    p1.first = key;
     bplustree->Insert(p1, predicate);
   }
 
   using ElementType = BPlusTree<int, TupleSlot>::KeyElementPair;
 
   auto node = reinterpret_cast<BPlusTree<int, TupleSlot>::ElasticNode<ElementType> *>(bplustree->GetRoot());
-  unsigned i = 0;
+  unsigned key = 0;
   for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i++;
+    EXPECT_EQ(element_p->first, key);
+    key++;
   }
-  EXPECT_EQ(i, 100);
+  EXPECT_EQ(key, key_num);
 
   delete bplustree;
 }
 
-void BasicBPlusTreeInsertTestSplittingOfRootOnce() {
+/**
+ * Verify inserts into B+ Tree splitting the root once.
+ */
+void BasicBPlusTreeInsertTestRootSplitOnce() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
+  unsigned key_num = 129;
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  for (unsigned i = 0; i < 129; i++) {
+  for (unsigned key = 0; key < key_num; key++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = i;
+    p1.first = key;
     bplustree->Insert(p1, predicate);
   }
 
@@ -485,36 +549,41 @@ void BasicBPlusTreeInsertTestSplittingOfRootOnce() {
       bplustree->GetRoot()->GetLowKeyPair().second);
   auto noderoot = reinterpret_cast<BPlusTree<int, TupleSlot>::ElasticNode<KeyPointerType> *>(bplustree->GetRoot());
   auto node2 = reinterpret_cast<BPlusTree<int, TupleSlot>::ElasticNode<ElementType> *>(noderoot->Begin()->second);
-  unsigned i = 0;
+  unsigned key = 0;
   for (ElementType *element_p = node->Begin(); element_p != node->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i++;
+    EXPECT_EQ(element_p->first, key);
+    key++;
   }
-  EXPECT_EQ(i, 64);
+  EXPECT_EQ(key, 64);
   for (ElementType *element_p = node2->Begin(); element_p != node2->End(); element_p++) {
-    EXPECT_EQ(element_p->first, i);
-    i++;
+    EXPECT_EQ(element_p->first, key);
+    key++;
   }
-  EXPECT_EQ(i, 129);
+  EXPECT_EQ(key, 129);
 
   // Count no of elements in root node - should be 1
-  i = 0;
-  for (KeyPointerType *element_p = noderoot->Begin(); element_p != noderoot->End(); element_p++) i++;
+  key = 0;
+  for (KeyPointerType *element_p = noderoot->Begin(); element_p != noderoot->End(); element_p++) key++;
 
-  EXPECT_EQ(i, 1);
+  EXPECT_EQ(key, 1);
 
   delete bplustree;
 }
 
-void LargeKeyRandomInsertSiblingSequenceTest() {
+/**
+ * Insert a large number of keys (2-3 fully filled levels with a branching factor of 128), and
+ * verify that Scans at the leaf node work properly.
+ */
+void LargeKeyRandomInsertScanTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   // Insert keys
+  unsigned key_num = 100000;
   auto bplustree = new BPlusTree<int, TupleSlot>;
   bplustree->SetInnerNodeSizeUpperThreshold(5);
   bplustree->SetLeafNodeSizeUpperThreshold(5);
   std::set<int> keys;
-  for (unsigned i = 0; i < 100000; i++) {
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 500000;
     while (keys.find(k) != keys.end()) k++;
@@ -529,7 +598,10 @@ void LargeKeyRandomInsertSiblingSequenceTest() {
   delete bplustree;
 }
 
-void KeyRandomInsertAndDeleteSiblingSequenceTest() {
+/**
+ * Tests random insert and delete and ensures scan works correctly.
+ */
+void RandomInsertAndDeleteScanTest() {
   auto predicate = [](const int slot) -> bool { return false; };
 
   // Insert keys
@@ -539,7 +611,8 @@ void KeyRandomInsertAndDeleteSiblingSequenceTest() {
   bplustree->SetInnerNodeSizeLowerThreshold(4);
   bplustree->SetLeafNodeSizeLowerThreshold(4);
   std::set<int> keys;
-  for (unsigned i = 0; i < 1000; i++) {
+  unsigned key_num = 1000;
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, int>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 500000;
     while (keys.find(k) != keys.end()) k++;
@@ -552,7 +625,7 @@ void KeyRandomInsertAndDeleteSiblingSequenceTest() {
   EXPECT_EQ(bplustree->SiblingForwardCheck(&keys), true);
   EXPECT_EQ(bplustree->SiblingBackwardCheck(&keys), true);
 
-  for (unsigned i = 0; i < 500; i++) {
+  for (unsigned i = 0; i < (key_num / 2); i++) {
     BPlusTree<int, int>::KeyElementPair p1;
     unsigned key_index = rand_r(&globalseed) % keys.size();
     auto it = keys.begin();
@@ -570,6 +643,9 @@ void KeyRandomInsertAndDeleteSiblingSequenceTest() {
   delete bplustree;
 }
 
+/**
+ * Tests insertion of duplicate key-value pairs in the tree
+ */
 void DuplicateKeyValueInsertTest() {
   auto predicate = [](const int slot) -> bool { return false; };
 
@@ -578,7 +654,8 @@ void DuplicateKeyValueInsertTest() {
   bplustree->SetInnerNodeSizeUpperThreshold(5);
   bplustree->SetLeafNodeSizeUpperThreshold(5);
   std::unordered_map<int, std::set<int>> keys_values;
-  for (int i = 0; i < 100000; i++) {
+  int key_num = 100000;
+  for (int i = 0; i < key_num; i++) {
     int k = i % 1000;                  // there will be 100 inserts for same key
     int v = rand_r(&globalseed) % 50;  // expect one duplicate value per key
     if (keys_values.count(k) == 0) {
@@ -599,6 +676,10 @@ void DuplicateKeyValueInsertTest() {
 
   delete bplustree;
 }
+
+/**
+ * Tests ScanKey() function in the B+ Tree
+ */
 void ScanKeyTest() {
   auto predicate = [](const int slot) -> bool { return false; };
 
@@ -607,7 +688,8 @@ void ScanKeyTest() {
   bplustree->SetInnerNodeSizeUpperThreshold(5);
   bplustree->SetLeafNodeSizeUpperThreshold(5);
   std::unordered_map<int, std::set<int>> keys_values;
-  for (unsigned i = 0; i < 100000; i++) {
+  unsigned key_num = 100000;
+  for (unsigned i = 0; i < key_num; i++) {
     int k = rand_r(&globalseed) % 1000;
     int v = rand_r(&globalseed) % 500000;
     int is_value_unique = 1;
@@ -642,11 +724,15 @@ void ScanKeyTest() {
   delete bplustree;
 }
 
-void BasicBPlusTreeDeleteTestNoSplittingOfRoot() {
+/**
+ * Tests basic delete with no splitting.
+ */
+void BasicBPlusTreeDeleteNoSplitTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  for (unsigned i = 0; i < 100; i++) {
+  unsigned key_num = 100;
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = i;
     bplustree->Insert(p1, predicate);
@@ -660,10 +746,10 @@ void BasicBPlusTreeDeleteTestNoSplittingOfRoot() {
     EXPECT_EQ(element_p->first, i);
     i++;
   }
-  EXPECT_EQ(i, 100);
+  EXPECT_EQ(i, key_num);
 
   // Delete all values
-  for (i = 0; i < 100; i++) {
+  for (i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = i;
     bplustree->DeleteElement(p1);
@@ -674,60 +760,71 @@ void BasicBPlusTreeDeleteTestNoSplittingOfRoot() {
   delete bplustree;
 }
 
+/**
+ * Insert a large number of keys (2-3 levels full) and retrieve the keys.
+ */
 void LargeKeySequentialInsertAndRetrievalTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
+  unsigned key_num = 100000;
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  for (unsigned i = 0; i < 100000; i++) {
+  for (unsigned key = 0; key < key_num; key++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = i;
+    p1.first = key;
     bplustree->Insert(p1, predicate);
   }
 
-  for (int i = 0; i < 100000; i++) {
-    EXPECT_EQ(bplustree->IsPresent(i), true);
+  for (int key = 0; key < key_num; key++) {
+    EXPECT_EQ(bplustree->IsPresent(key), true);
   }
 
-  for (int i = 100000; i < 200000; i++) {
-    EXPECT_EQ(bplustree->IsPresent(i), false);
+  for (int key = key_num; key < (key_num * 2); key++) {
+    EXPECT_EQ(bplustree->IsPresent(key), false);
   }
 
   delete bplustree;
 }
 
+/**
+ * Insert a large number of keys (2-3 levels full) and delete few of them.
+ */
 void LargeKeySequentialInsertAndDeleteTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  for (unsigned i = 0; i < 100000; i++) {
+  unsigned key_num = 100000;
+  for (unsigned key = 0; key < key_num; key++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = i;
+    p1.first = key;
     bplustree->Insert(p1, predicate);
   }
 
-  for (int i = 0; i < 100000; i++) {
-    EXPECT_EQ(bplustree->IsPresent(i), true);
+  for (int key = 0; key < key_num; key++) {
+    EXPECT_EQ(bplustree->IsPresent(key), true);
   }
 
-  for (int i = 100000; i < 200000; i++) {
-    EXPECT_EQ(bplustree->IsPresent(i), false);
+  for (int key = key_num; key < (key_num * 2); key++) {
+    EXPECT_EQ(bplustree->IsPresent(key), false);
   }
 
   // delete certain elements
-  for (unsigned i = 0; i < 100000; i += 2) {
+  for (unsigned key = 0; key < key_num; key += 2) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = i;
+    p1.first = key;
     bplustree->DeleteElement(p1);
   }
 
-  for (int i = 0; i < 100000; i += 2) {
-    EXPECT_EQ(bplustree->IsPresent(i), false);
-    EXPECT_EQ(bplustree->IsPresent(i + 1), true);
+  for (int key = 0; key < key_num; key += 2) {
+    EXPECT_EQ(bplustree->IsPresent(key), false);
+    EXPECT_EQ(bplustree->IsPresent(key + 1), true);
   }
 
   delete bplustree;
 }
 
+/**
+ * Insert a large number of keys (2-3 levels full) randomly and retrieve them.
+ */
 void LargeKeyRandomInsertAndRetrievalTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
@@ -735,7 +832,8 @@ void LargeKeyRandomInsertAndRetrievalTest() {
   bplustree->SetInnerNodeSizeUpperThreshold(5);
   bplustree->SetLeafNodeSizeUpperThreshold(5);
   std::set<int> keys;
-  for (unsigned i = 0; i < 100000; i++) {
+  unsigned key_num = 100000;
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 500000;
     while (keys.find(k) != keys.end()) k++;
@@ -756,21 +854,25 @@ void LargeKeyRandomInsertAndRetrievalTest() {
   delete bplustree;
 }
 
+/**
+ * Insert a large number of keys (2-3 levels full) randomly and delete few of them.
+ */
 void LargeKeyRandomInsertAndDeleteTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
   std::set<int> keys;
-  for (unsigned i = 0; i < 100000; i++) {
+  unsigned key_num = 100000;
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    int k = rand_r(&globalseed) % 500000;
+    int k = rand_r(&globalseed) % (key_num * 5);
     while (keys.find(k) != keys.end()) k++;
     keys.insert(k);
     p1.first = k;
     bplustree->Insert(p1, predicate);
   }
 
-  for (int i = 0; i < 500000; i++) {
+  for (int i = 0; i < (key_num * 5); i++) {
     if (keys.find(i) != keys.end()) {
       EXPECT_EQ(bplustree->IsPresent(i), true);
     } else {
@@ -779,7 +881,7 @@ void LargeKeyRandomInsertAndDeleteTest() {
   }
 
   auto iter = keys.begin();
-  for (unsigned i = 0; i < 50000; i++) {
+  for (unsigned i = 0; i < (key_num / 2); i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
     bplustree->DeleteElement(p1);
@@ -787,11 +889,11 @@ void LargeKeyRandomInsertAndDeleteTest() {
   }
 
   iter = keys.begin();
-  for (unsigned i = 0; i < 50000; i++) {
+  for (unsigned i = 0; i < (key_num / 2); i++) {
     EXPECT_EQ(bplustree->IsPresent(*iter), false);
     iter++;
   }
-  for (unsigned i = 50000; i < 100000; i++) {
+  for (unsigned i = (key_num / 2); i < key_num; i++) {
     EXPECT_EQ(bplustree->IsPresent(*iter), true);
     iter++;
   }
@@ -799,6 +901,9 @@ void LargeKeyRandomInsertAndDeleteTest() {
   delete bplustree;
 }
 
+/**
+ * Test duplicate key deletes from the tree.
+ */
 void DuplicateKeyDeleteTest() {
   auto predicate = [](const int slot) -> bool { return false; };
 
@@ -809,10 +914,11 @@ void DuplicateKeyDeleteTest() {
   bplustree->SetInnerNodeSizeLowerThreshold(4);
   bplustree->SetLeafNodeSizeLowerThreshold(4);
   std::map<int, std::set<int>> key_vals;
+  unsigned key_num = 10000;
   for (int i = 0; i < 10000; i++) {
     BPlusTree<int, int>::KeyElementPair p1;
-    int k = i % 100;                     // 100 different keys
-    int v = rand_r(&globalseed) % 5000;  // 100 values per key
+    int k = i % (key_num / 100);                          // 100 different keys
+    int v = rand_r(&globalseed) % ((key_num / 100) * 5);  // 100 values per key
     if (key_vals.count(k) == 0) {
       std::set<int> s;
       s.insert(v);
@@ -884,14 +990,13 @@ void StructuralIntegrityTestWithRandomInsert() {
   delete bplustree;
 }
 
-void StructuralIntegrityTestWithCornerCase() {
+/**
+ * Verifies structural integrity while inserting and splitting nodes.
+ */
+void StructuralIntegrityTestOnInsert() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
   bplustree->SetInnerNodeSizeUpperThreshold(10);
   bplustree->SetLeafNodeSizeUpperThreshold(10);
   bplustree->SetInnerNodeSizeLowerThreshold(4);
@@ -914,20 +1019,20 @@ void StructuralIntegrityTestWithCornerCase() {
   delete bplustree;
 }
 
-void StructuralIntegrityTestWithCornerCase2() {
+/**
+ * Verifies structural integrity while inserting and splitting with very low thresholds
+ */
+void StructuralIntegrityTestOnLowThreshInsert() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
   bplustree->SetInnerNodeSizeUpperThreshold(6);
   bplustree->SetLeafNodeSizeUpperThreshold(6);
   bplustree->SetInnerNodeSizeLowerThreshold(2);
   bplustree->SetLeafNodeSizeLowerThreshold(2);
   std::set<int> keys;
-  for (unsigned i = 0; i < 100; i++) {
+  unsigned key_num = 100;
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 500;
     while (keys.find(k) != keys.end()) k++;
@@ -944,14 +1049,13 @@ void StructuralIntegrityTestWithCornerCase2() {
   delete bplustree;
 }
 
+/**
+ * Verify structural integrity with random inserts and deletes involving re-balancing.
+ */
 void StructuralIntegrityTestWithRandomInsertAndDelete() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
   bplustree->SetInnerNodeSizeUpperThreshold(8);
   bplustree->SetLeafNodeSizeUpperThreshold(8);
   bplustree->SetInnerNodeSizeLowerThreshold(3);
@@ -992,14 +1096,13 @@ void StructuralIntegrityTestWithRandomInsertAndDelete() {
   delete bplustree;
 }
 
+/**
+ * Verify structural integrity with atleast 2-3 full levels along with inserts and deletes.
+ */
 void LargeStructuralIntegrityVerificationTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
   bplustree->SetInnerNodeSizeUpperThreshold(16);
   bplustree->SetLeafNodeSizeUpperThreshold(16);
   bplustree->SetInnerNodeSizeLowerThreshold(6);
@@ -1022,7 +1125,7 @@ void LargeStructuralIntegrityVerificationTest() {
     EXPECT_EQ(keys_copy.size(), 0);
   }
 
-  // Delete All keys except one - As root empty is not handled by delete yet
+  // Delete All keys except one
   for (int i = 0; i < 999; i++) {
     auto iter = keys.begin();
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
@@ -1082,20 +1185,20 @@ void LargeStructuralIntegrityVerificationTest() {
   delete bplustree;
 }
 
+/**
+ * Similar to the above test, but use reverse iterators
+ */
 void LargeStructuralIntegrityVerificationTestReverse() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
   bplustree->SetInnerNodeSizeUpperThreshold(16);
   bplustree->SetLeafNodeSizeUpperThreshold(16);
   bplustree->SetInnerNodeSizeLowerThreshold(6);
   bplustree->SetLeafNodeSizeLowerThreshold(6);
   std::set<int> keys;
-  for (unsigned i = 0; i < 1000; i++) {
+  unsigned key_num = 1000;
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 5000;
     while (keys.find(k) != keys.end()) k++;
@@ -1113,7 +1216,7 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   }
 
   // Delete All keys except one - As root empty is not handled by delete yet
-  for (int i = 0; i < 999; i++) {
+  for (int i = 0; i < (key_num - 1); i++) {
     auto iter = keys.rbegin();
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
@@ -1129,7 +1232,7 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   }
 
   // Insert Again
-  for (unsigned i = 0; i < 1000; i++) {
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % 5000;
     while (keys.find(k) != keys.end()) k++;
@@ -1147,7 +1250,7 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   }
 
   // Delete Again now two keys remaining
-  for (int i = 0; i < 999; i++) {
+  for (int i = 0; i < (key_num - 1); i++) {
     auto iter = keys.rbegin();
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
@@ -1174,109 +1277,27 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   delete bplustree;
 }
 
-void StructuralIntegrityTestWithRandomInsertAndDelete2() {
-  auto predicate = [](const TupleSlot slot) -> bool { return false; };
-
-  auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
-  bplustree->SetInnerNodeSizeUpperThreshold(6);
-  bplustree->SetLeafNodeSizeUpperThreshold(6);
-  bplustree->SetInnerNodeSizeLowerThreshold(2);
-  bplustree->SetLeafNodeSizeLowerThreshold(2);
-  std::set<int> keys;
-
-  for (unsigned i = 0; i < 37; i++) {
-    BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    int k = rand_r(&globalseed) % 60;
-    while (keys.find(k) != keys.end()) k++;
-    keys.insert(k);
-    p1.first = k;
-    bplustree->Insert(p1, predicate);
-  }
-
-  auto it = keys.begin();
-  for (unsigned i = 0; i < keys.size() / 2; i++) {
-    BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = *(it);
-    it++;
-    EXPECT_EQ(bplustree->DeleteElement(p1), true);
-  }
-
-  for (unsigned i = keys.size() / 2; i < keys.size(); i++) {
-    BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = *(it);
-    it++;
-    EXPECT_EQ(bplustree->IsPresent(p1.first), true);
-  }
-
-  delete bplustree;
-}
-
-void StructuralIntegrityTestWithRandomInsertAndDelete2Reverse() {
-  auto predicate = [](const TupleSlot slot) -> bool { return false; };
-
-  auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
-  bplustree->SetInnerNodeSizeUpperThreshold(6);
-  bplustree->SetLeafNodeSizeUpperThreshold(6);
-  bplustree->SetInnerNodeSizeLowerThreshold(2);
-  bplustree->SetLeafNodeSizeLowerThreshold(2);
-  std::set<int> keys;
-
-  for (unsigned i = 0; i < 37; i++) {
-    BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    int k = rand_r(&globalseed) % 60;
-    while (keys.find(k) != keys.end()) k++;
-    keys.insert(k);
-    p1.first = k;
-    bplustree->Insert(p1, predicate);
-  }
-
-  auto it = keys.rbegin();
-  for (unsigned i = 0; i < keys.size() / 2; i++) {
-    BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = *(it);
-    it++;
-    EXPECT_EQ(bplustree->DeleteElement(p1), true);
-  }
-
-  for (unsigned i = keys.size() / 2; i < keys.size(); i++) {
-    BPlusTree<int, TupleSlot>::KeyElementPair p1;
-    p1.first = *(it);
-    it++;
-    EXPECT_EQ(bplustree->IsPresent(p1.first), true);
-  }
-
-  delete bplustree;
-}
-
+/**
+ * Test insert delete and re-insert in B+ Tree
+ */
 void BPlusTreeCompleteDeleteAndReinsertTest() {
   auto predicate = [](const TupleSlot slot) -> bool { return false; };
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
-  // The size is set to 2 more because of the following
-  // When we split an inner node, we might end up deleting an element
-  // from right side without putting anything in the right side
-  // Hence the size may be 31 at some points if we used 64.
   bplustree->SetInnerNodeSizeUpperThreshold(8);
   bplustree->SetLeafNodeSizeUpperThreshold(8);
   bplustree->SetInnerNodeSizeLowerThreshold(3);
   bplustree->SetLeafNodeSizeLowerThreshold(3);
   std::set<int> keys;
-  for (unsigned i = 0; i < 30; i++) {
+  unsigned key_num = 30;
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     keys.insert(i);
     p1.first = i;
     bplustree->Insert(p1, predicate);
   }
 
-  for (unsigned i = 0; i < 30; i++) {
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *keys.begin();
     keys.erase(keys.begin());
@@ -1291,7 +1312,7 @@ void BPlusTreeCompleteDeleteAndReinsertTest() {
     }
   }
 
-  for (unsigned i = 0; i < 30; i++) {
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     keys.insert(i);
     p1.first = i;
@@ -1307,7 +1328,7 @@ void BPlusTreeCompleteDeleteAndReinsertTest() {
     }
   }
 
-  for (unsigned i = 0; i < 30; i++) {
+  for (unsigned i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *keys.begin();
     keys.erase(keys.begin());
@@ -1330,9 +1351,9 @@ void BPlusTreeCompleteDeleteAndReinsertTest() {
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, InsertTests) {
-  BasicBPlusTreeInsertTestNoSplittingOfRoot();
-  BasicBPlusTreeInsertTestSplittingOfRootOnce();
-  LargeKeyRandomInsertSiblingSequenceTest();
+  BasicBPlusTreeInsertTestNoSplit();
+  BasicBPlusTreeInsertTestRootSplitOnce();
+  LargeKeyRandomInsertScanTest();
   DuplicateKeyValueInsertTest();
   ScanKeyTest();
   LargeKeySequentialInsertAndRetrievalTest();
@@ -1341,31 +1362,33 @@ TEST_F(BPlusTreeTests, InsertTests) {
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, DeleteTests) {
-  BasicBPlusTreeDeleteTestNoSplittingOfRoot();
+  BasicBPlusTreeDeleteNoSplitTest();
   LargeKeySequentialInsertAndDeleteTest();
   LargeKeyRandomInsertAndDeleteTest();
   DuplicateKeyDeleteTest();
-  KeyRandomInsertAndDeleteSiblingSequenceTest();
+  RandomInsertAndDeleteScanTest();
 }
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, StructuralIntegrityTests) {
   StructuralIntegrityTestWithRandomInsert();
-  StructuralIntegrityTestWithCornerCase();
-  StructuralIntegrityTestWithCornerCase2();
+  StructuralIntegrityTestOnInsert();
+  StructuralIntegrityTestOnLowThreshInsert();
   StructuralIntegrityTestWithRandomInsertAndDelete();
-  StructuralIntegrityTestWithRandomInsertAndDelete2();
-  StructuralIntegrityTestWithRandomInsertAndDelete2Reverse();
 }
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, LargeTests) {
   LargeStructuralIntegrityVerificationTest();
+  LargeStructuralIntegrityVerificationTestReverse();
   BPlusTreeCompleteDeleteAndReinsertTest();
 }
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, MultiThreadedInsertTest) {
+  /**
+   * Tests multi-threaded insert on the B+ Tree
+   */
   std::function<bool(const int64_t)> predicate = [](const int64_t slot) -> bool { return false; };
   const int key_num = 1000 * 1000;
 
@@ -1418,6 +1441,9 @@ TEST_F(BPlusTreeTests, MultiThreadedInsertTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BPlusTreeTests, MultiThreadedDeleteTest) {
+  /**
+   * Tests multi-threaded delete on the B+ Tree
+   */
   auto predicate = [](const int64_t slot) -> bool { return false; };
   const int key_num = 1000 * 1000;
 
