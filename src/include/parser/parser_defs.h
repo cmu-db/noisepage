@@ -61,6 +61,7 @@ enum class IndexType {
   INVALID = INVALID_TYPE_ID,
   BWTREE = 1,
   HASH = 2,
+  BPLUSTREE = 3,
 };
 
 enum class InsertType { INVALID = INVALID_TYPE_ID, VALUES = 1, SELECT = 2 };
