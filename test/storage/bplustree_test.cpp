@@ -32,15 +32,15 @@ void BasicNodeInitPushBackTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
   std::vector<BPlusTree<int, TupleSlot>::KeyNodePointerPair> values;
-  for (unsigned key = 0; key < item_count; key++) {
+  for (int key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     p1.first = key;
     values.push_back(p1);
@@ -82,13 +82,13 @@ void InsertElementInNodeTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
-  for (unsigned key = 0; key < item_count; key++) {
+  for (int key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     p1.first = key;
     EXPECT_EQ(node->InsertElementIfPossible(p1, node->Begin()), true);
@@ -128,14 +128,14 @@ void InsertElementInNodeRandomTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   std::map<int, int> positions;
-  for (unsigned key = 0; key < item_count; key++) {
+  for (int key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     p1.first = key;
     int k;
@@ -179,13 +179,13 @@ void SplitNodeTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
-  for (unsigned key = 0; key < item_count; key++) {
+  for (int key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     p1.first = key;
     EXPECT_EQ(node->InsertElementIfPossible(p1, node->End()), true);
@@ -288,15 +288,15 @@ void PopBeginTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
   std::vector<BPlusTree<int, TupleSlot>::KeyNodePointerPair> values;
-  for (unsigned key = 0; key < item_count; key++) {
+  for (int key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     p1.first = key;
     node->PushBack(p1);
@@ -342,14 +342,14 @@ void PopEndTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
-  for (unsigned key = 0; key < item_count; key++) {
+  for (int key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     p1.first = key;
     node->PushBack(p1);
@@ -392,14 +392,14 @@ void NodeElementEraseTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
   // To check if we can read what we inserted
-  for (unsigned key = 0; key < item_count; key++) {
+  for (int key = 0; key < item_count; key++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     p1.first = key;
     node->PushBack(p1);
@@ -442,15 +442,15 @@ void NodeMergeTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  unsigned size = 10;
-  unsigned depth = 0;
-  unsigned item_count = 10;  // Usually equal to size
+  int size = 10;
+  int depth = 0;
+  int item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
   auto next_node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
-  for (unsigned i = 0; i < (item_count / 2); i++) {
+  for (int i = 0; i < (item_count / 2); i++) {
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p1;
     BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
     p1.first = i;
@@ -862,8 +862,8 @@ void LargeKeyRandomInsertAndDeleteTest() {
 
   auto bplustree = new BPlusTree<int, TupleSlot>;
   std::set<int> keys;
-  unsigned key_num = 100000;
-  for (unsigned i = 0; i < key_num; i++) {
+  int key_num = 100000;
+  for (int i = 0; i < key_num; i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     int k = rand_r(&globalseed) % (key_num * 5);
     while (keys.find(k) != keys.end()) k++;
@@ -872,7 +872,7 @@ void LargeKeyRandomInsertAndDeleteTest() {
     bplustree->Insert(p1, predicate);
   }
 
-  for (unsigned i = 0; i < (key_num * 5); i++) {
+  for (int i = 0; i < (key_num * 5); i++) {
     if (keys.find(i) != keys.end()) {
       EXPECT_EQ(bplustree->IsPresent(i), true);
     } else {
@@ -881,7 +881,7 @@ void LargeKeyRandomInsertAndDeleteTest() {
   }
 
   auto iter = keys.begin();
-  for (unsigned i = 0; i < (key_num / 2); i++) {
+  for (int i = 0; i < (key_num / 2); i++) {
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
     bplustree->DeleteElement(p1);
@@ -889,11 +889,11 @@ void LargeKeyRandomInsertAndDeleteTest() {
   }
 
   iter = keys.begin();
-  for (unsigned i = 0; i < (key_num / 2); i++) {
+  for (int i = 0; i < (key_num / 2); i++) {
     EXPECT_EQ(bplustree->IsPresent(*iter), false);
     iter++;
   }
-  for (unsigned i = (key_num / 2); i < key_num; i++) {
+  for (int i = (key_num / 2); i < key_num; i++) {
     EXPECT_EQ(bplustree->IsPresent(*iter), true);
     iter++;
   }
@@ -914,7 +914,7 @@ void DuplicateKeyDeleteTest() {
   bplustree->SetInnerNodeSizeLowerThreshold(4);
   bplustree->SetLeafNodeSizeLowerThreshold(4);
   std::map<int, std::set<int>> key_vals;
-  unsigned key_num = 10000;
+  int key_num = 10000;
   for (int i = 0; i < 10000; i++) {
     BPlusTree<int, int>::KeyElementPair p1;
     int k = i % (key_num / 100);                          // 100 different keys
