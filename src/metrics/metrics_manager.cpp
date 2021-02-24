@@ -11,6 +11,8 @@
 #include <vector>
 
 #include "common/macros.h"
+#include "execution/compiler/executable_query.h"
+#include "planner/plannodes/output_schema.h"
 #include "util/query_exec_util.h"
 
 namespace noisepage::metrics {
@@ -35,6 +37,10 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
       outfiles->back() << common::ResourceTracker::Metrics::COLUMNS << std::endl;
     }
   }
+}
+
+void MetricsManager::SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util) {
+  query_exec_util_ = std::move(query_exec_util);
 }
 
 MetricsManager::MetricsManager() {
@@ -173,7 +179,7 @@ void MetricsManager::ToOutput() const {
 
 void MetricsManager::ToDB(uint8_t component) const {
   if (query_exec_util_ != nullptr) {
-    aggregated_metrics_[component]->ToDB(query_exec_util_);
+    aggregated_metrics_[component]->ToDB(common::ManagedPointer(query_exec_util_));
   }
 }
 

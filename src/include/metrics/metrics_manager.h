@@ -101,9 +101,7 @@ class MetricsManager {
     return metrics_output_[static_cast<uint8_t>(component)];
   }
 
-  void SetQueryExecUtil(common::ManagedPointer<util::QueryExecUtil> query_exec_util) {
-    query_exec_util_ = query_exec_util;
-  }
+  void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
 
  private:
   /**
@@ -123,7 +121,7 @@ class MetricsManager {
 
   std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
   std::array<MetricsOutput, NUM_COMPONENTS> metrics_output_;
-  common::ManagedPointer<util::QueryExecUtil> query_exec_util_;
+  std::unique_ptr<util::QueryExecUtil> query_exec_util_;
 };
 
 }  // namespace noisepage::metrics

@@ -489,7 +489,10 @@ class DBMain {
             common::ManagedPointer(db_main->settings_manager_), common::ManagedPointer(db_main->stats_storage_),
             optimizer_timeout_);
 
-        db_main->metrics_manager_->SetQueryExecUtil(common::ManagedPointer(db_main->query_exec_util_));
+        db_main->query_internal_thread_ = std::make_unique<util::QueryInternalThread>(util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+        db_main->metrics_manager_->SetQueryExecUtil(util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+        db_main->pilot_->SetQueryExecUtil(util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+        db_main->pilot_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
       }
 
       return db_main;
@@ -1092,6 +1095,7 @@ class DBMain {
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
+  std::unique_ptr<util::QueryInternalThread> query_internal_thread_;
 };
 
 }  // namespace noisepage

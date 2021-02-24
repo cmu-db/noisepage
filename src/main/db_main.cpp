@@ -47,6 +47,11 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
+  {
+    // Need to let internal thread flush through requests
+    query_internal_thread_.release();
+  }
+
   if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
     network_layer_->GetServer()->StopServer();
   }

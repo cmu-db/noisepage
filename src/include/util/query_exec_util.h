@@ -57,6 +57,8 @@ using TupleFunction = std::function<void(const std::vector<execution::sql::Val *
  */
 class QueryExecUtil {
  public:
+  static std::unique_ptr<util::QueryExecUtil> ConstructThreadLocal(common::ManagedPointer<util::QueryExecUtil> util);
+
   QueryExecUtil(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionManager> txn_manager,
                 common::ManagedPointer<catalog::Catalog> catalog,
                 common::ManagedPointer<settings::SettingsManager> settings,
@@ -66,6 +68,7 @@ class QueryExecUtil {
   void BeginTransaction();
   void SetCostModelFunction(std::function<std::unique_ptr<optimizer::AbstractCostModel>()> func);
   void SetDatabase(catalog::db_oid_t db_oid);
+  void SetDefaultDatabase();
   void SetExecutionSettings(execution::exec::ExecutionSettings exec_settings);
   void EndTransaction(bool commit);
 

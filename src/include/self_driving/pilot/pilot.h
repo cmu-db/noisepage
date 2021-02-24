@@ -17,6 +17,7 @@
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/pilot/action/action_defs.h"
 #include "util/query_exec_util.h"
+#include "util/query_internal_thread.h"
 
 namespace noisepage {
 namespace messenger {
@@ -105,6 +106,8 @@ class Pilot {
    */
   std::pair<selfdriving::WorkloadMetadata, bool> RetrieveWorkloadMetadata(uint64_t iteration);
 
+  selfdriving::WorkloadForecastPrediction CleanWorkloadForecastPrediction(const selfdriving::WorkloadForecastPrediction &prediction, const WorkloadMetadata &metadata);
+
   /**
    * Record to database
    */
@@ -126,6 +129,10 @@ class Pilot {
    * @param best_action_seq pointer to the vector to be filled with the sequence of best actions to take at current time
    */
   void ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq);
+
+  void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
+
+  void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> thread) { query_internal_thread_ = thread; }
 
  private:
   /**
@@ -159,6 +166,7 @@ class Pilot {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
+  common::ManagedPointer<util::QueryInternalThread> query_internal_thread_;
   uint64_t workload_forecast_interval_{10000000};
   uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};

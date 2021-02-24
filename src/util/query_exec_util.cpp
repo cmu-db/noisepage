@@ -22,6 +22,10 @@
 
 namespace noisepage::util {
 
+std::unique_ptr<util::QueryExecUtil> QueryExecUtil::ConstructThreadLocal(common::ManagedPointer<util::QueryExecUtil> util) {
+  return std::make_unique<util::QueryExecUtil>(util->db_oid_, util->txn_manager_, util->catalog_, util->settings_, util->stats_, util->optimizer_timeout_);
+}
+
 QueryExecUtil::QueryExecUtil(catalog::db_oid_t db_oid,
                              common::ManagedPointer<transaction::TransactionManager> txn_manager,
                              common::ManagedPointer<catalog::Catalog> catalog,
@@ -35,6 +39,12 @@ QueryExecUtil::QueryExecUtil(catalog::db_oid_t db_oid,
       optimizer_timeout_(optimizer_timeout) {
   exec_settings_ = execution::exec::ExecutionSettings{};
   exec_settings_.UpdateFromSettingsManager(settings_);
+}
+
+void QueryExecUtil::SetDefaultDatabase() {
+  auto *txn = txn_manager_->BeginTransaction();
+  SetDatabase(catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE));
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) { db_oid_ = db_oid; }

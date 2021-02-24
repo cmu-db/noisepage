@@ -32,6 +32,10 @@ namespace noisepage::selfdriving {
 
 uint64_t Pilot::planning_iteration_ = 0;
 
+void Pilot::SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util) {
+  query_exec_util_ = std::move(query_exec_util);
+}
+
 Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<metrics::MetricsThread> metrics_thread,
@@ -49,14 +53,6 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
       txn_manager_(txn_manager),
       workload_forecast_interval_(workload_forecast_interval) {
   forecast_ = nullptr;
-
-  auto *txn = txn_manager_->BeginTransaction();
-  auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  query_exec_util_ =
-      std::make_unique<util::QueryExecUtil>(db_oid, txn_manager_, catalog_, settings_manager_, stats_storage_,
-                                            settings_manager_->GetInt(settings::Param::task_execution_timeout));
-
   while (!model_server_manager_->ModelServerStarted()) {
   }
 }
@@ -111,81 +107,79 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(uint64_t itera
   return std::make_pair(std::move(metadata), result);
 }
 
+selfdriving::WorkloadForecastPrediction Pilot::CleanWorkloadForecastPrediction(const selfdriving::WorkloadForecastPrediction &prediction,
+                                                                               const WorkloadMetadata &metadata) {
+  selfdriving::WorkloadForecastPrediction result;
+  for (auto &cluster : prediction) {
+    std::unordered_map<uint64_t, std::vector<double>> qid_copy;
+    for (auto &qid_info : cluster.second) {
+      execution::query_id_t qid{static_cast<uint32_t>(qid_info.first)};
+      auto it = metadata.query_id_to_dboid_.find(qid);
+      if (it != metadata.query_id_to_dboid_.end()) {
+        qid_copy[it->second] = qid_info.second;
+      }
+    }
+    result[cluster.first] = std::move(qid_copy);
+  }
+
+  return result;
+}
+
 void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
                                              const selfdriving::WorkloadForecastPrediction &prediction,
                                              const WorkloadMetadata &metadata) {
-  // CREATE TABLE noisepage_forecast_clusters(iteration INT, cluster_id INT, query_id INT, db_id INT);
-  // CREATE TABLE noisepage_forecast_forecasts(iteration INT, query_id INT, interval INT, rate REAL);
-  std::string statements[2] = {"INSERT INTO noisepage_forecast_clusters (?, ?, ?, ?)",
-                               "INSERT INTO noisepage_forecast_forecasts (?, ?, ?, ?)"};
-  std::vector<size_t> statement_indexes;
-  auto *txn = txn_manager_->BeginTransaction();
-  auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-
-  query_exec_util_->BeginTransaction();
-  query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
-  for (size_t i = 0; i < 2; i++) {
-    std::vector<type::TypeId> types;
-    std::vector<parser::ConstantValueExpression> params;
-    if (i == 0) {
-      types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER};
-    } else {
-      types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
-    }
-
-    for (auto &type : types) {
-      params.emplace_back(type);
-    }
-
-    statement_indexes.emplace_back(
-        query_exec_util_->CompileQuery(statements[i], common::ManagedPointer(&params), common::ManagedPointer(&types)));
+  if (query_internal_thread_ == nullptr) {
+    return;
   }
 
-  // Execute all the forecast_clusters inserts
-  {
-    std::vector<parser::ConstantValueExpression> clusters_params(4);
-    clusters_params[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
-    for (auto &cluster : prediction) {
-      clusters_params[1] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(cluster.first));
-      for (auto &qid_info : cluster.second) {
-        execution::query_id_t qid{static_cast<uint32_t>(qid_info.first)};
-        if (metadata.query_id_to_dboid_.find(qid) != metadata.query_id_to_dboid_.end()) {
-          clusters_params[2] =
-              parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(qid_info.first));
-          clusters_params[3] = parser::ConstantValueExpression(
-              type::TypeId::INTEGER, execution::sql::Integer(metadata.query_id_to_dboid_.find(qid)->second));
+  // We don't want to do these inserts as part of forecasting itself.
+  // So we create the result and let a background thread actually handle it.
+  util::ExecuteRequest cluster_request;
+  util::ExecuteRequest forecast_request;
 
-          query_exec_util_->ExecuteQuery(statement_indexes[0], nullptr, common::ManagedPointer(&clusters_params),
-                                         nullptr);
-        }
+  {
+    // Clusters
+    cluster_request.is_ddl_ = false;
+    cluster_request.db_oid_ = catalog::INVALID_DATABASE_OID;
+    cluster_request.query_text_ = "INSERT INTO noisepage_forecast_clusters (?, ?, ?, ?)";
+    cluster_request.cost_model_ = nullptr;
+    cluster_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER};
+  }
+
+  {
+    // Forecasts
+    forecast_request.is_ddl_ = false;
+    forecast_request.db_oid_ = catalog::INVALID_DATABASE_OID;
+    forecast_request.query_text_ = "INSERT INTO noisepage_forecast_forecasts (?, ?, ?, ?)";
+    forecast_request.cost_model_ = nullptr;
+    forecast_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
+  }
+
+  // This is a bit more memory intensive, since we have to copy all the parameters
+  for (auto &cluster : prediction) {
+    for (auto &qid_info : cluster.second) {
+      execution::query_id_t qid{static_cast<uint32_t>(qid_info.first)};
+      NOISEPAGE_ASSERT(metadata.query_id_to_dboid_.find(qid) != metadata.query_id_to_dboid_.end(), "Expected QID info to exist");
+      std::vector<parser::ConstantValueExpression> clusters_params(4);
+      clusters_params[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
+      clusters_params[1] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(cluster.first));
+      clusters_params[2] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(qid_info.first));
+      clusters_params[3] = parser::ConstantValueExpression( type::TypeId::INTEGER, execution::sql::Integer(metadata.query_id_to_dboid_.find(qid)->second));
+      cluster_request.params_.emplace_back(std::move(clusters_params));
+
+      for (size_t interval = 0; interval < qid_info.second.size(); interval++) {
+        std::vector<parser::ConstantValueExpression> forecasts_params(4);
+        forecasts_params[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
+        forecasts_params[1] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(cluster.first));
+        forecasts_params[2] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(interval));
+        forecasts_params[3] = parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(qid_info.second[interval]));
+        forecast_request.params_.emplace_back(std::move(forecasts_params));
       }
     }
   }
 
-  // Execute all forecaste_forecasts inserts
-  {
-    std::vector<parser::ConstantValueExpression> forecasts_params(4);
-    forecasts_params[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
-    for (auto &cluster : prediction) {
-      for (auto &qid_info : cluster.second) {
-        forecasts_params[1] =
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(cluster.first));
-        for (size_t interval = 0; interval < qid_info.second.size(); interval++) {
-          forecasts_params[2] =
-              parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(interval));
-          forecasts_params[3] = parser::ConstantValueExpression(type::TypeId::INTEGER,
-                                                                execution::sql::Integer(qid_info.second[interval]));
-
-          query_exec_util_->ExecuteQuery(statement_indexes[1], nullptr, common::ManagedPointer(&forecasts_params),
-                                         nullptr);
-        }
-      }
-    }
-  }
-
-  query_exec_util_->EndTransaction(true);
+  query_internal_thread_->AddRequest(std::move(cluster_request));
+  query_internal_thread_->AddRequest(std::move(forecast_request));
 }
 
 void Pilot::PerformPlanning() {
@@ -226,7 +220,7 @@ void Pilot::PerformPlanning() {
 
   // Retrieve query information from internal tables
   auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
-  if (metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB) {
+  if (query_exec_util_ && (metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB)) {
     auto metadata_result = RetrieveWorkloadMetadata(iteration);
     if (!metadata_result.second) {
       SELFDRIVING_LOG_ERROR("Failed to read from internal trace metadata tables");
@@ -234,11 +228,14 @@ void Pilot::PerformPlanning() {
       return;
     }
 
+    // Clean forecast since there might be "differences" between it and the recorded data
+    auto cleaned = CleanWorkloadForecastPrediction(result.first, metadata_result.first);
+
     // Record forecast into internal tables
-    RecordWorkloadForecastPrediction(iteration, result.first, metadata_result.first);
+    RecordWorkloadForecastPrediction(iteration, cleaned, metadata_result.first);
 
     // Construct workload forecast
-    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, metadata_result.first);
+    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(cleaned, metadata_result.first);
   } else {
     auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
     forecast_ = std::make_unique<selfdriving::WorkloadForecast>(workload_forecast_interval_, sample);
