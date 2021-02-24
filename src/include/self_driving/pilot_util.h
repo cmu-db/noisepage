@@ -120,10 +120,10 @@ class PilotUtil {
    * @param forecast pointer to the forecast segments
    * @param start_segment_index start index (inclusive)
    * @param end_segment_index end index (inclusive)
-   * @return average latency of queries weighted by their num of exec
+   * @return total latency of queries calculated based on their num of exec
    */
-  static uint64_t ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                              uint64_t start_segment_index, uint64_t end_segment_index);
+  static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                            uint64_t start_segment_index, uint64_t end_segment_index);
 
  private:
   /**
