@@ -87,12 +87,15 @@ class NoisePageServer:
             log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
             check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
             now = time.time()
+            if log_line.strip() != '':
+                logs.append(log_line)
             if log_line.endswith(check_line):
                 LOG.info(f'DB process is verified as running in {round(now - start_time, 2)} sec.')
                 self.db_process = db_process
+                log_output = '\n' + '\n'.join(logs)
+                LOG.info("************ DB Logs Start ************" + log_output)
+                LOG.info("************* DB Logs End *************")
                 return True
-            elif log_line.strip() != '':
-                logs.append(log_line)
 
             if now - start_time >= 600:
                 LOG.error('\n'.join(logs))
@@ -138,6 +141,7 @@ class NoisePageServer:
                 if os.path.exists(unix_socket):
                     os.remove(unix_socket)
                     LOG.info(f"Removing: {unix_socket}")
+            self.print_db_logs()
             LOG.info(f"DBMS stopped successfully, code: {self.db_process.returncode}")
             self.db_process = None
         else:
