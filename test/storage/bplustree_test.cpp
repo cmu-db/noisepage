@@ -32,9 +32,9 @@ void BasicNodeInitPushBackTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
@@ -82,9 +82,9 @@ void InsertElementInNodeTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
@@ -128,9 +128,9 @@ void InsertElementInNodeRandomTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
@@ -179,9 +179,9 @@ void SplitNodeTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
@@ -288,9 +288,9 @@ void PopBeginTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
@@ -342,9 +342,9 @@ void PopEndTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
@@ -392,9 +392,9 @@ void NodeElementEraseTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
 
@@ -442,9 +442,9 @@ void NodeMergeTest() {
   BPlusTree<int, TupleSlot>::KeyNodePointerPair p2;
 
   // Get inner Node
-  auto size = 10;
-  auto depth = 0;
-  auto item_count = 10;  // Usually equal to size
+  unsigned size = 10;
+  unsigned depth = 0;
+  unsigned item_count = 10;  // Usually equal to size
   auto node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
       size, BPlusTree<int, TupleSlot>::NodeType::LeafType, depth, item_count, p1, p2);
   auto next_node = BPlusTree<int, TupleSlot>::ElasticNode<BPlusTree<int, TupleSlot>::KeyNodePointerPair>::Get(
@@ -774,11 +774,11 @@ void LargeKeySequentialInsertAndRetrievalTest() {
     bplustree->Insert(p1, predicate);
   }
 
-  for (int key = 0; key < key_num; key++) {
+  for (unsigned key = 0; key < key_num; key++) {
     EXPECT_EQ(bplustree->IsPresent(key), true);
   }
 
-  for (int key = key_num; key < (key_num * 2); key++) {
+  for (unsigned key = key_num; key < (key_num * 2); key++) {
     EXPECT_EQ(bplustree->IsPresent(key), false);
   }
 
@@ -799,11 +799,11 @@ void LargeKeySequentialInsertAndDeleteTest() {
     bplustree->Insert(p1, predicate);
   }
 
-  for (int key = 0; key < key_num; key++) {
+  for (unsigned key = 0; key < key_num; key++) {
     EXPECT_EQ(bplustree->IsPresent(key), true);
   }
 
-  for (int key = key_num; key < (key_num * 2); key++) {
+  for (unsigned key = key_num; key < (key_num * 2); key++) {
     EXPECT_EQ(bplustree->IsPresent(key), false);
   }
 
@@ -814,7 +814,7 @@ void LargeKeySequentialInsertAndDeleteTest() {
     bplustree->DeleteElement(p1);
   }
 
-  for (int key = 0; key < key_num; key += 2) {
+  for (unsigned key = 0; key < key_num; key += 2) {
     EXPECT_EQ(bplustree->IsPresent(key), false);
     EXPECT_EQ(bplustree->IsPresent(key + 1), true);
   }
@@ -872,7 +872,7 @@ void LargeKeyRandomInsertAndDeleteTest() {
     bplustree->Insert(p1, predicate);
   }
 
-  for (int i = 0; i < (key_num * 5); i++) {
+  for (unsigned i = 0; i < (key_num * 5); i++) {
     if (keys.find(i) != keys.end()) {
       EXPECT_EQ(bplustree->IsPresent(i), true);
     } else {
@@ -1216,7 +1216,7 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   }
 
   // Delete All keys except one - As root empty is not handled by delete yet
-  for (int i = 0; i < (key_num - 1); i++) {
+  for (unsigned i = 0; i < (key_num - 1); i++) {
     auto iter = keys.rbegin();
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
@@ -1250,7 +1250,7 @@ void LargeStructuralIntegrityVerificationTestReverse() {
   }
 
   // Delete Again now two keys remaining
-  for (int i = 0; i < (key_num - 1); i++) {
+  for (unsigned i = 0; i < (key_num - 1); i++) {
     auto iter = keys.rbegin();
     BPlusTree<int, TupleSlot>::KeyElementPair p1;
     p1.first = *iter;
