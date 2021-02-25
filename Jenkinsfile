@@ -12,6 +12,7 @@ pipeline {
             agent {
                 docker {
                     image 'noisepage:focal'
+                    label 'h0-only'
                     args '-v /jenkins/ccache:/home/jenkins/.ccache'
                 }
             }
