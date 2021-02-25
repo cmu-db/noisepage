@@ -484,6 +484,7 @@ pipeline {
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                         }
 
                         // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
