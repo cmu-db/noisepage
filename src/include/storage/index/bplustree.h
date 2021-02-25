@@ -71,14 +71,14 @@ class BPlusTreeBase {
 
  protected:
   /** upper size threshold for inner node split */
-  int inner_node_size_upper_threshold_ = ((int)128);
+  int inner_node_size_upper_threshold_ = 128;
   /** lower size threshold for inner node removal */
-  int inner_node_size_lower_threshold_ = ((int)64);
+  int inner_node_size_lower_threshold_ = 64;
 
   /** upper size threshold for leaf node split */
-  int leaf_node_size_upper_threshold_ = ((int)128);
+  int leaf_node_size_upper_threshold_ = 128;
   /** lower size threshold for leaf node removal */
-  int leaf_node_size_lower_threshold_ = ((int)64);
+  int leaf_node_size_lower_threshold_ = 64;
 
  public:
   /**
