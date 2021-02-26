@@ -1,45 +1,39 @@
 #include "test_util/fs_util.h"
 
-#include <filesystem>
-#include <stdexcept>
-
 // Macros are not fun and should be avoided where possible, but
 // this check ensures that we fail at compile time in the event
 // that this definition is not present, rather than discovering
 // this at runtime and throwing an exception at test initialization.
-#ifndef NOISEPAGE_PROJECT_ROOT
-#error "NOISEPAGE_PROJECT_ROOT is not defined!"
+#ifndef NOISEPAGE_BUILD_ROOT
+#error "NOISEPAGE_BUILD_ROOT is not defined!"
 #endif
 
 // Necessary grossness for stringizing macro expansion.
 #define AS_STRING(x) #x
 #define AS_EXPANDED_STRING(x) AS_STRING(x)
 
+// Remove one call to string::append() (below)
+#define SLASH_BIN_LITERAL "/bin/"
+
 namespace noisepage::common {
-std::string GetProjectRootPath() {
-  // Here, we rely on the project root path being "injected" into the
-  // translation unit during compilation because this allows us to
-  // define this function agnostic of the particular name of the root
-  // directory as it exists on any one particular system.
-  return AS_EXPANDED_STRING(NOISEPAGE_PROJECT_ROOT);
+
+std::string GetBuildRootPath() {
+  // As above, relying on the path to be injected by the preprocessor.
+  return AS_EXPANDED_STRING(NOISEPAGE_BUILD_ROOT);
 }
 
-std::string FindFileFrom(std::string_view filename, std::string_view root_path) {
-  namespace fs = std::filesystem;
-  const auto goal = fs::path{filename};
-  const auto root = fs::path{root_path};
-  const auto options = fs::directory_options::skip_permission_denied;
-  for (auto &entry : fs::recursive_directory_iterator{root_path, options}) {
-    auto &path = entry.path();
-    if (goal == path.filename()) {
-      return path.string();
-    }
-  }
-  // TODO(Kyle): Should we be using a project-specific exception here?
-  // None of the existing ones in the project appear to fit this use case
-  throw std::runtime_error{"Requested file not found"};
+std::string GetBinaryArtifactPath(std::string_view name) {
+  // Note that we don't need any more macros here to do
+  // concatenation of string literals because these are
+  // concatenated at the language (C/C++) level
+  // e.g. "str1" "str2" => "str1str2" by C standard
+  // (section 6.4.5 'String Literals' of C11)
+  auto path = std::string{AS_EXPANDED_STRING(NOISEPAGE_BUILD_ROOT) SLASH_BIN_LITERAL};
+  path.append(name);
+  return path;
 }
 }  // namespace noisepage::common
 
-#undef AS_STRING
+#undef SLASH_BIN_LITERAL
 #undef AS_EXPANDED_STRING
+#undef AS_STRING
