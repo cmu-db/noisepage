@@ -18,6 +18,11 @@ void DBMain::Run() {
     if (ddl_file.is_open() && ddl_file.good()) {
       std::string input_line;
       while (std::getline(ddl_file, input_line)) {
+        if (input_line.size() > 2 && input_line[0] == '-' && input_line[1] == '-') {
+          // Skip comments
+          continue;
+        }
+
         startup_ddls.emplace_back(std::move(input_line));
       }
     }

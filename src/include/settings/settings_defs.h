@@ -192,6 +192,9 @@ SETTING_int64(
     10000000,
     1000000000000,
     true,
+
+    // When this callback is implemented in the near-fuure, do not
+    // forget to update QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL
     noisepage::settings::Callbacks::NoOp
 )
 

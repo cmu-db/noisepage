@@ -14,6 +14,7 @@
 #include "execution/compiler/executable_query.h"
 #include "planner/plannodes/output_schema.h"
 #include "util/query_exec_util.h"
+#include "util/query_internal_thread.h"
 
 namespace noisepage::metrics {
 
@@ -41,6 +42,10 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
 
 void MetricsManager::SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util) {
   query_exec_util_ = std::move(query_exec_util);
+}
+
+void MetricsManager::SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> query_internal_thread) {
+  query_internal_thread_ = query_internal_thread;
 }
 
 MetricsManager::MetricsManager() {
@@ -139,8 +144,8 @@ void MetricsManager::RegisterThread() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   const auto thread_id = std::this_thread::get_id();
   NOISEPAGE_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
-  auto result = stores_map_.emplace(
-      thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_, samples_mask_));
+  auto result =
+      stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_, samples_mask_));
   NOISEPAGE_ASSERT(result.second, "Insertion to concurrent map failed.");
   common::thread_context.metrics_store_ = result.first->second;
 }
@@ -178,8 +183,8 @@ void MetricsManager::ToOutput() const {
 }
 
 void MetricsManager::ToDB(uint8_t component) const {
-  if (query_exec_util_ != nullptr) {
-    aggregated_metrics_[component]->ToDB(common::ManagedPointer(query_exec_util_));
+  if (query_exec_util_ != nullptr && query_internal_thread_ != nullptr) {
+    aggregated_metrics_[component]->ToDB(common::ManagedPointer(query_exec_util_), query_internal_thread_);
   }
 }
 

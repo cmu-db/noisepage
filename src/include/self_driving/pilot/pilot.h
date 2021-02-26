@@ -14,6 +14,7 @@
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
+#include "metrics/query_trace_metric.h"
 #include "self_driving/forecast/workload_forecast.h"
 #include "self_driving/pilot/action/action_defs.h"
 #include "util/query_exec_util.h"
@@ -104,9 +105,13 @@ class Pilot {
   /**
    * Retrieve workload metadata
    */
-  std::pair<selfdriving::WorkloadMetadata, bool> RetrieveWorkloadMetadata(uint64_t iteration);
+  std::pair<selfdriving::WorkloadMetadata, bool> RetrieveWorkloadMetadata(
+      uint64_t iteration,
+      const std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> &out_metadata,
+      const std::unordered_map<execution::query_id_t, std::vector<std::string>> &out_params);
 
-  selfdriving::WorkloadForecastPrediction CleanWorkloadForecastPrediction(const selfdriving::WorkloadForecastPrediction &prediction, const WorkloadMetadata &metadata);
+  selfdriving::WorkloadForecastPrediction CleanWorkloadForecastPrediction(
+      const selfdriving::WorkloadForecastPrediction &prediction, const WorkloadMetadata &metadata);
 
   /**
    * Record to database
@@ -132,7 +137,9 @@ class Pilot {
 
   void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
 
-  void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> thread) { query_internal_thread_ = thread; }
+  void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> thread) {
+    query_internal_thread_ = thread;
+  }
 
  private:
   /**

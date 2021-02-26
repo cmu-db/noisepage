@@ -59,6 +59,8 @@ class ReservoirSampling {
       samples.emplace_back(queue_.top().value_);
       queue_.pop();
     }
+
+    return samples;
   }
 
  private:

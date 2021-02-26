@@ -489,9 +489,13 @@ class DBMain {
             common::ManagedPointer(db_main->settings_manager_), common::ManagedPointer(db_main->stats_storage_),
             optimizer_timeout_);
 
-        db_main->query_internal_thread_ = std::make_unique<util::QueryInternalThread>(util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
-        db_main->metrics_manager_->SetQueryExecUtil(util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
-        db_main->pilot_->SetQueryExecUtil(util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+        db_main->query_internal_thread_ = std::make_unique<util::QueryInternalThread>(
+            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+        db_main->metrics_manager_->SetQueryExecUtil(
+            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+        db_main->metrics_manager_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
+        db_main->pilot_->SetQueryExecUtil(
+            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
         db_main->pilot_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
       }
 
@@ -952,10 +956,9 @@ class DBMain {
       metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE,
                                            pipeline_metrics_sample_rate_);
 
-      if (query_trace_metrics_) {
-        metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
-        metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = forecast_sample_limit_;
-      }
+      if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
+      metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = forecast_sample_limit_;
+      metrics::QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL = workload_forecast_interval_;
       metrics_manager->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, query_trace_metrics_output_);
 
       if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);

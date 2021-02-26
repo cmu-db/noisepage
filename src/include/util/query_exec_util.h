@@ -19,7 +19,7 @@ class ExecutableQuery;
 
 namespace noisepage::execution::sql {
 class Val;
-}  // namespace noisepage::execution::compiler
+}  // namespace noisepage::execution::sql
 
 namespace noisepage::settings {
 class SettingsManager;

@@ -7,7 +7,8 @@
 
 namespace noisepage::util {
 class QueryExecUtil;
-}
+class QueryInternalThread;
+}  // namespace noisepage::util
 
 namespace noisepage::metrics {
 /**
@@ -39,7 +40,8 @@ class AbstractRawData {
    */
   virtual MetricsComponent GetMetricType() const = 0;
 
-  virtual void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util) {}
+  virtual void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+                    common::ManagedPointer<util::QueryInternalThread> query_internal_thread) {}
 
   /**
    * Writes the data to files, and then clears the data

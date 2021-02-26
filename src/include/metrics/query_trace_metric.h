@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "common/container/chunked_array.h"
 #include "common/json.h"
 #include "common/managed_pointer.h"
 #include "common/reservoir_sampling.h"
@@ -21,50 +22,65 @@
 
 namespace noisepage::metrics {
 
+class QueryTraceMetricRawData;
+
 class QueryTraceMetadata {
  public:
+  struct QueryTimeId {
+    uint64_t timestamp;
+    execution::query_id_t qid;
+  };
+
+  struct QueryMetadata {
+    catalog::db_oid_t db_oid_;
+    std::string text_;
+    std::string param_type_;
+  };
+
   explicit QueryTraceMetadata() = default;
 
   void RecordQueryText(execution::query_id_t qid, catalog::db_oid_t db_oid, std::string text, std::string param_type) {
-    if (qid_db_map_.find(qid) == qid_db_map_.end()) {
-      qid_db_map_[qid] = db_oid;
-      qid_text_[qid] = text;
-      qid_param_types_[qid] = param_type;
+    if (qmetadata_.find(qid) == qmetadata_.end()) {
+      qmetadata_[qid] = QueryMetadata{db_oid, text, param_type};
     }
-    qid_freqs_[qid]++;
   }
 
-  void RecordQueryParamSample(execution::query_id_t qid, std::string query_param);
+  void RecordQueryParamSample(uint64_t timestamp, execution::query_id_t qid, std::string query_param);
 
   void Merge(QueryTraceMetadata &other) {
-    qid_db_map_.merge(other.qid_db_map_);
-    qid_text_.merge(other.qid_text_);
-    qid_param_samples_.merge(other.qid_param_samples_);
-    for (auto &it : other.qid_freqs_) {
-      qid_freqs_[it.first] += it.second;
-    }
-
+    qmetadata_.merge(other.qmetadata_);
     for (auto &it : other.qid_param_samples_) {
       // These are duplicate keys so need to merge reservoir
       if (qid_param_samples_.find(it.first) != qid_param_samples_.end()) {
         qid_param_samples_.find(it.first)->second.Merge(it.second);
       }
     }
+
+    timeseries_.merge(other.timeseries_);
   }
 
-  void Reset() {
-    qid_db_map_.clear();
-    qid_text_.clear();
+  void ResetQueryMetadata() {
+    qmetadata_.clear();
     qid_param_samples_.clear();
-    qid_param_samples_.clear();
+  }
+
+  void InitTimeseriesIterator() {
+    iterator_ = timeseries_.begin();
+    iterator_initialized_ = true;
+  }
+
+  void ResetTimeseries() {
+    timeseries_.clear();
+    iterator_initialized_ = false;
   }
 
  private:
-  std::unordered_map<execution::query_id_t, catalog::db_oid_t> qid_db_map_;
-  std::unordered_map<execution::query_id_t, std::string> qid_text_;
-  std::unordered_map<execution::query_id_t, std::string> qid_param_types_;
-  std::unordered_map<execution::query_id_t, uint64_t> qid_freqs_;
+  friend class QueryTraceMetricRawData;
+  std::unordered_map<execution::query_id_t, QueryMetadata> qmetadata_;
   std::unordered_map<execution::query_id_t, common::ReservoirSampling<std::string>> qid_param_samples_;
+  common::ChunkedArray<QueryTimeId, 32> timeseries_;
+  bool iterator_initialized_;
+  common::ChunkedArray<QueryTimeId, 32>::Iterator<QueryTimeId, 32> iterator_;
 };
 
 /**
@@ -73,6 +89,7 @@ class QueryTraceMetadata {
 class QueryTraceMetricRawData : public AbstractRawData {
  public:
   static uint64_t QUERY_PARAM_SAMPLE;
+  static uint64_t QUERY_SEGMENT_INTERVAL;
 
   void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<QueryTraceMetricRawData *>(other);
@@ -84,6 +101,8 @@ class QueryTraceMetricRawData : public AbstractRawData {
     }
 
     metadata_.Merge(other_db_metric->metadata_);
+    low_timestamp_ = std::min(low_timestamp_, other_db_metric->low_timestamp_);
+    high_timestamp_ = std::max(high_timestamp_, other_db_metric->high_timestamp_);
   }
 
   /**
@@ -91,9 +110,14 @@ class QueryTraceMetricRawData : public AbstractRawData {
    */
   MetricsComponent GetMetricType() const override { return MetricsComponent::QUERY_TRACE; }
 
-  void ResetAggregation(common::ManagedPointer<util::QueryExecUtil> query_exec_util);
+  void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+            common::ManagedPointer<util::QueryInternalThread> query_internal_thread) final;
 
-  void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util) final;
+  void WriteToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+                 common::ManagedPointer<util::QueryInternalThread> query_internal_thread, bool flush_timeseries,
+                 bool write_parameters,
+                 std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
+                 std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params);
 
   /**
    * Writes the data out to ofstreams
@@ -149,7 +173,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
   void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
                         const std::string &param_string, const std::string &param_json) {
     query_trace_.emplace_back(db_oid, query_id, timestamp, param_string);
-    metadata_.RecordQueryParamSample(query_id, param_json);
+    metadata_.RecordQueryParamSample(timestamp, query_id, param_json);
 
     low_timestamp_ = std::min(low_timestamp_, timestamp);
     high_timestamp_ = std::max(high_timestamp_, timestamp);
@@ -183,6 +207,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
   std::list<QueryText> query_text_;
   std::list<QueryTrace> query_trace_;
   QueryTraceMetadata metadata_;
+  uint64_t segment_number_{0};
   uint64_t low_timestamp_{UINT64_MAX};
   uint64_t high_timestamp_{0};
 };

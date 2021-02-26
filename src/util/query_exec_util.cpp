@@ -22,8 +22,10 @@
 
 namespace noisepage::util {
 
-std::unique_ptr<util::QueryExecUtil> QueryExecUtil::ConstructThreadLocal(common::ManagedPointer<util::QueryExecUtil> util) {
-  return std::make_unique<util::QueryExecUtil>(util->db_oid_, util->txn_manager_, util->catalog_, util->settings_, util->stats_, util->optimizer_timeout_);
+std::unique_ptr<util::QueryExecUtil> QueryExecUtil::ConstructThreadLocal(
+    common::ManagedPointer<util::QueryExecUtil> util) {
+  return std::make_unique<util::QueryExecUtil>(util->db_oid_, util->txn_manager_, util->catalog_, util->settings_,
+                                               util->stats_, util->optimizer_timeout_);
 }
 
 QueryExecUtil::QueryExecUtil(catalog::db_oid_t db_oid,

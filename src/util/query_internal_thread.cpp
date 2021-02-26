@@ -16,9 +16,9 @@ void QueryInternalThread::QueryThreadLoop() {
       ExecuteRequest &req = queue_.front();
       query_exec_util_->BeginTransaction();
       if (req.cost_model_ == nullptr) {
-        query_exec_util_->SetCostModelFunction([]{ return std::make_unique<optimizer::TrivialCostModel>(); });
+        query_exec_util_->SetCostModelFunction([] { return std::make_unique<optimizer::TrivialCostModel>(); });
       } else {
-        query_exec_util_->SetCostModelFunction([&req]{ return std::move(req.cost_model_); });
+        query_exec_util_->SetCostModelFunction([&req] { return std::move(req.cost_model_); });
       }
 
       if (req.db_oid_ == catalog::INVALID_DATABASE_OID) {
@@ -32,10 +32,10 @@ void QueryInternalThread::QueryThreadLoop() {
         result = query_exec_util_->ExecuteDML(req.query_text_, nullptr, nullptr, nullptr, nullptr);
       } else {
         std::vector<parser::ConstantValueExpression> &params_0 = req.params_[0];
-        size_t idx = query_exec_util_->CompileQuery(req.query_text_, common::ManagedPointer(&params_0), common::ManagedPointer(&req.param_types_));
+        size_t idx = query_exec_util_->CompileQuery(req.query_text_, common::ManagedPointer(&params_0),
+                                                    common::ManagedPointer(&req.param_types_));
         for (auto &param_vec : req.params_) {
-          if (!result)
-            break;
+          if (!result) break;
 
           result &= query_exec_util_->ExecuteQuery(idx, nullptr, common::ManagedPointer(&param_vec), nullptr);
         }

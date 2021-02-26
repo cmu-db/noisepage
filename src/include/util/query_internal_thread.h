@@ -1,16 +1,16 @@
 #pragma once
 
 #include <chrono>  //NOLINT
-#include <thread>  //NOLINT
-#include <queue>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <thread>  //NOLINT
 
 #include "catalog/catalog_defs.h"
-#include "type/type_id.h"
+#include "execution/compiler/executable_query.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "planner/plannodes/output_schema.h"
-#include "execution/compiler/executable_query.h"
+#include "type/type_id.h"
 #include "util/query_exec_util.h"
 
 namespace noisepage::optimizer {
@@ -41,8 +41,7 @@ class ExecuteRequest {
 class QueryInternalThread {
  public:
   QueryInternalThread(std::unique_ptr<util::QueryExecUtil> query_exec_util)
-    : query_exec_util_(std::move(query_exec_util)),
-      query_thread_(std::thread([this] { QueryThreadLoop(); })) {}
+      : query_exec_util_(std::move(query_exec_util)), query_thread_(std::thread([this] { QueryThreadLoop(); })) {}
 
   ~QueryInternalThread() {
     run_queries_ = false;

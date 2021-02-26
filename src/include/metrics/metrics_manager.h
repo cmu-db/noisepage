@@ -16,6 +16,10 @@ namespace noisepage::settings {
 class Callbacks;
 }
 
+namespace noisepage::util {
+class QueryInternalThread;
+}
+
 namespace noisepage::metrics {
 
 /**
@@ -102,6 +106,7 @@ class MetricsManager {
   }
 
   void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
+  void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> query_internal_thread);
 
  private:
   /**
@@ -122,6 +127,7 @@ class MetricsManager {
   std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
   std::array<MetricsOutput, NUM_COMPONENTS> metrics_output_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
+  common::ManagedPointer<util::QueryInternalThread> query_internal_thread_;
 };
 
 }  // namespace noisepage::metrics
