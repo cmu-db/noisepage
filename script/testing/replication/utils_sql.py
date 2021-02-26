@@ -99,6 +99,6 @@ def replica_sync(primary, replicas, quiet=False):
             if not quiet:
                 LOG.info(f"Syncing replica: [primary@{primary_rec_id}] [{replica.identity}@{replica_rec_id}]")
             if replica_rec_id >= primary_rec_id:
-                return
+                break
             # A small sleep is added between checks to avoid spamming the log, giving replication a chance to happen.
             time.sleep(2)
