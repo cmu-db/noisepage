@@ -187,9 +187,9 @@ SETTING_int(
 
 SETTING_int64(
     workload_forecast_interval,
-    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: micro-second)",
-    10000000,
-    10000000,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 500000, unit: micro-second)",
+    500000,
+    500000,
     1000000000000,
     true,
 

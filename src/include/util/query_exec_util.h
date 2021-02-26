@@ -80,7 +80,7 @@ class QueryExecUtil {
 
   size_t CompileQuery(const std::string &statement,
                       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                      common::ManagedPointer<std::vector<type::TypeId>> param_types);
+                      common::ManagedPointer<std::vector<type::TypeId>> param_types, bool *success);
 
   bool ExecuteQuery(size_t idx, TupleFunction tuple_fn,
                     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,

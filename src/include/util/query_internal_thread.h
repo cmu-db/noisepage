@@ -66,10 +66,10 @@ class QueryInternalThread {
   volatile bool run_queries_ = true;
 
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
-  std::thread query_thread_;
   std::mutex queue_mutex_;
   std::condition_variable queue_cv_;
   std::queue<ExecuteRequest> queue_;
+  std::thread query_thread_;
 
   void QueryThreadLoop();
 };

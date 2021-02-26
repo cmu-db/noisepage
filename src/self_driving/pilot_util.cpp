@@ -51,8 +51,9 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
     util.ExecuteDDL(sql_query);
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
-    size_t idx = util.CompileQuery(sql_query, nullptr, nullptr);
-    util.ExecuteQuery(idx, nullptr, nullptr, nullptr);
+    bool success = true;
+    size_t idx = util.CompileQuery(sql_query, nullptr, nullptr, &success);
+    if (success) util.ExecuteQuery(idx, nullptr, nullptr, nullptr);
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
@@ -154,11 +155,14 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
 
     auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
     auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
-    size_t idx = query_exec_util.CompileQuery(query_text, params, param_types);
-    pipeline_qids->push_back(qid);
 
-    for (auto &params : *(forecast->GetQueryparamsByQid(qid))) {
-      query_exec_util.ExecuteQuery(idx, nullptr, common::ManagedPointer(&params), metrics_manager);
+    bool success = true;
+    size_t idx = query_exec_util.CompileQuery(query_text, params, param_types, &success);
+    if (success) {
+      pipeline_qids->push_back(qid);
+      for (auto &params : *(forecast->GetQueryparamsByQid(qid))) {
+        query_exec_util.ExecuteQuery(idx, nullptr, common::ManagedPointer(&params), metrics_manager);
+      }
     }
 
     query_exec_util.EndTransaction(false);

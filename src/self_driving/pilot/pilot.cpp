@@ -30,7 +30,7 @@
 
 namespace noisepage::selfdriving {
 
-uint64_t Pilot::planning_iteration_ = 0;
+uint64_t Pilot::planning_iteration_ = 1;
 
 void Pilot::SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util) {
   query_exec_util_ = std::move(query_exec_util);
@@ -130,7 +130,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
   }
 
-  query_exec_util_->EndTransaction(result);
+  query_exec_util_->EndTransaction(true);
   return std::make_pair(std::move(metadata), result);
 }
 
@@ -169,7 +169,7 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
     // Clusters
     cluster_request.is_ddl_ = false;
     cluster_request.db_oid_ = catalog::INVALID_DATABASE_OID;
-    cluster_request.query_text_ = "INSERT INTO noisepage_forecast_clusters (?, ?, ?, ?)";
+    cluster_request.query_text_ = "INSERT INTO noisepage_forecast_clusters VALUES (0, 0, 0, 0)";
     cluster_request.cost_model_ = nullptr;
     cluster_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                     type::TypeId::INTEGER};
@@ -179,7 +179,7 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
     // Forecasts
     forecast_request.is_ddl_ = false;
     forecast_request.db_oid_ = catalog::INVALID_DATABASE_OID;
-    forecast_request.query_text_ = "INSERT INTO noisepage_forecast_forecasts (?, ?, ?, ?)";
+    forecast_request.query_text_ = "INSERT INTO noisepage_forecast_forecasts VALUES (0, 0, 0, 0.0)";
     forecast_request.cost_model_ = nullptr;
     forecast_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                      type::TypeId::REAL};

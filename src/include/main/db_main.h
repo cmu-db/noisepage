@@ -60,6 +60,8 @@ class DBMain {
    */
   void Run();
 
+  void LoadStartupDDL();
+
   /**
    * Shuts down the server.
    * It is worth noting that in normal cases, noisepage will shut down and return from Run().
@@ -483,20 +485,29 @@ class DBMain {
         auto *bootstrap_txn = db_main->txn_layer_->GetTransactionManager()->BeginTransaction();
         auto db_oid = db_main->catalog_layer_->GetCatalog()->GetDatabaseOid(common::ManagedPointer(bootstrap_txn),
                                                                             catalog::DEFAULT_DATABASE);
-        txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        db_main->txn_layer_->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback,
+                                                             nullptr);
+
+        // Create the base QueryExecUtil
         db_main->query_exec_util_ = std::make_unique<util::QueryExecUtil>(
             db_oid, db_main->txn_layer_->GetTransactionManager(), db_main->catalog_layer_->GetCatalog(),
             common::ManagedPointer(db_main->settings_manager_), common::ManagedPointer(db_main->stats_storage_),
             optimizer_timeout_);
 
+        // Startup the internal query thread
         db_main->query_internal_thread_ = std::make_unique<util::QueryInternalThread>(
             util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+
+        // Hand out and attach references to MetricsManager and Pilot
         db_main->metrics_manager_->SetQueryExecUtil(
             util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
         db_main->metrics_manager_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
-        db_main->pilot_->SetQueryExecUtil(
-            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
-        db_main->pilot_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
+
+        if (use_pilot_thread_) {
+          db_main->pilot_->SetQueryExecUtil(
+              util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
+          db_main->pilot_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
+        }
       }
 
       return db_main;
@@ -1074,6 +1085,14 @@ class DBMain {
   /** @return ManagedPointer to the ModelServerManager, can be nullptr if disabled. */
   common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() const {
     return common::ManagedPointer(model_server_manager_);
+  }
+
+  common::ManagedPointer<util::QueryExecUtil> GetQueryExecUtil() const {
+    return common::ManagedPointer(query_exec_util_);
+  }
+
+  common::ManagedPointer<util::QueryInternalThread> GetQueryInternalThread() const {
+    return common::ManagedPointer(query_internal_thread_);
   }
 
  private:

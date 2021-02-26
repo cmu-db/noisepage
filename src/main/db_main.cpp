@@ -9,7 +9,7 @@
 
 namespace noisepage {
 
-void DBMain::Run() {
+void DBMain::LoadStartupDDL() {
   // Load startup ddls
   std::vector<std::string> startup_ddls;
   if (settings_manager_ != NULL) {
@@ -18,6 +18,11 @@ void DBMain::Run() {
     if (ddl_file.is_open() && ddl_file.good()) {
       std::string input_line;
       while (std::getline(ddl_file, input_line)) {
+        if (input_line.size() == 0) {
+          // Skip the empty line
+          continue;
+        }
+
         if (input_line.size() > 2 && input_line[0] == '-' && input_line[1] == '-') {
           // Skip comments
           continue;
@@ -36,7 +41,10 @@ void DBMain::Run() {
     }
     query_exec_util_->EndTransaction(true);
   }
+}
 
+void DBMain::Run() {
+  LoadStartupDDL();
   NOISEPAGE_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
   const auto server = network_layer_->GetServer();
   try {

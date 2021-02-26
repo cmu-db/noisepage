@@ -25,7 +25,8 @@ void QueryInternalThread::QueryThreadLoop() {
         query_exec_util_->SetDefaultDatabase();
       }
 
-      bool result = false;
+      bool result = true;
+      bool compiled_result = true;
       if (req.is_ddl_) {
         result = query_exec_util_->ExecuteDDL(req.query_text_);
       } else if (req.params_.empty()) {
@@ -33,15 +34,18 @@ void QueryInternalThread::QueryThreadLoop() {
       } else {
         std::vector<parser::ConstantValueExpression> &params_0 = req.params_[0];
         size_t idx = query_exec_util_->CompileQuery(req.query_text_, common::ManagedPointer(&params_0),
-                                                    common::ManagedPointer(&req.param_types_));
-        for (auto &param_vec : req.params_) {
-          if (!result) break;
+                                                    common::ManagedPointer(&req.param_types_), &compiled_result);
+        if (compiled_result) {
+          for (auto &param_vec : req.params_) {
+            if (!result) break;
 
-          result &= query_exec_util_->ExecuteQuery(idx, nullptr, common::ManagedPointer(&param_vec), nullptr);
+            result &= query_exec_util_->ExecuteQuery(idx, nullptr, common::ManagedPointer(&param_vec), nullptr);
+          }
         }
       }
 
-      query_exec_util_->EndTransaction(result);
+      // If compile fails, commit the transaction
+      query_exec_util_->EndTransaction(!compiled_result || result);
       queue_.pop();
     }
   }

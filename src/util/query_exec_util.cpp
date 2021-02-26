@@ -46,7 +46,7 @@ QueryExecUtil::QueryExecUtil(catalog::db_oid_t db_oid,
 void QueryExecUtil::SetDefaultDatabase() {
   auto *txn = txn_manager_->BeginTransaction();
   SetDatabase(catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE));
-  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) { db_oid_ = db_oid; }
@@ -67,12 +67,13 @@ void QueryExecUtil::UseTransaction(common::ManagedPointer<transaction::Transacti
 }
 
 void QueryExecUtil::BeginTransaction() {
-  NOISEPAGE_ASSERT(txn_ != NULL, "Nesting transactions not supported");
+  NOISEPAGE_ASSERT(txn_ == NULL, "Nesting transactions not supported");
   txn_ = txn_manager_->BeginTransaction();
   own_txn_ = true;
 }
 
 void QueryExecUtil::EndTransaction(bool commit) {
+  NOISEPAGE_ASSERT(txn_ != NULL, "Transaction has not started");
   if (own_txn_) {
     if (commit)
       txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -164,7 +165,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
 
 size_t QueryExecUtil::CompileQuery(const std::string &statement,
                                    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                                   common::ManagedPointer<std::vector<type::TypeId>> param_types) {
+                                   common::ManagedPointer<std::vector<type::TypeId>> param_types, bool *success) {
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   bool require_commit = false;
   if (txn == nullptr) {
@@ -175,6 +176,11 @@ size_t QueryExecUtil::CompileQuery(const std::string &statement,
 
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto result = PlanStatement(statement, params, param_types);
+  if (!result.first || !result.second) {
+    *success = false;
+    return 0;
+  }
+
   const std::unique_ptr<network::Statement> &network_statement = result.first;
   const std::unique_ptr<planner::AbstractPlanNode> &out_plan = result.second;
   NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(network_statement->GetQueryType()), "ExecuteDML expects DML");
@@ -188,6 +194,8 @@ size_t QueryExecUtil::CompileQuery(const std::string &statement,
   if (require_commit) {
     EndTransaction(false);
   }
+
+  *success = true;
   return exec_queries_.size() - 1;
 }
 
@@ -245,8 +253,13 @@ bool QueryExecUtil::ExecuteDML(const std::string &query,
                                common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
                                common::ManagedPointer<metrics::MetricsManager> metrics) {
-  size_t idx = CompileQuery(query, params, param_types);
-  return ExecuteQuery(idx, tuple_fn, params, metrics);
+  bool success = false;
+  size_t idx = CompileQuery(query, params, param_types, &success);
+  if (success) {
+    return ExecuteQuery(idx, tuple_fn, params, metrics);
+  }
+
+  return false;
 }
 
 }  // namespace noisepage::util
