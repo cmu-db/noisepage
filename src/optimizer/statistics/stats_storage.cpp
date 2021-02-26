@@ -7,14 +7,8 @@
 
 namespace noisepage::optimizer {
 
-/*
- * Currently when getting statistics for a table we get and cache the statistics for the entire table. If we find that
- * large tables are filling up the cache when we only need some of the columns, we may want to revisit this so we only
- * cache the columns we use.
- */
-std::unique_ptr<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
-                                                        const catalog::table_oid_t table_id,
-                                                        catalog::CatalogAccessor *accessor) {
+StatsStorageValue &StatsStorage::GetStatsStorageValue(const catalog::db_oid_t database_id, const catalog::table_oid_t table_id,
+                                                      catalog::CatalogAccessor *accessor) {
   StatsStorageKey stats_storage_key{database_id, table_id};
   auto table_it = table_stats_storage_.find(stats_storage_key);
 
@@ -27,8 +21,19 @@ std::unique_ptr<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t 
 
   UpdateStaleColumns(table_id, &stats_storage_value, accessor);
 
-  common::SharedLatch::ScopedSharedLatch table_latch{&stats_storage_value.shared_latch_};
+  return stats_storage_value;
+}
 
+/*
+ * Currently when getting statistics for a table we get and cache the statistics for the entire table. If we find that
+ * large tables are filling up the cache when we only need some of the columns, we may want to revisit this so we only
+ * cache the columns we use.
+ */
+std::unique_ptr<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t database_id,
+                                                        const catalog::table_oid_t table_id,
+                                                        catalog::CatalogAccessor *accessor) {
+  auto &stats_storage_value = GetStatsStorageValue(database_id, table_id, accessor);
+  common::SharedLatch::ScopedSharedLatch table_latch{&stats_storage_value.shared_latch_};
   return stats_storage_value.table_stats_->Copy();
 }
 
@@ -40,9 +45,10 @@ std::unique_ptr<ColumnStatsBase> StatsStorage::GetColumnStats(catalog::db_oid_t 
                                                               catalog::table_oid_t table_id,
                                                               catalog::col_oid_t column_oid,
                                                               catalog::CatalogAccessor *accessor) {
-  auto table_stats = GetTableStats(database_id, table_id, accessor);
-  NOISEPAGE_ASSERT(table_stats->HasColumnStats(column_oid), "Should have stats for all columns");
-  return table_stats->RemoveColumnStats(column_oid);
+  auto &stats_storage_value = GetStatsStorageValue(database_id, table_id, accessor);
+  common::SharedLatch::ScopedSharedLatch table_latch{&stats_storage_value.shared_latch_};
+  NOISEPAGE_ASSERT(stats_storage_value.table_stats_->HasColumnStats(column_oid), "Should have stats for all columns");
+  return stats_storage_value.table_stats_->GetColumnStats(column_oid)->Copy();
 }
 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
@@ -63,14 +69,6 @@ void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::tabl
     auto table_stats = accessor->GetTableStatistics(table_id);
     table_stats_storage_.emplace(stats_storage_key, std::move(table_stats));
   }
-}
-
-void StatsStorage::DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id) {
-  // TODO(Joe)
-  /*StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
-  NOISEPAGE_ASSERT(table_stats_storage_.count(stats_storage_key) != 0,
-                   "There is no TableStats object with the given oids");
-  table_stats_storage_.erase(table_stats_storage_.find(stats_storage_key));*/
 }
 
 void StatsStorage::UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorageValue *stats_storage_value,

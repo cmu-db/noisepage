@@ -91,11 +91,12 @@ class StatsStorage {
    * @param accessor - catalog accessor
    * @return pointer to a TableStats object
    */
-  std::unique_ptr<TableStats> GetTableStats(const catalog::db_oid_t database_id, const catalog::table_oid_t table_id,
+  std::unique_ptr<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                             catalog::CatalogAccessor *accessor);
 
   /**
-   * TODO(Joe)
+   * Returns a copy of the ColumnStats object for a specific table and column
+   *
    * @param database_id - oid of database
    * @param table_id - oid of table
    * @param column_oid - oid of column
@@ -137,6 +138,18 @@ class StatsStorage {
   std::mutex insert_latch_;
 
   /**
+   * Returns a pointer the cached TableStats object for a specific table
+   *
+   * @param database_id - oid of database
+   * @param table_id - oid of table
+   * @param column_oids - oids of columns
+   * @param accessor - catalog accessor
+   * @return pointer to a TableStats object
+   */
+  StatsStorageValue &GetStatsStorageValue(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::CatalogAccessor *accessor);
+
+
+  /**
    * Inserts a TableStats pointer in the table stats storage map.
    * @param database_id - oid of database
    * @param table_id - oid of table
@@ -144,14 +157,6 @@ class StatsStorage {
    */
   void InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                         catalog::CatalogAccessor *accessor);
-
-  /**
-   * Remove a TableStats object.
-   * @param database_id - oid of database
-   * @param table_id - oid of table
-   * @return whether TableStats object was successfully removed
-   */
-  void DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
 
   /**
    * Update the stale columns of a TableStats

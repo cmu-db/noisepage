@@ -62,7 +62,6 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
       property_set.AddProperty(sort_prop);
     }
   } else if (type == parser::StatementType::ANALYZE) {
-    // TODO(Joe) I don't love this here
     const auto analyze_stmt = query->GetStatement(0).CastManagedPointerTo<parser::AnalyzeStatement>();
     txn->RegisterCommitAction(
         [=]() { stats_storage->MarkStatsStale(db_oid, analyze_stmt->GetTableOid(), analyze_stmt->GetColumnOids()); });
