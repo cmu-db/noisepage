@@ -365,9 +365,11 @@ void LogicalInsertSelectToPhysicalInsertSelect::Transform(
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto op = std::make_unique<OperatorNode>(InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetTableOid())
-                                               .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                           std::move(c), context->GetOptimizerContext()->GetTxn());
+  std::vector<catalog::col_oid_t> cols(insert_op->GetColumns());
+  auto op = std::make_unique<OperatorNode>(
+      InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetTableOid(), std::move(cols))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
 
