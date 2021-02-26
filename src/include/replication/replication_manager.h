@@ -192,7 +192,13 @@ class ReplicationManager {
   uint64_t next_buffer_sent_id_ = 1;      ///< The ID of the next buffer to sent.
   uint64_t last_record_received_id_ = 0;  ///< The ID of the last record to be received.
 
-  /** The received messages are queued up until the "next" received message is the right one. */
+  /**
+   * The received messages are queued up until the "next" received message is the right one, i.e.,
+   * the received message has buf_id that is equal to last_record_received_id_ + 1.
+   * Essentially, this is a local buffer that helps to provide the illusion that all messages received in order.
+   * When the right buffer is received, the buffers are repeatedly removed and forwarded to the provider_
+   * until there is again a "gap" in messages received.
+   */
   std::priority_queue<messenger::ZmqMessage, std::vector<messenger::ZmqMessage>,
                       std::function<bool(messenger::ZmqMessage, messenger::ZmqMessage)>>
       received_message_queue_;
