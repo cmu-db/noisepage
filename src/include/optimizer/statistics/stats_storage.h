@@ -71,6 +71,9 @@ namespace noisepage::optimizer {
  * Manages all the existing table stats objects. Stores them in an
  * unordered map and keeps track of them using their database and table oids. Can
  * add, update, or delete table stats objects from the storage map.
+ *
+ * TODO(Joe) Currently there is no cache eviction policy, which means that stats storage will grow forever. If this
+ *  becomes an issue we can implement a max number of columns to store with some eviction policy
  */
 class StatsStorage {
  public:
