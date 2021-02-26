@@ -22,7 +22,7 @@
 #include "common/json.h"
 #include "common/managed_pointer.h"
 #include "messenger/messenger_defs.h"
-#include "self_driving/forecast/workload_forecast.h"
+#include "self_driving/forecasting/workload_forecast.h"
 
 namespace noisepage::messenger {
 class ConnectionRouter;

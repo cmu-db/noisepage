@@ -13,7 +13,7 @@
 #include "loggers/model_server_logger.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
-#include "self_driving/forecast/workload_forecast.h"
+#include "self_driving/forecasting/workload_forecast.h"
 
 namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
