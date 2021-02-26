@@ -426,7 +426,7 @@ TEST(OperatorTests, LogicalCteScanTest) {
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
   transaction::TransactionManager txn_manager = transaction::TransactionManager(
       common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, nullptr);
+      common::ManagedPointer(&buffer_pool), false, false, nullptr);
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
