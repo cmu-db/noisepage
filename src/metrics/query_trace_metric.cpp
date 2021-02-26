@@ -136,7 +136,11 @@ void QueryTraceMetricRawData::WriteToDB(
         segment_number_++;
       }
 
+      // Bumped up the low_timestamp_. We can't publish this data record yet
+      // because the segment might not be ready yet. So we loop back around
+      // for another round>
       low_timestamp_ += QUERY_SEGMENT_INTERVAL;
+      continue;
     } else {
       freqs[(*metadata_.iterator_).qid] += 1;
     }
@@ -160,7 +164,9 @@ void QueryTraceMetricRawData::WriteToDB(
   }
 
   if (flush_timeseries || metadata_.iterator_ == metadata_.timeseries_.end()) {
-    segment_number_ = 0;
+    if (flush_timeseries) {
+      segment_number_ = 0;
+    }
     metadata_.ResetTimeseries();
 
     // Reset times since all data flushed
