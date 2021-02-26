@@ -513,7 +513,7 @@ pipeline {
 
                         sh script: '''
                         cd build
-                        timeout 10m ninja self_driving_e2e_test
+                        timeout 30m ninja self_driving_e2e_test
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
