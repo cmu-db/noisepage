@@ -31,6 +31,8 @@ template <typename KeyType>
 class BwTreeIndex;
 template <typename KeyType>
 class HashIndex;
+template <typename KeyType>
+class BPlusTreeIndex;
 }  // namespace index
 
 /**
@@ -316,6 +318,8 @@ class DataTable {
   friend class index::BwTreeIndex;
   template <typename KeyType>
   friend class index::HashIndex;
+  template <typename KeyType>
+  friend class index::BPlusTreeIndex;
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;

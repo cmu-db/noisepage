@@ -126,6 +126,7 @@ if __name__ == "__main__":
 
         forecaster = Forecaster(
             trace_file=args.trace_file,
+            test_mode=False,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,
             eval_size=args.eval_size,

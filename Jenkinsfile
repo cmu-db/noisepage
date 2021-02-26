@@ -135,6 +135,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            label 'h0-only'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -484,6 +485,7 @@ pipeline {
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                         }
 
                         // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
@@ -511,7 +513,7 @@ pipeline {
 
                         sh script: '''
                         cd build
-                        timeout 10m ninja self_driving_e2e_test
+                        timeout 30m ninja self_driving_e2e_test
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
