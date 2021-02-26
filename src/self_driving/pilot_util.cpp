@@ -9,6 +9,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
+#include "execution/sql/ddl_executors.h"
 #include "loggers/selfdriving_logger.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
@@ -43,34 +44,51 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   execution::exec::OutputCallback callback = consumer;
 
   std::string query = sql_query;
+  SELFDRIVING_LOG_INFO("Applying action: {}", sql_query);
   auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
   auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
 
-  if (statement->GetQueryType() == network::QueryType::QUERY_SET) {
+  auto query_type = statement->GetQueryType();
+
+  if (query_type == network::QueryType::QUERY_SET) {
     // The set statements are executed differently (through settings_manager_)
     const auto &set_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableSetStatement>();
     pilot->settings_manager_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
   } else {
     // For all other actions, we apply the action by running it as query in a committed transaction
-    std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
     txn = txn_manager->BeginTransaction();
 
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
-    auto out_plan = PilotUtil::GenerateQueryPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr,
-                                                 common::ManagedPointer(parse_tree), db_oid, pilot->stats_storage_,
-                                                 pilot->forecast_->GetOptimizerTimeout());
+    auto out_plan =
+        PilotUtil::GenerateQueryPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr, statement->ParseResult(),
+                                     db_oid, pilot->stats_storage_, pilot->forecast_->GetOptimizerTimeout());
 
-    auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                       execution::compiler::CompilationMode::OneShot);
+    if (query_type == network::QueryType::QUERY_DROP_INDEX) {
+      // Drop index does not need execution of compiled query
+      execution::sql::DDLExecutors::DropIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+                                                          .CastManagedPointerTo<planner::DropIndexPlanNode>(),
+                                                      common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+    } else {
+      if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
+        // TODO(lin): We actually don't need to populate the index tuples after creating the index placeholder for the
+        //  "what-if" API. But since we need to execute the query to get the features, we need to compile and execute
+        //  the query for now.
+        execution::sql::DDLExecutors::CreateIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+                                                              .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
+                                                          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+      }
 
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager());
+      auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
+                                                                         execution::compiler::CompilationMode::OneShot);
 
-    exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+          db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
+          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager());
+
+      exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+    }
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
@@ -117,9 +135,9 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
   }
 }
 
-uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                                uint64_t start_segment_index, uint64_t end_segment_index) {
-  // Compute cost as average latency of queries weighted by their num of exec
+double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                              uint64_t start_segment_index, uint64_t end_segment_index) {
+  // Compute cost as total latency of queries based on their num of exec
   // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
   // (where each entry corresponds to a different query param)
   // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
@@ -133,7 +151,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
   query_cost.emplace_back(prev_qid, 0);
 
   for (auto const &pipeline_to_pred : pipeline_to_prediction) {
-    auto pipeline_sum = 0;
+    double pipeline_sum = 0;
     for (auto const &pipeline_res : pipeline_to_pred.second) {
       for (auto ou_res : pipeline_res) {
         // sum up the latency of ous
@@ -142,13 +160,13 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
     // record average cost of this pipeline among the same queries with diff param
     if (prev_qid == pipeline_to_pred.first.first) {
-      query_cost.back().second += static_cast<double>(pipeline_sum) / pipeline_to_pred.second.size();
+      query_cost.back().second += pipeline_sum / pipeline_to_pred.second.size();
     } else {
       query_cost.emplace_back(pipeline_to_pred.first.first, pipeline_sum / pipeline_to_pred.second.size());
       prev_qid = pipeline_to_pred.first.first;
     }
   }
-  uint128_t total_cost = 0, num_queries = 0;
+  double total_cost = 0, num_queries = 0;
   for (auto qcost : query_cost) {
     for (auto i = start_segment_index; i <= end_segment_index; i++) {
       total_cost += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first) * qcost.second;
@@ -156,7 +174,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
   }
   NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");
-  return total_cost / num_queries;
+  return total_cost;
 }
 
 const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
@@ -243,12 +261,11 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_qids, pipeline_data, &ou_to_features);
   NOISEPAGE_ASSERT(model_server_manager->ModelServerStarted(), "Model Server should have been started");
-  std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
     auto res = model_server_manager->DoInference(
-        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
-        project_build_path + model_save_path, ou_map_it.second);
+        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), model_save_path,
+        ou_map_it.second);
     if (!res.second) {
       throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
     }

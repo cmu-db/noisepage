@@ -917,6 +917,9 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
     case parser::IndexType::HASH:
       idx_type = storage::index::IndexType::HASHMAP;
       break;
+    case parser::IndexType::BPLUSTREE:
+      idx_type = storage::index::IndexType::BPLUSTREE;
+      break;
     default:
       NOISEPAGE_ASSERT(false, "Unsupported index type encountered");
       break;

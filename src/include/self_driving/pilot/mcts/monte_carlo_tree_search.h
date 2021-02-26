@@ -26,9 +26,11 @@ class MonteCarloTreeSearch {
    * @param pilot pointer to pilot
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
+   * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
   MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
-                       common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index);
+                       common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
+                       bool use_min_cost = true);
 
   /**
    * Returns query string of the best action to take at the root of the current tree
@@ -46,6 +48,7 @@ class MonteCarloTreeSearch {
   std::unique_ptr<TreeNode> root_;
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
+  bool use_min_cost_;  // Use the minimum cost of all leaves (instead of the average) as the cost for internal nodes
 };
 }  // namespace pilot
 

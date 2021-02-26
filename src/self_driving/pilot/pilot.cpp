@@ -53,7 +53,7 @@ void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oi
       pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
   mcst.BestAction(simulation_number_, best_action_seq);
   for (uint64_t i = 0; i < best_action_seq->size(); i++) {
-    SELFDRIVING_LOG_INFO(fmt::format("Action Selected: timestamp: {}; action string: {} applied to database {}", i,
+    SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", i,
                                      best_action_seq->at(i).first,
                                      static_cast<uint32_t>(best_action_seq->at(i).second)));
   }
