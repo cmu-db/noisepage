@@ -179,7 +179,9 @@ install_mac() {
   fi
   # Update Homebrew.
   brew update
-  
+
+  brew install maven
+
   # Install packages.
   if [ "$INSTALL_TYPE" == "build" -o "$INSTALL_TYPE" = "all" ]; then
     for pkg in "${OSX_BUILD_PACKAGES[@]}"; do
@@ -205,7 +207,9 @@ install_mac() {
 install_linux() {
   # Update apt-get.
   apt-get -y update
-  
+
+  apt-get -y install maven
+
   # Install packages.
   if [ "$INSTALL_TYPE" == "build" -o "$INSTALL_TYPE" = "all" ]; then
     apt-get -y install `( IFS=$' '; echo "${LINUX_BUILD_PACKAGES[*]}" )`
