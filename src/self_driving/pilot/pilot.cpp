@@ -219,20 +219,11 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
   query_internal_thread_->AddRequest(std::move(forecast_request));
 }
 
-void Pilot::PerformPlanning() {
-  // We do the inference by having the python process read in the query_trace.csv file.
-  // However, for the sampled parameters and query information, we will actually pull
-  // that data directly from the internal SQL tables.
-  //
-  // Due to that, we will rename the contents of the QueryTraceMetricRawData files to
-  // a timestamp-appended form (to aid in debugging at least).
-
-  // Suspend the metrics thread while we are handling the data (snapshot).
-  metrics_thread_->PauseMetrics();
+void Pilot::LoadWorkloadForecast() {
+  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
   metrics_thread_->GetMetricsManager()->Aggregate();
   metrics_thread_->GetMetricsManager()->ToOutput();
 
-  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
   std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> out_metadata;
   std::unordered_map<execution::query_id_t, std::vector<std::string>> out_params;
   if (metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB) {
@@ -291,6 +282,20 @@ void Pilot::PerformPlanning() {
     auto filename = fmt::format("{}_{}", input_path.c_str(), iteration);
     std::rename(input_path.c_str(), filename.c_str());
   }
+}
+
+void Pilot::PerformPlanning() {
+  // We do the inference by having the python process read in the query_trace.csv file.
+  // However, for the sampled parameters and query information, we will actually pull
+  // that data directly from the internal SQL tables.
+  //
+  // Due to that, we will rename the contents of the QueryTraceMetricRawData files to
+  // a timestamp-appended form (to aid in debugging at least).
+
+  // Suspend the metrics thread while we are handling the data (snapshot).
+  metrics_thread_->PauseMetrics();
+
+  LoadWorkloadForecast();
 
   // Perform planning
   std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;

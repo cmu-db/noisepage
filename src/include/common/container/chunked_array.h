@@ -64,7 +64,7 @@ class ChunkedArray {
      */
     Iterator &operator++() noexcept {
       cur_pos_++;
-      if (cur_pos_ >= (*chunks_iter_).cur_idx_) {
+      if (cur_pos_ >= (*chunks_)[chunks_pos_].cur_idx_) {
         chunks_pos_++;
         cur_pos_ = 0;
       }
@@ -98,8 +98,8 @@ class ChunkedArray {
     bool operator!=(const Iterator &that) const noexcept { return !(this->operator==(that)); }
 
    private:
-    typename std::vector < ChunkSlot<TypeT, SizeT> *chunks_;
-    std::size_t chunk_pos_ = 0;
+    typename std::vector<ChunkSlot<TypeT, SizeT>> *chunks_;
+    std::size_t chunks_pos_ = 0;
     std::size_t cur_pos_ = 0;
   };
 

@@ -119,6 +119,8 @@ class Pilot {
   void RecordWorkloadForecastPrediction(uint64_t iteration, const selfdriving::WorkloadForecastPrediction &prediction,
                                         const WorkloadMetadata &metadata);
 
+  void LoadWorkloadForecast();
+
   /**
    * Performs Pilot Logic, load and execute the predicted queries while extracting pipeline features
    */
