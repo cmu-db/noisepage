@@ -53,6 +53,15 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
   /**
+   * Implement main insertion logic
+   * @param context The context of the work.
+   * @param function The pipeline generating function.
+   * @param generate_set_table_pr function to generate the TPL that sets the fields of the projected row
+   */
+  void PerformInsertWork(WorkContext *context, FunctionBuilder *function,
+                         const std::function<void(WorkContext *, FunctionBuilder *)> &generate_set_table_pr) const;
+
+  /**
    * @return The child's output at the given index.
    */
   ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override;
@@ -71,31 +80,34 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   };
 
  private:
-  // Declare storage interface.
+  /** Declare storage interface. */
   void DeclareInserter(FunctionBuilder *builder) const;
 
-  // Free the storage interface.
+  /** Free the storage interface. */
   void GenInserterFree(FunctionBuilder *builder) const;
 
-  // Sets the oids that we are inserting on, using the schema from the insert plan node.
+  /** Sets the oids that we are inserting on, using the schema from the insert plan node. */
   void SetOids(FunctionBuilder *builder) const;
 
-  // Declares the projected row that we will be using the insert values with.
+  /** Declares the projected row that we will be using the insert values with. */
   void DeclareInsertPR(FunctionBuilder *builder) const;
 
-  // Gets the projected row pointer that we will fill in with values to insert.
+  /** Gets the projected row pointer that we will fill in with values to insert. */
   void GetInsertPR(FunctionBuilder *builder) const;
 
-  // Sets the values in the projected row which we will use to insert into the table.
-  void GenSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
+  /** Sets the values in the projected row for a value insert which we will use to insert into the table. */
+  void GenValueSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
 
-  // Insert into the table.
+  /** Sets the values in the projected row for an insert into select which we will use to insert into the table. */
+  void GenSelectSetTablePR(FunctionBuilder *builder, WorkContext *context) const;
+
+  /** Insert into the table. */
   void GenTableInsert(FunctionBuilder *builder) const;
 
-  // Insert into an index of this table.
+  /** Insert into an index of this table. */
   void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
 
-  // Gets all the column oids in a schema.
+  /** Gets all the column oids in a schema. */
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema);
 
   // Storage interface inserter struct which we use to insert.

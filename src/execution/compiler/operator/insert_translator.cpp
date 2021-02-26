@@ -4,6 +4,8 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/schema.h"
+#include "common/error/error_code.h"
+#include "common/error/exception.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/codegen.h"
@@ -12,6 +14,7 @@
 #include "execution/compiler/if.h"
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
@@ -29,14 +32,28 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
                     ->GetTable(GetPlanAs<planner::InsertPlanNode>().GetTableOid())
                     ->ProjectionMapForOids(all_oids_)) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
-  for (uint32_t idx = 0; idx < plan.GetBulkInsertCount(); idx++) {
-    const auto &node_vals = GetPlanAs<planner::InsertPlanNode>().GetValues(idx);
-    for (const auto &node_val : node_vals) {
-      compilation_context->Prepare(*node_val);
+
+  switch (plan.GetInsertType()) {
+    case parser::InsertType::SELECT: {
+      NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "INSERT INTO SELECT should have 1 child.");
+      compilation_context->Prepare(*plan.GetChild(0), pipeline);
+      break;
+    }
+    case parser::InsertType::VALUES: {
+      for (uint32_t idx = 0; idx < plan.GetBulkInsertCount(); idx++) {
+        const auto &node_vals = GetPlanAs<planner::InsertPlanNode>().GetValues(idx);
+        for (const auto &node_val : node_vals) {
+          compilation_context->Prepare(*node_val);
+        }
+      }
+      break;
+    }
+    case parser::InsertType::INVALID: {
+      throw EXECUTION_EXCEPTION("Invalid insert type", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
   }
 
-  auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
+  const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
   for (auto &index_oid : index_oids) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
@@ -52,6 +69,8 @@ void InsertTranslator::InitializePipelineState(const Pipeline &pipeline, Functio
 }
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
+  const auto &plan = GetPlanAs<planner::InsertPlanNode>();
+
   // var col_oids: [num_cols]uint32
   // col_oids[i] = ...
   // var inserter : StorageInterface
@@ -60,17 +79,23 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   // var insert_pr : *ProjectedRow
   DeclareInsertPR(function);
 
-  for (uint32_t idx = 0; idx < GetPlanAs<planner::InsertPlanNode>().GetBulkInsertCount(); idx++) {
-    // var insert_pr = @getTablePR(&inserter)
-    GetInsertPR(function);
-    // For each attribute, @prSet(insert_pr, ...)
-    GenSetTablePR(function, context, idx);
-    // var insert_slot = @tableInsert(&inserter)
-    GenTableInsert(function);
-    function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
-    const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
-    for (const auto &index_oid : index_oids) {
-      GenIndexInsert(context, function, index_oid);
+  switch (plan.GetInsertType()) {
+    case parser::InsertType::SELECT: {
+      PerformInsertWork(context, function, [&](WorkContext *context, FunctionBuilder *function) {
+        GenSelectSetTablePR(function, context);
+      });
+      break;
+    }
+    case parser::InsertType::VALUES: {
+      for (uint32_t idx = 0; idx < GetPlanAs<planner::InsertPlanNode>().GetBulkInsertCount(); idx++) {
+        PerformInsertWork(context, function, [&](WorkContext *context, FunctionBuilder *function) {
+          GenValueSetTablePR(function, context, idx);
+        });
+      }
+      break;
+    }
+    case parser::InsertType::INVALID: {
+      throw EXECUTION_EXCEPTION("Invalid insert type", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
   }
 
@@ -83,6 +108,22 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_inserts_));
 
   GenInserterFree(function);
+}
+
+void InsertTranslator::PerformInsertWork(
+    WorkContext *context, FunctionBuilder *function,
+    const std::function<void(WorkContext *, FunctionBuilder *)> &generate_set_table_pr) const {
+  // var insert_pr = @getTablePR(&inserter)
+  GetInsertPR(function);
+  // For each attribute, @prSet(insert_pr, ...)
+  generate_set_table_pr(context, function);
+  // var insert_slot = @tableInsert(&inserter)
+  GenTableInsert(function);
+  function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
+  const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
+  for (const auto &index_oid : index_oids) {
+    GenIndexInsert(context, function, index_oid);
+  }
 }
 
 void InsertTranslator::DeclareInserter(noisepage::execution::compiler::FunctionBuilder *builder) const {
@@ -145,12 +186,28 @@ void InsertTranslator::GetInsertPR(noisepage::execution::compiler::FunctionBuild
   builder->Append(GetCodeGen()->Assign(GetCodeGen()->MakeExpr(insert_pr_), get_pr_call));
 }
 
-void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const {
+void InsertTranslator::GenValueSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const {
   const auto &node_vals = GetPlanAs<planner::InsertPlanNode>().GetValues(idx);
   for (size_t i = 0; i < node_vals.size(); i++) {
     // @prSet(insert_pr, ...)
     const auto &val = node_vals[i];
     auto *src = context->DeriveValue(*val.Get(), this);
+
+    const auto &table_col_oid = all_oids_[i];
+    const auto &table_col = table_schema_.GetColumn(table_col_oid);
+    const auto &pr_set_call =
+        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
+                            table_pm_.find(table_col_oid)->second, src, true);
+    builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
+  }
+}
+
+void InsertTranslator::GenSelectSetTablePR(FunctionBuilder *builder, WorkContext *context) const {
+  const auto &plan = GetPlanAs<planner::InsertPlanNode>();
+
+  for (size_t i = 0; i < plan.GetChild(0)->GetOutputSchema()->NumColumns(); i++) {
+    // @prSet(insert_pr, ...)
+    auto *src = GetChildOutput(context, 0, i);
 
     const auto &table_col_oid = all_oids_[i];
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
