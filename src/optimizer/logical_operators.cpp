@@ -259,10 +259,12 @@ bool LogicalInsert::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalInsertSelect::Copy() const { return new LogicalInsertSelect(*this); }
 
-Operator LogicalInsertSelect::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid) {
+Operator LogicalInsertSelect::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                                   std::vector<catalog::col_oid_t> &&columns) {
   auto *op = new LogicalInsertSelect();
   op->database_oid_ = database_oid;
   op->table_oid_ = table_oid;
+  op->columns_ = std::move(columns);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 

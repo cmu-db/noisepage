@@ -858,7 +858,7 @@ function(add_test_util_lib TYPE)
     add_custom_command(TARGET noisepage_test_util_${TYPE_LOWER} DEPENDS gtest gtest_main gmock gmock_main)
     target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
     # Inject the source directory path into the translation units for test utility lib
-    target_compile_definitions(noisepage_test_util_${TYPE_LOWER} PRIVATE NOISEPAGE_PROJECT_ROOT=${CMAKE_SOURCE_DIR})
+    target_compile_definitions(noisepage_test_util_${TYPE_LOWER} PRIVATE NOISEPAGE_BUILD_ROOT=${CMAKE_BINARY_DIR})
     target_include_directories(noisepage_test_util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
     target_include_directories(noisepage_test_util_${TYPE_LOWER} SYSTEM PUBLIC
             ${CMAKE_BINARY_DIR}/_deps/src/googletest/googlemock/include/
