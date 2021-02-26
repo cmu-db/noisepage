@@ -240,6 +240,8 @@ bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings_, metrics);
 
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
+
   exec_queries_[idx]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
   if (require_commit) {

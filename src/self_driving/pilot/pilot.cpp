@@ -169,7 +169,7 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
     // Clusters
     cluster_request.is_ddl_ = false;
     cluster_request.db_oid_ = catalog::INVALID_DATABASE_OID;
-    cluster_request.query_text_ = "INSERT INTO noisepage_forecast_clusters VALUES (0, 0, 0, 0)";
+    cluster_request.query_text_ = "INSERT INTO noisepage_forecast_clusters VALUES ($1, $2, $3, $4)";
     cluster_request.cost_model_ = nullptr;
     cluster_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                     type::TypeId::INTEGER};
@@ -179,7 +179,7 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
     // Forecasts
     forecast_request.is_ddl_ = false;
     forecast_request.db_oid_ = catalog::INVALID_DATABASE_OID;
-    forecast_request.query_text_ = "INSERT INTO noisepage_forecast_forecasts VALUES (0, 0, 0, 0.0)";
+    forecast_request.query_text_ = "INSERT INTO noisepage_forecast_forecasts VALUES ($1, $2, $3, $4)";
     forecast_request.cost_model_ = nullptr;
     forecast_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                      type::TypeId::REAL};

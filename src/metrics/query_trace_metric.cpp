@@ -36,7 +36,7 @@ void QueryTraceMetricRawData::WriteToDB(
       util::ExecuteRequest texts;
       texts.is_ddl_ = false;
       texts.db_oid_ = catalog::INVALID_DATABASE_OID;
-      texts.query_text_ = "INSERT INTO noisepage_forecast_texts VALUES (0, 0, '', '')";
+      texts.query_text_ = "INSERT INTO noisepage_forecast_texts VALUES ($1, $2, $3, $4)";
       texts.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR, type::TypeId::VARCHAR};
       for (auto &data : metadata_.qmetadata_) {
         std::vector<parser::ConstantValueExpression> params(4);
@@ -63,7 +63,7 @@ void QueryTraceMetricRawData::WriteToDB(
       util::ExecuteRequest params;
       params.is_ddl_ = false;
       params.db_oid_ = catalog::INVALID_DATABASE_OID;
-      params.query_text_ = "INSERT INTO noisepage_forecast_parameters VALUES (0, 0, '')";
+      params.query_text_ = "INSERT INTO noisepage_forecast_parameters VALUES ($1, $2, $3)";
       params.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR};
 
       for (auto &data : metadata_.qid_param_samples_) {
@@ -101,7 +101,7 @@ void QueryTraceMetricRawData::WriteToDB(
   util::ExecuteRequest seen;
   seen.is_ddl_ = false;
   seen.db_oid_ = catalog::INVALID_DATABASE_OID;
-  seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies VALUES (0, 0, 0, 0.0)";
+  seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
   seen.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
 
   std::unordered_map<execution::query_id_t, int> freqs;
