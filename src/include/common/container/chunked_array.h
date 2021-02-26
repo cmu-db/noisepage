@@ -48,11 +48,13 @@ class ChunkedArray {
      * @param position initial position to iterator from
      * @param element_size size of individual elements
      */
-    Iterator(typename std::vector<ChunkSlot<TypeT, SizeT>>::iterator chunks_iter) noexcept
-        : chunks_iter_(chunks_iter) {}
+    Iterator(typename std::vector<ChunkSlot<TypeT, SizeT>> *chunks) noexcept : chunks_(chunks) {}
+
+    Iterator(typename std::vector<ChunkSlot<TypeT, SizeT>> *chunks, std::size_t chunk_pos) noexcept
+        : chunks_(chunks), chunks_pos_(chunk_pos) {}
 
     /** @return The current element. */
-    Type &operator*() const noexcept { return (*chunks_iter_).slots_[cur_pos_]; }
+    Type &operator*() const noexcept { return (*chunks_)[chunks_pos_].slots_[cur_pos_]; }
 
     /**
      * Pre-increment
@@ -63,7 +65,7 @@ class ChunkedArray {
     Iterator &operator++() noexcept {
       cur_pos_++;
       if (cur_pos_ >= (*chunks_iter_).cur_idx_) {
-        ++chunks_iter_;
+        chunks_pos_++;
         cur_pos_ = 0;
       }
       return *this;
@@ -85,7 +87,7 @@ class ChunkedArray {
      * @return whether the two iterators are in the same position
      */
     bool operator==(const Iterator &that) const noexcept {
-      return chunks_iter_ == that.chunks_iter_ && cur_pos_ == that.cur_pos_;
+      return chunks_pos_ == that.chunks_pos_ && cur_pos_ == that.cur_pos_;
     }
 
     /**
@@ -96,22 +98,23 @@ class ChunkedArray {
     bool operator!=(const Iterator &that) const noexcept { return !(this->operator==(that)); }
 
    private:
-    typename std::vector<ChunkSlot<TypeT, SizeT>>::iterator chunks_iter_;
+    typename std::vector < ChunkSlot<TypeT, SizeT> *chunks_;
+    std::size_t chunk_pos_ = 0;
     std::size_t cur_pos_ = 0;
   };
 
   Iterator<Type, Size> begin() noexcept {  // NOLINT
     if (chunks_.empty()) {
-      return Iterator<Type, Size>();
+      return Iterator<Type, Size>(nullptr, 0);
     }
-    return Iterator<Type, Size>(chunks_.begin());
+    return Iterator<Type, Size>(&chunks_);
   }
 
   Iterator<Type, Size> end() noexcept {  // NOLINT
     if (chunks_.empty()) {
-      return Iterator<Type, Size>();
+      return Iterator<Type, Size>(nullptr, 0);
     }
-    return Iterator<Type, Size>(chunks_.end());
+    return Iterator<Type, Size>(&chunks_, chunks_.size());
   }
 
  private:
