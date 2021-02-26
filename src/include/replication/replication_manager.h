@@ -135,10 +135,10 @@ class ReplicationManager {
   uint64_t GetLastRecordId() const { return IsPrimary() ? next_buffer_sent_id_ - 1 : last_record_received_id_; }
 
   /** Enable replication. */
-  void EnableReplication() { replication_enabled_ = true; }
+  void EnableReplication();
 
   /** Disable replication. */
-  void DisableReplication() { replication_enabled_ = false; }
+  void DisableReplication();
 
   /** @return   True if this is the primary node and false if this is a replica. */
   bool IsPrimary() const { return identity_ == "primary"; }

@@ -52,6 +52,16 @@ ReplicationManager::ReplicationManager(
 
 ReplicationManager::~ReplicationManager() = default;
 
+void ReplicationManager::EnableReplication() {
+  REPLICATION_LOG_TRACE(fmt::format("[PID={}] Replication enabled.", ::getpid()));
+  replication_enabled_ = true;
+}
+
+void ReplicationManager::DisableReplication() {
+  REPLICATION_LOG_TRACE(fmt::format("[PID={}] Replication disabled.", ::getpid()));
+  replication_enabled_ = false;
+}
+
 void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_path) {
   // The replication.config file is expected to have the following format:
   //   IGNORED LINE (can be used for comments)
