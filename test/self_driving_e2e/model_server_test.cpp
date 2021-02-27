@@ -1,3 +1,5 @@
+#include <iostream>
+#include <fstream>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -17,7 +19,16 @@ class ModelServerTest : public TerrierTest {
  protected:
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain() {
+    char path[255] = {0};
+    size_t s = 255;
+    char* real_path = getcwd(path, s);
+    std::cout << real_path << "\n";
+
     auto model_server_path = "../script/self_driving/model_server.py";
+    std::ifstream file(model_server_path);
+    if (!file.good()) {
+      exit(1);
+    }
 
     auto db_main = noisepage::DBMain::Builder()
                        .SetUseSettingsManager(false)
