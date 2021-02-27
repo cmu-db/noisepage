@@ -1,4 +1,4 @@
-#include "runner/mini_runners_argument_generator.h"
+#include "runner/execution_runners_argument_generator.h"
 
 #include <cmath>
 #include <unordered_set>
@@ -7,8 +7,8 @@
 
 namespace noisepage::runner {
 
-void MiniRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                     const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                          const ExecutionRunnersDataConfig &config) {
   auto operators = {selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
                     selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
                     selfdriving::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE,
@@ -30,8 +30,8 @@ void MiniRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const MiniRu
   }
 }
 
-void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                      const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                           const ExecutionRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
@@ -50,8 +50,8 @@ void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniR
   b->push_back({0, 0, 1});
 }
 
-void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                    const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                         const ExecutionRunnersDataConfig &config) {
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::VARCHAR};
   const std::vector<uint32_t> *num_cols;
@@ -85,8 +85,8 @@ void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRun
   }
 }
 
-void MiniRunnersArgumentGenerator::GenScanMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                         const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenScanMixedArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                              const ExecutionRunnersDataConfig &config) {
   const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<std::vector<int64_t>> args;
   GenerateMixedArguments(&args, settings, config, row_nums, 0);
@@ -96,8 +96,8 @@ void MiniRunnersArgumentGenerator::GenScanMixedArguments(OutputArgs *b, const Mi
   }
 }
 
-void MiniRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                    const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                         const ExecutionRunnersDataConfig &config) {
   auto is_topks = {0, 1};
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
@@ -125,8 +125,8 @@ void MiniRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const MiniRun
   }
 }
 
-void MiniRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                         const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                              const ExecutionRunnersDataConfig &config) {
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::VARCHAR};
   const std::vector<uint32_t> *num_cols;
@@ -156,8 +156,9 @@ void MiniRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, const Mi
   }
 }
 
-void MiniRunnersArgumentGenerator::GenAggregateKeylessArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                                const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenAggregateKeylessArguments(OutputArgs *b,
+                                                                     const ExecutionRunnersSettings &settings,
+                                                                     const ExecutionRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   for (auto col : num_cols) {
@@ -173,8 +174,8 @@ void MiniRunnersArgumentGenerator::GenAggregateKeylessArguments(OutputArgs *b, c
   }
 }
 
-void MiniRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                        const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                             const ExecutionRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER};
@@ -203,8 +204,8 @@ void MiniRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, const Min
   }
 }
 
-void MiniRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                           const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                                const ExecutionRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER};
@@ -228,8 +229,8 @@ void MiniRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, const 
   }
 }
 
-void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                       const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                            const ExecutionRunnersDataConfig &config) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
   auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto &lookup_sizes = config.sweep_index_lookup_sizes_;
@@ -256,8 +257,8 @@ void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const Mini
   }
 }
 
-void MiniRunnersArgumentGenerator::GenIdxJoinArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                       const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenIdxJoinArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                            const ExecutionRunnersDataConfig &config) {
   auto &key_sizes = config.sweep_col_nums_;
   auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   for (auto key_size : key_sizes) {
@@ -275,8 +276,8 @@ void MiniRunnersArgumentGenerator::GenIdxJoinArguments(OutputArgs *b, const Mini
   }
 }
 
-void MiniRunnersArgumentGenerator::GenInsertArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                      const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenInsertArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                           const ExecutionRunnersDataConfig &config) {
   auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
   auto &num_rows = config.sweep_insert_row_nums_;
   auto &num_cols = config.sweep_col_nums_;
@@ -292,8 +293,8 @@ void MiniRunnersArgumentGenerator::GenInsertArguments(OutputArgs *b, const MiniR
   }
 }
 
-void MiniRunnersArgumentGenerator::GenInsertMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                           const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenInsertMixedArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                                const ExecutionRunnersDataConfig &config) {
   auto &mixed_dist = config.sweep_insert_mixed_dist_;
   auto &num_rows = config.sweep_insert_row_nums_;
   for (auto mixed : mixed_dist) {
@@ -303,8 +304,8 @@ void MiniRunnersArgumentGenerator::GenInsertMixedArguments(OutputArgs *b, const 
   }
 }
 
-void MiniRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                           const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                                const ExecutionRunnersDataConfig &config) {
   auto &idx_key = config.sweep_update_index_col_nums_;
   auto &update_keys = config.sweep_update_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
@@ -351,8 +352,8 @@ void MiniRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, const 
   }
 }
 
-void MiniRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                           const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                                const ExecutionRunnersDataConfig &config) {
   auto &idx_key = config.sweep_index_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
@@ -394,8 +395,8 @@ void MiniRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, const 
   }
 }
 
-void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                           const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                                                const ExecutionRunnersDataConfig &config) {
   auto &num_threads = config.sweep_index_create_threads_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<uint32_t> num_cols;
@@ -438,8 +439,9 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
   }
 }
 
-void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                                const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b,
+                                                                     const ExecutionRunnersSettings &settings,
+                                                                     const ExecutionRunnersDataConfig &config) {
   auto &num_threads = config.sweep_index_create_threads_;
   const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
 
@@ -472,8 +474,9 @@ void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, c
   }
 }
 
-void MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                                                 const MiniRunnersDataConfig &config) {
+void ExecutionRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs *b,
+                                                                      const ExecutionRunnersSettings &settings,
+                                                                      const ExecutionRunnersDataConfig &config) {
   auto num_indexes = {settings.index_model_batch_size_};
   const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
@@ -490,10 +493,11 @@ void MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs *b, 
   }
 }
 
-void MiniRunnersArgumentGenerator::GenerateMixedArguments(std::vector<std::vector<int64_t>> *args,
-                                                          const MiniRunnersSettings &settings,
-                                                          const MiniRunnersDataConfig &config,
-                                                          const std::vector<uint32_t> &row_nums, uint32_t varchar_mix) {
+void ExecutionRunnersArgumentGenerator::GenerateMixedArguments(std::vector<std::vector<int64_t>> *args,
+                                                               const ExecutionRunnersSettings &settings,
+                                                               const ExecutionRunnersDataConfig &config,
+                                                               const std::vector<uint32_t> &row_nums,
+                                                               uint32_t varchar_mix) {
   std::vector<std::pair<uint32_t, uint32_t>> mixed_dist;
   uint32_t step_size;
   if (varchar_mix == 0) {

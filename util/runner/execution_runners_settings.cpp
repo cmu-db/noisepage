@@ -1,4 +1,4 @@
-#include "runner/mini_runners_settings.h"
+#include "runner/execution_runners_settings.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -14,7 +14,7 @@ struct Arg {
   int int_value_;
 };
 
-void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
+void ExecutionRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   Arg port_info{"--port=", false};
   Arg filter_info{"--benchmark_filter=", false, "*"};
   Arg skip_large_rows_runs_info{"--skip_large_rows_runs=", false};

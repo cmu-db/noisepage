@@ -11,7 +11,7 @@ namespace noisepage::runner {
  * Configuration for mini-runner generated data.
  * Stores all the parameters for generating tables.
  */
-class MiniRunnersDataConfig {
+class ExecutionRunnersDataConfig {
  public:
   /** Distribution of table column types */
   std::vector<std::vector<type::TypeId>> table_type_dists_ = {

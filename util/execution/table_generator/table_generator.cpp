@@ -412,8 +412,8 @@ void TableGenerator::GenerateTestTables() {
   InitTestIndexes();
 }
 
-void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
-                                             const runner::MiniRunnersDataConfig &config) {
+void TableGenerator::GenerateMiniRunnersData(const runner::ExecutionRunnersSettings &settings,
+                                             const runner::ExecutionRunnersDataConfig &config) {
   std::vector<TableInsertMeta> table_metas;
   auto &mixed_types = config.table_type_dists_;
   auto &mixed_dists = config.table_col_dists_;

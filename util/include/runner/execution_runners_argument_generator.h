@@ -2,21 +2,22 @@
 
 #include <vector>
 
-#include "runner/mini_runners_data_config.h"
-#include "runner/mini_runners_settings.h"
+#include "runner/execution_runners_data_config.h"
+#include "runner/execution_runners_settings.h"
 
 namespace noisepage::runner {
 
 /**
  * Argument generator for mini-runners
  */
-class MiniRunnersArgumentGenerator {
+class ExecutionRunnersArgumentGenerator {
  public:
   /** Using declaration for output arguments */
   using OutputArgs = std::vector<std::vector<int64_t>>;
 
   /** Typedef for each of the Gen*Arguments functions below */
-  using GenArgFn = void (*)(OutputArgs *b, const MiniRunnersSettings &settings, const MiniRunnersDataConfig &config);
+  using GenArgFn = void (*)(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                            const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling arithemtics
@@ -29,8 +30,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenArithArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                const MiniRunnersDataConfig &config);
+  static void GenArithArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling OUTPUT
@@ -44,8 +45,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenOutputArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                 const MiniRunnersDataConfig &config);
+  static void GenOutputArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                 const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling SEQ_SCAN
@@ -63,7 +64,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenScanArguments(OutputArgs *b, const MiniRunnersSettings &settings, const MiniRunnersDataConfig &config);
+  static void GenScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                               const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling SEQ_SCAN under a mixed table distribution
@@ -81,8 +83,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenScanMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                    const MiniRunnersDataConfig &config);
+  static void GenScanMixedArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                    const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling IDX_SCAN
@@ -102,8 +104,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenIdxScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                  const MiniRunnersDataConfig &config);
+  static void GenIdxScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                  const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling IDX_JOIN
@@ -117,8 +119,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenIdxJoinArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                  const MiniRunnersDataConfig &config);
+  static void GenIdxJoinArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                  const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling SORT_BUILD / SORT_ITERATE
@@ -135,7 +137,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenSortArguments(OutputArgs *b, const MiniRunnersSettings &settings, const MiniRunnersDataConfig &config);
+  static void GenSortArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                               const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling HASHJOIN_BUILD / HASHJOIN_ITERATE on self-table joins
@@ -152,8 +155,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenJoinSelfArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                   const MiniRunnersDataConfig &config);
+  static void GenJoinSelfArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                   const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling HASHJOIN_BUILD / HASHJOIN_ITERATE
@@ -172,8 +175,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenJoinNonSelfArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                      const MiniRunnersDataConfig &config);
+  static void GenJoinNonSelfArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                      const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling AGGREGATE_BUILD / AGGREGATE_ITERATE with GROUP BY clauses
@@ -190,8 +193,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenAggregateArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                    const MiniRunnersDataConfig &config);
+  static void GenAggregateArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                    const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling AGGREGATE_BUILD / AGGREGATE_ITERATE without GROUP BYs
@@ -208,8 +211,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenAggregateKeylessArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                           const MiniRunnersDataConfig &config);
+  static void GenAggregateKeylessArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                           const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling INSERT
@@ -223,8 +226,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenInsertArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                 const MiniRunnersDataConfig &config);
+  static void GenInsertArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                 const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling INSERT
@@ -238,8 +241,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenInsertMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                      const MiniRunnersDataConfig &config);
+  static void GenInsertMixedArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                      const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling UPDATE with index-scans
@@ -261,8 +264,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenUpdateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                      const MiniRunnersDataConfig &config);
+  static void GenUpdateIndexArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                      const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling DELETE with index-scans
@@ -283,8 +286,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                      const MiniRunnersDataConfig &config);
+  static void GenDeleteIndexArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                      const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling CREATE INDEX
@@ -303,8 +306,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenCreateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                      const MiniRunnersDataConfig &config);
+  static void GenCreateIndexArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                      const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling CREATE INDEX over mixed tables
@@ -323,8 +326,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenCreateIndexMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                           const MiniRunnersDataConfig &config);
+  static void GenCreateIndexMixedArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                           const ExecutionRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling index insert/delete into indexes
@@ -340,8 +343,8 @@ class MiniRunnersArgumentGenerator {
    * @param settings Settings of the mini-runners
    * @param config MiniRunners data parameters
    */
-  static void GenIndexInsertDeleteArguments(OutputArgs *b, const MiniRunnersSettings &settings,
-                                            const MiniRunnersDataConfig &config);
+  static void GenIndexInsertDeleteArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
+                                            const ExecutionRunnersDataConfig &config);
 
  private:
   /**
@@ -362,8 +365,8 @@ class MiniRunnersArgumentGenerator {
    * @param row_nums Row numbers ot generate column distributions for
    * @param varchar_mix Whether mixed type is a varchar
    */
-  static void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const MiniRunnersSettings &settings,
-                                     const MiniRunnersDataConfig &config, const std::vector<uint32_t> &row_nums,
+  static void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const ExecutionRunnersSettings &settings,
+                                     const ExecutionRunnersDataConfig &config, const std::vector<uint32_t> &row_nums,
                                      uint32_t varchar_mix);
 };
 

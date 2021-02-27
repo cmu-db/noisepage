@@ -10,8 +10,8 @@
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
-#include "runner/mini_runners_data_config.h"
-#include "runner/mini_runners_settings.h"
+#include "runner/execution_runners_data_config.h"
+#include "runner/execution_runners_settings.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::sql {
@@ -89,8 +89,8 @@ class TableGenerator {
    * @param settings Mini-runners settings
    * @param config Data Configuration for mini-runners
    */
-  void GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
-                               const runner::MiniRunnersDataConfig &config);
+  void GenerateMiniRunnersData(const runner::ExecutionRunnersSettings &settings,
+                               const runner::ExecutionRunnersDataConfig &config);
 
   /**
    * Adds a mini-runner index

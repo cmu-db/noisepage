@@ -30,9 +30,9 @@
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "runner/mini_runners_argument_generator.h"
-#include "runner/mini_runners_data_config.h"
-#include "runner/mini_runners_settings.h"
+#include "runner/execution_runners_argument_generator.h"
+#include "runner/execution_runners_data_config.h"
+#include "runner/execution_runners_settings.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_defs.h"
 #include "self_driving/modeling/operating_unit_recorder.h"
@@ -45,12 +45,12 @@ namespace noisepage::runner {
 /**
  * MiniRunners Config Data
  */
-MiniRunnersDataConfig config;
+ExecutionRunnersDataConfig config;
 
 /**
  * MiniRunners Settings
  */
-MiniRunnersSettings settings;
+ExecutionRunnersSettings settings;
 
 /**
  * Static db_main instance
@@ -79,7 +79,7 @@ std::vector<std::vector<parser::ConstantValueExpression>> empty_params = {};
  * Template argument f specifies the argument generator to invoke
  * @param b Benchmark
  */
-template <MiniRunnersArgumentGenerator::GenArgFn f>
+template <ExecutionRunnersArgumentGenerator::GenArgFn f>
 void GenBenchmarkArguments(benchmark::internal::Benchmark *b) {
   std::vector<std::vector<int64_t>> args;
   f(&args, settings, config);
@@ -281,7 +281,7 @@ static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int6
   }
 }
 
-class MiniRunners : public benchmark::Fixture {
+class ExecutionRunners : public benchmark::Fixture {
  public:
   static execution::query_id_t query_id;
   static execution::vm::ExecutionMode mode;
@@ -448,7 +448,7 @@ class MiniRunners : public benchmark::Fixture {
         db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
         common::ManagedPointer(accessor), exec_settings, metrics_manager_);
 
-    execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
+    execution::compiler::ExecutableQuery::query_identifier.store(ExecutionRunners::query_id++);
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                        execution::compiler::CompilationMode::OneShot);
 
@@ -488,7 +488,7 @@ class MiniRunners : public benchmark::Fixture {
 
     auto txn = txn_manager->BeginTransaction();
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-    auto exec_settings = MiniRunners::GetExecutionSettings();
+    auto exec_settings = ExecutionRunners::GetExecutionSettings();
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor),
                                                                         exec_settings, metrics_manager_);
@@ -572,7 +572,7 @@ class MiniRunners : public benchmark::Fixture {
   }
 
   void BenchmarkArithmetic(selfdriving::ExecutionOperatingUnitType type, size_t num_elem) {
-    auto qid = MiniRunners::query_id++;
+    auto qid = ExecutionRunners::query_id++;
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto exec_settings = GetExecutionSettings();
@@ -678,11 +678,11 @@ class MiniRunners : public benchmark::Fixture {
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 };
 
-execution::query_id_t MiniRunners::query_id = execution::query_id_t(0);
-execution::vm::ExecutionMode MiniRunners::mode = execution::vm::ExecutionMode::Interpret;
+execution::query_id_t ExecutionRunners::query_id = execution::query_id_t(0);
+execution::vm::ExecutionMode ExecutionRunners::mode = execution::vm::ExecutionMode::Interpret;
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ0_ArithmeticRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_ArithmeticRunners)(benchmark::State &state) {
   if (rerun_start) {
     return;
   }
@@ -847,7 +847,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_reals = state.range(1);
   auto row_num = state.range(2);
@@ -935,7 +935,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto schema = std::make_unique<planner::OutputSchema>(std::move(cols));
 
   auto exec_settings = GetExecutionSettings();
-  execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
+  execution::compiler::ExecutableQuery::query_identifier.store(ExecutionRunners::query_id++);
   execution::exec::NoOpResultConsumer consumer;
   execution::exec::OutputCallback callback = consumer;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
@@ -956,7 +956,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   BenchmarkExecQuery(settings.warmup_iterations_num_ + 1, &exec_query, schema.get(), true);
 }
 
-void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert) {
+void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert) {
   auto key_num = state->range(0);
   uint64_t tbl_cols = state->range(1);
   auto num_rows = state->range(2);
@@ -968,7 +968,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   }
 
   // Skip compiled
-  if (noisepage::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled) return;
+  if (noisepage::runner::ExecutionRunners::mode == execution::vm::ExecutionMode::Compiled) return;
 
   // Create the indexes for batch-insert
   auto cols = ConstructSQLClause(type, type::TypeId::INVALID, key_num, 0, ", ", "", false, "");
@@ -1153,16 +1153,16 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ10_IndexInsertRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ10_IndexInsertRunners)(benchmark::State &state) {
   ExecuteIndexOperation(&state, true);
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ11_IndexDeleteRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ11_IndexDeleteRunners)(benchmark::State &state) {
   ExecuteIndexOperation(&state, false);
 }
 
-void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
+void ExecutionRunners::ExecuteSeqScan(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_mix = state->range(1);
   auto tbl_ints = state->range(2);
@@ -1216,13 +1216,13 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ1_0_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ1_0_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ1_1_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ1_1_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state) {
   auto type = static_cast<type::TypeId>(state.range(0));
   auto tbl_cols = state.range(1);
   size_t key_num = state.range(2);
@@ -1287,7 +1287,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   std::string predicate = ConstructIndexScanPredicate(type, num_col, lookup_size);
   auto table_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, num_rows);
   query << "SELECT " << cols << " FROM  " << table_name << " WHERE " << predicate;
-  auto f = std::bind(&MiniRunners::IndexScanChecker, this, num_col, std::placeholders::_1, std::placeholders::_2);
+  auto f = std::bind(&ExecutionRunners::IndexScanChecker, this, num_col, std::placeholders::_1, std::placeholders::_2);
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), f,
                                      common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
                                      common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
@@ -1297,7 +1297,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state) {
   auto type = type::TypeId::INTEGER;
   auto tbl_cols = 15;
   auto key_num = state.range(0);
@@ -1353,7 +1353,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
 
   std::stringstream query;
   query << "SELECT " << cols << " FROM " << outer_tbl << " AS a, " << inner_tbl << " AS b WHERE " << predicate;
-  auto f = std::bind(&MiniRunners::IndexNLJoinChecker, this, inner_tbl, key_num, std::placeholders::_1,
+  auto f = std::bind(&ExecutionRunners::IndexNLJoinChecker, this, inner_tbl, key_num, std::placeholders::_1,
                      std::placeholders::_2);
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), f);
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
@@ -1361,14 +1361,14 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   state.SetItemsProcessed(state.range(2));
 }
 
-void MiniRunners::ExecuteInsert(benchmark::State *state) {
+void ExecutionRunners::ExecuteInsert(benchmark::State *state) {
   auto num_ints = state->range(0);
   auto num_reals = state->range(1);
   auto num_cols = state->range(2);
   auto num_rows = state->range(3);
 
   // TODO(wz2): Re-enable compiled inserts once runtime is sensible
-  if (noisepage::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled) return;
+  if (noisepage::runner::ExecutionRunners::mode == execution::vm::ExecutionMode::Compiled) return;
 
   if (rerun_start || (num_rows > settings.warmup_rows_limit_ && settings.skip_large_rows_runs_)) return;
 
@@ -1460,12 +1460,12 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ6_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ6_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ6_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ6_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
 
-void MiniRunners::ExecuteUpdate(benchmark::State *state) {
+void ExecutionRunners::ExecuteUpdate(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_bigints = state->range(1);
   auto update_keys = state->range(2);
@@ -1544,7 +1544,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   std::string predicate = ConstructIndexScanPredicate(type, num_col, car);
   query << " WHERE " << predicate;
 
-  auto f = std::bind(&MiniRunners::UpdateIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
+  auto f = std::bind(&ExecutionRunners::UpdateIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
   equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
                                 common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
                                 common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
@@ -1554,9 +1554,9 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ7_2_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ7_2_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
-void MiniRunners::ExecuteDelete(benchmark::State *state) {
+void ExecutionRunners::ExecuteDelete(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_bigints = state->range(1);
   auto tbl_ints = state->range(2);
@@ -1624,7 +1624,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   std::string tbl = ConstructTableName(type, type::TypeId::INVALID, tbl_col, 0, row, row);
   query << "DELETE FROM " << tbl << " WHERE " << predicate;
 
-  auto f = std::bind(&MiniRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
+  auto f = std::bind(&ExecutionRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
   equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
                                 common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
                                 common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
@@ -1634,10 +1634,10 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ8_2_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ8_2_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_reals = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1691,7 +1691,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_bigints = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1745,7 +1745,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_bigints = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1797,7 +1797,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
                                       build_tbl, true, "b");
   query << "SELECT " << cols << " FROM " << build_tbl << ", " << probe_tbl << " as b WHERE " << predicate;
 
-  auto f = std::bind(&MiniRunners::JoinNonSelfChecker, this, build_tbl, std::placeholders::_1, std::placeholders::_2);
+  auto f =
+      std::bind(&ExecutionRunners::JoinNonSelfChecker, this, build_tbl, std::placeholders::_1, std::placeholders::_2);
   auto cost = std::make_unique<optimizer::ForcedCostModel>(true);
   auto equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f);
   BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true);
@@ -1805,7 +1806,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_0_AggregateRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_varchars = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1854,7 +1855,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_1_AggregateRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto tbl_ints = state.range(1);
   auto row = state.range(2);
@@ -1906,7 +1907,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state
   state.SetItemsProcessed(row);
 }
 
-void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
+void ExecutionRunners::ExecuteCreateIndex(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_mix = state->range(1);
   auto tbl_ints = state->range(2);
@@ -1959,10 +1960,10 @@ void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &state) { ExecuteCreateIndex(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &state) { ExecuteCreateIndex(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ9_1_CreateIndexRunners)(benchmark::State &state) { ExecuteCreateIndex(&state); }
+BENCHMARK_DEFINE_F(ExecutionRunners, SEQ9_1_CreateIndexRunners)(benchmark::State &state) { ExecuteCreateIndex(&state); }
 
 void InitializeRunnersState() {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map;
@@ -2026,7 +2027,7 @@ void InitializeRunnersState() {
 
   // Load the database
   auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-  auto exec_settings = MiniRunners::GetExecutionSettings();
+  auto exec_settings = ExecutionRunners::GetExecutionSettings();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                       nullptr, common::ManagedPointer(accessor),
                                                                       exec_settings, db_main->GetMetricsManager());
@@ -2054,96 +2055,96 @@ void RegisterRunners() {
   BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenArithArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenArithArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
       ->Unit(benchmark::kMillisecond)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenOutputArguments>)
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenOutputArguments>)
       ->Iterations(1);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ1_0_SeqScanRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenScanArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenScanArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenScanMixedArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenScanMixedArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ2_0_IndexScanRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIdxScanArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIdxScanArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ2_1_IndexJoinRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIdxJoinArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIdxJoinArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ3_SortRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenSortArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenSortArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinSelfRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenJoinSelfArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenJoinSelfArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenJoinNonSelfArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenJoinNonSelfArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_AggregateRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenAggregateArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenAggregateArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenAggregateKeylessArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenAggregateKeylessArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenInsertArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenInsertArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenInsertArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenInsertArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ7_2_UpdateRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenUpdateIndexArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenUpdateIndexArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ8_2_DeleteRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenDeleteIndexArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenDeleteIndexArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenCreateIndexArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ9_1_CreateIndexRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ10_IndexInsertRunners)
       ->Unit(benchmark::kMillisecond)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
       ->Iterations(1);
 
   BENCHMARK_REGISTER_F(MiniRunners, SEQ11_IndexDeleteRunners)
       ->Unit(benchmark::kMillisecond)
-      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
+      ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
       ->Iterations(1);
 }
 
@@ -2259,7 +2260,7 @@ void RunBenchmarkSequence(int rerun_counter) {
   for (size_t i = 0; i < filters.size(); i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {
-        noisepage::runner::MiniRunners::mode = mode;
+        noisepage::runner::ExecutionRunners::mode = mode;
 
         int argc = 2;
         snprintf(buffer, sizeof(buffer), "--benchmark_filter=%s", filter.c_str());

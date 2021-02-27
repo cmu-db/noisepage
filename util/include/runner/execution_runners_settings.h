@@ -7,7 +7,7 @@ namespace noisepage::runner {
 /**
  * Class that holds mini-runner settings
  */
-class MiniRunnersSettings {
+class ExecutionRunnersSettings {
  public:
   /**
    * Port
