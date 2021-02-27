@@ -25,12 +25,22 @@ namespace noisepage::util {
 
 class ExecuteRequest {
  public:
+  /** Whether statement is a DDL */
   bool is_ddl_;
+
+  /** What database OID to use */
   catalog::db_oid_t db_oid_;
+
+  /** Query text to execute */
   std::string query_text_;
+
+  /** Cost model to utilize */
   std::unique_ptr<optimizer::AbstractCostModel> cost_model_;
 
+  /** Vector of params for queries */
   std::vector<std::vector<parser::ConstantValueExpression>> params_;
+
+  /** Param types */
   std::vector<type::TypeId> param_types_;
 };
 
@@ -55,6 +65,7 @@ class QueryInternalThread {
     }
 
     {
+      // Add the request
       std::scoped_lock lock(queue_mutex_);
       queue_.emplace(std::move(request));
     }

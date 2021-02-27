@@ -61,6 +61,12 @@ void DBMain::Run() {
 
 void DBMain::ForceShutdown() {
   {
+    // Release all claims to QueryInternalThread
+    metrics_manager_->SetQueryInternalThread(nullptr);
+    pilot_->SetQueryInternalThread(nullptr);
+    pilot_thread_.release();
+    metrics_thread_.release();
+
     // Need to let internal thread flush through requests
     query_internal_thread_.release();
   }

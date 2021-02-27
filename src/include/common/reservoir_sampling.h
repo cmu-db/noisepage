@@ -4,9 +4,17 @@
 
 namespace noisepage::common {
 
+/**
+ * Implementation of reservoir sampling. This is done in a "streaming" style where
+ * we want to sample k elements from an unknown population, where elements are
+ * being inserted "streaming" style.
+ */
 template <class Value>
 class ReservoirSampling {
  public:
+  /**
+   * Describes a key
+   */
   template <class ValueKey>
   class Key {
    public:
@@ -16,6 +24,9 @@ class ReservoirSampling {
     Key(double priority, const ValueKey &value) : priority_(priority), value_(value) {}
   };
 
+  /**
+   * Comparator for key
+   */
   template <class ValueKey>
   struct KeyCmp {
     constexpr bool operator()(const Key<ValueKey> &lhs, const Key<ValueKey> &rhs) {
@@ -23,8 +34,16 @@ class ReservoirSampling {
     }
   };
 
+  /**
+   * Initializes a reservoir sample
+   * @param k Number of elements to sample
+   */
   explicit ReservoirSampling(size_t k) : limit_(k), dist_(0, 1) {}
 
+  /**
+   * Adds an element for consideration
+   * @param val Value being considered
+   */
   void AddSample(Value val) {
     double priority = dist_(generator_);
     if (queue_.size() < limit_) {
@@ -35,6 +54,10 @@ class ReservoirSampling {
     }
   }
 
+  /**
+   * Adds an element for consideration
+   * @param key Key being considered
+   */
   void AddSample(Key<Value> key) {
     double priority = key.priority_;
     if (queue_.size() < limit_) {
@@ -45,6 +68,10 @@ class ReservoirSampling {
     }
   }
 
+  /**
+   * Merge another reservoir sample into this one
+   * @param other Other reservoir to merge
+   */
   void Merge(ReservoirSampling<Value> &other) {
     while (!other.queue_.empty()) {
       AddSample(queue_.top());
@@ -52,6 +79,12 @@ class ReservoirSampling {
     }
   }
 
+  /**
+   * Get all samples. This is a destructive function.
+   * The reservoir will be depleted after this.
+   *
+   * @return samples
+   */
   std::vector<Value> GetSamples() {
     std::vector<Value> samples;
     samples.reserve(limit_);

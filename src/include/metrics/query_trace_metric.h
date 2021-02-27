@@ -24,13 +24,19 @@ namespace noisepage::metrics {
 
 class QueryTraceMetricRawData;
 
+/**
+ * Class responsible for tracking query execution metadata
+ * at a higher granularity than just record by record.
+ */
 class QueryTraceMetadata {
  public:
+  /** A tight struct for packing timestamp and query id */
   struct QueryTimeId {
     uint64_t timestamp;
     execution::query_id_t qid;
   };
 
+  /** A tight struct to track db_oid, text, and param types */
   struct QueryMetadata {
     catalog::db_oid_t db_oid_;
     std::string text_;
@@ -39,16 +45,40 @@ class QueryTraceMetadata {
 
   explicit QueryTraceMetadata() = default;
 
+  /**
+   * Records a query text
+   * @param qid Query ID
+   * @param db_oid Database OID
+   * @param text Query text
+   * @param param_type JSON serialized parameter types
+   */
   void RecordQueryText(execution::query_id_t qid, catalog::db_oid_t db_oid, std::string text, std::string param_type) {
+    // Assume qid is unique, don't re-record if already recorded
     if (qmetadata_.find(qid) == qmetadata_.end()) {
       qmetadata_[qid] = QueryMetadata{db_oid, text, param_type};
     }
   }
 
+  /**
+   * Record a query parameter sample. We consider timestamp here since RecordQueryText
+   * does not get invoked on every query execution. Rather, an invocation of a prepared
+   * statement will invoke RecordQueryTrace.
+   *
+   * @param timestamp of query execution
+   * @param qid query id
+   * @param query_param JSON-serialized query parameter
+   */
   void RecordQueryParamSample(uint64_t timestamp, execution::query_id_t qid, std::string query_param);
 
+  /**
+   * Merge another QueryTraceMetadata into this one.
+   * @param other Other to merge
+   */
   void Merge(QueryTraceMetadata &other) {
+    // Directly merge hash tables
     qmetadata_.merge(other.qmetadata_);
+
+    // Merge the reservoirs
     for (auto &it : other.qid_param_samples_) {
       // These are duplicate keys so need to merge reservoir
       if (qid_param_samples_.find(it.first) != qid_param_samples_.end()) {
@@ -56,19 +86,23 @@ class QueryTraceMetadata {
       }
     }
 
+    // Combine time series
     timeseries_.merge(other.timeseries_);
   }
 
+  /** Reset query metadata */
   void ResetQueryMetadata() {
     qmetadata_.clear();
     qid_param_samples_.clear();
   }
 
+  /** Initialize an iterator for timeseries_ */
   void InitTimeseriesIterator() {
     iterator_ = timeseries_.begin();
     iterator_initialized_ = true;
   }
 
+  /** Reset timeseries_ */
   void ResetTimeseries() {
     timeseries_.clear();
     iterator_initialized_ = false;
@@ -88,7 +122,10 @@ class QueryTraceMetadata {
  */
 class QueryTraceMetricRawData : public AbstractRawData {
  public:
+  /** Parameter of how many query params to keep in sample */
   static uint64_t QUERY_PARAM_SAMPLE;
+
+  /** Parameter controlling size of a query segment */
   static uint64_t QUERY_SEGMENT_INTERVAL;
 
   void Aggregate(AbstractRawData *other) override {
@@ -100,6 +137,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
       query_trace_.splice(query_trace_.cend(), other_db_metric->query_trace_);
     }
 
+    // Merge data and update timestamp
     metadata_.Merge(other_db_metric->metadata_);
     low_timestamp_ = std::min(low_timestamp_, other_db_metric->low_timestamp_);
     high_timestamp_ = std::max(high_timestamp_, other_db_metric->high_timestamp_);
@@ -113,6 +151,18 @@ class QueryTraceMetricRawData : public AbstractRawData {
   void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
             common::ManagedPointer<util::QueryInternalThread> query_internal_thread) final;
 
+  /**
+   * Perform a write to the internal tables. Inserts are performed asynchronously on a background thread.
+   * In case the data is needed immediately, out_metadata and out_params can be used for passing
+   * the data out of this class.
+   *
+   * @param query_exec_util Query execution utility
+   * @param query_internal_thread Target to submit jobs to
+   * @param flush_timeseries Whether to write all time data out or not
+   * @param write_parametesrs Whether to write all parameters or not
+   * @param out_metadata Pass out cached query metadata
+   * @param out_params Pass out cached parameters
+   */
   void WriteToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                  common::ManagedPointer<util::QueryInternalThread> query_internal_thread, bool flush_timeseries,
                  bool write_parameters,
@@ -166,6 +216,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
     query_text_.emplace_back(db_oid, query_id, query_text, type_string, timestamp);
     metadata_.RecordQueryText(query_id, db_oid, query_text, type_json);
 
+    // Track range of time data
     low_timestamp_ = std::min(low_timestamp_, timestamp);
     high_timestamp_ = std::max(high_timestamp_, timestamp);
   }
@@ -175,6 +226,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
     query_trace_.emplace_back(db_oid, query_id, timestamp, param_string);
     metadata_.RecordQueryParamSample(timestamp, query_id, param_json);
 
+    // Track range of time data
     low_timestamp_ = std::min(low_timestamp_, timestamp);
     high_timestamp_ = std::max(high_timestamp_, timestamp);
   }
@@ -236,6 +288,8 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
       nlohmann::json j = type_strs;
       type_str = j.dump();
     }
+
+    // We need both the JSON-serialized string and the ';'-delimited form.
     GetRawData()->RecordQueryText(db_oid, query_id, "\"" + query_text + "\"", type_stream.str(), type_str, timestamp);
   }
   void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
@@ -260,6 +314,8 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
       nlohmann::json j = param_strs;
       param_str = j.dump();
     }
+
+    // We need both the JSON-serialized string and the ';'-delimited form.
     GetRawData()->RecordQueryTrace(db_oid, query_id, timestamp, param_stream.str(), param_str);
   }
 };

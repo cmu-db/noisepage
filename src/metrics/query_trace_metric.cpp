@@ -13,12 +13,16 @@ void QueryTraceMetadata::RecordQueryParamSample(uint64_t timestamp, execution::q
                                common::ReservoirSampling<std::string>(QueryTraceMetricRawData::QUERY_PARAM_SAMPLE));
   }
 
+  // Record the sample and time event
   qid_param_samples_.find(qid)->second.AddSample(query_param);
   timeseries_.push(QueryTimeId{timestamp, qid});
 }
 
 void QueryTraceMetricRawData::ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                                    common::ManagedPointer<util::QueryInternalThread> query_internal_thread) {
+  // On regular ToDB calls from metrics manager, we don't want to flush the time data or parameters.
+  // Only on a forecast interval should we be doing that. Rather, ToDB will write out time-series data
+  // only if a segment has elapsed.
   WriteToDB(query_exec_util, query_internal_thread, false, false, nullptr, nullptr);
 }
 
@@ -33,6 +37,7 @@ void QueryTraceMetricRawData::WriteToDB(
   auto iteration = selfdriving::Pilot::GetCurrentPlanIteration();
   if (write_parameters) {
     {
+      // Submit a job to update the query text data
       util::ExecuteRequest texts;
       texts.is_ddl_ = false;
       texts.db_oid_ = catalog::INVALID_DATABASE_OID;
@@ -60,6 +65,7 @@ void QueryTraceMetricRawData::WriteToDB(
     }
 
     {
+      // Submit a job to update the parameters table
       util::ExecuteRequest params;
       params.is_ddl_ = false;
       params.db_oid_ = catalog::INVALID_DATABASE_OID;
@@ -95,6 +101,11 @@ void QueryTraceMetricRawData::WriteToDB(
   }
 
   if (!metadata_.iterator_initialized_) {
+    // Initialize the timseries iterator. The beauty of this iterator is that the iterator
+    // is resilient to chunks being merge-added (i.e., the iterator will be able to scan
+    // through added chunks).
+    //
+    // ASSUME: Aggregate() and ToDB() cannot be called together.
     metadata_.InitTimeseriesIterator();
   }
 
@@ -112,6 +123,8 @@ void QueryTraceMetricRawData::WriteToDB(
     }
 
     if ((*metadata_.iterator_).timestamp > low_timestamp_ + QUERY_SEGMENT_INTERVAL) {
+      // In this case, the iterator has moved to a point such that we have a complete segment.
+      // Submit the insert job based on the accumulated frequency information.
       if (!freqs.empty()) {
         for (auto &info : freqs) {
           std::vector<parser::ConstantValueExpression> param_vec(4);
@@ -129,6 +142,7 @@ void QueryTraceMetricRawData::WriteToDB(
         query_internal_thread->AddRequest(std::move(seen));
         freqs.clear();
 
+        // Reset the metadata
         seen.is_ddl_ = false;
         seen.db_oid_ = catalog::INVALID_DATABASE_OID;
         seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies (?, ?, ?, ?)";
@@ -142,13 +156,17 @@ void QueryTraceMetricRawData::WriteToDB(
       low_timestamp_ += QUERY_SEGMENT_INTERVAL;
       continue;
     } else {
+      // Update freqs with a frequency information
       freqs[(*metadata_.iterator_).qid] += 1;
     }
 
+    // Advance the iterator
     metadata_.iterator_++;
   }
 
   if (!freqs.empty()) {
+    // Flush any remaining data. For instance, if the iterator ended on a segment boundary
+    // or if we're flushing all timeseries data out.
     for (auto &info : freqs) {
       std::vector<parser::ConstantValueExpression> param_vec(4);
       param_vec[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
@@ -164,6 +182,8 @@ void QueryTraceMetricRawData::WriteToDB(
   }
 
   if (flush_timeseries || metadata_.iterator_ == metadata_.timeseries_.end()) {
+    // Only reset the segment number if flushed. Note that flush_timeseries
+    // corresponds to a new forecast interval
     if (flush_timeseries) {
       segment_number_ = 0;
     }

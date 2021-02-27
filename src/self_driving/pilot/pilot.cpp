@@ -58,6 +58,8 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
 }
 
 void Pilot::PerformForecasterTrain() {
+  // TODO(wz2): Maybe instead of passing the CSV file to the model server,
+  // we should instead just read the last forecast interval and send it.
   std::vector<std::string> models{"LSTM"};
   std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
   modelserver::ModelServerFuture<std::string> future;
@@ -70,6 +72,10 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     uint64_t iteration,
     const std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> &out_metadata,
     const std::unordered_map<execution::query_id_t, std::vector<std::string>> &out_params) {
+  // Initialize the workload metadata
+  WorkloadMetadata metadata;
+
+  // Lambda function to convert a JSON-serialized param string to a vector of type ids
   auto types_conv = [](const std::string &param_types) {
     std::vector<type::TypeId> types;
     auto json_decomp = nlohmann::json::parse(param_types);
@@ -79,11 +85,28 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     return types;
   };
 
-  WorkloadMetadata metadata;
+  // Lambda function to convert a JSON-serialized constants to a vector of cexpressions
+  auto cves_conv = [](const WorkloadMetadata &metadata, execution::query_id_t qid, const std::string &cve) {
+    // Read the parameters. In the worse case
+    std::vector<parser::ConstantValueExpression> cves;
+    const std::vector<type::TypeId> &types = metadata.query_id_to_param_types_.find(qid)->second;
+    auto json_decomp = nlohmann::json::parse(cve);
+    for (size_t i = 0; i < json_decomp.size(); i++) {
+      cves.emplace_back(parser::ConstantValueExpression::FromString(json_decomp[i], types[i]));
+    }
+    return cves;
+  };
+
   for (auto &info : out_metadata) {
     metadata.query_id_to_dboid_[info.first] = info.second.db_oid_.UnderlyingValue();
     metadata.query_id_to_text_[info.first] = info.second.text_;
     metadata.query_id_to_param_types_[info.first] = types_conv(info.second.param_type_);
+  }
+
+  for (auto &info : out_params) {
+    for (auto &cve : info.second) {
+      metadata.query_id_to_params_[info.first].emplace_back(cves_conv(metadata, info.first, cve));
+    }
   }
 
   bool result = true;
@@ -93,6 +116,8 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     auto to_row_fn = [&metadata, types_conv](const std::vector<execution::sql::Val *> &values) {
       auto db_oid = static_cast<execution::sql::Integer *>(values[0])->val_;
       auto qid = execution::query_id_t(static_cast<execution::sql::Integer *>(values[1])->val_);
+
+      // Only insert new if not convered already
       if (metadata.query_id_to_dboid_.find(qid) == metadata.query_id_to_dboid_.end()) {
         metadata.query_id_to_dboid_[qid] = db_oid;
 
@@ -106,23 +131,23 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
       }
     };
 
+    // This loads the entire query text history from the internal tables. It might be possible to
+    // do on-demand fetching or windowed fetching at a futrure time. We do this because a interval
+    // can execute a prepared query without a corresponding text recording (if the query was
+    // already prepared during a prior interval).
     auto query = "SELECT * FROM noisepage_forecast_texts";
     result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
   }
 
   {
-    auto to_row_fn = [&metadata](const std::vector<execution::sql::Val *> &values) {
+    auto to_row_fn = [&metadata, cves_conv](const std::vector<execution::sql::Val *> &values) {
       auto qid = execution::query_id_t(static_cast<execution::sql::Integer *>(values[1])->val_);
       execution::sql::StringVal *param_val = static_cast<execution::sql::StringVal *>(values[2]);
       {
-        std::vector<parser::ConstantValueExpression> cves;
-        std::vector<type::TypeId> &types = metadata.query_id_to_param_types_[qid];
-        auto json_decomp = nlohmann::json::parse(param_val->StringView().data(),
-                                                 param_val->StringView().data() + param_val->StringView().size());
-        for (size_t i = 0; i < json_decomp.size(); i++) {
-          cves.emplace_back(parser::ConstantValueExpression::FromString(json_decomp[i], types[i]));
-        }
-        metadata.query_id_to_params_[qid].emplace_back(std::move(cves));
+        // Read the parameters. In the worse case, we will have double the parameters, but that is
+        // okay since every parameter will be duplicated. This can happen since the parameters
+        // could already be visible by the time this select query runs.
+        metadata.query_id_to_params_[qid].emplace_back(cves_conv(metadata, qid, std::string(param_val->StringView())));
       }
     };
 
@@ -132,25 +157,6 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
 
   query_exec_util_->EndTransaction(true);
   return std::make_pair(std::move(metadata), result);
-}
-
-selfdriving::WorkloadForecastPrediction Pilot::CleanWorkloadForecastPrediction(
-    const selfdriving::WorkloadForecastPrediction &prediction, const WorkloadMetadata &metadata) {
-  selfdriving::WorkloadForecastPrediction result;
-  for (auto &cluster : prediction) {
-    std::unordered_map<uint64_t, std::vector<double>> qid_copy;
-    for (auto &qid_info : cluster.second) {
-      execution::query_id_t qid{static_cast<uint32_t>(qid_info.first)};
-      auto it = metadata.query_id_to_dboid_.find(qid);
-      if (it != metadata.query_id_to_dboid_.end()) {
-        // Only keep data that we have a record of
-        qid_copy[it->second] = qid_info.second;
-      }
-    }
-    result[cluster.first] = std::move(qid_copy);
-  }
-
-  return result;
 }
 
 void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
@@ -189,6 +195,8 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
   for (auto &cluster : prediction) {
     for (auto &qid_info : cluster.second) {
       execution::query_id_t qid{static_cast<uint32_t>(qid_info.first)};
+
+      // This assert is correct because we loaded the entire query history from the internal tables.
       NOISEPAGE_ASSERT(metadata.query_id_to_dboid_.find(qid) != metadata.query_id_to_dboid_.end(),
                        "Expected QID info to exist");
       std::vector<parser::ConstantValueExpression> clusters_params(4);
@@ -215,11 +223,13 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
     }
   }
 
+  // Submit the request to be executed
   query_internal_thread_->AddRequest(std::move(cluster_request));
   query_internal_thread_->AddRequest(std::move(forecast_request));
 }
 
 void Pilot::LoadWorkloadForecast() {
+  // Metrics thread is suspended at this point
   auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
   metrics_thread_->GetMetricsManager()->Aggregate();
   metrics_thread_->GetMetricsManager()->ToOutput();
@@ -243,7 +253,8 @@ void Pilot::LoadWorkloadForecast() {
   auto iteration = Pilot::planning_iteration_++;
   std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
 
-  // Infer forecast model
+  // For now, forecast relies on the CSV file.
+  // TODO(wz2): Pass the "seen" data directly to the forecast model?
   std::vector<std::string> models{"LSTM"};
   auto result = model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, NULL,
                                                           workload_forecast_interval_);
@@ -263,20 +274,18 @@ void Pilot::LoadWorkloadForecast() {
       return;
     }
 
-    // Clean forecast since there might be "differences" between it and the recorded data
-    auto cleaned = CleanWorkloadForecastPrediction(result.first, metadata_result.first);
-
     // Record forecast into internal tables
-    RecordWorkloadForecastPrediction(iteration, cleaned, metadata_result.first);
+    RecordWorkloadForecastPrediction(iteration, result.first, metadata_result.first);
 
     // Construct workload forecast
-    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(cleaned, metadata_result.first);
+    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, metadata_result.first);
   } else {
     auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
     forecast_ = std::make_unique<selfdriving::WorkloadForecast>(workload_forecast_interval_, sample);
   }
 
   // Copy file for backup -- future will not use this data
+  // /TODO(wz2): Do we want to do this?
   for (size_t i = 0; i < 2; i++) {
     std::string input_path{metrics::QueryTraceMetricRawData::FILES[i]};
     auto filename = fmt::format("{}_{}", input_path.c_str(), iteration);
@@ -288,13 +297,11 @@ void Pilot::PerformPlanning() {
   // We do the inference by having the python process read in the query_trace.csv file.
   // However, for the sampled parameters and query information, we will actually pull
   // that data directly from the internal SQL tables.
-  //
-  // Due to that, we will rename the contents of the QueryTraceMetricRawData files to
-  // a timestamp-appended form (to aid in debugging at least).
 
   // Suspend the metrics thread while we are handling the data (snapshot).
   metrics_thread_->PauseMetrics();
 
+  // Populate the workload forecast
   LoadWorkloadForecast();
 
   // Perform planning

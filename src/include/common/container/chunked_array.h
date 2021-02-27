@@ -4,9 +4,17 @@
 
 namespace noisepage::common {
 
+/**
+ * Describes a chunked array. A chunked array batch allocates Size number of elements
+ * of type Type at a given time. The premise for this is to amortize comparably
+ * expensive memory allocation calls over a large number of inserts.
+ */
 template <class Type, size_t Size>
 class ChunkedArray {
  public:
+  /**
+   * Describes a single chunk
+   */
   template <class TypeT, size_t SizeT>
   class ChunkSlot {
    public:
@@ -18,8 +26,15 @@ class ChunkedArray {
 
   ~ChunkedArray() = default;
 
+  /**
+   * Clears all the data
+   */
   void clear() { chunks_.clear(); }
 
+  /**
+   * Add an element
+   * @param obj Object to insert
+   */
   void push(Type &&obj) {
     if (chunks_.empty() || chunks_.back().cur_idx_ >= Size) {
       chunks_.emplace_back();
@@ -28,13 +43,17 @@ class ChunkedArray {
     chunks_.back().slots_[chunks_.back().cur_idx_++] = std::move(obj);
   }
 
+  /**
+   * Acquire ownership of another ChunkedArray's data
+   * @param merge Other ChunkedArray's data to own
+   */
   void merge(ChunkedArray<Type, Size> &merge) {
     chunks_.insert(chunks_.end(), std::make_move_iterator(merge.chunks_.begin()),
                    std::make_move_iterator(merge.chunks_.end()));
   }
 
   /**
-   * Random access iterator.
+   * Iterator
    */
   template <class TypeT, size_t SizeT>
   class Iterator {
@@ -43,13 +62,16 @@ class ChunkedArray {
     Iterator() noexcept = default;
 
     /**
-     * Constructor for existing vector
-     * @param chunks_iter iterator over the chunks
-     * @param position initial position to iterator from
-     * @param element_size size of individual elements
+     * Constructor
+     * @param chunks Pointer to the chunks vector
      */
     Iterator(typename std::vector<ChunkSlot<TypeT, SizeT>> *chunks) noexcept : chunks_(chunks) {}
 
+    /**
+     * Constructor
+     * @param chunks Pointer to the chunks vector
+     * @param chunk_pos Chunk to start reading from
+     */
     Iterator(typename std::vector<ChunkSlot<TypeT, SizeT>> *chunks, std::size_t chunk_pos) noexcept
         : chunks_(chunks), chunks_pos_(chunk_pos) {}
 
@@ -65,6 +87,7 @@ class ChunkedArray {
     Iterator &operator++() noexcept {
       cur_pos_++;
       if (cur_pos_ >= (*chunks_)[chunks_pos_].cur_idx_) {
+        // Slide to the next chunk
         chunks_pos_++;
         cur_pos_ = 0;
       }
@@ -87,7 +110,7 @@ class ChunkedArray {
      * @return whether the two iterators are in the same position
      */
     bool operator==(const Iterator &that) const noexcept {
-      return chunks_pos_ == that.chunks_pos_ && cur_pos_ == that.cur_pos_;
+      return chunks_ == that.chunks_ && chunks_pos_ == that.chunks_pos_ && cur_pos_ == that.cur_pos_;
     }
 
     /**
@@ -103,6 +126,9 @@ class ChunkedArray {
     std::size_t cur_pos_ = 0;
   };
 
+  /**
+   * @return iterator to first element
+   */
   Iterator<Type, Size> begin() noexcept {  // NOLINT
     if (chunks_.empty()) {
       return Iterator<Type, Size>(nullptr, 0);
@@ -110,6 +136,10 @@ class ChunkedArray {
     return Iterator<Type, Size>(&chunks_);
   }
 
+
+  /**
+   * @return iterator to indicate end of data
+   */
   Iterator<Type, Size> end() noexcept {  // NOLINT
     if (chunks_.empty()) {
       return Iterator<Type, Size>(nullptr, 0);

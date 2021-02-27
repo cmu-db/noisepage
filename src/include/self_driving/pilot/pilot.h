@@ -88,6 +88,7 @@ class Pilot {
         common::ManagedPointer<optimizer::StatsStorage> stats_storage,
         common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
 
+  /** @return the current planning iteration */
   static uint64_t GetCurrentPlanIteration() { return Pilot::planning_iteration_; }
 
   /**
@@ -104,21 +105,28 @@ class Pilot {
 
   /**
    * Retrieve workload metadata
+   * @param iteration current iteration
+   * @param out_metadata Query Metadata from metrics
+   * @param out_params Query parameters fro mmetrics
+   * @return pair where first is metadata and second is flag of success
    */
   std::pair<selfdriving::WorkloadMetadata, bool> RetrieveWorkloadMetadata(
       uint64_t iteration,
       const std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> &out_metadata,
       const std::unordered_map<execution::query_id_t, std::vector<std::string>> &out_params);
 
-  selfdriving::WorkloadForecastPrediction CleanWorkloadForecastPrediction(
-      const selfdriving::WorkloadForecastPrediction &prediction, const WorkloadMetadata &metadata);
-
   /**
-   * Record to database
+   * Record the workload forecast to the internal tables
+   * @param iteration current iteration
+   * @param prediction Forecast model prediction
+   * @param metadata Metadata about the queries
    */
   void RecordWorkloadForecastPrediction(uint64_t iteration, const selfdriving::WorkloadForecastPrediction &prediction,
                                         const WorkloadMetadata &metadata);
 
+  /**
+   * Loads workload forecast information
+   */
   void LoadWorkloadForecast();
 
   /**
