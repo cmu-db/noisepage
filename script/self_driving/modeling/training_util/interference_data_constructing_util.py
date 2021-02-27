@@ -15,33 +15,33 @@ from .. import interference_model_config
 from ..type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_query_predict_cache, add_noise,
-             predict_ou_only, ee_sample_interval, txn_sample_interval, network_sample_interval):
+def get_data(input_path, ou_model_map, model_results_path, warmup_period, use_query_predict_cache, add_noise,
+             predict_ou_only, ee_sample_rate, txn_sample_rate, network_sample_rate):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
 
     :param input_path: input data file path
-    :param mini_model_map: mini models used for prediction
+    :param ou_model_map: ou models used for prediction
     :param model_results_path: directory path to log the result information
     :param warmup_period: warmup period for pipeline data
     :param use_query_predict_cache: whether cache the prediction result based on the query for acceleration
     :param add_noise: whether to add noise to the cardinality estimations
     :param predict_ou_only: whether to only predict the grouped OU data
-    :param ee_sample_interval: sampling interval for the EE OUs
-    :param txn_sample_interval: sampling interval for the transaction OUs
-    :param network_sample_interval: sampling interval for the network OUs
-    :return: (GlobalResourceData list, GlobalImpactData list)
+    :param ee_sample_rate: sampling rate for the EE OUs
+    :param txn_sample_rate: sampling rate for the transaction OUs
+    :param network_sample_rate: sampling rate for the network OUs
+    :return: (InterferenceResourceData list, InterferenceImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list, = pickle.load(pickle_file)
     else:
-        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
+        data_list = _get_grouped_opunit_data_with_prediction(input_path, ou_model_map, model_results_path,
                                                              warmup_period, use_query_predict_cache, add_noise,
-                                                             ee_sample_interval, txn_sample_interval,
-                                                             network_sample_interval)
+                                                             ee_sample_rate, txn_sample_rate,
+                                                             network_sample_rate)
 
         if not predict_ou_only:
             resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
@@ -55,30 +55,30 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_
     return resource_data_list, impact_data_list
 
 
-def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period,
-                                             use_query_predict_cache, add_noise, ee_sample_interval,
-                                             txn_sample_interval, network_sample_interval):
+def _get_grouped_opunit_data_with_prediction(input_path, ou_model_map, model_results_path, warmup_period,
+                                             use_query_predict_cache, add_noise, ee_sample_rate,
+                                             txn_sample_rate, network_sample_rate):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
-    :param mini_model_map: mini models used for prediction
+    :param ou_model_map: ou models used for prediction
     :param model_results_path: directory path to log the result information
     :param warmup_period: warmup period for pipeline data
     :return: The list of the GroupedOpUnitData objects
     """
-    data_list = _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_interval,
-                               network_sample_interval)
-    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, use_query_predict_cache, add_noise)
-    logging.info("Finished GroupedOpUnitData prediction with the mini models")
+    data_list = _get_data_list(input_path, warmup_period, ee_sample_rate, txn_sample_rate,
+                               network_sample_rate)
+    _predict_grouped_opunit_data(data_list, ou_model_map, model_results_path, use_query_predict_cache, add_noise)
+    logging.info("Finished GroupedOpUnitData prediction with the ou models")
     return data_list
 
 
 def _construct_interval_based_global_model_data(data_list, model_results_path):
-    """Construct the GlobalImpactData used for the global model training
+    """Construct the InterferenceImpactData used for the global model training
 
     :param data_list: The list of GroupedOpUnitData objects
     :param model_results_path: directory path to log the result information
-    :return: (GlobalResourceData list, GlobalImpactData list)
+    :return: (InterferenceResourceData list, InterferenceImpactData list)
     """
     prediction_path = "{}/global_resource_data.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Elapsed us", "# Concurrent OpUnit Groups"])
@@ -105,7 +105,7 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
 
     # Get the global resource data
     resource_data_map = {}
-    for start_time in tqdm.tqdm(rounded_start_time_list, desc="Construct GlobalResourceData"):
+    for start_time in tqdm.tqdm(rounded_start_time_list, desc="Construct InterferenceResourceData"):
         resource_data_map[start_time] = _get_global_resource_data(start_time, interval_data_map[start_time],
                                                                   prediction_path)
 
@@ -119,7 +119,7 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
                 resource_data_list.append(resource_data_map[interval_start_time])
             interval_start_time += interference_model_config.INTERVAL_SIZE
 
-        impact_data_list.append(interference_model_data.GlobalImpactData(data, resource_data_list))
+        impact_data_list.append(interference_model_data.InterferenceImpactData(data, resource_data_list))
 
     return list(resource_data_map.values()), impact_data_list
 
@@ -162,17 +162,18 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
         ratio = _calculate_range_overlap(start_time, end_time, data_start_time, data_end_time) / (data_end_time -
                                                                                                   data_start_time + 2)
         # print(start_time, end_time, data_start_time, data_end_time, data_end_time - data_start_time + 1)
-        sample_interval = data.sample_interval
+        sample_rate = data.sample_rate
         logging.debug("{} {} {}".format(data_start_time, data_end_time, ratio))
         logging.debug("{} {}".format(data.y, data.y_pred))
-        logging.debug("Sampling interval: {}".format(sample_interval))
-        # Multiply the resource metrics based on the sampling interval
-        adjusted_y += data.y * ratio * (sample_interval + 1)
+        logging.debug("Sampling rate: {}".format(sample_rate))
+        scaling_factor = 100 / (sample_rate + 0.1) # sampling rate is percentage based
+        # Multiply the resource metrics based on the sampling rate
+        adjusted_y += data.y * ratio * scaling_factor
         cpu_id = data.cpu_id
         if cpu_id > physical_core_num:
             cpu_id -= physical_core_num
-        # Multiply the mini-model predictions based on the sampling interval
-        adjusted_x_list[cpu_id] += data.y_pred * ratio * (sample_interval + 1)
+        # Multiply the ou-model predictions based on the sampling rate
+        adjusted_x_list[cpu_id] += data.y_pred * ratio * scaling_factor
 
     # change the number to per time unit (us) utilization
     for x in adjusted_x_list:
@@ -193,28 +194,28 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
 
     adjusted_x = np.concatenate((sum_adjusted_x, std_adjusted_x))
 
-    return interference_model_data.GlobalResourceData(start_time, adjusted_x_list, adjusted_x, adjusted_y)
+    return interference_model_data.InterferenceResourceData(start_time, adjusted_x_list, adjusted_x, adjusted_y)
 
 
 def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
     return min(end_timel, end_timer) - max(start_timel, start_timer) + 1
 
 
-def _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_interval,
-                   network_sample_interval):
-    """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
+def _get_data_list(input_path, warmup_period, ee_sample_rate, txn_sample_rate,
+                   network_sample_rate):
+    """Get the list of all the operating units (or groups of operating units) stored in InterferenceData objects
 
     :param input_path: input data file path
     :param warmup_period: warmup period for pipeline data
-    :return: the list of all the operating units (or groups of operating units) stored in GlobalData objects
+    :return: the list of all the operating units (or groups of operating units) stored in InterferenceData objects
     """
     data_list = []
 
-    # First get the data for all mini runners
+    # First get the data for all ou runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
         data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period,
-                                                                   ee_sample_interval, txn_sample_interval,
-                                                                   network_sample_interval)
+                                                                   ee_sample_rate, txn_sample_rate,
+                                                                   network_sample_rate)
         logging.info("Loaded file: {}".format(filename))
 
     return data_list
@@ -239,12 +240,12 @@ def _add_estimation_noise(opunit, x):
         x[cardinality_index] = max(1, x[cardinality_index])
 
 
-def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, use_query_predict_cache, add_noise):
-    """Use the mini-runner to predict the resource consumptions for all the GlobalData, and record the prediction
+def _predict_grouped_opunit_data(data_list, ou_model_map, model_results_path, use_query_predict_cache, add_noise):
+    """Use the ou-runner to predict the resource consumptions for all the InterferenceData, and record the prediction
     result in place
 
     :param data_list: The list of the GroupedOpUnitData objects
-    :param mini_model_map: The trained mini models
+    :param ou_model_map: The trained ou models
     :param model_results_path: file path to log the prediction results
     :param use_query_predict_cache: whether cache the prediction result based on the query for acceleration
     :param add_noise: whether to add noise to the cardinality estimations
@@ -275,7 +276,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     # use a prediction cache based on queries to accelerate
     query_prediction_cache = {}
 
-    # First run a prediction on the global running data with the mini model results
+    # First run a prediction on the global running data with the ou model results
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
         if data.name[0] != 'q' or (data.name not in query_prediction_cache) or not use_query_predict_cache:
@@ -284,7 +285,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
             pipeline_y_pred = 0
             for opunit_feature in data.opunit_features:
                 opunit = opunit_feature[0]
-                opunit_model = mini_model_map[opunit]
+                opunit_model = ou_model_map[opunit]
                 x = np.array(opunit_feature[1]).reshape(1, -1)
 
                 if add_noise:

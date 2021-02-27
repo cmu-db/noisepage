@@ -88,8 +88,8 @@ class InterferenceModelTrainer:
     """
 
     def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, ou_model_map,
-                 warmup_period, use_query_predict_cache, add_noise, predict_ou_only, ee_sample_interval,
-                 txn_sample_interval, network_sample_interval):
+                 warmup_period, use_query_predict_cache, add_noise, predict_ou_only, ee_sample_rate,
+                 txn_sample_rate, network_sample_rate):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
@@ -100,9 +100,9 @@ class InterferenceModelTrainer:
         self.use_query_predict_cache = use_query_predict_cache
         self.add_noise = add_noise
         self.predict_ou_only = predict_ou_only
-        self.ee_sample_interval = ee_sample_interval
-        self.txn_sample_interval = txn_sample_interval
-        self.network_sample_interval = network_sample_interval
+        self.ee_sample_rate = ee_sample_rate
+        self.txn_sample_rate = txn_sample_rate
+        self.network_sample_rate = network_sample_rate
 
         self.resource_data_list = None
         self.impact_data_list = None
@@ -112,15 +112,15 @@ class InterferenceModelTrainer:
         """
 
         data_lists = interference_data_constructing_util.get_data(self.input_path,
-                                                            self.ou_model_map,
-                                                            self.model_results_path,
-                                                            self.warmup_period,
-                                                            self.use_query_predict_cache,
-                                                            self.add_noise,
-                                                            self.predict_ou_only,
-                                                            self.ee_sample_interval,
-                                                            self.txn_sample_interval,
-                                                            self.network_sample_interval)
+                                                                  self.ou_model_map,
+                                                                  self.model_results_path,
+                                                                  self.warmup_period,
+                                                                  self.use_query_predict_cache,
+                                                                  self.add_noise,
+                                                                  self.predict_ou_only,
+                                                                  self.ee_sample_rate,
+                                                                  self.txn_sample_rate,
+                                                                  self.network_sample_rate)
 
         self.resource_data_list = data_lists[0]
         self.impact_data_list = data_lists[1]
@@ -138,8 +138,9 @@ class InterferenceModelTrainer:
         # Training
         metrics_path = "{}/interference_resource_model_metrics.csv".format(self.model_results_path)
         prediction_path = "{}/interference_resource_model_prediction.csv".format(self.model_results_path)
-        interference_resource_model, _ = _interference_model_training_process(x, y, self.ml_models, self.test_ratio, metrics_path,
-                                                                        prediction_path)
+        interference_resource_model, _ = _interference_model_training_process(x, y, self.ml_models, self.test_ratio,
+                                                                              metrics_path,
+                                                                              prediction_path)
 
         # Put the prediction interference resource util back to the InterferenceImpactData
         y_pred = interference_resource_model.predict(x)
@@ -240,12 +241,12 @@ if __name__ == '__main__':
                          help='Cache the prediction result based on the query to accelerate')
     aparser.add_argument('--add_noise', action='store_true', help='Add noise to the cardinality estimations')
     aparser.add_argument('--predict_ou_only', action='store_true', help='Only predict the OU data (no training)')
-    aparser.add_argument('--ee_sample_interval', type=int, default=49,
-                         help='Sampling interval for the execution engine OUs')
-    aparser.add_argument('--txn_sample_interval', type=int, default=49,
-                         help='Sampling interval for the transaction OUs')
-    aparser.add_argument('--network_sample_interval', type=int, default=49,
-                         help='Sampling interval for the network OUs')
+    aparser.add_argument('--ee_sample_rate', type=int, default=2,
+                         help='Sampling rate for the execution engine OUs')
+    aparser.add_argument('--txn_sample_rate', type=int, default=2,
+                         help='Sampling rate for the transaction OUs')
+    aparser.add_argument('--network_sample_rate', type=int, default=2,
+                         help='Sampling rate for the network OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -256,9 +257,10 @@ if __name__ == '__main__':
     with open(args.ou_model_file, 'rb') as pickle_file:
         model_map, data_info.instance = pickle.load(pickle_file)
     trainer = InterferenceModelTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
-                                       args.impact_model_ratio, model_map, args.warmup_period, args.use_query_predict_cache,
-                                       args.add_noise, args.predict_ou_only, args.ee_sample_interval, args.txn_sample_interval,
-                                       args.network_sample_interval)
+                                       args.impact_model_ratio, model_map, args.warmup_period,
+                                       args.use_query_predict_cache,
+                                       args.add_noise, args.predict_ou_only, args.ee_sample_rate, args.txn_sample_rate,
+                                       args.network_sample_rate)
     trainer.predict_ou_data()
     if not args.predict_ou_only:
         resource_model, impact_model, direct_model = trainer.train()

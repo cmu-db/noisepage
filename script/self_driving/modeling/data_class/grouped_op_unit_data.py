@@ -12,35 +12,35 @@ from .. import interference_model_config
 from ..type import ConcurrentCountingMode, OpUnit, Target, ExecutionFeature
 
 
-def get_grouped_op_unit_data(filename, warmup_period, ee_sample_interval, txn_sample_interval,
-                             network_sample_interval):
+def get_grouped_op_unit_data(filename, warmup_period, ee_sample_rate, txn_sample_rate,
+                             network_sample_rate):
     """Get the training data from the global model
 
     :param filename: the input data file
     :param warmup_period: warmup period for pipeline data
-    :param ee_sample_interval: sampling interval for the EE OUs
-    :param txn_sample_interval: sampling interval for the transaction OUs
-    :param network_sample_interval: sampling interval for the network OUs
+    :param ee_sample_rate: sampling rate for the EE OUs
+    :param txn_sample_rate: sampling rate for the transaction OUs
+    :param network_sample_rate: sampling rate for the network OUs
     :return: the list of global model data
     """
 
     if "txn" in filename:
         # Cannot handle the transaction manager data yet
-        return _txn_get_mini_runner_data(filename, txn_sample_interval)
+        return _txn_get_mini_runner_data(filename, txn_sample_rate)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
-        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interval)
+        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_rate)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
     if "command" in filename:
         # Handle networking OUs
-        return _default_get_global_data(filename, network_sample_interval)
+        return _default_get_global_data(filename, network_sample_rate)
 
     return _default_get_global_data(filename)
 
 
-def _default_get_global_data(filename, sample_interval=0):
+def _default_get_global_data(filename, sample_rate=100):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename)
     file_name = os.path.splitext(os.path.basename(filename))[0]
@@ -53,11 +53,11 @@ def _default_get_global_data(filename, sample_interval=0):
     data_list = []
 
     for i in range(x.shape[0]):
-        data_list.append(GroupedOpUnitData("{}".format(file_name), [(opunit, x[i])], y[i], sample_interval))
+        data_list.append(GroupedOpUnitData("{}".format(file_name), [(opunit, x[i])], y[i], sample_rate))
     return data_list
 
 
-def _txn_get_mini_runner_data(filename, txn_sample_interval):
+def _txn_get_mini_runner_data(filename, txn_sample_rate):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename)
     file_name = os.path.splitext(os.path.basename(filename))[0]
@@ -100,7 +100,7 @@ def _txn_get_mini_runner_data(filename, txn_sample_interval):
         x_new = np.sum(interval_x_map[rounded_time], axis=0)
         # Concatenate the number of different threads
         x_new = np.concatenate((x_new, [len(set(interval_cpu_id_map[rounded_time]))]))
-        x_new *= txn_sample_interval + 1
+        x_new *= 100 / (txn_sample_rate + 0.1)
         # Change all the opunits in the group for this interval to be the new feature
         opunits = [(opunit, x_new)]
         # The prediction is the average behavior
@@ -110,12 +110,12 @@ def _txn_get_mini_runner_data(filename, txn_sample_interval):
             metrics = np.concatenate(([interval_start_time_map[rounded_time][i]],
                                       [interval_cpu_id_map[rounded_time][i]],
                                       y_new))
-            data_list.append(GroupedOpUnitData("{}".format(file_name), opunits, metrics, txn_sample_interval))
+            data_list.append(GroupedOpUnitData("{}".format(file_name), opunits, metrics, txn_sample_rate))
 
     return data_list
 
 
-def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interval):
+def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_rate):
     # Get the global running data for the execution engine
     start_time = None
 
@@ -136,10 +136,10 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
             if int(cpu_time) - int(start_time) < warmup_period * 1000000:
                 continue
 
-            sample_interval = ee_sample_interval
+            sample_rate = ee_sample_rate
 
             # drop query_id, pipeline_id, num_features, features_vector
-            record = [d for i,d in enumerate(line) if i >= input_output_boundary]
+            record = [d for i, d in enumerate(line) if i >= input_output_boundary]
             data = list(map(data_util.convert_string_to_numeric, record))
             x_multiple = data[:input_end_boundary]
             metrics = np.array(data[-data_info.instance.METRICS_OUTPUT_NUM:])
@@ -159,7 +159,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
                     concurrency = x_loc[data_info.instance.CONCURRENCY_INDEX]
                     # TODO(lin): we won't do sampling for CREATE_INDEX. We probably should encapsulate this when
                     #  generating the data
-                    sample_interval = 0
+                    sample_rate = 100
 
                 # TODO(lin): skip the main thing for interference model for now
                 if opunit == OpUnit.CREATE_INDEX_MAIN:
@@ -173,10 +173,10 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interv
             # TODO(lin): Again, we won't do sampling for TPCH queries (with the assumption that the query id < 10).
             #  Should encapsulate this wit the metrics
             if int(line[0]) < 10:
-                sample_interval = 0
+                sample_rate = 100
 
             data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits, np.array(metrics),
-                                               sample_interval, concurrency))
+                                               sample_rate, concurrency))
 
     return data_list
 
@@ -231,12 +231,13 @@ class GroupedOpUnitData:
     """
     The class that stores the information about a group of operating units measured together
     """
-    def __init__(self, name, opunit_features, metrics, sample_interval=0, concurrency=0):
+
+    def __init__(self, name, opunit_features, metrics, sample_rate=100, concurrency=0):
         """
         :param name: The name of the data point (e.g., could be the pipeline identifier)
         :param opunit_features: The list of opunits and their inputs for this event
         :param metrics: The runtime metrics
-        :param sample_interval: The sampling interval for this OU group
+        :param sample_rate: The sampling rate for this OU group
         :param concurrency: The number of concurrency for this contending (parallel) OU group
         """
         self.name = name
@@ -247,7 +248,7 @@ class GroupedOpUnitData:
         self.start_time = metrics[index_map[Target.START_TIME]]
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
         self.cpu_id = int(metrics[index_map[Target.CPU_ID]])
-        self.sample_interval = sample_interval
+        self.sample_rate = sample_rate
         self.concurrency = concurrency
 
     def get_start_time(self, concurrent_counting_mode):
