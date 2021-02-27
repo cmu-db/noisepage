@@ -90,7 +90,7 @@ class TableGenerator {
    * @param config Data Configuration for execution-runners
    */
   void GenerateExecutionRunnersData(const runner::ExecutionRunnersSettings &settings,
-                               const runner::ExecutionRunnersDataConfig &config);
+                                    const runner::ExecutionRunnersDataConfig &config);
 
   /**
    * Adds a execution-runner index

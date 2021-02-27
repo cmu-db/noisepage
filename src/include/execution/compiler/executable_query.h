@@ -42,8 +42,8 @@ class AbstractPlanNode;
 
 namespace runner {
 class ExecutionRunners;
-class MiniRunners_SEQ0_OutputRunners_Benchmark;
-class MiniRunners_SEQ10_0_IndexInsertRunners_Benchmark;
+class ExecutionRunners_SEQ0_OutputRunners_Benchmark;
+class ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 }  // namespace runner
 
 }  // namespace noisepage
@@ -198,9 +198,9 @@ class ExecutableQuery {
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;
-  friend class noisepage::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
+  friend class noisepage::runner::ExecutionRunners_SEQ0_OutputRunners_Benchmark;
   friend class noisepage::selfdriving::PilotUtil;
-  friend class noisepage::runner::MiniRunners_SEQ10_0_IndexInsertRunners_Benchmark;
+  friend class noisepage::runner::ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 };
 
 }  // namespace noisepage::execution::compiler

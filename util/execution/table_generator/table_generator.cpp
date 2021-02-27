@@ -413,7 +413,7 @@ void TableGenerator::GenerateTestTables() {
 }
 
 void TableGenerator::GenerateExecutionRunnersData(const runner::ExecutionRunnersSettings &settings,
-                                             const runner::ExecutionRunnersDataConfig &config) {
+                                                  const runner::ExecutionRunnersDataConfig &config) {
   std::vector<TableInsertMeta> table_metas;
   auto &mixed_types = config.table_type_dists_;
   auto &mixed_dists = config.table_col_dists_;
