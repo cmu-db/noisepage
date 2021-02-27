@@ -5,7 +5,7 @@
 namespace noisepage::runner {
 
 /**
- * Class that holds mini-runner settings
+ * Class that holds execution-runner settings
  */
 class ExecutionRunnersSettings {
  public:

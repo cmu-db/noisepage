@@ -498,15 +498,15 @@ pipeline {
                         ''', label: 'Generate trace and perform training'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
-                        // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
+                        // The parameters to the execution_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
                         // Specifically, the parameters chosen are:
-                        // - mini_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
+                        // - execution_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
                         // - rerun=0, which skips rerun since we are not testing benchmark performance here
-                        // - warm_num=1, which also tests the warm up phase for the mini_runners.
+                        // - warm_num=1, which also tests the warm up phase for the execution_runners.
                         // With the current set of parameters, the input generation process will finish under 10min
                         sh script :'''
                         cd build/bin
-                        ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=1
+                        ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
                         ''', label: 'Mini-trainer input generation'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'

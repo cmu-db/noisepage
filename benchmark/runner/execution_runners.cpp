@@ -43,12 +43,12 @@
 namespace noisepage::runner {
 
 /**
- * MiniRunners Config Data
+ * ExecutionRunners Config Data
  */
 ExecutionRunnersDataConfig config;
 
 /**
- * MiniRunners Settings
+ * ExecutionRunners Settings
  */
 ExecutionRunnersSettings settings;
 
@@ -455,7 +455,7 @@ class ExecutionRunners : public benchmark::Fixture {
     // Some runners rely on counters to work correctly (i.e parallel create index).
     // Counter code relies on the ids of features extracted during code generation
     // to update numbers. However, the synthetic pipeline + features that are
-    // set by the mini-runners do not have these feature ids available.
+    // set by the execution-runners do not have these feature ids available.
     //
     // For now, since a pipeline does not contain any duplicate feature types (i.e
     // there will not be 2 hashjoin_probes in 1 pipeline), we can assign feature ids
@@ -495,9 +495,9 @@ class ExecutionRunners : public benchmark::Fixture {
 
     execution::sql::TableGenerator table_generator(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
     if (is_build) {
-      table_generator.BuildMiniRunnerIndex(type, tbl_cols, num_rows, num_key);
+      table_generator.BuildExecutionRunnerIndex(type, tbl_cols, num_rows, num_key);
     } else {
-      bool result = table_generator.DropMiniRunnerIndex(type, tbl_cols, num_rows, num_key);
+      bool result = table_generator.DropExecutionRunnerIndex(type, tbl_cols, num_rows, num_key);
       if (!result) {
         throw "Drop Index has failed";
       }
@@ -507,7 +507,7 @@ class ExecutionRunners : public benchmark::Fixture {
     InvokeGC();
   }
 
-  // Used for the CREATE INDEX mini-runner
+  // Used for the CREATE INDEX execution-runner
   void DropIndexByName(const std::string &name) {
     auto catalog = db_main->GetCatalogLayer()->GetCatalog();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
@@ -817,7 +817,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
               std::stringstream query_ss;
               auto type_name = type::TypeUtil::TypeIdToString(type);
               auto table_name = ConstructTableName(type, type::TypeId::INVALID, 15, 0, row, row);
-              query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
+              query_ss << "CREATE INDEX executionrunners__" << row << " ON " << table_name << "(";
               for (size_t j = 1; j <= col; j++) {
                 query_ss << type_name << j;
                 if (j != col) {
@@ -833,7 +833,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
             std::string delete_query;
             {
               std::stringstream query_ss;
-              query_ss << "DROP INDEX minirunners__" << row;
+              query_ss << "DROP INDEX executionrunners__" << row;
               delete_query = query_ss.str();
             }
             txn->exec(delete_query);
@@ -2033,7 +2033,7 @@ void InitializeRunnersState() {
                                                                       exec_settings, db_main->GetMetricsManager());
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  table_gen.GenerateMiniRunnersData(settings, config);
+  table_gen.GenerateExecutionRunnersData(settings, config);
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   InvokeGC();
@@ -2052,97 +2052,97 @@ void EndRunnersState() {
 }
 
 void RegisterRunners() {
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ0_ArithmeticRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenArithArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ0_OutputRunners)
       ->Unit(benchmark::kMillisecond)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenOutputArguments>)
       ->Iterations(1);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ1_0_SeqScanRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ1_0_SeqScanRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenScanArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ1_1_SeqScanRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenScanMixedArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ2_0_IndexScanRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ2_0_IndexScanRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIdxScanArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ2_1_IndexJoinRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ2_1_IndexJoinRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIdxJoinArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ3_SortRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ3_SortRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenSortArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinSelfRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ4_HashJoinSelfRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenJoinSelfArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ4_HashJoinNonSelfRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenJoinNonSelfArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_AggregateRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ5_0_AggregateRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenAggregateArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ5_1_AggregateRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenAggregateKeylessArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ6_0_InsertRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenInsertArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ6_1_InsertRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenInsertArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ7_2_UpdateRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ7_2_UpdateRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenUpdateIndexArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ8_2_DeleteRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ8_2_DeleteRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenDeleteIndexArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ9_0_CreateIndexRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenCreateIndexArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ9_1_CreateIndexRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ9_1_CreateIndexRunners)
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ10_IndexInsertRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ10_IndexInsertRunners)
       ->Unit(benchmark::kMillisecond)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
       ->Iterations(1);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ11_IndexDeleteRunners)
+  BENCHMARK_REGISTER_F(ExecutionRunners, SEQ11_IndexDeleteRunners)
       ->Unit(benchmark::kMillisecond)
       ->Apply(GenBenchmarkArguments<ExecutionRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
       ->Iterations(1);
@@ -2252,7 +2252,7 @@ void RunBenchmarkSequence(int rerun_counter) {
 
   char buffer[64];
   const char *argv[2];
-  argv[0] = "mini_runners";
+  argv[0] = "execution_runners";
   argv[1] = buffer;
 
   auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret,
@@ -2285,7 +2285,7 @@ void RunBenchmarkSequence(int rerun_counter) {
   }
 }
 
-void RunMiniRunners() {
+void RunExecutionRunners() {
   noisepage::runner::rerun_start = false;
   for (int i = 0; i <= noisepage::runner::settings.rerun_iterations_; i++) {
     noisepage::runner::rerun_start = (i != 0);
@@ -2341,7 +2341,7 @@ void RunMiniRunners() {
 }
 
 int main(int argc, char **argv) {
-  // Initialize mini-runner arguments
+  // Initialize execution-runner arguments
   noisepage::runner::settings.InitializeFromArguments(argc, argv);
 
   // Initialize Benchmarks
@@ -2367,7 +2367,7 @@ int main(int argc, char **argv) {
       benchmark::RunSpecifiedBenchmarks();
       noisepage::runner::EndRunnersState();
     } else {
-      RunMiniRunners();
+      RunExecutionRunners();
       Shutdown();
     }
   }
