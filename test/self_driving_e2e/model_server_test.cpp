@@ -47,6 +47,7 @@ class ModelServerTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, PipelineTest) {
+  std::cout << "PipelineTest\n";
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -58,6 +59,8 @@ TEST_F(ModelServerTest, PipelineTest) {
   // Wait for the model server process to start
   while (!ms_manager->ModelServerStarted()) {
   }
+
+  std::cout << "PipelineTest2\n";
 
   std::vector<std::vector<double>> features{
       {0, 0, 10000, 4, 1, 10000, 1, 0, 0},
@@ -106,10 +109,12 @@ TEST_F(ModelServerTest, PipelineTest) {
 
   // Quit
   ms_manager->StopModelServer();
+  std::cout << "PipelineTest\n";
 }
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, ForecastTest) {
+  std::cout << "ForecastTest\n";
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -119,8 +124,10 @@ TEST_F(ModelServerTest, ForecastTest) {
   auto ms_manager = primary->GetModelServerManager();
 
   // Wait for the model server process to start
+  std::cout << "ForecastTest\n";
   while (!ms_manager->ModelServerStarted()) {
   }
+  std::cout << "ForecastTest\n";
 
   // Perform a training of the opunit models with {lr, rf} as training methods.
   std::vector<std::string> methods{"LSTM"};
@@ -131,15 +138,18 @@ TEST_F(ModelServerTest, ForecastTest) {
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval,
                                  common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  std::cout << "ForecastTest\n";
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
   auto result = ms_manager->InferForecastModel(input_path, save_path, methods, NULL, interval);
+  std::cout << "ForecastTest\n";
   ASSERT_TRUE(result.second);
 
   // Quit
   ms_manager->StopModelServer();
+  std::cout << "ForecastTest\n";
 }
 
 }  // namespace noisepage::modelserver
