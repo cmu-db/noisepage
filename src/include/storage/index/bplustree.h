@@ -11,21 +11,11 @@
 #include <vector>
 
 #include "common/shared_latch.h"
+#include "loggers/index_logger.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
-#include "loggers/index_logger.h"
-
 namespace noisepage::storage::index {
-
-// If node size goes above this then we split it
-// Thresholds for Inner Node
-#define INNER_NODE_SIZE_UPPER_THRESHOLD ((int)128)
-#define INNER_NODE_SIZE_LOWER_THRESHOLD ((int)64)
-
-// Thresholds for Leaf Node
-#define LEAF_NODE_SIZE_UPPER_THRESHOLD ((int)128)
-#define LEAF_NODE_SIZE_LOWER_THRESHOLD ((int)64)
 
 /**
  *  Base class for BPlusTree that stores common data, inherited by the BPlusTree class. This
@@ -80,15 +70,15 @@ class BPlusTreeBase {
   }
 
  protected:
-  /** upper size threshold for inner node split */
-  int inner_node_size_upper_threshold_ = INNER_NODE_SIZE_UPPER_THRESHOLD;
-  /** lower size threshold for inner node removal */
-  int inner_node_size_lower_threshold_ = INNER_NODE_SIZE_LOWER_THRESHOLD;
+  /** upper size threshold for inner node split [FAN_OUT] */
+  int inner_node_size_upper_threshold_ = 128;
+  /** lower size threshold for inner node removal [Ceil(FAN_OUT / 2) - 1] */
+  int inner_node_size_lower_threshold_ = 63;
 
-  /** upper size threshold for leaf node split */
-  int leaf_node_size_upper_threshold_ = LEAF_NODE_SIZE_UPPER_THRESHOLD;
-  /** lower size threshold for leaf node removal */
-  int leaf_node_size_lower_threshold_ = LEAF_NODE_SIZE_LOWER_THRESHOLD;
+  /** upper size threshold for leaf node split [FAN_OUT] */
+  int leaf_node_size_upper_threshold_ = 128;
+  /** lower size threshold for leaf node removal [Ceil((FAN_OUT - 1) / 2)] */
+  int leaf_node_size_lower_threshold_ = 64;
 
  public:
   /**
