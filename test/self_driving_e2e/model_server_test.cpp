@@ -1,7 +1,4 @@
-#include <iostream>
-#include <fstream>
 #include <vector>
-#include <filesystem>
 
 #include "gtest/gtest.h"
 #include "loggers/messenger_logger.h"
@@ -10,8 +7,6 @@
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "test_util/test_harness.h"
-
-namespace fs = std::filesystem;
 
 namespace noisepage::modelserver {
 
@@ -22,39 +17,7 @@ class ModelServerTest : public TerrierTest {
  protected:
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain() {
-    char path[255] = {0};
-    size_t s = 255;
-    char* real_path = getcwd(path, s);
-    std::cout << "Printing real path:\n";
-    std::cout << real_path << "\n";
-
-    {
-      std::cout << "printing in current directory\n";
-      std::string path = ".";
-      for (const auto & entry : fs::directory_iterator(path))
-        std::cout << entry.path() << std::endl;
-
-      std::cout << "printing up a directory\n";
-      path = "..";
-      for (const auto & entry : fs::directory_iterator(path))
-        std::cout << entry.path() << std::endl;
-
-      std::cout << "printing up two directory\n";
-      path = "../..";
-      for (const auto & entry : fs::directory_iterator(path))
-        std::cout << entry.path() << std::endl;
-
-      std::cout << "printing up three directory\n";
-      path = "../../..";
-      for (const auto & entry : fs::directory_iterator(path))
-        std::cout << entry.path() << std::endl;
-    }
-
     auto model_server_path = "../script/self_driving/model_server.py";
-    std::ifstream file(model_server_path);
-    if (!file.good()) {
-      exit(1);
-    }
 
     auto db_main = noisepage::DBMain::Builder()
                        .SetUseSettingsManager(false)
@@ -84,7 +47,6 @@ class ModelServerTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, PipelineTest) {
-  std::cout << "PipelineTest\n";
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -96,8 +58,6 @@ TEST_F(ModelServerTest, PipelineTest) {
   // Wait for the model server process to start
   while (!ms_manager->ModelServerStarted()) {
   }
-
-  std::cout << "PipelineTest2\n";
 
   std::vector<std::vector<double>> features{
       {0, 0, 10000, 4, 1, 10000, 1, 0, 0},
@@ -146,12 +106,10 @@ TEST_F(ModelServerTest, PipelineTest) {
 
   // Quit
   ms_manager->StopModelServer();
-  std::cout << "PipelineTest\n";
 }
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, ForecastTest) {
-  std::cout << "ForecastTest\n";
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -161,10 +119,8 @@ TEST_F(ModelServerTest, ForecastTest) {
   auto ms_manager = primary->GetModelServerManager();
 
   // Wait for the model server process to start
-  std::cout << "ForecastTest\n";
   while (!ms_manager->ModelServerStarted()) {
   }
-  std::cout << "ForecastTest\n";
 
   // Perform a training of the opunit models with {lr, rf} as training methods.
   std::vector<std::string> methods{"LSTM"};
@@ -175,18 +131,15 @@ TEST_F(ModelServerTest, ForecastTest) {
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval,
                                  common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  std::cout << "ForecastTest\n";
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
   auto result = ms_manager->InferForecastModel(input_path, save_path, methods, NULL, interval);
-  std::cout << "ForecastTest\n";
   ASSERT_TRUE(result.second);
 
   // Quit
   ms_manager->StopModelServer();
-  std::cout << "ForecastTest\n";
 }
 
 }  // namespace noisepage::modelserver
