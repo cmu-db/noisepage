@@ -38,6 +38,16 @@ class ModelServerTest : public TerrierTest {
       path = "..";
       for (const auto & entry : fs::directory_iterator(path))
         std::cout << entry.path() << std::endl;
+
+      std::cout << "printing up two directory\n";
+      path = "../..";
+      for (const auto & entry : fs::directory_iterator(path))
+        std::cout << entry.path() << std::endl;
+
+      std::cout << "printing up three directory\n";
+      path = "../../..";
+      for (const auto & entry : fs::directory_iterator(path))
+        std::cout << entry.path() << std::endl;
     }
 
     auto model_server_path = "../script/self_driving/model_server.py";
