@@ -21,7 +21,7 @@ class ModelServerTest : public TerrierTest {
   static std::unique_ptr<DBMain> BuildDBMain() {
     const char* env = ::getenv(BUILD_ABS_PATH);
     std::string project_build_path = (env ? env : "");
-    auto model_server_path = "../script/self_driving/model_server.py";
+    auto model_server_path = project_build_path + "/../script/self_driving/model_server.py";
 
     auto db_main = noisepage::DBMain::Builder()
                        .SetUseSettingsManager(false)
