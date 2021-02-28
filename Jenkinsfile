@@ -23,31 +23,7 @@ pipeline {
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
-                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                         }
-
-                        // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
-                        // on query trace.
-                        // --pattern_iter determines how many times a sequence of TPCC phases is run. Set to 3 so that
-                        // enough trace could be generated for training and testing.
-                        sh script :'''
-                        cd build
-                        PYTHONPATH=.. python3 -m script.self_driving.forecaster_standalone --generate_data --pattern_iter=3
-                        ''', label: 'Generate trace and perform training'
-                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-
-                        // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
-                        // Specifically, the parameters chosen are:
-                        // - mini_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
-                        // - rerun=0, which skips rerun since we are not testing benchmark performance here
-                        // - warm_num=1, which also tests the warm up phase for the mini_runners.
-                        // With the current set of parameters, the input generation process will finish under 10min
-                        sh script :'''
-                        cd build/bin
-                        ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=1
-                        ''', label: 'Mini-trainer input generation'
-
-                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
                         cd build

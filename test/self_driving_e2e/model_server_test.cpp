@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <filesystem>
 
 #include "gtest/gtest.h"
 #include "loggers/messenger_logger.h"
@@ -9,6 +10,8 @@
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "test_util/test_harness.h"
+
+namespace fs = std::filesystem;
 
 namespace noisepage::modelserver {
 
@@ -22,7 +25,20 @@ class ModelServerTest : public TerrierTest {
     char path[255] = {0};
     size_t s = 255;
     char* real_path = getcwd(path, s);
+    std::cout << "Printing real path:\n";
     std::cout << real_path << "\n";
+
+    {
+      std::cout << "printing in current directory\n";
+      std::string path = ".";
+      for (const auto & entry : fs::directory_iterator(path))
+        std::cout << entry.path() << std::endl;
+
+      std::cout << "printing up a directory\n";
+      path = "..";
+      for (const auto & entry : fs::directory_iterator(path))
+        std::cout << entry.path() << std::endl;
+    }
 
     auto model_server_path = "../script/self_driving/model_server.py";
     std::ifstream file(model_server_path);
