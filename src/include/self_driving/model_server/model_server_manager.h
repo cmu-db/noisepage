@@ -51,7 +51,7 @@ class ModelType {
       case Type::Forecast:
         return "FORECAST";
       case Type::MiniRunner:
-        return "MINI_RUNNER";
+        return "OPERATING_UNIT";
       default:
         NOISEPAGE_ASSERT(false, "Invalid ModelType::Type");
         return "";
