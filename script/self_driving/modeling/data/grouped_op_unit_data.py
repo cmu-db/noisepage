@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import logging
 
-import data_util
+from . import data_util
 from ..info import data_info
 from .. import interference_model_config
 from ..type import ConcurrentCountingMode, OpUnit, Target, ExecutionFeature
@@ -100,7 +100,8 @@ def _txn_get_mini_runner_data(filename, txn_sample_rate):
         x_new = np.sum(interval_x_map[rounded_time], axis=0)
         # Concatenate the number of different threads
         x_new = np.concatenate((x_new, [len(set(interval_cpu_id_map[rounded_time]))]))
-        x_new *= 100 / (txn_sample_rate + 0.1)
+        if txn_sample_rate > 0:
+            x_new *= 100 / txn_sample_rate
         # Change all the opunits in the group for this interval to be the new feature
         opunits = [(opunit, x_new)]
         # The prediction is the average behavior

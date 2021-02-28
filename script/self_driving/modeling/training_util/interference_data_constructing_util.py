@@ -8,9 +8,8 @@ import tqdm
 import pickle
 
 from ..util import io_util
-from ..info import hardware_info
-from ..info import data_info
-from ..data_class import interference_model_data, grouped_op_unit_data
+from ..info import hardware_info, data_info
+from ..data import interference_model_data, grouped_op_unit_data
 from .. import interference_model_config
 from ..type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
@@ -166,7 +165,7 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
         logging.debug("{} {} {}".format(data_start_time, data_end_time, ratio))
         logging.debug("{} {}".format(data.y, data.y_pred))
         logging.debug("Sampling rate: {}".format(sample_rate))
-        scaling_factor = 100 / (sample_rate + 0.1) # sampling rate is percentage based
+        scaling_factor = 100 / sample_rate if sample_rate > 0 else 1  # sampling rate is percentage based
         # Multiply the resource metrics based on the sampling rate
         adjusted_y += data.y * ratio * scaling_factor
         cpu_id = data.cpu_id
@@ -305,7 +304,8 @@ def _predict_grouped_opunit_data(data_list, ou_model_map, model_results_path, us
                     # Compute the number of "slots" (based on row feature or cardinality feature
                     num_tuple = opunit_feature[1][data_info.instance.input_csv_index[ExecutionFeature.NUM_ROWS]]
                     if opunit == OpUnit.AGG_BUILD:
-                        num_tuple = opunit_feature[1][data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]]
+                        num_tuple = opunit_feature[1][
+                            data_info.instance.input_csv_index[ExecutionFeature.EST_CARDINALITIES]]
 
                     # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
                     # that contains the first pow2 larger than num_tuple entries

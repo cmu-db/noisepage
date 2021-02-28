@@ -8,12 +8,12 @@ import tqdm
 import random
 from sklearn import model_selection
 
-import model
-import interference_model_config
-from info import data_info
-from util import io_util, logging_util
-from training_util import interference_data_constructing_util, result_writing_util
-from type import Target
+from . import model
+from . import interference_model_config
+from .info import data_info
+from .util import io_util, logging_util
+from .training_util import interference_data_constructing_util, result_writing_util
+from .type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -224,7 +224,7 @@ class InterferenceModelTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Interference Trainer')
-    aparser.add_argument('--input_path', default='interference_runner_input',
+    aparser.add_argument('--input_path', default='concurrent_runner_input',
                          help='Input file path for the interference runners')
     aparser.add_argument('--model_results_path', default='interference_model_results',
                          help='Prediction results of the ou models')
@@ -242,11 +242,11 @@ if __name__ == '__main__':
     aparser.add_argument('--add_noise', action='store_true', help='Add noise to the cardinality estimations')
     aparser.add_argument('--predict_ou_only', action='store_true', help='Only predict the OU data (no training)')
     aparser.add_argument('--ee_sample_rate', type=int, default=2,
-                         help='Sampling rate for the execution engine OUs')
+                         help='Sampling rate for the execution engine OUs (ignored if 0)')
     aparser.add_argument('--txn_sample_rate', type=int, default=2,
-                         help='Sampling rate for the transaction OUs')
+                         help='Sampling rate for the transaction OUs (ignored if 0)')
     aparser.add_argument('--network_sample_rate', type=int, default=2,
-                         help='Sampling rate for the network OUs')
+                         help='Sampling rate for the network OUs (ignored if 0)')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
