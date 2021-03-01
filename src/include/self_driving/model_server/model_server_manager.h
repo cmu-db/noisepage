@@ -310,8 +310,9 @@ class ModelServerManager {
    * @return a vector of results returned by ModelServer and if API succeeds (True when succeeds)
    *    When API fails, the return results will be an empty vector
    */
-  std::pair<std::vector<std::vector<double>>, bool> InferOUModel(
-      const std::string &opunit, const std::string &model_path, const std::vector<std::vector<double>> &features);
+  std::pair<std::vector<std::vector<double>>, bool> InferOUModel(const std::string &opunit,
+                                                                 const std::string &model_path,
+                                                                 const std::vector<std::vector<double>> &features);
 
   /**
    * Perform inference on the given data file using the interference model
@@ -323,9 +324,8 @@ class ModelServerManager {
    * @return a vector of results returned by ModelServer and if API succeeds (True when succeeds)
    *    When API fails, the return results will be an empty vector
    */
-  std::pair<std::vector<std::vector<double>>, bool> InferInterferenceModel(const std::string &model_path, const
-                                                                           std::vector<std::vector<double>> &features);
-
+  std::pair<std::vector<std::vector<double>>, bool> InferInterferenceModel(
+      const std::string &model_path, const std::vector<std::vector<double>> &features);
 
  private:
   /**

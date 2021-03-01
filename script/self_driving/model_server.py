@@ -175,11 +175,6 @@ class AbstractModel(ABC):
         # Load into cache
         model = self._load_model_from_disk(save_path)
 
-        # TODO(ricky): model checking here?
-        if len(model) == 0:
-            logging.warning(f"Empty model at {str(save_path)}")
-            return None
-
         self.model_cache[save_path_str] = model
         return model
 
@@ -385,7 +380,6 @@ class InterferenceModel(AbstractModel):
         Do inference on the model, give the data file, and the model_path
         :param data: {
             features: 2D float arrays [[float]],
-            opunit: Opunit integer for the model
             model_path: model path
         }
         :return: {List of predictions, if inference succeeds, error message}
