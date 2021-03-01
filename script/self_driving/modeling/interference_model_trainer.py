@@ -224,9 +224,9 @@ class InterferenceModelTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Interference Trainer')
-    aparser.add_argument('--input_path', default='concurrent_runner_input',
+    aparser.add_argument('--input_path', default='modeling/concurrent_runner_input',
                          help='Input file path for the interference runners')
-    aparser.add_argument('--model_results_path', default='interference_model_results',
+    aparser.add_argument('--model_results_path', default='modeling/interference_model_results',
                          help='Prediction results of the ou models')
     aparser.add_argument('--save_path', default='modeling/trained_model', help='Path to save the trained models')
     aparser.add_argument('--ou_model_file', default='modeling/trained_model/ou_model_map.pickle',
