@@ -19,7 +19,7 @@ class ModelServerTest : public TerrierTest {
 
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain() {
-    const char* env = ::getenv(BUILD_ABS_PATH);
+    const char *env = ::getenv(BUILD_ABS_PATH);
     std::string project_build_path = (env ? env : "");
     auto model_server_path = project_build_path + "/../script/self_driving/model_server.py";
 
@@ -79,7 +79,7 @@ TEST_F(ModelServerTest, DISABLED_OUModelTest) {
   std::string save_path = "model_server_test.pickle";
 
   ModelServerFuture<std::string> future;
-  const char* env = ::getenv(BUILD_ABS_PATH);
+  const char *env = ::getenv(BUILD_ABS_PATH);
   std::string project_build_path = (env ? env : "");
   ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, project_build_path + "/bin", save_path, nullptr,
                          common::ManagedPointer<ModelServerFuture<std::string>>(&future));
@@ -131,10 +131,10 @@ TEST_F(ModelServerTest, DISABLED_ForecastModelTest) {
   // Perform a training of the opunit models with {lr, rf} as training methods.
   std::vector<std::string> methods{"LSTM"};
   uint64_t interval = 500000;
-  const char* env = ::getenv(BUILD_ABS_PATH);
+  const char *env = ::getenv(BUILD_ABS_PATH);
   std::string project_build_path = (env ? env : "");
   std::string save_path = "model.pickle";
-  std::string input_path = project_build_path + "/../script/self_driving/query_trace.csv";
+  std::string input_path = project_build_path + "/query_trace.csv";
 
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval,
