@@ -41,6 +41,7 @@ WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, 
       }
     }
   }
+  num_forecast_segment_ = forecast_segments_.size();
 }
 
 /**
