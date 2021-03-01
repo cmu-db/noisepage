@@ -12,6 +12,13 @@ namespace noisepage::modelserver {
 
 /**
  * @warning Running this test requires external dependency to be located at specific paths.
+ *
+ * The environment BUILD_ABS_PATH needs to be set to be the build directory such that
+ * BUILD_ABS_PATH/../script/model/model_server.py is executable. Note that on Jenkins,
+ * tests do not run with their current working directory set to the build subdirectory
+ * from which "../script/self_driving/model_server.py" is valid. BUILD_ABS_PATH (an
+ * optional env arg) is used to allow this test to run both locally and remotely
+ * without modifying the test itself.
  */
 class ModelServerTest : public TerrierTest {
  protected:
