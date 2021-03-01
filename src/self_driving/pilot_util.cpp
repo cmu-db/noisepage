@@ -14,6 +14,7 @@
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "metrics/metrics_util.h"
+#include "network/network_util.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
@@ -46,7 +47,9 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
     std::string query = sql_query;
     auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
     auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
-    is_query_ddl = network::DDLQueryType(statement->GetQueryType()) || statement->GetQueryType() == network::QueryType::QUERY_SET;;
+    is_query_ddl = network::NetworkUtil::DDLQueryType(statement->GetQueryType()) ||
+                   statement->GetQueryType() == network::QueryType::QUERY_SET;
+    ;
     is_create_idx = statement->GetQueryType() == network::QueryType::QUERY_CREATE_INDEX;
   }
 

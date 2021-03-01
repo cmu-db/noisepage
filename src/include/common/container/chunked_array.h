@@ -136,7 +136,6 @@ class ChunkedArray {
     return Iterator<Type, Size>(&chunks_);
   }
 
-
   /**
    * @return iterator to indicate end of data
    */

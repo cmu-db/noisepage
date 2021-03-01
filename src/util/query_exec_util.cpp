@@ -151,17 +151,19 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
         break;
       case network::QueryType::QUERY_DROP_INDEX:
         // Drop index does not need execution of compiled query
-        status = execution::sql::DDLExecutors::DropIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-                                                          .CastManagedPointerTo<planner::DropIndexPlanNode>(),
-                                                      common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+        status =
+            execution::sql::DDLExecutors::DropIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+                                                                .CastManagedPointerTo<planner::DropIndexPlanNode>(),
+                                                            common::ManagedPointer<catalog::CatalogAccessor>(accessor));
         break;
       case network::QueryType::QUERY_CREATE_INDEX:
         // TODO(lin): We actually don't need to populate the index tuples after creating the index placeholder for the
         //  "what-if" API. But since we need to execute the query to get the features, we need to compile and execute
         //  the query for now.
-        status = execution::sql::DDLExecutors::CreateIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-                                                              .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
-                                                          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+        status = execution::sql::DDLExecutors::CreateIndexExecutor(
+            common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
+                .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
+            common::ManagedPointer<catalog::CatalogAccessor>(accessor));
         break;
       default:
         NOISEPAGE_ASSERT(false, "Unsupported QueryExecUtil::ExecuteStatement");
