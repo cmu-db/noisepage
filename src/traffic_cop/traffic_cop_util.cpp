@@ -38,6 +38,7 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
   // Build the QueryInfo object. For SELECTs this may require a bunch of other stuff from the original statement.
   // If any more logic like this is needed in the future, we should break this into its own function somewhere since
   // this is Optimizer-specific stuff.
+
   const auto type = query->GetStatement(0)->GetType();
   if (type == parser::StatementType::SELECT) {
     const auto sel_stmt = query->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
@@ -56,6 +57,10 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     // immutability of all of these Optimizer inputs to reduce copies.
 
     CollectSelectProperties(sel_stmt, &property_set);
+  } else if (type == parser::StatementType::ANALYZE) {
+    const auto analyze_stmt = query->GetStatement(0).CastManagedPointerTo<parser::AnalyzeStatement>();
+    txn->RegisterCommitAction(
+        [=]() { stats_storage->MarkStatsStale(db_oid, analyze_stmt->GetTableOid(), analyze_stmt->GetColumnOids()); });
   }
 
   auto query_info = optimizer::QueryInfo(type, std::move(output), &property_set);
@@ -86,13 +91,8 @@ void TrafficCopUtil::CollectSelectProperties(common::ManagedPointer<parser::Sele
                                                                      : optimizer::OrderByOrderingType::DESC);
     }
 
-      auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
-      property_set->AddProperty(sort_prop);
-    }
-  } else if (type == parser::StatementType::ANALYZE) {
-    const auto analyze_stmt = query->GetStatement(0).CastManagedPointerTo<parser::AnalyzeStatement>();
-    txn->RegisterCommitAction(
-        [=]() { stats_storage->MarkStatsStale(db_oid, analyze_stmt->GetTableOid(), analyze_stmt->GetColumnOids()); });
+    auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
+    property_set->AddProperty(sort_prop);
   }
 }
 

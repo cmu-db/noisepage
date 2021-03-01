@@ -7,7 +7,8 @@
 
 namespace noisepage::optimizer {
 
-StatsStorageValue &StatsStorage::GetStatsStorageValue(const catalog::db_oid_t database_id, const catalog::table_oid_t table_id,
+StatsStorageValue &StatsStorage::GetStatsStorageValue(const catalog::db_oid_t database_id,
+                                                      const catalog::table_oid_t table_id,
                                                       catalog::CatalogAccessor *accessor) {
   StatsStorageKey stats_storage_key{database_id, table_id};
   auto table_it = table_stats_storage_.find(stats_storage_key);

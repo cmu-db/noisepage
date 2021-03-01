@@ -146,8 +146,8 @@ class StatsStorage {
    * @param accessor - catalog accessor
    * @return pointer to a TableStats object
    */
-  StatsStorageValue &GetStatsStorageValue(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::CatalogAccessor *accessor);
-
+  StatsStorageValue &GetStatsStorageValue(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                                          catalog::CatalogAccessor *accessor);
 
   /**
    * Inserts a TableStats pointer in the table stats storage map.
