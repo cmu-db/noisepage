@@ -50,7 +50,7 @@ class ModelServerTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(ModelServerTest, DISABLED_PipelineTest) {
+TEST_F(ModelServerTest, DISABLED_OUModelTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -115,7 +115,7 @@ TEST_F(ModelServerTest, DISABLED_PipelineTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ModelServerTest, DISABLED_ForecastTest) {
+TEST_F(ModelServerTest, DISABLED_ForecastModelTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -145,6 +145,55 @@ TEST_F(ModelServerTest, DISABLED_ForecastTest) {
   // Perform inference on the trained opunit model for various opunits
   auto result = ms_manager->InferForecastModel(input_path, save_path, methods, NULL, interval);
   ASSERT_TRUE(result.second);
+
+  // Quit
+  ms_manager->StopModelServer();
+}
+
+// NOLINTNEXTLINE
+TEST_F(ModelServerTest, InterferenceModelTest) {
+  messenger::messenger_logger->set_level(spdlog::level::info);
+  model_server_logger->set_level(spdlog::level::info);
+
+  auto primary = BuildDBMain();
+  primary->GetNetworkLayer()->GetServer()->RunServer();
+
+  auto ms_manager = primary->GetModelServerManager();
+
+  // Wait for the model server process to start
+  while (!ms_manager->ModelServerStarted()) {
+  }
+
+  // Each input feature vector has 36 dimensions. 4 inputs in total.
+  std::vector<std::vector<double>> features{4, std::vector<double>{36, 1}};
+
+  // Send a message
+  std::string msg = "ModelServerTest";
+  ms_manager->PrintMessage(msg);
+
+  // Perform a training of the opunit models with {lr, rf} as training methods.
+  std::string save_path = "interference_direct_model.pickle";
+
+  /*
+  ModelServerFuture<std::string> future;
+  const char* env = ::getenv(BUILD_ABS_PATH);
+  std::string project_build_path = (env ? env : "");
+  std::vector<std::string> methods{"lr", "rf"};
+  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, project_build_path + "/bin", save_path, nullptr,
+                         common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  auto res = future.Wait();
+  ASSERT_EQ(res.second, true);  // Training succeeds
+   */
+
+  // Perform inference on the trained opunit model for various opunits
+  auto result = ms_manager->InferInterferenceModel(save_path, features);
+  ASSERT_TRUE(result.second);
+  ASSERT_EQ(result.first.size(), features.size());
+
+  // Model at another path should not exist
+  std::string non_exist_path("model_server_test_non_exist.pickle");
+  result = ms_manager->InferInterferenceModel(non_exist_path, features);
+  ASSERT_FALSE(result.second);
 
   // Quit
   ms_manager->StopModelServer();
