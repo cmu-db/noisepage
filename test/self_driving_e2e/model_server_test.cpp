@@ -50,7 +50,7 @@ class ModelServerTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(ModelServerTest, PipelineTest) {
+TEST_F(ModelServerTest, DISABLED_PipelineTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -81,33 +81,33 @@ TEST_F(ModelServerTest, PipelineTest) {
   ModelServerFuture<std::string> future;
   const char* env = ::getenv(BUILD_ABS_PATH);
   std::string project_build_path = (env ? env : "");
-  ms_manager->TrainModel(ModelType::Type::MiniRunner, methods, project_build_path + "/bin", save_path, nullptr,
+  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, project_build_path + "/bin", save_path, nullptr,
                          common::ManagedPointer<ModelServerFuture<std::string>>(&future));
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
-  auto result = ms_manager->InferMiniRunnerModel(
+  auto result = ms_manager->InferOUModel(
       OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->InferMiniRunnerModel(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE),
-                                            save_path, features);
+  result = ms_manager->InferOUModel(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE), save_path,
+                                    features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->InferMiniRunnerModel(
-      OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY), save_path, features);
+  result = ms_manager->InferOUModel(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY),
+                                    save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
 
   // Model at another path should not exist
   std::string non_exist_path("model_server_test_non_exist.pickle");
-  result = ms_manager->InferMiniRunnerModel(
-      OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), non_exist_path, features);
+  result = ms_manager->InferOUModel(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS),
+                                    non_exist_path, features);
   ASSERT_FALSE(result.second);
 
   // Inference with invalid opunit name will fail
-  result = ms_manager->InferMiniRunnerModel("OP_SUPER_MAGICAL_DIVIDE", non_exist_path, features);
+  result = ms_manager->InferOUModel("OP_SUPER_MAGICAL_DIVIDE", non_exist_path, features);
   ASSERT_FALSE(result.second);
 
   // Quit
@@ -115,7 +115,7 @@ TEST_F(ModelServerTest, PipelineTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ModelServerTest, ForecastTest) {
+TEST_F(ModelServerTest, DISABLED_ForecastTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 

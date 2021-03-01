@@ -263,7 +263,7 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
   NOISEPAGE_ASSERT(model_server_manager->ModelServerStarted(), "Model Server should have been started");
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
-    auto res = model_server_manager->InferMiniRunnerModel(
+    auto res = model_server_manager->InferOUModel(
         selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), model_save_path,
         ou_map_it.second);
     if (!res.second) {

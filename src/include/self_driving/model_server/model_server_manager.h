@@ -39,7 +39,7 @@ class ModelType {
   /**
    * Enum describing the specific type of model (i.e., forecast, minirunner, interference)
    */
-  enum class Type : uint32_t { Forecast, MiniRunner };
+  enum class Type : uint32_t { Forecast, OperatingUnit, Interference };
 
   /**
    * Converts the Type enum to a readable string format
@@ -50,8 +50,10 @@ class ModelType {
     switch (t) {
       case Type::Forecast:
         return "FORECAST";
-      case Type::MiniRunner:
+      case Type::OperatingUnit:
         return "OPERATING_UNIT";
+      case Type::Interference:
+        return "INTERFERENCE";
       default:
         NOISEPAGE_ASSERT(false, "Invalid ModelType::Type");
         return "";
@@ -298,7 +300,7 @@ class ModelServerManager {
       std::string *models_config, uint64_t interval_micro_sec);
 
   /**
-   * Perform inference on the given data file using a mini runner model
+   * Perform inference on the given data file using an OU model
    *
    * This function is a blocking API call to the ModelServer, and only returns when result is sent back.
    *
@@ -308,8 +310,22 @@ class ModelServerManager {
    * @return a vector of results returned by ModelServer and if API succeeds (True when succeeds)
    *    When API fails, the return results will be an empty vector
    */
-  std::pair<std::vector<std::vector<double>>, bool> InferMiniRunnerModel(
+  std::pair<std::vector<std::vector<double>>, bool> InferOUModel(
       const std::string &opunit, const std::string &model_path, const std::vector<std::vector<double>> &features);
+
+  /**
+   * Perform inference on the given data file using the interference model
+   *
+   * This function is a blocking API call to the ModelServer, and only returns when result is sent back.
+   *
+   * @param model_path Path to a model that has been trained. (In pickle format)
+   * @param features Feature vectors
+   * @return a vector of results returned by ModelServer and if API succeeds (True when succeeds)
+   *    When API fails, the return results will be an empty vector
+   */
+  std::pair<std::vector<std::vector<double>>, bool> InferInterferenceModel(const std::string &model_path, const
+                                                                           std::vector<std::vector<double>> &features);
+
 
  private:
   /**
