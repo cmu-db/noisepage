@@ -4,6 +4,7 @@ This file contains model template and implementation for Forecaster. All forecas
 ForecastModel, and override the _do_fit and _do_predict abstract methods
 """
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 
@@ -11,8 +12,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.preprocessing import MinMaxScaler
-
-from ..testing.util.constants import LOG
 
 
 def get_models(model_args: Dict) -> Dict:
@@ -93,7 +92,12 @@ class ForecastModel(ABC):
         if self._x_transformer:
             test_seq = self._x_transformer.transform(test_seq)
 
-        return self._do_predict(test_seq)
+        predict = self._do_predict(test_seq)
+        if self._y_transformer:
+            # Get the predicted scalar value back
+            predict = self._y_transformer.inverse_transform(np.array([predict]).reshape(1, -1))[0][0]
+
+        return predict
 
     @abstractmethod
     def _do_predict(self, test_seq: np.ndarray) -> float:
@@ -176,7 +180,7 @@ class LSTM(nn.Module, ForecastModel):
         # Training specifics
         loss_function = nn.MSELoss()
         optimizer = torch.optim.Adam(self.parameters(), lr=lr)
-        LOG.info(f"Training with {len(train_seqs)} samples, {epochs} epochs:")
+        logging.info(f"Training with {len(train_seqs)} samples, {epochs} epochs:")
         for i in range(epochs):
             for seq, labels in train_seqs:
                 optimizer.zero_grad()
@@ -196,10 +200,10 @@ class LSTM(nn.Module, ForecastModel):
                 optimizer.step()
 
             if i % 25 == 0:
-                LOG.info(
+                logging.info(
                     f'[LSTM FIT]epoch: {i+1:3} loss: {single_loss.item():10.8f}')
 
-        LOG.info(
+        logging.info(
             f'[LSTM FIT]epoch: {epochs:3} loss: {single_loss.item():10.10f}')
 
     def _do_predict(self, seq: np.ndarray) -> float:

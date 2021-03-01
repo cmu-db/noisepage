@@ -1,4 +1,4 @@
-from type import OpUnit, Target, ExecutionFeature
+from ..type import OpUnit, Target, ExecutionFeature
 
 
 class DataInfo:

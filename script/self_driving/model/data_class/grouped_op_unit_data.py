@@ -6,11 +6,10 @@ import pandas as pd
 import os
 import logging
 
-from data_class import data_util
-from info import data_info
-import global_model_config
-
-from type import ConcurrentCountingMode, OpUnit, Target, ExecutionFeature
+from ..data_class import data_util
+from ..info import data_info
+from .. import global_model_config
+from ..type import ConcurrentCountingMode, OpUnit, Target, ExecutionFeature
 
 
 def get_grouped_op_unit_data(filename, warmup_period, ee_sample_interval, txn_sample_interval,
