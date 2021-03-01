@@ -177,6 +177,7 @@ TEST_F(HistogramTests, ClearTest) {
   EXPECT_EQ(h.EstimateItemCount(3), 0);
   EXPECT_EQ(h.EstimateItemCount(4), 0);
   EXPECT_EQ(h.EstimateItemCount(5), 1);
+  // EstimateItemCount returns the number of elements less than or equal to the input which is why this returns 1
   EXPECT_EQ(h.EstimateItemCount(6), 1);
 
   h.Clear();

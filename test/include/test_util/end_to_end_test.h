@@ -1,19 +1,18 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include "binder/bind_node_visitor.h"
-#include "execution/compiler/compilation_context.h"
-#include "execution/compiler/output_checker.h"
-#include "execution/sql_test.h"
-#include "gtest/gtest.h"
-#include "optimizer/cost_model/abstract_cost_model.h"
-#include "optimizer/cost_model/trivial_cost_model.h"
-#include "parser/postgresparser.h"
-#include "traffic_cop/traffic_cop_util.h"
+#include "../../../../../../../usr/include/c++/9/memory"
+#include "../../../../../../../usr/include/c++/9/string"
+#include "../../../../../../../usr/include/c++/9/utility"
+#include "../../../../../../../usr/include/c++/9/vector"
+#include "../../../cmake-build-debug/_deps/src/googletest/googletest/include/gtest/gtest.h"
+#include "../../../src/include/binder/bind_node_visitor.h"
+#include "../../../src/include/execution/compiler/compilation_context.h"
+#include "../../../src/include/optimizer/cost_model/abstract_cost_model.h"
+#include "../../../src/include/optimizer/cost_model/trivial_cost_model.h"
+#include "../../../src/include/parser/postgresparser.h"
+#include "../../../src/include/traffic_cop/traffic_cop_util.h"
+#include "../execution/compiler/output_checker.h"
+#include "../execution/sql_test.h"
 
 namespace noisepage::test {
 

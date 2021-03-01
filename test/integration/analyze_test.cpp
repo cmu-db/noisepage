@@ -1,9 +1,9 @@
 
 #include "execution/compiler/output_checker.h"
-#include "integration/end_to_end_test.h"
 #include "optimizer/statistics/histogram.h"
 #include "optimizer/statistics/top_k_elements.h"
 #include "spdlog/fmt/fmt.h"
+#include "test_util/end_to_end_test.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::test {
