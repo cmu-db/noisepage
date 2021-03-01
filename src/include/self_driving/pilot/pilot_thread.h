@@ -84,8 +84,6 @@ class PilotThread {
         if (forecaster_remain_period_ == std::chrono::microseconds::zero()) {
           pilot_->PerformForecasterTrain();
           forecaster_remain_period_ = forecaster_train_interval_;
-        } else {
-          pilot_->PerformPlanning();
         }
 
         pilot_->PerformPlanning();
