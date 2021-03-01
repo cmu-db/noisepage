@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-Main script for workload forecasting.
+Script for standalone workload forecasting without relying on model server
 Example usage:
 - Generate data (runs OLTP benchmark on the built database) and perform training, and save the trained model
-    ./forecaster --gen_data --models=LSTM --model_save_path=model.pickle
+    ./forecaster_standalone --generate_data 
+
+- Perform training and save the trained model
+    ./forecaster_standalone --models=LSTM --model_save_path=model.pickle
 
 - Use the trained models (LSTM) to generate predictions.
-    ./forecaster --model_load_path=model.pickle --test_file=test_query.csv --test_model=LSTM
+    ./forecaster_standalone --model_load_path=model.pickle --test_file=test_query.csv --test_model=LSTM
 
 
 TODO:
@@ -28,9 +31,10 @@ from ..testing.self_driving.constants import (DEFAULT_ITER_NUM,
                                               DEFAULT_WORKLOAD_PATTERN)
 from ..testing.self_driving.forecast import gen_oltp_trace
 from ..testing.util.constants import LOG
-from .cluster import QueryCluster
-from .data_loader import DataLoader
-from .models import ForecastModel, get_models
+from .forecasting.cluster import QueryCluster
+from .forecasting.data_loader import DataLoader
+from .forecasting.models import ForecastModel, get_models
+from .forecasting.forecaster import Forecaster, parse_model_config
 
 # Interval duration for aggregation in microseconds
 INTERVAL_MICRO_SEC = 500000
@@ -51,15 +55,10 @@ argp = argparse.ArgumentParser(description="Query Load Forecaster")
 
 # Generation stage related options
 argp.add_argument(
-    "--gen_data",
+    "--generate_data",
     default=False,
     action="store_true",
     help="If specified, OLTP benchmark would be downloaded and built to generate the query trace data")
-argp.add_argument(
-    "--gen_data_only",
-    default=False,
-    action="store_true",
-    help="If specified, only data generation will ensue")
 argp.add_argument(
     "--tpcc_weight",
     type=str,
@@ -124,28 +123,19 @@ argp.add_argument(
 if __name__ == "__main__":
     args = argp.parse_args()
 
-    if args.test_file is None:
+    if args.generate_data:
         # Generate OLTP trace file
-        if args.gen_data:
-            gen_oltp_trace(
-                tpcc_weight=args.tpcc_weight,
-                tpcc_rates=args.tpcc_rates,
-                pattern_iter=args.pattern_iter)
-
-            if args.gen_data_only:
-                exit()
-
-            trace_file = DEFAULT_QUERY_TRACE_FILE
-        else:
-            trace_file = args.trace_file
-
+        gen_oltp_trace(
+            tpcc_weight=args.tpcc_weight,
+            tpcc_rates=args.tpcc_rates,
+            pattern_iter=args.pattern_iter)
+    elif args.test_file is None:
         # Parse models arguments
-        sys.path.insert(0, str((Path.cwd() / '..').absolute()))
-        from self_driving.forecasting.forecaster import Forecaster, parse_model_config
         models_kwargs = parse_model_config(args.models, args.models_config)
 
         forecaster = Forecaster(
-            trace_file=trace_file,
+            trace_file=args.trace_file,
+            test_mode=False,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,
             eval_size=args.eval_size,
@@ -158,9 +148,6 @@ if __name__ == "__main__":
             with open(args.model_save_path, "wb") as f:
                 pickle.dump(models, f)
     else:
-        sys.path.insert(0, str((Path.cwd() / '..').absolute()))
-        from self_driving.forecasting.forecaster import Forecaster, parse_model_config
-
         # Do inference on a trained model
         with open(args.model_load_path, "rb") as f:
             models = pickle.load(f)

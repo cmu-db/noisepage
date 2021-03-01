@@ -210,7 +210,7 @@ bool ModelServerManager::TrainModel(ModelType::Type model, const std::vector<std
   // Callback to notify the waiter for result, or failure to parse the result.
   auto callback = [&, future](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
                               std::string_view message, uint64_t recv_cb_id) {
-    MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
+    MODEL_SERVER_LOG_DEBUG("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
     future->Done(message);
   };
 
@@ -244,7 +244,7 @@ std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, co
   // Callback to notify waiter with result
   auto callback = [&](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
                       std::string_view message, uint64_t recv_cb_id) {
-    MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
+    MODEL_SERVER_LOG_DEBUG("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
     future.Done(message);
   };
 

@@ -15,12 +15,12 @@ class PilotThread {
  public:
   /**
    * @param pilot Pointer to the pilot object to be run on this thread
-   * @param pilot_period Sleep time between Pilot invocations
-   * @param forecaster_train_period Sleep time between training forecast model
+   * @param pilot_interval Sleep time between Pilot invocations
+   * @param forecaster_train_interval Sleep time between training forecast model
    * @param pilot_planning if the pilot is enabled
    */
-  PilotThread(common::ManagedPointer<selfdriving::Pilot> pilot, std::chrono::microseconds pilot_period,
-              std::chrono::microseconds forecaster_train_period, bool pilot_planning);
+  PilotThread(common::ManagedPointer<selfdriving::Pilot> pilot, std::chrono::microseconds pilot_interval,
+              std::chrono::microseconds forecaster_train_interval, bool pilot_planning);
 
   ~PilotThread() { StopPilot(); }
 
@@ -69,21 +69,23 @@ class PilotThread {
   const common::ManagedPointer<selfdriving::Pilot> pilot_;
   volatile bool run_pilot_;
   volatile bool pilot_paused_;
-  std::chrono::microseconds pilot_period_;
-  std::chrono::microseconds forecaster_train_period_;
+  std::chrono::microseconds pilot_interval_;
+  std::chrono::microseconds forecaster_train_interval_;
   std::chrono::microseconds forecaster_remain_period_;
   std::thread pilot_thread_;
 
   void PilotThreadLoop() {
     while (run_pilot_) {
-      std::this_thread::sleep_for(pilot_period_);
+      std::this_thread::sleep_for(pilot_interval_);
       forecaster_remain_period_ -=
-          ((forecaster_remain_period_ > pilot_period_) ? pilot_period_ : forecaster_remain_period_);
+          ((forecaster_remain_period_ > pilot_interval_) ? pilot_interval_ : forecaster_remain_period_);
 
       if (!pilot_paused_) {
         if (forecaster_remain_period_ == std::chrono::microseconds::zero()) {
           pilot_->PerformForecasterTrain();
-          forecaster_remain_period_ = forecaster_train_period_;
+          forecaster_remain_period_ = forecaster_train_interval_;
+        } else {
+          pilot_->PerformPlanning();
         }
 
         pilot_->PerformPlanning();

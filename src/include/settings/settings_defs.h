@@ -413,7 +413,7 @@ SETTING_string(
 SETTING_string(
     model_save_path,
     "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
-    "/../script/model/terrier_model_server_trained/mini_model_test.pickle",
+    "../script/model/terrier_model_server_trained/mini_model_test.pickle",
     false,
     noisepage::settings::Callbacks::NoOp
 )

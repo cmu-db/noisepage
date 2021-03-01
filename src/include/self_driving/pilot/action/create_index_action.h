@@ -33,11 +33,13 @@ class CreateIndexAction : public AbstractAction {
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),
         columns_(std::move(columns)) {
+    NOISEPAGE_ASSERT(!columns_.empty(), "Should not create index without any columns!");
+
     sql_command_ = "create index " + index_name_ + " on " + table_name_ + "(";
 
     for (auto &column : columns_) sql_command_ += column.GetColumnName() + ", ";
 
-    sql_command_ += ");";
+    sql_command_ = sql_command_.substr(0, sql_command_.size() - 2) + ");";
   }
 
   /**

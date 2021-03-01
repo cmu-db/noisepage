@@ -135,6 +135,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            label 'h0-only'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -446,14 +447,21 @@ pipeline {
                         // enough trace could be generated for training and testing.
                         sh script :'''
                         cd build
-                        PYTHONPATH=.. python3 -m script.forecasting.forecaster --gen_data --pattern_iter=3 --model_save_path=model.pickle --models=LSTM
+                        PYTHONPATH=.. python3 -m script.self_driving.forecaster_standalone --generate_data --pattern_iter=3
+                        ''', label: 'Generate trace and perform training'
+
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecaster_standalone --model_save_path=model.pickle --models=LSTM
                         ''', label: 'Generate trace and perform training'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
                         cd build
-                        PYTHONPATH=.. python3 -m script.forecasting.forecaster --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
+                        PYTHONPATH=.. python3 -m script.self_driving.forecaster_standalone --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
                         ''', label: 'Perform inference on the trained model'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -477,6 +485,7 @@ pipeline {
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                         }
 
                         // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
@@ -485,7 +494,7 @@ pipeline {
                         // enough trace could be generated for training and testing.
                         sh script :'''
                         cd build
-                        PYTHONPATH=.. python3 -m script.forecasting.forecaster --gen_data --pattern_iter=3 --model_save_path=model.pickle --models=LSTM
+                        PYTHONPATH=.. python3 -m script.self_driving.forecaster_standalone --generate_data --pattern_iter=3
                         ''', label: 'Generate trace and perform training'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
@@ -505,7 +514,7 @@ pipeline {
                         sh script: '''
                         cd build
                         export BUILD_ABS_PATH=`pwd`
-                        timeout 10m ninja self_driving_e2e_test
+                        timeout 30m ninja self_driving_e2e_test
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'

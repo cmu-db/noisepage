@@ -9,6 +9,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
+#include "execution/sql/ddl_executors.h"
 #include "loggers/selfdriving_logger.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
@@ -39,16 +40,25 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   util.BeginTransaction();
   util.SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
 
-  bool is_query_set = false;
+  bool is_query_ddl = false;
+  bool is_create_idx = false;
   {
     std::string query = sql_query;
     auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
     auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
-    is_query_set = statement->GetQueryType() == network::QueryType::QUERY_SET;
+    is_query_ddl = network::DDLQueryType(statement->GetQueryType()) || statement->GetQueryType() == network::QueryType::QUERY_SET;;
+    is_create_idx = statement->GetQueryType() == network::QueryType::QUERY_CREATE_INDEX;
   }
 
-  if (is_query_set) {
+  if (is_query_ddl) {
     util.ExecuteDDL(sql_query);
+
+    if (is_create_idx) {
+      bool success = true;
+      size_t idx = util.CompileQuery(sql_query, nullptr, nullptr, &success);
+      if (success) util.ExecuteQuery(idx, nullptr, nullptr, nullptr);
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     bool success = true;
@@ -88,9 +98,9 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
   }
 }
 
-uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                                uint64_t start_segment_index, uint64_t end_segment_index) {
-  // Compute cost as average latency of queries weighted by their num of exec
+double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+                              uint64_t start_segment_index, uint64_t end_segment_index) {
+  // Compute cost as total latency of queries based on their num of exec
   // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
   // (where each entry corresponds to a different query param)
   // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
@@ -104,7 +114,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
   query_cost.emplace_back(prev_qid, 0);
 
   for (auto const &pipeline_to_pred : pipeline_to_prediction) {
-    auto pipeline_sum = 0;
+    double pipeline_sum = 0;
     for (auto const &pipeline_res : pipeline_to_pred.second) {
       for (auto ou_res : pipeline_res) {
         // sum up the latency of ous
@@ -113,14 +123,14 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
     // record average cost of this pipeline among the same queries with diff param
     if (prev_qid == pipeline_to_pred.first.first) {
-      query_cost.back().second += static_cast<double>(pipeline_sum) / pipeline_to_pred.second.size();
+      query_cost.back().second += pipeline_sum / pipeline_to_pred.second.size();
     } else {
       query_cost.emplace_back(pipeline_to_pred.first.first, pipeline_sum / pipeline_to_pred.second.size());
       prev_qid = pipeline_to_pred.first.first;
     }
   }
   double total_cost = 0;
-  uint128_t num_queries = 0;
+  double num_queries = 0;
   for (auto qcost : query_cost) {
     for (auto i = start_segment_index; i <= end_segment_index; i++) {
       total_cost += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first) * qcost.second;
@@ -128,7 +138,7 @@ uint64_t PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Man
     }
   }
   NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");
-  return total_cost / num_queries;
+  return total_cost;
 }
 
 const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
@@ -197,12 +207,11 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_qids, pipeline_data, &ou_to_features);
   NOISEPAGE_ASSERT(model_server_manager->ModelServerStarted(), "Model Server should have been started");
-  std::string project_build_path = getenv(Pilot::BUILD_ABS_PATH);
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
     auto res = model_server_manager->InferMiniRunnerModel(
-        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first),
-        project_build_path + model_save_path, ou_map_it.second);
+        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), model_save_path,
+        ou_map_it.second);
     if (!res.second) {
       throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
     }
