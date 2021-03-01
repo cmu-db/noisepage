@@ -11,11 +11,8 @@
 #include "self_driving/forecast/workload_forecast_segment.h"
 
 namespace noisepage::selfdriving {
-class PilotUtil;
 
-namespace pilot {
-class MonteCarloTreeSearch;
-}
+using WorkloadForecastPrediction = std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::vector<double>>>;
 
 /**
  * Breaking predicted queries passed in by the Pilot into segments by their associated timestamps

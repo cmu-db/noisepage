@@ -1,6 +1,6 @@
 import numpy as np
 
-from info import hardware_info
+from ..info import hardware_info
 
 
 class GlobalImpactData:
