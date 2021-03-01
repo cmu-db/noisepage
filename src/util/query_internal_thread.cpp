@@ -10,10 +10,12 @@ void QueryInternalThread::QueryThreadLoop() {
   // run_queries_ is only set by the teardown.
   while (run_queries_ || !queue_.empty()) {
     std::unique_lock lock(queue_mutex_);
-    queue_cv_.wait(lock);
-
     if (!queue_.empty()) {
-      ExecuteRequest &req = queue_.front();
+      // Pop and unlock
+      ExecuteRequest req = std::move(queue_.front());
+      queue_.pop();
+      lock.unlock();
+
       query_exec_util_->BeginTransaction();
 
       // Set the cost model function. If not specified, default to TrivialCostModel constructor
@@ -55,7 +57,8 @@ void QueryInternalThread::QueryThreadLoop() {
       // If the compile fails, we don't want to abort since that'll trip another assert.
       // In that case there's no harm in just committing an empty transaction.
       query_exec_util_->EndTransaction(!compiled_result || result);
-      queue_.pop();
+    } else {
+      queue_cv_.wait(lock);
     }
   }
 }

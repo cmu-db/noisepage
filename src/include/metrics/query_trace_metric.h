@@ -216,9 +216,8 @@ class QueryTraceMetricRawData : public AbstractRawData {
     query_text_.emplace_back(db_oid, query_id, query_text, type_string, timestamp);
     metadata_.RecordQueryText(query_id, db_oid, query_text, type_json);
 
-    // Track range of time data
-    low_timestamp_ = std::min(low_timestamp_, timestamp);
-    high_timestamp_ = std::max(high_timestamp_, timestamp);
+    // Don't track range of time data for QueryText.
+    // QueryText is not linked with when the query is run.
   }
 
   void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,

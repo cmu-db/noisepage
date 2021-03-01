@@ -122,7 +122,7 @@ void QueryTraceMetricRawData::WriteToDB(
       break;
     }
 
-    if ((*metadata_.iterator_).timestamp > low_timestamp_ + QUERY_SEGMENT_INTERVAL) {
+    if ((*metadata_.iterator_).timestamp >= low_timestamp_ + QUERY_SEGMENT_INTERVAL) {
       // In this case, the iterator has moved to a point such that we have a complete segment.
       // Submit the insert job based on the accumulated frequency information.
       if (!freqs.empty()) {
@@ -145,7 +145,7 @@ void QueryTraceMetricRawData::WriteToDB(
         // Reset the metadata
         seen.is_ddl_ = false;
         seen.db_oid_ = catalog::INVALID_DATABASE_OID;
-        seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies (?, ?, ?, ?)";
+        seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
         seen.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
         segment_number_++;
       }

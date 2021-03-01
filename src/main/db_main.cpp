@@ -63,7 +63,9 @@ void DBMain::ForceShutdown() {
   {
     // Release all claims to QueryInternalThread
     metrics_manager_->SetQueryInternalThread(nullptr);
-    pilot_->SetQueryInternalThread(nullptr);
+    if (pilot_ != nullptr) {
+      pilot_->SetQueryInternalThread(nullptr);
+    }
     pilot_thread_.release();
     metrics_thread_.release();
 
