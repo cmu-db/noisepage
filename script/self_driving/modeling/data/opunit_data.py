@@ -23,12 +23,12 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
         io_util.write_csv_result(output_path, key, value)
 
 
-def get_ou_runner_data(filename, model_results_path, txn_sample_interval, model_map={}, predict_cache={}, trim=0.2):
+def get_ou_runner_data(filename, model_results_path, txn_sample_rate, model_map={}, predict_cache={}, trim=0.2):
     """Get the training data from the ou runner
 
     :param filename: the input data file
     :param model_results_path: results log directory
-    :param txn_sample_interval: sampling interval for the transaction OUs
+    :param txn_sample_rate: sampling rate for the transaction OUs
     :param model_map: the map from OpUnit to the ou model
     :param predict_cache: cache for the ou model prediction
     :param trim: % of too high/too low anomalies to prune
@@ -37,7 +37,7 @@ def get_ou_runner_data(filename, model_results_path, txn_sample_interval, model_
 
     if "txn" in filename:
         # Cannot handle the transaction manager data yet
-        return _txn_get_ou_runner_data(filename, model_results_path, txn_sample_interval)
+        return _txn_get_ou_runner_data(filename, model_results_path, txn_sample_rate)
     if "execution" in filename:
         # Handle the execution data
         return _execution_get_ou_runner_data(filename, model_map, predict_cache, trim)
@@ -61,7 +61,7 @@ def _default_get_ou_runner_data(filename):
     return [OpUnitData(OpUnit[file_name.upper()], x, y)]
 
 
-def _txn_get_ou_runner_data(filename, model_results_path, txn_sample_interval):
+def _txn_get_ou_runner_data(filename, model_results_path, txn_sample_rate):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename)
     file_name = os.path.splitext(os.path.basename(filename))[0]
@@ -105,7 +105,8 @@ def _txn_get_ou_runner_data(filename, model_results_path, txn_sample_interval):
         x_new = np.sum(interval_x_map[rounded_time], axis=0)
         # Concatenate the number of different threads
         x_new = np.concatenate((x_new, [len(interval_id_map[rounded_time])]))
-        x_new *= txn_sample_interval + 1
+        if txn_sample_rate > 0:
+            x_new *= 100 / txn_sample_rate
         x_list.append(x_new)
         # The prediction is the average behavior
         y_list.append(np.average(interval_y_map[rounded_time], axis=0))

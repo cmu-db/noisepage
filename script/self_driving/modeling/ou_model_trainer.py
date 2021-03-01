@@ -26,7 +26,7 @@ class OUModelTrainer:
     Trainer for the ou models
     """
 
-    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all, txn_sample_interval):
+    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all, txn_sample_rate):
         self.input_path = input_path
         self.model_metrics_path = model_metrics_path
         self.ml_models = ml_models
@@ -35,7 +35,7 @@ class OUModelTrainer:
         self.stats_map = {}
         self.trim = trim
         self.expose_all = expose_all
-        self.txn_sample_interval = txn_sample_interval
+        self.txn_sample_rate = txn_sample_rate
 
     def get_model_map(self):
         return self.model_map
@@ -161,7 +161,7 @@ class OUModelTrainer:
         # First get the data for all ou runners
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
-            data_list = opunit_data.get_ou_runner_data(filename, self.model_metrics_path, self.txn_sample_interval,
+            data_list = opunit_data.get_ou_runner_data(filename, self.model_metrics_path, self.txn_sample_rate,
                                                          self.model_map, self.stats_map, self.trim)
             for data in data_list:
                 best_y_transformer, best_method = self.train_data(data, summary_file)
@@ -176,25 +176,25 @@ class OUModelTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='OU Model Trainer')
-    aparser.add_argument('--input_path', default='ou_runner_input',
+    aparser.add_argument('--input_path', default='modeling/ou_runner_input',
                          help='Input file path for the ou runners')
-    aparser.add_argument('--model_results_path', default='ou_runner_model_results',
+    aparser.add_argument('--model_results_path', default='modeling/ou_runner_model_results',
                          help='Prediction results of the ou models')
-    aparser.add_argument('--save_path', default='trained_model', help='Path to save the ou models')
+    aparser.add_argument('--save_path', default='modeling/trained_model', help='Path to save the ou models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
                          default=["lr", "rf", "gbm"],
                          help='ML models for the ou trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
     aparser.add_argument('--expose_all', default=True, help='Should expose all data to the model')
-    aparser.add_argument('--txn_sample_interval', type=int, default=49,
-                         help='Sampling interval for the transaction OUs')
+    aparser.add_argument('--txn_sample_rate', type=int, default=2,
+                         help='Sampling rate percentage for the transaction OUs (ignored if 0)')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
     logging_util.init_logging(args.log)
     trainer = OUModelTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim,
-                             args.expose_all, args.txn_sample_interval)
+                             args.expose_all, args.txn_sample_rate)
     trained_model_map = trainer.train()
     with open(args.save_path + '/ou_model_map.pickle', 'wb') as file:
         pickle.dump((trained_model_map, data_info.instance), file)

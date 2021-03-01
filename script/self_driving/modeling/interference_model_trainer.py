@@ -228,8 +228,8 @@ if __name__ == '__main__':
                          help='Input file path for the interference runners')
     aparser.add_argument('--model_results_path', default='interference_model_results',
                          help='Prediction results of the ou models')
-    aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
-    aparser.add_argument('--ou_model_file', default='trained_model/ou_model_map.pickle',
+    aparser.add_argument('--save_path', default='modeling/trained_model', help='Path to save the trained models')
+    aparser.add_argument('--ou_model_file', default='modeling/trained_model/ou_model_map.pickle',
                          help='File of the saved ou models')
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["nn"],
                          help='ML models for the ou trainer to evaluate')
@@ -242,11 +242,11 @@ if __name__ == '__main__':
     aparser.add_argument('--add_noise', action='store_true', help='Add noise to the cardinality estimations')
     aparser.add_argument('--predict_ou_only', action='store_true', help='Only predict the OU data (no training)')
     aparser.add_argument('--ee_sample_rate', type=int, default=2,
-                         help='Sampling rate for the execution engine OUs (ignored if 0)')
+                         help='Sampling rate percentage for the execution engine OUs (ignored if 0)')
     aparser.add_argument('--txn_sample_rate', type=int, default=2,
-                         help='Sampling rate for the transaction OUs (ignored if 0)')
+                         help='Sampling rate percentage for the transaction OUs (ignored if 0)')
     aparser.add_argument('--network_sample_rate', type=int, default=2,
-                         help='Sampling rate for the network OUs (ignored if 0)')
+                         help='Sampling rate percentage for the network OUs (ignored if 0)')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 

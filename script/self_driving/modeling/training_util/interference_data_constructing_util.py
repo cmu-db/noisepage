@@ -32,7 +32,7 @@ def get_data(input_path, ou_model_map, model_results_path, warmup_period, use_qu
     :param network_sample_rate: sampling rate for the network OUs
     :return: (InterferenceResourceData list, InterferenceImpactData list)
     """
-    cache_file = input_path + '/global_model_data.pickle'
+    cache_file = input_path + '/interference_model_data.pickle'
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list, = pickle.load(pickle_file)
