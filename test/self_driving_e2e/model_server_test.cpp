@@ -134,7 +134,7 @@ TEST_F(ModelServerTest, ForecastTest) {
   const char* env = ::getenv(BUILD_ABS_PATH);
   std::string project_build_path = (env ? env : "");
   std::string save_path = "model.pickle";
-  std::string input_path = project_build_path + "/../script/self_driving/query_trace.csv";
+  std::string input_path = project_build_path + "/query_trace.csv";
 
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval,
