@@ -225,6 +225,16 @@ bool ModelServerManager::TrainForecastModel(const std::vector<std::string> &meth
   return TrainModel(ModelType::Type::Forecast, methods, input_path, save_path, &j, future);
 }
 
+bool ModelServerManager::TrainInterferenceModel(const std::vector<std::string> &methods, const std::string &input_path,
+                                                const std::string &save_path, const std::string &ou_model_path,
+                                                uint64_t pipeline_metrics_sample_rate,
+                                                common::ManagedPointer<ModelServerFuture<std::string>> future) {
+  nlohmann::json j;
+  j["pipeline_metrics_sample_rate"] = pipeline_metrics_sample_rate;
+  j["ou_model_path"] = ou_model_path;
+  return TrainModel(ModelType::Type::Interference, methods, input_path, save_path, &j, future);
+}
+
 template <class Result>
 std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, const std::string &model_path,
                                                        nlohmann::json *payload) {

@@ -27,7 +27,7 @@ class ModelServerTest : public TerrierTest {
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain() {
     const char *env = ::getenv(BUILD_ABS_PATH);
-    std::string project_build_path = (env ? env : "");
+    std::string project_build_path = (env != nullptr ? env : ".");
     auto model_server_path = project_build_path + "/../script/self_driving/model_server.py";
 
     auto db_main = noisepage::DBMain::Builder()
@@ -78,7 +78,7 @@ TEST_F(ModelServerTest, DISABLED_OUModelTest) {
   };
 
   // Send a message
-  std::string msg = "ModelServerTest";
+  std::string msg = "ModelServer OU Model Test";
   ms_manager->PrintMessage(msg);
 
   // Perform a training of the opunit models with {lr, rf} as training methods.
@@ -87,7 +87,7 @@ TEST_F(ModelServerTest, DISABLED_OUModelTest) {
 
   ModelServerFuture<std::string> future;
   const char *env = ::getenv(BUILD_ABS_PATH);
-  std::string project_build_path = (env ? env : "");
+  std::string project_build_path = (env != nullptr ? env : "");
   ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, project_build_path + "/bin", save_path, nullptr,
                          common::ManagedPointer<ModelServerFuture<std::string>>(&future));
   auto res = future.Wait();
@@ -135,11 +135,15 @@ TEST_F(ModelServerTest, DISABLED_ForecastModelTest) {
   while (!ms_manager->ModelServerStarted()) {
   }
 
+  // Send a message
+  std::string msg = "ModelServer Forecasting Model Test";
+  ms_manager->PrintMessage(msg);
+
   // Perform a training of the opunit models with {lr, rf} as training methods.
   std::vector<std::string> methods{"LSTM"};
   uint64_t interval = 500000;
   const char *env = ::getenv(BUILD_ABS_PATH);
-  std::string project_build_path = (env ? env : "");
+  std::string project_build_path = (env != nullptr ? env : "");
   std::string save_path = "model.pickle";
   std::string input_path = project_build_path + "/query_trace.csv";
 
@@ -150,7 +154,7 @@ TEST_F(ModelServerTest, DISABLED_ForecastModelTest) {
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
-  auto result = ms_manager->InferForecastModel(input_path, save_path, methods, NULL, interval);
+  auto result = ms_manager->InferForecastModel(input_path, save_path, methods, nullptr, interval);
   ASSERT_TRUE(result.second);
 
   // Quit
@@ -171,7 +175,11 @@ TEST_F(ModelServerTest, InterferenceModelTest) {
   while (!ms_manager->ModelServerStarted()) {
   }
 
-  // Each input feature vector has 36 dimensions. 4 inputs in total.
+  // Send a message
+  std::string msg = "ModelServer Interference Model Test";
+  ms_manager->PrintMessage(msg);
+
+  // Each input feature vector has 27 dimensions. 4 inputs in total.
   std::vector<std::vector<double>> features(
       4, std::vector<double>{3021.72995431072,     9289.31287954857,  9.13346247415147,
                              3.76759508844315,     0.972971217834767, 2.27029084406291E-18,
@@ -183,23 +191,22 @@ TEST_F(ModelServerTest, InterferenceModelTest) {
                              1.11544080377168,     0.269083658337621, 9.21785213010602E-19,
                              9.21785213010602E-19, 10.8371832304431,  0.275654276087222});
 
-  // Send a message
-  std::string msg = "ModelServerTest";
-  ms_manager->PrintMessage(msg);
-
-  // Perform a training of the opunit models with {lr, rf} as training methods.
-  std::string save_path = "interference_direct_model.pickle";
-
-  /*
+  // Perform a training of the opunit models with {nn} as training methods.
   ModelServerFuture<std::string> future;
-  const char* env = ::getenv(BUILD_ABS_PATH);
-  std::string project_build_path = (env ? env : "");
-  std::vector<std::string> methods{"lr", "rf"};
-  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, project_build_path + "/bin", save_path, nullptr,
-                         common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  const char *env = ::getenv(BUILD_ABS_PATH);
+  std::string project_build_path = (env != nullptr ? env : ".");
+  std::vector<std::string> methods{"nn"};
+  // Input path and sample rate are specirifed during the data generation phase, which is before the invocation of
+  // this test (see Jenkinsfile configuration)
+  std::string input_path = project_build_path + "/concurrent_runner_input";
+  uint64_t sample_rate = 10;
+  std::string save_path = "interference_direct_model.pickle";
+  std::string ou_model_path = "ou_model_map.pickle";
+
+  ms_manager->TrainInterferenceModel(methods, input_path, save_path, ou_model_path, sample_rate,
+                                     common::ManagedPointer<ModelServerFuture<std::string>>(&future));
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
-   */
 
   // Perform inference on the trained opunit model for various opunits
   auto result = ms_manager->InferInterferenceModel(save_path, features);

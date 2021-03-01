@@ -311,7 +311,6 @@ class InterferenceModel(AbstractModel):
     USE_QUERY_PREDICT_CACHE = False
     ADD_NOISE = False
     PREDICT_OU_ONLY = False
-    EE_SAMPLE_RATE = 2
     TXN_SAMPLE_RATE = 2
     NETWORK_SAMPLE_RATE = 2
 
@@ -332,6 +331,7 @@ class InterferenceModel(AbstractModel):
         input_path = data["input_path"]
         save_path = data["save_path"]
         ou_model_path = data["ou_model_path"]
+        ee_sample_rate = data["pipeline_metrics_sample_rate"]
 
         # Do path checking up-front
         save_path = Path(save_path)
@@ -354,7 +354,6 @@ class InterferenceModel(AbstractModel):
         use_query_predict_cache = InterferenceModel.USE_QUERY_PREDICT_CACHE
         add_noise = InterferenceModel.ADD_NOISE
         predict_ou_only = InterferenceModel.PREDICT_OU_ONLY
-        ee_sample_rate = InterferenceModel.EE_SAMPLE_RATE
         txn_sample_rate = InterferenceModel.TXN_SAMPLE_RATE
         network_sample_rate = InterferenceModel.NETWORK_SAMPLE_RATE
 

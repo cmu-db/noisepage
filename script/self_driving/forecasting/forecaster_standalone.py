@@ -52,6 +52,11 @@ argp.add_argument(
     action="store_true",
     help="If specified, OLTP benchmark would be downloaded and built to generate the query trace data")
 argp.add_argument(
+    "--record_pipeline_metrics",
+    default=False,
+    action="store_true",
+    help="If specified, the database records the pipeline metrics data instead of the query trace data")
+argp.add_argument(
     "--tpcc_weight",
     type=str,
     default=DEFAULT_TPCC_WEIGHTS,
@@ -119,7 +124,8 @@ if __name__ == "__main__":
         gen_oltp_trace(
             tpcc_weight=args.tpcc_weight,
             tpcc_rates=args.tpcc_rates,
-            pattern_iter=args.pattern_iter)
+            pattern_iter=args.pattern_iter,
+            record_pipeline_metrics=args.record_pipeline_metrics)
     elif args.test_file is None:
         # Parse models arguments
         models_kwargs = parse_model_config(args.models, args.models_config)

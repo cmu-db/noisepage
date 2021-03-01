@@ -254,7 +254,7 @@ class ModelServerManager {
    * @param model model type to train
    * @param methods list of candidates methods that will be used for training
    * @param input_path Path to input files for training model (seq file directory for MiniRunnerModel)
-   * @param save_path path to where the trained model map will be stored at
+   * @param save_path path to where the trained model will be stored at
    * @param arguments Extra arguments to pass
    * @param future A future object which the caller waits for training to be done
    * @return True if sending train request suceeds
@@ -262,6 +262,27 @@ class ModelServerManager {
   bool TrainModel(ModelType::Type model, const std::vector<std::string> &methods, const std::string &input_path,
                   const std::string &save_path, nlohmann::json *arguments,
                   common::ManagedPointer<ModelServerFuture<std::string>> future);
+
+  /**
+   * Train an interference model
+   *
+   * This function will be invoked asynchronously.
+   * The caller should wait on the future if it wants to synchronize with the training process.
+   *
+   * The caller should use the save_path as a handle to the trained model for inference later on.
+   *
+   * @param methods list of candidates methods that will be used for training
+   * @param input_path Path to input files for training model (seq file directory for MiniRunnerModel)
+   * @param save_path path to where the trained interference model will be stored at
+   * @param ou_model_path path to where the trained OU model map is stored at
+   * @param pipeline_metrics_sample_rate Sample rate percentage for the pipeline metrics
+   * @param future A future object which the caller waits for training to be done
+   * @return True if sending train request suceeds
+   */
+  bool TrainInterferenceModel(const std::vector<std::string> &methods, const std::string &input_path,
+                              const std::string &save_path, const std::string &ou_model_path,
+                              uint64_t pipeline_metrics_sample_rate,
+                              common::ManagedPointer<ModelServerFuture<std::string>> future);
 
   /**
    * Train a forecast model

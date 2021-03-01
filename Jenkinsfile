@@ -495,7 +495,16 @@ pipeline {
                         sh script :'''
                         cd build
                         PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
-                        ''', label: 'Generate trace and perform training'
+                        ''', label: 'Forecasting model training data generation'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // This scripts runs TPCC benchmark with pipeline metrics enabled.
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics --pattern_iter=1
+                        mkdir concurrent_runner_input
+                        mv pipeline_metrics concurrent_runner_input
+                        ''', label: 'Interference model training data generation'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         // The parameters to the execution_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
@@ -507,14 +516,14 @@ pipeline {
                         sh script :'''
                         cd build/bin
                         ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
-                        ''', label: 'Mini-trainer input generation'
+                        ''', label: 'OU model training data generation'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
                         cd build
                         export BUILD_ABS_PATH=`pwd`
-                        timeout 30m ninja self_driving_e2e_test
+                        timeout 10m ninja self_driving_e2e_test
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
