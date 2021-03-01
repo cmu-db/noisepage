@@ -8,6 +8,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
+        /*
         stage('Ready For CI') {
             agent {
                 docker {
@@ -423,6 +424,7 @@ pipeline {
                 }
             }
         }
+        */
 
         stage('Self-Driving') {
             parallel {

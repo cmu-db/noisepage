@@ -31,7 +31,7 @@ DEFAULT_QUERY_TRACE_FILE = "query_trace.csv"
 DEFAULT_PIPELINE_METRICS_FILE = "pipeline.csv"
 
 # Default pipeline metrics sample rate (percentage)
-DEFAULT_PIPELINE_METRICS_SAMPLE_RATE = 10
+DEFAULT_PIPELINE_METRICS_SAMPLE_RATE = 2
 
 # Default DB user
 DEFAULT_DB_USER = "noisepage"
