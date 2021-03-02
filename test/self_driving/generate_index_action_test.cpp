@@ -3,10 +3,10 @@
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
-#include "self_driving/pilot/action/abstract_action.h"
-#include "self_driving/pilot/action/action_defs.h"
-#include "self_driving/pilot/action/generators/index_action_generator.h"
-#include "self_driving/pilot/action/index_action_util.h"
+#include "self_driving/planning/action/abstract_action.h"
+#include "self_driving/planning/action/action_defs.h"
+#include "self_driving/planning/action/generators/index_action_generator.h"
+#include "self_driving/planning/action/index_action_util.h"
 
 namespace noisepage::selfdriving::pilot::test {
 
