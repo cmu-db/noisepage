@@ -206,26 +206,4 @@ TEST_F(ModelServerTest, ForecastModelTest) {
   ms_manager->StopModelServer();
 }
 
-// NOLINTNEXTLINE
-TEST_F(ModelServerTest, InterferenceModelTest) {
-  messenger::messenger_logger->set_level(spdlog::level::info);
-  model_server_logger->set_level(spdlog::level::info);
-
-  auto primary = BuildDBMain();
-  primary->GetNetworkLayer()->GetServer()->RunServer();
-
-  auto ms_manager = primary->GetModelServerManager();
-
-  // Wait for the model server process to start
-  while (!ms_manager->ModelServerStarted()) {
-  }
-
-  // Send a message
-  std::string msg = "ModelServer Interference Model Test";
-  ms_manager->PrintMessage(msg);
-
-  // Quit
-  ms_manager->StopModelServer();
-}
-
 }  // namespace noisepage::modelserver

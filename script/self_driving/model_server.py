@@ -396,6 +396,8 @@ class InterferenceModel(AbstractModel):
         features = np.array(features)
 
         y_pred = model.predict(features)
+        print(features)
+        print(y_pred)
         return y_pred.tolist(), True, ""
 
     def _load_model_from_disk(self, save_path: Path):
