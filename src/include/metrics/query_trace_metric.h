@@ -83,6 +83,8 @@ class QueryTraceMetadata {
       // These are duplicate keys so need to merge reservoir
       if (qid_param_samples_.find(it.first) != qid_param_samples_.end()) {
         qid_param_samples_.find(it.first)->second.Merge(it.second);
+      } else {
+        qid_param_samples_.emplace(std::move(it));
       }
     }
 

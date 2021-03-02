@@ -1,3 +1,4 @@
+#include "execution/sql/value_util.h"
 #include "metrics/query_trace_metric.h"
 #include "self_driving/pilot/pilot.h"
 
@@ -50,15 +51,27 @@ void QueryTraceMetricRawData::WriteToDB(
             execution::sql::Integer(static_cast<int64_t>(data.second.db_oid_.UnderlyingValue())));
         params[1] = parser::ConstantValueExpression(type::TypeId::INTEGER,
                                                     execution::sql::Integer(data.first.UnderlyingValue()));
-        params[2] = parser::ConstantValueExpression(
-            type::TypeId::VARCHAR, execution::sql::StringVal(data.second.text_.c_str(), data.second.text_.size()));
-        params[3] = parser::ConstantValueExpression(
-            type::TypeId::VARCHAR,
-            execution::sql::StringVal(data.second.param_type_.c_str(), data.second.param_type_.size()));
+
+        {
+          const auto string = std::string_view(data.second.text_);
+          auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+          params[2] =
+              parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+        }
+
+        {
+          const auto string = std::string_view(data.second.param_type_);
+          auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+          params[3] =
+              parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+        }
         texts.params_.emplace_back(std::move(params));
       }
 
-      query_internal_thread->AddRequest(std::move(texts));
+      if (!texts.params_.empty()) {
+        query_internal_thread->AddRequest(std::move(texts));
+      }
+
       if (out_metadata) {
         *out_metadata = metadata_.qmetadata_;
       }
@@ -79,8 +92,11 @@ void QueryTraceMetricRawData::WriteToDB(
           param_vec[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
           param_vec[1] = parser::ConstantValueExpression(type::TypeId::INTEGER,
                                                          execution::sql::Integer(data.first.UnderlyingValue()));
-          param_vec[2] = parser::ConstantValueExpression(type::TypeId::VARCHAR,
-                                                         execution::sql::StringVal(sample.c_str(), sample.length()));
+
+          const auto string = std::string_view(sample);
+          auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+          param_vec[2] =
+              parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
           params.params_.emplace_back(std::move(param_vec));
         }
 
@@ -89,7 +105,9 @@ void QueryTraceMetricRawData::WriteToDB(
         }
       }
 
-      query_internal_thread->AddRequest(std::move(params));
+      if (!params.params_.empty()) {
+        query_internal_thread->AddRequest(std::move(params));
+      }
     }
 
     metadata_.ResetQueryMetadata();

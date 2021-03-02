@@ -74,8 +74,8 @@ class ReservoirSampling {
    */
   void Merge(ReservoirSampling<Value> &other) {
     while (!other.queue_.empty()) {
-      AddSample(queue_.top());
-      queue_.pop();
+      AddSample(other.queue_.top());
+      other.queue_.pop();
     }
   }
 
