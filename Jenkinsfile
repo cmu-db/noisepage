@@ -80,6 +80,7 @@ pipeline {
                         sh script :'''
                         cd build
                         PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
+                        ls
                         ''', label: 'Forecasting model training data generation'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
@@ -89,6 +90,7 @@ pipeline {
                         PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics --pattern_iter=1
                         mkdir concurrent_runner_input
                         mv pipeline.csv concurrent_runner_input
+                        ls
                         ''', label: 'Interference model training data generation'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
@@ -108,6 +110,7 @@ pipeline {
                         sh script: '''
                         cd build
                         export BUILD_ABS_PATH=`pwd`
+                        ls
                         timeout 10m ninja self_driving_e2e_test
                         ''', label: 'Running self-driving end-to-end test'
 
