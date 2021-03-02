@@ -199,7 +199,7 @@ set(NOISEPAGE_TEST_PARALLELISM
 
 option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
         "Verbose output for unittests when they fail. Warning: on jumbo, this is VERY verbose!"
-        ON)
+        OFF)
 
 option(NOISEPAGE_UNITY_BUILD
         "Enable Unity builds for much faster compilation. https://cmake.org/cmake/help/latest/prop_tgt/UNITY_BUILD.html"

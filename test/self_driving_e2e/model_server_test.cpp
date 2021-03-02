@@ -165,7 +165,7 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ModelServerTest, DISABLED_ForecastModelTest) {
+TEST_F(ModelServerTest, ForecastModelTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
