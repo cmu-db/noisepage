@@ -88,7 +88,7 @@ pipeline {
                         cd build
                         PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics --pattern_iter=1
                         mkdir concurrent_runner_input
-                        mv pipeline_metrics concurrent_runner_input
+                        mv pipeline.csv concurrent_runner_input
                         ''', label: 'Interference model training data generation'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
