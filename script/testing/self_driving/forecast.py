@@ -74,9 +74,6 @@ def gen_oltp_trace(
     -------
     True on success.
     """
-    # Remove the old query_trace/query_text.csv
-    Path(DEFAULT_QUERY_TRACE_FILE).unlink(missing_ok=True)
-
     # Server is running when this returns
     oltp_server = TestOLTPBench(DEFAULT_OLTP_SERVER_ARGS)
     db_server = oltp_server.db_instance
@@ -107,6 +104,8 @@ def gen_oltp_trace(
         # Turn on query trace metrics tracing
         db_server.execute("SET query_trace_metrics_enable='true'", expect_result=False)
         result_file = DEFAULT_QUERY_TRACE_FILE
+    # Remove the old result file
+    Path(result_file).unlink(missing_ok=True)
 
     # Run the actual test
     ret_val, _, stderr = run_command(test_case.test_command,
