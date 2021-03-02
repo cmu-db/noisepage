@@ -37,7 +37,7 @@ namespace noisepage::modelserver {
 class ModelType {
  public:
   /**
-   * Enum describing the specific type of model (i.e., forecast, minirunner, interference)
+   * Enum describing the specific type of model (i.e., forecast, operating unit, interference)
    */
   enum class Type : uint32_t { Forecast, OperatingUnit, Interference };
 
