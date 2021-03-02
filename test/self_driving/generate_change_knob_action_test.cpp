@@ -1,9 +1,9 @@
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "self_driving/pilot/action/abstract_action.h"
-#include "self_driving/pilot/action/action_defs.h"
-#include "self_driving/pilot/action/change_knob_value_config.h"
-#include "self_driving/pilot/action/generators/change_knob_action_generator.h"
+#include "self_driving/planning/action/abstract_action.h"
+#include "self_driving/planning/action/action_defs.h"
+#include "self_driving/planning/action/change_knob_value_config.h"
+#include "self_driving/planning/action/generators/change_knob_action_generator.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::selfdriving::pilot::test {

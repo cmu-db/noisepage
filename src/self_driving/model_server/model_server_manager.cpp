@@ -13,7 +13,7 @@
 #include "loggers/model_server_logger.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
-#include "self_driving/forecast/workload_forecast.h"
+#include "self_driving/forecasting/workload_forecast.h"
 
 namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
@@ -225,6 +225,16 @@ bool ModelServerManager::TrainForecastModel(const std::vector<std::string> &meth
   return TrainModel(ModelType::Type::Forecast, methods, input_path, save_path, &j, future);
 }
 
+bool ModelServerManager::TrainInterferenceModel(const std::vector<std::string> &methods, const std::string &input_path,
+                                                const std::string &save_path, const std::string &ou_model_path,
+                                                uint64_t pipeline_metrics_sample_rate,
+                                                common::ManagedPointer<ModelServerFuture<std::string>> future) {
+  nlohmann::json j;
+  j["pipeline_metrics_sample_rate"] = pipeline_metrics_sample_rate;
+  j["ou_model_path"] = ou_model_path;
+  return TrainModel(ModelType::Type::Interference, methods, input_path, save_path, &j, future);
+}
+
 template <class Result>
 std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, const std::string &model_path,
                                                        nlohmann::json *payload) {
@@ -256,12 +266,12 @@ std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, co
   return future.Wait();
 }
 
-std::pair<std::vector<std::vector<double>>, bool> ModelServerManager::InferMiniRunnerModel(
+std::pair<std::vector<std::vector<double>>, bool> ModelServerManager::InferOUModel(
     const std::string &opunit, const std::string &model_path, const std::vector<std::vector<double>> &features) {
   nlohmann::json j;
   j["opunit"] = opunit;
   j["features"] = features;
-  return InferModel<std::vector<std::vector<double>>>(ModelType::Type::MiniRunner, model_path, &j);
+  return InferModel<std::vector<std::vector<double>>>(ModelType::Type::OperatingUnit, model_path, &j);
 }
 
 std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::InferForecastModel(
@@ -286,6 +296,13 @@ std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::Inf
     result[std::stoi(cid_pair.first, nullptr)] = std::move(cid_data);
   }
   return {result, data.second};
+}
+
+std::pair<std::vector<std::vector<double>>, bool> ModelServerManager::InferInterferenceModel(
+    const std::string &model_path, const std::vector<std::vector<double>> &features) {
+  nlohmann::json j;
+  j["features"] = features;
+  return InferModel<std::vector<std::vector<double>>>(ModelType::Type::Interference, model_path, &j);
 }
 
 }  // namespace noisepage::modelserver
