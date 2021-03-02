@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -71,6 +72,44 @@ class OptimizerUtil {
                                                                                  const std::string &alias,
                                                                                  catalog::db_oid_t db_oid,
                                                                                  catalog::table_oid_t tbl_oid);
+
+  /**
+   * Generate column value expression
+   *
+   * @param column column to create a ColumnValueExpression from
+   * @param alias Table alias used in constructing ColumnValue
+   * @param db_oid Database OID
+   * @param tbl_oid Table OID for catalog lookup
+   * @return column value expression for the underlying column
+   */
+  static parser::AbstractExpression *GenerateColumnValueExpr(const catalog::Schema::Column &column,
+                                                             const std::string &alias, catalog::db_oid_t db_oid,
+                                                             catalog::table_oid_t tbl_oid);
+
+  /**
+   * Generate an aggregate expression
+   *
+   * @param column the underlying column to aggregate over
+   * @param aggregate_type the type of aggregation
+   * @param distinct whether or not the aggregation should be distinct
+   * @param alias Table alias used in constructing ColumnValue
+   * @param db_oid Database OID
+   * @param tbl_oid Table OID for catalog lookup
+   * @return An Aggregate expression with an underlying column
+   */
+  static parser::AbstractExpression *GenerateAggregateExpr(const catalog::Schema::Column &column,
+                                                           parser::ExpressionType aggregate_type, bool distinct,
+                                                           const std::string &alias, catalog::db_oid_t db_oid,
+                                                           catalog::table_oid_t tbl_oid);
+
+  /**
+   * Generate an aggregate expression with an underlying star expression
+   *
+   * @param aggregate_type the type of aggregation
+   * @param distinct whether or not the aggregation should be distinct
+   * @return An Aggregate expression with an underlying star expression
+   */
+  static parser::AbstractExpression *GenerateStarAggregateExpr(parser::ExpressionType aggregate_type, bool distinct);
 };
 
 }  // namespace noisepage::optimizer

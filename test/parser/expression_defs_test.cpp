@@ -87,6 +87,10 @@ TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::AGGREGATE_MAX, false), "AGGREGATE_MAX");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::AGGREGATE_AVG, true), "AVG");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::AGGREGATE_AVG, false), "AGGREGATE_AVG");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::AGGREGATE_TOP_K, true), "TOP_K");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::AGGREGATE_TOP_K, false), "AGGREGATE_TOP_K");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::AGGREGATE_HISTOGRAM, true), "HISTOGRAM");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::AGGREGATE_HISTOGRAM, false), "AGGREGATE_HISTOGRAM");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::FUNCTION, true), "FUNCTION");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::FUNCTION, false), "FUNCTION");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::HASH_RANGE, true), "HASH_RANGE");

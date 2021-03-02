@@ -341,6 +341,9 @@ void TableGenerator::GenerateTestTables() {
       // The empty table
       {"empty_table", 0, {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
 
+      // The empty nullable table
+      {"empty_nullable_table", 0, {{"colA", type::TypeId::INTEGER, true, Dist::Serial, 0, 0}}},
+
       // Table 1
       {"test_1",
        TEST1_SIZE,
@@ -374,6 +377,18 @@ void TableGenerator::GenerateTestTables() {
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
         {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
         {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
+
+      // Empty table with nullable columns of various types
+      {"all_types_empty_nullable_table",
+       0,
+       {{"varchar_col", type::TypeId::VARCHAR, true, Dist::Serial, 0, 0},
+        {"date_col", type::TypeId::DATE, true, Dist::Serial, 0, 0},
+        {"real_col", type::TypeId::REAL, true, Dist::Serial, 0, 0},
+        {"bool_col", type::TypeId::BOOLEAN, true, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, true, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, true, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, true, Dist::Uniform, 0, 0},
+        {"bigint_col", type::TypeId::BIGINT, true, Dist::Uniform, 0, 1000}}},
 
       // Empty table with columns of various types
       {"all_types_empty_table",

@@ -1134,11 +1134,14 @@ void PlanGenerator::Visit(const DropView *drop_view) {
 }
 
 void PlanGenerator::Visit(const Analyze *analyze) {
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "Analyze should have 1 child plan");
   output_plan_ = planner::AnalyzePlanNode::Builder()
                      .SetPlanNodeId(GetNextPlanNodeID())
                      .SetDatabaseOid(analyze->GetDatabaseOid())
                      .SetTableOid(analyze->GetTableOid())
                      .SetColumnOIDs(analyze->GetColumns())
+                     .AddChild(std::move(children_plans_[0]))
+                     .SetOutputSchema(std::make_unique<planner::OutputSchema>())
                      .Build();
 }
 
