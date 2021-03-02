@@ -8,12 +8,12 @@ import tqdm
 import random
 from sklearn import model_selection
 
-import model
-import global_model_config
-from info import data_info
-from util import io_util, logging_util
-from training_util import global_data_constructing_util, result_writing_util
-from type import Target
+from model import model
+from model import global_model_config
+from model.info import data_info
+from model.util import io_util, logging_util
+from model.training_util import global_data_constructing_util, result_writing_util
+from model.type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -223,9 +223,9 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='global_runner_input_tpcc',
+    aparser.add_argument('--input_path', default='global_runner_input',
                          help='Input file path for the global runners')
-    aparser.add_argument('--model_results_path', default='global_model_results_tpcc',
+    aparser.add_argument('--model_results_path', default='global_model_results',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
     aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',

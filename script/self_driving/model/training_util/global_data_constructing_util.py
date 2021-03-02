@@ -7,12 +7,12 @@ import numpy as np
 import tqdm
 import pickle
 
-from util import io_util
-from info import hardware_info
-from info import data_info
-from data_class import global_model_data, grouped_op_unit_data
-import global_model_config
-from type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
+from ..util import io_util
+from ..info import hardware_info
+from ..info import data_info
+from ..data_class import global_model_data, grouped_op_unit_data
+from .. import global_model_config
+from ..type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
 
 def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_query_predict_cache, add_noise,

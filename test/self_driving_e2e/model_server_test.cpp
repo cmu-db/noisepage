@@ -12,8 +12,13 @@ namespace noisepage::modelserver {
 
 /**
  * @warning Running this test requires external dependency to be located at specific paths.
- *  The environment BUILD_ABS_PATH needs to be set to be the build directory such that:
- *      1. BUILD_ABS_PATH/../script/model/model_server.py is executable
+ *
+ * The environment BUILD_ABS_PATH needs to be set to be the build directory such that
+ * BUILD_ABS_PATH/../script/model/model_server.py is executable. Note that on Jenkins,
+ * tests do not run with their current working directory set to the build subdirectory
+ * from which "../script/self_driving/model_server.py" is valid. BUILD_ABS_PATH (an
+ * optional env arg) is used to allow this test to run both locally and remotely
+ * without modifying the test itself.
  */
 class ModelServerTest : public TerrierTest {
  protected:
@@ -21,8 +26,9 @@ class ModelServerTest : public TerrierTest {
 
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain() {
-    std::string project_build_path = ::getenv(BUILD_ABS_PATH);
-    auto model_server_path = project_build_path + "/../script/model/model_server.py";
+    const char *env = ::getenv(BUILD_ABS_PATH);
+    std::string project_build_path = (env ? env : "");
+    auto model_server_path = project_build_path + "/../script/self_driving/model_server.py";
 
     auto db_main = noisepage::DBMain::Builder()
                        .SetUseSettingsManager(false)
@@ -54,10 +60,6 @@ class ModelServerTest : public TerrierTest {
 TEST_F(ModelServerTest, PipelineTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
-  char *project_build_path = ::getenv(BUILD_ABS_PATH);
-  // BUILD_ABS_PATH environment variable has to be set
-  ASSERT_NE(project_build_path, nullptr);
-  MODEL_SERVER_LOG_INFO("Running in build directory :{}", project_build_path);
 
   auto primary = BuildDBMain();
   primary->GetNetworkLayer()->GetServer()->RunServer();
@@ -84,36 +86,75 @@ TEST_F(ModelServerTest, PipelineTest) {
   std::string save_path = "model_server_test.pickle";
 
   ModelServerFuture<std::string> future;
-  ms_manager->TrainWith(methods, std::string(project_build_path) + "/bin", save_path,
-                        common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  const char *env = ::getenv(BUILD_ABS_PATH);
+  std::string project_build_path = (env ? env : "");
+  ms_manager->TrainModel(ModelType::Type::MiniRunner, methods, project_build_path + "/bin", save_path, nullptr,
+                         common::ManagedPointer<ModelServerFuture<std::string>>(&future));
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
-  auto result = ms_manager->DoInference(
+  auto result = ms_manager->InferMiniRunnerModel(
       OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->DoInference(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE), save_path,
-                                   features);
+  result = ms_manager->InferMiniRunnerModel(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_REAL_COMPARE),
+                                            save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
-  result = ms_manager->DoInference(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY),
-                                   save_path, features);
+  result = ms_manager->InferMiniRunnerModel(
+      OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY), save_path, features);
   ASSERT_TRUE(result.second);
   ASSERT_EQ(result.first.size(), features.size());
 
   // Model at another path should not exist
   std::string non_exist_path("model_server_test_non_exist.pickle");
-  result = ms_manager->DoInference(OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS),
-                                   non_exist_path, features);
+  result = ms_manager->InferMiniRunnerModel(
+      OpUnitToString(selfdriving::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), non_exist_path, features);
   ASSERT_FALSE(result.second);
 
   // Inference with invalid opunit name will fail
-  result = ms_manager->DoInference("OP_SUPER_MAGICAL_DIVIDE", non_exist_path, features);
+  result = ms_manager->InferMiniRunnerModel("OP_SUPER_MAGICAL_DIVIDE", non_exist_path, features);
   ASSERT_FALSE(result.second);
 
   // Quit
   ms_manager->StopModelServer();
 }
+
+// NOLINTNEXTLINE
+TEST_F(ModelServerTest, ForecastTest) {
+  messenger::messenger_logger->set_level(spdlog::level::info);
+  model_server_logger->set_level(spdlog::level::info);
+
+  auto primary = BuildDBMain();
+  primary->GetNetworkLayer()->GetServer()->RunServer();
+
+  auto ms_manager = primary->GetModelServerManager();
+
+  // Wait for the model server process to start
+  while (!ms_manager->ModelServerStarted()) {
+  }
+
+  // Perform a training of the opunit models with {lr, rf} as training methods.
+  std::vector<std::string> methods{"LSTM"};
+  uint64_t interval = 500000;
+  const char *env = ::getenv(BUILD_ABS_PATH);
+  std::string project_build_path = (env ? env : "");
+  std::string save_path = "model.pickle";
+  std::string input_path = project_build_path + "/query_trace.csv";
+
+  ModelServerFuture<std::string> future;
+  ms_manager->TrainForecastModel(methods, input_path, save_path, interval,
+                                 common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  auto res = future.Wait();
+  ASSERT_EQ(res.second, true);  // Training succeeds
+
+  // Perform inference on the trained opunit model for various opunits
+  auto result = ms_manager->InferForecastModel(input_path, save_path, methods, NULL, interval);
+  ASSERT_TRUE(result.second);
+
+  // Quit
+  ms_manager->StopModelServer();
+}
+
 }  // namespace noisepage::modelserver

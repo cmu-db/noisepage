@@ -4,19 +4,19 @@ This file contains data loading logic from the query trace file produced. Hardco
 query trace producer.
 """
 
+import logging
 import csv
-from typing import Dict
-
+from typing import Dict, Tuple
 import numpy as np
-
-from ..testing.util.constants import LOG
 
 
 class DataLoader:
+    # Hardcoded db_oid column index in the query_trace file
+    DBOID_IDX = 0
     # Hardcoded query_id column index in the query_trace file
-    QID_IDX = 0
+    QID_IDX = 1
     # Hardcoded timestamp column index in the query_trace file
-    TS_IDX = 1
+    TS_IDX = 2
 
     def __init__(self,
                  interval_us: int,
@@ -37,14 +37,14 @@ class DataLoader:
     def _load_data(self) -> np.ndarray:
         """
         Load data from csv
-        :return: Loaded 2D numpy array of [query_id, timestamp]
+        :return: Loaded 2D numpy array of [db_oid, query_id, timestamp]
         """
-        LOG.info(f"Loading data from {self._query_trace_file}")
+        logging.info(f"Loading data from {self._query_trace_file}")
         # Load data from the files
         with open(self._query_trace_file, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             data = np.array(
-                [[int(r['query_id']), int(r[' timestamp'])] for r in reader])
+                [[int(r['db_oid']), int(r[' query_id']), int(r[' timestamp'])] for r in reader])
 
             if len(data) == 0:
                 raise ValueError("Empty trace file")
