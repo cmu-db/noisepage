@@ -27,11 +27,10 @@ namespace noisepage::optimizer {
  * Specifically Algorithm 1, 3, and 4.
  *
  * Histogram supports any key type that can be easily converted into a double. However in order to get meaningful
- * results from the histogram the ordering of the keys should be perserved in this conversion. So for example if
+ * results from the histogram the ordering of the keys should be preserved in this conversion. So for example if
  * key1 > key2 then ConvertToPoint(key1) > ConvertToPoint(key2) where ConvertToPoint(k) converts k to a double.
  *
- * //TODO(Joe) make sure we're not returning garbage for strings then
- * Histogram currently supports strings by hashing them, but since hashing doesn't perserve lexographical ordering it's
+ * Histogram currently supports strings by hashing them, but since hashing doesn't preserve lexicographical ordering it's
  * pretty much useless
  */
 template <typename KeyType>

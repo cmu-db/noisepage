@@ -236,8 +236,12 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
                                                         top_k_str, histogram_str, type);
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY:
+      /*
+       * TODO(Joe) The current implementation of Histogram produces meaningless results for strings. See histogram.h
+       *  for a more detailed explanation. For now we just use an empty histogram.
+       */
       return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
-                                                          top_k_str, histogram_str, type);
+                                                          top_k_str, nullptr, type);
     default:
       UNREACHABLE("Invalid column type");
   }
@@ -255,8 +259,8 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
                        ? optimizer::Histogram<CppType>::Deserialize(histogram_str->Content(), histogram_str->Size())
                        : optimizer::Histogram<CppType>();
   return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null, distinct_values,
-                                                     std::make_unique<optimizer::TopKElements<CppType>>(top_k),
-                                                     std::make_unique<optimizer::Histogram<CppType>>(histogram), type);
+                                                     std::make_unique<optimizer::TopKElements<CppType>>(std::move(top_k)),
+                                                     std::make_unique<optimizer::Histogram<CppType>>(std::move(histogram)), type);
 }
 
 }  // namespace noisepage::catalog::postgres

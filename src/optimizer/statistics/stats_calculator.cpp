@@ -237,7 +237,7 @@ size_t StatsCalculator::EstimateCardinalityForFilter(
   std::vector<common::ManagedPointer<ColumnStatsBase>> predicate_stats_vec;
   TableStats table_stats;
   for (const auto &predicate : predicate_stats) {
-    // TODO(Joe) this copy is probably uneccessary
+    // TODO(Joe) this copy is probably unnecessary
     table_stats.AddColumnStats(predicate.second->Copy());
   }
 
