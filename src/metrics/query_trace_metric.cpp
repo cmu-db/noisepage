@@ -1,6 +1,6 @@
 #include "execution/sql/value_util.h"
 #include "metrics/query_trace_metric.h"
-#include "self_driving/pilot/pilot.h"
+#include "self_driving/planning/pilot.h"
 
 namespace noisepage::metrics {
 
