@@ -6,6 +6,7 @@ from .models import ForecastModel, get_models
 from .cluster import QueryCluster
 from .data_loader import DataLoader
 
+
 class Forecaster:
     """
     A wrapper around various ForecastModels, that prepares training and evaluation data.

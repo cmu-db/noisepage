@@ -427,8 +427,8 @@ void TableGenerator::GenerateTestTables() {
   InitTestIndexes();
 }
 
-void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
-                                             const runner::MiniRunnersDataConfig &config) {
+void TableGenerator::GenerateExecutionRunnersData(const runner::ExecutionRunnersSettings &settings,
+                                                  const runner::ExecutionRunnersDataConfig &config) {
   std::vector<TableInsertMeta> table_metas;
   auto &mixed_types = config.table_type_dists_;
   auto &mixed_dists = config.table_col_dists_;
@@ -484,7 +484,7 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &
   }
 }
 
-void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
+void TableGenerator::BuildExecutionRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
   auto table_name = GenerateTableName({type}, {tbl_cols}, row_num, row_num);
   auto type_name = type::TypeUtil::TypeIdToString(type);
 
@@ -510,7 +510,7 @@ void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, 
   CreateIndex(&index_meta);
 }
 
-bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
+bool TableGenerator::DropExecutionRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
   auto table_name = GenerateTableName({type}, {tbl_cols}, row_num, row_num);
   auto accessor = exec_ctx_->GetAccessor();
   auto table_oid = accessor->GetTableOid(table_name);

@@ -22,7 +22,7 @@
 #include "common/json.h"
 #include "common/managed_pointer.h"
 #include "messenger/messenger_defs.h"
-#include "self_driving/forecast/workload_forecast.h"
+#include "self_driving/forecasting/workload_forecast.h"
 
 namespace noisepage::messenger {
 class ConnectionRouter;
@@ -37,9 +37,9 @@ namespace noisepage::modelserver {
 class ModelType {
  public:
   /**
-   * Enum describing the specific type of model (i.e., forecast, minirunner, interference)
+   * Enum describing the specific type of model (i.e., forecast, operating unit, interference)
    */
-  enum class Type : uint32_t { Forecast, MiniRunner };
+  enum class Type : uint32_t { Forecast, OperatingUnit, Interference };
 
   /**
    * Converts the Type enum to a readable string format
@@ -50,8 +50,10 @@ class ModelType {
     switch (t) {
       case Type::Forecast:
         return "FORECAST";
-      case Type::MiniRunner:
-        return "MINI_RUNNER";
+      case Type::OperatingUnit:
+        return "OPERATING_UNIT";
+      case Type::Interference:
+        return "INTERFERENCE";
       default:
         NOISEPAGE_ASSERT(false, "Invalid ModelType::Type");
         return "";
@@ -252,7 +254,7 @@ class ModelServerManager {
    * @param model model type to train
    * @param methods list of candidates methods that will be used for training
    * @param input_path Path to input files for training model (seq file directory for MiniRunnerModel)
-   * @param save_path path to where the trained model map will be stored at
+   * @param save_path path to where the trained model will be stored at
    * @param arguments Extra arguments to pass
    * @param future A future object which the caller waits for training to be done
    * @return True if sending train request suceeds
@@ -260,6 +262,27 @@ class ModelServerManager {
   bool TrainModel(ModelType::Type model, const std::vector<std::string> &methods, const std::string &input_path,
                   const std::string &save_path, nlohmann::json *arguments,
                   common::ManagedPointer<ModelServerFuture<std::string>> future);
+
+  /**
+   * Train an interference model
+   *
+   * This function will be invoked asynchronously.
+   * The caller should wait on the future if it wants to synchronize with the training process.
+   *
+   * The caller should use the save_path as a handle to the trained model for inference later on.
+   *
+   * @param methods list of candidates methods that will be used for training
+   * @param input_path Path to input files for training model (seq file directory for MiniRunnerModel)
+   * @param save_path path to where the trained interference model will be stored at
+   * @param ou_model_path path to where the trained OU model map is stored at
+   * @param pipeline_metrics_sample_rate Sample rate percentage for the pipeline metrics
+   * @param future A future object which the caller waits for training to be done
+   * @return True if sending train request suceeds
+   */
+  bool TrainInterferenceModel(const std::vector<std::string> &methods, const std::string &input_path,
+                              const std::string &save_path, const std::string &ou_model_path,
+                              uint64_t pipeline_metrics_sample_rate,
+                              common::ManagedPointer<ModelServerFuture<std::string>> future);
 
   /**
    * Train a forecast model
@@ -298,7 +321,7 @@ class ModelServerManager {
       std::string *models_config, uint64_t interval_micro_sec);
 
   /**
-   * Perform inference on the given data file using a mini runner model
+   * Perform inference on the given data file using an OU model
    *
    * This function is a blocking API call to the ModelServer, and only returns when result is sent back.
    *
@@ -308,8 +331,22 @@ class ModelServerManager {
    * @return a vector of results returned by ModelServer and if API succeeds (True when succeeds)
    *    When API fails, the return results will be an empty vector
    */
-  std::pair<std::vector<std::vector<double>>, bool> InferMiniRunnerModel(
-      const std::string &opunit, const std::string &model_path, const std::vector<std::vector<double>> &features);
+  std::pair<std::vector<std::vector<double>>, bool> InferOUModel(const std::string &opunit,
+                                                                 const std::string &model_path,
+                                                                 const std::vector<std::vector<double>> &features);
+
+  /**
+   * Perform inference on the given data file using the interference model
+   *
+   * This function is a blocking API call to the ModelServer, and only returns when result is sent back.
+   *
+   * @param model_path Path to a model that has been trained. (In pickle format)
+   * @param features Feature vectors
+   * @return a vector of results returned by ModelServer and if API succeeds (True when succeeds)
+   *    When API fails, the return results will be an empty vector
+   */
+  std::pair<std::vector<std::vector<double>>, bool> InferInterferenceModel(
+      const std::string &model_path, const std::vector<std::vector<double>> &features);
 
  private:
   /**
