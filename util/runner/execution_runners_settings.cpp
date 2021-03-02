@@ -26,7 +26,7 @@ void ExecutionRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   Arg gen_test_data{"--gen_test=", false};
   Arg create_index_small_data{"--create_index_small_limit=", false};
   Arg create_index_car_data{"--create_index_large_car_num=", false};
-  Arg run_limit{"--mini_runner_rows_limit=", false};
+  Arg run_limit{"--execution_runner_rows_limit=", false};
   Arg batch_size{"--index_model_batch_size=", false};
   Arg *args[] = {
       &port_info,          &filter_info,   &skip_large_rows_runs_info, &warm_num_info,         &rerun_info, &updel_info,
@@ -58,7 +58,7 @@ void ExecutionRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   if (batch_size.found_) index_model_batch_size_ = batch_size.int_value_;
 
   noisepage::LoggersUtil::Initialize();
-  SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
+  SETTINGS_LOG_INFO("Starting execution-runners with this parameter set:");
   SETTINGS_LOG_INFO("Port ({}): {}", port_info.match_, port_);
   SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match_, skip_large_rows_runs_);
   SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match_, warmup_iterations_num_);
@@ -72,7 +72,7 @@ void ExecutionRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   SETTINGS_LOG_INFO("Create Index Large Cardinality Number Vary ({}): {}", create_index_car_data.match_,
                     create_index_large_cardinality_num_);
   SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, warmup_rows_limit_);
-  SETTINGS_LOG_INFO("Mini Runner Rows Limit ({}): {}", run_limit.match_, data_rows_limit_);
+  SETTINGS_LOG_INFO("Execution Runner Rows Limit ({}): {}", run_limit.match_, data_rows_limit_);
   SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
   SETTINGS_LOG_INFO("Generate Test Data ({}): {}", gen_test_data.match_, gen_test_data.found_);
 }

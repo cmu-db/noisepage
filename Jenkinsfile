@@ -8,7 +8,7 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-  
+
         stage('Self-Driving') {
             parallel {
                 stage('Workload Forecasting'){
