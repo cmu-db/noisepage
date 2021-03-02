@@ -65,6 +65,7 @@ class ForecastModel(ABC):
                 if self._y_transformer:
                     label = self._y_transformer.transform(label)
                 return seq, label
+
             # Use Map to save memory copy
             train_seqs = list(map(norm_data, train_seqs))
 
@@ -201,7 +202,7 @@ class LSTM(nn.Module, ForecastModel):
 
             if i % 25 == 0:
                 logging.info(
-                    f'[LSTM FIT]epoch: {i+1:3} loss: {single_loss.item():10.8f}')
+                    f'[LSTM FIT]epoch: {i + 1:3} loss: {single_loss.item():10.8f}')
 
         logging.info(
             f'[LSTM FIT]epoch: {epochs:3} loss: {single_loss.item():10.10f}')

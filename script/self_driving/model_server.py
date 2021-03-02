@@ -22,6 +22,7 @@ from __future__ import annotations
 import enum
 import sys
 import atexit
+from abc import ABC, abstractmethod
 from enum import Enum, auto, IntEnum
 from typing import Dict, Optional, Tuple, List, Any
 import json
@@ -34,12 +35,11 @@ from pathlib import Path
 import numpy as np
 import zmq
 
-from model import model
-from model.data_class import opunit_data
-from mini_trainer import MiniTrainer
-from model.util import logging_util
-from model.type import OpUnit
-from model.info import data_info
+from modeling.ou_model_trainer import OUModelTrainer
+from modeling.interference_model_trainer import InterferenceModelTrainer
+from modeling.util import logging_util
+from modeling.type import OpUnit
+from modeling.info import data_info
 from forecasting.forecaster import Forecaster, parse_model_config
 
 logging_util.init_logging('info')
@@ -49,7 +49,8 @@ class ModelType(enum.IntEnum):
     """ModelType
     """
     FORECAST = 0,
-    MINI_RUNNER = 1
+    OPERATING_UNIT = 1
+    INTERFERENCE = 2
 
 
 class Callback(IntEnum):
@@ -66,10 +67,10 @@ class Command(Enum):
     Command enum for actions to take from the manager.
     This has to be kept consistent with the C++ ModelServerManager.
     """
-    TRAIN = auto()      # Train a specific model
-    QUIT = auto()       # Quit the server
-    PRINT = auto()      # Print the message
-    INFER = auto()      # Do inference on a trained model
+    TRAIN = auto()  # Train a specific model
+    QUIT = auto()  # Quit the server
+    PRINT = auto()  # Print the message
+    INFER = auto()  # Do inference on a trained model
 
     def __str__(self) -> str:
         return self.name
@@ -104,7 +105,7 @@ class Message:
         self.data = data
 
     @staticmethod
-    def from_json(json_str: str) -> Message:
+    def from_json(json_str: str) -> Optional[Message]:
         d = json.loads(json_str)
         msg = Message()
         try:
@@ -123,23 +124,35 @@ class Message:
         return pprint.pformat(self.__dict__)
 
 
-class MiniRunnerModelServer:
+class AbstractModel(ABC):
     """
-    MiniRunnerModelServer that handles training and inference for MiniRunner models
+    Interface for all the models
     """
 
-    # Training parameters
-    TEST_RATIO = 0.2
-    TRIM_RATIO = 0.2
-    EXPOSE_ALL = True
-    TXN_SAMPLE_INTERVAL = 49
+    def __init__(self) -> None:
+        # Model cache that maps from the model path on disk to the model
+        self.model_cache = dict()
 
-    def __init__(self) -> MiniRunnerModelServer:
-        # Gobal model map cache
-        self.cache = dict()
+    @abstractmethod
+    def train(self, data: Dict) -> Tuple[bool, str]:
+        """
+        Perform fitting.
+        Should be overloaded by a specific model implementation.
+        :param data: data used for training
+        :return: if training succeeds, {True and empty string}, else {False, error message}
+        """
+        raise NotImplementedError("Should be implemented by child classes")
 
+    @abstractmethod
+    def infer(self, data: Dict) -> Tuple[Any, bool, str]:
+        """
+        Do inference on the model, give the data file, and the model_map_path
+        :param data: data used for inference
+        :return: {List of predictions, if inference succeeds, error message}
+        """
+        raise NotImplementedError("Should be implemented by child classes")
 
-    def _load_model_map(self, save_path: str) -> Optional[Dict]:
+    def _load_model(self, save_path: str):
         """
         Check if a trained model exists at the path.
         Load the model into cache if it is not.
@@ -156,21 +169,38 @@ class MiniRunnerModelServer:
         save_path_str = str(save_path)
 
         # Load from cache
-        if self.cache.get(save_path, None) is not None:
-            return self.cache[save_path_str]
+        if self.model_cache.get(save_path, None) is not None:
+            return self.model_cache[save_path_str]
 
         # Load into cache
-        with save_path.open(mode='rb') as f:
-            model, data_info.instance = pickle.load(f)
+        model = self._load_model_from_disk(save_path)
 
-            # TODO(ricky): model checking here?
-            if len(model) == 0:
-                logging.warning(f"Empty model at {str(save_path)}")
-                return None
+        self.model_cache[save_path_str] = model
+        return model
 
-            self.cache[save_path_str] = model
-            return model
+    @abstractmethod
+    def _load_model_from_disk(self, save_path: Path):
+        """
+        Load model from the path on disk (invoked when missing model cache)
+        :param save_path: model path on disk
+        :return: model for the child class' specific model type
+        """
+        raise NotImplementedError("Should be implemented by child classes")
 
+
+class OUModel(AbstractModel):
+    """
+    OUModel that handles training and inference for OU models
+    """
+
+    # Training parameters
+    TEST_RATIO = 0.2
+    TRIM_RATIO = 0.2
+    EXPOSE_ALL = True
+    TXN_SAMPLE_RATE = 2
+
+    def __init__(self) -> None:
+        AbstractModel.__init__(self)
 
     def train(self, data: Dict) -> Tuple[bool, str]:
         """
@@ -201,14 +231,14 @@ class MiniRunnerModelServer:
             str(save_file_name) + "_metric_results")
         result_path.mkdir(parents=True, exist_ok=True)
 
-        test_ratio = MiniRunnerModelServer.TEST_RATIO
-        trim = MiniRunnerModelServer.TRIM_RATIO
-        expose_all = MiniRunnerModelServer.EXPOSE_ALL
-        txn_sample_interval = MiniRunnerModelServer.TXN_SAMPLE_INTERVAL
+        test_ratio = OUModel.TEST_RATIO
+        trim = OUModel.TRIM_RATIO
+        expose_all = OUModel.EXPOSE_ALL
+        txn_sample_rate = OUModel.TXN_SAMPLE_RATE
 
-        trainer = MiniTrainer(seq_files_dir, result_path, ml_models,
-                              test_ratio, trim, expose_all, txn_sample_interval)
-        # Perform training from MiniTrainer and input files directory
+        trainer = OUModelTrainer(seq_files_dir, result_path, ml_models,
+                                 test_ratio, trim, expose_all, txn_sample_rate)
+        # Perform training from OUModelTrainer and input files directory
         model_map = trainer.train()
 
         # Pickle dump the model
@@ -232,7 +262,7 @@ class MiniRunnerModelServer:
         model_path = data["model_path"]
 
         # Load the model map
-        model_map = self._load_model_map(model_path)
+        model_map = self._load_model(model_path)
         if model_map is None:
             logging.error(
                 f"Model map at {str(model_path)} has not been trained")
@@ -258,27 +288,149 @@ class MiniRunnerModelServer:
         y_pred = model.predict(features)
         return y_pred.tolist(), True, ""
 
+    def _load_model_from_disk(self, save_path: Path) -> Dict:
+        """
+        Load model from the path on disk (invoked when missing model cache)
+        :param save_path: model path on disk
+        :return: OU model map
+        """
+        with save_path.open(mode='rb') as f:
+            model, data_info.instance = pickle.load(f)
+        return model
 
-class ForecastModelServer:
+
+class InterferenceModel(AbstractModel):
     """
-    ForecastModelServer that handles training and inference for Forecast models
+    InterferenceModel that handles training and inference for the interference model
     """
+
+    # Training parameters
+    TEST_RATIO = 0.2
+    IMPACT_MODEL_RATIO = 0.1
+    WARMUP_PERIOD = 3
+    USE_QUERY_PREDICT_CACHE = False
+    ADD_NOISE = False
+    PREDICT_OU_ONLY = False
+    TXN_SAMPLE_RATE = 2
+    NETWORK_SAMPLE_RATE = 2
+
+    def __init__(self) -> None:
+        AbstractModel.__init__(self)
+
+    def train(self, data: Dict) -> Tuple[bool, str]:
+        """
+        Train a model with the given model name and seq_files directory
+        :param data: {
+            methods: [lr, XXX, ...],
+            input_path: PATH_TO_SEQ_FILES_FOLDER, or None
+            save_path: PATH_TO_SAVE_MODEL_MAP
+        }
+        :return: if training succeeds, {True and empty string}, else {False, error message}
+        """
+        ml_models = data["methods"]
+        input_path = data["input_path"]
+        save_path = data["save_path"]
+        ou_model_path = data["ou_model_path"]
+        ee_sample_rate = data["pipeline_metrics_sample_rate"]
+
+        # Do path checking up-front
+        save_path = Path(save_path)
+        save_dir = save_path.parent
+        try:
+            # Exist ok, and Creates parent if ok
+            save_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            return False, "FAIL_PERMISSION_ERROR"
+
+        # Create result model metrics in the same directory
+        save_file_name = save_path.stem
+        result_path = save_path.with_name(
+            str(save_file_name) + "_metric_results")
+        result_path.mkdir(parents=True, exist_ok=True)
+
+        test_ratio = InterferenceModel.TEST_RATIO
+        impact_model_ratio = InterferenceModel.IMPACT_MODEL_RATIO
+        warmup_period = InterferenceModel.WARMUP_PERIOD
+        use_query_predict_cache = InterferenceModel.USE_QUERY_PREDICT_CACHE
+        add_noise = InterferenceModel.ADD_NOISE
+        predict_ou_only = InterferenceModel.PREDICT_OU_ONLY
+        txn_sample_rate = InterferenceModel.TXN_SAMPLE_RATE
+        network_sample_rate = InterferenceModel.NETWORK_SAMPLE_RATE
+
+        with open(ou_model_path, 'rb') as pickle_file:
+            model_map, data_info.instance = pickle.load(pickle_file)
+        trainer = InterferenceModelTrainer(input_path, result_path, ml_models, test_ratio, impact_model_ratio,
+                                           model_map, warmup_period, use_query_predict_cache, add_noise,
+                                           predict_ou_only, ee_sample_rate, txn_sample_rate, network_sample_rate)
+
+        # Perform training
+        trainer.predict_ou_data()
+        # We only need the directly model for the model server. The other models are for experimental purposes
+        _, _, direct_model = trainer.train()
+
+        # Pickle dump the model
+        with open(save_path, 'wb') as file:
+            pickle.dump(direct_model, file)
+
+        return True, ""
+
+    def infer(self, data: Dict) -> Tuple[Any, bool, str]:
+        """
+        Do inference on the model, give the data file, and the model_path
+        :param data: {
+            features: 2D float arrays [[float]],
+            model_path: model path
+        }
+        :return: {List of predictions, if inference succeeds, error message}
+        """
+        features = data["features"]
+        model_path = data["model_path"]
+
+        # Load the model
+        model = self._load_model(model_path)
+        if model is None:
+            logging.error(
+                f"Model map at {str(model_path)} has not been trained")
+            return [], False, "MODEL_MAP_NOT_TRAINED"
+
+        features = np.array(features)
+
+        y_pred = model.predict(features)
+        return y_pred.tolist(), True, ""
+
+    def _load_model_from_disk(self, save_path: Path):
+        """
+        Load model from the path on disk (invoked when missing model cache)
+        :param save_path: model path on disk
+        :return: interference model
+        """
+        with save_path.open(mode='rb') as f:
+            model = pickle.load(f)
+        return model
+
+
+class ForecastModel(AbstractModel):
+    """
+    ForecastModel that handles training and inference for Forecast models
+    """
+
+    # Number of Microseconds per second
+    MICRO_SEC_PER_SEC = 1000000
+
+    def __init__(self) -> None:
+        AbstractModel.__init__(self)
 
     def _update_parameters(self, interval):
         # TODO(wz2): Possibly expose parameters
 
-        # Number of Microseconds per second
-        MICRO_SEC_PER_SEC = 1000000
-
         # Number of data points in a sequence
-        self.SEQ_LEN = 10 * MICRO_SEC_PER_SEC // interval
+        self.SEQ_LEN = 10 * ForecastModel.MICRO_SEC_PER_SEC // interval
 
         # Number of data points for the horizon
-        self.HORIZON_LEN = 30 * MICRO_SEC_PER_SEC // interval
+        self.HORIZON_LEN = 30 * ForecastModel.MICRO_SEC_PER_SEC // interval
 
         # Number of data points for testing set
         self.EVAL_DATA_SIZE = self.SEQ_LEN + 2 * self.HORIZON_LEN
-
 
     def train(self, data: Dict) -> Tuple[bool, str]:
         """
@@ -346,9 +498,12 @@ class ForecastModelServer:
         model_path = data["model_path"]
         self._update_parameters(interval)
 
-        # Do inference on a trained model
-        with open(model_path, "rb") as f:
-            models = pickle.load(f)
+        # Load the trained models
+        models = self._load_model(model_path)
+        if models is None:
+            logging.error(
+                f"Models at {str(model_path)} has not been trained")
+            return [], False, "MODELS_NOT_TRAINED"
 
         forecaster = Forecaster(
             trace_file=input_path,
@@ -363,18 +518,29 @@ class ForecastModelServer:
         # the same cluster for now
 
         # Only forecast with first element of model_names
-        result = {};
+        result = {}
         query_pred = forecaster.predict(0, models[0][model_names[0]])
         for qid, ts in query_pred.items():
             result[int(qid)] = ts
         return {0: result}, True, ""
+
+    def _load_model_from_disk(self, save_path: Path):
+        """
+        Load model from the path on disk (invoked when missing model cache)
+        :param save_path: model path on disk
+        :return: workload forecasting model
+        """
+        with save_path.open(mode='rb') as f:
+            model = pickle.load(f)
+        return model
+
 
 class ModelServer:
     """
     ModelServer(MS) class that runs in a loop to handle commands from the ModelServerManager from C++
     """
 
-    def __init__(self, end_point: str) -> ModelServer:
+    def __init__(self, end_point: str):
         """
         Initialize the ModelServer by connecting to the ZMQ IPC endpoint
         :param end_point:  IPC endpoint
@@ -402,7 +568,9 @@ class ModelServer:
             Callback.CONNECTED, "", True, ""))
 
         # Model trainers/inferers
-        self.model_managers = { ModelType.FORECAST: ForecastModelServer(), ModelType.MINI_RUNNER: MiniRunnerModelServer() }
+        self.model_managers = {ModelType.FORECAST: ForecastModel(),
+                               ModelType.OPERATING_UNIT: OUModel(),
+                               ModelType.INTERFERENCE: InterferenceModel()}
 
     def cleanup_zmq(self):
         """
@@ -442,7 +610,7 @@ class ModelServer:
         }
 
     @staticmethod
-    def _parse_msg(payload: str) -> Tuple[int, int, Message]:
+    def _parse_msg(payload: str) -> Tuple[int, int, Optional[Message]]:
         logging.debug("PY RECV: " + payload)
         tokens = payload.split('-', 2)
 
@@ -535,7 +703,7 @@ class ModelServer:
         :return:
         """
 
-        while(1):
+        while (1):
             try:
                 payload = self._recv()
             except UnicodeError as e:
