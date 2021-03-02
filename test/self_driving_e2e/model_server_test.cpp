@@ -138,8 +138,10 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
                              1.11544080377168,     0.269083658337621, 9.21785213010602E-19,
                              9.21785213010602E-19, 10.8371832304431,  0.275654276087222});
 
-  // Perform a training of the opunit models with {nn} as training methods.
-  std::vector<std::string> interference_methods{"lr", "rf"};
+  // Perform a training of the opunit models with {rf} as training methods.
+  // Usually we use "nn" for the interference model. But to avoid the prediction to explode with a small amount of
+  // training data, we use "rf" here.
+  std::vector<std::string> interference_methods{"rf"};
   // input_path and sample_rate are specified during the data generation phase, which is before the invocation of
   // this test (see Jenkinsfile configuration)
   std::string input_path = project_build_path + "/concurrent_runner_input";
@@ -182,7 +184,7 @@ TEST_F(ModelServerTest, ForecastModelTest) {
   std::string msg = "ModelServer Forecasting Model Test";
   ms_manager->PrintMessage(msg);
 
-  // Perform a training of the opunit models with {lr, rf} as training methods.
+  // Perform a training of the opunit models with {LSTM} as training methods.
   std::vector<std::string> methods{"LSTM"};
   uint64_t interval = 500000;
   const char *env = ::getenv(BUILD_ABS_PATH);
