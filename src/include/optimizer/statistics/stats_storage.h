@@ -150,7 +150,7 @@ class StatsStorage {
   std::mutex insert_latch_;
 
   /**
-   * Returns a pointer the cached TableStats object for a specific table
+   * Returns a reference the cached TableStats object for a specific table
    *
    * @param database_id - oid of database
    * @param table_id - oid of table
