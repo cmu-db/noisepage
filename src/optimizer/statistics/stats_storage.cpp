@@ -55,10 +55,11 @@ std::unique_ptr<ColumnStatsBase> StatsStorage::GetColumnStats(catalog::db_oid_t 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                   const std::vector<catalog::col_oid_t> &col_ids) {
   StatsStorageKey stats_storage_key{database_id, table_id};
-  NOISEPAGE_ASSERT(table_stats_storage_.count(stats_storage_key) != 0,
-                   "There is no TableStats object with the given oids");
-  for (const auto &col_id : col_ids) {
-    table_stats_storage_.at(stats_storage_key).table_stats_->GetColumnStats(col_id)->MarkStale();
+  auto stats_storage_value = table_stats_storage_.find(stats_storage_key);
+  if(stats_storage_value != table_stats_storage_.end()) {
+    for (const auto &col_id : col_ids) {
+      table_stats_storage_.at(stats_storage_key).table_stats_->GetColumnStats(col_id)->MarkStale();
+    }
   }
 }
 

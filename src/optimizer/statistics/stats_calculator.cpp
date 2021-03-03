@@ -43,25 +43,9 @@ void StatsCalculator::Visit(const LogicalGet *op) {
 
   // Compute selectivity at the first time
   if (root_group->GetNumRows() == -1) {
-    std::unordered_map<std::string, common::ManagedPointer<ColumnStatsBase>> predicate_stats;
-    for (const auto &annotated_expr : op->GetPredicates()) {
-      ExprSet expr_set;
-      auto predicate = annotated_expr.GetExpr();
-      parser::ExpressionUtil::GetTupleValueExprs(&expr_set, predicate);
-      for (const auto &col : expr_set) {
-        NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
-        auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-        NOISEPAGE_ASSERT(table_stats->HasColumnStats(tv_expr->GetColumnOid()),
-                         "ColumnStats should exist for every column");
-
-        predicate_stats.insert(
-            std::make_pair(tv_expr->GetFullName(), table_stats->GetColumnStats(tv_expr->GetColumnOid())));
-      }
-    }
-
     NOISEPAGE_ASSERT(table_stats->GetColumnCount() != 0, "Should have table stats for all tables");
     // Use predicates to estimate cardinality.
-    auto est = EstimateCardinalityForFilter(table_stats->GetNumRows(), predicate_stats, op->GetPredicates());
+    auto est = EstimateCardinalityForFilter(table_stats->GetNumRows(), *table_stats, op->GetPredicates());
     root_group->SetNumRows(static_cast<int>(est));
   }
 
@@ -229,22 +213,12 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   }
 }
 
-size_t StatsCalculator::EstimateCardinalityForFilter(
-    size_t num_rows, const std::unordered_map<std::string, common::ManagedPointer<ColumnStatsBase>> &predicate_stats,
-    const std::vector<AnnotatedExpression> &predicates) {
-  // First, construct the table stats as the interface needed it to compute selectivity
-  // TODO(boweic): We may want to modify the interface of selectivity computation to not use table_stats
-  std::vector<common::ManagedPointer<ColumnStatsBase>> predicate_stats_vec;
-  TableStats table_stats;
-  for (const auto &predicate : predicate_stats) {
-    // TODO(Joe) this copy is unnecessary
-    table_stats.AddColumnStats(predicate.second->Copy());
-  }
+size_t StatsCalculator::EstimateCardinalityForFilter(size_t num_rows, const TableStats &predicate_stats, const std::vector<AnnotatedExpression> &predicates) {
 
   double selectivity = 1.F;
   for (const auto &annotated_expr : predicates) {
     // Loop over conjunction exprs
-    selectivity *= CalculateSelectivityForPredicate(table_stats, annotated_expr.GetExpr());
+    selectivity *= CalculateSelectivityForPredicate(predicate_stats, annotated_expr.GetExpr());
   }
 
   // Update selectivity
