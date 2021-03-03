@@ -90,7 +90,6 @@ class ColumnStats : public ColumnStatsBase {
   using CppType = decltype(T::val_);
 
  public:
-
   /**
    * Constructor
    * @param database_id - database oid of column
