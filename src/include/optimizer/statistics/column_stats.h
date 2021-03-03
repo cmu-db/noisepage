@@ -18,6 +18,8 @@ class ColumnStatsBase {
   virtual ~ColumnStatsBase() = default;
   virtual catalog::col_oid_t GetColumnID() const = 0;
   virtual size_t GetNumRows() = 0;
+  virtual size_t GetNonNullRows() = 0;
+  virtual size_t GetNullRows() = 0;
   virtual double GetFracNull() = 0;
   virtual void SetNumRows(size_t num_rows) = 0;
   virtual size_t GetDistinctValues() = 0;
@@ -50,18 +52,21 @@ class ColumnStats : public ColumnStatsBase {
    * @param histogram - Histogram for this column
    */
   ColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
-              size_t num_rows, double frac_null, size_t distinct_values, std::unique_ptr<TopKElements<CppType>> top_k,
-              std::unique_ptr<Histogram<CppType>> histogram, type::TypeId type_id)
+              size_t num_rows, size_t non_null_rows, size_t distinct_values,
+              std::unique_ptr<TopKElements<CppType>> top_k, std::unique_ptr<Histogram<CppType>> histogram,
+              type::TypeId type_id)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
         num_rows_(num_rows),
-        frac_null_(frac_null),
+        non_null_rows_(non_null_rows),
         distinct_values_(distinct_values),
         top_k_(std::move(top_k)),
         histogram_(std::move(histogram)),
         type_id_(type_id),
-        stale_(false) {}
+        stale_(false) {
+    frac_null_ = num_rows == 0 ? 0 : static_cast<double>(num_rows - non_null_rows) / static_cast<double>(num_rows);
+  }
 
   /**
    * Default constructor for deserialization
@@ -77,6 +82,7 @@ class ColumnStats : public ColumnStatsBase {
         table_id_(other.table_id_),
         column_id_(other.column_id_),
         num_rows_(other.num_rows_),
+        non_null_rows_(other.non_null_rows_),
         frac_null_(other.frac_null_),
         distinct_values_(other.distinct_values_),
         type_id_(other.type_id_),
@@ -94,6 +100,7 @@ class ColumnStats : public ColumnStatsBase {
         table_id_(other.table_id_),
         column_id_(other.column_id_),
         num_rows_(other.num_rows_),
+        non_null_rows_(other.non_null_rows_),
         frac_null_(other.frac_null_),
         distinct_values_(other.distinct_values_),
         type_id_(other.type_id_),
@@ -117,6 +124,7 @@ class ColumnStats : public ColumnStatsBase {
     table_id_ = other.table_id_;
     column_id_ = other.column_id_;
     num_rows_ = other.num_rows_;
+    non_null_rows_ = other.non_null_rows_;
     frac_null_ = other.frac_null_;
     distinct_values_ = other.distinct_values_;
     top_k_ = std::make_unique<TopKElements<CppType>>(*other.top_k_);
@@ -136,6 +144,7 @@ class ColumnStats : public ColumnStatsBase {
     table_id_ = other.table_id_;
     column_id_ = other.column_id_;
     num_rows_ = other.num_rows_;
+    non_null_rows_ = other.non_null_rows_;
     frac_null_ = other.frac_null_;
     distinct_values_ = other.distinct_values_;
     top_k_ = std::move(other.top_k_);
@@ -162,6 +171,18 @@ class ColumnStats : public ColumnStatsBase {
    * @return the number of rows
    */
   size_t GetNumRows() override { return num_rows_; }
+
+  /**
+   * Gets the number of rows that are not null
+   * @return number of non null rows
+   */
+  size_t GetNonNullRows() override { return non_null_rows_; }
+
+  /**
+   * Gets the number of rows that are null
+   * @return number of null rows
+   */
+  size_t GetNullRows() override { return num_rows_ - non_null_rows_; }
 
   /**
    * Gets the fraction of null values in the column.
@@ -226,6 +247,11 @@ class ColumnStats : public ColumnStatsBase {
    * number of rows in column
    */
   size_t num_rows_;
+
+  /**
+   * number of non null rows
+   */
+  size_t non_null_rows_;
 
   /**
    * fraction of null values/total values in column

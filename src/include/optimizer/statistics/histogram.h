@@ -30,8 +30,8 @@ namespace noisepage::optimizer {
  * results from the histogram the ordering of the keys should be preserved in this conversion. So for example if
  * key1 > key2 then ConvertToPoint(key1) > ConvertToPoint(key2) where ConvertToPoint(k) converts k to a double.
  *
- * Histogram currently supports strings by hashing them, but since hashing doesn't preserve lexicographical ordering it's
- * pretty much useless
+ * Histogram currently supports strings by hashing them, but since hashing doesn't preserve lexicographical ordering
+ * it's pretty much useless
  */
 template <typename KeyType>
 class Histogram {

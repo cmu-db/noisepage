@@ -56,7 +56,7 @@ class SelectivityUtil {
     double res = LessThanOrEqualTo(column_stats, condition) - Equal(column_stats, condition);
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
-        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 + std::numeric_limits<double>::epsilon(),
         "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
@@ -82,7 +82,7 @@ class SelectivityUtil {
     double res = 1 - LessThanOrEqualTo(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
-        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 + std::numeric_limits<double>::epsilon(),
         "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
@@ -100,7 +100,7 @@ class SelectivityUtil {
     double res = 1.0 - LessThan(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
-        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 + std::numeric_limits<double>::epsilon(),
         "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
@@ -126,7 +126,7 @@ class SelectivityUtil {
     double res = 1 - Equal(column_stats, condition) - column_stats->GetFracNull();
     // Leave some room for acceptable error because of double calculations.
     NOISEPAGE_ASSERT(
-        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 + std::numeric_limits<double>::epsilon(),
         "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
@@ -178,6 +178,18 @@ class SelectivityUtil {
   static double DistinctFrom(UNUSED_ATTRIBUTE common::ManagedPointer<ColumnStats<T>> column_stats,
                              UNUSED_ATTRIBUTE const ValueCondition &condition) {
     return DEFAULT_SELECTIVITY_VALUE;
+  }
+
+  template <typename T>
+  static double IsNull(common::ManagedPointer<ColumnStats<T>> column_stats,
+                       UNUSED_ATTRIBUTE const ValueCondition &condition) {
+    return column_stats->GetFracNull();
+  }
+
+  template <typename T>
+  static double IsNotNull(common::ManagedPointer<ColumnStats<T>> column_stats,
+                          UNUSED_ATTRIBUTE const ValueCondition &condition) {
+    return 1 - column_stats->GetFracNull();
   }
 };
 }  // namespace noisepage::optimizer

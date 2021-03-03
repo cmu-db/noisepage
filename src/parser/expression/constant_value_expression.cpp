@@ -95,7 +95,7 @@ T ConstantValueExpression::Peek() const {
     return std::get<execution::sql::StringVal>(value_).StringView();
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
-  if constexpr (std::is_same_v<T, execution::sql::StringVal>) {
+  if constexpr (std::is_same_v<T, storage::VarlenEntry>) {
     return GetStringVal().val_;
   }
   UNREACHABLE("Invalid type for Peek.");

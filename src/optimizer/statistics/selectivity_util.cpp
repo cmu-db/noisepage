@@ -78,6 +78,10 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<ColumnStats<T>
       return In(column_stats, condition);
     case parser::ExpressionType::COMPARE_IS_DISTINCT_FROM:
       return DistinctFrom(column_stats, condition);
+    case parser::ExpressionType::OPERATOR_IS_NOT_NULL:
+      return IsNotNull(column_stats, condition);
+    case parser::ExpressionType::OPERATOR_IS_NULL:
+      return IsNull(column_stats, condition);
     default:
       OPTIMIZER_LOG_WARN("Expression type {0} not supported for computing selectivity",
                          ExpressionTypeToString(condition.GetType(), false).c_str());
@@ -120,6 +124,10 @@ double SelectivityUtil::Equal(common::ManagedPointer<ColumnStats<T>> column_stat
   }
 
   size_t numrows = column_stats->GetNumRows();
+
+  if (numrows == 0) {
+    return 0;
+  }
 
   // For now only double is supported in stats storage
   auto top_k = column_stats->GetTopK();

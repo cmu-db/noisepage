@@ -260,14 +260,27 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
     return selectivity;
   }
 
-  // Base case : Column Op Val
-  if ((expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
-       (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT ||
-        expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_PARAMETER)) ||
+  if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_NOT) {
+    selectivity = 1 - CalculateSelectivityForPredicate(predicate_table_stats, expr->GetChild(0));
+  } else if (expr->GetChildrenSize() == 1 &&
+             expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+    auto child_expr = expr->GetChild(0);
+    auto col_name = child_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
+    auto col_oid = child_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnOid();
+    auto expr_type = expr->GetExpressionType();
+    // TODO(Joe) Not a huge fan of nullptr here. ValueCondition seems to be designed only for predicates of the form
+    //  Column Op Val and doesn't consider operators like EXISTS, IS NULL, IS NOT NULL
+    ValueCondition condition(col_oid, col_name, expr_type, nullptr);
+    selectivity = SelectivityUtil::ComputeSelectivity(predicate_table_stats, condition);
+  } else if ((expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
+              (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT ||
+               expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_PARAMETER)) ||
 
-      (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
-       (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT ||
-        expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_PARAMETER))) {
+             (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
+              (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT ||
+               expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_PARAMETER))) {
+    // Base case : Column Op Val
+
     // For a [column (operator) value] or [value (operator) column] predicate,
     // left_expr gets a reference to the ColumnValueExpression
     // right_index is the child index to the value

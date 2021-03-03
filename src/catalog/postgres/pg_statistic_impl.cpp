@@ -207,32 +207,31 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     type::TypeId type) {
   auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
   auto non_null_rows = *PgStatistic::STA_NONNULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
-  double frac_null = num_rows == 0 ? 0 : static_cast<double>(num_rows - non_null_rows) / static_cast<double>(num_rows);
   auto distinct_values = *PgStatistic::STA_DISTINCTROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
   const auto *top_k_str = PgStatistic::STA_TOPK.Get(all_cols_pr, pg_statistic_all_cols_prm_);
   const auto *histogram_str = PgStatistic::STA_HISTOGRAM.Get(all_cols_pr, pg_statistic_all_cols_prm_);
 
   switch (type) {
     case type::TypeId::BOOLEAN:
-      return CreateColumnStats<execution::sql::BoolVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+      return CreateColumnStats<execution::sql::BoolVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                         top_k_str, histogram_str, type);
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT:
-      return CreateColumnStats<execution::sql::Integer>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+      return CreateColumnStats<execution::sql::Integer>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                         top_k_str, histogram_str, type);
     case type::TypeId::REAL:
-      return CreateColumnStats<execution::sql::Real>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+      return CreateColumnStats<execution::sql::Real>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                      top_k_str, histogram_str, type);
     case type::TypeId::DECIMAL:
-      return CreateColumnStats<execution::sql::DecimalVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+      return CreateColumnStats<execution::sql::DecimalVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                            top_k_str, histogram_str, type);
     case type::TypeId::TIMESTAMP:
-      return CreateColumnStats<execution::sql::TimestampVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
-                                                             top_k_str, histogram_str, type);
+      return CreateColumnStats<execution::sql::TimestampVal>(table_oid, col_oid, num_rows, non_null_rows,
+                                                             distinct_values, top_k_str, histogram_str, type);
     case type::TypeId::DATE:
-      return CreateColumnStats<execution::sql::DateVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+      return CreateColumnStats<execution::sql::DateVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                         top_k_str, histogram_str, type);
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY:
@@ -240,7 +239,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
        * TODO(Joe) The current implementation of Histogram produces meaningless results for strings. See histogram.h
        *  for a more detailed explanation. For now we just use an empty histogram.
        */
-      return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, frac_null, distinct_values,
+      return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                           top_k_str, nullptr, type);
     default:
       UNREACHABLE("Invalid column type");
@@ -258,9 +257,10 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
   auto histogram = histogram_str != nullptr
                        ? optimizer::Histogram<CppType>::Deserialize(histogram_str->Content(), histogram_str->Size())
                        : optimizer::Histogram<CppType>();
-  return std::make_unique<optimizer::ColumnStats<T>>(db_oid_, table_oid, col_oid, num_rows, frac_null, distinct_values,
-                                                     std::make_unique<optimizer::TopKElements<CppType>>(std::move(top_k)),
-                                                     std::make_unique<optimizer::Histogram<CppType>>(std::move(histogram)), type);
+  return std::make_unique<optimizer::ColumnStats<T>>(
+      db_oid_, table_oid, col_oid, num_rows, frac_null, distinct_values,
+      std::make_unique<optimizer::TopKElements<CppType>>(std::move(top_k)),
+      std::make_unique<optimizer::Histogram<CppType>>(std::move(histogram)), type);
 }
 
 }  // namespace noisepage::catalog::postgres
