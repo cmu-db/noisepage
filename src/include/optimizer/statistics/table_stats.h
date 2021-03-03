@@ -23,8 +23,6 @@ class TableStats {
    * Constructor
    * @param database_id - database oid of table
    * @param table_id - table oid of table
-   * @param num_rows - number of rows in table
-   * @param is_base_table - says whether the table is a base table
    * @param col_stats_list - initial list of ColumnStats objects to be inserted in the TableStats object
    */
   TableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
@@ -94,6 +92,10 @@ class TableStats {
    */
   size_t GetNumRows() const { return num_rows_; }
 
+  /**
+   * Checks if any of the columns statistics within this table statistics is stale
+   * @return true if table statistics contains stale column, false otherwise
+   */
   bool HasStaleValues() const {
     return std::any_of(column_stats_.begin(), column_stats_.end(), [](const auto &it) { return it.second->IsStale(); });
   }

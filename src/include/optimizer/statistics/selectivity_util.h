@@ -32,6 +32,12 @@ static constexpr double DEFAULT_SELECTIVITY_VALUE = 0.5;
  */
 class SelectivityUtil {
  public:
+  /**
+   * Compute selectivity of a condition
+   * @param table_stats Table Statistics
+   * @param condition ValueCondition
+   * @return selectivity
+   */
   static double ComputeSelectivity(const TableStats &table_stats, const ValueCondition &condition);
 
   /**
@@ -180,12 +186,24 @@ class SelectivityUtil {
     return DEFAULT_SELECTIVITY_VALUE;
   }
 
+  /**
+   * Computes Is Null Selectivity
+   * @param column_stats Column Statistics
+   * @param condition ValueCondition
+   * @returns selectivity
+   */
   template <typename T>
   static double IsNull(common::ManagedPointer<ColumnStats<T>> column_stats,
                        UNUSED_ATTRIBUTE const ValueCondition &condition) {
     return column_stats->GetFracNull();
   }
 
+  /**
+   * Computes Is Not Null Selectivity
+   * @param column_stats Column Statistics
+   * @param condition ValueCondition
+   * @returns selectivity
+   */
   template <typename T>
   static double IsNotNull(common::ManagedPointer<ColumnStats<T>> column_stats,
                           UNUSED_ATTRIBUTE const ValueCondition &condition) {

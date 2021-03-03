@@ -17,14 +17,27 @@
 namespace noisepage::optimizer {
 /** Hashable type for database and table oid pair */
 struct StatsStorageKey {
+  /**
+   * Constructor
+   * @param db_oid database oid
+   * @param table_oid table oid
+   */
   StatsStorageKey(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) : db_oid_(db_oid), table_oid_(table_oid) {}
+  /** database oid */
   catalog::db_oid_t db_oid_;
+  /** table oid */
   catalog::table_oid_t table_oid_;
 };
 /** Thread safe value for cache */
 struct StatsStorageValue {
+  /**
+   * Constructor
+   * @param table_stats Table Statistics
+   */
   explicit StatsStorageValue(std::unique_ptr<TableStats> table_stats) : table_stats_(std::move(table_stats)) {}
+  /** Table Statistics */
   std::unique_ptr<TableStats> table_stats_;
+  /** Shared Latch for Table Statistics */
   common::SharedLatch shared_latch_;
 };
 }  // namespace noisepage::optimizer
@@ -87,7 +100,6 @@ class StatsStorage {
    *
    * @param database_id - oid of database
    * @param table_id - oid of table
-   * @param column_oids - oids of columns
    * @param accessor - catalog accessor
    * @return pointer to a TableStats object
    */

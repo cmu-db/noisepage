@@ -13,19 +13,68 @@
 
 namespace noisepage::optimizer {
 
+/**
+ * Base class for Column Statistics
+ */
 class ColumnStatsBase {
  public:
+  /**
+   * Destructor
+   */
   virtual ~ColumnStatsBase() = default;
+  /**
+   * Gets the column oid of the column
+   * @return the column oid
+   */
   virtual catalog::col_oid_t GetColumnID() const = 0;
+  /**
+   * Gets the number of rows in the column
+   * @return the number of rows
+   */
   virtual size_t GetNumRows() = 0;
-  virtual size_t GetNonNullRows() = 0;
-  virtual size_t GetNullRows() = 0;
-  virtual double GetFracNull() = 0;
+  /**
+   * Sets the number of rows int he column
+   * @param num_rows number of rows
+   */
   virtual void SetNumRows(size_t num_rows) = 0;
+  /**
+   * Gets the number of rows that are not null
+   * @return number of non null rows
+   */
+  virtual size_t GetNonNullRows() = 0;
+  /**
+   * Gets the number of rows that are null
+   * @return number of null rows
+   */
+  virtual size_t GetNullRows() = 0;
+  /**
+   * Gets the fraction of null values in the column.
+   * @return Fraction of nulls
+   */
+  virtual double GetFracNull() = 0;
+  /**
+   * Gets the number of distinct values in the column
+   * @return distinct values
+   */
   virtual size_t GetDistinctValues() = 0;
+  /**
+   * Gets the type id of the column
+   * @return type id of the column
+   */
   virtual type::TypeId GetTypeId() = 0;
+  /**
+   * Returns whether or not this stat is stale
+   * @return true if stale false otherwise
+   */
   virtual bool IsStale() = 0;
+  /**
+   * Marks this column stat as stale
+   */
   virtual void MarkStale() = 0;
+  /**
+   * Make a copy of ColumnStats
+   * @return a copy of the underlying object
+   */
   virtual std::unique_ptr<ColumnStatsBase> Copy() = 0;
 };
 
@@ -50,6 +99,18 @@ class ColumnStats : public ColumnStatsBase {
    * @param frac_null - fraction of null rows
    * @param top_k - TopKElements for this column
    * @param histogram - Histogram for this column
+   */
+  /**
+   * Constructor
+   * @param database_id - database oid of column
+   * @param table_id - table oid of column
+   * @param column_id - column oid of column
+   * @param num_rows - number of rows in column
+   * @param non_null_rows - number of non null rows in column
+   * @param distinct_values - number of distinct values in column
+   * @param top_k - TopKElements for this column
+   * @param histogram - Histogram for this column
+   * @param type_id - type of column
    */
   ColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
               size_t num_rows, size_t non_null_rows, size_t distinct_values,
@@ -183,6 +244,10 @@ class ColumnStats : public ColumnStatsBase {
    */
   common::ManagedPointer<TopKElements<CppType>> GetTopK() { return common::ManagedPointer(top_k_); }
 
+  /**
+   * Gets the type id of the column
+   * @return type id of the column
+   */
   type::TypeId GetTypeId() override { return type_id_; }
 
   /**
