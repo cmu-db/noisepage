@@ -57,6 +57,13 @@ class TopKElements {
   TopKElements(const TopKElements &other) : entries_(other.entries_), sketch_(other.sketch_) {}
 
   /**
+   * Move constructor
+   * @param other TopKElements to move
+   */
+  TopKElements(const TopKElements &&other) noexcept
+      : entries_(std::move(other.entries_)), sketch_(std::move(other.sketch_)) {}
+
+  /**
    * Copy assignment operator
    * @param other TopKElements to copy
    * @return
@@ -64,6 +71,17 @@ class TopKElements {
   TopKElements &operator=(const TopKElements &other) {
     entries_ = other.entries_;
     sketch_ = other.sketch_;
+    return *this;
+  }
+
+  /**
+   * Move assignment operator
+   * @param other TopKElements to move
+   * @return
+   */
+  TopKElements &operator=(TopKElements &&other) noexcept {
+    entries_ = std::move(other.entries_);
+    sketch_ = std::move(other.sketch_);
     return *this;
   }
 

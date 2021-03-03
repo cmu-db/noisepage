@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "common/json.h"
@@ -61,6 +62,45 @@ class Histogram {
         maximum_(other.maximum_) {}
 
   /**
+   * Move constructor
+   * @param other Histogram to copy
+   */
+  Histogram(const Histogram &&other) noexcept
+      : max_bins_(std::move(other.max_bins_)),
+        bins_(std::move(other.bins_)),
+        total_(std::move(other.total_)),
+        minimum_(std::move(other.minimum_)),
+        maximum_(std::move(other.maximum_)) {}
+
+  /**
+   * Copy assignment operator
+   * @param other Histogram to copy
+   * @return
+   */
+  Histogram &operator=(const Histogram &other) {
+    max_bins_ = other.max_bins_;
+    bins_ = other.bins_;
+    total_ = other.total_;
+    minimum_ = other.minimum_;
+    maximum_ = other.maximum_;
+    return *this;
+  }
+
+  /**
+   * Move assignment operator
+   * @param other Histogram to copy
+   * @return
+   */
+  Histogram &operator=(const Histogram &&other) noexcept {
+    max_bins_ = std::move(other.max_bins_);
+    bins_ = std::move(other.bins_);
+    total_ = std::move(other.total_);
+    minimum_ = std::move(other.minimum_);
+    maximum_ = std::move(other.maximum_);
+    return *this;
+  }
+
+  /**
    * Internal representation of a point/count pair in the histogram.
    */
   class Bin {
@@ -79,6 +119,12 @@ class Histogram {
     Bin(const Bin &other) : point_(other.point_), count_(other.count_) {}
 
     /**
+     * Move Constructor
+     * @param other Bin to copy
+     */
+    Bin(const Bin &&other) noexcept : point_(std::move(other.point_)), count_(std::move(other.count_)) {}
+
+    /**
      * Copy assignment operator
      * @param other Bin to copy
      * @return this after copying
@@ -86,6 +132,17 @@ class Histogram {
     Bin &operator=(const Bin &other) {
       point_ = other.point_;
       count_ = other.count_;
+      return *this;
+    }
+
+    /**
+     * Move assignment operator
+     * @param other Bin to copy
+     * @return this after copying
+     */
+    Bin &operator=(const Bin &&other) noexcept {
+      point_ = std::move(other.point_);
+      count_ = std::move(other.count_);
       return *this;
     }
 

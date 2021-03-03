@@ -95,7 +95,7 @@ class ColumnStats : public ColumnStatsBase {
    * Move constructor
    * @param other ColumnStats to move
    */
-  ColumnStats(const ColumnStats &&other)
+  ColumnStats(const ColumnStats &&other) noexcept
       : database_id_(other.database_id_),
         table_id_(other.table_id_),
         column_id_(other.column_id_),
@@ -139,7 +139,7 @@ class ColumnStats : public ColumnStatsBase {
    * @param other ColumnStats to copy
    * @return this after moving
    */
-  ColumnStats &operator=(const ColumnStats &&other) {
+  ColumnStats &operator=(const ColumnStats &&other) noexcept {
     database_id_ = other.database_id_;
     table_id_ = other.table_id_;
     column_id_ = other.column_id_;

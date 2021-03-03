@@ -69,7 +69,7 @@ class CountMinSketch {
    * @param other CountMinSketch to copy
    * @return this after copying
    */
-  CountMinSketch &operator=(CountMinSketch &other) {
+  CountMinSketch &operator=(const CountMinSketch &other) {
     total_count_ = other.total_count_;
     sketch_.copy(other.sketch_);
     return *this;
