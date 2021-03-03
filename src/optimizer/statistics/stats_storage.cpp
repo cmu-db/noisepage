@@ -56,7 +56,7 @@ void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_
                                   const std::vector<catalog::col_oid_t> &col_ids) {
   StatsStorageKey stats_storage_key{database_id, table_id};
   auto stats_storage_value = table_stats_storage_.find(stats_storage_key);
-  if(stats_storage_value != table_stats_storage_.end()) {
+  if (stats_storage_value != table_stats_storage_.end()) {
     for (const auto &col_id : col_ids) {
       table_stats_storage_.at(stats_storage_key).table_stats_->GetColumnStats(col_id)->MarkStale();
     }

@@ -54,36 +54,27 @@ class TopKElements {
    * Copy constructor
    * @param other TopKElements to copy
    */
-  TopKElements(const TopKElements &other) : entries_(other.entries_), sketch_(other.sketch_) {}
+  TopKElements(const TopKElements &other) = default;
 
   /**
    * Move constructor
    * @param other TopKElements to move
    */
-  TopKElements(const TopKElements &&other) noexcept
-      : entries_(std::move(other.entries_)), sketch_(std::move(other.sketch_)) {}
+  TopKElements(TopKElements &&other) noexcept = default;
 
   /**
    * Copy assignment operator
    * @param other TopKElements to copy
    * @return
    */
-  TopKElements &operator=(const TopKElements &other) {
-    entries_ = other.entries_;
-    sketch_ = other.sketch_;
-    return *this;
-  }
+  TopKElements &operator=(const TopKElements &other) = default;
 
   /**
    * Move assignment operator
    * @param other TopKElements to move
    * @return
    */
-  TopKElements &operator=(TopKElements &&other) noexcept {
-    entries_ = std::move(other.entries_);
-    sketch_ = std::move(other.sketch_);
-    return *this;
-  }
+  TopKElements &operator=(TopKElements &&other) noexcept = default;
 
   /**
    * Increase the count for the given key by the specified delta.

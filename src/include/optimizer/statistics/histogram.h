@@ -54,51 +54,27 @@ class Histogram {
    * Copy constructor
    * @param other Histogram to copy
    */
-  Histogram(const Histogram &other)
-      : max_bins_(other.max_bins_),
-        bins_(other.bins_),
-        total_(other.total_),
-        minimum_(other.minimum_),
-        maximum_(other.maximum_) {}
+  Histogram(const Histogram &other) = default;
 
   /**
    * Move constructor
    * @param other Histogram to copy
    */
-  Histogram(const Histogram &&other) noexcept
-      : max_bins_(std::move(other.max_bins_)),
-        bins_(std::move(other.bins_)),
-        total_(std::move(other.total_)),
-        minimum_(std::move(other.minimum_)),
-        maximum_(std::move(other.maximum_)) {}
+  Histogram(Histogram &&other) noexcept = default;
 
   /**
    * Copy assignment operator
    * @param other Histogram to copy
    * @return
    */
-  Histogram &operator=(const Histogram &other) {
-    max_bins_ = other.max_bins_;
-    bins_ = other.bins_;
-    total_ = other.total_;
-    minimum_ = other.minimum_;
-    maximum_ = other.maximum_;
-    return *this;
-  }
+  Histogram &operator=(const Histogram &other) = default;
 
   /**
    * Move assignment operator
    * @param other Histogram to copy
    * @return
    */
-  Histogram &operator=(const Histogram &&other) noexcept {
-    max_bins_ = std::move(other.max_bins_);
-    bins_ = std::move(other.bins_);
-    total_ = std::move(other.total_);
-    minimum_ = std::move(other.minimum_);
-    maximum_ = std::move(other.maximum_);
-    return *this;
-  }
+  Histogram &operator=(Histogram &&other) noexcept = default;
 
   /**
    * Internal representation of a point/count pair in the histogram.
@@ -116,35 +92,27 @@ class Histogram {
      * Copy Constructor
      * @param other Bin to copy
      */
-    Bin(const Bin &other) : point_(other.point_), count_(other.count_) {}
+    Bin(const Bin &other) = default;
 
     /**
      * Move Constructor
      * @param other Bin to copy
      */
-    Bin(const Bin &&other) noexcept : point_(std::move(other.point_)), count_(std::move(other.count_)) {}
+    Bin(Bin &&other) noexcept = default;
 
     /**
      * Copy assignment operator
      * @param other Bin to copy
      * @return this after copying
      */
-    Bin &operator=(const Bin &other) {
-      point_ = other.point_;
-      count_ = other.count_;
-      return *this;
-    }
+    Bin &operator=(const Bin &other) = default;
 
     /**
      * Move assignment operator
      * @param other Bin to copy
      * @return this after copying
      */
-    Bin &operator=(const Bin &&other) noexcept {
-      point_ = std::move(other.point_);
-      count_ = std::move(other.count_);
-      return *this;
-    }
+    Bin &operator=(Bin &&other) noexcept = default;
 
     /**
      * Merge the count from the given bin into this bin.

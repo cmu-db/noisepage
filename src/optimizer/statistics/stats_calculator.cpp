@@ -213,8 +213,8 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   }
 }
 
-size_t StatsCalculator::EstimateCardinalityForFilter(size_t num_rows, const TableStats &predicate_stats, const std::vector<AnnotatedExpression> &predicates) {
-
+size_t StatsCalculator::EstimateCardinalityForFilter(size_t num_rows, const TableStats &predicate_stats,
+                                                     const std::vector<AnnotatedExpression> &predicates) {
   double selectivity = 1.F;
   for (const auto &annotated_expr : predicates) {
     // Loop over conjunction exprs

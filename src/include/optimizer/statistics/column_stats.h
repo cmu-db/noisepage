@@ -95,19 +95,7 @@ class ColumnStats : public ColumnStatsBase {
    * Move constructor
    * @param other ColumnStats to move
    */
-  ColumnStats(const ColumnStats &&other) noexcept
-      : database_id_(other.database_id_),
-        table_id_(other.table_id_),
-        column_id_(other.column_id_),
-        num_rows_(other.num_rows_),
-        non_null_rows_(other.non_null_rows_),
-        frac_null_(other.frac_null_),
-        distinct_values_(other.distinct_values_),
-        type_id_(other.type_id_),
-        stale_(other.stale_) {
-    top_k_ = std::move(other.top_k_);
-    histogram_ = std::move(other.histogram_);
-  }
+  ColumnStats(ColumnStats &&other) noexcept = default;
 
   /**
    * Default destructor
@@ -139,20 +127,7 @@ class ColumnStats : public ColumnStatsBase {
    * @param other ColumnStats to copy
    * @return this after moving
    */
-  ColumnStats &operator=(const ColumnStats &&other) noexcept {
-    database_id_ = other.database_id_;
-    table_id_ = other.table_id_;
-    column_id_ = other.column_id_;
-    num_rows_ = other.num_rows_;
-    non_null_rows_ = other.non_null_rows_;
-    frac_null_ = other.frac_null_;
-    distinct_values_ = other.distinct_values_;
-    top_k_ = std::move(other.top_k_);
-    histogram_ = std::move(other.histogram_);
-    type_id_ = other.type_id_;
-    stale_ = other.stale_;
-    return *this;
-  }
+  ColumnStats &operator=(ColumnStats &&other) noexcept = default;
 
   /**
    * Gets the column oid of the column

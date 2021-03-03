@@ -71,7 +71,8 @@ class StatsCalculator : public OperatorVisitor {
    * @param predicates conjunction predicates
    * @returns Estimated cardinality
    */
-  size_t EstimateCardinalityForFilter(size_t num_rows, const TableStats &predicate_stats, const std::vector<AnnotatedExpression> &predicates);
+  size_t EstimateCardinalityForFilter(size_t num_rows, const TableStats &predicate_stats,
+                                      const std::vector<AnnotatedExpression> &predicates);
 
   /**
    * Calculates selectivity for predicate
