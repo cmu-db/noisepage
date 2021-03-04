@@ -198,9 +198,8 @@ size_t QueryExecUtil::CompileQuery(const std::string &statement,
     return 0;
   }
 
-  const std::unique_ptr<network::Statement> &network_statement = result.first;
   const std::unique_ptr<planner::AbstractPlanNode> &out_plan = result.second;
-  NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(network_statement->GetQueryType()), "ExecuteDML expects DML");
+  NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result.first->GetQueryType()), "ExecuteDML expects DML");
   common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
 
   auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings_, accessor.get(),
