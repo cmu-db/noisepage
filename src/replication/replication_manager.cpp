@@ -141,7 +141,6 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
         // TODO(WAN): Additionally, this is hackily a messenger exception so that it gets handled by the catch.
         throw MESSENGER_EXCEPTION("TODO(WAN): Handle a replica dying in synchronous replication.");
       }
-      lock.unlock();
     }
   } catch (const MessengerException &e) {
     REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (type {} block {}): msg size {}", replica_name,
