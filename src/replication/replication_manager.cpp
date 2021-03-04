@@ -45,9 +45,6 @@ ReplicationManager::ReplicationManager(
                                   [this](common::ManagedPointer<messenger::Messenger> messenger,
                                          const messenger::ZmqMessage &msg) { EventLoop(messenger, msg); });
   BuildReplicaList(replication_hosts_path);
-
-  // TODO(WAN): development purposes
-  replication_logger->set_level(spdlog::level::trace);
 }
 
 ReplicationManager::~ReplicationManager() = default;
