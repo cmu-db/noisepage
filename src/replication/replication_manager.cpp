@@ -154,6 +154,9 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
       }
     }
   } catch (const MessengerException &e) {
+    // TODO(WAN): This assumes that the replica has died. If the replica has in fact not died, and somehow the message
+    //  just crapped out and failed to send, this will hang the replica since the replica expects messages to be
+    //  received in order and we don't try to resend the message.
     REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (type {} block {}): msg size {}", replica_name,
                                      static_cast<uint8_t>(type), block, msg.size()));
   }
