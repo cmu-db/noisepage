@@ -99,7 +99,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
 
   for (auto &info : out_metadata) {
     metadata.query_id_to_dboid_[info.first] = info.second.db_oid_.UnderlyingValue();
-    metadata.query_id_to_text_[info.first] = info.second.text_;
+    metadata.query_id_to_text_[info.first] = info.second.text_.substr(1, info.second.text_.size() - 2);;
     metadata.query_id_to_param_types_[info.first] = types_conv(info.second.param_type_);
   }
 
@@ -136,6 +136,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     // can execute a prepared query without a corresponding text recording (if the query was
     // already prepared during a prior interval).
     auto query = "SELECT * FROM noisepage_forecast_texts";
+    query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
     result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
   }
 
@@ -152,6 +153,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     };
 
     auto query = fmt::format("SELECT * FROM noisepage_forecast_parameters WHERE iteration = {}", iteration);
+    query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
     result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
   }
 

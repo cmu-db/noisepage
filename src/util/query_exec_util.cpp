@@ -38,7 +38,8 @@ QueryExecUtil::QueryExecUtil(catalog::db_oid_t db_oid,
       catalog_(catalog),
       settings_(settings),
       stats_(stats),
-      optimizer_timeout_(optimizer_timeout) {
+      optimizer_timeout_(optimizer_timeout),
+      cost_func_(nullptr) {
   exec_settings_ = execution::exec::ExecutionSettings{};
   exec_settings_.UpdateFromSettingsManager(settings_);
 }
@@ -61,7 +62,7 @@ void QueryExecUtil::ClearPlans() {
 }
 
 void QueryExecUtil::UseTransaction(common::ManagedPointer<transaction::TransactionContext> txn) {
-  NOISEPAGE_ASSERT(txn_ != NULL, "Nesting transactions not supported");
+  NOISEPAGE_ASSERT(txn_ == NULL, "Nesting transactions not supported");
   txn_ = txn.Get();
   own_txn_ = false;
 }
