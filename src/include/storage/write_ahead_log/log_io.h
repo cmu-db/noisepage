@@ -100,7 +100,14 @@ class BufferedLogWriter {
   explicit BufferedLogWriter(const char *log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)) {}
 
-  /** Move constructor. */
+  /**
+   * Move constructor.
+   *
+   * This is necessary because of the atomic refcount field, which invalidates the default move ctor.
+   * To my knowledge, existing code always pre-allocates buffers in one shot, so these buffers will not actually get
+   * moved at runtime -- this exists solely so that std::vector's emplace_back requirement of being both MoveInsertable
+   * and EmplaceConstructible will be satisfied.
+   */
   BufferedLogWriter(BufferedLogWriter &&other) noexcept {
     out_ = other.out_;
     memcpy(buffer_, other.buffer_, common::Constants::LOG_BUFFER_SIZE);

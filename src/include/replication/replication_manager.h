@@ -191,6 +191,7 @@ class ReplicationManager {
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 };
 
+/** The replication manager that should run on the primary. */
 class PrimaryReplicationManager final : public ReplicationManager {
  public:
   /**
@@ -208,6 +209,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
       const std::string &replication_hosts_path,
       common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
 
+  /** Destructor. */
   virtual ~PrimaryReplicationManager();
 
   /** @return True since this is the primary. */
@@ -227,6 +229,11 @@ class PrimaryReplicationManager final : public ReplicationManager {
   uint64_t next_buffer_sent_id_ = 1;  ///< The ID of the next buffer to send.
 };
 
+/**
+ * The replication manager that should run on the replicas.
+ *
+ * TODO(WAN): If the primary fails, how does the replica switch its replication manager? I guess possible, but annoying.
+ */
 class ReplicaReplicationManager final : public ReplicationManager {
  public:
   /**
@@ -244,6 +251,7 @@ class ReplicaReplicationManager final : public ReplicationManager {
       const std::string &replication_hosts_path,
       common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
 
+  /** Destructor. */
   virtual ~ReplicaReplicationManager();
 
   /** @return False since this is a replica. */
