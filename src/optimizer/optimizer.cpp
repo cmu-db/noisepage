@@ -21,13 +21,14 @@ namespace noisepage::optimizer {
 
 void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
-std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
-                                                         catalog::CatalogAccessor *accessor, StatsStorage *storage,
-                                                         QueryInfo query_info,
-                                                         std::unique_ptr<AbstractOptimizerNode> op_tree) {
+std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(
+    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, StatsStorage *storage,
+    QueryInfo query_info, std::unique_ptr<AbstractOptimizerNode> op_tree,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
+  context_->SetParams(params);
   auto optimize_result = std::make_unique<OptimizeResult>();
 
   // Generate initial operator tree from query tree

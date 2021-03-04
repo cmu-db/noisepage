@@ -25,7 +25,8 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     const common::ManagedPointer<catalog::CatalogAccessor> accessor,
     const common::ManagedPointer<parser::ParseResult> query, const catalog::db_oid_t db_oid,
     common::ManagedPointer<optimizer::StatsStorage> stats_storage,
-    std::unique_ptr<optimizer::AbstractCostModel> cost_model, const uint64_t optimizer_timeout) {
+    std::unique_ptr<optimizer::AbstractCostModel> cost_model, const uint64_t optimizer_timeout,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
   auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
@@ -67,7 +68,8 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
   // TODO(Matt): QueryInfo holding a raw pointer to PropertySet obfuscates the required life cycle of PropertySet
 
   // Optimize, consuming the logical expressions in the process
-  return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs));
+  return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs),
+                                 params);
   // TODO(Matt): I see a lot of copying going on in the Optimizer that maybe shouldn't be happening. BuildPlanTree's
   // signature is copying QueryInfo object (contains a vector of output columns), which then immediately makes a local
   // copy of that vector anyway. Presumably those are immutable expressions, in which case they should be const & to the

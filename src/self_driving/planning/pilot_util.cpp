@@ -106,7 +106,7 @@ std::unique_ptr<planner::AbstractPlanNode> PilotUtil::GenerateQueryPlan(
 
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
                                                        common::ManagedPointer(stmt_list), db_oid, stats_storage,
-                                                       std::move(cost_model), optimizer_timeout)
+                                                       std::move(cost_model), optimizer_timeout, params)
                       ->TakePlanNodeOwnership();
   return out_plan;
 }

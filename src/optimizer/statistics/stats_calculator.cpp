@@ -276,8 +276,10 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
           reinterpret_cast<parser::ConstantValueExpression *>(cve->Copy().release())};
     } else {
       auto pve = expr->GetChild(right_index).CastManagedPointerTo<parser::ParameterValueExpression>();
-      value = std::make_unique<parser::ConstantValueExpression>(type::TypeId::PARAMETER_OFFSET,
-                                                                execution::sql::Integer(pve->GetValueIdx()));
+      NOISEPAGE_ASSERT(context_->GetParams() != nullptr, "Query expected to have parameters");
+      NOISEPAGE_ASSERT(context_->GetParams()->size() > pve->GetValueIdx(), "Query expected to have enough parameters");
+      value = std::unique_ptr<parser::ConstantValueExpression>{reinterpret_cast<parser::ConstantValueExpression *>(
+          context_->GetParams()->at(pve->GetValueIdx()).Copy().release())};
     }
 
     ValueCondition condition(col_oid, col_name, expr_type, std::move(value));

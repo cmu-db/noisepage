@@ -59,10 +59,10 @@ class Optimizer : public AbstractOptimizer {
    * @param op_tree Logical operator tree for execution
    * @returns execution plan
    */
-  std::unique_ptr<OptimizeResult> BuildPlanTree(transaction::TransactionContext *txn,
-                                                catalog::CatalogAccessor *accessor, StatsStorage *storage,
-                                                QueryInfo query_info,
-                                                std::unique_ptr<AbstractOptimizerNode> op_tree) override;
+  std::unique_ptr<OptimizeResult> BuildPlanTree(
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, StatsStorage *storage,
+      QueryInfo query_info, std::unique_ptr<AbstractOptimizerNode> op_tree,
+      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params) override;
 
   /**
    * Reset the optimizer state

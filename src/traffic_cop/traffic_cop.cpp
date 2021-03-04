@@ -132,13 +132,14 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 
 std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<parser::ParseResult> query) const {
+    const common::ManagedPointer<parser::ParseResult> query,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
 
   return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
                                   connection_ctx->GetDatabaseOid(), stats_storage_,
-                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_, params);
 }
 
 TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
