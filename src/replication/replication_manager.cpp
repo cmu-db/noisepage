@@ -13,10 +13,10 @@
 
 namespace {
 
-bool CompareMessages(const noisepage::messenger::ZmqMessage &left, const noisepage::messenger::ZmqMessage &right) {
-  nlohmann::json left_json = nlohmann::json::parse(left.GetMessage());
-  nlohmann::json right_json = nlohmann::json::parse(right.GetMessage());
-  return left_json.at("buf_id") > right_json.at("buf_id");
+/** @return True if left > right. False otherwise. */
+bool CompareMessages(const noisepage::replication::ReplicateBufferMessage &left,
+                     const noisepage::replication::ReplicateBufferMessage &right) {
+  return left.GetMessageId() > right.GetMessageId();
 }
 
 }  // namespace
@@ -28,6 +28,26 @@ Replica::Replica(common::ManagedPointer<messenger::Messenger> messenger, const s
     : replica_info_(messenger::ConnectionDestination::MakeTCP(replica_name, hostname, port)),
       connection_(messenger->MakeConnection(replica_info_)),
       last_heartbeat_(0) {}
+
+const char *ReplicateBufferMessage::KEY_BUF_ID = "buf_id";
+const char *ReplicateBufferMessage::KEY_CONTENT = "content";
+
+ReplicateBufferMessage ReplicateBufferMessage::FromMessage(const messenger::ZmqMessage &msg) {
+  // TODO(WAN): Sanity-check the received message.
+  nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
+  uint64_t source_callback_id = msg.GetSourceCallbackId();
+  uint64_t buffer_id = message.at(KEY_BUF_ID);
+  std::string contents = nlohmann::json::from_cbor(message[KEY_CONTENT].get<std::vector<uint8_t>>());
+  return ReplicateBufferMessage(buffer_id, std::move(contents), source_callback_id);
+}
+
+std::string ReplicateBufferMessage::ToString() {
+  common::json json;
+  json[KEY_BUF_ID] = buffer_id_;
+  json[KEY_CONTENT] = nlohmann::json::to_cbor(contents_);
+  // TODO(WAN): Add a size and checksum to message.
+  return json.dump();
+}
 
 ReplicationManager::ReplicationManager(
     common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
@@ -231,14 +251,12 @@ void PrimaryReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buff
   NOISEPAGE_ASSERT(buffer != nullptr,
                    "Don't try to replicate null buffers. That's pointless."
                    "You might plausibly want to track statistics at some point, but that should not happen here.");
-  common::json j;
-  // TODO(WAN): Add a size and checksum to message.
-  j["buf_id"] = next_buffer_sent_id_++;
-  j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
+  ReplicateBufferMessage msg{next_buffer_sent_id_++, std::string(buffer->buffer_, buffer->buffer_size_)};
+  std::string msg_as_string = msg.ToString();
 
   for (const auto &replica : replicas_) {
     // TODO(WAN): many things break when block is flipped from true to false.
-    ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), true);
+    ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, msg_as_string, true);
   }
 
   if (buffer->MarkSerialized()) {
@@ -256,54 +274,39 @@ ReplicaReplicationManager::ReplicaReplicationManager(
 
 ReplicaReplicationManager::~ReplicaReplicationManager() = default;
 
+void ReplicaReplicationManager::HandleReplicatedBuffer(const messenger::ZmqMessage &msg) {
+  auto rb_msg = ReplicateBufferMessage::FromMessage(msg);
+  REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), rb_msg.GetMessageId()));
+
+  // Check if the message needs to be buffered.
+  if (rb_msg.GetMessageId() > last_record_received_id_ + 1) {
+    // The message should be buffered if there are gaps in between the last seen buffer.
+    received_message_queue_.push(rb_msg);
+  } else {
+    // Otherwise, pull out the log record from the message and hand the record to the replication log provider.
+    provider_->AddBufferFromMessage(rb_msg.GetSourceCallbackId(), rb_msg.GetContents());
+    last_record_received_id_ = rb_msg.GetMessageId();
+    // This may unleash the rest of the buffered messages.
+    while (!received_message_queue_.empty()) {
+      auto &top = received_message_queue_.top();
+      // Stop once you're missing a buffer.
+      if (top.GetMessageId() > last_record_received_id_ + 1) {
+        break;
+      }
+      // Otherwise, send the top buffer's contents along.
+      received_message_queue_.pop();
+      NOISEPAGE_ASSERT(top.GetMessageId() == last_record_received_id_ + 1, "Duplicate buffer? Old buffer?");
+      provider_->AddBufferFromMessage(top.GetSourceCallbackId(), top.GetContents());
+      last_record_received_id_ = top.GetMessageId();
+    }
+  }
+}
+
 void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
                                           const messenger::ZmqMessage &msg) {
-  auto apply_replicated_buffer = [&]() {
-    // Parse the buffer from the received message and add it to the provided replication logs.
-    {
-      nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
-      // TODO(WAN): Sanity-check the received message.
-
-      uint64_t source_callback_id = msg.GetSourceCallbackId();
-      uint64_t msg_id = message.at("buf_id");
-      REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), msg_id));
-
-      // Check if the message needs to be buffered.
-      if (msg_id > last_record_received_id_ + 1) {
-        // The message should be buffered if there are gaps in between the last seen buffer.
-        received_message_queue_.push(msg);
-      } else {
-        // Otherwise, pull out the log record from the message and hand them to the replication log provider.
-        // TODO(WAN): And now we parse the same JSON repeatedly.. we could parse once and store <uint64,json> instead?
-        std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
-        provider_->AddBufferFromMessage(source_callback_id, content);
-        last_record_received_id_ = msg_id;
-        // This may unleash the rest of the buffered messages.
-        while (!received_message_queue_.empty()) {
-          auto &temporary = received_message_queue_.top();
-          source_callback_id = temporary.GetSourceCallbackId();
-          message = nlohmann::json::parse(temporary.GetMessage());
-          msg_id = message.at("buf_id");
-          // Stop once you're missing a buffer.
-          if (msg_id > last_record_received_id_ + 1) {
-            break;
-          }
-          // Otherwise, send the top buffer's contents along.
-          received_message_queue_.pop();
-          NOISEPAGE_ASSERT(msg_id == last_record_received_id_ + 1, "Duplicate buffer? Old buffer?");
-          content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
-          provider_->AddBufferFromMessage(source_callback_id, content);
-          last_record_received_id_ = msg_id;
-        }
-      }
-    }
-    // TODO(WAN): To support async, acknowledge receipt of the buffer to the sender here.
-    // TODO(WAN): Add a size and checksum to message.
-  };
-
   switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
     case MessageType::REPLICATE_BUFFER: {
-      apply_replicated_buffer();
+      HandleReplicatedBuffer(msg);
       break;
     }
     default: {

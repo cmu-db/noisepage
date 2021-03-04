@@ -33,7 +33,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param empty_buffer_queue          Pointer to queue to pop empty buffers from.
    * @param filled_buffer_queue         Pointer to queue to push filled buffers to.
    * @param disk_log_writer_thread_cv   Pointer to cvar to notify consumer when a new buffer has handed over.
-   * @param replication_manager         Pointer to replication manager that some serialized logs will be pushed to.
+   * @param primary_replication_manager Pointer to replication manager where to-be-replicated serialized logs are sent.
    */
   explicit LogSerializerTask(
       const std::chrono::microseconds serialization_interval, RecordBufferSegmentPool *buffer_pool,

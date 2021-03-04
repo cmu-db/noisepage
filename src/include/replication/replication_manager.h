@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "common/container/concurrent_blocking_queue.h"
+#include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
@@ -51,6 +52,45 @@ class Replica {
   messenger::ConnectionDestination replica_info_;  ///< The connection metadata for this replica.
   messenger::ConnectionId connection_;             ///< The connection to this replica.
   uint64_t last_heartbeat_;  ///< Time (unix epoch) that the replica heartbeat was last successful.
+};
+
+/** Container class for the contents of a REPLICATE_BUFFER message. */
+class ReplicateBufferMessage {
+ public:
+  static const char *KEY_BUF_ID;   ///< JSON key for buffer ID. Helps to order buffers.
+  static const char *KEY_CONTENT;  ///< JSON key for buffer content. The actual buffer itself.
+
+  /** Construct a new buffer message (sender side). */
+  ReplicateBufferMessage(uint64_t buffer_id, std::string &&contents)
+      : buffer_id_(buffer_id), contents_(std::move(contents)) {}
+
+  /** @return The parsed ReplicateBufferMessage. */
+  static ReplicateBufferMessage FromMessage(const messenger::ZmqMessage &msg);
+
+  /** @return The string version of a ReplicateBufferMessage, ready for ReplicaSend(). */
+  std::string ToString();
+
+  /** @return Only valid on receiver side. The source callback ID to invoke once this buffer is considered persisted. */
+  uint64_t GetSourceCallbackId() const { return source_callback_id_; }
+
+  /** @return The ID of this buffer. */
+  uint64_t GetMessageId() const { return buffer_id_; }
+
+  /** @return The contents of this buffer. */
+  const std::string &GetContents() const { return contents_; }
+
+ private:
+  /** Construct a new buffer message (receiver side). */
+  ReplicateBufferMessage(uint64_t buffer_id, std::string &&contents, uint64_t source_callback_id)
+      : buffer_id_(buffer_id), contents_(std::move(contents)), source_callback_id_(source_callback_id) {}
+
+  uint64_t buffer_id_;    ///< The buffer ID identifies the order of buffers sent by the remote origin.
+  std::string contents_;  ///< The actual contents of the buffer.
+  /**
+   * The source callback ID that should be invoked once this buffer is persisted.
+   * Since this is added by the messenger, this is just left uninitialized on the sender side.
+   */
+  uint64_t source_callback_id_;
 };
 
 /**
@@ -269,6 +309,9 @@ class ReplicaReplicationManager final : public ReplicationManager {
   /** The main event loop that all nodes run. This handles receiving messages. */
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) override;
 
+  /** Apply the buffer if it is the "next" buffer. Otherwise enqueue it, see received_message_queue_ documentation. */
+  void HandleReplicatedBuffer(const messenger::ZmqMessage &msg);
+
   std::unique_ptr<storage::ReplicationLogProvider> provider_;  ///< The replicated buffers provided by the primary.
   uint64_t last_record_received_id_ = 0;                       ///< The ID of the last record to be received.
 
@@ -279,8 +322,8 @@ class ReplicaReplicationManager final : public ReplicationManager {
    * When the right buffer is received, the buffers are repeatedly removed and forwarded to the provider_
    * until there is again a "gap" in messages received.
    */
-  std::priority_queue<messenger::ZmqMessage, std::vector<messenger::ZmqMessage>,
-                      std::function<bool(messenger::ZmqMessage, messenger::ZmqMessage)>>
+  std::priority_queue<ReplicateBufferMessage, std::vector<ReplicateBufferMessage>,
+                      std::function<bool(ReplicateBufferMessage, ReplicateBufferMessage)>>
       received_message_queue_;
 };
 
