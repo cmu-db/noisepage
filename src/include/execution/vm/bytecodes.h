@@ -449,6 +449,92 @@ namespace noisepage::execution::vm {
   F(AvgAggregateReset, OperandType::Local)                                                                            \
   F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                    \
   F(AvgAggregateFree, OperandType::Local)                                                                             \
+  /* Top K Aggregates */                                                                                              \
+  F(BooleanTopKAggregateInit, OperandType::Local)                                                                     \
+  F(BooleanTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                              \
+  F(BooleanTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                \
+  F(BooleanTopKAggregateReset, OperandType::Local)                                                                    \
+  F(BooleanTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(BooleanTopKAggregateFree, OperandType::Local)                                                                     \
+  F(IntegerTopKAggregateInit, OperandType::Local)                                                                     \
+  F(IntegerTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                              \
+  F(IntegerTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                \
+  F(IntegerTopKAggregateReset, OperandType::Local)                                                                    \
+  F(IntegerTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(IntegerTopKAggregateFree, OperandType::Local)                                                                     \
+  F(RealTopKAggregateInit, OperandType::Local)                                                                        \
+  F(RealTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                                 \
+  F(RealTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                   \
+  F(RealTopKAggregateReset, OperandType::Local)                                                                       \
+  F(RealTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(RealTopKAggregateFree, OperandType::Local)                                                                        \
+  F(DecimalTopKAggregateInit, OperandType::Local)                                                                     \
+  F(DecimalTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                              \
+  F(DecimalTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                \
+  F(DecimalTopKAggregateReset, OperandType::Local)                                                                    \
+  F(DecimalTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(DecimalTopKAggregateFree, OperandType::Local)                                                                     \
+  F(StringTopKAggregateInit, OperandType::Local)                                                                      \
+  F(StringTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
+  F(StringTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
+  F(StringTopKAggregateReset, OperandType::Local)                                                                     \
+  F(StringTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(StringTopKAggregateFree, OperandType::Local)                                                                      \
+  F(DateTopKAggregateInit, OperandType::Local)                                                                        \
+  F(DateTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                                 \
+  F(DateTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                   \
+  F(DateTopKAggregateReset, OperandType::Local)                                                                       \
+  F(DateTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(DateTopKAggregateFree, OperandType::Local)                                                                        \
+  F(TimestampTopKAggregateInit, OperandType::Local)                                                                   \
+  F(TimestampTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                            \
+  F(TimestampTopKAggregateMerge, OperandType::Local, OperandType::Local)                                              \
+  F(TimestampTopKAggregateReset, OperandType::Local)                                                                  \
+  F(TimestampTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                      \
+  F(TimestampTopKAggregateFree, OperandType::Local)                                                                   \
+  /* Histogram Aggregates */                                                                                          \
+  F(BooleanHistogramAggregateInit, OperandType::Local)                                                                \
+  F(BooleanHistogramAggregateAdvance, OperandType::Local, OperandType::Local)                                         \
+  F(BooleanHistogramAggregateMerge, OperandType::Local, OperandType::Local)                                           \
+  F(BooleanHistogramAggregateReset, OperandType::Local)                                                               \
+  F(BooleanHistogramAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  F(BooleanHistogramAggregateFree, OperandType::Local)                                                                \
+  F(IntegerHistogramAggregateInit, OperandType::Local)                                                                \
+  F(IntegerHistogramAggregateAdvance, OperandType::Local, OperandType::Local)                                         \
+  F(IntegerHistogramAggregateMerge, OperandType::Local, OperandType::Local)                                           \
+  F(IntegerHistogramAggregateReset, OperandType::Local)                                                               \
+  F(IntegerHistogramAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  F(IntegerHistogramAggregateFree, OperandType::Local)                                                                \
+  F(RealHistogramAggregateInit, OperandType::Local)                                                                   \
+  F(RealHistogramAggregateAdvance, OperandType::Local, OperandType::Local)                                            \
+  F(RealHistogramAggregateMerge, OperandType::Local, OperandType::Local)                                              \
+  F(RealHistogramAggregateReset, OperandType::Local)                                                                  \
+  F(RealHistogramAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                      \
+  F(RealHistogramAggregateFree, OperandType::Local)                                                                   \
+  F(DecimalHistogramAggregateInit, OperandType::Local)                                                                \
+  F(DecimalHistogramAggregateAdvance, OperandType::Local, OperandType::Local)                                         \
+  F(DecimalHistogramAggregateMerge, OperandType::Local, OperandType::Local)                                           \
+  F(DecimalHistogramAggregateReset, OperandType::Local)                                                               \
+  F(DecimalHistogramAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  F(DecimalHistogramAggregateFree, OperandType::Local)                                                                \
+  F(StringHistogramAggregateInit, OperandType::Local)                                                                 \
+  F(StringHistogramAggregateAdvance, OperandType::Local, OperandType::Local)                                          \
+  F(StringHistogramAggregateMerge, OperandType::Local, OperandType::Local)                                            \
+  F(StringHistogramAggregateReset, OperandType::Local)                                                                \
+  F(StringHistogramAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                    \
+  F(StringHistogramAggregateFree, OperandType::Local)                                                                 \
+  F(DateHistogramAggregateInit, OperandType::Local)                                                                   \
+  F(DateHistogramAggregateAdvance, OperandType::Local, OperandType::Local)                                            \
+  F(DateHistogramAggregateMerge, OperandType::Local, OperandType::Local)                                              \
+  F(DateHistogramAggregateReset, OperandType::Local)                                                                  \
+  F(DateHistogramAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                      \
+  F(DateHistogramAggregateFree, OperandType::Local)                                                                   \
+  F(TimestampHistogramAggregateInit, OperandType::Local)                                                              \
+  F(TimestampHistogramAggregateAdvance, OperandType::Local, OperandType::Local)                                       \
+  F(TimestampHistogramAggregateMerge, OperandType::Local, OperandType::Local)                                         \
+  F(TimestampHistogramAggregateReset, OperandType::Local)                                                             \
+  F(TimestampHistogramAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                 \
+  F(TimestampHistogramAggregateFree, OperandType::Local)                                                              \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \

@@ -106,7 +106,9 @@ ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
   term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
     auto field_name = codegen->MakeIdentifier(AGGREGATE_TERM_ATTR_PREFIX + std::to_string(term_idx));
-    auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
+    NOISEPAGE_ASSERT(term->GetChildren().size() == 1, "Aggregate term should only have one child");
+    auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()),
+                                       sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
@@ -690,7 +692,8 @@ ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint3
     if (child_idx == 0) {
       return GetGroupByTerm(agg_row_var_, attr_idx);
     }
-    return GetCodeGen()->AggregatorResult(GetAggregateTermPtr(agg_row_var_, attr_idx));
+    return GetCodeGen()->AggregatorResult(GetExecutionContext(), GetAggregateTermPtr(agg_row_var_, attr_idx),
+                                          GetAggPlan().GetAggregateTerms().at(attr_idx)->GetExpressionType());
   }
   // The request is in the build pipeline. Forward to child translator.
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);

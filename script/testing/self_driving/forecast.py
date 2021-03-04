@@ -12,7 +12,8 @@ from ..util.common import run_command
 from ..util.constants import LOG, ErrorCode
 from .constants import (DEFAULT_OLTP_SERVER_ARGS, DEFAULT_OLTP_TEST_CASE,
                         DEFAULT_QUERY_TRACE_FILE, DEFAULT_TPCC_TIME_SEC,
-                        DEFAULT_TPCC_WEIGHTS)
+                        DEFAULT_TPCC_WEIGHTS, DEFAULT_PIPELINE_METRICS_FILE,
+                        DEFAULT_PIPELINE_METRICS_SAMPLE_RATE)
 
 
 def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
@@ -54,7 +55,7 @@ def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
 
 
 def gen_oltp_trace(
-        tpcc_weight: str, tpcc_rates: List[int], pattern_iter: int) -> bool:
+        tpcc_weight: str, tpcc_rates: List[int], pattern_iter: int, record_pipeline_metrics: bool) -> bool:
     """
     Generate the trace by running OLTPBench's TPCC benchmark on the built DBMS.
 
@@ -66,14 +67,13 @@ def gen_oltp_trace(
         The arrival rates for each phase in a pattern.
     pattern_iter : int
         The number of patterns.
+    record_pipeline_metrics : bool
+        Record the pipeline metrics instead of query traces
 
     Returns
     -------
     True on success.
     """
-    # Remove the old query_trace/query_text.csv
-    Path(DEFAULT_QUERY_TRACE_FILE).unlink(missing_ok=True)
-
     # Server is running when this returns
     oltp_server = TestOLTPBench(DEFAULT_OLTP_SERVER_ARGS)
     db_server = oltp_server.db_instance
@@ -94,8 +94,18 @@ def gen_oltp_trace(
     rates = tpcc_rates * pattern_iter
     config_forecast_data(test_case.xml_config, rates)
 
-    # Turn on query trace metrics tracing
-    db_server.execute("SET query_trace_metrics_enable='true'", expect_result=False)
+    if record_pipeline_metrics:
+        # Turn on pipeline metrics recording
+        db_server.execute("SET pipeline_metrics_enable='true'", expect_result=False)
+        db_server.execute("SET pipeline_metrics_sample_rate={}".format(DEFAULT_PIPELINE_METRICS_SAMPLE_RATE),
+                          expect_result=False)
+        result_file = DEFAULT_PIPELINE_METRICS_FILE
+    else:
+        # Turn on query trace metrics tracing
+        db_server.execute("SET query_trace_metrics_enable='true'", expect_result=False)
+        result_file = DEFAULT_QUERY_TRACE_FILE
+    # Remove the old result file
+    Path(result_file).unlink(missing_ok=True)
 
     # Run the actual test
     ret_val, _, stderr = run_command(test_case.test_command,
@@ -108,9 +118,9 @@ def gen_oltp_trace(
     db_server.stop_db()
     db_server.delete_wal()
 
-    if not Path(DEFAULT_QUERY_TRACE_FILE).exists():
+    if not Path(result_file).exists():
         LOG.error(
-            f"Missing {DEFAULT_QUERY_TRACE_FILE} at CWD after running OLTP TPCC")
+            f"Missing {result_file} at CWD after running OLTP TPCC")
         return False
 
     return True

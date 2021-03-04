@@ -77,9 +77,9 @@ class SqlBasedTest : public TplTest {
 
  protected:
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
-  transaction::TransactionContext *test_txn_;
   catalog::db_oid_t test_db_oid_{0};
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
+  transaction::TransactionContext *test_txn_;
 
  private:
   std::unique_ptr<DBMain> db_main_;

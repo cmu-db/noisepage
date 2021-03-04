@@ -899,6 +899,7 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
         break;
       case ast::BuiltinType::Timestamp:
         GetEmitter()->Emit(Bytecode::HashTimestamp, hash_val, input, hash_val.ValueOf());
+        break;
       default:
         UNREACHABLE("Hashing this type isn't supported!");
     }
@@ -1214,7 +1215,57 @@ namespace {
     StringMaxAggregateMerge, StringMaxAggregateReset, StringMaxAggregateFree)                                          \
   /* MIN(string_col) */                                                                                                \
   F(StringMinAggregate, StringMinAggregateInit, StringMinAggregateAdvance, StringMinAggregateGetResult,                \
-    StringMinAggregateMerge, StringMinAggregateReset, StringMinAggregateFree)
+    StringMinAggregateMerge, StringMinAggregateReset, StringMinAggregateFree)                                          \
+  /* TOPK(bool_col) */                                                                                                 \
+  F(BooleanTopKAggregate, BooleanTopKAggregateInit, BooleanTopKAggregateAdvance, BooleanTopKAggregateGetResult,        \
+    BooleanTopKAggregateMerge, BooleanTopKAggregateReset, BooleanTopKAggregateFree)                                    \
+  /* TOPK(int_col) */                                                                                                  \
+  F(IntegerTopKAggregate, IntegerTopKAggregateInit, IntegerTopKAggregateAdvance, IntegerTopKAggregateGetResult,        \
+    IntegerTopKAggregateMerge, IntegerTopKAggregateReset, IntegerTopKAggregateFree)                                    \
+  /* TOPK(real_col) */                                                                                                 \
+  F(RealTopKAggregate, RealTopKAggregateInit, RealTopKAggregateAdvance, RealTopKAggregateGetResult,                    \
+    RealTopKAggregateMerge, RealTopKAggregateReset, RealTopKAggregateFree)                                             \
+  /* TOPK(decimal_col) */                                                                                              \
+  F(DecimalTopKAggregate, DecimalTopKAggregateInit, DecimalTopKAggregateAdvance, DecimalTopKAggregateGetResult,        \
+    DecimalTopKAggregateMerge, DecimalTopKAggregateReset, DecimalTopKAggregateFree)                                    \
+  /* TOPK(string_col) */                                                                                               \
+  F(StringTopKAggregate, StringTopKAggregateInit, StringTopKAggregateAdvance, StringTopKAggregateGetResult,            \
+    StringTopKAggregateMerge, StringTopKAggregateReset, StringTopKAggregateFree)                                       \
+  /* TOPK(date_col) */                                                                                                 \
+  F(DateTopKAggregate, DateTopKAggregateInit, DateTopKAggregateAdvance, DateTopKAggregateGetResult,                    \
+    DateTopKAggregateMerge, DateTopKAggregateReset, DateTopKAggregateFree)                                             \
+  /* TOPK(timestamp_col) */                                                                                            \
+  F(TimestampTopKAggregate, TimestampTopKAggregateInit, TimestampTopKAggregateAdvance,                                 \
+    TimestampTopKAggregateGetResult, TimestampTopKAggregateMerge, TimestampTopKAggregateReset,                         \
+    TimestampTopKAggregateFree)                                                                                        \
+  /* HISTOGRAM(bool_col) */                                                                                            \
+  F(BooleanHistogramAggregate, BooleanHistogramAggregateInit, BooleanHistogramAggregateAdvance,                        \
+    BooleanHistogramAggregateGetResult, BooleanHistogramAggregateMerge, BooleanHistogramAggregateReset,                \
+    BooleanHistogramAggregateFree)                                                                                     \
+  /* HISTOGRAM(int_col) */                                                                                             \
+  F(IntegerHistogramAggregate, IntegerHistogramAggregateInit, IntegerHistogramAggregateAdvance,                        \
+    IntegerHistogramAggregateGetResult, IntegerHistogramAggregateMerge, IntegerHistogramAggregateReset,                \
+    IntegerHistogramAggregateFree)                                                                                     \
+  /* HISTOGRAM(real_col) */                                                                                            \
+  F(RealHistogramAggregate, RealHistogramAggregateInit, RealHistogramAggregateAdvance,                                 \
+    RealHistogramAggregateGetResult, RealHistogramAggregateMerge, RealHistogramAggregateReset,                         \
+    RealHistogramAggregateFree)                                                                                        \
+  /* HISTOGRAM(decimal_col) */                                                                                         \
+  F(DecimalHistogramAggregate, DecimalHistogramAggregateInit, DecimalHistogramAggregateAdvance,                        \
+    DecimalHistogramAggregateGetResult, DecimalHistogramAggregateMerge, DecimalHistogramAggregateReset,                \
+    DecimalHistogramAggregateFree)                                                                                     \
+  /* HISTOGRAM(string_col) */                                                                                          \
+  F(StringHistogramAggregate, StringHistogramAggregateInit, StringHistogramAggregateAdvance,                           \
+    StringHistogramAggregateGetResult, StringHistogramAggregateMerge, StringHistogramAggregateReset,                   \
+    StringHistogramAggregateFree)                                                                                      \
+  /* HISTOGRAM(date_col) */                                                                                            \
+  F(DateHistogramAggregate, DateHistogramAggregateInit, DateHistogramAggregateAdvance,                                 \
+    DateHistogramAggregateGetResult, DateHistogramAggregateMerge, DateHistogramAggregateReset,                         \
+    DateHistogramAggregateFree)                                                                                        \
+  /* HISTOGRAM(timestamp_col) */                                                                                       \
+  F(TimestampHistogramAggregate, TimestampHistogramAggregateInit, TimestampHistogramAggregateAdvance,                  \
+    TimestampHistogramAggregateGetResult, TimestampHistogramAggregateMerge, TimestampHistogramAggregateReset,          \
+    TimestampHistogramAggregateFree)
 
 enum class AggOpKind : uint8_t { Init = 0, Advance = 1, GetResult = 2, Merge = 3, Reset = 4, Free = 5 };
 
@@ -1357,11 +1408,19 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
     }
     case ast::Builtin::AggResult: {
       const auto &args = call->Arguments();
-      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
       LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      LocalVar agg = VisitExpressionForRValue(args[0]);
-      Bytecode bytecode = OpForAgg<AggOpKind::GetResult>(agg_kind);
-      GetEmitter()->Emit(bytecode, result, agg);
+      if (args.size() == 2) {
+        const auto agg_kind = args[1]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+        LocalVar exec_ctx = VisitExpressionForRValue(args[0]);
+        LocalVar agg = VisitExpressionForRValue(args[1]);
+        Bytecode bytecode = OpForAgg<AggOpKind::GetResult>(agg_kind);
+        GetEmitter()->Emit(bytecode, result, exec_ctx, agg);
+      } else {
+        const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+        LocalVar agg = VisitExpressionForRValue(args[0]);
+        Bytecode bytecode = OpForAgg<AggOpKind::GetResult>(agg_kind);
+        GetEmitter()->Emit(bytecode, result, agg);
+      }
       break;
     }
     default: {

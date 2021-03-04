@@ -203,6 +203,12 @@ class InputColumnDeriver : public OperatorVisitor {
    */
   void Visit(const ExportExternalFile *op) override;
 
+  /**
+   * Visit function to derive input/output columns for Analyze
+   * @param op Analyze operator to visit
+   */
+  void Visit(const Analyze *op) override;
+
  private:
   /**
    * Helper to derive the output columns of a scan operator.

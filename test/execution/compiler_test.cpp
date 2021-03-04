@@ -2867,6 +2867,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
                  .SetTableOid(table_oid1)
+                 .SetInsertType(parser::InsertType::VALUES)
                  .SetOutputSchema(std::move(output_schema))
                  .Build();
   }
@@ -3007,8 +3008,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
-  // TODO(WAN): insert into select doesn't work yet in TPL2
+TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   // INSERT INTO test_1
   // SELECT -colA, col2, col3, col4 FROM test_1 WHERE colA BETWEEN param1 AND param2.
   // Set param1 = 495 and param2 = 505
@@ -3062,6 +3062,7 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
                  .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
                  .SetIndexOids({index_oid1})
                  .SetTableOid(table_oid1)
+                 .SetInsertType(parser::InsertType::SELECT)
                  .AddChild(std::move(seq_scan1))
                  .SetOutputSchema(std::move(output_schema))
                  .Build();
@@ -3082,16 +3083,16 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
 
     // Pipeline Units
-    auto pipeline = executable->GetPipelineOperatingUnits();
-    EXPECT_FALSE(true);
+    /*auto pipeline = executable->GetPipelineOperatingUnits();
     // TODO(WAN): re-enable when distinct works EXPECT_EQ(pipeline->units_.size(), 1);
 
-    auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-    auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{
-        selfdriving::ExecutionOperatingUnitType::INSERT, selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-        selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-        selfdriving::ExecutionOperatingUnitType::SEQ_SCAN};
-    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+        auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+        auto exp_vec0 = std::vector<selfdriving::ExecutionOperatingUnitType>{
+            selfdriving::ExecutionOperatingUnitType::INSERT,
+       selfdriving::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+            selfdriving::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+            selfdriving::ExecutionOperatingUnitType::SEQ_SCAN};
+        EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));*/
   }
 
   // Now scan through table to check content.
@@ -3286,6 +3287,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
                  .SetTableOid(table_oid1)
+                 .SetInsertType(parser::InsertType::VALUES)
                  .SetOutputSchema(std::move(output_schema))
                  .Build();
   }

@@ -57,6 +57,8 @@ enum class ExpressionType : uint8_t {
   AGGREGATE_MIN,
   AGGREGATE_MAX,
   AGGREGATE_AVG,
+  AGGREGATE_TOP_K,
+  AGGREGATE_HISTOGRAM,
 
   FUNCTION,
 

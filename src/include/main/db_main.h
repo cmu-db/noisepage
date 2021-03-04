@@ -18,8 +18,8 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "replication/replication_manager.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/pilot/pilot.h"
-#include "self_driving/pilot/pilot_thread.h"
+#include "self_driving/planning/pilot.h"
+#include "self_driving/planning/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -502,12 +502,13 @@ class DBMain {
       if (use_pilot_thread_) {
         NOISEPAGE_ASSERT(use_model_server_, "Pilot requires model server manager.");
         pilot = std::make_unique<selfdriving::Pilot>(
-            model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
+            model_save_path_, forecast_model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
             common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
             common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
             common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
-            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
+            std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
       }
 
       // TODO(WAN): I now consider this hacky.
@@ -867,6 +868,7 @@ class DBMain {
     uint64_t wal_num_buffers_ = 100;
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     uint64_t pilot_interval_ = 1e7;
+    uint64_t forecast_train_interval_ = 120e7;
     uint64_t workload_forecast_interval_ = 1e7;
     uint64_t block_store_size_ = 1e5;
     uint64_t block_store_reuse_ = 1e3;
@@ -874,6 +876,7 @@ class DBMain {
 
     std::string wal_file_path_ = "wal.log";
     std::string model_save_path_;
+    std::string forecast_model_save_path_;
     std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     std::string network_identity_ = "primary";
     std::string uds_file_directory_ = "/tmp/";
@@ -961,8 +964,10 @@ class DBMain {
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
       pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
+      forecast_train_interval_ = settings_manager->GetInt64(settings::Param::forecast_train_interval);
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
       model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
+      forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
@@ -1081,6 +1086,13 @@ class DBMain {
    */
   common::ManagedPointer<storage::GarbageCollectorThread> GetGarbageCollectorThread() const {
     return common::ManagedPointer(gc_thread_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<replication::ReplicationManager> GetReplicationManager() const {
+    return common::ManagedPointer(replication_manager_);
   }
 
   /**

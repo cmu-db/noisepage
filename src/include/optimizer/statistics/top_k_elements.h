@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <queue>
 #include <set>
 #include <stack>
@@ -15,8 +16,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "common/macros.h"
-#include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/count_min_sketch.h"
 
 namespace noisepage::optimizer {
@@ -52,31 +53,20 @@ class TopKElements {
 
   /**
    * Increase the count for the given key by the specified delta.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method
    * @param key the key to target
    * @param delta the amount to increase the key's count
    */
-  void Increment(const KeyType &key, const uint32_t delta) { Increment(key, sizeof(key), delta); }
-
-  /**
-   * Increase the count for the given key by the specified delta.
-   * @param key the key to target
-   * @param key_size the length of the key's data
-   * @param delta the amount to increase the key's count
-   */
-  void Increment(const KeyType &key, const size_t key_size, const uint32_t delta) {
+  void Increment(const KeyType &key, const uint32_t delta) {
     NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
 
     // Increment the count for this item in the sketch
-    sketch_->Increment(key, key_size, delta);
+    sketch_->Increment(key, delta);
 
     // If this key already exists in our top-k list, then
     // we need to update its entry
     auto entry = entries_.find(key);
     if (entry != entries_.end()) {
       entries_[key] += delta;
-      OPTIMIZER_LOG_TRACE("Increment Key[{0}] => {1} // [size={2}]", key, entries_[key], GetSize());
 
       // If this key is the current min key, then we need
       // to go through to see whether after this update it
@@ -93,7 +83,7 @@ class TopKElements {
     // This means that we have to ask the sketch the current count
     // for it to determine whether it should be promoted into our
     // top-k list.
-    auto total_cnt = sketch_->EstimateItemCount(key, key_size);
+    auto total_cnt = sketch_->EstimateItemCount(key);
 
     // If the total estimated count for this key is greater than the
     // current min and our top-k is at its max capacity, then we know
@@ -102,11 +92,9 @@ class TopKElements {
     if (size == numk_ && total_cnt > min_count_) {
       // Remove the current min key
       entries_.erase(min_key_);
-      OPTIMIZER_LOG_TRACE("Remove Key[{0}] => {1} // [size={2}]", min_key_, min_count_, GetSize());
 
       // Then add our new key
       entries_[key] = total_cnt;
-      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
 
       // But then we need to figure out what the new
       // min key is in our current top-k list. We don't
@@ -127,39 +115,26 @@ class TopKElements {
       // we know that we can the exact count here and not the
       // estimated count.
       entries_[key] = delta;
-      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, delta, GetSize());
 
       // We only need to do a direct comparison here to see
       // whether our key is the new min key.
       if (delta < min_count_) {
         min_key_ = key;
         min_count_ = delta;
-        OPTIMIZER_LOG_TRACE("Direct MinKey[{0}] => {1}", min_key_, min_count_);
       }
     }
   }
 
   /**
    * Decrease the count for the given key by the specified delta.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method.
    * @param key the key to target
    * @param delta the amount to increase the key's count
    */
-  void Decrement(const KeyType &key, const uint32_t delta) { Decrement(key, sizeof(key), delta); }
-
-  /**
-   * Decrease the count for the given key by the specified delta.
-   * @param key the key to target
-   * @param key_size the length of the key's data
-   * @param delta the amount to increase the key's count
-   */
-  void Decrement(const KeyType &key, const size_t key_size, uint32_t delta) {
+  void Decrement(const KeyType &key, uint32_t delta) {
     NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
-    OPTIMIZER_LOG_TRACE("Decrement(key={0}, delta={1}) // [size={2}]", key, delta, GetSize());
 
     // Decrement the count for this item in the sketch
-    sketch_->Decrement(key, key_size, delta);
+    sketch_->Decrement(key, delta);
 
     // This is where things get dicey on us.
     // So if this mofo key is in our top-k vector and its count is
@@ -184,29 +159,17 @@ class TopKElements {
       } else if (total_cnt < min_count_) {
         min_key_ = key;
         min_count_ = total_cnt;
-        OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
       }
     }
   }
 
   /**
    * Remove a key from the top-k tracker as well as the sketch.
-   * This is a convenience method for those KeyTypes that have the
-   * correct size defined by the sizeof method
-   * @param key the key to target
-   */
-  void Remove(const KeyType &key) { Remove(key, sizeof(key)); }
-
-  /**
-   * Remove a key from the top-k tracker as well as the sketch.
    * @param key
-   * @param key_size
    */
-  void Remove(const KeyType &key, const size_t key_size) {
-    OPTIMIZER_LOG_TRACE("Remove(key={0}) // [size={2}]", key, GetSize());
-
+  void Remove(const KeyType &key) {
     // Always remove the key from the sketch
-    sketch_->Remove(key, key_size);
+    sketch_->Remove(key);
 
     // Then check to see whether it exists in our top-k list
     auto entry = entries_.find(key);
@@ -279,6 +242,82 @@ class TopKElements {
   }
 
   /**
+   * Merge Top K Elements with another Top K Elements
+   * @param top_k_elements Top K Elements to merge with this
+   */
+  void Merge(const TopKElements<KeyType> &top_k_elements) {
+    sketch_->Merge(*(top_k_elements.sketch_));
+
+    for (auto &[key, count] : top_k_elements.entries_) {
+      Increment(key, count);
+    }
+  }
+
+  /**
+   * Clear the Top K object
+   */
+  void Clear() {
+    entries_.clear();
+    sketch_->Clear();
+    ComputeNewMinKey();
+  }
+
+  /**
+   * Convert TopKElements to json
+   * @return json representation of a TopKElements
+   */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["numk"] = numk_;
+    j["entries"] = nlohmann::json(entries_);
+    j["min_key"] = min_key_;
+    j["min_count"] = min_count_;
+    j["sketch"] = sketch_->ToJson();
+    return j;
+  }
+
+  /**
+   * Convert json to TopKElements
+   * @param j json representation of a TopKElements
+   * @return TopKElements object parsed from json
+   */
+  static TopKElements FromJson(const nlohmann::json &j) {
+    auto numk = j.at("numk").get<size_t>();
+    // Width doesn't actually matter because we overwrite the underlying sketch
+    TopKElements top_k_elements(numk, 1);
+    top_k_elements.entries_ = j.at("entries").get<std::unordered_map<KeyType, int64_t>>();
+    top_k_elements.min_key_ = j.at("min_key").get<KeyType>();
+    top_k_elements.min_count_ = j.at("min_count").get<uint64_t>();
+    *(top_k_elements.sketch_) = CountMinSketch<KeyType>::FromJson(j.at("sketch"));
+    return top_k_elements;
+  }
+
+  /**
+   * Serialize TopKElements object into byte array
+   * @param[out] size length of byte array
+   * @return byte array representation of TopKElements
+   */
+  std::unique_ptr<byte[]> Serialize(size_t *size) const {
+    const std::string json_str = ToJson().dump();
+    *size = json_str.size();
+    auto buffer = std::make_unique<byte[]>(*size);
+    std::memcpy(buffer.get(), json_str.c_str(), *size);
+    return buffer;
+  }
+
+  /**
+   * Deserialize TopKElements object from byte array
+   * @param buffer byte array representation of TopKElements
+   * @param size length of byte array
+   * @return Deserialized TopKElements object
+   */
+  static TopKElements Deserialize(const byte *buffer, size_t size) {
+    std::string json_str(reinterpret_cast<const char *>(buffer), size);
+    auto json = nlohmann::json::parse(json_str);
+    return TopKElements::FromJson(json);
+  }
+
+  /**
    * Pretty Print!
    * @param os the output target
    * @param top_k the top-k object to print
@@ -339,7 +378,6 @@ class TopKElements {
     }
     min_key_ = new_min_key;
     min_count_ = new_min_count;
-    OPTIMIZER_LOG_TRACE("Compute MinKey[{0}] => {1}", min_key_, min_count_);
   }
 };
 

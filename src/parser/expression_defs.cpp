@@ -125,6 +125,12 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
     case ExpressionType::AGGREGATE_AVG: {
       return short_str ? "AVG" : "AGGREGATE_AVG";
     }
+    case ExpressionType::AGGREGATE_TOP_K: {
+      return short_str ? "TOP_K" : "AGGREGATE_TOP_K";
+    }
+    case ExpressionType::AGGREGATE_HISTOGRAM: {
+      return short_str ? "HISTOGRAM" : "AGGREGATE_HISTOGRAM";
+    }
     case ExpressionType::FUNCTION: {
       return "FUNCTION";
     }

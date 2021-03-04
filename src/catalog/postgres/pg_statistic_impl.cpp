@@ -42,8 +42,9 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
   {
     PgStatistic::STARELID.Set(delta, pm, table_oid);
     PgStatistic::STAATTNUM.Set(delta, pm, col_oid);
-    PgStatistic::STA_NULLROWS.Set(delta, pm, 0);
+    PgStatistic::STA_NONNULLROWS.Set(delta, pm, 0);
     PgStatistic::STA_NUMROWS.Set(delta, pm, 0);
+    PgStatistic::STA_DISTINCTROWS.Set(delta, pm, 0);
   }
   const auto tuple_slot = statistics_->Insert(txn, redo);
 
