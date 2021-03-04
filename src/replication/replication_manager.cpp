@@ -33,13 +33,7 @@ ReplicationManager::ReplicationManager(
     common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
     const std::string &replication_hosts_path,
     common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
-    : messenger_(messenger),
-      identity_(network_identity),
-      port_(port),
-      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1))),
-      received_message_queue_(CompareMessages),
-      empty_buffer_queue_(empty_buffer_queue) {
-  // TODO(WAN): provider_ arguments
+    : messenger_(messenger), identity_(network_identity), port_(port), empty_buffer_queue_(empty_buffer_queue) {
   auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
   messenger_->ListenForConnection(listen_destination, network_identity,
                                   [this](common::ManagedPointer<messenger::Messenger> messenger,
@@ -145,34 +139,6 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
   }
 }
 
-void ReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
-  if (!replication_enabled_) {
-    REPLICATION_LOG_WARN(fmt::format("Skipping replicate buffer as replication is disabled."));
-    return;
-  }
-
-  NOISEPAGE_ASSERT(buffer != nullptr,
-                   "Don't try to replicate null buffers. That's pointless."
-                   "You might plausibly want to track statistics at some point, but that should not happen here.");
-  // TODO(WAN): Is it true that a replica will never want to send its buffers to the primary?
-  // TODO(WAN): Cache the identity check into a bool?
-  if (IsPrimary()) {
-    common::json j;
-    // TODO(WAN): Add a size and checksum to message.
-    j["buf_id"] = next_buffer_sent_id_++;
-    j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
-
-    for (const auto &replica : replicas_) {
-      // TODO(WAN): many things break when block is flipped from true to false.
-      ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), true);
-    }
-  }
-
-  if (buffer->MarkSerialized()) {
-    empty_buffer_queue_->Enqueue(buffer);
-  }
-}
-
 void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
                                    const messenger::ZmqMessage &msg) {
   switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
@@ -184,50 +150,8 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
       (*callback)(messenger, msg);
       break;
     }
-    case MessageType::HEARTBEAT:
+    case MessageType::HEARTBEAT: {
       REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
-      break;
-    case MessageType::REPLICATE_BUFFER: {
-      // Parse the buffer from the received message and add it to the provided replication logs.
-      {
-        nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
-        // TODO(WAN): Sanity-check the received message.
-
-        uint64_t source_callback_id = msg.GetSourceCallbackId();
-        uint64_t msg_id = message.at("buf_id");
-        REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), msg_id));
-
-        // Check if the message needs to be buffered.
-        if (msg_id > last_record_received_id_ + 1) {
-          // The message should be buffered if there are gaps in between the last seen buffer.
-          received_message_queue_.push(msg);
-        } else {
-          // Otherwise, pull out the log record from the message and hand them to the replication log provider.
-          // TODO(WAN): And now we parse the same JSON repeatedly.. we could parse once and store <uint64,json> instead?
-          std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
-          provider_->AddBufferFromMessage(source_callback_id, content);
-          last_record_received_id_ = msg_id;
-          // This may unleash the rest of the buffered messages.
-          while (!received_message_queue_.empty()) {
-            auto &temporary = received_message_queue_.top();
-            source_callback_id = temporary.GetSourceCallbackId();
-            message = nlohmann::json::parse(temporary.GetMessage());
-            msg_id = message.at("buf_id");
-            // Stop once you're missing a buffer.
-            if (msg_id > last_record_received_id_ + 1) {
-              break;
-            }
-            // Otherwise, send the top buffer's contents along.
-            received_message_queue_.pop();
-            NOISEPAGE_ASSERT(msg_id == last_record_received_id_ + 1, "Duplicate buffer? Old buffer?");
-            content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
-            provider_->AddBufferFromMessage(source_callback_id, content);
-            last_record_received_id_ = msg_id;
-          }
-        }
-      }
-      // TODO(WAN): To support async, acknowledge receipt of the buffer to the sender here.
-      // TODO(WAN): Add a size and checksum to message.
       break;
     }
     default:
@@ -278,6 +202,116 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
 common::ManagedPointer<messenger::ConnectionId> ReplicationManager::GetReplicaConnection(
     const std::string &replica_name) {
   return replicas_.at(replica_name).GetConnectionId();
+}
+
+common::ManagedPointer<PrimaryReplicationManager> ReplicationManager::GetAsPrimary() {
+  NOISEPAGE_ASSERT(IsPrimary(), "This should only be called from the primary node!");
+  return common::ManagedPointer(this).CastManagedPointerTo<PrimaryReplicationManager>();
+}
+
+common::ManagedPointer<ReplicaReplicationManager> ReplicationManager::GetAsReplica() {
+  NOISEPAGE_ASSERT(IsReplica(), "This should only be called from a replica node!");
+  return common::ManagedPointer(this).CastManagedPointerTo<ReplicaReplicationManager>();
+}
+
+PrimaryReplicationManager::PrimaryReplicationManager(
+    common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
+    const std::string &replication_hosts_path,
+    common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
+    : ReplicationManager(messenger, network_identity, port, replication_hosts_path, empty_buffer_queue) {}
+
+PrimaryReplicationManager::~PrimaryReplicationManager() = default;
+
+void PrimaryReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
+  if (!replication_enabled_) {
+    REPLICATION_LOG_WARN(fmt::format("Skipping replicate buffer as replication is disabled."));
+    return;
+  }
+
+  NOISEPAGE_ASSERT(buffer != nullptr,
+                   "Don't try to replicate null buffers. That's pointless."
+                   "You might plausibly want to track statistics at some point, but that should not happen here.");
+  common::json j;
+  // TODO(WAN): Add a size and checksum to message.
+  j["buf_id"] = next_buffer_sent_id_++;
+  j["content"] = nlohmann::json::to_cbor(std::string(buffer->buffer_, buffer->buffer_size_));
+
+  for (const auto &replica : replicas_) {
+    // TODO(WAN): many things break when block is flipped from true to false.
+    ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, j.dump(), true);
+  }
+
+  if (buffer->MarkSerialized()) {
+    empty_buffer_queue_->Enqueue(buffer);
+  }
+}
+
+ReplicaReplicationManager::ReplicaReplicationManager(
+    common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
+    const std::string &replication_hosts_path,
+    common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
+    : ReplicationManager(messenger, network_identity, port, replication_hosts_path, empty_buffer_queue),
+      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1))),
+      received_message_queue_(CompareMessages) {}
+
+ReplicaReplicationManager::~ReplicaReplicationManager() = default;
+
+void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
+                                          const messenger::ZmqMessage &msg) {
+  auto apply_replicated_buffer = [&]() {
+    // Parse the buffer from the received message and add it to the provided replication logs.
+    {
+      nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
+      // TODO(WAN): Sanity-check the received message.
+
+      uint64_t source_callback_id = msg.GetSourceCallbackId();
+      uint64_t msg_id = message.at("buf_id");
+      REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), msg_id));
+
+      // Check if the message needs to be buffered.
+      if (msg_id > last_record_received_id_ + 1) {
+        // The message should be buffered if there are gaps in between the last seen buffer.
+        received_message_queue_.push(msg);
+      } else {
+        // Otherwise, pull out the log record from the message and hand them to the replication log provider.
+        // TODO(WAN): And now we parse the same JSON repeatedly.. we could parse once and store <uint64,json> instead?
+        std::string content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
+        provider_->AddBufferFromMessage(source_callback_id, content);
+        last_record_received_id_ = msg_id;
+        // This may unleash the rest of the buffered messages.
+        while (!received_message_queue_.empty()) {
+          auto &temporary = received_message_queue_.top();
+          source_callback_id = temporary.GetSourceCallbackId();
+          message = nlohmann::json::parse(temporary.GetMessage());
+          msg_id = message.at("buf_id");
+          // Stop once you're missing a buffer.
+          if (msg_id > last_record_received_id_ + 1) {
+            break;
+          }
+          // Otherwise, send the top buffer's contents along.
+          received_message_queue_.pop();
+          NOISEPAGE_ASSERT(msg_id == last_record_received_id_ + 1, "Duplicate buffer? Old buffer?");
+          content = nlohmann::json::from_cbor(message["content"].get<std::vector<uint8_t>>());
+          provider_->AddBufferFromMessage(source_callback_id, content);
+          last_record_received_id_ = msg_id;
+        }
+      }
+    }
+    // TODO(WAN): To support async, acknowledge receipt of the buffer to the sender here.
+    // TODO(WAN): Add a size and checksum to message.
+  };
+
+  switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
+    case MessageType::REPLICATE_BUFFER: {
+      apply_replicated_buffer();
+      break;
+    }
+    default: {
+      // Delegate to the common ReplicationManager event loop.
+      ReplicationManager::EventLoop(messenger, msg);
+      break;
+    }
+  }
 }
 
 }  // namespace noisepage::replication

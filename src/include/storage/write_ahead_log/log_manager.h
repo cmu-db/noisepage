@@ -65,7 +65,7 @@ class LogManager : public common::DedicatedThreadOwner {
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
              common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue,
-             common::ManagedPointer<replication::ReplicationManager> replication_manager,
+             common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager,
              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
@@ -76,7 +76,8 @@ class LogManager : public common::DedicatedThreadOwner {
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
         persist_threshold_(persist_threshold),
-        replication_manager_(replication_manager) {}
+        primary_replication_manager_(primary_replication_manager) {}
+
   /**
    * Starts log manager. Does the following in order:
    *    1. Initialize buffers to pass serialized logs to log consumers
@@ -181,7 +182,7 @@ class LogManager : public common::DedicatedThreadOwner {
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
 
-  common::ManagedPointer<replication::ReplicationManager> replication_manager_;
+  common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

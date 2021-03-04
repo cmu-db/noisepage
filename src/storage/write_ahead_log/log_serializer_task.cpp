@@ -142,8 +142,10 @@ void LogSerializerTask::HandFilledBufferToWriter() {
   // TODO(WAN): Tianlei will be adding code that has different queues for different retention policies. When this
   //  happens, the individual queues can deal with calling PrepareForSerialization with their respective retention
   //  policies, so the below assert will become unnecessary.
-  auto retention_policy = transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
-  NOISEPAGE_ASSERT(replication_manager_ != DISABLED ||
+  auto retention_policy = primary_replication_manager_ == DISABLED
+                              ? transaction::RetentionPolicy::RETENTION_LOCAL_DISK
+                              : transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
+  NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED ||
                        retention_policy != transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS,
                    "If replication is disabled, then you can't send buffers to replicas.");
 
@@ -151,8 +153,8 @@ void LogSerializerTask::HandFilledBufferToWriter() {
     filled_buffer_->PrepareForSerialization(retention_policy);
     // Replicate the buffer if it exists.
     // TODO(WAN): Note that this is effectively on the critical path to commit callbacks being invoked. Aka terrible.
-    if (replication_manager_ != DISABLED) {
-      replication_manager_->ReplicateBuffer(filled_buffer_);
+    if (primary_replication_manager_ != DISABLED) {
+      primary_replication_manager_->ReplicateBuffer(filled_buffer_);
     }
   }
   // Hand over the filled buffer

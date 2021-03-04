@@ -186,7 +186,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   /**
    * Recovers the databases using the provided log provider
    */
-  void Recover() { RecoverFromLogs(log_provider_); }
+  void Recover() {
+    if (log_provider_ != nullptr) RecoverFromLogs(log_provider_);
+  }
 
   /**
    * Recovers the databases from the logs.

@@ -25,7 +25,9 @@ void DBMain::Run() {
 
 void DBMain::ForceShutdown() {
   if (replication_manager_ != DISABLED) {
-    replication_manager_->GetReplicationLogProvider()->EndReplication();
+    if (!replication_manager_->IsPrimary()) {
+      replication_manager_->GetAsReplica()->GetReplicationLogProvider()->EndReplication();
+    }
   }
   if (recovery_manager_ != DISABLED && recovery_manager_->IsRecoveryTaskRunning()) {
     recovery_manager_->WaitForRecoveryToFinish();

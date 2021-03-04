@@ -27,7 +27,7 @@ void LogManager::Start() {
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
       this /* requester */, serialization_interval_, buffer_pool_, empty_buffer_queue_, &filled_buffer_queue_,
-      &disk_log_writer_task_->disk_log_writer_thread_cv_, replication_manager_);
+      &disk_log_writer_task_->disk_log_writer_thread_cv_, primary_replication_manager_);
 }
 
 void LogManager::ForceFlush() {

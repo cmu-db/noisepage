@@ -20,6 +20,8 @@
 
 namespace noisepage::replication {
 class ReplicationManager;
+class PrimaryReplicationManager;
+class ReplicaReplicationManager;
 }  // namespace noisepage::replication
 
 namespace noisepage::storage {
@@ -219,6 +221,8 @@ class BufferedLogWriter {
 
  private:
   friend class replication::ReplicationManager;
+  friend class replication::PrimaryReplicationManager;
+  friend class replication::ReplicaReplicationManager;
 
   int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];

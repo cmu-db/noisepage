@@ -395,18 +395,28 @@ class DBMain {
       if (use_replication_) {
         NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
         NOISEPAGE_ASSERT(use_logging_, "Replication uses logging.");
-        replication_manager = std::make_unique<replication::ReplicationManager>(
-            messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
-            common::ManagedPointer(empty_buffer_queue));
+        if (network_identity_ == "primary") {
+          replication_manager = std::make_unique<replication::PrimaryReplicationManager>(
+              messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
+              common::ManagedPointer(empty_buffer_queue));
+        } else {
+          replication_manager = std::make_unique<replication::ReplicaReplicationManager>(
+              messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
+              common::ManagedPointer(empty_buffer_queue));
+        }
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
+        auto rep_manager_ptr = network_identity_ == "primary"
+                                   ? common::ManagedPointer(replication_manager)
+                                         .CastManagedPointerTo<replication::PrimaryReplicationManager>()
+                                   : nullptr;
         log_manager = std::make_unique<storage::LogManager>(
             wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
             std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
-            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(empty_buffer_queue),
-            common::ManagedPointer(replication_manager), common::ManagedPointer(thread_registry));
+            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(empty_buffer_queue), rep_manager_ptr,
+            common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
 
@@ -429,11 +439,15 @@ class DBMain {
 
       std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
       if (use_replication_) {
+        auto log_provider = replication_manager->IsPrimary()
+                                ? nullptr
+                                : replication_manager->GetAsReplica()
+                                      ->GetReplicationLogProvider()
+                                      .CastManagedPointerTo<storage::AbstractLogProvider>();
         recovery_manager = std::make_unique<storage::RecoveryManager>(
-            replication_manager->GetReplicationLogProvider().CastManagedPointerTo<storage::AbstractLogProvider>(),
-            catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(), txn_layer->GetDeferredActionManager(),
-            common::ManagedPointer(replication_manager), common::ManagedPointer(thread_registry),
-            common::ManagedPointer(storage_layer->GetBlockStore()));
+            log_provider, catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(),
+            txn_layer->GetDeferredActionManager(), common::ManagedPointer(replication_manager),
+            common::ManagedPointer(thread_registry), common::ManagedPointer(storage_layer->GetBlockStore()));
         recovery_manager->StartRecovery();
       }
 

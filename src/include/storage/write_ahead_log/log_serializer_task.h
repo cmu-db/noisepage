@@ -40,7 +40,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
       common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue,
       common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
       std::condition_variable *disk_log_writer_thread_cv,
-      common::ManagedPointer<replication::ReplicationManager> replication_manager)
+      common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager)
       : run_task_(false),
         serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
@@ -48,7 +48,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
         empty_buffer_queue_(empty_buffer_queue),
         filled_buffer_queue_(filled_buffer_queue),
         disk_log_writer_thread_cv_(disk_log_writer_thread_cv),
-        replication_manager_(replication_manager) {}
+        primary_replication_manager_(primary_replication_manager) {}
 
   /**
    * Runs main disk log writer loop. Called by thread registry upon initialization of thread
@@ -136,7 +136,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   std::condition_variable *disk_log_writer_thread_cv_;
 
   /** The replication manager that serialized log records are shipped to. */
-  common::ManagedPointer<replication::ReplicationManager> replication_manager_;
+  common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager_;
 
   /**
    * Main serialization loop. Calls Process every interval. Processes all the accumulated log records and

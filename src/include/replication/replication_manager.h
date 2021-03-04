@@ -23,6 +23,8 @@ class ReplicationLogProvider;
 namespace noisepage::replication {
 
 class ReplicationManager;
+class PrimaryReplicationManager;
+class ReplicaReplicationManager;
 
 // TODO(WAN): I am currently not sure what methods will be specific to communicating with a replica.
 //  If you see logic in ReplicationManager that can be pushed into Replica please let me know.
@@ -85,6 +87,47 @@ class ReplicationManager {
   /** Maximum wait time for synchronous replication. */
   static constexpr std::chrono::seconds REPLICATION_MAX_BLOCKING_WAIT_TIME = std::chrono::seconds(10);
 
+  /** Default destructor. */
+  virtual ~ReplicationManager();
+
+  /** Enable replication. */
+  void EnableReplication();
+
+  /** Disable replication. */
+  void DisableReplication();
+
+  /** @return The port that replication is running on. */
+  uint16_t GetPort() const { return port_; }
+
+  /**
+   * @return    On the primary, returns the last record ID that was successfully transmitted to all replicas.
+   *            On a replica, returns the last record ID that was successfully received.
+   */
+  virtual uint64_t GetLastRecordId() const = 0;
+
+  /** @return   True if this is the primary node and false if this is a replica. */
+  virtual bool IsPrimary() const = 0;
+
+  /** @return   True if this is a replica node and false if this is the primary. */
+  bool IsReplica() const { return !IsPrimary(); }
+
+  /** @return   This should only be called from the primary node! Return a pointer as the primary recovery manager. */
+  common::ManagedPointer<PrimaryReplicationManager> GetAsPrimary();
+
+  /** @return   This should only be called from a replica node! Return a pointer as a replica recovery manager. */
+  common::ManagedPointer<ReplicaReplicationManager> GetAsReplica();
+
+  /**
+   * Send a message to the specified replica.
+   *
+   * @param replica_name    The replica to send to.
+   * @param type            The type of message that is being sent.
+   * @param msg             The message that is being sent.
+   * @param block           True if the call should block until an acknowledgement is received. False otherwise.
+   */
+  void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
+
+ protected:
   /**
    * On construction, the replication manager establishes a listen destination on the messenger and connect to all the
    * replicas specified in the replication.config file located at @p replication_hosts_path.
@@ -100,52 +143,8 @@ class ReplicationManager {
       const std::string &replication_hosts_path,
       common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
 
-  /** Default destructor. */
-  ~ReplicationManager();
-
-  /**
-   * Send a message to the specified replica.
-   *
-   * @param replica_name    The replica to send to.
-   * @param type            The type of message that is being sent.
-   * @param msg             The message that is being sent.
-   * @param block           True if the call should block until an acknowledgement is received. False otherwise.
-   */
-  void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
-
-  /**
-   * Send a buffer to all the replicas as a REPLICATE_BUFFER message.
-   *
-   * @param buffer          The buffer to be replicated.
-   */
-  void ReplicateBuffer(storage::BufferedLogWriter *buffer);
-
-  /** @return The port that replication is running on. */
-  uint16_t GetPort() const { return port_; }
-
-  /** @return The replication log provider that (ordered) replication logs are pushed to. */
-  common::ManagedPointer<storage::ReplicationLogProvider> GetReplicationLogProvider() const {
-    return common::ManagedPointer(provider_);
-  }
-
-  /**
-   * @return    On the primary, returns the last record ID that was successfully transmitted to all replicas.
-   *            On a replica, returns the last record ID that was successfully received.
-   */
-  uint64_t GetLastRecordId() const { return IsPrimary() ? next_buffer_sent_id_ - 1 : last_record_received_id_; }
-
-  /** Enable replication. */
-  void EnableReplication();
-
-  /** Disable replication. */
-  void DisableReplication();
-
-  /** @return   True if this is the primary node and false if this is a replica. */
-  bool IsPrimary() const { return identity_ == "primary"; }
-
- private:
   /** The main event loop that all nodes run. This handles receiving messages. */
-  void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
+  virtual void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
 
   /**
    * Request a heartbeat from the specified replica.
@@ -182,15 +181,88 @@ class ReplicationManager {
   uint16_t port_;                                           ///< The port that replication runs on.
   std::unordered_map<std::string, Replica> replicas_;       ///< Replica Name -> Connection ID.
 
-  std::unique_ptr<storage::ReplicationLogProvider> provider_;  ///< The replicated buffers provided by the primary.
-  std::mutex blocking_send_mutex_;                             ///< Mutex used for blocking sends.
-  std::condition_variable blocking_send_cvar_;                 ///< Cvar used for blocking sends.
+  std::mutex blocking_send_mutex_;              ///< Mutex used for blocking sends.
+  std::condition_variable blocking_send_cvar_;  ///< Cvar used for blocking sends.
 
   // TODO(WAN): I think it is better to use retention policies instead of enabling/disabling replication.
   bool replication_enabled_ = false;  ///< True if replication is currently enabled and false otherwise.
 
-  uint64_t next_buffer_sent_id_ = 1;      ///< The ID of the next buffer to sent.
-  uint64_t last_record_received_id_ = 0;  ///< The ID of the last record to be received.
+  /** Once used, buffers are returned to a central empty buffer queue. */
+  common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
+};
+
+class PrimaryReplicationManager final : public ReplicationManager {
+ public:
+  /**
+   * On construction, the replication manager establishes a listen destination on the messenger and connect to all the
+   * replicas specified in the replication.config file located at @p replication_hosts_path.
+   *
+   * @param messenger                   The messenger instance to use.
+   * @param network_identity            The identity of this node in the network.
+   * @param port                        The port to listen on.
+   * @param replication_hosts_path      The path to the replication.config file.
+   * @param empty_buffer_queue          A queue of empty buffers that the replication manager may return buffers to.
+   */
+  PrimaryReplicationManager(
+      common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
+      const std::string &replication_hosts_path,
+      common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
+
+  virtual ~PrimaryReplicationManager();
+
+  /** @return True since this is the primary. */
+  bool IsPrimary() const override { return true; }
+
+  /** @return The last record ID that was successfully transmitted to all replicas. */
+  uint64_t GetLastRecordId() const override { return next_buffer_sent_id_ - 1; }
+
+  /**
+   * Send a buffer to all the replicas as a REPLICATE_BUFFER message.
+   *
+   * @param buffer          The buffer to be replicated.
+   */
+  void ReplicateBuffer(storage::BufferedLogWriter *buffer);
+
+ protected:
+  uint64_t next_buffer_sent_id_ = 1;  ///< The ID of the next buffer to send.
+};
+
+class ReplicaReplicationManager final : public ReplicationManager {
+ public:
+  /**
+   * On construction, the replication manager establishes a listen destination on the messenger and connect to all the
+   * replicas specified in the replication.config file located at @p replication_hosts_path.
+   *
+   * @param messenger                   The messenger instance to use.
+   * @param network_identity            The identity of this node in the network.
+   * @param port                        The port to listen on.
+   * @param replication_hosts_path      The path to the replication.config file.
+   * @param empty_buffer_queue          A queue of empty buffers that the replication manager may return buffers to.
+   */
+  ReplicaReplicationManager(
+      common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
+      const std::string &replication_hosts_path,
+      common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
+
+  virtual ~ReplicaReplicationManager();
+
+  /** @return False since this is a replica. */
+  bool IsPrimary() const override { return false; }
+
+  /** @return The last record ID that was successfully received. */
+  uint64_t GetLastRecordId() const override { return last_record_received_id_; }
+
+  /** @return The replication log provider that (ordered) replication logs are pushed to. */
+  common::ManagedPointer<storage::ReplicationLogProvider> GetReplicationLogProvider() const {
+    return common::ManagedPointer(provider_);
+  }
+
+ protected:
+  /** The main event loop that all nodes run. This handles receiving messages. */
+  void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) override;
+
+  std::unique_ptr<storage::ReplicationLogProvider> provider_;  ///< The replicated buffers provided by the primary.
+  uint64_t last_record_received_id_ = 0;                       ///< The ID of the last record to be received.
 
   /**
    * The received messages are queued up until the "next" received message is the right one, i.e.,
@@ -202,9 +274,6 @@ class ReplicationManager {
   std::priority_queue<messenger::ZmqMessage, std::vector<messenger::ZmqMessage>,
                       std::function<bool(messenger::ZmqMessage, messenger::ZmqMessage)>>
       received_message_queue_;
-
-  /** Once used, buffers are returned to a central empty buffer queue. */
-  common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 };
 
 }  // namespace noisepage::replication
