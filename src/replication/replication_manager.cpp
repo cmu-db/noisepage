@@ -230,9 +230,6 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
           }
         }
       }
-      // TODO(WAN): Is it actually necessary to buffer the message first? A crashed replica is indistinguishable from
-      //  a replica that just came up right? If buffering is not necessary, move this up so that replying is faster.
-      //  We want to reply as quickly as possible -- the sender may be waiting for our confirmation.
       // TODO(WAN): To support async, acknowledge receipt of the buffer to the sender here.
       // TODO(WAN): Add a size and checksum to message.
       break;
