@@ -171,9 +171,37 @@ class BufferedLogWriter {
    *
    * TODO(WAN): Come up with a better way of "sharing" buffers?
    */
-  void PrepareForSerialization() {
+
+  /**
+   * Mark that the BufferedLogWriter is now ready to be persisted and sent to different destinations.
+   *
+   * For example, the BufferedLogWriter may then be sent to any of the following destinations:
+   * - Serialized to disk.
+   * - Sent to replicas over the network.
+   *
+   * This function exists to avoid copying the BufferedLogWriter's buffers needlessly.
+   * Instead, a refcount is maintained depending on the retention policy.
+   *
+   * @param policy The retention policy that describes the destinations for this BufferedLogWriter.
+   */
+  void PrepareForSerialization(transaction::RetentionPolicy policy) {
     NOISEPAGE_ASSERT(serialize_refcount_.load() == 0, "This buffer is already being serialized.");
-    serialize_refcount_.store(NUM_SERIALIZERS);
+    switch (policy) {
+      case transaction::RetentionPolicy::DISABLE_RETENTION: {
+        serialize_refcount_.store(0);  // Nothing.
+        break;
+      }
+      case transaction::RetentionPolicy::RETENTION_LOCAL_DISK: {
+        serialize_refcount_.store(1);  // DiskLogConsumerTask.
+        break;
+      }
+      case transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS: {
+        serialize_refcount_.store(2);  // DiskLogConsumerTask + ReplicationManager.
+        break;
+      }
+      default:
+        throw std::runtime_error("Unknown retention policy in PrepareForSerialization().");
+    }
   }
 
   /**
@@ -191,9 +219,6 @@ class BufferedLogWriter {
 
  private:
   friend class replication::ReplicationManager;
-
-  /** The number of callers of MarkSerialized(). See also PrepareForSerialization(). */
-  static constexpr int NUM_SERIALIZERS = 2;
 
   int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];

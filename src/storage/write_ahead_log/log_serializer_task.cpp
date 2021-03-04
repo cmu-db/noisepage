@@ -138,13 +138,21 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
   // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
-  if (filled_buffer_ != nullptr) filled_buffer_->PrepareForSerialization();
-  // Replicate the buffer, if it exists.
+
+  // TODO(WAN): Tianlei will be adding code that has different queues for different retention policies. When this
+  //  happens, the individual queues can deal with calling PrepareForSerialization with their respective retention
+  //  policies, so the below assert will become unnecessary.
+  auto retention_policy = transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
+  NOISEPAGE_ASSERT(replication_manager_ != DISABLED ||
+                       retention_policy != transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS,
+                   "If replication is disabled, then you can't send buffers to replicas.");
+
   if (filled_buffer_ != nullptr) {
+    filled_buffer_->PrepareForSerialization(retention_policy);
+    // Replicate the buffer if it exists.
+    // TODO(WAN): Note that this is effectively on the critical path to commit callbacks being invoked. Aka terrible.
     if (replication_manager_ != DISABLED) {
       replication_manager_->ReplicateBuffer(filled_buffer_);
-    } else {
-      filled_buffer_->MarkSerialized();
     }
   }
   // Hand over the filled buffer

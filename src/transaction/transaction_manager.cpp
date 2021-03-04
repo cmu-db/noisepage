@@ -35,7 +35,8 @@ TransactionContext *TransactionManager::BeginTransaction() {
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
-  if (log_manager_ != DISABLED && txn->GetRetentionPolicy() == RetentionPolicy::RETENTION_ALL) {
+  if (log_manager_ != DISABLED &&
+      txn->GetRetentionPolicy() == RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
     if (!wal_async_commit_enable_) {
       // At this point the commit has already happened for the rest of the system.
       // Here we will manually add a commit record and flush the buffer to ensure the logger sees this record.
@@ -112,7 +113,8 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
   // committed. This will allow us to correctly order and execute transactions during recovery.
   timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
-  if (log_manager_ != DISABLED && !txn->IsReadOnly() && txn->GetRetentionPolicy() == RetentionPolicy::RETENTION_ALL) {
+  if (log_manager_ != DISABLED && !txn->IsReadOnly() &&
+      txn->GetRetentionPolicy() == RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
     // TODO(Gus): Getting the cached timestamp may cause replication delays, as the cached timestamp is a stale value,
     // so transactions may wait for longer than they need to. We should analyze the impact of this when replication is
     // added.
@@ -142,7 +144,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
   // We flush the buffer containing an AbortRecord only if this transaction has previously flushed a RedoBuffer. This
   // way the Recovery manager knows to rollback changes for the aborted transaction.
   if (log_manager_ != DISABLED && txn->redo_buffer_.HasFlushed() &&
-      txn->GetRetentionPolicy() == RetentionPolicy::RETENTION_ALL) {
+      txn->GetRetentionPolicy() == RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
     // If we are logging the AbortRecord, then the transaction must have previously flushed records, so it must have
     // made updates
     NOISEPAGE_ASSERT(!txn->undo_buffer_.Empty(), "Should not log AbortRecord for read only txn");

@@ -244,7 +244,7 @@ class TransactionContext {
    * The retention policy of a transaction controls the retention policy for all of the buffers that are created by
    * the transaction.
    */
-  RetentionPolicy retention_policy_ = RetentionPolicy::RETENTION_ALL;
+  RetentionPolicy retention_policy_ = RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
 
   /**
    * @warning This method is ONLY for recovery

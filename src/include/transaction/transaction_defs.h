@@ -50,7 +50,8 @@ using DeferredAction = std::function<void(timestamp_t)>;
  * created by a transaction.
  */
 enum class RetentionPolicy : uint8_t {
-  DISABLE_RETENTION = 0,  ///< Disable retention of buffers entirely.
-  RETENTION_ALL           ///< Serialize buffers to disk, and also send buffers out to replicas.
+  DISABLE_RETENTION = 0,                     ///< Disable retention of buffers entirely.
+  RETENTION_LOCAL_DISK,                      ///< Serialize buffers to local disk only.
+  RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS  ///< Serialize buffers to disk, and also send buffers out to replicas.
 };
 }  // namespace noisepage::transaction
