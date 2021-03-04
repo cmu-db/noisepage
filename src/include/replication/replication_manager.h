@@ -57,8 +57,8 @@ class Replica {
 /** Container class for the contents of a REPLICATE_BUFFER message. */
 class ReplicateBufferMessage {
  public:
-  static const char *KEY_BUF_ID;   ///< JSON key for buffer ID. Helps to order buffers.
-  static const char *KEY_CONTENT;  ///< JSON key for buffer content. The actual buffer itself.
+  static const char *key_buf_id;   ///< JSON key for buffer ID. Helps to order buffers.
+  static const char *key_content;  ///< JSON key for buffer content. The actual buffer itself.
 
   /** Construct a new buffer message (sender side). */
   ReplicateBufferMessage(uint64_t buffer_id, std::string &&contents)
@@ -250,7 +250,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
       common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
 
   /** Destructor. */
-  virtual ~PrimaryReplicationManager();
+  ~PrimaryReplicationManager() final;
 
   /** @return True since this is the primary. */
   bool IsPrimary() const override { return true; }
@@ -292,7 +292,7 @@ class ReplicaReplicationManager final : public ReplicationManager {
       common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue);
 
   /** Destructor. */
-  virtual ~ReplicaReplicationManager();
+  ~ReplicaReplicationManager() final;
 
   /** @return False since this is a replica. */
   bool IsPrimary() const override { return false; }

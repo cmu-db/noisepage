@@ -29,22 +29,22 @@ Replica::Replica(common::ManagedPointer<messenger::Messenger> messenger, const s
       connection_(messenger->MakeConnection(replica_info_)),
       last_heartbeat_(0) {}
 
-const char *ReplicateBufferMessage::KEY_BUF_ID = "buf_id";
-const char *ReplicateBufferMessage::KEY_CONTENT = "content";
+const char *ReplicateBufferMessage::key_buf_id = "buf_id";
+const char *ReplicateBufferMessage::key_content = "content";
 
 ReplicateBufferMessage ReplicateBufferMessage::FromMessage(const messenger::ZmqMessage &msg) {
   // TODO(WAN): Sanity-check the received message.
   nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
   uint64_t source_callback_id = msg.GetSourceCallbackId();
-  uint64_t buffer_id = message.at(KEY_BUF_ID);
-  std::string contents = nlohmann::json::from_cbor(message[KEY_CONTENT].get<std::vector<uint8_t>>());
+  uint64_t buffer_id = message.at(key_buf_id);
+  std::string contents = nlohmann::json::from_cbor(message[key_content].get<std::vector<uint8_t>>());
   return ReplicateBufferMessage(buffer_id, std::move(contents), source_callback_id);
 }
 
 std::string ReplicateBufferMessage::ToString() {
   common::json json;
-  json[KEY_BUF_ID] = buffer_id_;
-  json[KEY_CONTENT] = nlohmann::json::to_cbor(contents_);
+  json[key_buf_id] = buffer_id_;
+  json[key_content] = nlohmann::json::to_cbor(contents_);
   // TODO(WAN): Add a size and checksum to message.
   return json.dump();
 }
