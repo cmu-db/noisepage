@@ -21,7 +21,7 @@ class CompiledTplTest : public TplTest {
    * This function is invoked once per test suite by the test suite runner.
    */
   static void SetUpTestSuite() {
-    const auto bytecode_handlers_path = common::FindFileFrom("bytecode_handlers_ir.bc", common::GetProjectRootPath());
+    const auto bytecode_handlers_path = common::GetBinaryArtifactPath("bytecode_handlers_ir.bc");
     auto settings = std::make_unique<const typename vm::LLVMEngine::Settings>(bytecode_handlers_path);
     vm::LLVMEngine::Initialize(std::move(settings));
   }

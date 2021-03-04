@@ -187,7 +187,7 @@ SETTING_int(
 
 SETTING_int64(
     workload_forecast_interval,
-    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: ns)",
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: micro-second)",
     10000000,
     10000000,
     1000000000000,
@@ -197,9 +197,19 @@ SETTING_int64(
 
 SETTING_int64(
     pilot_interval,
-    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000, unit: ns)",
+    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000, unit: micro-second)",
     1000000,
     1000000,
+    10000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    forecast_train_interval,
+    "Interval of Pilot Forecast Train Invocation when planning enabled. (default : 120000000, unit: micro-second)",
+    120000000,
+    120000000,
     10000000000,
     true,
     noisepage::settings::Callbacks::NoOp
@@ -391,6 +401,14 @@ SETTING_string(
     model_save_path,
     "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
     "../script/model/terrier_model_server_trained/mini_model_test.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    forecast_model_save_path,
+    "Save path of the forecast model relative to the build path (default: forecast_model.pickle)",
+    "forecast_model.pickle",
     false,
     noisepage::settings::Callbacks::NoOp
 )

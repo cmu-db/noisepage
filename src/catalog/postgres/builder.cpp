@@ -687,13 +687,25 @@ Schema Builder::GetStatisticTableSchema() {
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PgStatistic::STAATTNUM.oid_);
 
-  columns.emplace_back("stanullrows", type::TypeId::INTEGER, false,
-                       parser::ConstantValueExpression(type::TypeId::INTEGER));
-  columns.back().SetOid(PgStatistic::STA_NULLROWS.oid_);
-
   columns.emplace_back("stanumrows", type::TypeId::INTEGER, false,
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PgStatistic::STA_NUMROWS.oid_);
+
+  columns.emplace_back("stanonnullrows", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.back().SetOid(PgStatistic::STA_NONNULLROWS.oid_);
+
+  columns.emplace_back("stadistinctrows", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.back().SetOid(PgStatistic::STA_DISTINCTROWS.oid_);
+
+  columns.emplace_back("statopk", type::TypeId::VARBINARY, true,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
+  columns.back().SetOid(PgStatistic::STA_TOPK.oid_);
+
+  columns.emplace_back("stahistogram", type::TypeId::VARBINARY, true,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
+  columns.back().SetOid(PgStatistic::STA_HISTOGRAM.oid_);
 
   return Schema(columns);
 }

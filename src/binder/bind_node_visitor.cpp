@@ -68,8 +68,44 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> nod
   BINDER_LOG_TRACE("Visiting AnalyzeStatement ...");
   SqlNodeVisitor::Visit(node);
 
+  if (node->GetAnalyzeTable() == nullptr) {
+    // Currently we only support ANALYZE for a single table at a time. A nice feature to add in the future is to analyze
+    // all tables
+    throw BINDER_EXCEPTION("Analyze must specify a single table", common::ErrorCode::ERRCODE_INVALID_TABLE_DEFINITION);
+  }
+
   InitTableRef(node->GetAnalyzeTable());
-  ValidateDatabaseName(node->GetAnalyzeTable()->GetDatabaseName());
+
+  const auto &db_name = node->GetAnalyzeTable()->GetDatabaseName();
+  ValidateDatabaseName(db_name);
+  const auto db_oid = db_name.empty() ? this->db_oid_ : catalog_accessor_->GetDatabaseOid(db_name);
+  node->SetDatabaseOid(db_oid);
+
+  const auto &table_name = node->GetAnalyzeTable()->GetTableName();
+  const auto tb_oid = catalog_accessor_->GetTableOid(table_name);
+  if (tb_oid == catalog::INVALID_TABLE_OID) {
+    throw BINDER_EXCEPTION("Analyze table does not exist", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+  }
+  node->SetTableOid(tb_oid);
+
+  const auto &schema = catalog_accessor_->GetSchema(tb_oid);
+  for (const auto &col : *(node->GetColumns())) {
+    if (!BinderContext::ColumnInSchema(schema, col)) {
+      throw BINDER_EXCEPTION("Analyze column does not exist", common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+    }
+  }
+
+  // If no column is specified then default to all columns
+  if (node->GetColumns()->empty()) {
+    for (const auto &col : schema.GetColumns()) {
+      node->GetColumns()->emplace_back(col.Name());
+    }
+  }
+
+  for (const auto &col : *(node->GetColumns())) {
+    const auto col_oid = schema.GetColumn(col).Oid();
+    node->AddColumnOid(col_oid);
+  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) {
@@ -310,147 +346,39 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
   context_->AddRegularTable(catalog_accessor_, db_oid_, table->GetNamespaceName(), table->GetTableName(),
                             table->GetTableName());
 
+  auto binder_table_data = context_->GetTableMapping(table->GetTableName());
+  const auto &table_schema = std::get<2>(*binder_table_data);
+
+  // Perform input validation and and input conversion, e.g., parsing of strings into dates.
+  {
+    // Test that all the insert columns exist.
+    for (const auto &col : *node->GetInsertColumns()) {
+      if (!BinderContext::ColumnInSchema(table_schema, col)) {
+        throw BINDER_EXCEPTION("Insert column does not exist", common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+      }
+    }
+  }
   if (node->GetSelect() != nullptr) {  // INSERT FROM SELECT
     node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> select_cols;
+    for (const auto &col : node->GetSelect()->GetSelectColumns()) {
+      select_cols.emplace_back(col);
+    }
+    ValidateAndCorrectInsertValues(node, &select_cols, table_schema);
+    node->GetSelect()->SetSelectColumns(std::move(select_cols));
   } else {  // RAW INSERT
-    // Perform input validation and parsing of strings into dates.
-    auto binder_table_data = context_->GetTableMapping(table->GetTableName());
-    const auto &table_schema = std::get<2>(*binder_table_data);
-
-    auto insert_columns = node->GetInsertColumns();
-    // Validate input columns.
-    {
-      // Test that all the insert columns exist.
-      for (const auto &col : *insert_columns) {
-        if (!BinderContext::ColumnInSchema(table_schema, col)) {
-          throw BINDER_EXCEPTION("Insert column does not exist", common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
-        }
-      }
+    for (auto &values : *node->GetValues()) {
+      ValidateAndCorrectInsertValues(node, &values, table_schema);
     }
+  }
 
-    auto num_schema_columns = table_schema.GetColumns().size();
-    auto num_insert_columns = insert_columns->size();  // If unspecified by query, insert_columns is length 0.
-    auto insert_values = node->GetValues();
-    // Validate input values.
-    {
-      for (auto &values : *insert_values) {
-        // Value is a row (tuple) to insert.
-        size_t num_values = values.size();
-        // Test that they have the same number of columns.
-        {
-          bool is_insert_cols_specified = num_insert_columns != 0;
-          bool insert_cols_ok = is_insert_cols_specified && num_values == num_insert_columns;
-          bool insert_schema_ok = !is_insert_cols_specified && num_values == num_schema_columns;
-          if (!(insert_cols_ok || insert_schema_ok)) {
-            throw BINDER_EXCEPTION("Mismatch in number of insert columns and number of insert values.",
-                                   common::ErrorCode::ERRCODE_SYNTAX_ERROR);
-          }
-        }
-
-        std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
-
-        if (num_insert_columns == 0) {
-          // If the number of insert columns is zero, it is assumed that the tuple values are already schema ordered.
-          for (size_t i = 0; i < num_values; i++) {
-            auto pair = std::make_pair(table_schema.GetColumns()[i], values[i]);
-            cols.emplace_back(pair);
-          }
-        } else {
-          // Otherwise, some insert columns were specified. Potentially not all and potentially out of order.
-          for (auto &schema_col : table_schema.GetColumns()) {
-            auto it = std::find(insert_columns->begin(), insert_columns->end(), schema_col.Name());
-            // Find the index of the current schema column.
-            if (it != insert_columns->end()) {
-              // TODO(harsh): This might need refactoring if it becomes a performance bottleneck.
-              auto index = std::distance(insert_columns->begin(), it);
-              auto pair = std::make_pair(schema_col, values[index]);
-              cols.emplace_back(pair);
-            } else {
-              // Make a null value of the right type that we can either compare with the stored expression or insert.
-              auto null_ex =
-                  std::make_unique<parser::ConstantValueExpression>(schema_col.Type(), execution::sql::Val(true));
-
-              // TODO(WAN): We thought that you might be able to collapse these two cases into one, since currently
-              // the catalog column's stored expression is always a NULL of the right type if not otherwise specified.
-              // However, this seems to make assumptions about the current implementation in plan_generator and also
-              // we want to throw an error if it is a non-NULLable column. We can leave it as it is right now.
-
-              // If the current schema column's index was not found, that means it was not specified by the user.
-              if (*schema_col.StoredExpression() != *null_ex) {
-                // First, check if there is a default value for that column.
-                std::unique_ptr<parser::AbstractExpression> cur_value = schema_col.StoredExpression()->Copy();
-                auto pair = std::make_pair(schema_col, common::ManagedPointer(cur_value));
-                cols.emplace_back(pair);
-                sherpa_->GetParseResult()->AddExpression(std::move(cur_value));
-              } else if (schema_col.Nullable()) {
-                // If there is no default value, check if the column is NULLable, meaning we can insert a NULL.
-                auto null_ex_mp = common::ManagedPointer(null_ex).CastManagedPointerTo<parser::AbstractExpression>();
-                auto pair = std::make_pair(schema_col, null_ex_mp);
-                cols.emplace_back(pair);
-                // Note that in this case, we must move null_ex as we have taken a managed pointer to it.
-                sherpa_->GetParseResult()->AddExpression(std::move(null_ex));
-              } else {
-                // If none of the above cases could provide a value to be inserted, then we fail.
-                throw BINDER_EXCEPTION("Column not present, does not have a default and is non-nullable.",
-                                       common::ErrorCode::ERRCODE_SYNTAX_ERROR);
-              }
-            }
-          }
-
-          // We overwrite the original insert columns and values with the schema-ordered versions generated above.
-          values.clear();
-          for (auto &pair : cols) {
-            values.emplace_back(pair.second);
-          }
-        }
-
-        // TODO(WAN): with the sherpa, probably some of the above code can be cleaned up.
-
-        // Perform input type transformation validation on the schema-ordered values.
-        for (size_t i = 0; i < cols.size(); i++) {
-          auto ins_col = cols[i].first;
-          auto ins_val = cols[i].second;
-
-          auto ret_type = ins_val->GetReturnValueType();
-          auto expected_ret_type = ins_col.Type();
-
-          // Set the desired type to be whatever the schema says the type should be.
-          sherpa_->SetDesiredType(ins_val, expected_ret_type);
-
-          auto is_default_expression = ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT;
-          if (is_default_expression) {
-            auto stored_expr = ins_col.StoredExpression()->Copy();
-            ins_val = common::ManagedPointer(stored_expr);
-            sherpa_->SetDesiredType(common::ManagedPointer(ins_val), ins_col.Type());
-            sherpa_->GetParseResult()->AddExpression(std::move(stored_expr));
-          }
-
-          auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-          if (is_cast_expression) {
-            if (ret_type != expected_ret_type) {
-              throw BINDER_EXCEPTION("BindNodeVisitor tried to cast, but cast result type does not match the schema.",
-                                     common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
-            }
-            auto child = ins_val->GetChild(0)->Copy();
-            ins_val = common::ManagedPointer(child);
-            // The child should have the expected return type from the CAST parent.
-            sherpa_->SetDesiredType(ins_val, expected_ret_type);
-            sherpa_->GetParseResult()->AddExpression(std::move(child));
-          }
-
-          ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-          values[i] = ins_val;
-        }
-      }
-    }
-    // The final list of insert columns will always be the full list. Done here to avoid iterator invalidation problems.
-    {
-      const auto &cols = table_schema.GetColumns();
-      node->GetInsertColumns()->clear();
-      node->GetInsertColumns()->reserve(cols.size());
-      for (const auto &col : cols) {
-        node->GetInsertColumns()->emplace_back(col.Name());
-      }
+  // The final list of insert columns will always be the full list. Done here to avoid iterator invalidation problems.
+  {
+    const auto &cols = table_schema.GetColumns();
+    node->GetInsertColumns()->clear();
+    node->GetInsertColumns()->reserve(cols.size());
+    for (const auto &col : cols) {
+      node->GetInsertColumns()->emplace_back(col.Name());
     }
   }
 
@@ -886,6 +814,121 @@ void BindNodeVisitor::ValidateDatabaseName(const std::string &db_name) {
     if (db_oid != db_oid_)
       throw BINDER_EXCEPTION("cross-database references are not implemented: ",
                              common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
+  }
+}
+void BindNodeVisitor::ValidateAndCorrectInsertValues(
+    common::ManagedPointer<parser::InsertStatement> node,
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> *values, const catalog::Schema &table_schema) {
+  auto insert_columns = node->GetInsertColumns();
+  auto num_schema_columns = table_schema.GetColumns().size();
+  auto num_insert_columns = insert_columns->size();  // If unspecified by query, insert_columns is length 0.
+  // Validate input values.
+
+  // Value is a row (tuple) to insert.
+  size_t num_values = values->size();
+  // Test that they have the same number of columns.
+  {
+    bool is_insert_cols_specified = num_insert_columns != 0;
+    bool insert_cols_ok = is_insert_cols_specified && num_values == num_insert_columns;
+    bool insert_schema_ok = !is_insert_cols_specified && num_values == num_schema_columns;
+    if (!(insert_cols_ok || insert_schema_ok)) {
+      throw BINDER_EXCEPTION("Mismatch in number of insert columns and number of insert values.",
+                             common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+    }
+  }
+
+  std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
+
+  if (num_insert_columns == 0) {
+    // If the number of insert columns is zero, it is assumed that the tuple values are already schema ordered.
+    for (size_t i = 0; i < num_values; i++) {
+      auto pair = std::make_pair(table_schema.GetColumns()[i], (*values)[i]);
+      cols.emplace_back(pair);
+    }
+  } else {
+    // Otherwise, some insert columns were specified. Potentially not all and potentially out of order.
+    for (auto &schema_col : table_schema.GetColumns()) {
+      auto it = std::find(insert_columns->begin(), insert_columns->end(), schema_col.Name());
+      // Find the index of the current schema column.
+      if (it != insert_columns->end()) {
+        // TODO(harsh): This might need refactoring if it becomes a performance bottleneck.
+        auto index = std::distance(insert_columns->begin(), it);
+        auto pair = std::make_pair(schema_col, (*values)[index]);
+        cols.emplace_back(pair);
+      } else {
+        // Make a null value of the right type that we can either compare with the stored expression or insert.
+        auto null_ex = std::make_unique<parser::ConstantValueExpression>(schema_col.Type(), execution::sql::Val(true));
+
+        // TODO(WAN): We thought that you might be able to collapse these two cases into one, since currently
+        // the catalog column's stored expression is always a NULL of the right type if not otherwise specified.
+        // However, this seems to make assumptions about the current implementation in plan_generator and also
+        // we want to throw an error if it is a non-NULLable column. We can leave it as it is right now.
+
+        // If the current schema column's index was not found, that means it was not specified by the user.
+        if (*schema_col.StoredExpression() != *null_ex) {
+          // First, check if there is a default value for that column.
+          std::unique_ptr<parser::AbstractExpression> cur_value = schema_col.StoredExpression()->Copy();
+          auto pair = std::make_pair(schema_col, common::ManagedPointer(cur_value));
+          cols.emplace_back(pair);
+          sherpa_->GetParseResult()->AddExpression(std::move(cur_value));
+        } else if (schema_col.Nullable()) {
+          // If there is no default value, check if the column is NULLable, meaning we can insert a NULL.
+          auto null_ex_mp = common::ManagedPointer(null_ex).CastManagedPointerTo<parser::AbstractExpression>();
+          auto pair = std::make_pair(schema_col, null_ex_mp);
+          cols.emplace_back(pair);
+          // Note that in this case, we must move null_ex as we have taken a managed pointer to it.
+          sherpa_->GetParseResult()->AddExpression(std::move(null_ex));
+        } else {
+          // If none of the above cases could provide a value to be inserted, then we fail.
+          throw BINDER_EXCEPTION("Column not present, does not have a default and is non-nullable.",
+                                 common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+        }
+      }
+    }
+
+    // We overwrite the original insert columns and values with the schema-ordered versions generated above.
+    values->clear();
+    for (auto &pair : cols) {
+      values->emplace_back(pair.second);
+    }
+  }
+
+  // TODO(WAN): with the sherpa, probably some of the above code can be cleaned up.
+
+  // Perform input type transformation validation on the schema-ordered values.
+  for (size_t i = 0; i < cols.size(); i++) {
+    auto ins_col = cols[i].first;
+    auto ins_val = cols[i].second;
+
+    auto ret_type = ins_val->GetReturnValueType();
+    auto expected_ret_type = ins_col.Type();
+
+    // Set the desired type to be whatever the schema says the type should be.
+    sherpa_->SetDesiredType(ins_val, expected_ret_type);
+
+    auto is_default_expression = ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT;
+    if (is_default_expression) {
+      auto stored_expr = ins_col.StoredExpression()->Copy();
+      ins_val = common::ManagedPointer(stored_expr);
+      sherpa_->SetDesiredType(common::ManagedPointer(ins_val), ins_col.Type());
+      sherpa_->GetParseResult()->AddExpression(std::move(stored_expr));
+    }
+
+    auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
+    if (is_cast_expression) {
+      if (ret_type != expected_ret_type) {
+        throw BINDER_EXCEPTION("BindNodeVisitor tried to cast, but cast result type does not match the schema.",
+                               common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
+      }
+      auto child = ins_val->GetChild(0)->Copy();
+      ins_val = common::ManagedPointer(child);
+      // The child should have the expected return type from the CAST parent.
+      sherpa_->SetDesiredType(ins_val, expected_ret_type);
+      sherpa_->GetParseResult()->AddExpression(std::move(child));
+    }
+
+    ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    (*values)[i] = ins_val;
   }
 }
 

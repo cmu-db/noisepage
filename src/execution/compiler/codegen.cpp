@@ -85,6 +85,12 @@ ast::Expr *CodeGen::Const64(int64_t val) const {
   return expr;
 }
 
+ast::Expr *CodeGen::ConstU32(uint32_t val) const {
+  ast::Expr *expr = context_->GetNodeFactory()->NewIntLiteral(position_, val);
+  expr->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Uint32));
+  return expr;
+}
+
 ast::Expr *CodeGen::ConstDouble(double val) const {
   ast::Expr *expr = context_->GetNodeFactory()->NewFloatLiteral(position_, val);
   expr->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Float64));
@@ -182,6 +188,8 @@ ast::Expr *CodeGen::Int32Type() const { return BuiltinType(ast::BuiltinType::Int
 
 ast::Expr *CodeGen::Int64Type() const { return BuiltinType(ast::BuiltinType::Int64); }
 
+ast::Expr *CodeGen::Uint32Type() const { return BuiltinType(ast::BuiltinType::Uint32); }
+
 ast::Expr *CodeGen::Float32Type() const { return BuiltinType(ast::BuiltinType::Float32); }
 
 ast::Expr *CodeGen::Float64Type() const { return BuiltinType(ast::BuiltinType::Float64); }
@@ -233,7 +241,7 @@ ast::Expr *CodeGen::TplType(sql::TypeId type) {
   }
 }
 
-ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type) const {
+ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type, sql::TypeId child_type) const {
   switch (agg_type) {
     case parser::ExpressionType::AGGREGATE_COUNT:
       return BuiltinType(ast::BuiltinType::Kind::CountAggregate);
@@ -269,6 +277,40 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId r
         return BuiltinType(ast::BuiltinType::IntegerSumAggregate);
       }
       return BuiltinType(ast::BuiltinType::RealSumAggregate);
+    case parser::ExpressionType::AGGREGATE_TOP_K:
+      if (child_type == sql::TypeId::Boolean) {
+        return BuiltinType(ast::BuiltinType::BooleanTopKAggregate);
+      } else if (IsTypeIntegral(child_type)) {
+        return BuiltinType(ast::BuiltinType::IntegerTopKAggregate);
+      } else if (IsTypeFloatingPoint(child_type)) {
+        return BuiltinType(ast::BuiltinType::RealTopKAggregate);
+      } else if (child_type == sql::TypeId::Varchar || child_type == sql::TypeId::Varbinary) {
+        return BuiltinType(ast::BuiltinType::StringTopKAggregate);
+      } else if (child_type == sql::TypeId::Date) {
+        return BuiltinType(ast::BuiltinType::DateTopKAggregate);
+      } else if (child_type == sql::TypeId::Timestamp) {
+        return BuiltinType(ast::BuiltinType::TimestampTopKAggregate);
+      } else {
+        throw NOT_IMPLEMENTED_EXCEPTION(
+            fmt::format("TOP K aggregate does not support type {}", TypeIdToString(child_type)));
+      }
+    case parser::ExpressionType::AGGREGATE_HISTOGRAM:
+      if (child_type == sql::TypeId::Boolean) {
+        return BuiltinType(ast::BuiltinType::BooleanHistogramAggregate);
+      } else if (IsTypeIntegral(child_type)) {
+        return BuiltinType(ast::BuiltinType::IntegerHistogramAggregate);
+      } else if (IsTypeFloatingPoint(child_type)) {
+        return BuiltinType(ast::BuiltinType::RealHistogramAggregate);
+      } else if (child_type == sql::TypeId::Varchar || child_type == sql::TypeId::Varbinary) {
+        return BuiltinType(ast::BuiltinType::StringHistogramAggregate);
+      } else if (child_type == sql::TypeId::Date) {
+        return BuiltinType(ast::BuiltinType::DateHistogramAggregate);
+      } else if (child_type == sql::TypeId::Timestamp) {
+        return BuiltinType(ast::BuiltinType::TimestampHistogramAggregate);
+      } else {
+        throw NOT_IMPLEMENTED_EXCEPTION(
+            fmt::format("HISTOGRAM aggregate does not support type {}", TypeIdToString(child_type)));
+      }
     default: {
       UNREACHABLE("AggregateType() should only be called with aggregates.");
     }
@@ -500,6 +542,7 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       builtin = nullable ? ast::Builtin::PRGetTimestampNull : ast::Builtin::PRGetTimestamp;
       break;
     case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY:
       builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
       break;
     default:
@@ -1072,7 +1115,14 @@ ast::Expr *CodeGen::AggregatorMerge(ast::Expr *agg1, ast::Expr *agg2) {
   return call;
 }
 
-ast::Expr *CodeGen::AggregatorResult(ast::Expr *agg) { return CallBuiltin(ast::Builtin::AggResult, {agg}); }
+ast::Expr *CodeGen::AggregatorResult(ast::Expr *exec_ctx, ast::Expr *agg,
+                                     const parser::ExpressionType &expression_type) {
+  if (expression_type == parser::ExpressionType::AGGREGATE_TOP_K ||
+      expression_type == parser::ExpressionType::AGGREGATE_HISTOGRAM) {
+    return CallBuiltin(ast::Builtin::AggResult, {exec_ctx, agg});
+  }
+  return CallBuiltin(ast::Builtin::AggResult, {agg});
+}
 
 ast::Expr *CodeGen::AggregatorFree(ast::Expr *agg) {
   ast::Expr *call = CallBuiltin(ast::Builtin::AggFree, {agg});
