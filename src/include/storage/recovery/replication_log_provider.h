@@ -52,17 +52,6 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     // TODO(WAN): if you want sync/async I think this is where you do it
   }
 
-  // TODO(gus): this method is not entirely correct, there could still be messages over network
-  /**
-   * TODO(WAN): Per Gus, tThis method is not entirely correct because there could still be messages pending over
-   *  the network.
-   */
-  void WaitUntilSync() {
-    while ((curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !arrived_buffer_queue_.empty())
-      std::this_thread::yield();
-    STORAGE_LOG_INFO("Replica Synced");
-  }
-
   /** @return True if there are more records. False otherwise. */
   bool NonBlockingHasMoreRecords() const {
     return (curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !arrived_buffer_queue_.empty();
