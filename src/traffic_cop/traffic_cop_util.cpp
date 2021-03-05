@@ -11,6 +11,7 @@
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
+#include "parser/insert_statement.h"
 #include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
 #include "parser/transaction_statement.h"
@@ -44,22 +45,16 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     output = sel_stmt->GetSelectColumns();  // TODO(Matt): this is making a local copy. Revisit the life cycle and
     // immutability of all of these Optimizer inputs to reduce copies.
 
-    // PropertySort
-    if (sel_stmt->GetSelectOrderBy()) {
-      std::vector<optimizer::OrderByOrderingType> sort_dirs;
-      std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
-      auto order_by = sel_stmt->GetSelectOrderBy();
-      auto types = order_by->GetOrderByTypes();
-      auto exprs = order_by->GetOrderByExpressions();
-      for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
-        sort_exprs.emplace_back(exprs[idx]);
-        sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
-                                                                       : optimizer::OrderByOrderingType::DESC);
-      }
+    CollectSelectProperties(sel_stmt, &property_set);
+  } else if (type == parser::StatementType::INSERT &&
+             query->GetStatement(0).CastManagedPointerTo<parser::InsertStatement>()->GetSelect() != nullptr) {
+    const auto sel_stmt = query->GetStatement(0).CastManagedPointerTo<parser::InsertStatement>()->GetSelect();
 
-      auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
-      property_set.AddProperty(sort_prop);
-    }
+    // Inset into select output will be pushed down to select
+    output = sel_stmt->GetSelectColumns();  // TODO(Matt): this is making a local copy. Revisit the life cycle and
+    // immutability of all of these Optimizer inputs to reduce copies.
+
+    CollectSelectProperties(sel_stmt, &property_set);
   }
 
   auto query_info = optimizer::QueryInfo(type, std::move(output), &property_set);
@@ -73,6 +68,26 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
   // original vector (or parent object) all the way down.
   // TODO(Matt): Why does the Optimizer need a TransactionContext? It looks like it's an arg all the way down to the
   // cost model. Do we expect that can be transactional?
+}
+
+void TrafficCopUtil::CollectSelectProperties(common::ManagedPointer<parser::SelectStatement> sel_stmt,
+                                             optimizer::PropertySet *property_set) {
+  // PropertySort
+  if (sel_stmt->GetSelectOrderBy()) {
+    std::vector<optimizer::OrderByOrderingType> sort_dirs;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
+    auto order_by = sel_stmt->GetSelectOrderBy();
+    auto types = order_by->GetOrderByTypes();
+    auto exprs = order_by->GetOrderByExpressions();
+    for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
+      sort_exprs.emplace_back(exprs[idx]);
+      sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
+                                                                     : optimizer::OrderByOrderingType::DESC);
+    }
+
+    auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
+    property_set->AddProperty(sort_prop);
+  }
 }
 
 network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPointer<parser::SQLStatement> statement) {

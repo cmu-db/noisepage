@@ -348,17 +348,17 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   children_1.emplace_back(std::make_unique<StarExpression>());
   std::vector<std::unique_ptr<AbstractExpression>> childrent_1_cp;
   childrent_1_cp.emplace_back(std::make_unique<StarExpression>());
-  auto agg_expr_1 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_1), true);
+  auto agg_expr_1 = AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_1), true);
 
   // Create expression 2
   std::vector<std::unique_ptr<AbstractExpression>> children_2;
   children_2.emplace_back(std::make_unique<StarExpression>());
-  auto agg_expr_2 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_2), true);
+  auto agg_expr_2 = AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_2), true);
 
   // Create expression 3, field distinct
   std::vector<std::unique_ptr<AbstractExpression>> children_3;
   children_3.emplace_back(std::make_unique<StarExpression>());
-  auto agg_expr_3 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_3), false);
+  auto agg_expr_3 = AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_3), false);
 
   // Expresion type comparison and children comparison are implemented in the base class abstract expression
   //  testing them here once is enough
@@ -367,83 +367,82 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   std::vector<std::unique_ptr<AbstractExpression>> children_4;
   children_4.emplace_back(std::make_unique<StarExpression>());
   children_4.emplace_back(std::make_unique<StarExpression>());
-  auto agg_expr_4 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_4), true);
+  auto agg_expr_4 = AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_4), true);
 
   // Create expression 5, field child type
   std::vector<std::unique_ptr<AbstractExpression>> children_5;
   children_5.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
-  auto agg_expr_5 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_5), true);
+  auto agg_expr_5 = AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_5), true);
 
-  EXPECT_TRUE(*agg_expr_1 == *agg_expr_2);
-  EXPECT_FALSE(*agg_expr_1 == *agg_expr_3);
-  EXPECT_FALSE(*agg_expr_1 == *agg_expr_4);
-  EXPECT_FALSE(*agg_expr_1 == *agg_expr_5);
+  EXPECT_TRUE(agg_expr_1 == agg_expr_2);
+  EXPECT_FALSE(agg_expr_1 == agg_expr_3);
+  EXPECT_FALSE(agg_expr_1 == agg_expr_4);
+  EXPECT_FALSE(agg_expr_1 == agg_expr_5);
 
-  EXPECT_EQ(agg_expr_1->Hash(), agg_expr_2->Hash());
-  EXPECT_NE(agg_expr_1->Hash(), agg_expr_3->Hash());
-  EXPECT_NE(agg_expr_1->Hash(), agg_expr_4->Hash());
-  EXPECT_NE(agg_expr_1->Hash(), agg_expr_5->Hash());
+  EXPECT_EQ(agg_expr_1.Hash(), agg_expr_2.Hash());
+  EXPECT_NE(agg_expr_1.Hash(), agg_expr_3.Hash());
+  EXPECT_NE(agg_expr_1.Hash(), agg_expr_4.Hash());
+  EXPECT_NE(agg_expr_1.Hash(), agg_expr_5.Hash());
 
-  EXPECT_EQ(agg_expr_1->GetExpressionType(), ExpressionType::AGGREGATE_COUNT);
+  EXPECT_EQ(agg_expr_1.GetExpressionType(), ExpressionType::AGGREGATE_COUNT);
   // There is no need to deduce the return_value_type of constant value expression
   // and calling this function essentially does nothing
   // Only test if we can call it without error.
-  agg_expr_1->DeriveReturnValueType();
-  EXPECT_EQ(agg_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(agg_expr_1->GetChildrenSize(), 1);
-  EXPECT_TRUE(CompareExpressionsEqual(agg_expr_1->GetChildren(), childrent_1_cp));
-  EXPECT_TRUE(agg_expr_1->IsDistinct());
+  agg_expr_1.DeriveReturnValueType();
+  EXPECT_EQ(agg_expr_1.GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(agg_expr_1.GetChildrenSize(), 1);
+  EXPECT_TRUE(CompareExpressionsEqual(agg_expr_1.GetChildren(), childrent_1_cp));
+  EXPECT_TRUE(agg_expr_1.IsDistinct());
   // Private members depth will be initialized as -1 and has_subquery as false.
-  EXPECT_EQ(agg_expr_1->GetDepth(), -1);
-  EXPECT_FALSE(agg_expr_1->HasSubquery());
-  agg_expr_1->DeriveExpressionName();
-  EXPECT_EQ(agg_expr_1->GetExpressionName(), "");
+  EXPECT_EQ(agg_expr_1.GetDepth(), -1);
+  EXPECT_FALSE(agg_expr_1.HasSubquery());
+  agg_expr_1.DeriveExpressionName();
+  EXPECT_EQ(agg_expr_1.GetExpressionName(), "");
 
-  EXPECT_FALSE(agg_expr_1->RequiresCleanup());
+  EXPECT_FALSE(agg_expr_1.RequiresCleanup());
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_6;
   children_6.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
-  auto agg_expr_6 = new AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
-  agg_expr_6->DeriveReturnValueType();
+  auto agg_expr_6 = AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
+  agg_expr_6.DeriveReturnValueType();
 
-  EXPECT_FALSE(*agg_expr_1 == *agg_expr_6);
-  EXPECT_NE(agg_expr_1->Hash(), agg_expr_6->Hash());
-  EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TypeId::BOOLEAN);
-  EXPECT_FALSE(agg_expr_6->RequiresCleanup());
+  EXPECT_FALSE(agg_expr_1 == agg_expr_6);
+  EXPECT_NE(agg_expr_1.Hash(), agg_expr_6.Hash());
+  EXPECT_EQ(agg_expr_6.GetReturnValueType(), type::TypeId::BOOLEAN);
+  EXPECT_FALSE(agg_expr_6.RequiresCleanup());
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_7;
   children_7.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
-  auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
-  agg_expr_7->DeriveReturnValueType();
-  EXPECT_FALSE(agg_expr_7->RequiresCleanup());
+  auto agg_expr_7 = AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
+  agg_expr_7.DeriveReturnValueType();
+  EXPECT_FALSE(agg_expr_7.RequiresCleanup());
 
-  EXPECT_FALSE(*agg_expr_1 == *agg_expr_7);
-  EXPECT_NE(agg_expr_1->Hash(), agg_expr_7->Hash());
-  EXPECT_EQ(agg_expr_7->GetReturnValueType(), type::TypeId::REAL);
+  EXPECT_FALSE(agg_expr_1 == agg_expr_7);
+  EXPECT_NE(agg_expr_1.Hash(), agg_expr_7.Hash());
+  EXPECT_EQ(agg_expr_7.GetReturnValueType(), type::TypeId::REAL);
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_8;
   children_8.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
-  auto agg_expr_8 = new AggregateExpression(ExpressionType(100), std::move(children_8), true);
+  auto agg_expr_8 = AggregateExpression(ExpressionType(100), std::move(children_8), true);
   // TODO(WAN): Why is there a random NDEBUG here?
 #ifndef NDEBUG
-  EXPECT_THROW(agg_expr_8->DeriveReturnValueType(), ParserException);
+  EXPECT_THROW(agg_expr_8.DeriveReturnValueType(), ParserException);
 #endif
 
-  delete agg_expr_1;
-  delete agg_expr_2;
-  delete agg_expr_3;
-  delete agg_expr_4;
-  delete agg_expr_5;
-  delete agg_expr_6;
-  delete agg_expr_7;
-  delete agg_expr_8;
+  // Testing DeriveReturnValueType functionality
+  auto agg_expr_9 = AggregateExpression(ExpressionType::AGGREGATE_TOP_K, {}, false);
+  auto agg_expr_10 = AggregateExpression(ExpressionType::AGGREGATE_HISTOGRAM, {}, false);
+  agg_expr_9.DeriveReturnValueType();
+  agg_expr_10.DeriveReturnValueType();
+  EXPECT_EQ(agg_expr_9.GetReturnValueType(), type::TypeId::VARBINARY);
+  EXPECT_EQ(agg_expr_10.GetReturnValueType(), type::TypeId::VARBINARY);
 }
 
 // NOLINTNEXTLINE

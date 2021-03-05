@@ -15,6 +15,7 @@ class CatalogAccessor;
 namespace noisepage::parser {
 class ParseResult;
 class SQLStatement;
+class SelectStatement;
 }  // namespace noisepage::parser
 
 namespace noisepage::planner {
@@ -24,6 +25,7 @@ class AbstractPlanNode;
 namespace noisepage::optimizer {
 class StatsStorage;
 class AbstractCostModel;
+class PropertySet;
 }  // namespace noisepage::optimizer
 
 namespace noisepage::transaction {
@@ -61,6 +63,10 @@ class TrafficCopUtil {
    * @return
    */
   static network::QueryType QueryTypeForStatement(common::ManagedPointer<parser::SQLStatement> statement);
+
+ private:
+  static void CollectSelectProperties(common::ManagedPointer<parser::SelectStatement> sel_stmt,
+                                      optimizer::PropertySet *property_set);
 };
 
 }  // namespace noisepage::trafficcop

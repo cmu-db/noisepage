@@ -1,245 +1,245 @@
 # 1 tuple insert, with no column specification.
 statement ok
-CREATE TABLE insert1(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER)
+CREATE TABLE insert1(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER);
 
 statement ok
-INSERT INTO insert1 VALUES (1, 2, 3)
+INSERT INTO insert1 VALUES (1, 2, 3);
 
 query I nosort
-SELECT c1, c2, c3 from insert1
+SELECT c1, c2, c3 from insert1;
 ----
 3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
 
 statement ok
-DROP TABLE insert1
+DROP TABLE insert1;
 
 # 1 tuple insert, with columns inserted in schema order
 statement ok
-CREATE TABLE insert2(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER)
+CREATE TABLE insert2(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER);
 
 statement ok
-INSERT INTO insert2 (c1, c2, c3) VALUES (1, 2, 3)
+INSERT INTO insert2 (c1, c2, c3) VALUES (1, 2, 3);
 
 query I nosort
-SELECT c1, c2, c3 from insert2
+SELECT c1, c2, c3 from insert2;
 ----
 3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
 
 statement ok
-DROP TABLE insert2
+DROP TABLE insert2;
 
 # 1 tuple insert, with columns inserted in different order from schema.
 # issue #729 wait to be fixed
 statement ok
-CREATE TABLE insert3(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER)
+CREATE TABLE insert3(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER);
 
 statement ok
-INSERT INTO insert3 (c3, c1, c2) VALUES (3, 1, 2)
+INSERT INTO insert3 (c3, c1, c2) VALUES (3, 1, 2);
 
 query I nosort
-SELECT c1, c2, c3 from insert3
+SELECT c1, c2, c3 from insert3;
 ----
 3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
 
 statement ok
-DROP TABLE insert3
+DROP TABLE insert3;
 
 # 2 tuple insert, with no column specification
 statement ok
-CREATE TABLE insert4(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER)
+CREATE TABLE insert4(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER);
 
 statement ok
-INSERT INTO insert4 VALUES (1, 2, 3), (11, 12, 13)
+INSERT INTO insert4 VALUES (1, 2, 3), (11, 12, 13);
 
 query I nosort
-SELECT c1, c2, c3 from insert4
+SELECT c1, c2, c3 from insert4;
 ----
 6 values hashing to 2fec777696bc70cae04c3409a40831d4
 
 statement ok
-DROP TABLE insert4
+DROP TABLE insert4;
 
 # 2 tuple insert, with no column specification, with fewer than
 # schema columns
 # binding failed, wait to be fixed
 statement ok
-CREATE TABLE insert5(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER)
+CREATE TABLE insert5(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER);
 
 statement error
-INSERT INTO insert5 VALUES (1), (11, 12)
+INSERT INTO insert5 VALUES (1), (11, 12);
 
 query I nosort
-SELECT c1, c2, c3 from insert5
+SELECT c1, c2, c3 from insert5;
 ----
 0 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 statement ok
-DROP TABLE insert5
+DROP TABLE insert5;
 
 # Test insertion of NULL values.
 # Fix #712.
 statement ok
-CREATE TABLE insert6 (col1 INT)
+CREATE TABLE insert6 (col1 INT);
 
 statement ok
-INSERT INTO insert6 VALUES (NULL)
+INSERT INTO insert6 VALUES (NULL);
 
 query I nosort
-SELECT * FROM insert6
+SELECT * FROM insert6;
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 statement ok
-DROP TABLE insert6
+DROP TABLE insert6;
 
 # CREATE TABLE with a qualified namespace doesn't work as expected
 # #706 fixed but also need #724 for select and drop
 statement ok
-CREATE SCHEMA foo
+CREATE SCHEMA foo;
 
 statement ok
-CREATE TABLE foo.bar (id integer)
+CREATE TABLE foo.bar (id integer);
 
 query I nosort
-select * from pg_catalog.pg_class c where c.relname = 'foo.bar'
+select * from pg_catalog.pg_class c where c.relname = 'foo.bar';
 ----
 13068 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 statement ok
-DROP SCHEMA foo CASCADE
+DROP SCHEMA foo CASCADE;
 
 # Invalid Implicit Casting of Integer Strings as Varchars
 # #733 fixed
 statement ok
-CREATE TABLE insert7 (col0 VARCHAR(32) PRIMARY KEY, col1 VARCHAR(32))
+CREATE TABLE insert7 (col0 VARCHAR(32) PRIMARY KEY, col1 VARCHAR(32));
 
 statement ok
-INSERT INTO insert7 VALUES ('0', '1319')
+INSERT INTO insert7 VALUES ('0', '1319');
 
 statement ok
-INSERT INTO insert7 VALUES ('1', '21995')
+INSERT INTO insert7 VALUES ('1', '21995');
 
 statement ok
-INSERT INTO insert7 VALUES ('2', '28037')
+INSERT INTO insert7 VALUES ('2', '28037');
 
 statement ok
-INSERT INTO insert7 VALUES ('3', '26984')
+INSERT INTO insert7 VALUES ('3', '26984');
 
 statement ok
-INSERT INTO insert7 VALUES ('4', '2762')
+INSERT INTO insert7 VALUES ('4', '2762');
 
 statement ok
-INSERT INTO insert7 VALUES ('5', '31763')
+INSERT INTO insert7 VALUES ('5', '31763');
 
 statement ok
-INSERT INTO insert7 VALUES ('6', '20359')
+INSERT INTO insert7 VALUES ('6', '20359');
 
 statement ok
-INSERT INTO insert7 VALUES ('7', '26022')
+INSERT INTO insert7 VALUES ('7', '26022');
 
 statement ok
-INSERT INTO insert7 VALUES ('8', '364')
+INSERT INTO insert7 VALUES ('8', '364');
 
 statement ok
-INSERT INTO insert7 VALUES ('9', '831')
+INSERT INTO insert7 VALUES ('9', '831');
 
 query I nosort
-SELECT * FROM insert7
+SELECT * FROM insert7;
 ----
 20 values hashing to b1415826fbeae3cb232c089206a830c0
 
 statement ok
-DROP TABLE insert7
+DROP TABLE insert7;
 
 # Support default value expressions
 # #718 fixed
 statement ok
-CREATE TABLE insert8 (id integer, val integer DEFAULT 123)
+CREATE TABLE insert8 (id integer, val integer DEFAULT 123);
 
 statement ok
-INSERT INTO insert8 VALUES (1, DEFAULT)
+INSERT INTO insert8 VALUES (1, DEFAULT);
 
 query I nosort
-SELECT * from insert8
+SELECT * from insert8;
 ----
 2 values hashing to 5b3c3ec1c0abea340e732fdbe458d8af
 
 statement ok
-DROP TABLE insert8
+DROP TABLE insert8;
 
 # Support out of order inserts
 # #729 fixed
 statement ok
-CREATE TABLE insert9 (c1 integer, c2 integer, c3 integer)
+CREATE TABLE insert9 (c1 integer, c2 integer, c3 integer);
 
 statement ok
-INSERT INTO insert9 (c2, c1, c3) VALUES (2, 3, 4)
+INSERT INTO insert9 (c2, c1, c3) VALUES (2, 3, 4);
 
 query I nosort
-SELECT * from insert9
+SELECT * from insert9;
 ----
 3 values hashing to 6b2577f6a4e16238e407d7b497d94918
 
 statement ok
-DROP TABLE insert9
+DROP TABLE insert9;
 
 # Support out of order inserts with defaults
 # #718 fixed
 statement ok
-CREATE TABLE insert10 (c1 integer, c2 integer, c3 integer DEFAULT 34)
+CREATE TABLE insert10 (c1 integer, c2 integer, c3 integer DEFAULT 34);
 
 statement ok
-INSERT INTO insert10 (c2, c1) VALUES (2, 3)
+INSERT INTO insert10 (c2, c1) VALUES (2, 3);
 
 query I nosort
-SELECT * from insert10
+SELECT * from insert10;
 ----
 3 values hashing to 1bc2ed40b960a8e8b2189bce7f6a3bf4
 
 statement ok
-DROP TABLE insert10
+DROP TABLE insert10;
 
 # Test inserting default expressions that are not INTEGER type.
 # #831 BinderSherpa
 statement ok
-CREATE TABLE insert11 (c1 integer, c2 integer, c3 bigint DEFAULT 4398046511104)
+CREATE TABLE insert11 (c1 integer, c2 integer, c3 bigint DEFAULT 4398046511104);
 
 statement ok
-INSERT INTO insert11 (c1, c2) VALUES (1, 2)
+INSERT INTO insert11 (c1, c2) VALUES (1, 2);
 
 query I nosort
-SELECT * from insert11
+SELECT * from insert11;
 ----
 3 values hashing to fc894f00a27946cd20b44bacd0dda9bf
 
 statement ok
-DROP TABLE insert11
+DROP TABLE insert11;
 
 # Test inserting cast expressions for BIGINT and TIMESTAMP.
 # #831 BinderSherpa
 statement ok
-CREATE TABLE insert12 (c1 bigint, c2 timestamp)
+CREATE TABLE insert12 (c1 bigint, c2 timestamp);
 
 statement ok
-INSERT INTO insert12 (c1, c2) VALUES ('123'::bigint, '2020-01-02 12:23:34.56789')
+INSERT INTO insert12 (c1, c2) VALUES ('123'::bigint, '2020-01-02 12:23:34.56789');
 
 query I nosort
-SELECT * from insert12
+SELECT * from insert12;
 ----
 2 values hashing to 98400e9a6fe8be8c5e269adabb13e664
 
 statement ok
-DROP TABLE insert12
+DROP TABLE insert12;
 
 # Test inserts that are: out of order, missing values, multiple values, multiple types. Issue #1408
 statement ok
-CREATE TABLE insert13 (c1 integer, c2 double)
+CREATE TABLE insert13 (c1 integer, c2 double);
 
 statement ok
-INSERT INTO insert13 (c2, c1) VALUES (2.0, 1), (4.0, 2), (8.0, 3)
+INSERT INTO insert13 (c2, c1) VALUES (2.0, 1), (4.0, 2), (8.0, 3);
 
 query IR rowsort
-SELECT * FROM insert13
+SELECT * FROM insert13;
 ----
 1
 2.0
@@ -249,46 +249,197 @@ SELECT * FROM insert13
 8.0
 
 statement ok
-INSERT INTO insert13 (c2) VALUES (16.0),(32.0),(64.0)
+INSERT INTO insert13 (c2) VALUES (16.0),(32.0),(64.0);
 
 query R rowsort
-SELECT c2 FROM insert13 WHERE c1 IS NULL
+SELECT c2 FROM insert13 WHERE c1 IS NULL;
 ----
 16.0
 32.0
 64.0
 
 query R rowsort
-SELECT c2 FROM insert13 WHERE c1 IS NOT NULL
+SELECT c2 FROM insert13 WHERE c1 IS NOT NULL;
 ----
 2.0
 4.0
 8.0
 
 statement ok
-DROP TABLE insert13
+DROP TABLE insert13;
 
 # Support default value expressions of compatible types
 statement ok
-CREATE TABLE insert14 (id integer default '1')
+CREATE TABLE insert14 (id integer default '1');
 
 statement ok
-INSERT INTO insert14 VALUES (DEFAULT)
+INSERT INTO insert14 VALUES (DEFAULT);
 
 query I nosort
-SELECT * from insert14
+SELECT * from insert14;
 ----
 1
 
 statement ok
-DROP TABLE insert14
+DROP TABLE insert14;
 
 # Support default value expressions of incompatible types up until insert (postgres behavior)
 statement ok
-CREATE TABLE insert15 (id smallint default 239040928093)
+CREATE TABLE insert15 (id smallint default 239040928093);
 
 statement error
-INSERT INTO insert15 VALUES (DEFAULT)
+INSERT INTO insert15 VALUES (DEFAULT);
 
 statement ok
-DROP TABLE insert15
+DROP TABLE insert15;
+
+statement ok
+CREATE TABLE insert16(a INTEGER);
+
+statement ok
+CREATE TABLE insert17(b INTEGER);
+
+statement ok
+INSERT INTO insert16(a) SELECT b FROM insert17;
+
+query I rowsort
+SELECT * FROM insert16;
+----
+
+statement ok
+INSERT INTO insert17(b) VALUES (1);
+
+statement ok
+INSERT INTO insert17(b) VALUES (2);
+
+statement ok
+INSERT INTO insert17(b) VALUES (666);
+
+query I rowsort
+SELECT * FROM insert17;
+----
+1
+2
+666
+
+statement ok
+INSERT INTO insert16(a) SELECT b FROM insert17;
+
+query I rowsort
+SELECT * FROM insert16;
+----
+1
+2
+666
+
+statement ok
+DROP TABLE insert16;
+
+statement ok
+DROP TABLE insert17;
+
+statement ok
+CREATE TABLE insert18(a INTEGER, b VARCHAR(100));
+
+statement ok
+CREATE TABLE insert19(a INTEGER, b VARCHAR(100));
+
+statement ok
+INSERT INTO insert18(a,b) SELECT * FROM insert19;
+
+query IT rowsort
+SELECT * FROM insert18;
+----
+
+statement ok
+INSERT INTO insert19(a,b) VALUES (24, 'beta fish'), (42, 'Joseph');
+
+query IT rowsort
+SELECT * FROM insert19;
+----
+24
+beta fish
+42
+Joseph
+
+statement ok
+INSERT INTO insert18(a, b) SELECT * FROM insert19;
+
+query IT rowsort
+SELECT * FROM insert18;
+----
+24
+beta fish
+42
+Joseph
+
+statement ok
+DROP TABLE insert18;
+
+statement ok
+DROP TABLE insert19;
+
+statement ok
+CREATE TABLE insert20(a INTEGER, b VARCHAR(100));
+
+statement ok
+CREATE TABLE insert21(a INTEGER, b VARCHAR(100));
+
+statement ok
+INSERT INTO insert20 SELECT * FROM insert21;
+
+query IT rowsort
+SELECT * FROM insert20;
+----
+
+statement ok
+INSERT INTO insert21(a,b) VALUES (24, 'beta fish'), (42, 'Joseph');
+
+query IT rowsort
+SELECT * FROM insert21;
+----
+24
+beta fish
+42
+Joseph
+
+statement ok
+INSERT INTO insert20 SELECT * FROM insert21;
+
+query IT rowsort
+SELECT * FROM insert20;
+----
+24
+beta fish
+42
+Joseph
+
+statement ok
+DROP TABLE insert20;
+
+statement ok
+DROP TABLE insert21;
+
+statement ok
+CREATE TABLE insert22 (id integer, val integer DEFAULT 42);
+
+statement ok
+CREATE TABLE insert23 (a integer);
+
+statement ok
+INSERT INTO insert23 VALUES (666);
+
+statement ok
+INSERT INTO insert22 (id) SELECT * FROM insert23;
+
+query II rowsort
+SELECT * FROM insert22;
+----
+666
+42
+
+statement ok
+DROP TABLE insert22;
+
+statement ok
+DROP TABLE insert23;

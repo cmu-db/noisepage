@@ -416,6 +416,11 @@ class EXPORT Decimal {
   using NativeType = T;
 
   /**
+   * Empty constructor
+   */
+  Decimal() = default;
+
+  /**
    * Create a decimal value using the given raw underlying encoded value.
    * @param value The value to set this decimal to.
    */
@@ -646,3 +651,115 @@ inline Timestamp Date::ConvertToTimestamp() const { return Timestamp(value_ * K_
 inline Date Timestamp::ConvertToDate() const { return Date(value_ / K_MICRO_SECONDS_PER_DAY); }
 
 }  // namespace noisepage::execution::sql
+
+namespace std {
+/**
+ * Implements std::hash for Date.
+ */
+template <>
+struct hash<noisepage::execution::sql::Date> {
+  /**
+   * Returns the hash of the Date.
+   * @param date the d to be hashed.
+   * @return the hash of the date.
+   */
+  size_t operator()(const noisepage::execution::sql::Date &date) const { return date.Hash(); }
+};
+
+/**
+ * Implements std::hash for Timestamp.
+ */
+template <>
+struct hash<noisepage::execution::sql::Timestamp> {
+  /**
+   * Returns the hash of the timestamp.
+   * @param timestamp the d to be hashed.
+   * @return the hash of the timestamp.
+   */
+  size_t operator()(const noisepage::execution::sql::Timestamp &timestamp) const { return timestamp.Hash(); }
+};
+
+/**
+ * Implements std::hash for Decimal.
+ */
+template <typename T>
+struct hash<noisepage::execution::sql::Decimal<T>> {
+  /**
+   * Returns the hash of the decimal.
+   * @param decimal the d to be hashed.
+   * @return the hash of the decimal.
+   */
+  size_t operator()(const noisepage::execution::sql::Decimal<T> &decimal) const { return decimal.Hash(); }
+};
+}  // namespace std
+
+namespace nlohmann {
+/** Struct to help convert Date to and from JSON */
+template <>
+struct adl_serializer<noisepage::execution::sql::Date> {
+  /**
+   * Convert a Date to json
+   * @param[out] j the output json
+   * @param date the Date to convert
+   */
+  static void to_json(json &j, noisepage::execution::sql::Date date) {  // NOLINT
+    j["val"] = date.ToNative();
+  }
+
+  /**
+   * Convert a json to a Date
+   * @param j json representation of a Date
+   * @return Date object parsed from json
+   */
+  static noisepage::execution::sql::Date from_json(const json &j) {  // NOLINT
+    auto val = j.at("val").get<noisepage::execution::sql::Date::NativeType>();
+    return noisepage::execution::sql::Date::FromNative(val);
+  }
+};
+
+/** Struct to help convert Timestamp to and from JSON */
+template <>
+struct adl_serializer<noisepage::execution::sql::Timestamp> {
+  /**
+   * Convert a Timestamp to json
+   * @param[out] j the output json
+   * @param timestamp the Timestamp to convert
+   */
+  static void to_json(json &j, noisepage::execution::sql::Timestamp timestamp) {  // NOLINT
+    j["val"] = timestamp.ToNative();
+  }
+
+  /**
+   * Convert a json to a Timestamp
+   * @param j json representation of a Timestamp
+   * @return Timestamp object parsed from json
+   */
+  static noisepage::execution::sql::Timestamp from_json(const json &j) {  // NOLINT
+    auto val = j.at("val").get<noisepage::execution::sql::Timestamp::NativeType>();
+    return noisepage::execution::sql::Timestamp::FromNative(val);
+  }
+};
+
+/** Struct to help convert Decimal to and from JSON */
+template <typename T>
+struct adl_serializer<noisepage::execution::sql::Decimal<T>> {
+  /**
+   * Convert a Decimal to json
+   * @param[out] j the output json
+   * @param decimal the Decimal to convert
+   */
+  static void to_json(json &j, noisepage::execution::sql::Decimal<T> decimal) {  // NOLINT
+    j["val"] = decimal.operator T();
+  }
+
+  /**
+   * Convert a json to a Decimal
+   * @param j json representation of a Decimal
+   * @return Decimal object parsed from json
+   */
+  static noisepage::execution::sql::Decimal<T> from_json(const json &j) {  // NOLINT
+    auto val = j.at("val").get<typename noisepage::execution::sql::Decimal<T>::NativeType>();
+    return noisepage::execution::sql::Decimal(val);
+  }
+};
+}  // namespace nlohmann
