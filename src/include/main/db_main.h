@@ -395,7 +395,7 @@ class DBMain {
       if (use_replication_) {
         NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
         NOISEPAGE_ASSERT(use_logging_, "Replication uses logging.");
-        if (network_identity_ == "primary") {
+        if (network_identity_ == replication::PrimaryReplicationManager::primary_identity) {
           replication_manager = std::make_unique<replication::PrimaryReplicationManager>(
               messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
               common::ManagedPointer(empty_buffer_queue));
@@ -408,7 +408,7 @@ class DBMain {
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
-        auto rep_manager_ptr = network_identity_ == "primary"
+        auto rep_manager_ptr = network_identity_ == replication::PrimaryReplicationManager::primary_identity
                                    ? common::ManagedPointer(replication_manager)
                                          .CastManagedPointerTo<replication::PrimaryReplicationManager>()
                                    : nullptr;
@@ -878,7 +878,7 @@ class DBMain {
     std::string model_save_path_;
     std::string forecast_model_save_path_;
     std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
-    std::string network_identity_ = "primary";
+    std::string network_identity_ = replication::PrimaryReplicationManager::primary_identity;
     std::string uds_file_directory_ = "/tmp/";
     std::string replication_hosts_path_ = "./replication.config";
     /**

@@ -237,6 +237,8 @@ common::ManagedPointer<ReplicaReplicationManager> ReplicationManager::GetAsRepli
   return common::ManagedPointer(this).CastManagedPointerTo<ReplicaReplicationManager>();
 }
 
+const char *PrimaryReplicationManager::primary_identity = "primary";
+
 PrimaryReplicationManager::PrimaryReplicationManager(
     common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
     const std::string &replication_hosts_path,
