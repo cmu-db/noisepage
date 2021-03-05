@@ -49,11 +49,11 @@ class EndToEndTest : public execution::SqlBasedTest {
 
     // Optimize
     auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
-    auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-                        common::ManagedPointer(test_txn_), common::ManagedPointer(accessor),
-                        common::ManagedPointer(stmt_list), test_db_oid_, stats_storage_, std::move(cost_model), 1000000,
-                        nullptr)
-                        ->TakePlanNodeOwnership();
+    auto out_plan =
+        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(test_txn_), common::ManagedPointer(accessor),
+                                             common::ManagedPointer(stmt_list), test_db_oid_, stats_storage_,
+                                             std::move(cost_model), 1000000, nullptr)
+            ->TakePlanNodeOwnership();
 
     // Execute
     execution::compiler::test::OutputStore store{output_checker, out_plan->GetOutputSchema().Get()};
