@@ -28,7 +28,7 @@ std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
-  context_->SetParams(params);
+  context_->SetParams(parameters);
   auto optimize_result = std::make_unique<OptimizeResult>();
 
   // Generate initial operator tree from query tree

@@ -139,7 +139,7 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
 
   return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
                                   connection_ctx->GetDatabaseOid(), stats_storage_,
-                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_, params);
+                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_, parameters);
 }
 
 TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
