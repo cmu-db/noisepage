@@ -24,7 +24,7 @@ void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::
 std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(
     transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, StatsStorage *storage,
     QueryInfo query_info, std::unique_ptr<AbstractOptimizerNode> op_tree,
-    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params) {
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);

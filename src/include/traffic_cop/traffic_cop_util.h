@@ -51,6 +51,7 @@ class TrafficCopUtil {
    * @param stats_storage used by optimizer
    * @param cost_model used by optimizer
    * @param optimizer_timeout used by optimizer
+   * @param parameters parameters for the query, can be nullptr if there are no parameters
    * @return physical plan that can be executed
    */
   static std::unique_ptr<optimizer::OptimizeResult> Optimize(
@@ -58,7 +59,7 @@ class TrafficCopUtil {
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
       catalog::db_oid_t db_oid, common::ManagedPointer<optimizer::StatsStorage> stats_storage,
       std::unique_ptr<optimizer::AbstractCostModel> cost_model, uint64_t optimizer_timeout,
-      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params);
+      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters);
 
   /**
    * Converts parser statement types (which rely on multiple enums) to a single QueryType enum from the network layer
