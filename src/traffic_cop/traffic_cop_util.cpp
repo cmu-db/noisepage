@@ -60,8 +60,9 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     CollectSelectProperties(sel_stmt, &property_set);
   } else if (type == parser::StatementType::ANALYZE) {
     const auto analyze_stmt = query->GetStatement(0).CastManagedPointerTo<parser::AnalyzeStatement>();
-    txn->RegisterCommitAction(
-        [=]() { stats_storage->MarkStatsStale(db_oid, analyze_stmt->GetTableOid(), analyze_stmt->GetColumnOids()); });
+    auto table_oid = analyze_stmt->GetTableOid();
+    const auto col_oids = analyze_stmt->GetColumnOids();
+    txn->RegisterCommitAction([=]() { stats_storage->MarkStatsStale(db_oid, table_oid, col_oids); });
   }
 
   auto query_info = optimizer::QueryInfo(type, std::move(output), &property_set);
