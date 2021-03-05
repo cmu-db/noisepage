@@ -131,13 +131,6 @@ class StatsStorage {
 
  private:
   /**
-   * The following tests check to make sure the protected insert/delete functions work.
-   */
-  FRIEND_TEST(StatsStorageTests, GetTableStatsTest);
-  FRIEND_TEST(StatsStorageTests, InsertTableStatsTest);
-  FRIEND_TEST(StatsStorageTests, DeleteTableStatsTest);
-
-  /**
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
    * TableStats pointers. This represents the storage for TableStats objects.
    */
