@@ -35,6 +35,7 @@ LINUX_BUILD_PACKAGES=(\
   "wget" \
   "zlib1g-dev" \
   "time" \
+  "maven" \
 )
 LINUX_TEST_PACKAGES=(\
   "ant" \
@@ -148,49 +149,13 @@ install_pip() {
   rm get-pip.py
 }
 
-install_mac() {
-  # Install Homebrew.
-  if test ! $(which brew); then
-    echo "Installing Homebrew (https://brew.sh/)"
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-  fi
-  # Update Homebrew.
-  brew update
-
-  brew install maven
-
-  # Install packages.
-  if [ "$INSTALL_TYPE" == "build" -o "$INSTALL_TYPE" = "all" ]; then
-    for pkg in "${OSX_BUILD_PACKAGES[@]}"; do
-      brew ls --versions $pkg || brew install $pkg
-    done
-  fi
-  if [ "$INSTALL_TYPE" == "test" -o "$INSTALL_TYPE" = "all" ]; then
-    for pkg in "${OSX_TEST_PACKAGES[@]}"; do
-      brew ls --versions $pkg || brew install $pkg
-    done
-  fi
-
-  # Special case for llvm
-  (brew ls --versions llvm@8 | grep 8) || brew install llvm@8
-
-  # Always install Python stuff
-  python3 -m pip --version || install_pip
-  for pkg in "${PYTHON_PACKAGES[@]}"; do
-    python3 -m pip show $pkg || python3 -m pip install $pkg
-  done
-}
-
 install_linux() {
   # Update apt-get.
   apt-get -y update
 
-  apt-get -y install maven
-
-  # Install packages.
-  if [ "$INSTALL_TYPE" == "build" -o "$INSTALL_TYPE" = "all" ]; then
-    apt-get -y install `( IFS=$' '; echo "${LINUX_BUILD_PACKAGES[*]}" )`
-
+  # Install packages. Note that word splitting is desired behavior.
+  if [ "$INSTALL_TYPE" == "build" ] || [ "$INSTALL_TYPE" = "all" ]; then
+    apt-get -y install $( IFS=$' '; echo "${LINUX_BUILD_PACKAGES[*]}" )
   fi
   if [ "$INSTALL_TYPE" == "test" ] || [ "$INSTALL_TYPE" = "all" ]; then
     apt-get -y install $( IFS=$' '; echo "${LINUX_TEST_PACKAGES[*]}" )
