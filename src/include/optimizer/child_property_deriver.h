@@ -270,6 +270,12 @@ class ChildPropertyDeriver : public OperatorVisitor {
    */
   void Visit(const DropView *drop_view) override;
 
+  /**
+   * Visit an Analyze operator
+   * @param analyze analyze operator
+   */
+  void Visit(const Analyze *analyze) override;
+
  private:
   /**
    * Derives properties for a JOIN

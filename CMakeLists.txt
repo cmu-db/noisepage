@@ -350,6 +350,21 @@ else ()
     message(STATUS "Colorized output: OFF (unknown compiler ${CMAKE_CXX_COMPILER_ID})")
 endif ()
 
+if ("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    # Num Logical Cores = Compile Pool + Link Pool (1) + 1
+    # The extra 1 at the end is there for good luck.
+    # A pool controls the _maximum_ parallelism of the jobs assigned to the pool.
+
+    # Force single-threaded linking because linking can consume a ton of memory.
+    cmake_host_system_information(RESULT NINJA_COMPILE_POOL_SIZE QUERY "NUMBER_OF_LOGICAL_CORES")
+    set(NINJA_LINK_POOL_SIZE 1)
+    math(EXPR NINJA_COMPILE_POOL_SIZE "${NINJA_COMPILE_POOL_SIZE} - ${NINJA_LINK_POOL_SIZE} - 1")
+    set_property(GLOBAL PROPERTY JOB_POOLS link_pool=${NINJA_LINK_POOL_SIZE} compile_pool=${NINJA_COMPILE_POOL_SIZE})
+    # Set linking and compiling limits globally for all targets by modifying the default pool options.
+    set(CMAKE_JOB_POOL_COMPILE compile_pool)
+    set(CMAKE_JOB_POOL_LINK link_pool)
+    message(STATUS "Ninja detected. Global pools: link=${NINJA_LINK_POOL_SIZE} compile=${NINJA_COMPILE_POOL_SIZE}")
+endif()
 
 #######################################################################################################################
 # HEADER Dependencies for finding dependencies. : )
@@ -469,14 +484,13 @@ message(STATUS "\nDependencies: Locating...\n===================================
 
 # DISGUSTING HACKS:
 # - -fPIC is required on pretty much every dependency.
-# - fvisibility=hidden is required on OSX while building spdlog.
 # - fsanitize=address is required on OSX.
 set(OLD_CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")     # Save the current CMAKE_BUILD_TYPE.
 set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")           # Save the current CMAKE_C_FLAGS.
 set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")       # Save the current CMAKE_CXX_FLAGS.
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_C_FLAGS "-fPIC -fvisibility=hidden")
-set(CMAKE_CXX_FLAGS "-fPIC -fvisibility=hidden")
+set(CMAKE_C_FLAGS "-fPIC")
+set(CMAKE_CXX_FLAGS "-fPIC")
 if (${NOISEPAGE_USE_ASAN})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
@@ -843,7 +857,7 @@ function(add_test_util_lib TYPE)
     add_custom_command(TARGET noisepage_test_util_${TYPE_LOWER} DEPENDS gtest gtest_main gmock gmock_main)
     target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
     # Inject the source directory path into the translation units for test utility lib
-    target_compile_definitions(noisepage_test_util_${TYPE_LOWER} PRIVATE NOISEPAGE_PROJECT_ROOT=${CMAKE_SOURCE_DIR})
+    target_compile_definitions(noisepage_test_util_${TYPE_LOWER} PRIVATE NOISEPAGE_BUILD_ROOT=${CMAKE_BINARY_DIR})
     target_include_directories(noisepage_test_util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
     target_include_directories(noisepage_test_util_${TYPE_LOWER} SYSTEM PUBLIC
             ${CMAKE_BINARY_DIR}/_deps/src/googletest/googlemock/include/
@@ -1078,7 +1092,7 @@ set_tests_properties(
         messenger_test jumbotest_messenger_messenger_test
         PROPERTIES RESOURCE_GROUPS "port15721:1;port15722:1;port15723:1;port9022:1;port9023:1;port9024:1")
 set_tests_properties(
-        modeling_test
+        model_server_test
         PROPERTIES RESOURCE_GROUPS "port15721:1;port9022:1")
 #######################################################################################################################
 # HEADER Benchmarks.

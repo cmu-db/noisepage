@@ -147,4 +147,75 @@ TEST_F(HistogramTests, OutputTest) {
   EXPECT_FALSE(os.str().empty());
 }
 
+// NOLINTNEXTLINE
+TEST_F(HistogramTests, MergeTest) {
+  Histogram<int> h1{100};
+  EXPECT_EQ(h1.EstimateItemCount(0), 0);
+  h1.Increment(5);
+  EXPECT_EQ(h1.GetMinValue(), 5);
+  EXPECT_EQ(h1.GetMaxValue(), 5);
+
+  Histogram<int> h2{100};
+  EXPECT_EQ(h2.EstimateItemCount(0), 0);
+  h2.Increment(3);
+  EXPECT_EQ(h2.GetMinValue(), 3);
+  EXPECT_EQ(h2.GetMaxValue(), 3);
+
+  h1.Merge(h2);
+  EXPECT_EQ(h1.GetMinValue(), 3);
+  EXPECT_EQ(h1.GetMaxValue(), 5);
+}
+
+// NOLINTNEXTLINE
+TEST_F(HistogramTests, ClearTest) {
+  Histogram<int> h{100};
+  auto boundaries = h.Uniform();
+  EXPECT_EQ(boundaries.size(), 0);
+
+  EXPECT_EQ(h.EstimateItemCount(0), 0);
+  h.Increment(5);
+  EXPECT_EQ(h.EstimateItemCount(3), 0);
+  EXPECT_EQ(h.EstimateItemCount(4), 0);
+  EXPECT_EQ(h.EstimateItemCount(5), 1);
+  // EstimateItemCount returns the number of elements less than or equal to the input which is why this returns 1
+  EXPECT_EQ(h.EstimateItemCount(6), 1);
+
+  h.Clear();
+  boundaries = h.Uniform();
+  EXPECT_EQ(boundaries.size(), 0);
+
+  EXPECT_EQ(h.EstimateItemCount(0), 0);
+  EXPECT_EQ(h.EstimateItemCount(3), 0);
+  EXPECT_EQ(h.EstimateItemCount(4), 0);
+  EXPECT_EQ(h.EstimateItemCount(5), 0);
+  EXPECT_EQ(h.EstimateItemCount(6), 0);
+}
+
+// NOLINTNEXTLINE
+TEST_F(HistogramTests, SerializationTest) {
+  Histogram<int> h{100};
+  auto boundaries = h.Uniform();
+  EXPECT_EQ(boundaries.size(), 0);
+
+  EXPECT_EQ(h.EstimateItemCount(0), 0);
+  h.Increment(5);
+  EXPECT_EQ(h.EstimateItemCount(3), 0);
+  EXPECT_EQ(h.EstimateItemCount(4), 0);
+  EXPECT_EQ(h.EstimateItemCount(5), 1);
+  EXPECT_EQ(h.EstimateItemCount(6), 1);
+  EXPECT_EQ(h.GetMinValue(), 5);
+  EXPECT_EQ(h.GetMaxValue(), 5);
+
+  size_t size;
+  auto serialized_h = h.Serialize(&size);
+  auto deserialized_h = Histogram<int>::Deserialize(serialized_h.get(), size);
+
+  EXPECT_EQ(deserialized_h.EstimateItemCount(3), 0);
+  EXPECT_EQ(deserialized_h.EstimateItemCount(4), 0);
+  EXPECT_EQ(deserialized_h.EstimateItemCount(5), 1);
+  EXPECT_EQ(deserialized_h.EstimateItemCount(6), 1);
+  EXPECT_EQ(deserialized_h.GetMinValue(), 5);
+  EXPECT_EQ(deserialized_h.GetMaxValue(), 5);
+}
+
 }  // namespace noisepage::optimizer

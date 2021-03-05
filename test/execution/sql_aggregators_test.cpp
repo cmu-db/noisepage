@@ -1,10 +1,26 @@
 #include "execution/sql/aggregators.h"
 #include "execution/sql/value.h"
-#include "execution/tpl_test.h"
+#include "execution/sql_test.h"
+#include "optimizer/statistics/top_k_elements.h"
+#include "storage/storage_defs.h"
 
 namespace noisepage::execution::sql::test {
 
-class AggregatorsTest : public TplTest {};
+class AggregatorsTest : public SqlBasedTest {
+ public:
+  AggregatorsTest() = default;
+
+  void SetUp() override {
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+  }
+
+ protected:
+  /**
+   * Execution context to use for the test
+   */
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+};
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, Count) {
@@ -486,6 +502,1143 @@ TEST_F(AggregatorsTest, Avg) {
   avg1.Merge(null_avg);
   EXPECT_FALSE(avg1.GetResultAvg().is_null_);
   EXPECT_DOUBLE_EQ(0.0, avg1.GetResultAvg().val_);
+}
+
+// ---------------------------------------------------------
+// TOP K Test
+// ---------------------------------------------------------
+
+/*
+ * When testing TOP K it's better to not exceed k entries because then the results become unpredictable
+ */
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKBool) {
+  // NULL check and merging NULL check
+  {
+    BooleanTopKAggregate top_k;
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    BooleanTopKAggregate null_top_k;
+    EXPECT_TRUE(null_top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    top_k.Merge(null_top_k);
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  BooleanTopKAggregate top_k, top_k2;
+
+  // Proper top_k calculation using top_k
+  {
+    for (int64_t i = 0; i < 25; i++) {
+      auto val = BoolVal(i % 2 == 0);
+      top_k.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 2);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(true), 13);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(false), 12);
+  }
+
+  // Proper top_k calculation, separately, using top_k2
+  {
+    EXPECT_TRUE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 23; i < 45; i++) {
+      auto val = BoolVal(i % 3 == 0);
+      top_k2.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k2.GetResult(exec_ctx_.get());
+    auto deserialized_top_k2 = optimizer::TopKElements<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k2.GetSize(), 2);
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(true), 7);
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(false), 15);
+  }
+
+  // Try to merge the two topk. Result should capture global (non-NULL) top_k.
+  {
+    top_k.Merge(top_k2);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 2);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(true), 13 + 7);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(false), 12 + 15);
+  }
+
+  // Try to merge in a NULL topk. Result should be unchanged.
+  {
+    BooleanTopKAggregate null_top_k;
+    top_k.Merge(null_top_k);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 2);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(true), 13 + 7);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(false), 12 + 15);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKInt) {
+  // NULL check and merging NULL check
+  {
+    IntegerTopKAggregate top_k;
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    IntegerTopKAggregate null_top_k;
+    EXPECT_TRUE(null_top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    top_k.Merge(null_top_k);
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  IntegerTopKAggregate top_k, top_k2;
+
+  // Proper top_k calculation using top_k
+  {
+    for (int64_t i = 0; i < 15; i++) {
+      auto val = Integer(i / 2);
+      top_k.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 8);
+    for (int i = 0; i < 7; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(i), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(7), 1);
+    for (int i = 8; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(i), 0);
+    }
+  }
+
+  // Proper top_k calculation, separately, using top_k2
+  {
+    EXPECT_TRUE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 15; i < 31; i++) {
+      auto val = Integer(i / 2);
+      top_k2.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k2.GetResult(exec_ctx_.get());
+    auto deserialized_top_k2 = optimizer::TopKElements<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k2.GetSize(), 9);
+    for (int i = 0; i < 7; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(i), 0);
+    }
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(7), 1);
+    for (int i = 8; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(i), 2);
+    }
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(15), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(i), 0);
+    }
+  }
+
+  // Try to merge the two topk. Result should capture global (non-NULL) top_k.
+  {
+    top_k.Merge(top_k2);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (int i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(i), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(15), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(i), 0);
+    }
+  }
+
+  // Try to merge in a NULL topk. Result should be unchanged.
+  {
+    IntegerTopKAggregate null_top_k;
+    top_k.Merge(null_top_k);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (int i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(i), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(15), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(i), 0);
+    }
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKReal) {
+  // NULL check and merging NULL check
+  {
+    RealTopKAggregate top_k;
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    RealTopKAggregate null_top_k;
+    EXPECT_TRUE(null_top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    top_k.Merge(null_top_k);
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  RealTopKAggregate top_k, top_k2;
+
+  // Proper top_k calculation using top_k
+  {
+    for (size_t i = 0; i < 8; i++) {
+      auto val = Real(static_cast<double>(i) / 2);
+      top_k.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 8);
+    for (size_t i = 0; i < 8; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(static_cast<double>(i) / 2), 1);
+    }
+  }
+
+  // Proper top_k calculation, separately, using top_k2
+  {
+    EXPECT_TRUE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    for (size_t i = 8; i < 16; i++) {
+      auto val = Real(static_cast<double>(i) / 2);
+      top_k2.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k2.GetResult(exec_ctx_.get());
+    auto deserialized_top_k2 = optimizer::TopKElements<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k2.GetSize(), 8);
+    for (size_t i = 8; i < 16; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(static_cast<double>(i) / 2), 1);
+    }
+  }
+
+  // Try to merge the two topk. Result should capture global (non-NULL) top_k.
+  {
+    top_k.Merge(top_k2);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (size_t i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(static_cast<double>(i) / 2), 1);
+    }
+  }
+
+  // Try to merge in a NULL topk. Result should be unchanged.
+  {
+    RealTopKAggregate null_top_k;
+    top_k.Merge(null_top_k);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (size_t i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(static_cast<double>(i) / 2), 1);
+    }
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKDecimal) {
+  // NULL check and merging NULL check
+  {
+    DecimalTopKAggregate top_k;
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    DecimalTopKAggregate null_top_k;
+    EXPECT_TRUE(null_top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    top_k.Merge(null_top_k);
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  DecimalTopKAggregate top_k, top_k2;
+
+  // Proper top_k calculation using top_k
+  {
+    for (Decimal64 i(0); i < 15; i += 1) {
+      auto val = DecimalVal(i / 2);
+      top_k.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 8);
+    for (Decimal64 i(0); i < 7; i += 1) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Decimal64(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Decimal64(7)), 1);
+  }
+
+  // Proper top_k calculation, separately, using top_k2
+  {
+    EXPECT_TRUE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    for (Decimal64 i(15); i < 31; i += 1) {
+      auto val = DecimalVal(i / 2);
+      top_k2.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k2.GetResult(exec_ctx_.get());
+    auto deserialized_top_k2 = optimizer::TopKElements<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k2.GetSize(), 9);
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Decimal64(7)), 1);
+    for (Decimal64 i(8); i < 15; i += 1) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Decimal64(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Decimal64(15)), 1);
+  }
+
+  // Try to merge the two topk. Result should capture global (non-NULL) top_k.
+  {
+    top_k.Merge(top_k2);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (Decimal64 i(0); i < 15; i += 1) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Decimal64(i / 2)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Decimal64(15)), 1);
+  }
+
+  // Try to merge in a NULL topk. Result should be unchanged.
+  {
+    DecimalTopKAggregate null_top_k;
+    top_k.Merge(null_top_k);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (Decimal64 i(0); i < 15; i += 1) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Decimal64(i / 2)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Decimal64(15)), 1);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKString) {
+  // NULL check and merging NULL check
+  {
+    StringTopKAggregate top_k;
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    StringTopKAggregate null_top_k;
+    EXPECT_TRUE(null_top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    top_k.Merge(null_top_k);
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  StringTopKAggregate top_k, top_k2;
+
+  // Proper top_k calculation using top_k
+  {
+    auto val = StringVal(storage::VarlenEntry::Create("Foo"));
+    top_k.Advance(val);
+    top_k.Advance(val);
+    val = StringVal(storage::VarlenEntry::Create("Bar"));
+    top_k.Advance(val);
+
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 2);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Foo")), 2);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Bar")), 1);
+  }
+
+  // Proper top_k calculation, separately, using top_k2
+  {
+    EXPECT_TRUE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto val = StringVal(storage::VarlenEntry::Create("Ice Climbers"));
+    top_k2.Advance(val);
+    val = StringVal(storage::VarlenEntry::Create("Marth"));
+    top_k2.Advance(val);
+
+    EXPECT_FALSE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k2.GetResult(exec_ctx_.get());
+    auto deserialized_top_k2 = optimizer::TopKElements<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k2.GetSize(), 2);
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(storage::VarlenEntry::Create("Ice Climbers")), 1);
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(storage::VarlenEntry::Create("Marth")), 1);
+  }
+
+  // Try to merge the two topk. Result should capture global (non-NULL) top_k.
+  {
+    top_k.Merge(top_k2);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 4);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Foo")), 2);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Bar")), 1);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Ice Climbers")), 1);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Marth")), 1);
+  }
+
+  // Try to merge in a NULL topk. Result should be unchanged.
+  {
+    StringTopKAggregate null_top_k;
+    top_k.Merge(null_top_k);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 4);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Foo")), 2);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Bar")), 1);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Ice Climbers")), 1);
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(storage::VarlenEntry::Create("Marth")), 1);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKDate) {
+  // NULL check and merging NULL check
+  {
+    DateTopKAggregate top_k;
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    DateTopKAggregate null_top_k;
+    EXPECT_TRUE(null_top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    top_k.Merge(null_top_k);
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  DateTopKAggregate top_k, top_k2;
+
+  // Proper top_k calculation using top_k
+  {
+    for (int64_t i = 0; i < 15; i++) {
+      auto val = DateVal(i / 2);
+      top_k.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 8);
+    for (int i = 0; i < 7; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(7)), 1);
+    for (int i = 8; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(i)), 0);
+    }
+  }
+
+  // Proper top_k calculation, separately, using top_k2
+  {
+    EXPECT_TRUE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 15; i < 31; i++) {
+      auto val = DateVal(i / 2);
+      top_k2.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k2.GetResult(exec_ctx_.get());
+    auto deserialized_top_k2 = optimizer::TopKElements<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k2.GetSize(), 9);
+    for (int i = 0; i < 7; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Date::FromNative(i)), 0);
+    }
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Date::FromNative(7)), 1);
+    for (int i = 8; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Date::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Date::FromNative(15)), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Date::FromNative(i)), 0);
+    }
+  }
+
+  // Try to merge the two topk. Result should capture global (non-NULL) top_k.
+  {
+    top_k.Merge(top_k2);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (int i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(15)), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(i)), 0);
+    }
+  }
+
+  // Try to merge in a NULL topk. Result should be unchanged.
+  {
+    DateTopKAggregate null_top_k;
+    top_k.Merge(null_top_k);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (int i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(15)), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Date::FromNative(i)), 0);
+    }
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKTimestamp) {
+  // NULL check and merging NULL check
+  {
+    TimestampTopKAggregate top_k;
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    TimestampTopKAggregate null_top_k;
+    EXPECT_TRUE(null_top_k.GetResult(exec_ctx_.get()).is_null_);
+
+    top_k.Merge(null_top_k);
+    EXPECT_TRUE(top_k.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  TimestampTopKAggregate top_k, top_k2;
+
+  // Proper top_k calculation using top_k
+  {
+    for (int64_t i = 0; i < 15; i++) {
+      auto val = TimestampVal(i / 2);
+      top_k.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 8);
+    for (int i = 0; i < 7; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(7)), 1);
+    for (int i = 8; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(i)), 0);
+    }
+  }
+
+  // Proper top_k calculation, separately, using top_k2
+  {
+    EXPECT_TRUE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 15; i < 31; i++) {
+      auto val = TimestampVal(i / 2);
+      top_k2.Advance(val);
+    }
+
+    EXPECT_FALSE(top_k2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k2.GetResult(exec_ctx_.get());
+    auto deserialized_top_k2 = optimizer::TopKElements<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k2.GetSize(), 9);
+    for (int i = 0; i < 7; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Timestamp::FromNative(i)), 0);
+    }
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Timestamp::FromNative(7)), 1);
+    for (int i = 8; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Timestamp::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Timestamp::FromNative(15)), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k2.EstimateItemCount(Timestamp::FromNative(i)), 0);
+    }
+  }
+
+  // Try to merge the two topk. Result should capture global (non-NULL) top_k.
+  {
+    top_k.Merge(top_k2);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (int i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(15)), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(i)), 0);
+    }
+  }
+
+  // Try to merge in a NULL topk. Result should be unchanged.
+  {
+    TimestampTopKAggregate null_top_k;
+    top_k.Merge(null_top_k);
+    EXPECT_FALSE(top_k.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = top_k.GetResult(exec_ctx_.get());
+    auto deserialized_top_k = optimizer::TopKElements<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_top_k.GetSize(), 16);
+    for (int i = 0; i < 15; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(i)), 2);
+    }
+    EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(15)), 1);
+    for (int i = 16; i < 31; i++) {
+      EXPECT_EQ(deserialized_top_k.EstimateItemCount(Timestamp::FromNative(i)), 0);
+    }
+  }
+}
+
+// ---------------------------------------------------------
+// HISTOGRAM Test
+// ---------------------------------------------------------
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, HistogramBool) {
+  // NULL check and merging NULL check
+  {
+    BooleanHistogramAggregate histogram;
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    BooleanHistogramAggregate null_histogram;
+    EXPECT_TRUE(null_histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    histogram.Merge(null_histogram);
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  BooleanHistogramAggregate histogram, histogram2;
+
+  // Proper histogram calculation using histogram
+  {
+    for (int64_t i = 0; i < 25; i++) {
+      auto val = BoolVal(i % 2 == 0);
+      histogram.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 25);
+  }
+
+  // Proper histogram calculation, separately, using histogram2
+  {
+    EXPECT_TRUE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 23; i < 45; i++) {
+      auto val = BoolVal(i % 3 == 0);
+      histogram2.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram2.GetResult(exec_ctx_.get());
+    auto deserialized_histogram2 = optimizer::Histogram<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram2.GetTotalValueCount(), 22);
+  }
+
+  // Try to merge the two histograms. Result should capture global (non-NULL) histogram.
+  {
+    histogram.Merge(histogram2);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 47);
+  }
+
+  // Try to merge in a NULL histogram. Result should be unchanged.
+  {
+    BooleanHistogramAggregate null_top_k;
+    histogram.Merge(null_top_k);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<bool>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 47);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, HistogramInt) {
+  // NULL check and merging NULL check
+  {
+    IntegerHistogramAggregate histogram;
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    IntegerHistogramAggregate null_histogram;
+    EXPECT_TRUE(null_histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    histogram.Merge(null_histogram);
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  IntegerHistogramAggregate histogram, histogram2;
+
+  // Proper histogram calculation using histogram
+  {
+    for (int64_t i = 0; i < 15; i++) {
+      auto val = Integer(i / 2);
+      histogram.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 15);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 7);
+  }
+
+  // Proper histogram calculation, separately, using histogram2
+  {
+    EXPECT_TRUE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 15; i < 31; i++) {
+      auto val = Integer(i / 2);
+      histogram2.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram2.GetResult(exec_ctx_.get());
+    auto deserialized_histogram2 = optimizer::Histogram<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram2.GetTotalValueCount(), 16);
+    EXPECT_EQ(deserialized_histogram2.GetMinValue(), 7);
+    EXPECT_EQ(deserialized_histogram2.GetMaxValue(), 15);
+  }
+
+  // Try to merge the two histogram. Result should capture global (non-NULL) histogram.
+  {
+    histogram.Merge(histogram2);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
+
+  // Try to merge in a NULL histogram. Result should be unchanged.
+  {
+    IntegerHistogramAggregate null_top_k;
+    histogram.Merge(null_top_k);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(Integer::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, HistogramReal) {
+  // NULL check and merging NULL check
+  {
+    RealHistogramAggregate histogram;
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    RealHistogramAggregate null_histogram;
+    EXPECT_TRUE(null_histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    histogram.Merge(null_histogram);
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  RealHistogramAggregate histogram, histogram2;
+
+  // Proper histogram calculation using histogram
+  {
+    for (size_t i = 0; i < 8; i++) {
+      auto val = Real(static_cast<double>(i) / 2);
+      histogram.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 8);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 3.5);
+  }
+
+  // Proper histogram calculation, separately, using histogram2
+  {
+    EXPECT_TRUE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    for (size_t i = 8; i < 16; i++) {
+      auto val = Real(static_cast<double>(i) / 2);
+      histogram2.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram2.GetResult(exec_ctx_.get());
+    auto deserialized_histogram2 = optimizer::Histogram<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram2.GetTotalValueCount(), 8);
+    EXPECT_EQ(deserialized_histogram2.GetMinValue(), 4);
+    EXPECT_EQ(deserialized_histogram2.GetMaxValue(), 7.5);
+  }
+
+  // Try to merge the two histograms. Result should capture global (non-NULL) histogram.
+  {
+    histogram.Merge(histogram2);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 16);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 7.5);
+  }
+
+  // Try to merge in a NULL histogram. Result should be unchanged.
+  {
+    RealHistogramAggregate null_histogram;
+    histogram.Merge(null_histogram);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(Real::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 16);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 7.5);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, HistogramDecimal) {
+  // NULL check and merging NULL check
+  {
+    DecimalHistogramAggregate histogram;
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    DecimalHistogramAggregate null_histogram;
+    EXPECT_TRUE(null_histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    histogram.Merge(null_histogram);
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  DecimalHistogramAggregate histogram, histogram2;
+
+  // Proper histogram calculation using histogram
+  {
+    for (Decimal64 i(0); i < 15; i += 1) {
+      auto val = DecimalVal(i / 2);
+      histogram.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 15);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 7);
+  }
+
+  // Proper histogram calculation, separately, using histogram2
+  {
+    EXPECT_TRUE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    for (Decimal64 i(15); i < 31; i += 1) {
+      auto val = DecimalVal(i / 2);
+      histogram2.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram2.GetResult(exec_ctx_.get());
+    auto deserialized_histogram2 = optimizer::Histogram<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram2.GetTotalValueCount(), 16);
+    EXPECT_EQ(deserialized_histogram2.GetMinValue(), 7);
+    EXPECT_EQ(deserialized_histogram2.GetMaxValue(), 15);
+  }
+
+  // Try to merge the two histogram. Result should capture global (non-NULL) histogram.
+  {
+    histogram.Merge(histogram2);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
+
+  // Try to merge in a NULL histogram. Result should be unchanged.
+  {
+    DecimalHistogramAggregate null_top_k;
+    histogram.Merge(null_top_k);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(DecimalVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, HistogramString) {
+  // NULL check and merging NULL check
+  {
+    StringHistogramAggregate histogram;
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    StringHistogramAggregate null_histogram;
+    EXPECT_TRUE(null_histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    histogram.Merge(null_histogram);
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  StringHistogramAggregate histogram, histogram2;
+
+  // Proper histogram calculation using histogram
+  {
+    auto val = StringVal(storage::VarlenEntry::Create("Foo"));
+    histogram.Advance(val);
+    histogram.Advance(val);
+    val = StringVal(storage::VarlenEntry::Create("Bar"));
+    histogram.Advance(val);
+
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 3);
+  }
+
+  // Proper histogram calculation, separately, using histogram2
+  {
+    EXPECT_TRUE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto val = StringVal(storage::VarlenEntry::Create("Ice Climbers"));
+    histogram2.Advance(val);
+    val = StringVal(storage::VarlenEntry::Create("Marth"));
+    histogram2.Advance(val);
+
+    EXPECT_FALSE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram2.GetResult(exec_ctx_.get());
+    auto deserialized_histogram2 = optimizer::Histogram<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram2.GetTotalValueCount(), 2);
+  }
+
+  // Try to merge the two histogram. Result should capture global (non-NULL) histogram.
+  {
+    histogram.Merge(histogram2);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 5);
+  }
+
+  // Try to merge in a NULL histogram. Result should be unchanged.
+  {
+    StringHistogramAggregate null_histogram;
+    histogram.Merge(null_histogram);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(StringVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 5);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, HistogramDate) {
+  // NULL check and merging NULL check
+  {
+    DateHistogramAggregate histogram;
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    DateHistogramAggregate null_histogram;
+    EXPECT_TRUE(null_histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    histogram.Merge(null_histogram);
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  DateHistogramAggregate histogram, histogram2;
+
+  // Proper histogram calculation using histogram
+  {
+    for (int64_t i = 0; i < 15; i++) {
+      auto val = DateVal(i / 2);
+      histogram.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 15);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 7);
+  }
+
+  // Proper histogram calculation, separately, using histogram2
+  {
+    EXPECT_TRUE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 15; i < 31; i++) {
+      auto val = DateVal(i / 2);
+      histogram2.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram2.GetResult(exec_ctx_.get());
+    auto deserialized_histogram2 = optimizer::Histogram<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram2.GetTotalValueCount(), 16);
+    EXPECT_EQ(deserialized_histogram2.GetMinValue(), 7);
+    EXPECT_EQ(deserialized_histogram2.GetMaxValue(), 15);
+  }
+
+  // Try to merge the two histogram. Result should capture global (non-NULL) histogram.
+  {
+    histogram.Merge(histogram2);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
+
+  // Try to merge in a NULL histogram. Result should be unchanged.
+  {
+    DateHistogramAggregate null_top_k;
+    histogram.Merge(null_top_k);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(DateVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, HistogramTimestamp) {
+  // NULL check and merging NULL check
+  {
+    TimestampHistogramAggregate histogram;
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    TimestampHistogramAggregate null_histogram;
+    EXPECT_TRUE(null_histogram.GetResult(exec_ctx_.get()).is_null_);
+
+    histogram.Merge(null_histogram);
+    EXPECT_TRUE(histogram.GetResult(exec_ctx_.get()).is_null_);
+  }
+
+  TimestampHistogramAggregate histogram, histogram2;
+
+  // Proper histogram calculation using histogram
+  {
+    for (int64_t i = 0; i < 15; i++) {
+      auto val = TimestampVal(i / 2);
+      histogram.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 15);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 7);
+  }
+
+  // Proper histogram calculation, separately, using histogram2
+  {
+    EXPECT_TRUE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    for (int64_t i = 15; i < 31; i++) {
+      auto val = TimestampVal(i / 2);
+      histogram2.Advance(val);
+    }
+
+    EXPECT_FALSE(histogram2.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram2.GetResult(exec_ctx_.get());
+    auto deserialized_histogram2 = optimizer::Histogram<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram2.GetTotalValueCount(), 16);
+    EXPECT_EQ(deserialized_histogram2.GetMinValue(), 7);
+    EXPECT_EQ(deserialized_histogram2.GetMaxValue(), 15);
+  }
+
+  // Try to merge the two histogram. Result should capture global (non-NULL) histogram.
+  {
+    histogram.Merge(histogram2);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
+
+  // Try to merge in a NULL histogram. Result should be unchanged.
+  {
+    TimestampHistogramAggregate null_top_k;
+    histogram.Merge(null_top_k);
+    EXPECT_FALSE(histogram.GetResult(exec_ctx_.get()).is_null_);
+    auto json_res = histogram.GetResult(exec_ctx_.get());
+    auto deserialized_histogram = optimizer::Histogram<decltype(TimestampVal::val_)>::Deserialize(
+        reinterpret_cast<const std::byte *>(json_res.GetContent()), json_res.GetLength());
+    EXPECT_EQ(deserialized_histogram.GetTotalValueCount(), 31);
+    EXPECT_EQ(deserialized_histogram.GetMinValue(), 0);
+    EXPECT_EQ(deserialized_histogram.GetMaxValue(), 15);
+  }
 }
 
 }  // namespace noisepage::execution::sql::test

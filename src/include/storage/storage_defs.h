@@ -13,6 +13,7 @@
 #include "common/constants.h"
 #include "common/container/bitmap.h"
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
@@ -588,3 +589,28 @@ struct hash<noisepage::storage::VarlenEntry> {
   size_t operator()(const noisepage::storage::VarlenEntry &key) const { return key.Hash(); }
 };
 }  // namespace std
+
+namespace nlohmann {
+/** Struct to help convert VarlenEntry to and from JSON */
+template <>
+struct adl_serializer<noisepage::storage::VarlenEntry> {
+  /**
+   * Convert a VarlenEntry to json
+   * @param[out] j the output json
+   * @param varlen_entry the VarlenEntry to convert
+   */
+  static void to_json(json &j, noisepage::storage::VarlenEntry varlen_entry) {  // NOLINT
+    j["string_content"] = varlen_entry.StringView();
+  }
+
+  /**
+   * Convert a json to a VarlenEntry
+   * @param j json representation of a VarlenEntry
+   * @return VarlenEntry object parsed from json
+   */
+  static noisepage::storage::VarlenEntry from_json(const json &j) {  // NOLINT
+    auto string_content = j.at("string_content").get<std::string_view>();
+    return noisepage::storage::VarlenEntry::Create(string_content);
+  }
+};
+}  // namespace nlohmann

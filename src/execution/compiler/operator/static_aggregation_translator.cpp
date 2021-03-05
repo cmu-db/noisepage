@@ -74,7 +74,9 @@ ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
     auto name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx++));
-    auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
+    NOISEPAGE_ASSERT(term->GetChildren().size() == 1, "Aggregate term should only have one child");
+    auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()),
+                                       sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(name, type));
   }
 
@@ -296,7 +298,9 @@ ast::Expr *StaticAggregationTranslator::GetChildOutput(WorkContext *context, UNU
                                                        uint32_t attr_idx) const {
   if (IsProducePipeline(context->GetPipeline())) {
     auto *codegen = GetCodeGen();
-    return codegen->AggregatorResult(GetAggregateTermPtr(codegen->MakeExpr(agg_row_var_), attr_idx));
+    return codegen->AggregatorResult(GetExecutionContext(),
+                                     GetAggregateTermPtr(codegen->MakeExpr(agg_row_var_), attr_idx),
+                                     GetAggPlan().GetAggregateTerms().at(attr_idx)->GetExpressionType());
   }
 
   // The request is in the build pipeline. Forward to child translator.

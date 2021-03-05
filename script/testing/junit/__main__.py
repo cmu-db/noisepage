@@ -60,7 +60,8 @@ def run_tests_tracefiles(test_server):
 
         return errcode
 
-    return [run_tracefile(test_server, item) for item in os.listdir(noise_trace_dir) if item.endswith(TESTFILES_SUFFIX)]
+    return [run_tracefile(test_server, item)
+            for item in sorted(os.listdir(noise_trace_dir)) if item.endswith(TESTFILES_SUFFIX)]
 
 
 if __name__ == "__main__":
@@ -94,11 +95,13 @@ if __name__ == "__main__":
         set_env_vars()
         test_server = TestServer(args, quiet=True)
         errcodes = [run_tests_junit(test_server)] + run_tests_tracefiles(test_server)
+    except KeyboardInterrupt:
+        traceback.print_exc(file=sys.stderr)
     finally:
         unset_env_vars()
 
     # Compute the final exit code.
-    final_code = 0
+    final_code = 0 if len(errcodes) > 0 else 1
     for c in errcodes:
         final_code = final_code or c
 

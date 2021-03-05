@@ -367,10 +367,11 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
-  NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                       query_type == network::QueryType::QUERY_CREATE_INDEX ||
-                       query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
-                   "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+  NOISEPAGE_ASSERT(
+      query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+          query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
+          query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
+      "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
@@ -409,10 +410,11 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
-  NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                       query_type == network::QueryType::QUERY_CREATE_INDEX ||
-                       query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
-                   "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+  NOISEPAGE_ASSERT(
+      query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+          query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
+          query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
+      "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   // A std::function<> requires the target to be CopyConstructible and CopyAssignable. In certain
@@ -463,8 +465,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
 
   if (query_trace_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now(),
-                                                            portal->Parameters());
+    common::thread_context.metrics_store_->RecordQueryTrace(connection_ctx->GetDatabaseOid(), exec_query->GetQueryId(),
+                                                            metrics::MetricsUtil::Now(), portal->Parameters());
   }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {

@@ -106,7 +106,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
   int num_keys = 500;
   for (int i = 1; i <= num_keys; i++) {
     auto key = std::to_string(i) + "!";
-    top_k.Increment(key, key.size(), i * 1000);
+    top_k.Increment(key, i * 1000);
 
     // If this key is within the last k entries that we are
     // putting into the top-k tracker, then add it to our
@@ -367,6 +367,93 @@ TEST_F(TopKElementsTests, OutputTest) {
     std::size_t found = output.find(key);
     EXPECT_NE(found, std::string::npos);
   }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, MergeTest) {
+  const int k = 5;
+  TopKElements<int> top_k1(k, 1000);
+  EXPECT_EQ(top_k1.GetK(), k);
+  EXPECT_EQ(top_k1.GetSize(), 0);
+
+  TopKElements<int> top_k2(k, 1000);
+  EXPECT_EQ(top_k2.GetK(), k);
+  EXPECT_EQ(top_k2.GetSize(), 0);
+
+  top_k1.Increment(1, 10);
+  top_k1.Increment(2, 5);
+  top_k2.Increment(3, 1);
+  top_k2.Increment(4, 1000000);
+
+  EXPECT_EQ(top_k1.EstimateItemCount(1), 10);
+  EXPECT_EQ(top_k1.EstimateItemCount(2), 5);
+  EXPECT_EQ(top_k2.EstimateItemCount(3), 1);
+  EXPECT_EQ(top_k2.EstimateItemCount(4), 1000000);
+  EXPECT_EQ(top_k1.GetSize(), 2);
+  EXPECT_EQ(top_k2.GetSize(), 2);
+
+  top_k1.Merge(top_k2);
+  EXPECT_EQ(top_k1.EstimateItemCount(1), 10);
+  EXPECT_EQ(top_k1.EstimateItemCount(2), 5);
+  EXPECT_EQ(top_k1.EstimateItemCount(3), 1);
+  EXPECT_EQ(top_k1.EstimateItemCount(4), 1000000);
+  EXPECT_EQ(top_k1.GetSize(), 4);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, ClearTest) {
+  const int k = 5;
+  TopKElements<int> top_k(k, 1000);
+  EXPECT_EQ(top_k.GetK(), k);
+  EXPECT_EQ(top_k.GetSize(), 0);
+
+  top_k.Increment(1, 10);
+  top_k.Increment(2, 5);
+  top_k.Increment(3, 1);
+  top_k.Increment(4, 1000000);
+
+  EXPECT_EQ(top_k.EstimateItemCount(1), 10);
+  EXPECT_EQ(top_k.EstimateItemCount(2), 5);
+  EXPECT_EQ(top_k.EstimateItemCount(3), 1);
+  EXPECT_EQ(top_k.EstimateItemCount(4), 1000000);
+  EXPECT_EQ(top_k.GetSize(), 4);
+
+  top_k.Clear();
+
+  EXPECT_EQ(top_k.EstimateItemCount(1), 0);
+  EXPECT_EQ(top_k.EstimateItemCount(2), 0);
+  EXPECT_EQ(top_k.EstimateItemCount(3), 0);
+  EXPECT_EQ(top_k.EstimateItemCount(4), 0);
+  EXPECT_EQ(top_k.GetSize(), 0);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TopKElementsTests, SerializationTest) {
+  const int k = 5;
+  TopKElements<int> top_k(k, 1000);
+  EXPECT_EQ(top_k.GetK(), k);
+  EXPECT_EQ(top_k.GetSize(), 0);
+
+  top_k.Increment(1, 10);
+  top_k.Increment(2, 5);
+  top_k.Increment(3, 1);
+  top_k.Increment(4, 1000000);
+
+  EXPECT_EQ(top_k.EstimateItemCount(1), 10);
+  EXPECT_EQ(top_k.EstimateItemCount(2), 5);
+  EXPECT_EQ(top_k.EstimateItemCount(3), 1);
+  EXPECT_EQ(top_k.EstimateItemCount(4), 1000000);
+  EXPECT_EQ(top_k.GetSize(), 4);
+
+  size_t size;
+  auto serialized_top_k = top_k.Serialize(&size);
+  auto deserialized_top_k = TopKElements<int>::Deserialize(serialized_top_k.get(), size);
+
+  EXPECT_EQ(deserialized_top_k.EstimateItemCount(1), 10);
+  EXPECT_EQ(deserialized_top_k.EstimateItemCount(2), 5);
+  EXPECT_EQ(deserialized_top_k.EstimateItemCount(3), 1);
+  EXPECT_EQ(deserialized_top_k.EstimateItemCount(4), 1000000);
+  EXPECT_EQ(deserialized_top_k.GetSize(), 4);
 }
 
 }  // namespace noisepage::optimizer

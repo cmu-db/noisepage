@@ -102,6 +102,7 @@ enum class QueryType : uint8_t {
   QUERY_INSERT,
   QUERY_UPDATE,
   QUERY_DELETE,
+  QUERY_ANALYZE,
   // DDL
   QUERY_CREATE_TABLE,
   QUERY_CREATE_DB,
@@ -127,7 +128,6 @@ enum class QueryType : uint8_t {
   QUERY_EXECUTE,
   // Misc
   QUERY_COPY,
-  QUERY_ANALYZE,
   QUERY_OTHER,
   QUERY_EXPLAIN,
   QUERY_INVALID
