@@ -51,7 +51,8 @@ class EndToEndTest : public execution::SqlBasedTest {
     auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
     auto out_plan = trafficcop::TrafficCopUtil::Optimize(
                         common::ManagedPointer(test_txn_), common::ManagedPointer(accessor),
-                        common::ManagedPointer(stmt_list), test_db_oid_, stats_storage_, std::move(cost_model), 1000000)
+                        common::ManagedPointer(stmt_list), test_db_oid_, stats_storage_, std::move(cost_model), 1000000,
+                        nullptr)
                         ->TakePlanNodeOwnership();
 
     // Execute
