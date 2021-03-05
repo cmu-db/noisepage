@@ -1603,8 +1603,8 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   EXPECT_NE(op1.Hash(), op7.Hash());
 
   Operator op8 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BPLUSTREE, false,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BPLUSTREE,
+                               false, "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());

@@ -1267,7 +1267,8 @@ TEST_F(IndexKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back("", type::TypeId::VARCHAR, 64, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(15445));
-  const auto key_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true);
+  const auto key_schema =
+      catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true);
 
   IndexBuilder builder;
   builder.SetKeySchema(key_schema);
