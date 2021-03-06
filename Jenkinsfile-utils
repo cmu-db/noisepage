@@ -12,7 +12,7 @@ RELEASE_BUILD = 'Release'
  */
 void noisePageBuild(Map args = [:]) {
     Map defaultArgs = [
-        useCache: true,
+        useCache: false,
         buildType: DEBUG_BUILD,
         os: UBUNTU,
         isBuildTests: true,
