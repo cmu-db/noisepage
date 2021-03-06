@@ -13,6 +13,12 @@ class SelectivityUtilTests : public TerrierTest {
   TableStats table_stats_2_;
   TableStats table_stats_3_;
   TableStats table_stats_4_;
+  // Date and Timestamp
+  TableStats table_stats_5_;
+  // Varchar
+  TableStats table_stats_6_;
+  // Empty
+  TableStats table_stats_7_;
 
   void SetUp() override {
     // Floating point type column.
@@ -91,11 +97,64 @@ class SelectivityUtilTests : public TerrierTest {
 
     // BOOLEAN column.
     auto column_stats_obj_5 = std::make_unique<ColumnStats<execution::sql::BoolVal>>(
-        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(5), 100, 80, 80,
+        catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::col_oid_t(5), 100, 80, 80,
         std::make_unique<TopKElements<bool>>(), std::make_unique<Histogram<bool>>(), type::TypeId::BOOLEAN);
     // 60 true, 20 false, 20 null.
     column_stats_obj_5->GetTopK()->Increment(true, 60);
     column_stats_obj_5->GetTopK()->Increment(false, 20);
+
+    // DATE column
+    auto column_stats_obj_6 = std::make_unique<ColumnStats<execution::sql::DateVal>>(
+        catalog::db_oid_t(1), catalog::table_oid_t(5), catalog::col_oid_t(1), 5, 5, 4,
+        std::make_unique<TopKElements<execution::sql::Date>>(), std::make_unique<Histogram<execution::sql::Date>>(),
+        type::TypeId::DATE);
+
+    std::vector<execution::sql::Date> date_vals;
+    date_vals.emplace_back(execution::sql::Date::FromYMD(1995, 8, 6));
+    date_vals.emplace_back(execution::sql::Date::FromYMD(1995, 8, 6));
+    date_vals.emplace_back(execution::sql::Date::FromYMD(2020, 4, 20));
+    date_vals.emplace_back(execution::sql::Date::FromYMD(2000, 1, 1));
+    date_vals.emplace_back(execution::sql::Date::FromYMD(1900, 5, 5));
+    for (auto date : date_vals) {
+      column_stats_obj_6->GetTopK()->Increment(date, 1);
+      column_stats_obj_6->GetHistogram()->Increment(date);
+    }
+
+    // Timestamp column
+    auto column_stats_obj_7 = std::make_unique<ColumnStats<execution::sql::TimestampVal>>(
+        catalog::db_oid_t(1), catalog::table_oid_t(5), catalog::col_oid_t(2), 5, 5, 4,
+        std::make_unique<TopKElements<execution::sql::Timestamp>>(),
+        std::make_unique<Histogram<execution::sql::Timestamp>>(), type::TypeId::TIMESTAMP);
+
+    std::vector<execution::sql::Timestamp> timestamp_vals;
+    timestamp_vals.emplace_back(execution::sql::Timestamp::FromYMDHMS(1995, 8, 6, 15, 2, 40));
+    timestamp_vals.emplace_back(execution::sql::Timestamp::FromYMDHMS(1995, 8, 6, 12, 43, 2));
+    timestamp_vals.emplace_back(execution::sql::Timestamp::FromYMDHMS(2020, 4, 20, 3, 20, 56));
+    timestamp_vals.emplace_back(execution::sql::Timestamp::FromYMDHMS(2000, 1, 1, 20, 42, 30));
+    timestamp_vals.emplace_back(execution::sql::Timestamp::FromYMDHMS(1900, 5, 5, 5, 5, 5));
+    for (auto timestamp : timestamp_vals) {
+      column_stats_obj_7->GetTopK()->Increment(timestamp, 1);
+      column_stats_obj_7->GetHistogram()->Increment(timestamp);
+    }
+
+    // Varchar column
+    auto column_stats_obj_8 = std::make_unique<ColumnStats<execution::sql::StringVal>>(
+        catalog::db_oid_t(1), catalog::table_oid_t(6), catalog::col_oid_t(1), 2, 2, 2,
+        std::make_unique<TopKElements<storage::VarlenEntry>>(), std::make_unique<Histogram<storage::VarlenEntry>>(),
+        type::TypeId::VARCHAR);
+
+    std::vector<storage::VarlenEntry> varchar_vals;
+    varchar_vals.emplace_back(storage::VarlenEntry::Create("Foo"));
+    varchar_vals.emplace_back(storage::VarlenEntry::Create("Bar"));
+    for (auto varchar : varchar_vals) {
+      column_stats_obj_8->GetTopK()->Increment(varchar, 1);
+      column_stats_obj_8->GetHistogram()->Increment(varchar);
+    }
+
+    // Empty column
+    auto column_stats_obj_9 = std::make_unique<ColumnStats<execution::sql::Integer>>(
+        catalog::db_oid_t(1), catalog::table_oid_t(7), catalog::col_oid_t(1), 0, 0, 0,
+        std::make_unique<TopKElements<int64_t>>(), std::make_unique<Histogram<int64_t>>(), type::TypeId::INTEGER);
 
     std::vector<std::unique_ptr<ColumnStatsBase>> column_stats1;
     column_stats1.emplace_back(std::move(column_stats_obj_1));
@@ -113,6 +172,19 @@ class SelectivityUtilTests : public TerrierTest {
     std::vector<std::unique_ptr<ColumnStatsBase>> column_stats4;
     column_stats4.emplace_back(std::move(column_stats_obj_5));
     table_stats_4_ = TableStats(catalog::db_oid_t(1), catalog::table_oid_t(2), &column_stats4);
+
+    std::vector<std::unique_ptr<ColumnStatsBase>> column_stats5;
+    column_stats5.emplace_back(std::move(column_stats_obj_6));
+    column_stats5.emplace_back(std::move(column_stats_obj_7));
+    table_stats_5_ = TableStats(catalog::db_oid_t(1), catalog::table_oid_t(5), &column_stats5);
+
+    std::vector<std::unique_ptr<ColumnStatsBase>> column_stats6;
+    column_stats6.emplace_back(std::move(column_stats_obj_8));
+    table_stats_6_ = TableStats(catalog::db_oid_t(1), catalog::table_oid_t(6), &column_stats6);
+
+    std::vector<std::unique_ptr<ColumnStatsBase>> column_stats7;
+    column_stats7.emplace_back(std::move(column_stats_obj_9));
+    table_stats_7_ = TableStats(catalog::db_oid_t(1), catalog::table_oid_t(7), &column_stats7);
   }
 };
 
@@ -475,4 +547,49 @@ TEST_F(SelectivityUtilTests, TestBoolNull) {
   res = SelectivityUtil::ComputeSelectivity(table_stats_4_, value_condition);
   ASSERT_DOUBLE_EQ(80.0 / 100.0, res);
 }
+
+// NOLINTNEXTLINE
+TEST_F(SelectivityUtilTests, TestDateEqual) {
+  std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(
+          type::TypeId::DATE, execution::sql::DateVal(execution::sql::Date::FromYMD(1995, 8, 6)));
+  ValueCondition value_condition(catalog::col_oid_t(1), "", parser::ExpressionType::COMPARE_EQUAL,
+                                 std::move(const_value_expr_ptr));
+  double res = SelectivityUtil::ComputeSelectivity(table_stats_5_, value_condition);
+  ASSERT_DOUBLE_EQ(2.0 / 5.0, res);
+}
+
+// NOLINTNEXTLINE
+TEST_F(SelectivityUtilTests, TestTimestampEqual) {
+  std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(
+          type::TypeId::TIMESTAMP,
+          execution::sql::TimestampVal(execution::sql::Timestamp::FromYMDHMS(2020, 4, 20, 3, 20, 56)));
+  ValueCondition value_condition(catalog::col_oid_t(2), "", parser::ExpressionType::COMPARE_EQUAL,
+                                 std::move(const_value_expr_ptr));
+  double res = SelectivityUtil::ComputeSelectivity(table_stats_5_, value_condition);
+  ASSERT_DOUBLE_EQ(1.0 / 5.0, res);
+}
+
+// NOLINTNEXTLINE
+TEST_F(SelectivityUtilTests, TestVarcharEqual) {
+  std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR,
+                                                        execution::sql::StringVal(storage::VarlenEntry::Create("Foo")));
+  ValueCondition value_condition(catalog::col_oid_t(1), "", parser::ExpressionType::COMPARE_EQUAL,
+                                 std::move(const_value_expr_ptr));
+  double res = SelectivityUtil::ComputeSelectivity(table_stats_6_, value_condition);
+  ASSERT_DOUBLE_EQ(1.0 / 2.0, res);
+}
+
+// NOLINTNEXTLINE
+TEST_F(SelectivityUtilTests, TestEmptyEqual) {
+  std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(666));
+  ValueCondition value_condition(catalog::col_oid_t(1), "", parser::ExpressionType::COMPARE_EQUAL,
+                                 std::move(const_value_expr_ptr));
+  double res = SelectivityUtil::ComputeSelectivity(table_stats_7_, value_condition);
+  ASSERT_DOUBLE_EQ(0, res);
+}
+
 }  // namespace noisepage::optimizer

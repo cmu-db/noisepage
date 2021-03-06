@@ -6,6 +6,10 @@
 namespace noisepage::optimizer {
 
 double SelectivityUtil::ComputeSelectivity(const TableStats &table_stats, const ValueCondition &condition) {
+  if (table_stats.GetNumRows() == 0) {
+    return 0.0;
+  }
+
   auto column_stats_base = table_stats.GetColumnStats(condition.GetColumnID());
   auto type = column_stats_base->GetTypeId();
 
@@ -124,10 +128,6 @@ double SelectivityUtil::Equal(common::ManagedPointer<ColumnStats<T>> column_stat
   }
 
   size_t numrows = column_stats->GetNumRows();
-
-  if (numrows == 0) {
-    return 0;
-  }
 
   // For now only double is supported in stats storage
   auto top_k = column_stats->GetTopK();
