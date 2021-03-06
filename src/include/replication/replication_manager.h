@@ -234,8 +234,6 @@ class ReplicationManager {
 /** The replication manager that should run on the primary. */
 class PrimaryReplicationManager final : public ReplicationManager {
  public:
-  static const char *primary_identity;  ///< The name of the primary node.
-
   /**
    * On construction, the replication manager establishes a listen destination on the messenger and connect to all the
    * replicas specified in the replication.config file located at @p replication_hosts_path.
