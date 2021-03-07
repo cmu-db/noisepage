@@ -14,7 +14,7 @@
 namespace noisepage::optimizer {
 class StatsCalculatorTests : public test::EndToEndTest {
  protected:
-  StatsCalculator stats_calculator;
+  StatsCalculator stats_calculator_;
 
   OptimizerContext context_{nullptr};
   std::string table_name_1_ = "empty_nullable_table";
@@ -68,7 +68,7 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 3);
@@ -88,7 +88,7 @@ TEST_F(StatsCalculatorTests, TestInvalidLogicalGet) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), -1);
@@ -111,9 +111,9 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
   parser::ComparisonExpression equals(parser::ExpressionType::COMPARE_EQUAL, std::move(equal_child_exprs));
   std::vector<std::unique_ptr<parser::AbstractExpression>> not_child_exprs;
   not_child_exprs.emplace_back(equals.Copy());
-  parser::OperatorExpression notOp(parser::ExpressionType::OPERATOR_NOT, type::TypeId::BOOLEAN,
-                                   std::move(not_child_exprs));
-  common::ManagedPointer<parser::AbstractExpression> not_expr(&notOp);
+  parser::OperatorExpression not_op(parser::ExpressionType::OPERATOR_NOT, type::TypeId::BOOLEAN,
+                                    std::move(not_child_exprs));
+  common::ManagedPointer<parser::AbstractExpression> not_expr(&not_op);
   AnnotatedExpression annotated_not(not_expr, {});
 
   Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_not}, table_name_1_, false)
@@ -125,7 +125,7 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
@@ -143,9 +143,9 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
                                       type::TypeId::INTEGER);
   std::vector<std::unique_ptr<parser::AbstractExpression>> not_null_child_exprs;
   not_null_child_exprs.emplace_back(col_a.Copy());
-  parser::OperatorExpression notNullOp(parser::ExpressionType::OPERATOR_IS_NOT_NULL, type::TypeId::BOOLEAN,
-                                       std::move(not_null_child_exprs));
-  common::ManagedPointer<parser::AbstractExpression> not_null_expr(&notNullOp);
+  parser::OperatorExpression not_null_op(parser::ExpressionType::OPERATOR_IS_NOT_NULL, type::TypeId::BOOLEAN,
+                                         std::move(not_null_child_exprs));
+  common::ManagedPointer<parser::AbstractExpression> not_null_expr(&not_null_op);
   AnnotatedExpression annotated_not_null(not_null_expr, {});
 
   Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_not_null}, table_name_1_, false)
@@ -157,7 +157,7 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
@@ -190,7 +190,7 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
@@ -228,7 +228,7 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
@@ -261,7 +261,7 @@ TEST_F(StatsCalculatorTests, TestRightSidePredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
@@ -299,7 +299,7 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
@@ -345,7 +345,7 @@ TEST_F(StatsCalculatorTests, TestAndPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 0);
@@ -391,7 +391,7 @@ TEST_F(StatsCalculatorTests, TestOrPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   // In reality it's two but that calculations aren't accurate enough to capture this
@@ -422,8 +422,8 @@ TEST_F(StatsCalculatorTests, TestLogicalLimit) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator.CalculateStats(get_gexpr, required_cols, &context_);
-  stats_calculator.CalculateStats(limit_gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(limit_gexpr, required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(limit_gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
@@ -481,9 +481,9 @@ TEST_F(StatsCalculatorTests, TestLogicalSemiJoin) {
   join_required_cols.emplace(&col_a2);
   join_required_cols.emplace(&col_b);
 
-  stats_calculator.CalculateStats(get_gexpr1, get1_required_cols, &context_);
-  stats_calculator.CalculateStats(get_gexpr2, get2_required_cols, &context_);
-  stats_calculator.CalculateStats(join_gexpr, join_required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr1, get1_required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr2, get2_required_cols, &context_);
+  stats_calculator_.CalculateStats(join_gexpr, join_required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(join_gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
@@ -543,9 +543,9 @@ TEST_F(StatsCalculatorTests, TestLogicalInnerJoin) {
   join_required_cols.emplace(&col_a2);
   join_required_cols.emplace(&col_b);
 
-  stats_calculator.CalculateStats(get_gexpr1, get1_required_cols, &context_);
-  stats_calculator.CalculateStats(get_gexpr2, get2_required_cols, &context_);
-  stats_calculator.CalculateStats(join_gexpr, join_required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr1, get1_required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr2, get2_required_cols, &context_);
+  stats_calculator_.CalculateStats(join_gexpr, join_required_cols, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(join_gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
