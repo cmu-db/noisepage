@@ -1,5 +1,7 @@
 #include "optimizer/statistics/stats_storage.h"
 
+#include <catalog/database_catalog.h>
+
 #include "gtest/gtest.h"
 #include "storage/sql_table.h"
 #include "test_util/end_to_end_test.h"
@@ -77,8 +79,6 @@ TEST_F(StatsStorageTests, NonEmptyTableTest) {
 TEST_F(StatsStorageTests, StaleColumnTest) {
   RunQuery("INSERT INTO " + table_name_ + " VALUES(1), (NULL), (1);");
   RunQuery("ANALYZE " + table_name_ + ";");
-  txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-  test_txn_ = txn_manager_->BeginTransaction();
 
   auto table_oid = accessor_->GetTableOid(table_name_);
 
@@ -91,9 +91,6 @@ TEST_F(StatsStorageTests, StaleColumnTest) {
   RunQuery("ANALYZE " + table_name_ + ";");
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
-
-  // TODO(Joe) Without this sleep, the index lookup on pg_statistic that stats_storage does comes back empty.
-  std::this_thread::sleep_for(std::chrono::seconds(1));
 
   table_stats = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
   EXPECT_EQ(table_stats->GetNumRows(), 4);
