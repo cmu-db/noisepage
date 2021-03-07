@@ -165,7 +165,7 @@ class PgStatisticImpl {
    * @param table_oid           Table oid that the column belongs to
    * @param col_oid             Column oid of the column
    * @param num_rows            Number of rows that the column has
-   * @param frac_null           Fractions of values that are null in the column
+   * @param non_null_rows       Number of values that are null in the column
    * @param distinct_values     Number of distinct values in the collum
    * @param top_k_str           Serialized version of TopKElements object or nullptr
    * @param histogram_str       Serialized version of Histogram object or nullptr
@@ -174,7 +174,7 @@ class PgStatisticImpl {
    */
   template <typename T>
   std::unique_ptr<optimizer::ColumnStatsBase> CreateColumnStats(
-      table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, double frac_null, size_t distinct_values,
+      table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, size_t non_null_rows, size_t distinct_values,
       const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, type::TypeId type);
 
   const db_oid_t db_oid_;

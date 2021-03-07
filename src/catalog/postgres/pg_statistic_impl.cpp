@@ -236,8 +236,8 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY:
       /*
-       * TODO(Joe) The current implementation of Histogram produces meaningless results for strings. See histogram.h
-       *  for a more detailed explanation. For now we just use an empty histogram.
+       * TODO(Joe Koshakow) The current implementation of Histogram produces meaningless results for strings. See
+       * histogram.h for a more detailed explanation. For now we just use an empty histogram.
        */
       return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                           top_k_str, nullptr, type);
@@ -248,7 +248,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
 
 template <typename T>
 std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
-    table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, double frac_null, size_t distinct_values,
+    table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, size_t non_null_rows, size_t distinct_values,
     const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, type::TypeId type) {
   using CppType = decltype(T::val_);
   auto top_k = top_k_str != nullptr
@@ -258,7 +258,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
                        ? optimizer::Histogram<CppType>::Deserialize(histogram_str->Content(), histogram_str->Size())
                        : optimizer::Histogram<CppType>();
   return std::make_unique<optimizer::ColumnStats<T>>(
-      db_oid_, table_oid, col_oid, num_rows, frac_null, distinct_values,
+      db_oid_, table_oid, col_oid, num_rows, non_null_rows, distinct_values,
       std::make_unique<optimizer::TopKElements<CppType>>(std::move(top_k)),
       std::make_unique<optimizer::Histogram<CppType>>(std::move(histogram)), type);
 }

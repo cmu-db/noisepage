@@ -198,6 +198,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *o
 }
 
 void StatsCalculator::Visit(const LogicalLimit *op) {
+  // TODO(Joe Koshakow) To be more accurate this should probably take into account the limit offset
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Limit must have 1 child");
   auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   auto *group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
@@ -242,8 +243,6 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
     auto col_name = child_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
     auto col_oid = child_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnOid();
     auto expr_type = expr->GetExpressionType();
-    // TODO(Joe) Not a huge fan of nullptr here. ValueCondition seems to be designed only for predicates of the form
-    //  Column Op Val and doesn't consider operators like EXISTS, IS NULL, IS NOT NULL
     ValueCondition condition(col_oid, col_name, expr_type, nullptr);
     selectivity = SelectivityUtil::ComputeSelectivity(predicate_table_stats, condition);
   } else if ((expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
