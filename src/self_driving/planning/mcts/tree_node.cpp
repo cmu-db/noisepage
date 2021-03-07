@@ -1,21 +1,19 @@
 
-#include "self_driving/planning/mcts/tree_node.h"
-
 #include <cmath>
 #include <random>
 
-#include "loggers/selfdriving_logger.h"
-#include "self_driving/forecasting/workload_forecast.h"
-#include "self_driving/planning/action/abstract_action.h"
-#include "self_driving/planning/pilot.h"
-#include "self_driving/planning/pilot_util.h"
+#include "self_driving/forecast/workload_forecast.h"
+#include "self_driving/pilot/action/abstract_action.h"
+#include "self_driving/pilot/mcts/tree_node.h"
+#include "self_driving/pilot/pilot.h"
+#include "self_driving/pilot_util.h"
 
 #define EPSILON 1e-3
 
 namespace noisepage::selfdriving::pilot {
 
-TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-                   double later_segments_cost)
+TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t current_segment_cost,
+                   uint64_t later_segments_cost)
     : is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
       current_action_(current_action),
@@ -24,9 +22,6 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
       number_of_visits_{1} {
   if (parent != nullptr) parent->is_leaf_ = false;
   cost_ = ancestor_cost_ + later_segments_cost;
-  SELFDRIVING_LOG_INFO(
-      "Creating Tree Node: Depth {} Action {} Cost {} Current_Segment_Cost {} Later_Segment_Cost {} Ancestor_Cost {}",
-      depth_, current_action_, cost_, current_segment_cost, later_segments_cost, ancestor_cost_);
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
@@ -34,32 +29,25 @@ common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
   // Get child of least cost
   NOISEPAGE_ASSERT(!children_.empty(), "Trying to return best action for unexpanded nodes");
   auto best_child = common::ManagedPointer(children_[0]);
-  for (auto &child : children_) {
+  for (auto &child : children_)
     if (child->cost_ < best_child->cost_) best_child = common::ManagedPointer(child);
-    SELFDRIVING_LOG_INFO("Finding best action: Depth {} Action {} Child {} Cost {}", depth_, current_action_,
-                         child->GetCurrentAction(), child->cost_);
-  }
   return best_child;
 }
 
-void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost) {
+void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t expanded_cost) {
   // compute cost as average of the leaves in its subtree weighted by the number of visits
   // Here we add the number of successors expanded in the previous rollout and also subtract 1
   // because the cost of the expanded leaf was invalidated
   auto new_num_visits = num_expansion - 1 + number_of_visits_;
 
-  SELFDRIVING_LOG_TRACE("Depth: {} Before Update Cost: {}", depth_, cost_);
-  cost_ = static_cast<double>(number_of_visits_) / new_num_visits * cost_ - leaf_cost / new_num_visits +
-          static_cast<double>(num_expansion) / new_num_visits * expanded_cost;
-  SELFDRIVING_LOG_TRACE("number_of_visits_ {} new_num_visits {} leaf_cost {} num_expansion {} expanded_cost {}",
-                        number_of_visits_, new_num_visits, leaf_cost, num_expansion, expanded_cost);
-  SELFDRIVING_LOG_TRACE("After Update Cost: {}", cost_);
+  cost_ = (number_of_visits_ / new_num_visits) * cost_ - leaf_cost / new_num_visits +
+          (num_expansion / new_num_visits) * expanded_cost;
   number_of_visits_ = new_num_visits;
 }
 
 common::ManagedPointer<TreeNode> TreeNode::SampleChild() {
   // compute max of children's cost
-  double highest = 0;
+  uint64_t highest = 0;
   for (auto &child : children_) highest = std::max(child->cost_, highest);
 
   // sample based on cost and num of visits of children
@@ -123,8 +111,8 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     PilotUtil::ApplyAction(pilot, action_map.at(action_id)->GetSQLCommand(),
                            action_map.at(action_id)->GetDatabaseOid());
 
-    double child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
-    double later_segments_cost = 0;
+    uint64_t child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
+    uint64_t later_segments_cost = 0;
     if (start_segment_index != end_segment_index)
       later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
 
@@ -139,23 +127,18 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
 }
 
 void TreeNode::BackPropogate(common::ManagedPointer<Pilot> pilot,
-                             const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-                             bool use_min_cost) {
+                             const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map) {
   auto curr = common::ManagedPointer(this);
   auto leaf_cost = cost_;
-  double expanded_cost = use_min_cost ? ComputeMinCostFromChildren() : ComputeWeightedAverageCostFromChildren();
+  auto expanded_cost = ComputeCostFromChildren();
 
   auto num_expansion = children_.size();
   while (curr != nullptr && curr->parent_ != nullptr) {
     auto rev_action = action_map.at(curr->current_action_)->GetReverseActions()[0];
     PilotUtil::ApplyAction(pilot, action_map.at(rev_action)->GetSQLCommand(),
                            action_map.at(rev_action)->GetDatabaseOid());
-    if (use_min_cost) {
-      curr->cost_ = std::min(curr->cost_, expanded_cost);
-    } else {
-      // All ancestors of the expanded leaf need to updated with a weight increase of num_expansion, and a new weight
-      curr->UpdateCostAndVisits(num_expansion, leaf_cost, expanded_cost);
-    }
+    // All ancestors of the expanded leaf need to updated with a weight increase of num_expansion, and a new weight
+    curr->UpdateCostAndVisits(num_expansion, leaf_cost, expanded_cost);
     curr = curr->parent_;
   }
 }

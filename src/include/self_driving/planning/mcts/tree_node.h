@@ -1,13 +1,12 @@
 #pragma once
 
-#include <algorithm>
 #include <map>
 #include <memory>
 #include <unordered_set>
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "self_driving/planning/action/action_defs.h"
+#include "self_driving/pilot/action/action_defs.h"
 
 #define EPSILON 1e-3
 #define NULL_ACTION INT32_MAX
@@ -32,8 +31,8 @@ class TreeNode {
    * node
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    */
-  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-           double later_segments_cost);
+  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t current_segment_cost,
+           uint64_t later_segments_cost);
 
   /**
    * @return action id at node with least cost
@@ -73,10 +72,9 @@ class TreeNode {
    * also apply reverse actions
    * @param pilot pointer to pilot
    * @param action_map action map of the search tree
-   * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
   void BackPropogate(common::ManagedPointer<Pilot> pilot,
-                     const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map, bool use_min_cost);
+                     const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map);
 
   /**
    * Return if current node is a leaf
@@ -102,7 +100,7 @@ class TreeNode {
    * (usually only used on the leaf being expanded in a simulation round, for nonleaf see UpdateCostAndVisits)
    * @return recomputed cost of current node
    */
-  double ComputeWeightedAverageCostFromChildren() {
+  uint64_t ComputeCostFromChildren() {
     uint64_t child_sum = 0, total_visits = 0;
     for (auto &child : children_) {
       child_sum += child->cost_ * child->number_of_visits_;
@@ -113,35 +111,23 @@ class TreeNode {
   }
 
   /**
-   * Compute cost as the minimum of all children
-   * (usually only used on the leaf being expanded in a simulation round, for nonleaf see UpdateCostAndVisits)
-   * @return recomputed cost of current node
-   */
-  double ComputeMinCostFromChildren() {
-    NOISEPAGE_ASSERT(!children_.empty(), "number of children cannot be zero");
-    double min_cost = children_[0]->cost_;
-    for (auto &child : children_) min_cost = std::min(min_cost, child->cost_);
-    return min_cost;
-  }
-
-  /**
    * Update number of visits to the current node aka number of tree traversals to a leaf
    * containing the path to current node, and the cost of the node; based on the expansion of a successor as a leaf
    * @param num_expansion number of children of the expanded leaf
    * @param leaf_cost previous cost of the leaf
    * @param expanded_cost new cost of the leaf after expansion
    */
-  void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
+  void UpdateCostAndVisits(uint64_t num_expansion, uint64_t leaf_cost, uint64_t expanded_cost);
 
   bool is_leaf_;
   const uint64_t depth_;  // number of edges in path from root
   const action_id_t current_action_;
-  const double ancestor_cost_;  // cost of executing segments with actions applied on path from root to current node
+  const uint64_t ancestor_cost_;  // cost of executing segments with actions applied on path from root to current node
   const common::ManagedPointer<TreeNode> parent_;
 
   uint64_t number_of_visits_;  // number of leaf in subtree rooted at node
   std::vector<std::unique_ptr<TreeNode>> children_;
-  double cost_;
+  uint64_t cost_{UINT64_MAX};
 };
 }  // namespace pilot
 
