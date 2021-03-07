@@ -34,15 +34,7 @@ common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
 
   // Listen for the connection
   messenger->ListenForConnection(destination, MODEL_CONN_ID_NAME, std::move(model_server_logic));
-
-  // TODO(ricky): pass in a cvar so that the messenger could signal that the router has been added.
-  while (true) {
-    try {
-      return messenger->GetConnectionRouter(MODEL_CONN_ID_NAME);
-    } catch (std::exception &e) {
-      ::sleep(1);
-    }
-  }
+  return messenger->GetConnectionRouter(MODEL_CONN_ID_NAME);
 }
 
 }  // namespace noisepage::modelserver

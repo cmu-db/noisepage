@@ -400,9 +400,10 @@ void Messenger::Terminate() {
 
 void Messenger::ListenForConnection(const ConnectionDestination &target, const std::string &identity,
                                     CallbackFn callback) {
-  std::lock_guard lock(routers_add_mutex_);
+  std::unique_lock lock(routers_add_mutex_);
   // TODO(WAN): all this copying is stupid.
   routers_to_be_added_.emplace_back(RouterToBeAdded{target, identity, std::move(callback)});
+  routers_add_cvar_.wait(lock);
 }
 
 ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
@@ -469,6 +470,7 @@ uint64_t Messenger::GetNextSendMessageId() {
 void Messenger::ServerLoop() {
   while (is_messenger_running_) {
     // Add any new routers that need to be added.
+    // TODO(WAN): I wonder how expensive this block is.
     {
       std::lock_guard lock(routers_add_mutex_);
       for (auto &item : routers_to_be_added_) {
@@ -478,6 +480,7 @@ void Messenger::ServerLoop() {
         routers_.try_emplace(item.identity_, std::move(router));
       }
       routers_to_be_added_.clear();
+      routers_add_cvar_.notify_all();
     }
 
     // Get the latest set of poll items.

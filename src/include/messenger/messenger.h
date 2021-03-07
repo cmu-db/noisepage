@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>  // NOLINT
@@ -191,7 +192,7 @@ class Messenger : public common::DedicatedThreadTask {
   void Terminate() override;
 
   /**
-   * Listen for new connections on the specified target destination.
+   * Listen for new connections on the specified target destination. Blocks until the listen is ready.
    *
    * @warning           TODO(WAN): figure out what bad things happen if you give it a ConnectionDestination that is
    *                     already in use. I don't think this is a problem that is likely to occur because all our
@@ -292,6 +293,7 @@ class Messenger : public common::DedicatedThreadTask {
 
   std::vector<RouterToBeAdded> routers_to_be_added_;
   std::mutex routers_add_mutex_;
+  std::condition_variable routers_add_cvar_;
   std::unordered_map<std::string, std::unique_ptr<ConnectionRouter>> routers_;
 
   std::mutex callbacks_mutex_;
