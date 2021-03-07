@@ -1,7 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <condition_variable>
+#include <condition_variable>  // NOLINT
 #include <functional>
 #include <memory>
 #include <mutex>  // NOLINT
