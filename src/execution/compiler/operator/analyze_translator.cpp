@@ -35,7 +35,6 @@ AnalyzeTranslator::AnalyzeTranslator(const planner::AnalyzePlanNode &plan, Compi
       num_rows_(GetCodeGen()->MakeFreshIdentifier("num_rows")),
       pg_statistic_index_iterator_(GetCodeGen()->MakeFreshIdentifier("pg_statistic_index_iterator")),
       pg_statistic_index_pr_(GetCodeGen()->MakeFreshIdentifier("pg_statistic_index_pr")),
-      pg_statistic_updater_(GetCodeGen()->MakeFreshIdentifier("pg_statistic_updater")),
       pg_statistic_update_pr_(GetCodeGen()->MakeFreshIdentifier("pg_statistic_update_pr")) {
   // Analyze is serial
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -52,6 +51,18 @@ AnalyzeTranslator::AnalyzeTranslator(const planner::AnalyzePlanNode &plan, Compi
     aggregate_variables_.emplace_back(agg_var);
     pg_statistic_column_lookup_[col_info.column_oid_] = agg_var;
   }
+  ast::Expr *storage_interface_type = GetCodeGen()->BuiltinType(ast::BuiltinType::StorageInterface);
+  pg_statistic_updater_ = pipeline->DeclarePipelineStateEntry("storageInterface", storage_interface_type);
+}
+
+void AnalyzeTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  // @storageInterfaceInit(&pipelineState.storageInterface, execCtx, table_oid, col_oids, true)
+  DeclareAndInitPgStatisticUpdater(function);
+}
+
+void AnalyzeTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  // @storageInterfaceFree(&pipelineState.storageInterface)
+  FreePgStatisticUpdater(function);
 }
 
 void AnalyzeTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -246,12 +257,9 @@ void AnalyzeTranslator::DeclarePgStatisticSlot(FunctionBuilder *function, ast::I
 
 void AnalyzeTranslator::DeclareAndInitPgStatisticUpdater(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  // var pg_statistic_updater: StorageInterface
-  auto *storage_interface_type = codegen->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
-  function->Append(codegen->DeclareVarNoInit(pg_statistic_updater_, storage_interface_type));
   // @storageInterfaceInit(pg_statistic_updater, execCtx, table_oid, pg_statistic_col_oids, true)
   auto *updater_setup = codegen->StorageInterfaceInit(
-      pg_statistic_updater_, GetExecutionContext(),
+      pg_statistic_updater_.GetPtr(codegen), GetExecutionContext(),
       catalog::postgres::PgStatistic::STATISTIC_TABLE_OID.UnderlyingValue(), pg_statistic_col_oids_, true);
   function->Append(codegen->MakeStmt(updater_setup));
 }
@@ -268,7 +276,7 @@ void AnalyzeTranslator::DeleteFromPgStatisticTable(FunctionBuilder *function, as
   // if (!@tableDelete(&pg_statistic_updater, &pg_statistic_slot)) { Abort(); }
   auto *delete_slot = codegen->AddressOf(codegen->MakeExpr(slot));
   auto *delete_call =
-      codegen->CallBuiltin(ast::Builtin::TableDelete, {codegen->AddressOf(pg_statistic_updater_), delete_slot});
+      codegen->CallBuiltin(ast::Builtin::TableDelete, {pg_statistic_updater_.GetPtr(GetCodeGen()), delete_slot});
   auto *delete_failed = codegen->UnaryOp(parsing::Token::Type::BANG, delete_call);
   If check(function, delete_failed);
   {
@@ -281,7 +289,8 @@ void AnalyzeTranslator::DeleteFromPgStatisticTable(FunctionBuilder *function, as
 void AnalyzeTranslator::InitPgStatisticUpdatePR(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   // pg_statistic_update_pr = @getTablePR(&pg_statistic_updater)
-  auto *get_table_pr_call = codegen->CallBuiltin(ast::Builtin::GetTablePR, {codegen->AddressOf(pg_statistic_updater_)});
+  auto *get_table_pr_call =
+      codegen->CallBuiltin(ast::Builtin::GetTablePR, {pg_statistic_updater_.GetPtr(GetCodeGen())});
   function->Append(codegen->Assign(codegen->MakeExpr(pg_statistic_update_pr_), get_table_pr_call));
 }
 
@@ -303,7 +312,7 @@ void AnalyzeTranslator::InsertIntoPgStatisticTable(FunctionBuilder *function) co
   auto *codegen = GetCodeGen();
   // var insert_slot = @tableInsert(&updater_)
   auto insert_slot = codegen->MakeFreshIdentifier("insert_slot");
-  auto *insert_call = codegen->CallBuiltin(ast::Builtin::TableInsert, {codegen->AddressOf(pg_statistic_updater_)});
+  auto *insert_call = codegen->CallBuiltin(ast::Builtin::TableInsert, {pg_statistic_updater_.GetPtr(codegen)});
   function->Append(codegen->DeclareVar(insert_slot, nullptr, insert_call));
 }
 
@@ -312,7 +321,7 @@ void AnalyzeTranslator::DeleteFromPgStatisticIndex(FunctionBuilder *function, as
   auto *codegen = GetCodeGen();
   // var delete_index_pr = @getIndexPR(&pg_statistic_updater, oid)
   auto delete_index_pr = codegen->MakeFreshIdentifier("delete_index_pr");
-  std::vector<ast::Expr *> pr_delete_call_args{codegen->AddressOf(pg_statistic_updater_),
+  std::vector<ast::Expr *> pr_delete_call_args{pg_statistic_updater_.GetPtr(codegen),
                                                codegen->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_delete_call = codegen->CallBuiltin(ast::Builtin::GetIndexPR, pr_delete_call_args);
   function->Append(codegen->DeclareVarWithInit(delete_index_pr, get_index_pr_delete_call));
@@ -321,7 +330,7 @@ void AnalyzeTranslator::DeleteFromPgStatisticIndex(FunctionBuilder *function, as
   FillIndexPrKey(function, delete_index_pr, true);
 
   // @indexDelete(&pg_statistic_updater, &pg_statistic_slot)
-  std::vector<ast::Expr *> delete_args{codegen->AddressOf(pg_statistic_updater_),
+  std::vector<ast::Expr *> delete_args{pg_statistic_updater_.GetPtr(codegen),
                                        codegen->AddressOf(codegen->MakeExpr(slot))};
   auto *index_delete_call = codegen->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
   function->Append(codegen->MakeStmt(index_delete_call));
@@ -331,7 +340,7 @@ void AnalyzeTranslator::InsertIntoPgStatisticIndex(FunctionBuilder *function, ca
   auto *codegen = GetCodeGen();
   // var insert_index_pr = @getIndexPR(&pg_statistic_updater, oid)
   const auto &insert_index_pr = codegen->MakeFreshIdentifier("insert_index_pr");
-  std::vector<ast::Expr *> pr_insert_call_args{codegen->AddressOf(pg_statistic_updater_),
+  std::vector<ast::Expr *> pr_insert_call_args{pg_statistic_updater_.GetPtr(codegen),
                                                codegen->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_insert_call = codegen->CallBuiltin(ast::Builtin::GetIndexPR, pr_insert_call_args);
   function->Append(codegen->DeclareVarWithInit(insert_index_pr, get_index_pr_insert_call));
@@ -342,7 +351,7 @@ void AnalyzeTranslator::InsertIntoPgStatisticIndex(FunctionBuilder *function, ca
   // if (!@indexInsertUnique(&pg_statistic_updater)) { Abort(); }
   const auto &builtin =
       pg_statistic_index_schema_.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert;
-  auto *index_insert_call = codegen->CallBuiltin(builtin, {codegen->AddressOf(pg_statistic_updater_)});
+  auto *index_insert_call = codegen->CallBuiltin(builtin, {pg_statistic_updater_.GetPtr(codegen)});
   auto *cond = codegen->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(function, cond);
   { function->Append(codegen->AbortTxn(GetExecutionContext())); }
@@ -353,7 +362,7 @@ void AnalyzeTranslator::FreePgStatisticUpdater(FunctionBuilder *function) const 
   auto *codegen = GetCodeGen();
   // @storageInterfaceFree(&pg_statistic_updater)
   auto *updater_free =
-      codegen->CallBuiltin(ast::Builtin::StorageInterfaceFree, {codegen->AddressOf(pg_statistic_updater_)});
+      codegen->CallBuiltin(ast::Builtin::StorageInterfaceFree, {pg_statistic_updater_.GetPtr(codegen)});
   function->Append(codegen->MakeStmt(updater_free));
 }
 
