@@ -34,6 +34,11 @@ class Builder;
 /** The NoisePage version of pg_statistic. */
 class PgStatisticImpl {
  public:
+  /** pg_statistic table name */
+  constexpr static auto PG_STATISTIC_TABLE_NAME = "pg_statistic";
+  /** pg_statistic index name */
+  constexpr static auto PG_STATISTIC_INDEX_NAME = "pg_statistic_index";
+
   /**
    * Contains information on how to derive values for the columns within pg_statistic
    */

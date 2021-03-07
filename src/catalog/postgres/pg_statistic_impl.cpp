@@ -26,9 +26,9 @@ void PgStatisticImpl::BootstrapPRIs() {
 void PgStatisticImpl::Bootstrap(common::ManagedPointer<transaction::TransactionContext> txn,
                                 common::ManagedPointer<DatabaseCatalog> dbc) {
   dbc->BootstrapTable(txn, PgStatistic::STATISTIC_TABLE_OID, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID,
-                      "pg_statistic", Builder::GetStatisticTableSchema(), statistics_);
+                      PG_STATISTIC_TABLE_NAME, Builder::GetStatisticTableSchema(), statistics_);
   dbc->BootstrapIndex(txn, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, PgStatistic::STATISTIC_TABLE_OID,
-                      PgStatistic::STATISTIC_OID_INDEX_OID, "pg_statistic_index",
+                      PgStatistic::STATISTIC_OID_INDEX_OID, PG_STATISTIC_INDEX_NAME,
                       Builder::GetStatisticOidIndexSchema(db_oid_), statistic_oid_index_);
 }
 
