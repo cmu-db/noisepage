@@ -1,7 +1,6 @@
 #include "optimizer/statistics/stats_storage.h"
 
-#include <catalog/database_catalog.h>
-
+#include "catalog/database_catalog.h"
 #include "gtest/gtest.h"
 #include "storage/sql_table.h"
 #include "test_util/end_to_end_test.h"

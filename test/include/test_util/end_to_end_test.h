@@ -44,7 +44,7 @@ class EndToEndTest : public execution::SqlBasedTest {
 
     // Bind
     auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), test_db_oid_);
-    // TODO(Joe) add support for parameters
+    // TODO(Joe Koshakow) add support for parameters
     binder->BindNameToNode(common::ManagedPointer(stmt_list.get()), nullptr, nullptr);
 
     // Optimize
