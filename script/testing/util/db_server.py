@@ -85,8 +85,6 @@ class NoisePageServer:
         logs = []
 
         check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
-        if self.server_args.get("messenger_enable", False):
-            check_line = f'[info] [PID={db_process.pid}] Messenger ({self.server_args["network_identity"]}) listening: tcp://127.0.0.1:{self.server_args["replication_port"]}'
         LOG.info(f'Waiting until DBMS stdout contains: {check_line}')
 
         while True:
