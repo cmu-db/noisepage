@@ -371,7 +371,7 @@ class EXPORT CatalogAccessor {
    * @param table_oid table oid of table
    * @return table statistics
    */
-  std::unique_ptr<optimizer::TableStats> GetTableStatistics(table_oid_t table_oid);
+  optimizer::TableStats GetTableStatistics(table_oid_t table_oid);
 
   /**
    * Returns the type oid of the given TypeId in pg_type

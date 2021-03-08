@@ -184,8 +184,8 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, col_oid_t col_oid);
 
   /** @brief Get the statistics for the specified table. @see PgStatisticImpl::GetTableStatistics */
-  std::unique_ptr<optimizer::TableStats> GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                            table_oid_t table_oid);
+  optimizer::TableStats GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                           table_oid_t table_oid);
 
  private:
   /**

@@ -379,8 +379,8 @@ std::unique_ptr<optimizer::ColumnStatsBase> DatabaseCatalog::GetColumnStatistics
   return pg_stat_.GetColumnStatistics(txn, common::ManagedPointer(this), table_oid, col_oid);
 }
 
-std::unique_ptr<optimizer::TableStats> DatabaseCatalog::GetTableStatistics(
-    common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid) {
+optimizer::TableStats DatabaseCatalog::GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                          table_oid_t table_oid) {
   return pg_stat_.GetTableStatistics(txn, common::ManagedPointer(this), table_oid);
 }
 

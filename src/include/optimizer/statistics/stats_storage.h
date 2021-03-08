@@ -34,9 +34,9 @@ struct StatsStorageValue {
    * Constructor
    * @param table_stats Table Statistics
    */
-  explicit StatsStorageValue(std::unique_ptr<TableStats> table_stats) : table_stats_(std::move(table_stats)) {}
+  explicit StatsStorageValue(TableStats table_stats) : table_stats_(std::move(table_stats)) {}
   /** Table Statistics */
-  std::unique_ptr<TableStats> table_stats_;
+  TableStats table_stats_;
   /** Shared Latch for Table Statistics */
   common::SharedLatch shared_latch_;
 };

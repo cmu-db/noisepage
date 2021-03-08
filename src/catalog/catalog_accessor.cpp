@@ -210,7 +210,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> CatalogAccessor::GetColumnStatistics
   return dbc_->GetColumnStatistics(txn_, table_oid, col_oid);
 }
 
-std::unique_ptr<optimizer::TableStats> CatalogAccessor::GetTableStatistics(table_oid_t table_oid) {
+optimizer::TableStats CatalogAccessor::GetTableStatistics(table_oid_t table_oid) {
   return dbc_->GetTableStatistics(txn_, table_oid);
 }
 

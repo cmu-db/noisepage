@@ -854,15 +854,14 @@ TEST_F(CatalogTests, StatisticTest) {
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), table_name, tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
+  auto *table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
   auto col_oid = accessor->GetSchema(table_oid).GetColumn(column_name).Oid();
 
   auto table_stats = accessor->GetTableStatistics(table_oid);
-  EXPECT_NE(table_stats, nullptr);
-  EXPECT_TRUE(table_stats->HasColumnStats(col_oid));
-  EXPECT_EQ(table_stats->GetNumRows(), 0);
-  EXPECT_EQ(table_stats->GetColumnCount(), 1);
+  EXPECT_TRUE(table_stats.HasColumnStats(col_oid));
+  EXPECT_EQ(table_stats.GetNumRows(), 0);
+  EXPECT_EQ(table_stats.GetColumnCount(), 1);
 
   auto col_stats = accessor->GetColumnStatistics(table_oid, col_oid);
   EXPECT_NE(col_stats, nullptr);

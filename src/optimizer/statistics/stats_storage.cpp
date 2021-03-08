@@ -35,7 +35,7 @@ std::unique_ptr<TableStats> StatsStorage::GetTableStats(const catalog::db_oid_t 
                                                         catalog::CatalogAccessor *accessor) {
   auto &stats_storage_value = GetStatsStorageValue(database_id, table_id, accessor);
   common::SharedLatch::ScopedSharedLatch table_latch{&stats_storage_value.shared_latch_};
-  return stats_storage_value.table_stats_->Copy();
+  return stats_storage_value.table_stats_.Copy();
 }
 
 /*
@@ -48,8 +48,8 @@ std::unique_ptr<ColumnStatsBase> StatsStorage::GetColumnStats(catalog::db_oid_t 
                                                               catalog::CatalogAccessor *accessor) {
   auto &stats_storage_value = GetStatsStorageValue(database_id, table_id, accessor);
   common::SharedLatch::ScopedSharedLatch table_latch{&stats_storage_value.shared_latch_};
-  NOISEPAGE_ASSERT(stats_storage_value.table_stats_->HasColumnStats(column_oid), "Should have stats for all columns");
-  return stats_storage_value.table_stats_->GetColumnStats(column_oid)->Copy();
+  NOISEPAGE_ASSERT(stats_storage_value.table_stats_.HasColumnStats(column_oid), "Should have stats for all columns");
+  return stats_storage_value.table_stats_.GetColumnStats(column_oid)->Copy();
 }
 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
@@ -58,7 +58,7 @@ void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_
   auto stats_storage_value = table_stats_storage_.find(stats_storage_key);
   if (stats_storage_value != table_stats_storage_.end()) {
     for (const auto &col_id : col_ids) {
-      table_stats_storage_.at(stats_storage_key).table_stats_->GetColumnStats(col_id)->MarkStale();
+      table_stats_storage_.at(stats_storage_key).table_stats_.GetColumnStats(col_id)->MarkStale();
     }
   }
 }
@@ -68,8 +68,7 @@ void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::tabl
   std::unique_lock<std::mutex> latch(insert_latch_);
   StatsStorageKey stats_storage_key{database_id, table_id};
   if (table_stats_storage_.count(stats_storage_key) == 0) {
-    auto table_stats = accessor->GetTableStatistics(table_id);
-    table_stats_storage_.emplace(stats_storage_key, std::move(table_stats));
+    table_stats_storage_.emplace(stats_storage_key, accessor->GetTableStatistics(table_id));
   }
 }
 
@@ -77,7 +76,7 @@ void StatsStorage::UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorag
                                       catalog::CatalogAccessor *accessor) {
   {
     common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
-    if (!stats_storage_value->table_stats_->HasStaleValues()) {
+    if (!stats_storage_value->table_stats_.HasStaleValues()) {
       return;
     }
   }
@@ -85,12 +84,12 @@ void StatsStorage::UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorag
   common::SharedLatch::ScopedExclusiveLatch exclusive_table_latch{&stats_storage_value->shared_latch_};
 
   auto &table_stats = stats_storage_value->table_stats_;
-  for (auto column_stat : table_stats->GetColumnStats()) {
+  for (auto column_stat : table_stats.GetColumnStats()) {
     if (column_stat->IsStale()) {
       auto col_oid = column_stat->GetColumnID();
-      table_stats->RemoveColumnStats(col_oid);
+      table_stats.RemoveColumnStats(col_oid);
       auto new_column_stat = accessor->GetColumnStatistics(table_id, col_oid);
-      table_stats->AddColumnStats(std::move(new_column_stat));
+      table_stats.AddColumnStats(std::move(new_column_stat));
     }
   }
 }

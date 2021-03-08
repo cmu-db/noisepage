@@ -159,9 +159,9 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::GetColumnStatistics
   return column_stats;
 }
 
-std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
-    common::ManagedPointer<transaction::TransactionContext> txn,
-    common::ManagedPointer<DatabaseCatalog> database_catalog, table_oid_t table_oid) {
+optimizer::TableStats PgStatisticImpl::GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                          common::ManagedPointer<DatabaseCatalog> database_catalog,
+                                                          table_oid_t table_oid) {
   const auto &oid_pri = statistic_oid_index_->GetProjectedRowInitializer();
   const auto &oid_prm = statistic_oid_index_->GetKeyOidToOffsetMap();
 
@@ -199,7 +199,7 @@ std::unique_ptr<optimizer::TableStats> PgStatisticImpl::GetTableStatistics(
   }
   delete[] buffer;
   delete[] key_buffer;
-  return std::make_unique<optimizer::TableStats>(db_oid_, table_oid, &col_stats_list);
+  return optimizer::TableStats(db_oid_, table_oid, &col_stats_list);
 }
 
 std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(

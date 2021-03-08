@@ -140,9 +140,9 @@ class PgStatisticImpl {
    * @param table_oid           The OID of the table
    * @return                    Table statistics for the table
    */
-  std::unique_ptr<optimizer::TableStats> GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                            common::ManagedPointer<DatabaseCatalog> database_catalog,
-                                                            table_oid_t table_oid);
+  optimizer::TableStats GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                           common::ManagedPointer<DatabaseCatalog> database_catalog,
+                                           table_oid_t table_oid);
 
   /**
    * Helper method that creates a column statistics object from a projected row
