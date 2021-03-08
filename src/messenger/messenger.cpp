@@ -471,7 +471,7 @@ void Messenger::ServerLoop() {
   while (is_messenger_running_) {
     // Add any new routers that need to be added.
     // TODO(WAN): I wonder how expensive this block is.
-    {
+    if (!routers_to_be_added_.empty()) {
       std::lock_guard lock(routers_add_mutex_);
       for (auto &item : routers_to_be_added_) {
         // TODO(WAN): I think I am missing something very obvious on how to handle this. The types involved suck.
