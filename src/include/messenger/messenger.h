@@ -258,9 +258,6 @@ class Messenger : public common::DedicatedThreadTask {
   /** @return The ConnectionRouter with the specified router_id. Created by ListenForConnection. */
   common::ManagedPointer<ConnectionRouter> GetConnectionRouter(const std::string &router_id);
 
-  /** @return The callback associated with the specific callback ID. */
-  common::ManagedPointer<CallbackFn> GetCallback(uint64_t callback_id);
-
  private:
   friend ConnectionId;
   friend ConnectionRouter;
@@ -278,7 +275,16 @@ class Messenger : public common::DedicatedThreadTask {
   /** The main server loop. */
   void ServerLoop();
 
-  /** Processes messages. Responsible for special callback functions specified by message ID. */
+  /**
+   * Processes messages.
+   * Responsible for special callback functions specified by message ID.
+   * Also responsible for invoking the callbacks that were passed in with a SendMessage.
+   * Note that these callbacks are distinct from the ServerLoop callbacks common to custom Messenger endpoints, such as
+   * replication and the model server messenger.
+   *
+   * TODO(WAN): Unfortunately, this is also a limitation where the SendMessage() callback must always execute before
+   *            the server loop gets a chance to handle the message.
+   */
   void ProcessMessage(const ZmqMessage &msg);
 
   /** The port that is used for all default endpoints. */

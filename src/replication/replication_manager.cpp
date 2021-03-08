@@ -168,9 +168,6 @@ void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> 
     case MessageType::ACK: {
       nlohmann::json json = nlohmann::json::parse(msg.GetMessage());
       REPLICATION_LOG_TRACE(fmt::format("ACK: {}", json.dump()));
-      auto callback_id = json.at("callback_id").get<uint64_t>();
-      auto callback = messenger->GetCallback(callback_id);
-      (*callback)(messenger, msg);
       break;
     }
     case MessageType::HEARTBEAT: {

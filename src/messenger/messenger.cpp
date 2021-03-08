@@ -453,10 +453,6 @@ common::ManagedPointer<ConnectionRouter> Messenger::GetConnectionRouter(const st
   return common::ManagedPointer(routers_.at(router_id).get());
 }
 
-common::ManagedPointer<CallbackFn> Messenger::GetCallback(uint64_t callback_id) {
-  return common::ManagedPointer(&callbacks_.at(callback_id));
-}
-
 uint64_t Messenger::GetNextSendMessageId() {
   uint64_t send_msg_id = message_id_++;
   // Check for wraparound.
@@ -501,9 +497,10 @@ void Messenger::ServerLoop() {
         bool has_custom_serverloop = poll_items.server_callbacks_[i] != nullptr;
         MESSENGER_LOG_TRACE("[PID={}] Messenger RECV-FR {} (custom serverloop: {}): {}", ::getpid(), msg.GetRoutingId(),
                             has_custom_serverloop, msg.GetRawPayload());
-        if (!has_custom_serverloop) {
-          ProcessMessage(msg);
-        } else {
+        // See the ProcessMessage docstring. It must always be invoked so that the callback that was passed in with
+        // SendMessage() is invoked.
+        ProcessMessage(msg);
+        if (has_custom_serverloop) {
           auto &server_callback = poll_items.server_callbacks_[i];
           (*server_callback)(common::ManagedPointer(this), msg);
         }
