@@ -45,6 +45,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -73,6 +74,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -91,6 +93,29 @@ pipeline {
             }
         }
 
+        stage('Microbenchmark (Build only)') {
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
+                }
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
+
         stage('Test') {
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
@@ -102,6 +127,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -144,6 +170,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -197,6 +224,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -234,6 +262,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -275,6 +304,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -316,6 +346,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -377,6 +408,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -435,6 +467,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -481,6 +514,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -533,22 +567,6 @@ pipeline {
                             deleteDir()
                         }
                     }
-                }
-            }
-        }
-        stage('Microbenchmark') {
-            agent { label 'benchmark' }
-            steps {
-                sh 'echo $NODE_NAME'
-
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
-                }
-            }
-            post {
-                cleanup {
-                    deleteDir()
                 }
             }
         }
