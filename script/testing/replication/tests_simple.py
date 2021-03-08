@@ -1,26 +1,8 @@
 import argparse
-import time
 
 from ..util.constants import LOG
 from ..util.db_server import NoisePageServer
 from .utils_sql import replica_sync, sql_check, sql_exec
-
-
-def servers_start(servers):
-    """
-    Start all the servers.
-
-    Parameters
-    ----------
-    servers : [NoisePageServer]
-        The list of servers, where the first element must be the primary.
-    """
-    for server in servers:
-        server.run_db()
-    # TODO(WAN): This is disgusting. This sleeps for a little bit because CI is
-    #  being ridiculously flaky and yet the problem cannot be reproduced even
-    #  sshing into the CI docker image.
-    time.sleep(30)
 
 
 def test_insert_primary_select_replica(servers):
@@ -73,7 +55,8 @@ if __name__ == "__main__":
     }) for (i, identity) in enumerate(["primary", "replica1", "replica2"])]
 
     try:
-        servers_start(servers)
+        for server in servers:
+            server.run_db()
         test_insert_primary_select_replica(servers)
     finally:
         for server in servers:
