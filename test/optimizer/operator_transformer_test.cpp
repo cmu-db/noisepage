@@ -1,3 +1,5 @@
+#include <planner/plannodes/aggregate_plan_node.h>
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -1862,7 +1864,8 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, AnalyzeTest) {
   std::string create_sql = "ANALYZE A(A1)";
-  std::string ref = R"({"Op":"LogicalAnalyze",})";
+  std::string ref =
+      R"({"Op":"LogicalAnalyze","Children":[{"Op":"LogicalAggregateAndGroupBy","Children":[{"Op":"LogicalGet",}]}]})";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
@@ -1880,7 +1883,14 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   EXPECT_EQ(logical_analyze->GetColumns().size(), 1);
   EXPECT_EQ(logical_analyze->GetColumns().at(0), col_a1_oid);
   EXPECT_EQ(logical_analyze->GetTableOid(), table_a_oid_);
-  EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
+  EXPECT_EQ(operator_tree_->GetChildren().size(), 1);
+  auto logical_aggregate = operator_tree_->GetChildren().at(0);
+  EXPECT_EQ(logical_aggregate->Contents()->GetOpType(), optimizer::OpType::LOGICALAGGREGATEANDGROUPBY);
+  EXPECT_EQ(logical_aggregate->GetChildren().size(), 1);
+  auto logical_get =
+      operator_tree_->GetChildren().at(0)->GetChildren().at(0)->Contents()->GetContentsAs<optimizer::LogicalGet>();
+  EXPECT_EQ(logical_get->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(logical_get->GetTableOid(), table_a_oid_);
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
@@ -1904,7 +1914,10 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  // We just give a dummy aggregate plan node as the child
+  auto agg_plan = planner::AggregatePlanNode::Builder().Build();
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  children_plans.emplace_back(std::move(agg_plan));
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node = plan_generator.ConvertOpNode(
@@ -1915,16 +1928,20 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 1);
   EXPECT_EQ(analyze_plan->GetColumnOids().at(0), col_a1_oid);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(analyze_plan->GetChildrenSize(), 1);
 }
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   std::string create_sql = "ANALYZE A";
-  std::string ref = R"({"Op":"LogicalAnalyze",})";
+  std::string ref =
+      R"({"Op":"LogicalAnalyze","Children":[{"Op":"LogicalAggregateAndGroupBy","Children":[{"Op":"LogicalGet",}]}]})";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
   binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
+  auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
+  auto col_a2_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a2").Oid();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
@@ -1934,9 +1951,18 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 
   // Test logical analyze
   auto logical_analyze = operator_tree_->Contents()->GetContentsAs<optimizer::LogicalAnalyze>();
-  EXPECT_EQ(logical_analyze->GetColumns().size(), 0);
+  EXPECT_EQ(logical_analyze->GetColumns().size(), 2);
+  EXPECT_EQ(logical_analyze->GetColumns().at(0), col_a1_oid);
+  EXPECT_EQ(logical_analyze->GetColumns().at(1), col_a2_oid);
   EXPECT_EQ(logical_analyze->GetTableOid(), table_a_oid_);
-  EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
+  EXPECT_EQ(operator_tree_->GetChildren().size(), 1);
+  auto logical_aggregate = operator_tree_->GetChildren().at(0);
+  EXPECT_EQ(logical_aggregate->Contents()->GetOpType(), optimizer::OpType::LOGICALAGGREGATEANDGROUPBY);
+  EXPECT_EQ(logical_aggregate->GetChildren().size(), 1);
+  auto logical_get =
+      operator_tree_->GetChildren().at(0)->GetChildren().at(0)->Contents()->GetContentsAs<optimizer::LogicalGet>();
+  EXPECT_EQ(logical_get->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(logical_get->GetTableOid(), table_a_oid_);
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
@@ -1951,7 +1977,9 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_TRUE(op->IsPhysical());
   EXPECT_EQ(op->GetName(), "Analyze");
   auto physical_op = op->GetContentsAs<optimizer::Analyze>();
-  EXPECT_EQ(physical_op->GetColumns().size(), 0);
+  EXPECT_EQ(physical_op->GetColumns().size(), 2);
+  EXPECT_EQ(physical_op->GetColumns().at(0), col_a1_oid);
+  EXPECT_EQ(physical_op->GetColumns().at(1), col_a2_oid);
   EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
 
   planner::PlanMetaData plan_meta_data{};
@@ -1959,7 +1987,10 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   optimizer::PropertySet property_set{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  // We just give a dummy aggregate plan node as the child
+  auto agg_plan = planner::AggregatePlanNode::Builder().Build();
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  children_plans.emplace_back(std::move(agg_plan));
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node = plan_generator.ConvertOpNode(
@@ -1967,7 +1998,10 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
       std::move(children_expr_map), planner::PlanMetaData::PlanNodeMetaData());
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
-  EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
+  EXPECT_EQ(analyze_plan->GetColumnOids().size(), 2);
+  EXPECT_EQ(analyze_plan->GetColumnOids().at(0), col_a1_oid);
+  EXPECT_EQ(analyze_plan->GetColumnOids().at(1), col_a2_oid);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(analyze_plan->GetChildrenSize(), 1);
 }
 }  // namespace noisepage

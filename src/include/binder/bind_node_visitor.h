@@ -25,6 +25,7 @@ class SQLStatement;
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
 }  // namespace catalog
 
 namespace binder {
@@ -114,6 +115,16 @@ class BindNodeVisitor final : public SqlNodeVisitor {
                               const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
   void ValidateDatabaseName(const std::string &db_name);
+
+  /**
+   * Validate values that are being inserted into table and add any default/null values for missing columns
+   * @param node InsertStatement to validate
+   * @param values values that are being inserted
+   * @param table_schema schema of table being inserted into
+   */
+  void ValidateAndCorrectInsertValues(common::ManagedPointer<parser::InsertStatement> node,
+                                      std::vector<common::ManagedPointer<parser::AbstractExpression>> *values,
+                                      const catalog::Schema &table_schema);
 };
 
 }  // namespace binder

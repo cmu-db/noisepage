@@ -359,6 +359,12 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   if (str == "AGGREGATE_AVG") {
     return ExpressionType::AGGREGATE_AVG;
   }
+  if (str == "AGGREGATE_TOP_K") {
+    return ExpressionType::AGGREGATE_TOP_K;
+  }
+  if (str == "AGGREGATE_HISTOGRAM") {
+    return ExpressionType::AGGREGATE_HISTOGRAM;
+  }
   if (str == "FUNCTION") {
     return ExpressionType::FUNCTION;
   }
@@ -1377,6 +1383,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     index_type = IndexType::INVALID;
   } else if ((strcmp(access_method, "btree") == 0) || (strcmp(access_method, "bwtree") == 0)) {
     index_type = IndexType::BWTREE;
+  } else if ((strcmp(access_method, "b+tree") == 0) || (strcmp(access_method, "bplustree") == 0)) {
+    index_type = IndexType::BPLUSTREE;
   } else if (strcmp(access_method, "hash") == 0) {
     index_type = IndexType::HASH;
   } else {

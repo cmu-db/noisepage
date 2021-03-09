@@ -18,8 +18,8 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/pilot/pilot.h"
-#include "self_driving/pilot/pilot_thread.h"
+#include "self_driving/planning/pilot.h"
+#include "self_driving/planning/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -302,7 +302,10 @@ class DBMain {
    */
   class ExecutionLayer {
    public:
-    ExecutionLayer();
+    /**
+     * @param bytecode_handlers_path path to the bytecode handlers bitcode file
+     */
+    explicit ExecutionLayer(const std::string &bytecode_handlers_path);
     ~ExecutionLayer();
 
     common::ManagedPointer<execution::vm::CompilationManager> GetCompilationManager() {
@@ -414,7 +417,7 @@ class DBMain {
 
       std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
       if (use_execution_) {
-        execution_layer = std::make_unique<ExecutionLayer>();
+        execution_layer = std::make_unique<ExecutionLayer>(bytecode_handlers_path_);
       }
 
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
@@ -456,12 +459,13 @@ class DBMain {
       if (use_pilot_thread_) {
         NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
         pilot = std::make_unique<selfdriving::Pilot>(
-            model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
+            model_save_path_, forecast_model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
             common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
             common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
             common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
-            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
+            std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -783,6 +787,15 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value the new path to the bytecode handler bitcode file
+     * @return self reference for chaining
+     */
+    Builder &SetBytecodeHandlersPath(const std::string &value) {
+      bytecode_handlers_path_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -815,8 +828,11 @@ class DBMain {
     bool use_pilot_thread_ = false;
     bool pilot_planning_ = false;
     uint64_t pilot_interval_ = 1e7;
+    uint64_t forecast_train_interval_ = 120e7;
     uint64_t workload_forecast_interval_ = 1e7;
     std::string model_save_path_;
+    std::string forecast_model_save_path_;
+    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -878,8 +894,10 @@ class DBMain {
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
       pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
+      forecast_train_interval_ = settings_manager->GetInt64(settings::Param::forecast_train_interval);
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
       model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
+      forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
@@ -895,6 +913,8 @@ class DBMain {
       execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
+      bytecode_handlers_path_ = settings_manager->GetString(settings::Param::bytecode_handlers_path);
+
       switch (static_cast<execution::vm::ExecutionMode>(settings_manager->GetInt(settings::Param::execution_mode))) {
         case execution::vm::ExecutionMode::Interpret:
           execution_mode_ = execution::vm::ExecutionMode::Interpret;

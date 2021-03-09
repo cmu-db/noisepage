@@ -140,6 +140,7 @@ bool IsTypeIntegral(TypeId type) {
     case TypeId::Float:
     case TypeId::Double:
     case TypeId::Date:
+    case TypeId::Timestamp:
     case TypeId::Varchar:
     case TypeId::Varbinary:
       return false;
@@ -161,6 +162,7 @@ bool IsTypeFloatingPoint(TypeId type) {
     case TypeId::Hash:
     case TypeId::Pointer:
     case TypeId::Date:
+    case TypeId::Timestamp:
     case TypeId::Varchar:
     case TypeId::Varbinary:
       return false;

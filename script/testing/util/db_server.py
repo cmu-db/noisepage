@@ -87,16 +87,19 @@ class NoisePageServer:
             log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
             check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
             now = time.time()
+            if log_line.strip() != '':
+                logs.append(log_line)
             if log_line.endswith(check_line):
                 LOG.info(f'DB process is verified as running in {round(now - start_time, 2)} sec.')
                 self.db_process = db_process
+                log_output = '\n' + '\n'.join(logs)
+                LOG.info("************ DB Logs Start ************" + log_output)
+                LOG.info("************* DB Logs End *************")
                 return True
-            else:
-                logs.append(log_line)
 
-            if now - start_time >= 60:
+            if now - start_time >= 600:
                 LOG.error('\n'.join(logs))
-                LOG.error(f'DBMS [PID={db_process.pid} took more than 60 seconds to start up. Killing.')
+                LOG.error(f'DBMS [PID={db_process.pid}] took more than 600 seconds to start up. Killing.')
                 db_process.kill()
                 return False
 
@@ -122,8 +125,24 @@ class NoisePageServer:
 
         return_code = self.db_process.poll()
         if return_code is None:
-            self.db_process.terminate()
-            LOG.info("DBMS stopped successfully.")
+            try:
+                # Try to kill the process politely and wait for 60 seconds.
+                self.db_process.terminate()
+                self.db_process.wait(60)
+            except subprocess.TimeoutExpired:
+                # Otherwise, try to kill the process forcefully and wait another 60 seconds.
+                # If the process hasn't died yet, then something terrible has happened and we raise an error.
+                self.db_process.kill()
+                self.db_process.wait(60)
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+            finally:
+                unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
+                if os.path.exists(unix_socket):
+                    os.remove(unix_socket)
+                    LOG.info(f"Removing: {unix_socket}")
+            self.print_db_logs()
+            LOG.info(f"DBMS stopped successfully, code: {self.db_process.returncode}")
             self.db_process = None
         else:
             msg = f"DBMS already terminated, code: {self.db_process.returncode}"

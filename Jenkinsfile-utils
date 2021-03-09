@@ -106,7 +106,7 @@ in. The config arguments are the same as the defaultArgs in noisePageBuild.
 String generateBuildCmd(Map config = [:]) {
     String buildCmd = 'ninja'
     if (config.isBuildSelfDrivingTests) {
-        buildCmd += ' mini_runners'
+        buildCmd += ' execution_runners'
     }
     else if (!config.isBuildBenchmarks && !config.isBuildTests) {
         buildCmd += ' noisepage'
@@ -122,7 +122,7 @@ String generateBuildCmd(Map config = [:]) {
  */
 String generateBuildScript(String compileCmd, String buildCmd, Boolean isRecordTime) {
     String script = '''
-    mkdir build
+    mkdir -p build
     cd build
     '''
     if (isRecordTime) {

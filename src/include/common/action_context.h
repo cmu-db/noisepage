@@ -16,8 +16,7 @@ namespace noisepage::common {
 STRONG_TYPEDEF_HEADER(action_id_t, uint64_t);
 
 /**
- * @enum common::ActionState
- * @brief The lifecycle states states of internal actions.
+ * The lifecycle states of internal actions.
  */
 enum class ActionState : uint8_t {
   /** The system has created the action but the invocation has not started. */

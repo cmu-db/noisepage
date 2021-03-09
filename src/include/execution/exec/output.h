@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>  // NOLINT
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -159,8 +160,11 @@ class OutputWriter {
  private:
   /** Captures the number of rows written.  */
   uint32_t num_rows_ = 0;
-  /** Latch for synchronizing calls to operator() */
-  common::SpinLatch latch_;
+  /** Latch for synchronizing calls to operator().
+   * We favor std::mutex over a spin latch since this is not a short operation when synchronization is necessary
+   * (parallel scan)
+   */
+  std::mutex output_synchronization_;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
   const std::vector<network::FieldFormat> &field_formats_;

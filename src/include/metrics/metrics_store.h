@@ -197,15 +197,16 @@ class MetricsStore {
 
   /**
    * Record query execution history
+   * @param db_oid Database OID
    * @param query_id id of the query
    * @param timestamp time of the query execution
    * @param param parameter associated with this query
    */
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
+  void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     NOISEPAGE_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
-    query_trace_metric_->RecordQueryTrace(query_id, timestamp, param);
+    query_trace_metric_->RecordQueryTrace(db_oid, query_id, timestamp, param);
   }
 
   /**
