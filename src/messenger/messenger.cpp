@@ -400,8 +400,9 @@ void Messenger::Terminate() {
 
 void Messenger::ListenForConnection(const ConnectionDestination &target, const std::string &identity,
                                     CallbackFn callback) {
+  // ZeroMQ is not thread-safe, and the actual binding of new connection endpoints must be done from the same
+  // thread that is going to poll the endpoints. See RouterToBeAdded docstring.
   std::unique_lock lock(routers_add_mutex_);
-  // TODO(WAN): all this copying is stupid.
   routers_to_be_added_.emplace_back(RouterToBeAdded{target, identity, std::move(callback)});
   routers_add_cvar_.wait(lock);
 }
