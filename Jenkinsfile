@@ -117,7 +117,16 @@ pipeline {
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
-                        sh 'cd build && pwd && ls -a && curl -s https://codecov.io/bash | bash -s -- -X gcov'
+                        // The test is not run under `build` in ctest, and there's currently no way to specify the
+                        // output directory in command line with `coverage`. So we have to step into the working
+                        // directory. There might be a future feature to get coverage files recursively:
+                        // https://github.com/codecov/codecov-python/issues/198
+                        sh script :'''
+                        cd build/build/test-work/model_server_test
+                        pwd
+                        ls -a
+                        curl -s https://codecov.io/bash | bash -s -- -X gcov
+                        ''', label: 'Report Python code coverage'
                     }
                     post {
                         cleanup {
