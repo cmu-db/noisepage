@@ -112,12 +112,12 @@ pipeline {
                         export BUILD_ABS_PATH=`pwd`
                         timeout 10m ninja self_driving_e2e_test
                         pwd
-                        ls
+                        ls -a
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
-                        sh 'cd build && pwd && ls && curl -s https://codecov.io/bash | bash -s -- -X gcov'
+                        sh 'cd build && pwd && ls -a && curl -s https://codecov.io/bash | bash -s -- -X gcov'
                     }
                     post {
                         cleanup {
