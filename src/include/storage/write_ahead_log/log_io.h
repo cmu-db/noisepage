@@ -117,16 +117,6 @@ class BufferedLogWriter {
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
   /**
-   * Mark that the BufferedLogWriter is now ready for serialization.
-   *
-   * Currently, BufferedLogWriter is used to serialize both over the disk and over the network.
-   * To avoid copying, we refcount the serialization usages of the BufferedLogWriter.
-   * This function initializes the refcount.
-   *
-   * TODO(WAN): Come up with a better way of "sharing" buffers?
-   */
-
-  /**
    * Mark that the BufferedLogWriter is now ready to be persisted and sent to different destinations.
    *
    * For example, the BufferedLogWriter may then be sent to any of the following destinations:
