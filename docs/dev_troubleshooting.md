@@ -69,3 +69,18 @@ Notice that the provided path includes the filename for the binary itself.
 ## Ubuntu
 
 Record troubleshooting tips specific to Ubuntu here.
+
+**Issue:** When compiling with clang, we don't get nice `std::string` information in the debugger like we do with GCC.
+
+**Fix:** This is because clang [assumes](https://bugs.llvm.org/show_bug.cgi?id=24202#c1) that our `libstdc++` has that information available. We could "fix" this in CMake by passing `-fno-limit-debug-info`, but this bloats the binary and increases linking times. Instead, we install [Debug Symbol Packages](https://wiki.ubuntu.com/Debug%20Symbol%20Packages), the steps are reproduced here for convenience:
+
+```
+echo "deb http://ddebs.ubuntu.com $(lsb_release -cs) main restricted universe multiverse
+deb http://ddebs.ubuntu.com $(lsb_release -cs)-updates main restricted universe multiverse
+deb http://ddebs.ubuntu.com $(lsb_release -cs)-proposed main restricted universe multiverse" | \
+sudo tee -a /etc/apt/sources.list.d/ddebs.list
+sudo apt install ubuntu-dbgsym-keyring
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F2EDC64DC5AEE1F6B9C621F0C8CAB6595FDFF622
+sudo apt-get update
+sudo apt-get install libstdc++6-dbgsym
+```
