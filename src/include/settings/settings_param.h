@@ -72,7 +72,7 @@ class ParamInfo {
         max_value_(max_value),
         callback_(callback) {}
 
- private:
+ public:
   friend void noisepage::runner::InitializeRunnersState();
   friend class noisepage::DBMain;
   friend class SettingsManager;

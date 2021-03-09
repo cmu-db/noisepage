@@ -394,4 +394,14 @@ SETTING_string(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_int(
+  execution_mode,
+  "The execution mode specified by the user, 0 = Interpret, 1 = Adaptive, 2 = Compiled",
+  0,
+  0,
+  2,
+  false,
+  noisepage::settings::Callbacks::NoOp
+)
     // clang-format on

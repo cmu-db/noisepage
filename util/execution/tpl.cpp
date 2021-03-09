@@ -41,6 +41,7 @@
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
+#include "common/sanctioned_shared_pointer.h"
 
 // ---------------------------------------------------------
 // CLI options
@@ -113,9 +114,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Let's parse the source
   util::Region err_region{"tmp-error-region"};
-  util::Region context_region{"tmp-context-region"};
+  common::SanctionedSharedPtr<util::Region>::Ptr context_region = std::make_shared<util::Region>("tmp-context-region");
+
   sema::ErrorReporter error_reporter{&err_region};
-  ast::Context context(&context_region, &error_reporter);
+  ast::Context context(context_region.get(), &error_reporter);
 
   parsing::Scanner scanner(source.data(), source.length());
   parsing::Parser parser(&scanner, &context);
@@ -182,7 +184,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     bytecode_module->Dump(std::cout);  // NOLINT
   }
 
-  auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
+  common::SanctionedSharedPtr<vm::Module>::Ptr module = std::make_shared<vm::Module>(std::move(bytecode_module));
 
   //
   // Interpret
@@ -194,14 +196,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
     if (IS_SQL) {
       std::function<int32_t(exec::ExecutionContext *)> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main, module, context_region)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
       EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
       std::function<int32_t()> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main, module, context_region)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
@@ -218,14 +220,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   if (IS_SQL) {
     std::function<int32_t(exec::ExecutionContext *)> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
+    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main, module, context_region)) {
       EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
       return;
     }
     EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
   } else {
     std::function<int32_t()> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
+    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main, module, context_region)) {
       EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
       return;
     }

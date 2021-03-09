@@ -7,13 +7,13 @@ namespace noisepage::execution::vm {
  */
 enum class ExecutionMode : uint8_t {
   // Always execute in interpreted mode
-  Interpret,
+  Interpret = 0,
   // Execute in interpreted mode, but trigger a compilation asynchronously. As
   // compiled code becomes available, seamlessly swap it in and execute mixed
   // interpreter and compiled code.
-  Adaptive,
+  Adaptive = 1,
   // Compile and generate all machine code before executing the function
-  Compiled
+  Compiled = 2
 };
 
 }  // namespace noisepage::execution::vm
