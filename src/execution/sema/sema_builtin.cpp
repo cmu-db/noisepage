@@ -3192,6 +3192,24 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
   call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
 }
 
+void Sema::CheckBuiltinReplicationCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::ReplicationGetLastRecordId: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), ast::BuiltinType::ExecutionContext)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::ExecutionContext)->PointerTo());
+        return;
+      }
+      call->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Integer));
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented replication call!");
+  }
+}
+
 void Sema::CheckBuiltinTestCatalogLookup(ast::CallExpr *call) {
   if (!CheckArgCount(call, 3)) {
     return;
@@ -3710,6 +3728,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Rtrim:
     case ast::Builtin::Concat: {
       CheckBuiltinStringCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ReplicationGetLastRecordId: {
+      CheckBuiltinReplicationCall(call, builtin);
       break;
     }
     case ast::Builtin::NpRunnersEmitInt:

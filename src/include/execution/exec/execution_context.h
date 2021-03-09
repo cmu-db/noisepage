@@ -17,10 +17,6 @@
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_defs.h"
 
-namespace noisepage::selfdriving {
-class PipelineOperatingUnits;
-}  // namespace noisepage::selfdriving
-
 namespace noisepage::catalog {
 class CatalogAccessor;
 }  // namespace noisepage::catalog
@@ -32,6 +28,14 @@ class MetricsManager;
 namespace noisepage::parser {
 class ConstantValueExpression;
 }  // namespace noisepage::parser
+
+namespace noisepage::replication {
+class ReplicationManager;
+}  // namespace noisepage::replication
+
+namespace noisepage::selfdriving {
+class PipelineOperatingUnits;
+}  // namespace noisepage::selfdriving
 
 namespace noisepage::execution::exec {
 class ExecutionSettings;
@@ -76,12 +80,14 @@ class EXPORT ExecutionContext {
    * @param accessor the catalog accessor of this query
    * @param exec_settings The execution settings to run with.
    * @param metrics_manager The metrics manager for recording metrics
+   * @param replication_manager The replication manager to handle communication between primary and replicas.
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                    const exec::ExecutionSettings &exec_settings,
-                   common::ManagedPointer<metrics::MetricsManager> metrics_manager)
+                   common::ManagedPointer<metrics::MetricsManager> metrics_manager,
+                   common::ManagedPointer<replication::ReplicationManager> replication_manager)
       : exec_settings_(exec_settings),
         db_oid_(db_oid),
         txn_(txn),
@@ -91,7 +97,8 @@ class EXPORT ExecutionContext {
         callback_(callback),
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
         accessor_(accessor),
-        metrics_manager_(metrics_manager) {}
+        metrics_manager_(metrics_manager),
+        replication_manager_(replication_manager) {}
 
   /**
    * @return the transaction used by this query
@@ -207,12 +214,6 @@ class EXPORT ExecutionContext {
   const parser::ConstantValueExpression &GetParam(uint32_t param_idx) const;
 
   /**
-   * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
-   * nodes of the query
-   */
-  uint32_t &RowsAffected() { return rows_affected_; }
-
-  /**
    * Set the PipelineOperatingUnits
    * @param op PipelineOperatingUnits for executing the given query
    */
@@ -227,8 +228,17 @@ class EXPORT ExecutionContext {
     return pipeline_operating_units_;
   }
 
+  /** @return The number of rows affected by the current execution, e.g., INSERT/DELETE/UPDATE. */
+  uint32_t GetRowsAffected() const { return rows_affected_; }
+
   /** Increment or decrement the number of rows affected. */
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
+
+  /**
+   * @return    On the primary, returns the last record ID that was successfully transmitted to all replicas.
+   *            On a replica, returns the last record ID that was successfully applied.
+   */
+  uint64_t ReplicationGetLastRecordId() const;
 
   /**
    * If the calling thread is not registered with any metrics manager, this function
@@ -340,6 +350,8 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
   uint32_t rows_affected_ = 0;
+
+  common::ManagedPointer<replication::ReplicationManager> replication_manager_;
 
   bool memory_use_override_ = false;
   uint32_t memory_use_override_value_ = 0;

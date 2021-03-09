@@ -6,6 +6,7 @@
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
+#include "replication/replication_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
@@ -136,6 +137,26 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
+  // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
+
+  // TODO(WAN): Tianlei will be adding code that has different queues for different retention policies. When this
+  //  happens, the individual queues can deal with calling PrepareForSerialization with their respective retention
+  //  policies, so the below assert will become unnecessary.
+  auto retention_policy = primary_replication_manager_ == DISABLED
+                              ? transaction::RetentionPolicy::RETENTION_LOCAL_DISK
+                              : transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
+  NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED ||
+                       retention_policy != transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS,
+                   "If replication is disabled, then you can't send buffers to replicas.");
+
+  if (filled_buffer_ != nullptr) {
+    filled_buffer_->PrepareForSerialization(retention_policy);
+    // Replicate the buffer if it exists.
+    // TODO(WAN): Note that this is effectively on the critical path to commit callbacks being invoked. Aka terrible.
+    if (primary_replication_manager_ != DISABLED) {
+      primary_replication_manager_->ReplicateBuffer(filled_buffer_);
+    }
+  }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
   // Signal disk log consumer task thread that a buffer has been handed over

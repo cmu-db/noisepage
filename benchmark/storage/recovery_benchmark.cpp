@@ -67,12 +67,14 @@ class RecoveryBenchmark : public benchmark::Fixture {
       auto recovery_block_store = recovery_db_main->GetStorageLayer()->GetBlockStore();
       auto recovery_catalog = recovery_db_main->GetCatalogLayer()->GetCatalog();
       auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
+      auto recovery_replication_manager = recovery_db_main->GetReplicationManager();
 
       // Instantiate recovery manager, and recover the tables.
       storage::DiskLogProvider log_provider(noisepage::BenchmarkConfig::logfile_path.data());
-      storage::RecoveryManager recovery_manager(
-          common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
-          recovery_deferred_action_manager, recovery_thread_registry, recovery_block_store);
+      storage::RecoveryManager recovery_manager(common::ManagedPointer<storage::AbstractLogProvider>(&log_provider),
+                                                recovery_catalog, recovery_txn_manager,
+                                                recovery_deferred_action_manager, recovery_replication_manager,
+                                                recovery_thread_registry, recovery_block_store);
 
       uint64_t elapsed_ms;
       {
@@ -219,12 +221,13 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     auto recovery_block_store = recovery_db_main->GetStorageLayer()->GetBlockStore();
     auto recovery_catalog = recovery_db_main->GetCatalogLayer()->GetCatalog();
     auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
+    auto recovery_replication_manager = recovery_db_main->GetReplicationManager();
 
     // Instantiate recovery manager, and recover the tables.
     storage::DiskLogProvider log_provider(noisepage::BenchmarkConfig::logfile_path.data());
-    storage::RecoveryManager recovery_manager(common::ManagedPointer<storage::AbstractLogProvider>(&log_provider),
-                                              recovery_catalog, recovery_txn_manager, recovery_deferred_action_manager,
-                                              recovery_thread_registry, recovery_block_store);
+    storage::RecoveryManager recovery_manager(
+        common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
+        recovery_deferred_action_manager, recovery_replication_manager, recovery_thread_registry, recovery_block_store);
 
     uint64_t elapsed_ms;
     {
