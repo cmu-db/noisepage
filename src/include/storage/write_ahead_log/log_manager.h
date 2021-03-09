@@ -110,8 +110,9 @@ class LogManager : public common::DedicatedThreadOwner {
    * write to the buffer. This method can be called safely from concurrent execution threads.
    *
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
+   * @param retention_policy that decides how the log buffer will be persisted.
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment);
+  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment, transaction::RetentionPolicy retention_policy);
 
   /**
    * For testing only
@@ -168,7 +169,8 @@ class LogManager : public common::DedicatedThreadOwner {
   // serializer thread should block when requesting a new buffer until it receives an empty buffer
   common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
-  common::ConcurrentQueue<SerializedLogs> filled_buffer_queue_;
+  common::ConcurrentQueue<SerializedLogs> disk_filled_buffer_queue_;
+  common::ConcurrentQueue<SerializedLogs> replication_filled_buffer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);

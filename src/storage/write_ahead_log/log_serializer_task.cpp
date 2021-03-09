@@ -59,17 +59,20 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   } while (run_task_);
   // To be extra sure we processed everything
   Process();
-  NOISEPAGE_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
+  NOISEPAGE_ASSERT(disk_flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
 }
 
 std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
   uint64_t num_bytes = 0, num_records = 0, num_txns = 0;
 
-  bool buffers_processed = false;
+  bool disk_buffers_processed = false;
+  bool replication_buffers_processed = false;
 
   {
     common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
-    NOISEPAGE_ASSERT(serialized_txns_.empty(),
+    NOISEPAGE_ASSERT(disk_serialized_txns_.empty(),
+                     "Aggregated txn timestamps should have been handed off to TimestampManager");
+    NOISEPAGE_ASSERT(replication_serialized_txns_.empty(),
                      "Aggregated txn timestamps should have been handed off to TimestampManager");
     // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
     // came in during the previous serialization loop
@@ -82,41 +85,64 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         std::unique_lock<std::mutex> guard(flush_queue_latch_);
 
         // There are no new buffers, so we can break
-        if (flush_queue_.empty()) {
+        if (disk_flush_queue_.empty() && replication_flush_queue_.empty()) {
           break;
         }
 
-        temp_flush_queue_ = std::move(flush_queue_);
-        flush_queue_ = std::queue<RecordBufferSegment *>();
+        temp_disk_flush_queue_ = std::move(disk_flush_queue_);
+        temp_replication_flush_queue_ = std::move(replication_flush_queue_);
+        disk_flush_queue_ = std::queue<RecordBufferSegment *>();
+        replication_flush_queue_ = std::queue<RecordBufferSegment *>();
         empty_ = true;
+      }
+ 
+      if (!temp_replication_flush_queue_.empty()) {
+        replication_buffers_processed = true;
+      }
+
+      while (!temp_replication_flush_queue_.empty()) {
+        RecordBufferSegment *buffer = temp_replication_flush_queue_.front();
+        temp_replication_flush_queue_.pop();
+        
+        // Serialize the Redo buffer and release it to the buffer pool
+        IterableBufferSegment<LogRecord> task_buffer(buffer);
+        const auto num_bytes_records_and_txns = SerializeBuffer(&task_buffer, SerializeDestination::REPLICAS);
+        
+        num_bytes += std::get<0>(num_bytes_records_and_txns);
+        num_records += std::get<1>(num_bytes_records_and_txns);
+        num_txns += std::get<2>(num_bytes_records_and_txns);
       }
 
       // Loop over all the new buffers we found
-      while (!temp_flush_queue_.empty()) {
-        RecordBufferSegment *buffer = temp_flush_queue_.front();
-        temp_flush_queue_.pop();
+      while (!temp_disk_flush_queue_.empty()) {
+        RecordBufferSegment *buffer = temp_disk_flush_queue_.front();
+        temp_disk_flush_queue_.pop();
 
         // Serialize the Redo buffer and release it to the buffer pool
         IterableBufferSegment<LogRecord> task_buffer(buffer);
-        const auto num_bytes_records_and_txns = SerializeBuffer(&task_buffer);
+        const auto num_bytes_records_and_txns = SerializeBuffer(&task_buffer, SerializeDestination::DISK);
         buffer_pool_->Release(buffer);
         num_bytes += std::get<0>(num_bytes_records_and_txns);
         num_records += std::get<1>(num_bytes_records_and_txns);
         num_txns += std::get<2>(num_bytes_records_and_txns);
       }
 
-      buffers_processed = true;
+      disk_buffers_processed = true;
     }
 
     // Mark the last buffer that was written to as full
-    if (buffers_processed) HandFilledBufferToWriter();
+    if (disk_buffers_processed) HandFilledBufferToWriter(SerializeDestination::DISK);
+    if (replication_buffers_processed) HandFilledBufferToWriter(SerializeDestination::REPLICAS);
 
     // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
     // for each timestamp we remove.
-    for (const auto &txns : serialized_txns_) {
+
+    // Only txns from disk should be removed.
+    for (const auto &txns : disk_serialized_txns_) {
       txns.first->RemoveTransactions(txns.second);
     }
-    serialized_txns_.clear();
+    disk_serialized_txns_.clear();
+    replication_serialized_txns_.clear();
   }
 
   return {num_bytes, num_records, num_txns};
@@ -126,17 +152,25 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
  * Used by the serializer thread to get a buffer to serialize data to
  * @return buffer to write to
  */
-BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
-  if (filled_buffer_ == nullptr) {
-    empty_buffer_queue_->Dequeue(&filled_buffer_);
+BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer(SerializeDestination destination) {
+  if (destination == SerializeDestination::DISK) {
+    if (disk_filled_buffer_ == nullptr) {
+      empty_buffer_queue_->Dequeue(&disk_filled_buffer_);
+    }
+    return disk_filled_buffer_;
+  } else {
+    if (replication_filled_buffer_ == nullptr) {
+      empty_buffer_queue_->Dequeue(&replication_filled_buffer_);
+    }
+    return replication_filled_buffer_;
   }
-  return filled_buffer_;
+  
 }
 
 /**
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
-void LogSerializerTask::HandFilledBufferToWriter() {
+void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destination) {
   // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
 
   // TODO(WAN): Tianlei will be adding code that has different queues for different retention policies. When this
@@ -148,26 +182,38 @@ void LogSerializerTask::HandFilledBufferToWriter() {
   NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED ||
                        retention_policy != transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS,
                    "If replication is disabled, then you can't send buffers to replicas.");
-
-  if (filled_buffer_ != nullptr) {
-    filled_buffer_->PrepareForSerialization(retention_policy);
-    // Replicate the buffer if it exists.
-    // TODO(WAN): Note that this is effectively on the critical path to commit callbacks being invoked. Aka terrible.
-    if (primary_replication_manager_ != DISABLED) {
-      primary_replication_manager_->ReplicateBuffer(filled_buffer_);
+  if (destination == SerializeDestination::DISK) {
+    if (disk_filled_buffer_ != nullptr) {
+      disk_filled_buffer_->PrepareForSerialization(retention_policy);
     }
+    // Hand over the filled buffer
+    disk_filled_buffer_queue_->Enqueue(std::make_pair(disk_filled_buffer_, disk_commits_in_buffer_));
+    // Signal disk log consumer task thread that a buffer has been handed over
+    disk_log_writer_thread_cv_->notify_one();
+    // Mark that the task doesn't have a buffer in its possession to which it can write to
+    disk_commits_in_buffer_.clear();
+    disk_filled_buffer_ = nullptr;
+  } else if (destination == SerializeDestination::REPLICAS) {
+    if (replication_filled_buffer_ != nullptr) {
+      replication_filled_buffer_->PrepareForSerialization(retention_policy);
+
+      // Replicate the buffer if it exists.
+      // TODO(WAN): Note that this is effectively on the critical path to commit callbacks being invoked. Aka terrible.
+      if (primary_replication_manager_ != DISABLED) {
+        primary_replication_manager_->ReplicateBuffer(replication_filled_buffer_);
+      }
+    }
+
+    // Hand over the filled buffer
+    replication_filled_buffer_queue_->Enqueue(std::make_pair(replication_filled_buffer_, replication_commits_in_buffer_));
+    // Mark that the task doesn't have a buffer in its possession to which it can write to
+    replication_commits_in_buffer_.clear();
+    replication_filled_buffer_ = nullptr;
   }
-  // Hand over the filled buffer
-  filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
-  // Signal disk log consumer task thread that a buffer has been handed over
-  disk_log_writer_thread_cv_->notify_one();
-  // Mark that the task doesn't have a buffer in its possession to which it can write to
-  commits_in_buffer_.clear();
-  filled_buffer_ = nullptr;
 }
 
 std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
-    IterableBufferSegment<LogRecord> *buffer_to_serialize) {
+    IterableBufferSegment<LogRecord> *buffer_to_serialize, SerializeDestination destination) {
   uint64_t num_bytes = 0, num_records = 0, num_txns = 0;
 
   // Iterate over all redo records in the redo buffer through the provided iterator
@@ -179,26 +225,37 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
         // If a transaction is read-only, then the only record it generates is its commit record. This commit record is
         // necessary for the transaction's callback function to be invoked, but there is no need to serialize it, as
         // it corresponds to a transaction with nothing to redo.
-        if (!commit_record->IsReadOnly()) num_bytes += SerializeRecord(record);
-        commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
-        // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
-        serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
+        if (!commit_record->IsReadOnly()) num_bytes += SerializeRecord(record, destination);
+        if (destination == SerializeDestination::DISK) {
+          disk_commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
+          // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
+          disk_serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
+        } else {
+          replication_commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
+          // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
+          replication_serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
+        }
+       
         num_txns++;
         break;
       }
 
       case (LogRecordType::ABORT): {
         // If an abort record shows up at all, the transaction cannot be read-only
-        num_bytes += SerializeRecord(record);
+        num_bytes += SerializeRecord(record, destination);
         auto *abord_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
-        serialized_txns_[abord_record->TimestampManager()].push_back(record.TxnBegin());
+        if (destination == SerializeDestination::DISK) {
+          disk_serialized_txns_[abord_record->TimestampManager()].push_back(record.TxnBegin());
+        } else {
+          replication_serialized_txns_[abord_record->TimestampManager()].push_back(record.TxnBegin());
+        }
         num_txns++;
         break;
       }
 
       default:
-        // Any record that is not a commit record is always serialized.`
-        num_bytes += SerializeRecord(record);
+        // Any record that is not a commit record is always serialized.
+        num_bytes += SerializeRecord(record, destination);
     }
     num_records++;
   }
@@ -206,7 +263,9 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
   return {num_bytes, num_records, num_txns};
 }
 
-uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord &record) {
+uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord &record,
+                                            SerializeDestination destination) {
+  //STORAGE_LOG_ERROR("SerializeRecord");
   uint64_t num_bytes = 0;
   // First, serialize out fields common across all LogRecordType's.
 
@@ -215,23 +274,24 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
   // manager generates in this function. In particular, the later value is very likely to be strictly smaller when the
   // LogRecordType is REDO. On recovery, the goal is to turn the serialized format back into an in-memory log record of
   // this size.
-  num_bytes += WriteValue(record.Size());
+  num_bytes += WriteValue(record.Size(), destination);
 
-  num_bytes += WriteValue(record.RecordType());
-  num_bytes += WriteValue(record.TxnBegin());
+  num_bytes += WriteValue(record.RecordType(), destination);
+  num_bytes += WriteValue(record.TxnBegin(), destination);
 
   switch (record.RecordType()) {
     case LogRecordType::REDO: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<RedoRecord>();
-      num_bytes += WriteValue(record_body->GetDatabaseOid());
-      num_bytes += WriteValue(record_body->GetTableOid());
-      num_bytes += WriteValue(record_body->GetTupleSlot());
+      num_bytes += WriteValue(record_body->GetDatabaseOid(), destination);
+      num_bytes += WriteValue(record_body->GetTableOid(), destination);
+      num_bytes += WriteValue(record_body->GetTupleSlot(), destination);
 
       auto *delta = record_body->Delta();
       // Write out which column ids this redo record is concerned with. On recovery, we can construct the appropriate
       // ProjectedRowInitializer from these ids and their corresponding block layout.
-      num_bytes += WriteValue(delta->NumColumns());
-      num_bytes += WriteValue(delta->ColumnIds(), static_cast<uint32_t>(sizeof(col_id_t)) * delta->NumColumns());
+      num_bytes += WriteValue(delta->NumColumns(), destination);
+      num_bytes +=
+          WriteValue(delta->ColumnIds(), static_cast<uint32_t>(sizeof(col_id_t)) * delta->NumColumns(), destination);
 
       // Write out the attr sizes boundaries, this way we can deserialize the records without the need of the block
       // layout
@@ -239,10 +299,10 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
       uint16_t boundaries[NUM_ATTR_BOUNDARIES];
       memset(boundaries, 0, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES);
       StorageUtil::ComputeAttributeSizeBoundaries(block_layout, delta->ColumnIds(), delta->NumColumns(), boundaries);
-      WriteValue(boundaries, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES);
+      WriteValue(boundaries, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES, destination);
 
       // Write out the null bitmap.
-      num_bytes += WriteValue(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
+      num_bytes += WriteValue(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()), destination);
 
       // Write out attribute values
       for (uint16_t i = 0; i < delta->NumColumns(); i++) {
@@ -259,34 +319,34 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
           // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
           const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(column_value_address);
           // Serialize out length of the varlen entry.
-          num_bytes += WriteValue(varlen_entry->Size());
+          num_bytes += WriteValue(varlen_entry->Size(), destination);
           if (varlen_entry->IsInlined()) {
             // Serialize out the prefix of the varlen entry.
-            num_bytes += WriteValue(varlen_entry->Prefix(), varlen_entry->Size());
+            num_bytes += WriteValue(varlen_entry->Prefix(), varlen_entry->Size(), destination);
           } else {
             // Serialize out the content field of the varlen entry.
-            num_bytes += WriteValue(varlen_entry->Content(), varlen_entry->Size());
+            num_bytes += WriteValue(varlen_entry->Content(), varlen_entry->Size(), destination);
           }
         } else {
           // Inline column value is the actual data we want to serialize out.
           // Note that by writing out AttrSize(col_id) bytes instead of just the difference between successive offsets
           // of the delta record, we avoid serializing out any potential padding.
-          num_bytes += WriteValue(column_value_address, block_layout.AttrSize(col_id));
+          num_bytes += WriteValue(column_value_address, block_layout.AttrSize(col_id), destination);
         }
       }
       break;
     }
     case LogRecordType::DELETE: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<DeleteRecord>();
-      num_bytes += WriteValue(record_body->GetDatabaseOid());
-      num_bytes += WriteValue(record_body->GetTableOid());
-      num_bytes += WriteValue(record_body->GetTupleSlot());
+      num_bytes += WriteValue(record_body->GetDatabaseOid(), destination);
+      num_bytes += WriteValue(record_body->GetTableOid(), destination);
+      num_bytes += WriteValue(record_body->GetTupleSlot(), destination);
       break;
     }
     case LogRecordType::COMMIT: {
       auto *record_body = record.GetUnderlyingRecordBodyAs<CommitRecord>();
-      num_bytes += WriteValue(record_body->CommitTime());
-      num_bytes += WriteValue(record_body->OldestActiveTxn());
+      num_bytes += WriteValue(record_body->CommitTime(), destination);
+      num_bytes += WriteValue(record_body->OldestActiveTxn(), destination);
       break;
     }
     case LogRecordType::ABORT: {
@@ -298,9 +358,9 @@ uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord 
   return num_bytes;
 }
 
-uint32_t LogSerializerTask::WriteValue(const void *val, const uint32_t size) {
+uint32_t LogSerializerTask::WriteValue(const void *val, const uint32_t size, SerializeDestination destination) {
   // Serialize the value and copy it to the buffer
-  BufferedLogWriter *out = GetCurrentWriteBuffer();
+  BufferedLogWriter *out = GetCurrentWriteBuffer(destination);
   uint32_t size_written = 0;
 
   while (size_written < size) {
@@ -308,9 +368,9 @@ uint32_t LogSerializerTask::WriteValue(const void *val, const uint32_t size) {
     size_written += out->BufferWrite(val_byte, size - size_written);
     if (out->IsBufferFull()) {
       // Mark the buffer full for the disk log consumer task thread to flush it
-      HandFilledBufferToWriter();
+      HandFilledBufferToWriter(destination);
       // Get an empty buffer for writing this value
-      out = GetCurrentWriteBuffer();
+      out = GetCurrentWriteBuffer(destination);
     }
   }
   return size;

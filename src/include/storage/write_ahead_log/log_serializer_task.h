@@ -28,25 +28,29 @@ namespace noisepage::storage {
 class LogSerializerTask : public common::DedicatedThreadTask {
  public:
   /**
-   * @param serialization_interval      Interval time for when to trigger serialization.
-   * @param buffer_pool                 Buffer pool to use to release serialized buffers.
-   * @param empty_buffer_queue          Pointer to queue to pop empty buffers from.
-   * @param filled_buffer_queue         Pointer to queue to push filled buffers to.
-   * @param disk_log_writer_thread_cv   Pointer to cvar to notify consumer when a new buffer has handed over.
-   * @param primary_replication_manager Pointer to replication manager where to-be-replicated serialized logs are sent.
+   * @param serialization_interval             Interval time for when to trigger serialization.
+   * @param buffer_pool                        Buffer pool to use to release serialized buffers.
+   * @param empty_buffer_queue                 Pointer to queue to pop empty buffers from.
+   * @param disk_filled_buffer_queue           Pointer to queue to push filled buffers to.
+   * @param replication_filled_buffer_queue    Pointer to queue to push filled buffers to.
+   * @param disk_log_writer_thread_cv          Pointer to cvar to notify consumer when a new buffer has handed over.
+   * @param primary_replication_manager        Pointer to replication manager where to-be-replicated serialized logs are sent.
    */
   explicit LogSerializerTask(
       const std::chrono::microseconds serialization_interval, RecordBufferSegmentPool *buffer_pool,
       common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue,
-      common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
+      common::ConcurrentQueue<storage::SerializedLogs> *disk_filled_buffer_queue,
+      common::ConcurrentQueue<storage::SerializedLogs> *replication_filled_buffer_queue,
       std::condition_variable *disk_log_writer_thread_cv,
       common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager)
       : run_task_(false),
         serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
-        filled_buffer_(nullptr),
+        disk_filled_buffer_(nullptr),
+        replication_filled_buffer_(nullptr),
         empty_buffer_queue_(empty_buffer_queue),
-        filled_buffer_queue_(filled_buffer_queue),
+        disk_filled_buffer_queue_(disk_filled_buffer_queue),
+        replication_filled_buffer_queue_(replication_filled_buffer_queue),
         disk_log_writer_thread_cv_(disk_log_writer_thread_cv),
         primary_replication_manager_(primary_replication_manager) {}
 
@@ -72,10 +76,16 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * Hands a (possibly partially) filled buffer to the serializer task to be serialized
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
+  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment, transaction::RetentionPolicy retention_policy) {
     {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
-      flush_queue_.push(buffer_segment);
+      if (retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
+        disk_flush_queue_.push(buffer_segment);
+        replication_flush_queue_.push(buffer_segment);
+      } else if (retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK) {
+        disk_flush_queue_.push(buffer_segment);
+      }
+      
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();
     }
@@ -88,6 +98,9 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   void SetSerializationInterval(int32_t interval) { serialization_interval_ = std::chrono::microseconds(interval); }
 
  private:
+  // Marks where a piece of serialized log will be redirected to.
+  enum class SerializeDestination { DISK = 0, REPLICAS };
+  
   friend class LogManager;
   // Flag to signal task to run or stop
   bool run_task_;
@@ -106,7 +119,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // Latch to protect flush queue
   std::mutex flush_queue_latch_;
   // Stores unserialized buffers handed off by transactions
-  std::queue<RecordBufferSegment *> flush_queue_;
+  std::queue<RecordBufferSegment *> disk_flush_queue_;
+  std::queue<RecordBufferSegment *> replication_flush_queue_;
 
   // conditional variable to be notified when there are logs to be processed
   std::condition_variable flush_queue_cv_;
@@ -115,22 +129,27 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   bool sleeping_ = false, empty_ = true;
 
   // Current buffer we are serializing logs to
-  BufferedLogWriter *filled_buffer_;
+  BufferedLogWriter *disk_filled_buffer_;
+  BufferedLogWriter *replication_filled_buffer_;
   // Commit callbacks for commit records currently in filled_buffer
-  std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
+  std::vector<std::pair<transaction::callback_fn, void *>> disk_commits_in_buffer_;
+  std::vector<std::pair<transaction::callback_fn, void *>> replication_commits_in_buffer_;
 
   // Used by the serializer thread to store buffers it has grabbed from the log manager
-  std::queue<RecordBufferSegment *> temp_flush_queue_;
+  std::queue<RecordBufferSegment *> temp_disk_flush_queue_;
+  std::queue<RecordBufferSegment *> temp_replication_flush_queue_;
 
   // We aggregate all transactions we serialize so we can bulk remove the from the timestamp manager
   // TODO(Gus): If we guarantee there is only one TSManager in the system, this can just be a vector. We could also pass
   // TS into the serializer instead of having a pointer for it in every commit/abort record
-  std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> serialized_txns_;
+  std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> disk_serialized_txns_;
+  std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> replication_serialized_txns_;
 
   // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
   common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
   // The queue containing filled buffers. Task should push filled serialized buffers into this queue
-  common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
+  common::ConcurrentQueue<SerializedLogs> *disk_filled_buffer_queue_;
+  common::ConcurrentQueue<SerializedLogs> *replication_filled_buffer_queue_;
 
   // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
   std::condition_variable *disk_log_writer_thread_cv_;
@@ -157,43 +176,48 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param buffer_to_serialize the iterator to the redo buffer to be serialized
    * @return tuple representing number of bytes, number of records, and number of txns serialized, used for metrics
    */
-  std::tuple<uint64_t, uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
+  std::tuple<uint64_t, uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize,
+                                                           SerializeDestination destination);
 
   /**
    * Serialize out the record to the log
    * @param record the redo record to serialise
    * @return bytes serialized, used for metrics
    */
-  uint64_t SerializeRecord(const LogRecord &record);
+  uint64_t SerializeRecord(const LogRecord &record, SerializeDestination destination);
 
   /**
    * Serialize the data pointed to by val to current serialization buffer
    * @tparam T Type of the value
    * @param val The value to write to the buffer
+   * @param destination The destination to write the value to
    * @return bytes written, used for metrics
    */
   template <class T>
-  uint32_t WriteValue(const T &val) {
-    return WriteValue(&val, sizeof(T));
+  uint32_t WriteValue(const T &val, SerializeDestination destination) {
+    return WriteValue(&val, sizeof(T), destination);
   }
 
   /**
    * Serialize the data pointed to by val to current serialization buffer
    * @param val the value
    * @param size size of the value to serialize
+   * @param destination The destination to write the value to
    * @return bytes written, used for metrics
    */
-  uint32_t WriteValue(const void *val, uint32_t size);
+  uint32_t WriteValue(const void *val, uint32_t size, SerializeDestination destination);
 
   /**
    * Returns the current buffer to serialize logs to
+   * @param destination The destination to write the value to
    * @return buffer to write to
    */
-  BufferedLogWriter *GetCurrentWriteBuffer();
+  BufferedLogWriter *GetCurrentWriteBuffer(SerializeDestination destination);
 
   /**
    * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
+   * @param destination The destination to write the value to
    */
-  void HandFilledBufferToWriter();
+  void HandFilledBufferToWriter(SerializeDestination destination);
 };
 }  // namespace noisepage::storage

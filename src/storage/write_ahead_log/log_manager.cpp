@@ -22,11 +22,11 @@ void LogManager::Start() {
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = thread_registry_->RegisterDedicatedThread<DiskLogConsumerTask>(
       this /* requester */, persist_interval_, persist_threshold_, &buffers_, empty_buffer_queue_.Get(),
-      &filled_buffer_queue_);
+      &disk_filled_buffer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
-      this /* requester */, serialization_interval_, buffer_pool_, empty_buffer_queue_, &filled_buffer_queue_,
+      this /* requester */, serialization_interval_, buffer_pool_, empty_buffer_queue_, &disk_filled_buffer_queue_, &replication_filled_buffer_queue_,
       &disk_log_writer_task_->disk_log_writer_thread_cv_, primary_replication_manager_);
 }
 
@@ -55,7 +55,10 @@ void LogManager::PersistAndStop() {
 
   result = thread_registry_->StopTask(this, disk_log_writer_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   NOISEPAGE_ASSERT(result, "DiskLogConsumerTask should have been stopped");
-  NOISEPAGE_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
+  NOISEPAGE_ASSERT(disk_filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
+  NOISEPAGE_ASSERT(replication_filled_buffer_queue_.Empty(),
+                   "replication manager should have processed all filled buffers\n");
+
 
   // Close the buffers corresponding to the log file
   for (auto &buf : buffers_) {
@@ -63,13 +66,15 @@ void LogManager::PersistAndStop() {
   }
   // Clear buffer queues
   empty_buffer_queue_->Clear();
-  filled_buffer_queue_.Clear();
+  disk_filled_buffer_queue_.Clear();
+  replication_filled_buffer_queue_.Clear();
   buffers_.clear();
 }
 
-void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
+void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment,
+                                       transaction::RetentionPolicy retention_policy) {
   NOISEPAGE_ASSERT(run_log_manager_, "Must call Start on log manager before handing it buffers");
-  log_serializer_task_->AddBufferToFlushQueue(buffer_segment);
+  log_serializer_task_->AddBufferToFlushQueue(buffer_segment, retention_policy);
 }
 
 void LogManager::SetSerializationInterval(int32_t interval) {

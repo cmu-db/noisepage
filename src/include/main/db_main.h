@@ -396,10 +396,12 @@ class DBMain {
         NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
         NOISEPAGE_ASSERT(use_logging_, "Replication uses logging.");
         if (network_identity_ == "primary") {
+          STORAGE_LOG_ERROR("I am primary.");
           replication_manager = std::make_unique<replication::PrimaryReplicationManager>(
               messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
               common::ManagedPointer(empty_buffer_queue));
         } else {
+          STORAGE_LOG_ERROR("I am replica.");
           replication_manager = std::make_unique<replication::ReplicaReplicationManager>(
               messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
               common::ManagedPointer(empty_buffer_queue));
