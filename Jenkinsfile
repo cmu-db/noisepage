@@ -122,7 +122,16 @@ pipeline {
                         // directory. There might be a future feature to get coverage files recursively:
                         // https://github.com/codecov/codecov-python/issues/198
                         sh script :'''
-                        cd build/build/test-work/model_server_test
+                        cd build
+                        pwd
+                        ls -a
+                        cd build
+                        pwd
+                        ls -a
+                        cd test-work
+                        pwd
+                        ls -a
+                        cd model_server_test
                         pwd
                         ls -a
                         curl -s https://codecov.io/bash | bash -s -- -X gcov
