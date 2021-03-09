@@ -67,8 +67,8 @@ class ReplicateBufferMessage {
   /** @return The parsed ReplicateBufferMessage. */
   static ReplicateBufferMessage FromMessage(const messenger::ZmqMessage &msg);
 
-  /** @return The string version of a ReplicateBufferMessage, ready for ReplicaSend(). */
-  std::string ToString();
+  /** @return The JSON version of a ReplicateBufferMessage, ready for ReplicaSend(). */
+  common::json ToJson();
 
   /** @return Only valid on receiver side. The source callback ID to invoke once this buffer is considered persisted. */
   uint64_t GetSourceCallbackId() const { return source_callback_id_; }
@@ -127,6 +127,8 @@ class ReplicationManager {
   /** Maximum wait time for synchronous replication. */
   static constexpr std::chrono::seconds REPLICATION_MAX_BLOCKING_WAIT_TIME = std::chrono::seconds(10);
 
+  static const char *key_message_type;  ///< JSON key for the message type.
+
   /** Default destructor. */
   virtual ~ReplicationManager();
 
@@ -158,14 +160,22 @@ class ReplicationManager {
   common::ManagedPointer<ReplicaReplicationManager> GetAsReplica();
 
   /**
+   * Send an acknowledgement message to the specified replica.
+   *
+   * @param replica_name    The replica to send to.
+   * @param callback_id     The ID of the callback to invoke on the node.
+   * @param block           True if the call should block until an acknowledgement is received. False otherwise.
+   */
+  void ReplicaAck(const std::string &replica_name, uint64_t callback_id, bool block);
+
+  /**
    * Send a message to the specified replica.
    *
    * @param replica_name    The replica to send to.
-   * @param type            The type of message that is being sent.
    * @param msg             The message that is being sent.
    * @param block           True if the call should block until an acknowledgement is received. False otherwise.
    */
-  void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
+  void ReplicaSend(const std::string &replica_name, common::json msg, bool block);
 
  protected:
   /**
@@ -216,6 +226,8 @@ class ReplicationManager {
   /** @return The connection ID associated with a particular replica. */
   common::ManagedPointer<messenger::ConnectionId> GetReplicaConnection(const std::string &replica_name);
 
+  static constexpr size_t MESSAGE_PREVIEW_LEN = 20;  ///< The number of characters to preview in a message in debug.
+
   common::ManagedPointer<messenger::Messenger> messenger_;  ///< The messenger used for all send/receive operations.
   std::string identity_;                                    ///< The identity of this replica.
   uint16_t port_;                                           ///< The port that replication runs on.
@@ -229,6 +241,19 @@ class ReplicationManager {
 
   /** Once used, buffers are returned to a central empty buffer queue. */
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
+
+ private:
+  /**
+   * Send a message to the specified replica.
+   *
+   * @param replica_name    The replica to send to.
+   * @param msg_type        The type of message that is being sent.
+   * @param msg             The message that is being sent.
+   * @param remote_cb_id    The ID of the callback to be invoked on the remote node.
+   * @param block           True if the call should block until an acknowledgement is received. False otherwise.
+   */
+  void ReplicaSendInternal(const std::string &replica_name, MessageType msg_type, common::json msg,
+                           uint64_t remote_cb_id, bool block);
 };
 
 /** The replication manager that should run on the primary. */

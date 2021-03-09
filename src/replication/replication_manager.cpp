@@ -34,19 +34,19 @@ const char *ReplicateBufferMessage::key_content = "content";
 
 ReplicateBufferMessage ReplicateBufferMessage::FromMessage(const messenger::ZmqMessage &msg) {
   // TODO(WAN): Sanity-check the received message.
-  nlohmann::json message = nlohmann::json::parse(msg.GetMessage());
+  common::json message = nlohmann::json::parse(msg.GetMessage());
   uint64_t source_callback_id = msg.GetSourceCallbackId();
   uint64_t buffer_id = message.at(key_buf_id);
   std::string contents = nlohmann::json::from_cbor(message[key_content].get<std::vector<uint8_t>>());
   return ReplicateBufferMessage(buffer_id, std::move(contents), source_callback_id);
 }
 
-std::string ReplicateBufferMessage::ToString() {
+common::json ReplicateBufferMessage::ToJson() {
   common::json json;
   json[key_buf_id] = buffer_id_;
   json[key_content] = nlohmann::json::to_cbor(contents_);
   // TODO(WAN): Add a size and checksum to message.
-  return json.dump();
+  return json;
 }
 
 ReplicationManager::ReplicationManager(
@@ -60,6 +60,8 @@ ReplicationManager::ReplicationManager(
                                          const messenger::ZmqMessage &msg) { EventLoop(messenger, msg); });
   BuildReplicaList(replication_hosts_path);
 }
+
+const char *ReplicationManager::key_message_type = "message_type";
 
 ReplicationManager::~ReplicationManager() = default;
 
@@ -122,15 +124,27 @@ void ReplicationManager::ReplicaConnect(const std::string &replica_name, const s
   replicas_.try_emplace(replica_name, messenger_, replica_name, hostname, port);
 }
 
-void ReplicationManager::ReplicaSend(const std::string &replica_name, const ReplicationManager::MessageType type,
-                                     const std::string &msg, bool block) {
+void ReplicationManager::ReplicaAck(const std::string &replica_name, const uint64_t callback_id, const bool block) {
+  ReplicaSendInternal(replica_name, MessageType::ACK, common::json{}, callback_id, block);
+}
+
+void ReplicationManager::ReplicaSend(const std::string &replica_name, common::json msg, const bool block) {
+  ReplicaSendInternal(replica_name, MessageType::REPLICATE_BUFFER, std::move(msg),
+                      static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP), block);
+}
+
+void ReplicationManager::ReplicaSendInternal(const std::string &replica_name, const MessageType msg_type,
+                                             common::json msg_json, const uint64_t remote_cb_id, const bool block) {
   if (!replication_enabled_) {
     REPLICATION_LOG_WARN(fmt::format("Skipping send -> {} as replication is disabled."));
     return;
   }
 
-  REPLICATION_LOG_TRACE(fmt::format("Send -> {} (type {} block {}): msg size {}", replica_name,
-                                    static_cast<uint8_t>(type), block, msg.size()));
+  msg_json[key_message_type] = static_cast<uint8_t>(msg_type);
+  auto msg = msg_json.dump();
+
+  REPLICATION_LOG_TRACE(fmt::format("Send -> {} (block {}): msg size {} preview {}", replica_name, block, msg.size(),
+                                    msg.substr(0, MESSAGE_PREVIEW_LEN)));
   bool completed = false;
   try {
     messenger_->SendMessage(
@@ -143,7 +157,7 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
             blocking_send_cvar_.notify_all();
           }
         },
-        static_cast<uint64_t>(type));
+        remote_cb_id);
 
     if (block) {
       std::unique_lock<std::mutex> lock(blocking_send_mutex_);
@@ -157,16 +171,16 @@ void ReplicationManager::ReplicaSend(const std::string &replica_name, const Repl
     // TODO(WAN): This assumes that the replica has died. If the replica has in fact not died, and somehow the message
     //  just crapped out and failed to send, this will hang the replica since the replica expects messages to be
     //  received in order and we don't try to resend the message.
-    REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (type {} block {}): msg size {}", replica_name,
-                                     static_cast<uint8_t>(type), block, msg.size()));
+    REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (block {}): msg size {} preview {}", replica_name, block,
+                                     msg.size(), msg.substr(0, MESSAGE_PREVIEW_LEN)));
   }
 }
 
 void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
                                    const messenger::ZmqMessage &msg) {
-  switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
+  common::json json = nlohmann::json::parse(msg.GetMessage());
+  switch (static_cast<MessageType>(json.at(key_message_type))) {
     case MessageType::ACK: {
-      nlohmann::json json = nlohmann::json::parse(msg.GetMessage());
       REPLICATION_LOG_TRACE(fmt::format("ACK: {}", json.dump()));
       break;
     }
@@ -205,7 +219,7 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
           REPLICATION_LOG_TRACE(fmt::format("Replica {}: last heartbeat {}, heartbeat {} OK.", replica_name,
                                             replica.last_heartbeat_, epoch_now_ms.count()));
         },
-        static_cast<uint64_t>(MessageType::HEARTBEAT));
+        static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP));
   } catch (const MessengerException &e) {
     REPLICATION_LOG_TRACE(
         fmt::format("Replica {}: last heartbeat {}, heartbeat failed.", replica_name, replica.last_heartbeat_));
@@ -252,11 +266,10 @@ void PrimaryReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buff
                    "Don't try to replicate null buffers. That's pointless."
                    "You might plausibly want to track statistics at some point, but that should not happen here.");
   ReplicateBufferMessage msg{next_buffer_sent_id_++, std::string(buffer->buffer_, buffer->buffer_size_)};
-  std::string msg_as_string = msg.ToString();
 
   for (const auto &replica : replicas_) {
     // TODO(WAN): many things break when block is flipped from true to false.
-    ReplicaSend(replica.first, MessageType::REPLICATE_BUFFER, msg_as_string, true);
+    ReplicaSend(replica.first, msg.ToJson(), true);
   }
 
   if (buffer->MarkSerialized()) {
@@ -304,7 +317,9 @@ void ReplicaReplicationManager::HandleReplicatedBuffer(const messenger::ZmqMessa
 
 void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
                                           const messenger::ZmqMessage &msg) {
-  switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
+  // TODO(WAN): This is inefficient because the JSON is parsed again.
+  auto json = nlohmann::json::parse(msg.GetMessage());
+  switch (static_cast<MessageType>(json.at(ReplicationManager::key_message_type))) {
     case MessageType::REPLICATE_BUFFER: {
       HandleReplicatedBuffer(msg);
       break;

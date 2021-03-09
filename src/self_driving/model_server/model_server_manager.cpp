@@ -155,7 +155,8 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
 
 bool ModelServerManager::SendMessage(const std::string &payload, messenger::CallbackFn cb) {
   try {
-    messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, std::move(cb), 0);
+    messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, std::move(cb),
+                            static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP));
     return true;
   } catch (std::exception &e) {
     MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to send message: {}. Error: {}", ::getpid(), payload,

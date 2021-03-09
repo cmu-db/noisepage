@@ -114,9 +114,7 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
     ackables.clear();
     rep_log_provider->UnlatchPrimaryAckables();
     for (const uint64_t primary_cb_id : ackables_copy) {
-      common::json j;
-      j["callback_id"] = primary_cb_id;
-      replication_manager_->ReplicaSend("primary", replication::ReplicationManager::MessageType::ACK, j.dump(), false);
+      replication_manager_->ReplicaAck("primary", primary_cb_id, false);
     }
   }
 }
