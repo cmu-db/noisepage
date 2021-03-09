@@ -19,6 +19,10 @@ namespace noisepage::modelserver {
 static constexpr const char *MODEL_CONN_ID_NAME = "model-server-conn";
 static constexpr const char *MODEL_TARGET_NAME = "model";
 static constexpr const char *MODEL_IPC_PATH = "model-server-ipc";
+static constexpr const char *COVERAGE_COMMAND = "coverage";
+static constexpr const char *COVERAGE_RUN = "run";
+static constexpr const char *COVERAGE_INCLUDE = "--include";
+static constexpr const char *COVERAGE_INCLUDE_PATH = "*/script/self_driving/*";
 
 /**
  * Use 128 as convention to indicate failure in a subprocess:
@@ -148,11 +152,17 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
     std::string ipc_path = MODEL_IPC_PATH;
     char exec_name[model_path.size() + 1];
     ::strncpy(exec_name, model_path.data(), sizeof(exec_name));
-    char coverage[9]{"coverage"};
-    char run[4]{"run"};
-    char include[34]{"--include"};
-    char src_path[34]{"*/script/self_driving/*"};
-    char *args[] = {coverage, run, include, src_path, exec_name, ipc_path.data(), nullptr};
+    std::string coverage_command = COVERAGE_COMMAND;
+    std::string coverage_run = COVERAGE_RUN;
+    std::string coverage_include = COVERAGE_INCLUDE;
+    std::string coverage_include_path = COVERAGE_INCLUDE_PATH;
+    char *args[] = {coverage_command.data(),
+                    coverage_run.data(),
+                    coverage_include.data(),
+                    coverage_include_path.data(),
+                    exec_name,
+                    ipc_path.data(),
+                    nullptr};
     MODEL_SERVER_LOG_TRACE("Inovking ModelServer at :{}", std::string(exec_name));
     if (execvp(args[0], args) < 0) {
       MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
