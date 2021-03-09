@@ -601,15 +601,33 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
       break;
     }
     case ast::Builtin::AggResult: {
-      if (!CheckArgCount(call, 1)) {
+      if (!CheckArgCountBetween(call, 1, 2)) {
         return;
       }
-      // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
+
+      ast::BuiltinType::Kind type;
+      if (call->NumArgs() == 1) {
+        // Argument must be a SQL aggregator
+        if (!IsPointerToAggregatorValue(args[0]->GetType())) {
+          GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
+          return;
+        }
+        type = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+      } else {
+        // Argument must execution context
+        auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+        if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+          ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+          return;
+        }
+        // Argument must be a SQL aggregator
+        if (!IsPointerToAggregatorValue(args[1]->GetType())) {
+          GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[1]->GetType());
+          return;
+        }
+        type = args[1]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
       }
-      auto type = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+
       switch (type) {
         case ast::BuiltinType::Kind::CountAggregate:
         case ast::BuiltinType::Kind::CountStarAggregate:
@@ -626,6 +644,20 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
           break;
         case ast::BuiltinType::Kind::StringMaxAggregate:
         case ast::BuiltinType::Kind::StringMinAggregate:
+        case ast::BuiltinType::Kind::BooleanTopKAggregate:
+        case ast::BuiltinType::Kind::IntegerTopKAggregate:
+        case ast::BuiltinType::Kind::RealTopKAggregate:
+        case ast::BuiltinType::Kind::DecimalTopKAggregate:
+        case ast::BuiltinType::Kind::StringTopKAggregate:
+        case ast::BuiltinType::Kind::DateTopKAggregate:
+        case ast::BuiltinType::Kind::TimestampTopKAggregate:
+        case ast::BuiltinType::Kind::BooleanHistogramAggregate:
+        case ast::BuiltinType::Kind::IntegerHistogramAggregate:
+        case ast::BuiltinType::Kind::RealHistogramAggregate:
+        case ast::BuiltinType::Kind::DecimalHistogramAggregate:
+        case ast::BuiltinType::Kind::StringHistogramAggregate:
+        case ast::BuiltinType::Kind::DateHistogramAggregate:
+        case ast::BuiltinType::Kind::TimestampHistogramAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
           break;
         default:

@@ -359,6 +359,12 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   if (str == "AGGREGATE_AVG") {
     return ExpressionType::AGGREGATE_AVG;
   }
+  if (str == "AGGREGATE_TOP_K") {
+    return ExpressionType::AGGREGATE_TOP_K;
+  }
+  if (str == "AGGREGATE_HISTOGRAM") {
+    return ExpressionType::AGGREGATE_HISTOGRAM;
+  }
   if (str == "FUNCTION") {
     return ExpressionType::FUNCTION;
   }

@@ -484,14 +484,13 @@ message(STATUS "\nDependencies: Locating...\n===================================
 
 # DISGUSTING HACKS:
 # - -fPIC is required on pretty much every dependency.
-# - fvisibility=hidden is required on OSX while building spdlog.
 # - fsanitize=address is required on OSX.
 set(OLD_CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")     # Save the current CMAKE_BUILD_TYPE.
 set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")           # Save the current CMAKE_C_FLAGS.
 set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")       # Save the current CMAKE_CXX_FLAGS.
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_C_FLAGS "-fPIC -fvisibility=hidden")
-set(CMAKE_CXX_FLAGS "-fPIC -fvisibility=hidden")
+set(CMAKE_C_FLAGS "-fPIC")
+set(CMAKE_CXX_FLAGS "-fPIC")
 if (${NOISEPAGE_USE_ASAN})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")

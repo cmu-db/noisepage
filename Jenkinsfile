@@ -20,6 +20,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -66,6 +67,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -120,22 +122,6 @@ pipeline {
                             deleteDir()
                         }
                     }
-                }
-            }
-        }
-        stage('Microbenchmark') {
-            agent { label 'benchmark' }
-            steps {
-                sh 'echo $NODE_NAME'
-
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
-                }
-            }
-            post {
-                cleanup {
-                    deleteDir()
                 }
             }
         }
