@@ -104,9 +104,6 @@ class TPCCTests : public TerrierTest {
 TEST_F(TPCCTests, WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
-
-// NOLINTNEXTLINE
 TEST_F(TPCCTests, WithoutLoggingBPlusTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BPLUSTREE); }
 
 // NOLINTNEXTLINE
