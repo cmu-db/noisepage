@@ -33,8 +33,8 @@ void DiskLogConsumerTask::WriteBuffersToLogFile() {
       current_data_written_ += logs.first->FlushBuffer();
     }
     commit_callbacks_.insert(commit_callbacks_.end(), logs.second.begin(), logs.second.end());
-    // Enqueue the flushed buffer to the empty buffer queue
-    if (logs.first != nullptr) {
+    // Enqueue the flushed buffer to the empty buffer queue if all serializers are done with it.
+    if (logs.first != nullptr && logs.first->MarkSerialized()) {
       // nullptr check for the same reason as above
       empty_buffer_queue_->Enqueue(logs.first);
     }

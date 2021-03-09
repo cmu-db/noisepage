@@ -19,6 +19,8 @@ class DiskLogProvider : public AbstractLogProvider {
    */
   explicit DiskLogProvider(const std::string &log_file_path) : in_(BufferedLogReader(log_file_path.c_str())) {}
 
+  LogProviderType GetType() const override { return LogProviderType::DISK; }
+
  private:
   // Buffered log file reader
   storage::BufferedLogReader in_;
