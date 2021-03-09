@@ -21,11 +21,11 @@ WorkloadForecast::WorkloadForecast(uint64_t forecast_interval, uint64_t num_samp
   CreateSegments();
 }
 
-WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &metadata) {
-  query_id_to_dboid_ = std::move(metadata.query_id_to_dboid_);
-  query_id_to_text_ = std::move(metadata.query_id_to_text_);
-  query_id_to_params_ = std::move(metadata.query_id_to_params_);
-  query_id_to_param_types_ = std::move(metadata.query_id_to_param_types_);
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata *metadata) {
+  query_id_to_dboid_ = std::move(metadata->query_id_to_dboid_);
+  query_id_to_text_ = std::move(metadata->query_id_to_text_);
+  query_id_to_params_ = std::move(metadata->query_id_to_params_);
+  query_id_to_param_types_ = std::move(metadata->query_id_to_param_types_);
 
   bool init = false;
   for (auto &cluster : inference) {

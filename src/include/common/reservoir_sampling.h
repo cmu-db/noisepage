@@ -13,14 +13,21 @@ template <class Value>
 class ReservoirSampling {
  public:
   /**
-   * Describes a key
+   * Describes a key (comprising a priority and a data element)
    */
   template <class ValueKey>
   class Key {
    public:
+    /** Internal priority counter of the key */
     double priority_;
+    /** Data member being stored */
     ValueKey value_;
 
+    /**
+     * Constructs a key element for the reservoir
+     * @param priority Priority of the given element (higher is more likely to stay)
+     * @param value Value of the element
+     */
     Key(double priority, const ValueKey &value) : priority_(priority), value_(value) {}
   };
 
@@ -29,6 +36,7 @@ class ReservoirSampling {
    */
   template <class ValueKey>
   struct KeyCmp {
+    /** Implements the greater than operator */
     constexpr bool operator()(const Key<ValueKey> &lhs, const Key<ValueKey> &rhs) {
       return lhs.priority_ > rhs.priority_;
     }
@@ -72,10 +80,10 @@ class ReservoirSampling {
    * Merge another reservoir sample into this one
    * @param other Other reservoir to merge
    */
-  void Merge(ReservoirSampling<Value> &other) {
-    while (!other.queue_.empty()) {
-      AddSample(other.queue_.top());
-      other.queue_.pop();
+  void Merge(ReservoirSampling<Value> *other) {
+    while (!other->queue_.empty()) {
+      AddSample(other->queue_.top());
+      other->queue_.pop();
     }
   }
 

@@ -144,8 +144,16 @@ class Pilot {
    */
   void ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq);
 
+  /**
+   * Sets the query execution utility for the pilot to use
+   * @param query_exec_util to use
+   */
   void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
 
+  /**
+   * Sets the internal query thread for the pilot to submit jobs to
+   * @param thread to use
+   */
   void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> thread) {
     query_internal_thread_ = thread;
   }

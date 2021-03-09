@@ -95,17 +95,36 @@ class MetricsManager {
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
   }
 
+  /**
+   * Updates the output type of a specific metric component
+   * @param component to change
+   * @param output of the component
+   */
   void SetMetricOutput(const MetricsComponent component, MetricsOutput output) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     metrics_output_[static_cast<uint8_t>(component)] = output;
   }
 
+  /**
+   * Retrieves the output type of a specific metric component
+   * @param component whose output to retrieve
+   * @return output type of the specified component
+   */
   metrics::MetricsOutput GetMetricOutput(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     return metrics_output_[static_cast<uint8_t>(component)];
   }
 
+  /**
+   * Sets the query execution utility to be used by the MetricsManager
+   * @param query_exec_util to be used
+   */
   void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
+
+  /**
+   * Sets the query internal thread for the MetricsManager to submit jobs to
+   * @param query_internal_thread to be used
+   */
   void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> query_internal_thread);
 
  private:

@@ -50,14 +50,16 @@ class WorkloadForecast {
   /**
    * Constructor for WorkloadForecast
    * @param forecast_interval Interval used to partition the queries into segments
+   * @param num_sample Number of samples for query parameters
    */
   explicit WorkloadForecast(uint64_t forecast_interval, uint64_t num_sample);
 
   /**
    * Constructor for WorkloadForecast from inference results
    * @param inference Workload inference
+   * @param metadata Workload metadata information
    */
-  explicit WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &metadata);
+  explicit WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata *metadata);
 
   /**
    * Get number of forecasted segments

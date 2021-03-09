@@ -1,10 +1,14 @@
 #pragma once
 
-#include <chrono>  //NOLINT
-#include <condition_variable>
-#include <mutex>
+#include <chrono>              //NOLINT
+#include <condition_variable>  //NOLINT
+#include <memory>
+#include <mutex>  //NOLINT
 #include <queue>
+#include <string>
 #include <thread>  //NOLINT
+#include <utility>
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "execution/compiler/executable_query.h"
@@ -66,7 +70,11 @@ class ExecuteRequest {
  */
 class QueryInternalThread {
  public:
-  QueryInternalThread(std::unique_ptr<util::QueryExecUtil> query_exec_util)
+  /**
+   * Constructs a new internal query execution thread
+   * @param query_exec_util Dedicated query execution utility to use
+   */
+  explicit QueryInternalThread(std::unique_ptr<util::QueryExecUtil> query_exec_util)
       : query_exec_util_(std::move(query_exec_util)), query_thread_(std::thread([this] { QueryThreadLoop(); })) {}
 
   ~QueryInternalThread() {
@@ -75,6 +83,10 @@ class QueryInternalThread {
     query_thread_.join();
   }
 
+  /**
+   * Submits a job to be executed by the internal thread
+   * @param request to execute
+   */
   void AddRequest(ExecuteRequest &&request) {
     NOISEPAGE_ASSERT(run_queries_, "QueryInternalThread should not be shutting down");
 

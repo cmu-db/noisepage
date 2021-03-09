@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_settings.h"
 #include "type/type_id.h"

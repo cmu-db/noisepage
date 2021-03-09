@@ -1099,10 +1099,12 @@ class DBMain {
     return common::ManagedPointer(model_server_manager_);
   }
 
+  /** @return Standard QueryExecUtil from which other utils can be derived from */
   common::ManagedPointer<util::QueryExecUtil> GetQueryExecUtil() const {
     return common::ManagedPointer(query_exec_util_);
   }
 
+  /** @return ManagedPointer to internal query execution thread */
   common::ManagedPointer<util::QueryInternalThread> GetQueryInternalThread() const {
     return common::ManagedPointer(query_internal_thread_);
   }

@@ -6,6 +6,7 @@
 #include <list>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -34,18 +35,23 @@ class QueryTraceMetadata {
  public:
   /** A tight struct for packing timestamp and query id */
   struct QueryTimeId {
+    /** Timestamp of when the query was executed */
     uint64_t timestamp_;
+    /** Identifier of executed query */
     execution::query_id_t qid_;
   };
 
   /** A tight struct to track db_oid, text, and param types */
   struct QueryMetadata {
+    /** Database OID of the target query */
     catalog::db_oid_t db_oid_;
+    /** Text of the target query */
     std::string text_;
+    /** JSON-serialized param types of the target query */
     std::string param_type_;
   };
 
-  explicit QueryTraceMetadata() = default;
+  QueryTraceMetadata() = default;
 
   /**
    * Records a query text
@@ -76,12 +82,12 @@ class QueryTraceMetadata {
    * Merge another QueryTraceMetadata into this one.
    * @param other Other to merge
    */
-  void Merge(QueryTraceMetadata &other) {
+  void Merge(QueryTraceMetadata *other) {
     // Directly merge hash tables
-    qmetadata_.merge(other.qmetadata_);
+    qmetadata_.merge(other->qmetadata_);
 
     // Merge the reservoirs
-    for (auto &it : other.qid_param_samples_) {
+    for (auto &it : other->qid_param_samples_) {
       // These are duplicate keys so need to merge reservoir
       if (qid_param_samples_.find(it.first) != qid_param_samples_.end()) {
         qid_param_samples_.find(it.first)->second.Merge(it.second);
@@ -91,7 +97,7 @@ class QueryTraceMetadata {
     }
 
     // Combine time series
-    timeseries_.merge(other.timeseries_);
+    timeseries_.merge(other->timeseries_);
   }
 
   /** Reset query metadata */
@@ -163,7 +169,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
    * @param query_exec_util Query execution utility
    * @param query_internal_thread Target to submit jobs to
    * @param flush_timeseries Whether to write all time data out or not
-   * @param write_parametesrs Whether to write all parameters or not
+   * @param write_parameters Whether to write all parameters or not
    * @param out_metadata Pass out cached query metadata
    * @param out_params Pass out cached parameters
    */

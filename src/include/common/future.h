@@ -2,6 +2,7 @@
 #include <condition_variable>  // NOLINT
 #include <string>
 #include <thread>  // NOLINT
+#include <utility>
 
 namespace noisepage::common {
 

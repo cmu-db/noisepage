@@ -15,7 +15,7 @@ namespace noisepage::selfdriving {
  */
 class WorkloadForecastSegment {
  public:
-  explicit WorkloadForecastSegment() = default;
+  WorkloadForecastSegment() = default;
 
   /**
    * Constructor for WorkloadForecastSegment

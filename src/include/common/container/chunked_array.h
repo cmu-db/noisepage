@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace noisepage::common {
@@ -18,7 +20,9 @@ class ChunkedArray {
   template <class TypeT, size_t SizeT>
   class ChunkSlot {
    public:
+    /** Indicates current slot to write to in slots_ */
     size_t cur_idx_ = 0;
+    /** Flat array of SizeT slots of Type */
     Type slots_[SizeT];
   };
 
@@ -47,9 +51,9 @@ class ChunkedArray {
    * Acquire ownership of another ChunkedArray's data
    * @param merge Other ChunkedArray's data to own
    */
-  void merge(ChunkedArray<Type, Size> &merge) {
-    chunks_.insert(chunks_.end(), std::make_move_iterator(merge.chunks_.begin()),
-                   std::make_move_iterator(merge.chunks_.end()));
+  void merge(ChunkedArray<Type, Size> *merge) {
+    chunks_.insert(chunks_.end(), std::make_move_iterator(merge->chunks_.begin()),
+                   std::make_move_iterator(merge->chunks_.end()));
   }
 
   /**
@@ -65,7 +69,7 @@ class ChunkedArray {
      * Constructor
      * @param chunks Pointer to the chunks vector
      */
-    Iterator(typename std::vector<ChunkSlot<TypeT, SizeT>> *chunks) noexcept : chunks_(chunks) {}
+    explicit Iterator(typename std::vector<ChunkSlot<TypeT, SizeT>> *chunks) noexcept : chunks_(chunks) {}
 
     /**
      * Constructor
