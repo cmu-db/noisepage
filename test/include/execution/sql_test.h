@@ -63,7 +63,7 @@ class SqlBasedTest : public TplTest {
     const auto &callback_ref = (callback == nullptr) ? empty : *callback;
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback_ref,
                                                     schema, common::ManagedPointer(accessor_), *exec_settings_,
-                                                    metrics_manager_);
+                                                    metrics_manager_, DISABLED);
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {

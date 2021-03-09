@@ -362,6 +362,9 @@ namespace noisepage::execution::ast {
   F(Pow, pow)                                                           \
   F(Abs, abs)                                                           \
                                                                         \
+  /* Replication. */                                                    \
+  F(ReplicationGetLastRecordId, replicationGetLastRecordId)             \
+                                                                        \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
   F(NpRunnersEmitReal, NpRunnersEmitReal)                               \

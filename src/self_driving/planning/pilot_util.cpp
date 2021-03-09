@@ -85,7 +85,7 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager());
+          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager(), DISABLED);
 
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
     }
@@ -224,7 +224,7 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
       txn = txn_manager->BeginTransaction();
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, metrics_manager);
+          common::ManagedPointer(accessor), exec_settings, metrics_manager, DISABLED);
 
       exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
