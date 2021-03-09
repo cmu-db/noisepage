@@ -11,7 +11,7 @@
 namespace noisepage {
 
 template <int chunk>
-void fill_merge_size(size_t size1, size_t size2) {
+void FillMergeSize(size_t size1, size_t size2) {
   std::default_random_engine generator;
   auto dist = std::uniform_int_distribution(1, 1000);
 
@@ -21,16 +21,16 @@ void fill_merge_size(size_t size1, size_t size2) {
   for (size_t i = 0; i < size1; i++) {
     int num = dist(generator);
     vec.push_back(num);
-    array1.push(std::move(num));
+    array1.Push(std::move(num)); //NOLINT
   }
 
   for (size_t i = 0; i < size2; i++) {
     int num = dist(generator);
     vec.push_back(num);
-    array2.push(std::move(num));
+    array2.Push(std::move(num)); //NOLINT
   }
 
-  array1.merge(array2);
+  array1.Merge(&array2);
 
   size_t idx = 0;
   auto it = array1.begin();
@@ -45,20 +45,20 @@ void fill_merge_size(size_t size1, size_t size2) {
 
 // NOLINTNEXTLINE
 TEST(ChunkedArrayTests, InsertSizes) {
-  fill_merge_size<16>(0, 0);
-  fill_merge_size<16>(8, 0);
-  fill_merge_size<16>(16, 0);
-  fill_merge_size<16>(32, 0);
+  FillMergeSize<16>(0, 0);
+  FillMergeSize<16>(8, 0);
+  FillMergeSize<16>(16, 0);
+  FillMergeSize<16>(32, 0);
 }
 
 // NOLINTNEXTLINE
 TEST(ChunkedArrayTests, Merge) {
-  fill_merge_size<16>(0, 8);
-  fill_merge_size<16>(0, 16);
-  fill_merge_size<16>(8, 8);
-  fill_merge_size<16>(8, 16);
-  fill_merge_size<16>(16, 1);
-  fill_merge_size<16>(16, 16);
+  FillMergeSize<16>(0, 8);
+  FillMergeSize<16>(0, 16);
+  FillMergeSize<16>(8, 8);
+  FillMergeSize<16>(8, 16);
+  FillMergeSize<16>(16, 1);
+  FillMergeSize<16>(16, 16);
 }
 
 }  // namespace noisepage

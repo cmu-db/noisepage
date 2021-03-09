@@ -31,7 +31,7 @@
 
 namespace noisepage::selfdriving {
 
-uint64_t Pilot::planning_iteration_ = 1;
+uint64_t Pilot::planning_iteration = 1;
 
 void Pilot::SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util) {
   query_exec_util_ = std::move(query_exec_util);
@@ -122,12 +122,12 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
       if (metadata.query_id_to_dboid_.find(qid) == metadata.query_id_to_dboid_.end()) {
         metadata.query_id_to_dboid_[qid] = db_oid;
 
-        execution::sql::StringVal *text_val = static_cast<execution::sql::StringVal *>(values[2]);
+        auto *text_val = static_cast<execution::sql::StringVal *>(values[2]);
         // We do this since the string has been quoted by the metric
         metadata.query_id_to_text_[qid] =
             std::string(text_val->StringView().data() + 1, text_val->StringView().size() - 2);
 
-        execution::sql::StringVal *param_types = static_cast<execution::sql::StringVal *>(values[3]);
+        auto *param_types = static_cast<execution::sql::StringVal *>(values[3]);
         metadata.query_id_to_param_types_[qid] = types_conv(std::string(param_types->StringView()));
       }
     };
@@ -144,7 +144,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
   {
     auto to_row_fn = [&metadata, cves_conv](const std::vector<execution::sql::Val *> &values) {
       auto qid = execution::query_id_t(static_cast<execution::sql::Integer *>(values[1])->val_);
-      execution::sql::StringVal *param_val = static_cast<execution::sql::StringVal *>(values[2]);
+      auto *param_val = static_cast<execution::sql::StringVal *>(values[2]);
       {
         // Read the parameters. In the worse case, we will have double the parameters, but that is
         // okay since every parameter will be duplicated. This can happen since the parameters
@@ -247,7 +247,7 @@ void Pilot::LoadWorkloadForecast() {
             ->AggregatedMetrics()
             .at(static_cast<uint8_t>(metrics::MetricsComponent::QUERY_TRACE))
             .get());
-    if (raw) {
+    if (raw != nullptr) {
       // Perform a flush to database. This will also get any temporary data.
       // This is also used to flush all parameter information at a forecast interval.
       raw->WriteToDB(common::ManagedPointer(query_exec_util_), common::ManagedPointer(query_internal_thread_), true,
@@ -255,13 +255,13 @@ void Pilot::LoadWorkloadForecast() {
     }
   }
 
-  auto iteration = Pilot::planning_iteration_++;
+  auto iteration = Pilot::planning_iteration++;
   std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
 
   // For now, forecast relies on the CSV file.
   // TODO(wz2): Pass the "seen" data directly to the forecast model?
   std::vector<std::string> models{"LSTM"};
-  auto result = model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, NULL,
+  auto result = model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, nullptr,
                                                           workload_forecast_interval_);
   if (!result.second) {
     SELFDRIVING_LOG_ERROR("Forecast model inference failed");
@@ -283,7 +283,7 @@ void Pilot::LoadWorkloadForecast() {
     RecordWorkloadForecastPrediction(iteration, result.first, metadata_result.first);
 
     // Construct workload forecast
-    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, metadata_result.first);
+    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, &metadata_result.first);
   } else {
     auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
     forecast_ = std::make_unique<selfdriving::WorkloadForecast>(workload_forecast_interval_, sample);

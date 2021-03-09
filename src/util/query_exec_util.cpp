@@ -62,19 +62,19 @@ void QueryExecUtil::ClearPlans() {
 }
 
 void QueryExecUtil::UseTransaction(common::ManagedPointer<transaction::TransactionContext> txn) {
-  NOISEPAGE_ASSERT(txn_ == NULL, "Nesting transactions not supported");
+  NOISEPAGE_ASSERT(txn_ == nullptr, "Nesting transactions not supported");
   txn_ = txn.Get();
   own_txn_ = false;
 }
 
 void QueryExecUtil::BeginTransaction() {
-  NOISEPAGE_ASSERT(txn_ == NULL, "Nesting transactions not supported");
+  NOISEPAGE_ASSERT(txn_ == nullptr, "Nesting transactions not supported");
   txn_ = txn_manager_->BeginTransaction();
   own_txn_ = true;
 }
 
 void QueryExecUtil::EndTransaction(bool commit) {
-  NOISEPAGE_ASSERT(txn_ != NULL, "Transaction has not started");
+  NOISEPAGE_ASSERT(txn_ != nullptr, "Transaction has not started");
   NOISEPAGE_ASSERT(own_txn_, "EndTransaction can only be called on an owned transaction");
   if (commit)
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -84,7 +84,7 @@ void QueryExecUtil::EndTransaction(bool commit) {
 }
 
 void QueryExecUtil::SetCostModelFunction(std::function<std::unique_ptr<optimizer::AbstractCostModel>()> func) {
-  cost_func_ = func;
+  cost_func_ = std::move(func);
 }
 
 std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> QueryExecUtil::PlanStatement(
@@ -262,7 +262,7 @@ bool QueryExecUtil::ExecuteDML(const std::string &query,
   bool success = false;
   size_t idx = CompileQuery(query, params, param_types, &success);
   if (success) {
-    return ExecuteQuery(idx, tuple_fn, params, metrics);
+    return ExecuteQuery(idx, std::move(tuple_fn), params, metrics);
   }
 
   return false;

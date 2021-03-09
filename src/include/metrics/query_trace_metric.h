@@ -63,7 +63,7 @@ class QueryTraceMetadata {
   void RecordQueryText(execution::query_id_t qid, catalog::db_oid_t db_oid, std::string text, std::string param_type) {
     // Assume qid is unique, don't re-record if already recorded
     if (qmetadata_.find(qid) == qmetadata_.end()) {
-      qmetadata_[qid] = QueryMetadata{db_oid, text, param_type};
+      qmetadata_[qid] = QueryMetadata{db_oid, std::move(text), std::move(param_type)};
     }
   }
 
@@ -90,14 +90,14 @@ class QueryTraceMetadata {
     for (auto &it : other->qid_param_samples_) {
       // These are duplicate keys so need to merge reservoir
       if (qid_param_samples_.find(it.first) != qid_param_samples_.end()) {
-        qid_param_samples_.find(it.first)->second.Merge(it.second);
+        qid_param_samples_.find(it.first)->second.Merge(&it.second);
       } else {
         qid_param_samples_.emplace(std::move(it));
       }
     }
 
     // Combine time series
-    timeseries_.merge(other->timeseries_);
+    timeseries_.Merge(&other->timeseries_);
   }
 
   /** Reset query metadata */
@@ -114,7 +114,7 @@ class QueryTraceMetadata {
 
   /** Reset timeseries_ */
   void ResetTimeseries() {
-    timeseries_.clear();
+    timeseries_.Clear();
     iterator_initialized_ = false;
   }
 
@@ -133,10 +133,10 @@ class QueryTraceMetadata {
 class QueryTraceMetricRawData : public AbstractRawData {
  public:
   /** Parameter of how many query params to keep in sample */
-  static uint64_t QUERY_PARAM_SAMPLE;
+  static uint64_t query_param_sample;
 
   /** Parameter controlling size of a query segment */
-  static uint64_t QUERY_SEGMENT_INTERVAL;
+  static uint64_t query_segment_interval;
 
   void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<QueryTraceMetricRawData *>(other);
@@ -148,7 +148,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
     }
 
     // Merge data and update timestamp
-    metadata_.Merge(other_db_metric->metadata_);
+    metadata_.Merge(&other_db_metric->metadata_);
     low_timestamp_ = std::min(low_timestamp_, other_db_metric->low_timestamp_);
     high_timestamp_ = std::max(high_timestamp_, other_db_metric->high_timestamp_);
   }
@@ -281,11 +281,11 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
+  void RecordQueryText(catalog::db_oid_t db_oid, execution::query_id_t query_id, const std::string &query_text,
                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
-                       const uint64_t timestamp);
+                       uint64_t timestamp);
 
-  void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
+  void RecordQueryTrace(catalog::db_oid_t db_oid, execution::query_id_t query_id, uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param);
 };
 }  // namespace noisepage::metrics

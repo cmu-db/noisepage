@@ -980,8 +980,8 @@ class DBMain {
                                            pipeline_metrics_sample_rate_);
 
       if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
-      metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = forecast_sample_limit_;
-      metrics::QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL = workload_forecast_interval_;
+      metrics::QueryTraceMetricRawData::query_param_sample = forecast_sample_limit_;
+      metrics::QueryTraceMetricRawData::query_segment_interval = workload_forecast_interval_;
       metrics_manager->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, query_trace_metrics_output_);
 
       if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);

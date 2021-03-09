@@ -49,8 +49,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   metrics_manager_->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, metrics::MetricsOutput::DB);
 
   size_t num_sample = 2;
-  metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = num_sample;
-  metrics::QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL = 10;
+  metrics::QueryTraceMetricRawData::query_param_sample = num_sample;
+  metrics::QueryTraceMetricRawData::query_segment_interval = 10;
 
   std::vector<unsigned int> qids = {0, 1, 2, 3, 4, 5, 6};
   std::vector<unsigned int> db_oids = {0, 0, 0, 0, 1, 2, 0};
@@ -87,8 +87,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   std::vector<int> totals = {0, 0, 0};
   for (size_t j = 0; j < 3; j++) {
     for (size_t i = 0; i < qids.size(); i++) {
-      for (int slideDelta = 0; slideDelta < timestamps[i][j]; slideDelta++) {
-        size_t time = j * metrics::QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL + slideDelta;
+      for (int slide_delta = 0; slide_delta < timestamps[i][j]; slide_delta++) {
+        size_t time = j * metrics::QueryTraceMetricRawData::query_segment_interval + slide_delta;
         common::thread_context.metrics_store_->RecordQueryTrace(
             catalog::db_oid_t{db_oids[i]}, execution::query_id_t{qids[i]}, time,
             common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&parameters[i]));
@@ -112,10 +112,10 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   }
 
   auto util = db_main_->GetQueryExecUtil();
-  auto select_count = [util](std::string query, size_t target) {
+  auto select_count = [util](const std::string &query, size_t target) {
     util->BeginTransaction();
     uint64_t row_count = 0;
-    auto to_row_fn = [util, &row_count](const std::vector<execution::sql::Val *> &values) { row_count++; };
+    auto to_row_fn = [&row_count](const std::vector<execution::sql::Val *> &values) { row_count++; };
 
     bool result = util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
     NOISEPAGE_ASSERT(result, "SELECT should have succeeded");

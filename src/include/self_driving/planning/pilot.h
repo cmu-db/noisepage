@@ -88,7 +88,7 @@ class Pilot {
         common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
 
   /** @return the current planning iteration */
-  static uint64_t GetCurrentPlanIteration() { return Pilot::planning_iteration_; }
+  static uint64_t GetCurrentPlanIteration() { return Pilot::planning_iteration; }
 
   /**
    * Get model save path
@@ -194,7 +194,7 @@ class Pilot {
   uint64_t workload_forecast_interval_{10000000};
   uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};
-  static uint64_t planning_iteration_;
+  static uint64_t planning_iteration;
   friend class noisepage::selfdriving::PilotUtil;
   friend class noisepage::selfdriving::pilot::MonteCarloTreeSearch;
 };

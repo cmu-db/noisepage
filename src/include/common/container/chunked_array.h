@@ -33,13 +33,13 @@ class ChunkedArray {
   /**
    * Clears all the data
    */
-  void clear() { chunks_.clear(); }
+  void Clear() { chunks_.clear(); }
 
   /**
    * Add an element
    * @param obj Object to insert
    */
-  void push(Type &&obj) {
+  void Push(Type &&obj) {
     if (chunks_.empty() || chunks_.back().cur_idx_ >= Size) {
       chunks_.emplace_back();
     }
@@ -51,7 +51,7 @@ class ChunkedArray {
    * Acquire ownership of another ChunkedArray's data
    * @param merge Other ChunkedArray's data to own
    */
-  void merge(ChunkedArray<Type, Size> *merge) {
+  void Merge(ChunkedArray<Type, Size> *merge) {
     chunks_.insert(chunks_.end(), std::make_move_iterator(merge->chunks_.begin()),
                    std::make_move_iterator(merge->chunks_.end()));
   }

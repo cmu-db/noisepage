@@ -13,13 +13,13 @@ namespace noisepage {
 void DBMain::TryLoadStartupDDL() {
   // Load startup ddls
   std::vector<std::string> startup_ddls;
-  if (settings_manager_ != NULL) {
+  if (settings_manager_ != nullptr) {
     auto input = settings_manager_->GetString(settings::Param::startup_ddl_path);
     std::ifstream ddl_file(input);
     if (ddl_file.is_open() && ddl_file.good()) {
       std::string input_line;
       while (std::getline(ddl_file, input_line)) {
-        if (input_line.size() == 0) {
+        if (input_line.empty()) {
           // Skip the empty line
           continue;
         }
@@ -71,11 +71,11 @@ void DBMain::ForceShutdown() {
     if (pilot_ != nullptr) {
       pilot_->SetQueryInternalThread(nullptr);
     }
-    pilot_thread_.release();
-    metrics_thread_.release();
+    (void)pilot_thread_.release();
+    (void)metrics_thread_.release();
 
     // Need to let internal thread flush through requests
-    query_internal_thread_.release();
+    (void)query_internal_thread_.release();
   }
 
   if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {

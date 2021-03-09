@@ -7,19 +7,19 @@
 
 namespace noisepage::metrics {
 
-uint64_t QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = 5;
-uint64_t QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL = 0;
+uint64_t QueryTraceMetricRawData::query_param_sample = 5;
+uint64_t QueryTraceMetricRawData::query_segment_interval = 0;
 
 void QueryTraceMetadata::RecordQueryParamSample(uint64_t timestamp, execution::query_id_t qid,
                                                 std::string query_param) {
   if (qid_param_samples_.find(qid) == qid_param_samples_.end()) {
     qid_param_samples_.emplace(qid,
-                               common::ReservoirSampling<std::string>(QueryTraceMetricRawData::QUERY_PARAM_SAMPLE));
+                               common::ReservoirSampling<std::string>(QueryTraceMetricRawData::query_param_sample));
   }
 
   // Record the sample and time event
-  qid_param_samples_.find(qid)->second.AddSample(query_param);
-  timeseries_.push(QueryTimeId{timestamp, qid});
+  qid_param_samples_.find(qid)->second.AddSample(std::move(query_param));
+  timeseries_.Push(QueryTimeId{timestamp, qid});
 }
 
 void QueryTraceMetricRawData::ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
@@ -76,7 +76,7 @@ void QueryTraceMetricRawData::WriteToDB(
         query_internal_thread->AddRequest(std::move(texts));
       }
 
-      if (out_metadata) {
+      if (out_metadata != nullptr) {
         *out_metadata = metadata_.qmetadata_;
       }
     }
@@ -105,7 +105,7 @@ void QueryTraceMetricRawData::WriteToDB(
           params.params_.emplace_back(std::move(param_vec));
         }
 
-        if (out_params != NULL) {
+        if (out_params != nullptr) {
           (*out_params)[data.first] = std::move(samples);
         }
       }
@@ -118,7 +118,7 @@ void QueryTraceMetricRawData::WriteToDB(
     metadata_.ResetQueryMetadata();
   }
 
-  if (!flush_timeseries && high_timestamp_ - low_timestamp_ < QUERY_SEGMENT_INTERVAL) {
+  if (!flush_timeseries && high_timestamp_ - low_timestamp_ < QueryTraceMetricRawData::query_segment_interval) {
     // Not ready to write data records out
     return;
   }
@@ -141,12 +141,12 @@ void QueryTraceMetricRawData::WriteToDB(
 
   std::unordered_map<execution::query_id_t, int> freqs;
   while (metadata_.iterator_ != metadata_.timeseries_.end()) {
-    if (!flush_timeseries && (high_timestamp_ < low_timestamp_ + QUERY_SEGMENT_INTERVAL)) {
+    if (!flush_timeseries && (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::query_segment_interval)) {
       // If we aren't flushing and a query segment has not passed
       break;
     }
 
-    if ((*metadata_.iterator_).timestamp_ >= low_timestamp_ + QUERY_SEGMENT_INTERVAL) {
+    if ((*metadata_.iterator_).timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::query_segment_interval) {
       // In this case, the iterator has moved to a point such that we have a complete segment.
       // Submit the insert job based on the accumulated frequency information.
       if (!freqs.empty()) {
@@ -163,10 +163,13 @@ void QueryTraceMetricRawData::WriteToDB(
         }
 
         // Submit the insert request if not empty
-        query_internal_thread->AddRequest(std::move(seen));
-        freqs.clear();
+        {
+          query_internal_thread->AddRequest(std::move(seen));
+          freqs.clear();
+        }
 
         // Reset the metadata
+        // NOLINTNEXTLINE
         seen.type_ = util::RequestType::DML;
         seen.notify_ = nullptr;
         seen.db_oid_ = catalog::INVALID_DATABASE_OID;
@@ -178,12 +181,12 @@ void QueryTraceMetricRawData::WriteToDB(
       // Bumped up the low_timestamp_. We can't publish this data record yet
       // because the segment might not be ready yet. So we loop back around
       // for another round>
-      low_timestamp_ += QUERY_SEGMENT_INTERVAL;
+      low_timestamp_ += QueryTraceMetricRawData::query_segment_interval;
       continue;
-    } else {
-      // Update freqs with a frequency information
-      freqs[(*metadata_.iterator_).qid_] += 1;
     }
+
+    // Update freqs with a frequency information
+    freqs[(*metadata_.iterator_).qid_] += 1;
 
     // Advance the iterator
     metadata_.iterator_++;
@@ -252,7 +255,7 @@ void QueryTraceMetric::RecordQueryTrace(
   std::vector<std::string> param_strs;
   for (const auto &val : (*param)) {
     if (val.IsNull()) {
-      param_strs.push_back("");
+      param_strs.emplace_back("");
       param_stream << "";
     } else {
       auto valstr = val.ToString();

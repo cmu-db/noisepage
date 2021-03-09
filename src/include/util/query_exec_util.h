@@ -23,7 +23,7 @@ class ExecutableQuery;
 }  // namespace noisepage::execution::compiler
 
 namespace noisepage::execution::sql {
-class Val;
+struct Val;
 }  // namespace noisepage::execution::sql
 
 namespace noisepage::settings {
@@ -140,22 +140,21 @@ class QueryExecUtil {
 
   /**
    * Execute a standalone DDL
-   * @param statement DDL statement to execute
+   * @param query DDL query to execute
    * @return true if success
    */
-  bool ExecuteDDL(const std::string &statement);
+  bool ExecuteDDL(const std::string &query);
 
   /**
    * Execute a standalone DML statement
-   * @param statement statement to execute
+   * @param query DML query to execute
    * @param params query parameters to utilize
    * @param param_types Types of query parameters
    * @param tuple_fn A function to be called per row
    * @param metrics Metrics manager to use for recording
    * @return true if success
    */
-  bool ExecuteDML(const std::string &statement,
-                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
+  bool ExecuteDML(const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                   common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
                   common::ManagedPointer<metrics::MetricsManager> metrics);
 
@@ -185,13 +184,13 @@ class QueryExecUtil {
 
   /**
    * Plans a query
-   * @param statement Statement to plan
+   * @param query Statement to plan
    * @param params Placeholder parameters for query plan
    * @param param_types Types of query parameters
    * @return pair of resultant statement and plan node
    */
   std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> PlanStatement(
-      const std::string &statement, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
+      const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
       common::ManagedPointer<std::vector<type::TypeId>> param_types);
 
   /** Erases all cached plans */

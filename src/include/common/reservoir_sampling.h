@@ -28,7 +28,7 @@ class ReservoirSampling {
      * @param priority Priority of the given element (higher is more likely to stay)
      * @param value Value of the element
      */
-    Key(double priority, const ValueKey &value) : priority_(priority), value_(value) {}
+    Key(double priority, ValueKey value) : priority_(priority), value_(std::move(value)) {}
   };
 
   /**
