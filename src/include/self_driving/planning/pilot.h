@@ -50,7 +50,7 @@ class TransactionManager;
 namespace util {
 class QueryExecUtil;
 class QueryInternalThread;
-}
+}  // namespace util
 
 }  // namespace noisepage
 

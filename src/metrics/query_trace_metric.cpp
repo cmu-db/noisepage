@@ -1,6 +1,6 @@
+#include "metrics/query_trace_metric.h"
 #include "common/json.h"
 #include "execution/sql/value_util.h"
-#include "metrics/query_trace_metric.h"
 #include "self_driving/planning/pilot.h"
 #include "util/query_exec_util.h"
 #include "util/query_internal_thread.h"
@@ -223,9 +223,10 @@ void QueryTraceMetricRawData::WriteToDB(
   }
 }
 
-void QueryTraceMetric::RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
-    common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
-    const uint64_t timestamp) {
+void QueryTraceMetric::RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id,
+                                       const std::string &query_text,
+                                       common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
+                                       const uint64_t timestamp) {
   std::ostringstream type_stream;
   std::vector<std::string> type_strs;
   for (const auto &val : (*param)) {
@@ -244,7 +245,8 @@ void QueryTraceMetric::RecordQueryText(catalog::db_oid_t db_oid, const execution
   GetRawData()->RecordQueryText(db_oid, query_id, "\"" + query_text + "\"", type_stream.str(), type_str, timestamp);
 }
 
-void QueryTraceMetric::RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
+void QueryTraceMetric::RecordQueryTrace(
+    catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
     common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
   std::ostringstream param_stream;
   std::vector<std::string> param_strs;

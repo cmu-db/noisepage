@@ -132,7 +132,8 @@ std::pair<common::ManagedPointer<transaction::TransactionContext>, bool> QueryEx
   return std::make_pair(txn, require_commit);
 }
 
-void QueryExecUtil::ReturnTransaction(common::ManagedPointer<transaction::TransactionContext> txn, bool require_commit, bool commit) {
+void QueryExecUtil::ReturnTransaction(common::ManagedPointer<transaction::TransactionContext> txn, bool require_commit,
+                                      bool commit) {
   NOISEPAGE_ASSERT(txn == txn_, "Returning an unknown transaction");
   if (require_commit) {
     EndTransaction(commit);

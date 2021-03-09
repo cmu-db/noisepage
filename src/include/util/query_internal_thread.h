@@ -8,8 +8,8 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/compiler/executable_query.h"
-#include "planner/plannodes/output_schema.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
+#include "planner/plannodes/output_schema.h"
 #include "type/type_id.h"
 #include "util/query_exec_util.h"
 

@@ -19,9 +19,9 @@
 #include <utility>
 #include <vector>
 
+#include "common/future.h"
 #include "common/json.h"
 #include "common/managed_pointer.h"
-#include "common/future.h"
 #include "messenger/messenger_defs.h"
 #include "self_driving/forecasting/workload_forecast.h"
 
@@ -72,8 +72,7 @@ class ModelServerFuture : public common::Future<Result> {
   /**
    * Initialize a future object
    */
-  ModelServerFuture()
-    : common::Future<Result>() {}
+  ModelServerFuture() : common::Future<Result>() {}
 
   /**
    * Indicate a future is done by parsing the message from the ModelServer

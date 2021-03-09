@@ -100,7 +100,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
 
   for (auto &info : out_metadata) {
     metadata.query_id_to_dboid_[info.first] = info.second.db_oid_.UnderlyingValue();
-    metadata.query_id_to_text_[info.first] = info.second.text_.substr(1, info.second.text_.size() - 2);;
+    metadata.query_id_to_text_[info.first] = info.second.text_.substr(1, info.second.text_.size() - 2);
     metadata.query_id_to_param_types_[info.first] = types_conv(info.second.param_type_);
   }
 
