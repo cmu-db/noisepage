@@ -437,6 +437,9 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   create_fn("substr", {"s", "pos", "len"}, {STR, INT, INT}, {STR, INT, INT}, STR, true);
   create_fn("upper", {"s"}, {STR}, {STR}, STR, true);
 
+  // Replication.
+  create_fn("replication_get_last_record_id", {}, {}, {}, INT, false);
+
   // Other functions.
   create_fn("date_part", {"date, date_part_type"}, {DATE, INT}, {DATE, INT}, INT, false);
   create_fn("version", {}, {}, {}, STR, false);
@@ -545,6 +548,9 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   create_fn("starts_with", type::TypeId::BOOLEAN, {VAR, VAR}, execution::ast::Builtin::StartsWith, true);
   create_fn("substr", VAR, {VAR, INT, INT}, execution::ast::Builtin::Substring, true);
   create_fn("upper", VAR, {VAR}, execution::ast::Builtin::Upper, true);
+
+  // Replication.
+  create_fn("replication_get_last_record_id", INT, {}, execution::ast::Builtin::ReplicationGetLastRecordId, true);
 
   // Other functions.
   create_fn("date_part", INT, {type::TypeId::DATE, INT}, execution::ast::Builtin::DatePart, false);

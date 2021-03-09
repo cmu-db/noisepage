@@ -39,13 +39,13 @@ namespace noisepage::planner {
 class AbstractPlanNode;
 }  // namespace noisepage::planner
 
+namespace noisepage::replication {
+class ReplicationManager;
+}  // namespace noisepage::replication
+
 namespace noisepage::settings {
 class SettingsManager;
 }  // namespace noisepage::settings
-
-namespace noisepage::storage {
-class ReplicationLogProvider;
-}  // namespace noisepage::storage
 
 namespace noisepage::transaction {
 class TransactionManager;
@@ -68,7 +68,7 @@ class TrafficCop {
   /**
    * @param txn_manager the transaction manager of the system
    * @param catalog the catalog of the system
-   * @param replication_log_provider if given, the tcop will forward replication logs to this provider
+   * @param replication_manager The replication manager.
    * @param settings_manager the settings manager
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
@@ -77,13 +77,13 @@ class TrafficCop {
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
-             common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
+             common::ManagedPointer<replication::ReplicationManager> replication_manager,
              common::ManagedPointer<settings::SettingsManager> settings_manager,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
              bool use_query_cache, const execution::vm::ExecutionMode execution_mode)
       : txn_manager_(txn_manager),
         catalog_(catalog),
-        replication_log_provider_(replication_log_provider),
+        replication_manager_(replication_manager),
         settings_manager_(settings_manager),
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
@@ -248,8 +248,7 @@ class TrafficCop {
  private:
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
-  // Hands logs off to replication component. TCop should forward these logs through this provider.
-  common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
+  common::ManagedPointer<replication::ReplicationManager> replication_manager_;
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
