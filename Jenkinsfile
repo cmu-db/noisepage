@@ -115,7 +115,7 @@ pipeline {
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
-                        sh 'curl -s https://codecov.io/bash | bash -s -- -X gcov'
+                        sh 'cd build && curl -s https://codecov.io/bash | bash -s -- -X gcov'
                     }
                     post {
                         cleanup {
