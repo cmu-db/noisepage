@@ -440,8 +440,8 @@ class DBMain {
       std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
       if (model_server_enable_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
-        model_server_manager =
-            std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+        model_server_manager = std::make_unique<modelserver::ModelServerManager>(
+            model_server_path_, messenger_layer->GetMessenger(), model_server_enable_python_coverage_);
       }
 
       std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
@@ -778,6 +778,15 @@ class DBMain {
     }
 
     /**
+     * @param value enable_python_coverage for ModelServer
+     * @return self reference for chaining
+     */
+    Builder &SetModelServerEnablePythonCoverage(const bool value) {
+      model_server_enable_python_coverage_ = value;
+      return *this;
+    }
+
+    /**
      * @param value the new path to the bytecode handler bitcode file
      * @return self reference for chaining
      */
@@ -849,6 +858,7 @@ class DBMain {
      * in use cases where such assumptions are no longer true.
      */
     std::string model_server_path_ = "../../script/model/model_server.py";
+    bool model_server_enable_python_coverage_ = false;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.

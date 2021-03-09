@@ -54,10 +54,11 @@ common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
 namespace noisepage::modelserver {
 
 ModelServerManager::ModelServerManager(const std::string &model_bin,
-                                       const common::ManagedPointer<messenger::Messenger> &messenger)
-    : messenger_(messenger), thd_(std::thread([this, &model_bin] {
+                                       const common::ManagedPointer<messenger::Messenger> &messenger,
+                                       bool enable_python_coverage)
+    : messenger_(messenger), thd_(std::thread([this, &model_bin, enable_python_coverage] {
         while (!shut_down_) {
-          this->StartModelServer(model_bin);
+          this->StartModelServer(model_bin, enable_python_coverage);
         }
       })) {
   // Model Initialization handling logic
@@ -90,7 +91,7 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
   router_ = ListenAndMakeConnection(messenger, MODEL_IPC_PATH, msm_handler);
 }
 
-void ModelServerManager::StartModelServer(const std::string &model_path) {
+void ModelServerManager::StartModelServer(const std::string &model_path, bool enable_python_coverage) {
 #if __APPLE__
   // do nothing
 #else
@@ -152,22 +153,34 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
     std::string ipc_path = MODEL_IPC_PATH;
     char exec_name[model_path.size() + 1];
     ::strncpy(exec_name, model_path.data(), sizeof(exec_name));
+    // Args to set up Python code coverage then execute model server
     std::string coverage_command = COVERAGE_COMMAND;
     std::string coverage_run = COVERAGE_RUN;
     std::string coverage_include = COVERAGE_INCLUDE;
     std::string coverage_include_path = COVERAGE_INCLUDE_PATH;
-    char *args[] = {coverage_command.data(),
-                    coverage_run.data(),
-                    coverage_include.data(),
-                    coverage_include_path.data(),
-                    exec_name,
-                    ipc_path.data(),
-                    nullptr};
+    char *coverage_args[] = {coverage_command.data(),
+                             coverage_run.data(),
+                             coverage_include.data(),
+                             coverage_include_path.data(),
+                             exec_name,
+                             ipc_path.data(),
+                             nullptr};
+    // Args to directly execute model server
+    char *direct_args[] = {exec_name, ipc_path.data(), nullptr};
     MODEL_SERVER_LOG_TRACE("Inovking ModelServer at :{}", std::string(exec_name));
-    if (execvp(args[0], args) < 0) {
-      MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
-      // Shutting down
-      ::_exit(MODEL_SERVER_SUBPROCESS_ERROR);
+    // It's tricky to assign to char *[], so we just invoke the commands with/without coverage separately
+    if (enable_python_coverage) {
+      if (execvp(coverage_args[0], coverage_args) < 0) {
+        MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
+        // Shutting down
+        ::_exit(MODEL_SERVER_SUBPROCESS_ERROR);
+      }
+    } else {
+      if (execvp(direct_args[0], direct_args) < 0) {
+        MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);
+        // Shutting down
+        ::_exit(MODEL_SERVER_SUBPROCESS_ERROR);
+      }
     }
   }
 }
