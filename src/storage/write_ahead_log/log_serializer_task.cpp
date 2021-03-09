@@ -137,7 +137,8 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
     // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
     // for each timestamp we remove.
 
-    // Only txns from disk should be removed.
+    // Only txns from disk should be removed. Otherwise timestamp managers
+    // will report duplicate removals.
     for (const auto &txns : disk_serialized_txns_) {
       txns.first->RemoveTransactions(txns.second);
     }
@@ -265,7 +266,6 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
 
 uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord &record,
                                             SerializeDestination destination) {
-  //STORAGE_LOG_ERROR("SerializeRecord");
   uint64_t num_bytes = 0;
   // First, serialize out fields common across all LogRecordType's.
 
