@@ -8,25 +8,38 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/compiler/executable_query.h"
-#include "optimizer/cost_model/abstract_cost_model.h"
 #include "planner/plannodes/output_schema.h"
+#include "optimizer/cost_model/abstract_cost_model.h"
 #include "type/type_id.h"
 #include "util/query_exec_util.h"
-
-namespace noisepage::optimizer {
-class AbstractCostModel;
-}
 
 namespace noisepage::parser {
 class ConstantValueExpression;
 }
 
+namespace noisepage::common {
+template <class Result>
+class Future;
+}
+
 namespace noisepage::util {
 
+/**
+ * Request type
+ */
+enum class RequestType : uint8_t {
+  DDL,
+  DML,
+  SYNC,
+};
+
+/**
+ * Describes a single request to be submitted to QueryInternalThread for execution.
+ */
 class ExecuteRequest {
  public:
   /** Whether statement is a DDL */
-  bool is_ddl_;
+  RequestType type_;
 
   /** What database OID to use */
   catalog::db_oid_t db_oid_;
@@ -42,6 +55,9 @@ class ExecuteRequest {
 
   /** Param types */
   std::vector<type::TypeId> param_types_;
+
+  /** A future used to enable waiting by the caller for execution */
+  common::ManagedPointer<common::Future<bool>> notify_;
 };
 
 /**
@@ -60,9 +76,7 @@ class QueryInternalThread {
   }
 
   void AddRequest(ExecuteRequest &&request) {
-    if (!run_queries_) {
-      return;
-    }
+    NOISEPAGE_ASSERT(run_queries_, "QueryInternalThread should not be shutting down");
 
     {
       // Add the request

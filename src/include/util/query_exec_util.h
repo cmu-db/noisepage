@@ -50,10 +50,19 @@ class Statement;
 
 namespace noisepage::util {
 
+/**
+ * Signature of a function that is capable of processing rows retrieved
+ * from ExecuteDML or ExecuteQuery. This function is invoked once per
+ * row, with the argument being a row's attributes.
+ */
 using TupleFunction = std::function<void(const std::vector<execution::sql::Val *> &)>;
 
 /**
  * Utility class for query execution. This class is not thread-safe.
+ *
+ * A QueryExecUtil only supports running 1 transaction at a time. If multiple
+ * components may run multiple transactions interleaved, each component should
+ * then have is own QueryExecUtil for use.
  */
 class QueryExecUtil {
  public:
@@ -86,6 +95,9 @@ class QueryExecUtil {
   /**
    * Instructs the utility to utilize the specified transaction.
    * A transaction must not already be started.
+   *
+   * @note It is the caller's responsibility to invoke UseTransaction(nullptr)
+   * once the transaction no longer requires this utility.
    *
    * @param txn Transaction to use
    */
@@ -129,7 +141,7 @@ class QueryExecUtil {
   bool ExecuteDDL(const std::string &statement);
 
   /**
-   * Execute a stadalone DML statement
+   * Execute a standalone DML statement
    * @param statement statement to execute
    * @param params query parameters to utilize
    * @param param_types Types of query parameters
@@ -148,7 +160,7 @@ class QueryExecUtil {
    * @param params placeholder parameters for query
    * @param param_types Types of the query parameters
    * @param success Flag indicating if compile succeeded
-   * @return index of compiled query
+   * @return compiled query identifier passed into ExecuteQuery
    */
   size_t CompileQuery(const std::string &statement,
                       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
@@ -156,7 +168,7 @@ class QueryExecUtil {
 
   /**
    * Executes a pre-compiled query
-   * @param idx Index of compiled query to execute
+   * @param idx Compiled query identifier to execute
    * @param tuple_fn Per-row function invoked during output
    * @param params Parameters to use for execution
    * @param metrics Metrics manager to use for recording
@@ -181,6 +193,22 @@ class QueryExecUtil {
   void ClearPlans();
 
  private:
+  /**
+   * Gets the transaction context to use, optionally starting one.
+   * @return pair where first element is txn to use and second is whether it was started
+   */
+  std::pair<common::ManagedPointer<transaction::TransactionContext>, bool> GetTxn();
+
+  /**
+   * "Inverse" of GetTxn. This function commits any implicitly started transaction
+   * with the specified commit flag.
+   *
+   * @param txn Transaction to commit (if started)
+   * @param require_commit Whether transaction was implicitly started
+   * @param commit Whether to commit or abort
+   */
+  void ReturnTransaction(common::ManagedPointer<transaction::TransactionContext> txn, bool require_commit, bool commit);
+
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;

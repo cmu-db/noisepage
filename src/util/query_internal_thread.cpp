@@ -1,5 +1,6 @@
 #include "util/query_internal_thread.h"
 
+#include "common/future.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
 
@@ -32,13 +33,13 @@ void QueryInternalThread::QueryThreadLoop() {
 
       bool result = true;
       bool compiled_result = true;
-      if (req.is_ddl_) {
+      if (req.type_ == RequestType::DDL) {
         // Execute DDL
         result = query_exec_util_->ExecuteDDL(req.query_text_);
-      } else if (req.params_.empty()) {
+      } else if (req.type_ == RequestType::DML && req.params_.empty()) {
         // Case of no parameters
         result = query_exec_util_->ExecuteDML(req.query_text_, nullptr, nullptr, nullptr, nullptr);
-      } else {
+      } else if (req.type_ == RequestType::DML) {
         // Compile the query
         std::vector<parser::ConstantValueExpression> &params_0 = req.params_[0];
         size_t idx = query_exec_util_->CompileQuery(req.query_text_, common::ManagedPointer(&params_0),
@@ -57,6 +58,10 @@ void QueryInternalThread::QueryThreadLoop() {
       // If the compile fails, we don't want to abort since that'll trip another assert.
       // In that case there's no harm in just committing an empty transaction.
       query_exec_util_->EndTransaction(!compiled_result || result);
+
+      if (req.notify_ != nullptr) {
+        req.notify_->Success(true);
+      }
     } else {
       queue_cv_.wait(lock);
     }

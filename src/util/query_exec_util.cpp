@@ -75,12 +75,11 @@ void QueryExecUtil::BeginTransaction() {
 
 void QueryExecUtil::EndTransaction(bool commit) {
   NOISEPAGE_ASSERT(txn_ != NULL, "Transaction has not started");
-  if (own_txn_) {
-    if (commit)
-      txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-    else
-      txn_manager_->Abort(txn_);
-  }
+  NOISEPAGE_ASSERT(own_txn_, "EndTransaction can only be called on an owned transaction");
+  if (commit)
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+  else
+    txn_manager_->Abort(txn_);
   txn_ = nullptr;
 }
 
@@ -121,7 +120,7 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
   return std::make_pair(std::move(statement), std::move(out_plan));
 }
 
-bool QueryExecUtil::ExecuteDDL(const std::string &query) {
+std::pair<common::ManagedPointer<transaction::TransactionContext>, bool> QueryExecUtil::GetTxn() {
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   bool require_commit = false;
   if (txn_ == nullptr) {
@@ -130,6 +129,18 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
     txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   }
 
+  return std::make_pair(txn, require_commit);
+}
+
+void QueryExecUtil::ReturnTransaction(common::ManagedPointer<transaction::TransactionContext> txn, bool require_commit, bool commit) {
+  NOISEPAGE_ASSERT(txn == txn_, "Returning an unknown transaction");
+  if (require_commit) {
+    EndTransaction(commit);
+  }
+}
+
+bool QueryExecUtil::ExecuteDDL(const std::string &query) {
+  auto [txn, require_commit] = GetTxn();
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto result = PlanStatement(query, nullptr, nullptr);
   const std::unique_ptr<network::Statement> &statement = result.first;
@@ -172,29 +183,19 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
     }
   }
 
-  if (require_commit) {
-    // Commit if success
-    EndTransaction(status);
-  }
-
+  ReturnTransaction(txn, require_commit, status);
   return status;
 }
 
 size_t QueryExecUtil::CompileQuery(const std::string &statement,
                                    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                    common::ManagedPointer<std::vector<type::TypeId>> param_types, bool *success) {
-  auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  bool require_commit = false;
-  if (txn == nullptr) {
-    require_commit = true;
-    BeginTransaction();
-    txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  }
-
+  auto [txn, require_commit] = GetTxn();
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto result = PlanStatement(statement, params, param_types);
   if (!result.first || !result.second) {
     *success = false;
+    ReturnTransaction(txn, require_commit, false);
     return 0;
   }
 
@@ -207,10 +208,7 @@ size_t QueryExecUtil::CompileQuery(const std::string &statement,
   schemas_.push_back(schema->Copy());
   exec_queries_.push_back(std::move(exec_query));
 
-  if (require_commit) {
-    EndTransaction(false);
-  }
-
+  ReturnTransaction(txn, require_commit, false);
   *success = true;
   return exec_queries_.size() - 1;
 }
@@ -219,15 +217,7 @@ bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                  common::ManagedPointer<metrics::MetricsManager> metrics) {
   NOISEPAGE_ASSERT(idx < exec_queries_.size(), "Invalid query index");
-
-  auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  bool require_commit = false;
-  if (txn == nullptr) {
-    require_commit = true;
-    BeginTransaction();
-    txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  }
-
+  auto [txn, require_commit] = GetTxn();
   planner::OutputSchema *schema = schemas_[idx].get();
   auto consumer = [&tuple_fn, schema](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
     if (tuple_fn != nullptr) {
@@ -260,10 +250,7 @@ bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
 
   exec_queries_[idx]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
-  if (require_commit) {
-    EndTransaction(true);
-  }
-
+  ReturnTransaction(txn, require_commit, true);
   return true;
 }
 

@@ -49,7 +49,6 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
     auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
     is_query_ddl = network::NetworkUtil::DDLQueryType(statement->GetQueryType()) ||
                    statement->GetQueryType() == network::QueryType::QUERY_SET;
-    ;
     is_create_idx = statement->GetQueryType() == network::QueryType::QUERY_CREATE_INDEX;
   }
 
@@ -60,14 +59,12 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
       bool success = true;
       size_t idx = util.CompileQuery(sql_query, nullptr, nullptr, &success);
       if (success) util.ExecuteQuery(idx, nullptr, nullptr, nullptr);
-      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     bool success = true;
     size_t idx = util.CompileQuery(sql_query, nullptr, nullptr, &success);
     if (success) util.ExecuteQuery(idx, nullptr, nullptr, nullptr);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
   // Commit
@@ -99,6 +96,7 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
     auto result = query_exec_util.PlanStatement(query_text, params, param_types);
     plan_vecs->emplace_back(std::move(result.second));
   }
+  query_exec_util.UseTransaction(nullptr);
 }
 
 double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,

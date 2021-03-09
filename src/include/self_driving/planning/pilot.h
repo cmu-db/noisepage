@@ -17,8 +17,6 @@
 #include "metrics/query_trace_metric.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/action_defs.h"
-#include "util/query_exec_util.h"
-#include "util/query_internal_thread.h"
 
 namespace noisepage {
 namespace messenger {
@@ -47,6 +45,11 @@ class SettingsManager;
 
 namespace transaction {
 class TransactionManager;
+}
+
+namespace util {
+class QueryExecUtil;
+class QueryInternalThread;
 }
 
 }  // namespace noisepage

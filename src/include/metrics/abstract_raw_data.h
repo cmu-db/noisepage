@@ -40,6 +40,11 @@ class AbstractRawData {
    */
   virtual MetricsComponent GetMetricType() const = 0;
 
+  /***
+   * Writes the data to internal tables
+   * @param query_exec_util Execution utility for internal SQL execution
+   * @param query_internal_thread Internal thread to submit SQL tasks to
+   */
   virtual void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                     common::ManagedPointer<util::QueryInternalThread> query_internal_thread) {}
 

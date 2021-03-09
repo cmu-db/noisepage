@@ -5,11 +5,12 @@
 #undef __SETTING_GFLAGS_DEFINE__     // NOLINT
 
 #include "execution/execution_util.h"
+#include "loggers/common_logger.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 
 namespace noisepage {
 
-void DBMain::LoadStartupDDL() {
+void DBMain::TryLoadStartupDDL() {
   // Load startup ddls
   std::vector<std::string> startup_ddls;
   if (settings_manager_ != NULL) {
@@ -24,13 +25,15 @@ void DBMain::LoadStartupDDL() {
         }
 
         if (input_line.size() > 2 && input_line[0] == '-' && input_line[1] == '-') {
-          // Skip comments
+          // Skip comments of form '-- comment'
           continue;
         }
 
         startup_ddls.emplace_back(std::move(input_line));
       }
     }
+  } else {
+    COMMON_LOG_WARN("TryLoadStartupDDL() invoked without SettingsManager");
   }
 
   if (!startup_ddls.empty() && query_exec_util_ != nullptr) {
@@ -40,11 +43,13 @@ void DBMain::LoadStartupDDL() {
       query_exec_util_->ExecuteDDL(ddl);
     }
     query_exec_util_->EndTransaction(true);
+  } else if (query_exec_util_ == nullptr) {
+    COMMON_LOG_WARN("TryLoadStartupDDL() invoked without QueryExecUtil");
   }
 }
 
 void DBMain::Run() {
-  LoadStartupDDL();
+  TryLoadStartupDDL();
   NOISEPAGE_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
   const auto server = network_layer_->GetServer();
   try {

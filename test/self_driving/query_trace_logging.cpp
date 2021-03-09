@@ -2,10 +2,6 @@
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "metrics/query_trace_metric.h"
-#include "self_driving/pilot/action/abstract_action.h"
-#include "self_driving/pilot/action/action_defs.h"
-#include "self_driving/pilot/action/change_knob_value_config.h"
-#include "self_driving/pilot/action/generators/change_knob_action_generator.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::selfdriving::pilot::test {
@@ -34,7 +30,7 @@ class QueryTraceLogging : public TerrierTest {
     db_main_->GetMetricsThread()->PauseMetrics();  // We want to aggregate them manually, so pause the thread.
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
-    db_main_->LoadStartupDDL();
+    db_main_->TryLoadStartupDDL();
   }
 
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
@@ -104,7 +100,16 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
   metrics_manager_->Aggregate();
   metrics_manager_->ToOutput();
-  std::this_thread::sleep_for(std::chrono::seconds(3));
+
+  {
+    auto thread = db_main_->GetQueryInternalThread();
+    util::ExecuteRequest req;
+    common::Future<bool> future;
+    req.type_ = util::RequestType::SYNC;
+    req.notify_ = common::ManagedPointer(&future);
+    thread->AddRequest(std::move(req));
+    future.Wait();
+  }
 
   auto util = db_main_->GetQueryExecUtil();
   auto select_count = [util](std::string query, size_t target) {
@@ -122,7 +127,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   select_count("SELECT * FROM noisepage_forecast_texts", 0);
   select_count("SELECT * FROM noisepage_forecast_parameters", 0);
 
-  auto check_freqs = [util, qids, totals, timestamps](size_t num_interval) {
+  auto check_freqs = [util, &qids, &totals, &timestamps](size_t num_interval) {
     util->BeginTransaction();
     size_t seen = 0;
     std::unordered_map<size_t, std::unordered_map<size_t, size_t>> qid_map;

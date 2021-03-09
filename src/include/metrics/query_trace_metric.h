@@ -11,7 +11,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/container/chunked_array.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "common/reservoir_sampling.h"
 #include "execution/exec_defs.h"
@@ -26,14 +26,16 @@ class QueryTraceMetricRawData;
 
 /**
  * Class responsible for tracking query execution metadata
- * at a higher granularity than just record by record.
+ * at a granularity beyond record by record. This class is used
+ * to maintain query execution information on a per-segment
+ * and per-forecast basis.
  */
 class QueryTraceMetadata {
  public:
   /** A tight struct for packing timestamp and query id */
   struct QueryTimeId {
-    uint64_t timestamp;
-    execution::query_id_t qid;
+    uint64_t timestamp_;
+    execution::query_id_t qid_;
   };
 
   /** A tight struct to track db_oid, text, and param types */
@@ -275,49 +277,9 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
 
   void RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
-                       const uint64_t timestamp) {
-    std::ostringstream type_stream;
-    std::vector<std::string> type_strs;
-    for (const auto &val : (*param)) {
-      auto tstr = type::TypeUtil::TypeIdToString(val.GetReturnValueType());
-      type_strs.push_back(tstr);
-      type_stream << tstr << ";";
-    }
+                       const uint64_t timestamp);
 
-    std::string type_str;
-    {
-      nlohmann::json j = type_strs;
-      type_str = j.dump();
-    }
-
-    // We need both the JSON-serialized string and the ';'-delimited form.
-    GetRawData()->RecordQueryText(db_oid, query_id, "\"" + query_text + "\"", type_stream.str(), type_str, timestamp);
-  }
   void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
-                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
-    std::ostringstream param_stream;
-    std::vector<std::string> param_strs;
-    for (const auto &val : (*param)) {
-      if (val.IsNull()) {
-        param_strs.push_back("");
-        param_stream << "";
-      } else {
-        auto valstr = val.ToString();
-        param_strs.push_back(valstr);
-        param_stream << valstr;
-      }
-
-      param_stream << ";";
-    }
-
-    std::string param_str;
-    {
-      nlohmann::json j = param_strs;
-      param_str = j.dump();
-    }
-
-    // We need both the JSON-serialized string and the ';'-delimited form.
-    GetRawData()->RecordQueryTrace(db_oid, query_id, timestamp, param_stream.str(), param_str);
-  }
+                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param);
 };
 }  // namespace noisepage::metrics

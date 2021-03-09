@@ -1,6 +1,9 @@
+#include "common/json.h"
 #include "execution/sql/value_util.h"
 #include "metrics/query_trace_metric.h"
 #include "self_driving/planning/pilot.h"
+#include "util/query_exec_util.h"
+#include "util/query_internal_thread.h"
 
 namespace noisepage::metrics {
 
@@ -40,7 +43,8 @@ void QueryTraceMetricRawData::WriteToDB(
     {
       // Submit a job to update the query text data
       util::ExecuteRequest texts;
-      texts.is_ddl_ = false;
+      texts.type_ = util::RequestType::DML;
+      texts.notify_ = nullptr;
       texts.db_oid_ = catalog::INVALID_DATABASE_OID;
       texts.query_text_ = "INSERT INTO noisepage_forecast_texts VALUES ($1, $2, $3, $4)";
       texts.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR, type::TypeId::VARCHAR};
@@ -80,7 +84,8 @@ void QueryTraceMetricRawData::WriteToDB(
     {
       // Submit a job to update the parameters table
       util::ExecuteRequest params;
-      params.is_ddl_ = false;
+      params.type_ = util::RequestType::DML;
+      params.notify_ = nullptr;
       params.db_oid_ = catalog::INVALID_DATABASE_OID;
       params.query_text_ = "INSERT INTO noisepage_forecast_parameters VALUES ($1, $2, $3)";
       params.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR};
@@ -128,7 +133,8 @@ void QueryTraceMetricRawData::WriteToDB(
   }
 
   util::ExecuteRequest seen;
-  seen.is_ddl_ = false;
+  seen.type_ = util::RequestType::DML;
+  seen.notify_ = nullptr;
   seen.db_oid_ = catalog::INVALID_DATABASE_OID;
   seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
   seen.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
@@ -140,7 +146,7 @@ void QueryTraceMetricRawData::WriteToDB(
       break;
     }
 
-    if ((*metadata_.iterator_).timestamp >= low_timestamp_ + QUERY_SEGMENT_INTERVAL) {
+    if ((*metadata_.iterator_).timestamp_ >= low_timestamp_ + QUERY_SEGMENT_INTERVAL) {
       // In this case, the iterator has moved to a point such that we have a complete segment.
       // Submit the insert job based on the accumulated frequency information.
       if (!freqs.empty()) {
@@ -161,7 +167,8 @@ void QueryTraceMetricRawData::WriteToDB(
         freqs.clear();
 
         // Reset the metadata
-        seen.is_ddl_ = false;
+        seen.type_ = util::RequestType::DML;
+        seen.notify_ = nullptr;
         seen.db_oid_ = catalog::INVALID_DATABASE_OID;
         seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
         seen.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
@@ -175,7 +182,7 @@ void QueryTraceMetricRawData::WriteToDB(
       continue;
     } else {
       // Update freqs with a frequency information
-      freqs[(*metadata_.iterator_).qid] += 1;
+      freqs[(*metadata_.iterator_).qid_] += 1;
     }
 
     // Advance the iterator
@@ -212,8 +219,56 @@ void QueryTraceMetricRawData::WriteToDB(
     high_timestamp_ = 0;
   } else {
     // Set the low_timestamp to where iterator currently is
-    low_timestamp_ = (*metadata_.iterator_).timestamp;
+    low_timestamp_ = (*metadata_.iterator_).timestamp_;
   }
+}
+
+void QueryTraceMetric::RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
+    common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
+    const uint64_t timestamp) {
+  std::ostringstream type_stream;
+  std::vector<std::string> type_strs;
+  for (const auto &val : (*param)) {
+    auto tstr = type::TypeUtil::TypeIdToString(val.GetReturnValueType());
+    type_strs.push_back(tstr);
+    type_stream << tstr << ";";
+  }
+
+  std::string type_str;
+  {
+    nlohmann::json j = type_strs;
+    type_str = j.dump();
+  }
+
+  // We need both the JSON-serialized string and the ';'-delimited form.
+  GetRawData()->RecordQueryText(db_oid, query_id, "\"" + query_text + "\"", type_stream.str(), type_str, timestamp);
+}
+
+void QueryTraceMetric::RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
+    common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
+  std::ostringstream param_stream;
+  std::vector<std::string> param_strs;
+  for (const auto &val : (*param)) {
+    if (val.IsNull()) {
+      param_strs.push_back("");
+      param_stream << "";
+    } else {
+      auto valstr = val.ToString();
+      param_strs.push_back(valstr);
+      param_stream << valstr;
+    }
+
+    param_stream << ";";
+  }
+
+  std::string param_str;
+  {
+    nlohmann::json j = param_strs;
+    param_str = j.dump();
+  }
+
+  // We need both the JSON-serialized string and the ';'-delimited form.
+  GetRawData()->RecordQueryTrace(db_oid, query_id, timestamp, param_stream.str(), param_str);
 }
 
 }  // namespace noisepage::metrics

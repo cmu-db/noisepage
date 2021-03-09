@@ -113,6 +113,10 @@ class MetricsManager {
    * Dump aggregated metrics to CSV files.
    */
   void ToCSV(uint8_t component) const;
+
+  /**
+   * Dump aggregated metrics to internal tables.
+   */
   void ToDB(uint8_t component) const;
 
   void ResetMetric(MetricsComponent component) const;

@@ -17,7 +17,7 @@ enum class MetricsComponent : uint8_t {
 };
 
 /**
- * Metric ouptut types
+ * Metric output types
  *
  * IF you change this enum, you must change settings_defs.h
  */

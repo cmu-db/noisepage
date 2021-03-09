@@ -12,14 +12,32 @@
 
 namespace noisepage::selfdriving {
 
+/**
+ * A workload forecast prediction is described as:
+ * map<cluster id, map<query id, vector of predictions for segments>>
+ *
+ * The first level associates queries to clusters. The second level describes the
+ * forecasted number of queries per segment.
+ */
 using WorkloadForecastPrediction = std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::vector<double>>>;
 
+/**
+ * A utility class meant to shuffle information between WorkloadForecast and Pilot.
+ * The utility class describes the data associated with a given workload interval.
+ */
 class WorkloadMetadata {
  public:
+  /** Map from query id to database id */
   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
+
+  /** Map from query id to query text */
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
+
+  /** Map from query id to sample query parameters */
   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
       query_id_to_params_;
+
+  /** Map from query id to query parameter types */
   std::unordered_map<execution::query_id_t, std::vector<type::TypeId>> query_id_to_param_types_;
 };
 

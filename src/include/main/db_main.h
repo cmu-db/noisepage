@@ -27,6 +27,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
+#include "util/query_internal_thread.h"
 
 namespace noisepage {
 
@@ -60,7 +61,18 @@ class DBMain {
    */
   void Run();
 
-  void LoadStartupDDL();
+  /**
+   * Function loads a startup.sql file specified by the startup_ddl_path
+   * settings parameter. The file is treated as a file of DDL commands
+   * that are then executed.
+   *
+   * Function assumes the following:
+   * - Each SQL command is a DDL statement
+   * - Each line is either blank, a comment, or a SQL command to run
+   * - A comment is any line that starts with '--'
+   * - A SQL command must fit on a single line
+   */
+  void TryLoadStartupDDL();
 
   /**
    * Shuts down the server.

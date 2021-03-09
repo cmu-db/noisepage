@@ -27,6 +27,7 @@
 #include "settings/settings_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
+#include "util/query_internal_thread.h"
 
 namespace noisepage::selfdriving {
 
@@ -175,7 +176,8 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
 
   {
     // Clusters
-    cluster_request.is_ddl_ = false;
+    cluster_request.type_ = util::RequestType::DML;
+    cluster_request.notify_ = nullptr;
     cluster_request.db_oid_ = catalog::INVALID_DATABASE_OID;
     cluster_request.query_text_ = "INSERT INTO noisepage_forecast_clusters VALUES ($1, $2, $3, $4)";
     cluster_request.cost_model_ = nullptr;
@@ -185,7 +187,8 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
 
   {
     // Forecasts
-    forecast_request.is_ddl_ = false;
+    forecast_request.type_ = util::RequestType::DML;
+    forecast_request.notify_ = nullptr;
     forecast_request.db_oid_ = catalog::INVALID_DATABASE_OID;
     forecast_request.query_text_ = "INSERT INTO noisepage_forecast_forecasts VALUES ($1, $2, $3, $4)";
     forecast_request.cost_model_ = nullptr;

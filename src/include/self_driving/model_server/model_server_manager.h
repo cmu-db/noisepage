@@ -21,6 +21,7 @@
 
 #include "common/json.h"
 #include "common/managed_pointer.h"
+#include "common/future.h"
 #include "messenger/messenger_defs.h"
 #include "self_driving/forecasting/workload_forecast.h"
 
@@ -62,42 +63,17 @@ class ModelType {
 };
 
 /**
- * ModelServerFuture is a wrapper over a condition_variable, and the condition.
- *
- * It is used to build synchronous API over asynchronous function calls:
- * ```c++
- *      ModelServerFuture future;
- *      AsyncCall(future);
- *
- *      auto result = future.Wait();
- *      bool success = result.first;
- *      auto data = result.second;
- * ```
- *
- * @tparam Result the type of the future's result
+ * ModelServerFuture extends Future to support deserializing a
+ * JSON response into the correct C++ type.
  */
 template <class Result>
-class ModelServerFuture {
+class ModelServerFuture : public common::Future<Result> {
  public:
   /**
    * Initialize a future object
    */
-  ModelServerFuture() = default;
-
-  /**
-   * Suspends the current thread and wait for the result to be ready
-   * @return Result, and success/fail
-   */
-  std::pair<Result, bool> Wait() {
-    {
-      std::unique_lock<std::mutex> lock(mtx_);
-
-      // Wait until the future is completed by someone with successful result or failure
-      cvar_.wait(lock, [&] { return done_.load(); });
-    }
-
-    return {result_, success_};
-  }
+  ModelServerFuture()
+    : common::Future<Result>() {}
 
   /**
    * Indicate a future is done by parsing the message from the ModelServer
@@ -113,69 +89,14 @@ class ModelServerFuture {
       auto success = res.at("success").get<bool>();
       auto err = res.at("err").get<std::string>();
       if (success) {
-        Success(result);
+        this->Success(result);
       } else {
-        Fail(err);
+        this->Fail(err);
       }
     } catch (nlohmann::json::exception &e) {
-      Fail("WRONG_RESULT_FORMAT");
+      this->Fail("WRONG_RESULT_FORMAT");
     }
   }
-
-  /**
-   * Indicate this future is done with result supplied by the ModelServer
-   * @param result ModelServer's response
-   */
-  void Success(const Result &result) {
-    {
-      std::unique_lock<std::mutex> lock(mtx_);
-      result_ = result;
-      done_ = true;
-      success_ = true;
-    }
-
-    // A future will only be completed by one thread, but there could be waited by multiple threads.
-    // An example could be multiple threads waiting for the training process completion.
-    cvar_.notify_all();
-  }
-
-  /**
-   * Indicate this future fails to retrieve expected results from the asynchronous call to the ModelServer.
-   * It could either be an error on the ModelServer, or failure of sending message by the Messenger
-   */
-  void Fail(const std::string &reason) {
-    {
-      std::unique_lock<std::mutex> lock(mtx_);
-      done_ = true;
-      success_ = false;
-      fail_msg_ = reason;
-    }
-    cvar_.notify_all();
-  }
-
-  /**
-   * @return A message describing why the operation failed
-   */
-  const std::string &FailMessage() const { return fail_msg_; }
-
- private:
-  /** Result for the future */
-  Result result_;
-
-  /** Condition variable for waiter of this future to wait for it being ready */
-  std::condition_variable cvar_;
-
-  /** True If async operation done */
-  std::atomic<bool> done_ = false;
-
-  /** True If async operation succeeds */
-  std::atomic<bool> success_ = false;
-
-  /** Reason for failure */
-  std::string fail_msg_;
-
-  /** Mutex associated with the condition variable */
-  std::mutex mtx_;
 };
 
 /**
