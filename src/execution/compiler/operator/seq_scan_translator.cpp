@@ -36,11 +36,10 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
     local_filter_manager_ = pipeline->DeclarePipelineStateEntry("filterManager", fm_type);
   }
 
-  const bool declare_local_tvi = !pipeline->IsParallel() || !pipeline->IsDriver(this);
-  if (declare_local_tvi) {
-    tvi_base_ = pipeline->DeclarePipelineStateEntry("tviBase",
-                                                    GetCodeGen()->BuiltinType(ast::BuiltinType::TableVectorIterator));
-  }
+  tvi_base_ =
+      pipeline->DeclarePipelineStateEntry("tviBase", GetCodeGen()->BuiltinType(ast::BuiltinType::TableVectorIterator));
+  tvi_needs_free_ =
+      pipeline->DeclarePipelineStateEntry("tviNeedsFree", GetCodeGen()->BuiltinType(ast::BuiltinType::Bool));
 
   num_scans_ = CounterDeclare("num_scans", pipeline);
 }
@@ -270,17 +269,6 @@ void SeqScanTranslator::InitializePipelineState(const Pipeline &pipeline, Functi
     }
   }
 
-  const bool declare_local_tvi = !GetPipeline()->IsParallel() || !GetPipeline()->IsDriver(this);
-  if (declare_local_tvi) {
-    // var tvi = &pipelineState.tviBase
-    function->Append(codegen->DeclareVarWithInit(tvi_var_, tvi_base_.GetPtr(codegen)));
-    // Declare the col_oids variable.
-    DeclareColOids(function);
-    // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
-    function->Append(
-        codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(), col_oids_var_));
-  }
-
   InitializeCounters(pipeline, function);
 }
 
@@ -292,13 +280,15 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
     function->Append(GetCodeGen()->FilterManagerFree(filter_manager));
   }
 
-  // Close TVI, if need be.
-  const bool declare_local_tvi = !GetPipeline()->IsParallel() || !GetPipeline()->IsDriver(this);
-  if (declare_local_tvi) {
-    // var tvi = &pipelineState.tviBase
-    function->Append(codegen->DeclareVarWithInit(tvi_var_, tvi_base_.GetPtr(codegen)));
-    function->Append(codegen->TableIterClose(codegen->MakeExpr(tvi_var_)));
+  // if (pipelineState.tviNeedsFree)
+  If need_free(function, tvi_needs_free_.Get(codegen));
+  {
+    // @tableIterClose(&pipelineState.tviBase)
+    function->Append(codegen->TableIterClose(tvi_base_.GetPtr(codegen)));
+    // pipelineState.tviNeedsFree = false
+    function->Append(codegen->Assign(tvi_needs_free_.Get(codegen), codegen->ConstBool(false)));
   }
+  need_free.EndIf();
 }
 
 void SeqScanTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -316,16 +306,30 @@ void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder
 void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
 
-  auto declare_slot = codegen->DeclareVarNoInit(slot_var_, ast::BuiltinType::TupleSlot);
-  function->Append(declare_slot);
-
   const bool declare_local_tvi = !GetPipeline()->IsParallel() || !GetPipeline()->IsDriver(this);
   if (declare_local_tvi) {
     // var tvi = &pipelineState.tviBase
     function->Append(codegen->DeclareVarWithInit(tvi_var_, tvi_base_.GetPtr(codegen)));
+    // Declare the col_oids variable.
+    DeclareColOids(function);
+    // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
+    function->Append(
+        codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(), col_oids_var_));
+    function->Append(codegen->Assign(tvi_needs_free_.Get(codegen), codegen->ConstBool(true)));
   }
+
+  auto declare_slot = codegen->DeclareVarNoInit(slot_var_, ast::BuiltinType::TupleSlot);
+  function->Append(declare_slot);
+
   // Scan it.
   ScanTable(context, function);
+
+  if (declare_local_tvi) {
+    // @tableIterClose(&pipelineState.tviBase)
+    function->Append(codegen->TableIterClose(tvi_base_.GetPtr(codegen)));
+    // pipelineState.tviNeedsFree = false
+    function->Append(codegen->Assign(tvi_needs_free_.Get(codegen), codegen->ConstBool(false)));
+  }
 
   if (!GetPipeline()->IsParallel()) {
     RecordCounters(*GetPipeline(), function);
