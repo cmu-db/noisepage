@@ -148,7 +148,11 @@ void ModelServerManager::StartModelServer(const std::string &model_path) {
     std::string ipc_path = MODEL_IPC_PATH;
     char exec_name[model_path.size() + 1];
     ::strncpy(exec_name, model_path.data(), sizeof(exec_name));
-    char *args[] = {exec_name, ipc_path.data(), nullptr};
+    char coverage[9]{"coverage"};
+    char run[4]{"run"};
+    char include[34]{"--include"};
+    char src_path[34]{"*/script/self_driving/*"};
+    char *args[] = {coverage, run, include, src_path, exec_name, ipc_path.data(), nullptr};
     MODEL_SERVER_LOG_TRACE("Inovking ModelServer at :{}", std::string(exec_name));
     if (execvp(args[0], args) < 0) {
       MODEL_SERVER_LOG_ERROR("Failed to execute model binary: {}, {}", strerror(errno), errno);

@@ -527,6 +527,8 @@ pipeline {
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        sh 'cd build && bash <(curl -s https://codecov.io/bash) -X gcov'
                     }
                     post {
                         cleanup {

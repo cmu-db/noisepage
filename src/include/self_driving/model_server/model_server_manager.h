@@ -371,16 +371,6 @@ class ModelServerManager {
   void StartModelServer(const std::string &model_path);
 
   /**
-   * A customized ModelServerManager server callback
-   * @param messenger Messenger handle
-   * @param sender_id  The sender's id (from the other end of communication)
-   * @param message  Message string content in JSON format
-   * @param recv_cb_id  Id of Callback to be invoked, will be interpreted by the server callback
-   */
-  static void ModelServerHandler(common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
-                                 std::string_view message, uint64_t recv_cb_id);
-
-  /**
    * Send a marshalled message string in JSON format through the Messenger
    * @param payload serialized JSON message payload
    * @param cb callback to invoke when receive a reply as a result of this message
