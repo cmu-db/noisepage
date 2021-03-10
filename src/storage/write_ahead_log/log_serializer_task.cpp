@@ -155,17 +155,17 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
  * @return buffer to write to
  */
 BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer(SerializeDestination destination) {
+  if (replication_filled_buffer_ == nullptr) {
+    empty_buffer_queue_->Dequeue(&replication_filled_buffer_);
+    return replication_filled_buffer_;
+  }
+
   if (destination == SerializeDestination::DISK) {
     if (disk_filled_buffer_ == nullptr) {
       empty_buffer_queue_->Dequeue(&disk_filled_buffer_);
     }
-    return disk_filled_buffer_;
-  } else {
-    if (replication_filled_buffer_ == nullptr) {
-      empty_buffer_queue_->Dequeue(&replication_filled_buffer_);
-    }
-    return replication_filled_buffer_;
   }
+  return disk_filled_buffer_;
 }
 
 /**
