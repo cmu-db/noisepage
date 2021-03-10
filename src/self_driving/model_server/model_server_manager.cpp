@@ -38,15 +38,7 @@ common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
 
   // Listen for the connection
   messenger->ListenForConnection(destination, MODEL_CONN_ID_NAME, std::move(model_server_logic));
-
-  // TODO(ricky): pass in a cvar so that the messenger could signal that the router has been added.
-  while (true) {
-    try {
-      return messenger->GetConnectionRouter(MODEL_CONN_ID_NAME);
-    } catch (std::exception &e) {
-      ::sleep(1);
-    }
-  }
+  return messenger->GetConnectionRouter(MODEL_CONN_ID_NAME);
 }
 
 }  // namespace noisepage::modelserver
@@ -62,8 +54,11 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
         }
       })) {
   // Model Initialization handling logic
-  auto msm_handler = [&](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
-                         std::string_view message, uint64_t recv_cb_id) {
+  auto msm_handler = [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
+    uint64_t sender_id = msg.GetSourceCallbackId();
+    uint64_t recv_cb_id = msg.GetDestinationCallbackId();
+    std::string_view message = msg.GetMessage();
+
     // ModelServer connected
     MODEL_SERVER_LOG_TRACE("[PID={},SENDER_ID={}] Messenger RECV: {}, {}", ::getpid(), sender_id, message, recv_cb_id);
 
@@ -187,7 +182,8 @@ void ModelServerManager::StartModelServer(const std::string &model_path, bool en
 
 bool ModelServerManager::SendMessage(const std::string &payload, messenger::CallbackFn cb) {
   try {
-    messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, std::move(cb), 0);
+    messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, std::move(cb),
+                            static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP));
     return true;
   } catch (std::exception &e) {
     MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to send message: {}. Error: {}", ::getpid(), payload,
@@ -235,10 +231,10 @@ bool ModelServerManager::TrainModel(ModelType::Type model, const std::vector<std
   j["data"]["save_path"] = save_path;
 
   // Callback to notify the waiter for result, or failure to parse the result.
-  auto callback = [&, future](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
-                              std::string_view message, uint64_t recv_cb_id) {
-    MODEL_SERVER_LOG_DEBUG("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
-    future->Done(message);
+  auto callback = [&, future](common::ManagedPointer<messenger::Messenger> messenger,
+                              const messenger::ZmqMessage &msg) {
+    MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", msg.GetDestinationCallbackId(), msg.GetMessage());
+    future->Done(msg.GetMessage());
   };
 
   return SendMessage(j.dump(), callback);
@@ -279,10 +275,9 @@ std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, co
   ModelServerFuture<Result> future;
 
   // Callback to notify waiter with result
-  auto callback = [&](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
-                      std::string_view message, uint64_t recv_cb_id) {
-    MODEL_SERVER_LOG_DEBUG("Callback :recv_cb_id={}, message={}", recv_cb_id, message);
-    future.Done(message);
+  auto callback = [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
+    MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", msg.GetDestinationCallbackId(), msg.GetMessage());
+    future.Done(msg.GetMessage());
   };
 
   // Fail to send the message
