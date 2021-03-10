@@ -6,11 +6,13 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "storage/index/bplustree.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
 namespace noisepage::storage::index {
+template <typename KeyType, typename ValueType, typename KeyComparator, typename KeyEqualityChecker,
+          typename ValueEqualityChecker>
+class BPlusTree;
 template <uint8_t KeySize>
 class CompactIntsKey;
 template <uint16_t KeySize>
@@ -27,7 +29,11 @@ class BPlusTreeIndex final : public Index {
  private:
   explicit BPlusTreeIndex(IndexMetadata &&metadata);
 
-  const std::unique_ptr<BPlusTree<KeyType, TupleSlot>> bplustree_;
+  const std::unique_ptr<BPlusTree<KeyType, TupleSlot,
+                                  std::less<KeyType>,      // NOLINT transparent functors can't figure out template
+                                  std::equal_to<KeyType>,  // NOLINT transparent functors can't figure out template
+                                  std::equal_to<TupleSlot>>>
+      bplustree_;
   mutable common::SpinLatch transaction_context_latch_;  // latch used to protect transaction context
 
  public:
@@ -36,11 +42,6 @@ class BPlusTreeIndex final : public Index {
    * catalog metadata. This is mostly used for debugging purposes.
    */
   IndexType Type() const final { return IndexType::BPLUSTREE; }
-
-  /**
-   * Invoke garbage collection on the index.
-   */
-  void PerformGarbageCollection() final;
 
   /**
    * @return approximate number of bytes allocated on the heap for this index data structure
