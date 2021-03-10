@@ -188,18 +188,12 @@ pipeline {
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh 'cd build && timeout 1h ninja unittest'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && lcov --directory . --capture --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/test/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --list coverage.info'
-                        sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
-                        sh 'cd build && chmod a+x ./codecov.sh'
-                        sh 'cd build && /bin/bash ./codecov.sh -X gcov'
+
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.cppCoverage()
+                        }
+
                     }
                     post {
                         always {
