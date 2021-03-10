@@ -7,6 +7,7 @@
 #include <sys/prctl.h>
 #endif
 #include <sys/wait.h>
+
 #include <thread>  // NOLINT
 
 #include "common/json.h"
@@ -50,8 +51,8 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
       })) {
   // Model Initialization handling logic
   auto msm_handler = [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-    uint64_t sender_id = msg.GetSourceCallbackId();
-    uint64_t recv_cb_id = msg.GetDestinationCallbackId();
+    uint64_t sender_id UNUSED_ATTRIBUTE = msg.GetSourceCallbackId();
+    uint64_t recv_cb_id UNUSED_ATTRIBUTE = msg.GetDestinationCallbackId();
     std::string_view message = msg.GetMessage();
 
     // ModelServer connected
