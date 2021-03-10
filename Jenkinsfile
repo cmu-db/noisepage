@@ -111,29 +111,15 @@ pipeline {
                         cd build
                         export BUILD_ABS_PATH=`pwd`
                         timeout 10m ninja self_driving_e2e_test
-                        pwd
-                        ls -a
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
-                        // The test is not run under `build` in ctest, and there's currently no way to specify the
-                        // output directory in command line with `coverage`. So we have to step into the working
-                        // directory. There might be a future feature to get coverage files recursively:
-                        // https://github.com/codecov/codecov-python/issues/198
+                        // We need `coverage combine` because coverage files are generated separately for each test and
+                        // then moved into the build root by `run-test.sh`
                         sh script :'''
                         cd build
-                        pwd
-                        ls -a
-                        cd build
-                        pwd
-                        ls -a
-                        cd test-work
-                        pwd
-                        ls -a
-                        cd model_server_test
-                        pwd
-                        ls -a
+                        coverage combine
                         curl -s https://codecov.io/bash | bash -s -- -X gcov
                         ''', label: 'Report Python code coverage'
                     }
