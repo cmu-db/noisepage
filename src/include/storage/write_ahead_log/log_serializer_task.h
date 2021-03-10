@@ -31,8 +31,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param serialization_interval             Interval time for when to trigger serialization.
    * @param buffer_pool                        Buffer pool to use to release serialized buffers.
    * @param empty_buffer_queue                 Pointer to queue to pop empty buffers from.
-   * @param disk_filled_buffer_queue           Pointer to queue to push filled buffers to.
-   * @param replication_filled_buffer_queue    Pointer to queue to push filled buffers to.
+   * @param disk_filled_buffer_queue           Pointer to disk queue to push filled buffers to.
+   * @param replication_filled_buffer_queue    Pointer to replication queue to push filled buffers to.
    * @param disk_log_writer_thread_cv          Pointer to cvar to notify consumer when a new buffer has handed over.
    * @param primary_replication_manager        Pointer to replication manager where to-be-replicated serialized logs are sent.
    */
@@ -75,6 +75,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   /**
    * Hands a (possibly partially) filled buffer to the serializer task to be serialized
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
+   * @param retention_policy that decides how the record log will be persisted.
    */
   void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment, transaction::RetentionPolicy retention_policy) {
     {
@@ -182,6 +183,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   /**
    * Serialize out the record to the log
    * @param record the redo record to serialise
+   * @param destination of where the serialised record will be directed to
    * @return bytes serialized, used for metrics
    */
   uint64_t SerializeRecord(const LogRecord &record, SerializeDestination destination);
