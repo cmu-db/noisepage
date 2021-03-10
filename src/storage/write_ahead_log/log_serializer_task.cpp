@@ -59,7 +59,8 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   } while (run_task_);
   // To be extra sure we processed everything
   Process();
-  NOISEPAGE_ASSERT(disk_flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
+  NOISEPAGE_ASSERT(disk_flush_queue_.empty(),
+                   "Termination of LogSerializerTask should hand off all buffers to consumers");
 }
 
 std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
@@ -95,7 +96,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         replication_flush_queue_ = std::queue<RecordBufferSegment *>();
         empty_ = true;
       }
- 
+
       if (!temp_replication_flush_queue_.empty()) {
         replication_buffers_processed = true;
       }
@@ -103,11 +104,11 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
       while (!temp_replication_flush_queue_.empty()) {
         RecordBufferSegment *buffer = temp_replication_flush_queue_.front();
         temp_replication_flush_queue_.pop();
-        
+
         // Serialize the Redo buffer and release it to the buffer pool
         IterableBufferSegment<LogRecord> task_buffer(buffer);
         const auto num_bytes_records_and_txns = SerializeBuffer(&task_buffer, SerializeDestination::REPLICAS);
-        
+
         num_bytes += std::get<0>(num_bytes_records_and_txns);
         num_records += std::get<1>(num_bytes_records_and_txns);
         num_txns += std::get<2>(num_bytes_records_and_txns);
@@ -165,7 +166,6 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer(SerializeDestination
     }
     return replication_filled_buffer_;
   }
-  
 }
 
 /**
@@ -206,7 +206,8 @@ void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destinatio
     }
 
     // Hand over the filled buffer
-    replication_filled_buffer_queue_->Enqueue(std::make_pair(replication_filled_buffer_, replication_commits_in_buffer_));
+    replication_filled_buffer_queue_->Enqueue(
+        std::make_pair(replication_filled_buffer_, replication_commits_in_buffer_));
     // Mark that the task doesn't have a buffer in its possession to which it can write to
     replication_commits_in_buffer_.clear();
     replication_filled_buffer_ = nullptr;
@@ -232,11 +233,12 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
           // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
           disk_serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
         } else {
-          replication_commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
+          replication_commits_in_buffer_.emplace_back(commit_record->CommitCallback(),
+                                                      commit_record->CommitCallbackArg());
           // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
           replication_serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
         }
-       
+
         num_txns++;
         break;
       }

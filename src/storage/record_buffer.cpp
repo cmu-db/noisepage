@@ -21,7 +21,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size, transaction::RetentionPolicy ret
   } else if (!buffer_seg_->HasBytesLeft(size)) {
     // old log buffer is full
     if (log_manager_ != DISABLED &&
-      retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
+        retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
       log_manager_->AddBufferToFlushQueue(buffer_seg_, retention_policy);
       has_flushed_ = true;
     } else {
@@ -38,7 +38,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size, transaction::RetentionPolicy ret
 void RedoBuffer::Finalize(bool flush_buffer, transaction::RetentionPolicy retention_policy) {
   if (buffer_seg_ == nullptr) return;  // If we never initialized a buffer (logging was disabled), we don't do anything
   if (log_manager_ != DISABLED && flush_buffer &&
-    retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
+      retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
     log_manager_->AddBufferToFlushQueue(buffer_seg_, retention_policy);
     has_flushed_ = true;
   } else {

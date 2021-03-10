@@ -34,7 +34,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param disk_filled_buffer_queue           Pointer to disk queue to push filled buffers to.
    * @param replication_filled_buffer_queue    Pointer to replication queue to push filled buffers to.
    * @param disk_log_writer_thread_cv          Pointer to cvar to notify consumer when a new buffer has handed over.
-   * @param primary_replication_manager        Pointer to replication manager where to-be-replicated serialized logs are sent.
+   * @param primary_replication_manager        Pointer to replication manager where to-be-replicated serialized logs are
+   * sent.
    */
   explicit LogSerializerTask(
       const std::chrono::microseconds serialization_interval, RecordBufferSegmentPool *buffer_pool,
@@ -86,7 +87,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
       } else if (retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK) {
         disk_flush_queue_.push(buffer_segment);
       }
-      
+
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();
     }
@@ -101,7 +102,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
  private:
   // Marks where a piece of serialized log will be redirected to.
   enum class SerializeDestination { DISK = 0, REPLICAS };
-  
+
   friend class LogManager;
   // Flag to signal task to run or stop
   bool run_task_;
@@ -144,7 +145,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // TODO(Gus): If we guarantee there is only one TSManager in the system, this can just be a vector. We could also pass
   // TS into the serializer instead of having a pointer for it in every commit/abort record
   std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> disk_serialized_txns_;
-  std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> replication_serialized_txns_;
+  std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>>
+      replication_serialized_txns_;
 
   // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
   common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
