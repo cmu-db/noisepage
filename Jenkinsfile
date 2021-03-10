@@ -74,8 +74,7 @@ pipeline {
 
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
-                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingE2ETests: true)
                         }
 
                         // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
@@ -114,7 +113,7 @@ pipeline {
                         // Release mode first to efficiently generate the data required by the tests
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(isCodeCoverage:true)
+                            utils.noisePageBuild(isCodeCoverage:true, isBuildTests:false, isBuildSelfDrivingE2ETests: true)
                         }
 
                         sh script: '''
