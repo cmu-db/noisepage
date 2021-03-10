@@ -157,14 +157,9 @@ void ModelServerManager::StartModelServer(const std::string &model_path, bool en
     std::string coverage_parallel = COVERAGE_PARALLEL;
     std::string coverage_include = COVERAGE_INCLUDE;
     std::string coverage_include_path = COVERAGE_INCLUDE_PATH;
-    char *coverage_args[] = {coverage_command.data(),
-                             coverage_run.data(),
-                             coverage_parallel.data(),
-                             coverage_include.data(),
-                             coverage_include_path.data(),
-                             exec_name,
-                             ipc_path.data(),
-                             nullptr};
+    char *coverage_args[] = {
+        coverage_command.data(),      coverage_run.data(), coverage_parallel.data(), coverage_include.data(),
+        coverage_include_path.data(), exec_name,           ipc_path.data(),          nullptr};
     // Args to directly execute model server
     char *direct_args[] = {exec_name, ipc_path.data(), nullptr};
     MODEL_SERVER_LOG_TRACE("Inovking ModelServer at :{}", std::string(exec_name));
