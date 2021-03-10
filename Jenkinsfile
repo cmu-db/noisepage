@@ -110,6 +110,13 @@ pipeline {
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
+                        // Recompile the c++ binaries in Debug mode to generate code coverage. We had to compile in
+                        // Release mode first to efficiently generate the data required by the tests
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(isCodeCoverage:true)
+                        }
+
                         sh script: '''
                         cd build
                         export BUILD_ABS_PATH=`pwd`
@@ -123,8 +130,13 @@ pipeline {
                         sh script :'''
                         cd build
                         coverage combine
-                        curl -s https://codecov.io/bash | bash -s -- -X gcov
-                        ''', label: 'Report Python code coverage'
+                        ''', label: 'Combine Python code coverage'
+
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.cppCoverage()
+                        }
+
                     }
                     post {
                         cleanup {
