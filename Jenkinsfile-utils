@@ -106,7 +106,7 @@ in. The config arguments are the same as the defaultArgs in noisePageBuild.
 String generateBuildCmd(Map config = [:]) {
     String buildCmd = 'ninja'
     if (config.isBuildSelfDrivingE2ETests) {
-        buildCmd += ' execution_runners'
+        buildCmd += ' execution_runners noisepage'
     }
     else if (!config.isBuildBenchmarks && !config.isBuildTests) {
         buildCmd += ' noisepage'
