@@ -21,7 +21,7 @@ static constexpr const char *MODEL_TARGET_NAME = "model";
 static constexpr const char *MODEL_IPC_PATH = "model-server-ipc";
 static constexpr const char *COVERAGE_COMMAND = "coverage";
 static constexpr const char *COVERAGE_RUN = "run";
-// used to generate a unique coverage file name and them potentially combine multiple coverage files together
+// used to generate a unique coverage file name and then potentially combine multiple coverage files together
 static constexpr const char *COVERAGE_PARALLEL = "-p";
 static constexpr const char *COVERAGE_INCLUDE = "--include";
 static constexpr const char *COVERAGE_INCLUDE_PATH = "*/script/self_driving/*";

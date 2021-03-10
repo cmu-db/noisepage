@@ -65,6 +65,9 @@ pipeline {
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
+                    environment {
+                        CODECOV_TOKEN=credentials('codecov-token')
+                    }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
