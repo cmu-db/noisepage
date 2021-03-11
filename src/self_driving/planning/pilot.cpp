@@ -329,6 +329,10 @@ void Pilot::LoadWorkloadForecast() {
   // executed queries, then GetSegmentInformation() will return the last interval's data.
   auto iteration = Pilot::planning_iteration++;
 
+  // This flag is used to make sure the 2 separate stages (get forecast prediction, construct
+  // WorkloadForecast object) are consistent. "Consistency" here means that all the data comes
+  // from either the disk file or internal tables.
+  bool loaded_from_internal = false;
   std::pair<selfdriving::WorkloadForecastPrediction, bool> result;
   {
     // Only get the most recent interval information
@@ -340,12 +344,14 @@ void Pilot::LoadWorkloadForecast() {
     }
 
     if (segment_information.empty() || !success) {
+      loaded_from_internal = false;
       std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
 
       // If the segment information is empty, use the file instead on disk
       result = model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, nullptr,
                                                          workload_forecast_interval_);
     } else {
+      loaded_from_internal = true;
       result = model_server_manager_->InferForecastModel(&segment_information, forecast_model_save_path_, models,
                                                          nullptr, workload_forecast_interval_);
     }
@@ -357,7 +363,7 @@ void Pilot::LoadWorkloadForecast() {
     }
   }
 
-  if (query_exec_util_ && metrics_in_db) {
+  if (query_exec_util_ && metrics_in_db && loaded_from_internal) {
     // Retrieve query information from internal tables
     auto metadata_result = RetrieveWorkloadMetadata(iteration, out_metadata, out_params);
     if (!metadata_result.second) {
