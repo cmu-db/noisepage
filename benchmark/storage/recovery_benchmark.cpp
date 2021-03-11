@@ -181,7 +181,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
       auto index_col =
           catalog::IndexSchema::Column("index_col", type::TypeId::INTEGER, false,
                                        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
-      catalog::IndexSchema index_schema({index_col}, storage::index::IndexType::BWTREE, true, false, false, true);
+      catalog::IndexSchema index_schema({index_col}, storage::index::IndexType::BPLUSTREE, true, false, false, true);
       auto index_oid =
           catalog_accessor->CreateIndex(namespace_oid, table_oid, index_name + std::to_string(i), index_schema);
       auto *index = storage::index::IndexBuilder().SetKeySchema(index_schema).Build();

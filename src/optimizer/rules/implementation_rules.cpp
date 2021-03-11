@@ -911,7 +911,7 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
       cols.emplace_back(name, type, nullable, *attr);
   }
 
-  storage::index::IndexType idx_type = storage::index::IndexType::BWTREE;
+  storage::index::IndexType idx_type = storage::index::IndexType::BPLUSTREE;
   switch (ci_op->GetIndexType()) {
     case parser::IndexType::BWTREE:
       idx_type = storage::index::IndexType::BWTREE;

@@ -126,7 +126,7 @@ class OperatorTransformerTest : public TerrierTest {
     auto col = catalog::IndexSchema::Column(
         "a1", type::TypeId::INTEGER, true,
         parser::ColumnValueExpression(db_oid_, table_a_oid_, accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid()));
-    auto idx_schema = catalog::IndexSchema({col}, storage::index::IndexType::BWTREE, true, true, false, true);
+    auto idx_schema = catalog::IndexSchema({col}, storage::index::IndexType::BPLUSTREE, true, true, false, true);
     a_index_oid_ = accessor_->CreateIndex(accessor_->GetDefaultNamespace(), table_a_oid_, "a_index", idx_schema);
     storage::index::IndexBuilder index_builder;
     index_builder.SetKeySchema(accessor_->GetIndexSchema(a_index_oid_));
@@ -1097,7 +1097,7 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   auto logical_create = operator_tree_->Contents()->GetContentsAs<optimizer::LogicalCreateIndex>();
   EXPECT_EQ(logical_create->GetTableOid(), table_a_oid_);
   EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
-  EXPECT_EQ(logical_create->GetIndexType(), parser::IndexType::BWTREE);
+  EXPECT_EQ(logical_create->GetIndexType(), parser::IndexType::BPLUSTREE);
   EXPECT_EQ(logical_create->GetIndexName(), "idx_d");
   EXPECT_TRUE(logical_create->IsUnique());
   auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();

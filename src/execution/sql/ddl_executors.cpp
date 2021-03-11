@@ -65,7 +65,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
       }
     }
-    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
 
     // Create the index, and use its return value as overall success result
     result = result &&
@@ -87,7 +87,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
       }
     }
-    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, false, false, true);
+    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, false, false, true);
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
