@@ -195,8 +195,8 @@ void WorkloadForecast::LoadQueryTrace() {
 
     if (!parse_succ) continue;
 
-    query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[0]));
-    param_string = val_vec[2];
+    query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[1]));
+    param_string = val_vec[3];
 
     // extract each parameter in the param_string
     std::vector<parser::ConstantValueExpression> param_vec;
@@ -210,7 +210,7 @@ void WorkloadForecast::LoadQueryTrace() {
     if (query_id_to_params_[query_id].size() < num_sample_) {
       query_id_to_params_[query_id].push_back(param_vec);
     }
-    query_timestamp_to_id_.insert(std::make_pair(std::stoull(val_vec[1]), query_id));
+    query_timestamp_to_id_.insert(std::make_pair(std::stoull(val_vec[2]), query_id));
   }
   // Close file
   trace_file.close();
