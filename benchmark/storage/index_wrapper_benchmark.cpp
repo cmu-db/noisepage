@@ -46,7 +46,7 @@ class IndexBenchmark : public benchmark::Fixture {
   storage::ProjectedRowInitializer tuple_initializer_ =
       storage::ProjectedRowInitializer::Create(std::vector<uint16_t>{1}, std::vector<uint16_t>{1});  // This is a dummy
 
-  // HashIndex or BwTreeIndex
+  // HashIndex or BPlusTreeIndex
   common::ManagedPointer<storage::index::Index> index_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
@@ -116,7 +116,7 @@ class IndexBenchmark : public benchmark::Fixture {
   }
 
   // Table is populated with sequentially increasing keys, which will not make performance difference on hash index, but
-  // may on the BwTree structure
+  // may on the BPlusTree structure
   void PopulateTableAndIndex() {
     // Set up keystore and transaction manager for insert actions
     auto *const insert_key = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_);
@@ -168,11 +168,11 @@ class IndexBenchmark : public benchmark::Fixture {
   }
 };
 
-// Determine required time to run key lookup with BwTree structure for index
+// Determine required time to run key lookup with BplusTree structure for index
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(IndexBenchmark, BwTreeIndexRandomScanKey)(benchmark::State &state) {
-  // Create index using BwTree and populate associated table
-  CreateIndex(storage::index::IndexType::BWTREE);
+BENCHMARK_DEFINE_F(IndexBenchmark, BPlusTreeIndexRandomScanKey)(benchmark::State &state) {
+  // Create index using BPlusTree and populate associated table
+  CreateIndex(storage::index::IndexType::BPLUSTREE);
   PopulateTableAndIndex();
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -203,7 +203,7 @@ BENCHMARK_DEFINE_F(IndexBenchmark, HashIndexRandomScanKey)(benchmark::State &sta
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(IndexBenchmark, BwTreeIndexRandomScanKey)
+BENCHMARK_REGISTER_F(IndexBenchmark, BPlusTreeIndexRandomScanKey)
     ->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_REGISTER_F(IndexBenchmark, HashIndexRandomScanKey)
