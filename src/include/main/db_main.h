@@ -948,10 +948,6 @@ class DBMain {
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
     uint64_t forecast_sample_limit_ = 5;
-    uint64_t record_buffer_segment_size_ = 1e5;
-    uint64_t record_buffer_segment_reuse_ = 1e4;
-    std::string wal_file_path_ = "wal.log";
-    uint64_t wal_num_buffers_ = 100;
     int32_t wal_serialization_interval_ = 100;
     int32_t wal_persist_interval_ = 100;
     int32_t gc_interval_ = 1000;
@@ -1227,12 +1223,8 @@ class DBMain {
   std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
   std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
-<<<<<<< HEAD
-  std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   std::unique_ptr<util::QueryInternalThread> query_internal_thread_;
-=======
->>>>>>> cmudb/master
 };
 
 }  // namespace noisepage
