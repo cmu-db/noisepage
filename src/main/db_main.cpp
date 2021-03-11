@@ -66,7 +66,15 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
-<<<<<<< HEAD
+  if (replication_manager_ != DISABLED) {
+    if (!replication_manager_->IsPrimary()) {
+      replication_manager_->GetAsReplica()->GetReplicationLogProvider()->EndReplication();
+    }
+  }
+  if (recovery_manager_ != DISABLED && recovery_manager_->IsRecoveryTaskRunning()) {
+    recovery_manager_->WaitForRecoveryToFinish();
+  }
+
   {
     // Release all claims to QueryInternalThread
     if (metrics_manager_ != nullptr) {
@@ -83,16 +91,6 @@ void DBMain::ForceShutdown() {
     (void)query_internal_thread_.release();
   }
 
-=======
-  if (replication_manager_ != DISABLED) {
-    if (!replication_manager_->IsPrimary()) {
-      replication_manager_->GetAsReplica()->GetReplicationLogProvider()->EndReplication();
-    }
-  }
-  if (recovery_manager_ != DISABLED && recovery_manager_->IsRecoveryTaskRunning()) {
-    recovery_manager_->WaitForRecoveryToFinish();
-  }
->>>>>>> cmudb/master
   if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
     network_layer_->GetServer()->StopServer();
   }
