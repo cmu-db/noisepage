@@ -495,8 +495,8 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, PgAttribute::COLUMN_TABLE_OID, PgAttribute::ATTNUM.oid_));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
-  // Primary, must be a BWTREE due to ScanAscending usage
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  // Primary, must be a BPLUSTREE due to ScanAscending usage
+  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, true, true, false, true);
 
   return schema;
 }
@@ -830,7 +830,7 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Non-Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, false);
+  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, false, false, false, false);
 
   return schema;
 }
@@ -848,7 +848,7 @@ IndexSchema Builder::GetStatisticOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, true, true, false, true);
 
   return schema;
 }
