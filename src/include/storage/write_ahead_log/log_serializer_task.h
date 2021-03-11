@@ -82,8 +82,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
     {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
       if (retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS) {
-        disk_flush_queue_.push(buffer_segment);
         replication_flush_queue_.push(buffer_segment);
+        disk_flush_queue_.push(buffer_segment);
       } else if (retention_policy == transaction::RetentionPolicy::RETENTION_LOCAL_DISK) {
         disk_flush_queue_.push(buffer_segment);
       }
