@@ -33,11 +33,11 @@ class DataInfo:
         self.METRICS_OUTPUT_NUM = len(Target)
 
         # prediction targets in the mini models
-        self.MINI_MODEL_TARGET_LIST = [Target.CPU_CYCLES, Target.INSTRUCTIONS, Target.CACHE_REF,
-                                       Target.CACHE_MISS, Target.REF_CPU_CYCLES, Target.BLOCK_READ,
-                                       Target.BLOCK_WRITE, Target.MEMORY_B, Target.ELAPSED_US]
+        self.OU_MODEL_TARGET_LIST = [Target.CPU_CYCLES, Target.INSTRUCTIONS, Target.CACHE_REF,
+                                     Target.CACHE_MISS, Target.REF_CPU_CYCLES, Target.BLOCK_READ,
+                                     Target.BLOCK_WRITE, Target.MEMORY_B, Target.ELAPSED_US]
         # the number of prediction targets in the mini models
-        self.MINI_MODEL_TARGET_NUM = len(self.MINI_MODEL_TARGET_LIST)
+        self.OU_MODEL_TARGET_NUM = len(self.OU_MODEL_TARGET_LIST)
 
         # All the opunits of arithmetic operations
         self.ARITHMETIC_OPUNITS = {OpUnit.OP_INTEGER_PLUS_OR_MINUS, OpUnit.OP_INTEGER_MULTIPLY,
