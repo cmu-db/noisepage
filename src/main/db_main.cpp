@@ -7,6 +7,7 @@
 #include "execution/execution_util.h"
 #include "loggers/common_logger.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "storage/recovery/replication_log_provider.h"
 
 namespace noisepage {
 
@@ -65,6 +66,7 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
+<<<<<<< HEAD
   {
     // Release all claims to QueryInternalThread
     if (metrics_manager_ != nullptr) {
@@ -81,6 +83,16 @@ void DBMain::ForceShutdown() {
     (void)query_internal_thread_.release();
   }
 
+=======
+  if (replication_manager_ != DISABLED) {
+    if (!replication_manager_->IsPrimary()) {
+      replication_manager_->GetAsReplica()->GetReplicationLogProvider()->EndReplication();
+    }
+  }
+  if (recovery_manager_ != DISABLED && recovery_manager_->IsRecoveryTaskRunning()) {
+    recovery_manager_->WaitForRecoveryToFinish();
+  }
+>>>>>>> cmudb/master
   if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
     network_layer_->GetServer()->StopServer();
   }

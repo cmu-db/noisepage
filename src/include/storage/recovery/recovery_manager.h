@@ -25,6 +25,10 @@ namespace noisepage {
 class RecoveryBenchmark;
 }  // namespace noisepage
 
+namespace noisepage::replication {
+class ReplicationManager;
+}  // namespace noisepage::replication
+
 namespace noisepage::transaction {
 class TransactionManager;
 }  // namespace noisepage::transaction
@@ -49,13 +53,22 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     /**
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
-    void RunTask() override { recovery_manager_->Recover(); }
+    void RunTask() override {
+      // If RunTask is invoked at all, we want to perform recovery at least once, necessitating a do-while loop.
+      // In particular, the following ordering of calls is disastrous with a normal while loop:
+      //    RunTask() (nothing happens yet) -> Terminate() (sets flag to stop looping) -> no recovery happens
+      // However, that ordering of calls is exactly what could happen by the simple invocation of:
+      //    RecoveryManager::StartRecovery() -> RecoveryManager::WaitForRecoveryToFinish()
+      do {
+        recovery_manager_->Recover();
+      } while (recovery_manager_->recovery_task_loop_again_);
+    }
 
     /**
-     * Terminate does nothing, the task will terminate when RunTask() returns. In the future if we need to support
-     * interrupting recovery, this can be handled here.
+     * Terminate stops the recovery task loop from looping again.
+     * This allows the current iteration of recovery to complete.
      */
-    void Terminate() override {}
+    void Terminate() override { recovery_manager_->recovery_task_loop_again_ = false; }
 
    private:
     RecoveryManager *recovery_manager_;
@@ -67,6 +80,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param catalog system catalog to interface with sql tables
    * @param txn_manager txn manager to use for re-executing recovered transactions
    * @param deferred_action_manager manager to use for deferred deletes
+   * @param replication_manager replication manager to acknowledge applied changes
    * @param thread_registry thread registry to register tasks
    * @param store block store used for SQLTable creation during recovery
    */
@@ -74,6 +88,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            const common::ManagedPointer<catalog::Catalog> catalog,
                            const common::ManagedPointer<transaction::TransactionManager> txn_manager,
                            const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                           const common::ManagedPointer<replication::ReplicationManager> replication_manager,
                            const common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry,
                            const common::ManagedPointer<BlockStore> store)
       : DedicatedThreadOwner(thread_registry),
@@ -81,6 +96,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog_(catalog),
         txn_manager_(txn_manager),
         deferred_action_manager_(deferred_action_manager),
+        replication_manager_(replication_manager),
         block_store_(store),
         recovered_txns_(0) {
     // Initialize catalog_table_schemas_ map
@@ -98,15 +114,14 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog::postgres::Builder::GetTypeTableSchema();
   }
 
-  /**
-   * Starts a background recovery task. Recovery will fully recover until the log provider stops providing logs.
-   */
+  /** Starts a background recovery thread, which does not stop until WaitForRecoveryToFinish() is called. */
   void StartRecovery();
 
-  /**
-   * Blocks until recovery finishes, if it has not already, and stops background thread.
-   */
+  /** Blocks until the current recovery finishes (runs out of logs), then stops the background thread. */
   void WaitForRecoveryToFinish();
+
+  /** @return True if the recovery task is still running. */
+  bool IsRecoveryTaskRunning() const { return recovery_task_ != nullptr; }
 
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
@@ -124,6 +139,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // DeferredActions manager to defer record deletes
   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+
+  // Replication manager to acknowledge when commits are finished.
+  const common::ManagedPointer<replication::ReplicationManager> replication_manager_;
 
   // TODO(Gus): The recovery manager should be passed a specific block store for table construction. Block store
   // management/assignment is probably a larger system issue that needs to be adddressed. Block store, used to create
@@ -148,6 +166,15 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // Background recovery task
   common::ManagedPointer<RecoveryTask> recovery_task_ = nullptr;
+  /**
+   * The RecoveryManager is used for applying records to replicas in replication.
+   * This is a change from the initial RecoveryManager design where recovery happens in one shot on startup.
+   * Currently, this is achieved by "just" looping the recovery task at the end of recovery based on this variable.
+   * Unfortunately, this is slightly error-prone in practice -- tread with caution here.
+   * One consequence is that non-replication uses of the RecoveryManager must manually call WaitForRecoveryToFinish()
+   * for the recovery task to end, but this seems natural enough.
+   */
+  bool recovery_task_loop_again_ = false;
 
   // Its possible during recovery that the schemas for catalog tables may not yet exist in pg_class. Thus, we hardcode
   // them here
@@ -158,15 +185,16 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   /**
    * Recovers the databases using the provided log provider
-   * @return number of committed transactions replayed
    */
-  void Recover() { RecoverFromLogs(); }
+  void Recover() {
+    if (log_provider_ != nullptr) RecoverFromLogs(log_provider_);
+  }
 
   /**
    * Recovers the databases from the logs.
    * @note this is a separate method so in the future, we can also have a RecoverFromCheckpoint method
    */
-  void RecoverFromLogs();
+  void RecoverFromLogs(common::ManagedPointer<AbstractLogProvider> log_provider_);
 
   /**
    * @brief Replay a committed transaction corresponding to txn_id.

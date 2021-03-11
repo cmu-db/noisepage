@@ -45,6 +45,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -73,6 +74,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -91,6 +93,29 @@ pipeline {
             }
         }
 
+        stage('Microbenchmark (Build only)') {
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
+                }
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
+
         stage('Test') {
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
@@ -102,6 +127,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -112,6 +138,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_sample_rate=100" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
@@ -144,6 +171,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -197,6 +225,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -207,6 +236,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -234,6 +264,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -244,6 +275,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -275,6 +307,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -285,6 +318,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -316,6 +350,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -377,6 +412,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -435,6 +471,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -481,6 +518,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -533,22 +571,6 @@ pipeline {
                             deleteDir()
                         }
                     }
-                }
-            }
-        }
-        stage('Microbenchmark') {
-            agent { label 'benchmark' }
-            steps {
-                sh 'echo $NODE_NAME'
-
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
-                }
-            }
-            post {
-                cleanup {
-                    deleteDir()
                 }
             }
         }
