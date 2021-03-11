@@ -49,7 +49,7 @@ String generateCompileCmd(Map config = [:]) {
         '-DNOISEPAGE_GENERATE_COVERAGE': DISABLED,
         '-DNOISEPAGE_BUILD_BENCHMARKS': DISABLED,
         '-DNOISEPAGE_USE_JUMBOTESTS': DISABLED,
-        '-DNOISEPAGE_BUILD_SELF_DRIVING_TESTS': DISABLED,
+        '-DNOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS': DISABLED,
     ]
 
     if (config.useCache) {
@@ -90,7 +90,7 @@ String generateCompileCmd(Map config = [:]) {
     }
 
     if (config.isBuildSelfDrivingTests) {
-        cmakeArgs['-DNOISEPAGE_BUILD_SELF_DRIVING_TESTS'] = ENABLED
+        cmakeArgs['-DNOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS'] = ENABLED
     }
 
     String compileCmd = 'cmake -GNinja'
