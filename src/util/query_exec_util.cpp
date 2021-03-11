@@ -246,7 +246,7 @@ bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
   execution::exec::OutputCallback callback = consumer;
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings_, metrics);
+      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings_, metrics, nullptr);
 
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
 
