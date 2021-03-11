@@ -134,8 +134,13 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
   double num_queries = 0;
   for (auto qcost : query_cost) {
     for (auto i = start_segment_index; i <= end_segment_index; i++) {
-      total_cost += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first) * qcost.second;
-      num_queries += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first);
+      // It is possible that within the forecast, we don't actually have the qid.
+      // (i.e., query executed count is 0 within this particular segment).
+      const auto &seg_map = forecast->GetSegmentByIndex(i).GetIdToNumexec();
+      if (seg_map.find(qcost.first) != seg_map.end()) {
+        total_cost += seg_map.at(qcost.first) * qcost.second;
+        num_queries += seg_map.at(qcost.first);
+      }
     }
   }
   NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");

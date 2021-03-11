@@ -106,6 +106,11 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     return {nullptr, nullptr};
   }
 
+  // This is unfortunate, but we currently cannot optimize SET queries.
+  if (statement->GetQueryType() == network::QueryType::QUERY_SET) {
+    return std::make_pair(std::move(statement), nullptr);
+  }
+
   try {
     // TODO(wz2): Specify params?
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
