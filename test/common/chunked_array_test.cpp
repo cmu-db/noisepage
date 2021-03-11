@@ -21,13 +21,13 @@ void FillMergeSize(size_t size1, size_t size2) {
   for (size_t i = 0; i < size1; i++) {
     int num = dist(generator);
     vec.push_back(num);
-    array1.Push(std::move(num)); //NOLINT
+    array1.Push(std::move(num));  // NOLINT
   }
 
   for (size_t i = 0; i < size2; i++) {
     int num = dist(generator);
     vec.push_back(num);
-    array2.Push(std::move(num)); //NOLINT
+    array2.Push(std::move(num));  // NOLINT
   }
 
   array1.Merge(&array2);

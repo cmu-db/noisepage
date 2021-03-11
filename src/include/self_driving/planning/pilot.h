@@ -103,6 +103,26 @@ class Pilot {
   common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() { return model_server_manager_; }
 
   /**
+   * Rerieve segment information
+   * @param iteration current iteration
+   * @param range number of iterations to retrieve
+   *
+   * @note when retrieving multiple iterations, it is assumed
+   * that the last segment of iteration i-1 ends where the first
+   * segment of iteration i begins (i.e., the iterations are
+   * continuous).
+   *
+   * TODO(wz2): This data does not have granular timestamp information.
+   * Addressing clustering based on this data will be left for the future.
+   *
+   * @param success [out] indicator of whether query succeeded or not
+   *
+   * @return segment information
+   */
+  std::unordered_map<int64_t, std::vector<double>> GetSegmentInformation(uint64_t iteration, size_t range,
+                                                                         bool *success);
+
+  /**
    * Retrieve workload metadata
    * @param iteration current iteration
    * @param out_metadata Query Metadata from metrics

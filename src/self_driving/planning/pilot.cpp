@@ -59,13 +59,32 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
 }
 
 void Pilot::PerformForecasterTrain() {
-  // TODO(wz2): Maybe instead of passing the CSV file to the model server,
-  // we should instead just read the last forecast interval and send it.
+  auto iteration = Pilot::planning_iteration;
   std::vector<std::string> models{"LSTM"};
-  std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
   modelserver::ModelServerFuture<std::string> future;
-  model_server_manager_->TrainForecastModel(models, input_path, forecast_model_save_path_, workload_forecast_interval_,
-                                            common::ManagedPointer(&future));
+
+  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
+  bool metrics_in_db = metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB;
+  {
+    bool success = false;
+    std::unordered_map<int64_t, std::vector<double>> segment_information;
+    if (metrics_in_db && query_exec_util_) {
+      // Only get the most recent interval information
+      // TODO(wz2): Do we want to get all the information from the beginning
+      segment_information = GetSegmentInformation(iteration, 1, &success);
+    }
+
+    if (segment_information.empty() || !success) {
+      // If the segment information is empty, use the file instead on disk
+      std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
+      model_server_manager_->TrainForecastModel(models, input_path, forecast_model_save_path_,
+                                                workload_forecast_interval_, common::ManagedPointer(&future));
+    } else {
+      model_server_manager_->TrainForecastModel(models, &segment_information, forecast_model_save_path_,
+                                                workload_forecast_interval_, common::ManagedPointer(&future));
+    }
+  }
+
   future.Wait();
 }
 
@@ -162,6 +181,50 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
   return std::make_pair(std::move(metadata), result);
 }
 
+std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(uint64_t iteration, size_t range,
+                                                                              bool *success) {
+  NOISEPAGE_ASSERT(query_exec_util_, "GetSegmentInformation() requires execution utility");
+  int64_t current_iteration = INT64_MAX;
+  int64_t current_segment = INT64_MAX;
+  int64_t segment_number = 0;
+  std::unordered_map<int64_t, std::vector<double>> segments;
+  query_exec_util_->BeginTransaction();
+  auto to_row_fn = [&segments, &segment_number, &current_segment,
+                    &current_iteration](const std::vector<execution::sql::Val *> &values) {
+    auto qid = static_cast<execution::sql::Integer *>(values[1])->val_;
+    auto itv = static_cast<execution::sql::Integer *>(values[0])->val_;
+    auto seg = static_cast<execution::sql::Integer *>(values[2])->val_;
+    auto seen = static_cast<execution::sql::Real *>(values[3])->val_;
+    if (current_iteration == INT64_MAX) {
+      current_iteration = itv;
+      current_segment = seg;
+    } else if (current_iteration != itv || current_segment != seg) {
+      current_iteration = itv;
+      current_segment = seg;
+      segment_number++;
+    }
+
+    segments[qid].resize(segment_number + 1);
+    segments[qid][segment_number] = seen;
+  };
+
+  // This will give us the history of seen frequencies. It will also be ordered in increasing
+  // prediction iteration, followed by interval (i.e., matches vector push_back order).
+  auto upper = std::min(iteration, iteration - range + 1);
+  auto query = fmt::format(
+      "SELECT * FROM noisepage_forecast_frequencies WHERE iteration <= {} AND iteration >= {} ORDER BY iteration, "
+      "interval",
+      iteration, upper);
+  query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
+  *success = query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
+  query_exec_util_->EndTransaction(true);
+  for (auto &seg : segments) {
+    seg.second.resize(segment_number);
+  }
+
+  return segments;
+}
+
 void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
                                              const selfdriving::WorkloadForecastPrediction &prediction,
                                              const WorkloadMetadata &metadata) {
@@ -236,12 +299,13 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
 void Pilot::LoadWorkloadForecast() {
   // Metrics thread is suspended at this point
   auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
+  bool metrics_in_db = metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB;
   metrics_thread_->GetMetricsManager()->Aggregate();
   metrics_thread_->GetMetricsManager()->ToOutput();
 
   std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> out_metadata;
   std::unordered_map<execution::query_id_t, std::vector<std::string>> out_params;
-  if (metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB) {
+  if (metrics_in_db) {
     auto raw = reinterpret_cast<metrics::QueryTraceMetricRawData *>(
         metrics_thread_->GetMetricsManager()
             ->AggregatedMetrics()
@@ -252,25 +316,48 @@ void Pilot::LoadWorkloadForecast() {
       // This is also used to flush all parameter information at a forecast interval.
       raw->WriteToDB(common::ManagedPointer(query_exec_util_), common::ManagedPointer(query_internal_thread_), true,
                      true, &out_metadata, &out_params);
+
+      // TODO(wz2): Maybe we should insert a synchronization point here.
+      // We can submit another task to the query_internal_thread_ to flush
+      // any tasks submitted by WriteToDB.
     }
   }
 
+  // TODO(wz2): This will always increment the iteration forwards. If this iteration
+  // has no queries executed, then GetSegmentInformation() will return no data (which
+  // may not be ideal). If we don't increment the counter when this interval has no
+  // executed queries, then GetSegmentInformation() will return the last interval's data.
   auto iteration = Pilot::planning_iteration++;
-  std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
 
-  // For now, forecast relies on the CSV file.
-  // TODO(wz2): Pass the "seen" data directly to the forecast model?
-  std::vector<std::string> models{"LSTM"};
-  auto result = model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, nullptr,
-                                                          workload_forecast_interval_);
-  if (!result.second) {
-    SELFDRIVING_LOG_ERROR("Forecast model inference failed");
-    metrics_thread_->ResumeMetrics();
-    return;
+  std::pair<selfdriving::WorkloadForecastPrediction, bool> result;
+  {
+    // Only get the most recent interval information
+    bool success = false;
+    std::vector<std::string> models{"LSTM"};
+    std::unordered_map<int64_t, std::vector<double>> segment_information;
+    if (metrics_in_db && query_exec_util_) {
+      segment_information = GetSegmentInformation(iteration, 1, &success);
+    }
+
+    if (segment_information.empty() || !success) {
+      std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
+
+      // If the segment information is empty, use the file instead on disk
+      result = model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, nullptr,
+                                                         workload_forecast_interval_);
+    } else {
+      result = model_server_manager_->InferForecastModel(&segment_information, forecast_model_save_path_, models,
+                                                         nullptr, workload_forecast_interval_);
+    }
+
+    if (!result.second) {
+      SELFDRIVING_LOG_ERROR("Forecast model inference failed");
+      metrics_thread_->ResumeMetrics();
+      return;
+    }
   }
 
-  if (query_exec_util_ &&
-      (metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB)) {
+  if (query_exec_util_ && metrics_in_db) {
     // Retrieve query information from internal tables
     auto metadata_result = RetrieveWorkloadMetadata(iteration, out_metadata, out_params);
     if (!metadata_result.second) {

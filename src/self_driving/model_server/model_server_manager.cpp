@@ -192,7 +192,7 @@ void ModelServerManager::StopModelServer() {
 }
 
 bool ModelServerManager::TrainModel(ModelType::Type model, const std::vector<std::string> &methods,
-                                    const std::string &input_path, const std::string &save_path,
+                                    const std::string *input_path, const std::string &save_path,
                                     nlohmann::json *arguments,
                                     common::ManagedPointer<ModelServerFuture<std::string>> future) {
   nlohmann::json j;
@@ -204,7 +204,9 @@ bool ModelServerManager::TrainModel(ModelType::Type model, const std::vector<std
   }
   j["data"]["type"] = ModelType::TypeToString(model);
   j["data"]["methods"] = methods;
-  j["data"]["input_path"] = input_path;
+  if (input_path != nullptr) {
+    j["data"]["input_path"] = *input_path;
+  }
   j["data"]["save_path"] = save_path;
 
   // Callback to notify the waiter for result, or failure to parse the result.
@@ -222,7 +224,17 @@ bool ModelServerManager::TrainForecastModel(const std::vector<std::string> &meth
                                             common::ManagedPointer<ModelServerFuture<std::string>> future) {
   nlohmann::json j;
   j["interval_micro_sec"] = interval_micro;
-  return TrainModel(ModelType::Type::Forecast, methods, input_path, save_path, &j, future);
+  return TrainModel(ModelType::Type::Forecast, methods, &input_path, save_path, &j, future);
+}
+
+bool ModelServerManager::TrainForecastModel(const std::vector<std::string> &methods,
+                                            std::unordered_map<int64_t, std::vector<double>> *input_data,
+                                            const std::string &save_path, uint64_t interval_micro,
+                                            common::ManagedPointer<ModelServerFuture<std::string>> future) {
+  nlohmann::json j;
+  j["interval_micro_sec"] = interval_micro;
+  j["input_sequence"] = std::move(*input_data);
+  return TrainModel(ModelType::Type::Forecast, methods, nullptr, save_path, &j, future);
 }
 
 bool ModelServerManager::TrainInterferenceModel(const std::vector<std::string> &methods, const std::string &input_path,
@@ -232,7 +244,7 @@ bool ModelServerManager::TrainInterferenceModel(const std::vector<std::string> &
   nlohmann::json j;
   j["pipeline_metrics_sample_rate"] = pipeline_metrics_sample_rate;
   j["ou_model_path"] = ou_model_path;
-  return TrainModel(ModelType::Type::Interference, methods, input_path, save_path, &j, future);
+  return TrainModel(ModelType::Type::Interference, methods, &input_path, save_path, &j, future);
 }
 
 template <class Result>
@@ -275,6 +287,35 @@ std::pair<std::vector<std::vector<double>>, bool> ModelServerManager::InferOUMod
 }
 
 std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::InferForecastModel(
+    const std::string &model_path, nlohmann::json *j) {
+  selfdriving::WorkloadForecastPrediction result;
+  auto data = InferModel<std::map<std::string, std::map<std::string, std::vector<double>>>>(ModelType::Type::Forecast,
+                                                                                            model_path, j);
+  for (auto &cid_pair : data.first) {
+    std::unordered_map<uint64_t, std::vector<double>> cid_data;
+    for (auto &qid_pair : cid_pair.second) {
+      cid_data[std::stoi(qid_pair.first, nullptr)] = std::move(qid_pair.second);
+    }
+    result[std::stoi(cid_pair.first, nullptr)] = std::move(cid_data);
+  }
+  return {result, data.second};
+}
+
+std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::InferForecastModel(
+    std::unordered_map<int64_t, std::vector<double>> *input_data, const std::string &model_path,
+    const std::vector<std::string> &model_names, std::string *models_config, uint64_t interval_micro_sec) {
+  nlohmann::json j;
+  j["input_sequence"] = std::move(*input_data);
+  j["model_names"] = model_names;
+  j["interval_micro_sec"] = interval_micro_sec;
+  if (models_config != nullptr) {
+    j["models_config"] = *models_config;
+  }
+
+  return InferForecastModel(model_path, &j);
+}
+
+std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::InferForecastModel(
     const std::string &input_path, const std::string &model_path, const std::vector<std::string> &model_names,
     std::string *models_config, uint64_t interval_micro_sec) {
   nlohmann::json j;
@@ -285,17 +326,7 @@ std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::Inf
     j["models_config"] = *models_config;
   }
 
-  selfdriving::WorkloadForecastPrediction result;
-  auto data = InferModel<std::map<std::string, std::map<std::string, std::vector<double>>>>(ModelType::Type::Forecast,
-                                                                                            model_path, &j);
-  for (auto &cid_pair : data.first) {
-    std::unordered_map<uint64_t, std::vector<double>> cid_data;
-    for (auto &qid_pair : cid_pair.second) {
-      cid_data[std::stoi(qid_pair.first, nullptr)] = std::move(qid_pair.second);
-    }
-    result[std::stoi(cid_pair.first, nullptr)] = std::move(cid_data);
-  }
-  return {result, data.second};
+  return InferForecastModel(model_path, &j);
 }
 
 std::pair<std::vector<std::vector<double>>, bool> ModelServerManager::InferInterferenceModel(

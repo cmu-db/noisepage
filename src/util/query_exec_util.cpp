@@ -62,7 +62,7 @@ void QueryExecUtil::ClearPlans() {
 }
 
 void QueryExecUtil::UseTransaction(common::ManagedPointer<transaction::TransactionContext> txn) {
-  NOISEPAGE_ASSERT(txn_ == nullptr, "Nesting transactions not supported");
+  NOISEPAGE_ASSERT(!own_txn_, "QueryExecUtil already using a transaction");
   txn_ = txn.Get();
   own_txn_ = false;
 }
@@ -81,6 +81,7 @@ void QueryExecUtil::EndTransaction(bool commit) {
   else
     txn_manager_->Abort(txn_);
   txn_ = nullptr;
+  own_txn_ = false;
 }
 
 void QueryExecUtil::SetCostModelFunction(std::function<std::unique_ptr<optimizer::AbstractCostModel>()> func) {

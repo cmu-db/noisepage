@@ -439,12 +439,14 @@ class ForecastModel(AbstractModel):
             model_names: [LSTM...]
             models_config: PATH_TO_JSON model config file
             input_path: PATH_TO_TRACE, or None
+            input_sequence: Trace sequence or None
             save_path: PATH_TO_SAVE_MODEL_MAP
             interval_micro_sec: Interval duration for aggregation in microseconds
         }
         :return: if training succeeds, {True and empty string}, else {False, error message}
         """
-        input_path = data["input_path"]
+        input_path = data["input_path"] if "input_path" in data else None
+        input_sequence = data["input_sequence"] if "input_sequence" in data else None
         save_path = data["save_path"]
         model_names = data["methods"]
         models_config = data.get("models_config")
@@ -463,8 +465,12 @@ class ForecastModel(AbstractModel):
         except PermissionError as e:
             return False, "FAIL_PERMISSION_ERROR"
 
+        if input_path is None and input_sequence is None:
+            return False, "NO_INPUT_PROVIDED"
+
         forecaster = Forecaster(
             trace_file=input_path,
+            trace_sequence=input_sequence,
             interval_us=interval,
             test_mode=False,
             seq_len=self.SEQ_LEN,
@@ -484,6 +490,7 @@ class ForecastModel(AbstractModel):
         Do inference on the model, give the data file, and the model_map_path
         :param data: {
             input_path: PATH_TO_TRACE, or None
+            input_sequence: Input sequence data, or None
             model_path: model path
             model_names: [LSTM...]
             models_config: PATH_TO_JSON model config file
@@ -491,7 +498,8 @@ class ForecastModel(AbstractModel):
         }
         :return: {Dict<cluster, Dict<query>, List<preds>>, if inference succeeds, error message}
         """
-        input_path = data["input_path"]
+        input_path = data["input_path"] if "input_path" in data else None
+        input_sequence = data["input_sequence"] if "input_sequence" in data else None
         model_names = data["model_names"]
         models_config = data.get("models_config")
         interval = data["interval_micro_sec"]
@@ -505,8 +513,12 @@ class ForecastModel(AbstractModel):
                 f"Models at {str(model_path)} has not been trained")
             return [], False, "MODELS_NOT_TRAINED"
 
+        if input_path is None and input_sequence is None:
+            return [], False, "NO_INPUT_PROVIDED"
+
         forecaster = Forecaster(
             trace_file=input_path,
+            trace_sequence=input_sequence,
             test_mode=True,
             interval_us=interval,
             seq_len=self.SEQ_LEN,

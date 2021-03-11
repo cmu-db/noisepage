@@ -6,7 +6,7 @@ query trace producer.
 
 import logging
 import csv
-from typing import Dict
+from typing import List, Dict
 import numpy as np
 
 
@@ -21,6 +21,7 @@ class DataLoader:
     def __init__(self,
                  interval_us: int,
                  query_trace_file: str,
+                 query_sequence: List
                  ) -> None:
         """
         A Dataloader represents a query trace file. The format of the CSV is hardcoded as class attributes, e.g QID_IDX
@@ -31,8 +32,13 @@ class DataLoader:
         self._query_trace_file = query_trace_file
         self._interval_us = interval_us
 
-        data = self._load_data()
-        self._to_timeseries(data)
+        if query_trace_file is not None:
+            data = self._load_data()
+            self._to_timeseries(data)
+        else:
+            self._ts_data = {}
+            for item in query_sequence:
+                self._ts_data[item[0]] = item[1]
 
     def _load_data(self) -> np.ndarray:
         """
