@@ -21,7 +21,7 @@ void noisePageBuild(Map args = [:]) {
         isCodeCoverage: false,
         isJumboTest: false,
         isRecordTime: false,
-        isBuildSelfDrivingTests: false,
+        isBuildSelfDrivingE2ETests: false,
     ]
     Map config = defaultArgs << args
     String compileCmd = generateCompileCmd(config)
@@ -85,11 +85,11 @@ String generateCompileCmd(Map config = [:]) {
         cmakeArgs['-DNOISEPAGE_BUILD_TESTS'] = DISABLED
     }
 
-    if (config.isBuildBenchmarks || config.isBuildSelfDrivingTests) {
+    if (config.isBuildBenchmarks || config.isBuildSelfDrivingE2ETests) {
         cmakeArgs['-DNOISEPAGE_BUILD_BENCHMARKS'] = ENABLED
     }
 
-    if (config.isBuildSelfDrivingTests) {
+    if (config.isBuildSelfDrivingE2ETests) {
         cmakeArgs['-DNOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS'] = ENABLED
     }
 
@@ -105,8 +105,8 @@ in. The config arguments are the same as the defaultArgs in noisePageBuild.
 */
 String generateBuildCmd(Map config = [:]) {
     String buildCmd = 'ninja'
-    if (config.isBuildSelfDrivingTests) {
-        buildCmd += ' execution_runners'
+    if (config.isBuildSelfDrivingE2ETests) {
+        buildCmd += ' execution_runners noisepage'
     }
     else if (!config.isBuildBenchmarks && !config.isBuildTests) {
         buildCmd += ' noisepage'
@@ -135,6 +135,26 @@ String generateBuildScript(String compileCmd, String buildCmd, Boolean isRecordT
         $buildCmd"""
     }
     return script
+}
+
+/**
+ * cppCoverage will collect the c++ code coverage information in the build directory, remove unrelated files from the
+ * coverage data, and report the coverage to codecov to show on GitHub.
+ */
+void cppCoverage() {
+    sh script :'''
+    cd build
+    lcov --directory . --capture --output-file coverage.info
+    lcov --remove coverage.info \'/usr/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/build/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/test/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info
+    lcov --list coverage.info
+    curl -s https://codecov.io/bash | bash -s -- -X gcov
+    ''', label: 'Clean up c++ code coverage and report'
 }
 
 return this
