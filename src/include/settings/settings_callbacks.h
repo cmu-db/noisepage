@@ -139,6 +139,16 @@ class Callbacks {
                               common::ManagedPointer<common::ActionContext> action_context);
 
   /**
+   * Update the sampling interval for logging
+   * @param old_value old settings value
+   * @param new_value new settings value
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void MetricsLoggingSampleRate(void *old_value, void *new_value, DBMain *db_main,
+                                       common::ManagedPointer<common::ActionContext> action_context);
+
+  /**
    * Update the sampling interval for ExecutionEngine pipelines
    * @param old_value old settings value
    * @param new_value new settings value

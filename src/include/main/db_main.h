@@ -898,6 +898,7 @@ class DBMain {
     uint8_t pipeline_metrics_sample_rate_ = 10;
     bool transaction_metrics_ = false;
     bool logging_metrics_ = false;
+    uint8_t logging_metrics_sample_rate_ = 100;
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
@@ -988,6 +989,7 @@ class DBMain {
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
       pipeline_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::pipeline_metrics_sample_rate);
+      logging_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::logging_metrics_sample_rate);
       transaction_metrics_ = settings_manager->GetBool(settings::Param::transaction_metrics_enable);
       logging_metrics_ = settings_manager->GetBool(settings::Param::logging_metrics_enable);
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
@@ -1013,6 +1015,7 @@ class DBMain {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
       metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE,
                                            pipeline_metrics_sample_rate_);
+      metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, logging_metrics_sample_rate_);
 
       if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
       if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
