@@ -1,5 +1,6 @@
 #include "storage/index/bplustree_index.h"
 
+#include "storage/index/bplustree.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
 #include "transaction/deferred_action_manager.h"
@@ -10,11 +11,6 @@ namespace noisepage::storage::index {
 template <typename KeyType>
 BPlusTreeIndex<KeyType>::BPlusTreeIndex(IndexMetadata &&metadata)
     : Index(std::move(metadata)), bplustree_{new BPlusTree<KeyType, TupleSlot>} {}
-
-template <typename KeyType>
-void BPlusTreeIndex<KeyType>::PerformGarbageCollection() {
-  // B+ Tree does not require any garbage collection
-}
 
 template <typename KeyType>
 size_t BPlusTreeIndex<KeyType>::EstimateHeapUsage() const {

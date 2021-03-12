@@ -11,23 +11,23 @@ void LogManager::Start() {
   NOISEPAGE_ASSERT(!run_log_manager_, "Can't call Start on already started LogManager");
   // Initialize buffers for logging
   for (size_t i = 0; i < num_buffers_; i++) {
-    buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
+    buffers_.emplace_back(log_file_path_.c_str());
   }
   for (size_t i = 0; i < num_buffers_; i++) {
-    empty_buffer_queue_.Enqueue(&buffers_[i]);
+    empty_buffer_queue_->Enqueue(&buffers_[i]);
   }
 
   run_log_manager_ = true;
 
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = thread_registry_->RegisterDedicatedThread<DiskLogConsumerTask>(
-      this /* requester */, persist_interval_, persist_threshold_, &buffers_, &empty_buffer_queue_,
+      this /* requester */, persist_interval_, persist_threshold_, &buffers_, empty_buffer_queue_.Get(),
       &filled_buffer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
-      this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &filled_buffer_queue_,
-      &disk_log_writer_task_->disk_log_writer_thread_cv_);
+      this /* requester */, serialization_interval_, buffer_pool_, empty_buffer_queue_, &filled_buffer_queue_,
+      &disk_log_writer_task_->disk_log_writer_thread_cv_, primary_replication_manager_);
 }
 
 void LogManager::ForceFlush() {
@@ -58,11 +58,11 @@ void LogManager::PersistAndStop() {
   NOISEPAGE_ASSERT(filled_buffer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file
-  for (auto buf : buffers_) {
+  for (auto &buf : buffers_) {
     buf.Close();
   }
   // Clear buffer queues
-  empty_buffer_queue_.Clear();
+  empty_buffer_queue_->Clear();
   filled_buffer_queue_.Clear();
   buffers_.clear();
 }
