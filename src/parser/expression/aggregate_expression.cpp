@@ -39,6 +39,10 @@ void AggregateExpression::DeriveReturnValueType() {
     case ExpressionType::AGGREGATE_AVG:
       this->SetReturnValueType(type::TypeId::REAL);
       break;
+    case ExpressionType::AGGREGATE_TOP_K:
+    case ExpressionType::AGGREGATE_HISTOGRAM:
+      this->SetReturnValueType(type::TypeId::VARBINARY);
+      break;
     default:
       throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));
   }
@@ -76,6 +80,9 @@ bool AggregateExpression::RequiresCleanup() const {
     case ExpressionType::AGGREGATE_SUM:
     case ExpressionType::AGGREGATE_AVG:
       return false;
+    case ExpressionType::AGGREGATE_TOP_K:
+    case ExpressionType::AGGREGATE_HISTOGRAM:
+      return true;
     default:
       throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));
   }

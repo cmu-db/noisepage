@@ -16,12 +16,14 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "replication/replication_manager.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/pilot/pilot.h"
-#include "self_driving/pilot/pilot_thread.h"
+#include "self_driving/planning/pilot.h"
+#include "self_driving/planning/pilot_thread.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/recovery/recovery_manager.h"
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -123,6 +125,7 @@ class DBMain {
 
   /**
    * BlockStore and GarbageCollector
+   * Additionally, a shared empty buffer queue that people pull from and push to.
    */
   class StorageLayer {
    public:
@@ -132,11 +135,15 @@ class DBMain {
      * @param block_store_reuse_limit argument to the BlockStore
      * @param use_gc enable GarbageCollector
      * @param log_manager needed for safe destruction of StorageLayer
+     * @param empty_buffer_queue The common buffer queue that all empty buffers are pulled from and returned to.
      */
     StorageLayer(const common::ManagedPointer<TransactionLayer> txn_layer, const uint64_t block_store_size_limit,
                  const uint64_t block_store_reuse_limit, const bool use_gc,
-                 const common::ManagedPointer<storage::LogManager> log_manager)
-        : deferred_action_manager_(txn_layer->GetDeferredActionManager()), log_manager_(log_manager) {
+                 const common::ManagedPointer<storage::LogManager> log_manager,
+                 std::unique_ptr<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
+        : empty_buffer_queue_(std::move(empty_buffer_queue)),
+          deferred_action_manager_(txn_layer->GetDeferredActionManager()),
+          log_manager_(log_manager) {
       if (use_gc)
         garbage_collector_ = std::make_unique<storage::GarbageCollector>(txn_layer->GetTimestampManager(),
                                                                          txn_layer->GetDeferredActionManager(),
@@ -168,10 +175,19 @@ class DBMain {
      */
     common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return common::ManagedPointer(block_store_); }
 
+    /**
+     * @return A pointer to the empty buffer queue that is shared by separate components of the system.
+     *         Currently, the buffers are shared by LogSerializerTask and ReplicationManager.
+     */
+    common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> GetEmptyBufferQueue() {
+      return common::ManagedPointer(empty_buffer_queue_);
+    }
+
    private:
     // Order currently does not matter in this layer
     std::unique_ptr<storage::BlockStore> block_store_;
     std::unique_ptr<storage::GarbageCollector> garbage_collector_;
+    std::unique_ptr<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 
     // External dependencies for this layer
     const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
@@ -367,12 +383,40 @@ class DBMain {
       auto buffer_segment_pool =
           std::make_unique<storage::RecordBufferSegmentPool>(record_buffer_segment_size_, record_buffer_segment_reuse_);
 
+      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
+      std::unique_ptr<replication::ReplicationManager> replication_manager = DISABLED;
+      if (use_messenger_) {
+        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
+                                                           network_identity_);
+      }
+
+      auto empty_buffer_queue = std::make_unique<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>>();
+
+      if (use_replication_) {
+        NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
+        NOISEPAGE_ASSERT(use_logging_, "Replication uses logging.");
+        if (network_identity_ == "primary") {
+          replication_manager = std::make_unique<replication::PrimaryReplicationManager>(
+              messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
+              common::ManagedPointer(empty_buffer_queue));
+        } else {
+          replication_manager = std::make_unique<replication::ReplicaReplicationManager>(
+              messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
+              common::ManagedPointer(empty_buffer_queue));
+        }
+      }
+
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
+        auto rep_manager_ptr = network_identity_ == "primary"
+                                   ? common::ManagedPointer(replication_manager)
+                                         .CastManagedPointerTo<replication::PrimaryReplicationManager>()
+                                   : nullptr;
         log_manager = std::make_unique<storage::LogManager>(
             wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
             std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
-            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
+            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(empty_buffer_queue), rep_manager_ptr,
+            common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
 
@@ -382,7 +426,7 @@ class DBMain {
 
       auto storage_layer =
           std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_, block_store_reuse_,
-                                         use_gc_, common::ManagedPointer(log_manager));
+                                         use_gc_, common::ManagedPointer(log_manager), std::move(empty_buffer_queue));
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
@@ -391,6 +435,20 @@ class DBMain {
         catalog_layer =
             std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
                                            common::ManagedPointer(log_manager), create_default_database_);
+      }
+
+      std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
+      if (use_replication_) {
+        auto log_provider = replication_manager->IsPrimary()
+                                ? nullptr
+                                : replication_manager->GetAsReplica()
+                                      ->GetReplicationLogProvider()
+                                      .CastManagedPointerTo<storage::AbstractLogProvider>();
+        recovery_manager = std::make_unique<storage::RecoveryManager>(
+            log_provider, catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(),
+            txn_layer->GetDeferredActionManager(), common::ManagedPointer(replication_manager),
+            common::ManagedPointer(thread_registry), common::ManagedPointer(storage_layer->GetBlockStore()));
+        recovery_manager->StartRecovery();
       }
 
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
@@ -419,9 +477,9 @@ class DBMain {
         NOISEPAGE_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
         NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
-            txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
-            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_,
-            use_query_cache_, execution_mode_);
+            txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(),
+            common::ManagedPointer(replication_manager), common::ManagedPointer(settings_manager),
+            common::ManagedPointer(stats_storage), optimizer_timeout_, use_query_cache_, execution_mode_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
@@ -432,13 +490,8 @@ class DBMain {
                                            network_port_, connection_thread_count_, uds_file_directory_);
       }
 
-      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
-      if (use_messenger_) {
-        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
-                                                           messenger_identity_);
-      }
       std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
-      if (model_server_enable_) {
+      if (use_model_server_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
         model_server_manager =
             std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
@@ -447,14 +500,27 @@ class DBMain {
       std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
       std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
-        NOISEPAGE_ASSERT(model_server_enable_, "Pilot requires model server manager.");
+        NOISEPAGE_ASSERT(use_model_server_, "Pilot requires model server manager.");
         pilot = std::make_unique<selfdriving::Pilot>(
-            model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
+            model_save_path_, forecast_model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
             common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
             common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
             common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
-            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
+            std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
+      }
+
+      // TODO(WAN): I now consider this hacky.
+      //  The original motivation is that you do NOT want the catalog's bootstrapping transaction to be replicated
+      //  to the replicas, which will perform their own bootstrapping (and therefore the bootstrapping would conflict).
+      //  However, with the addition of the RetentionPolicy enum, we really should be able to just say that the catalog
+      //  bootstrap has a RetentionPolicy::LOCAL so that it still gets written to the local WAL but not sent to the
+      //  replicas. Unfortuantely, the current implementation of retention policies is a little hacky and it is not
+      //  currently clear to me how we can fix that, so in the interests of getting some basic replication merged
+      //  we are simply disabling replication until the bootstrap is complete.
+      if (use_replication_) {
+        replication_manager->EnableReplication();
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -466,6 +532,7 @@ class DBMain {
       db_main->txn_layer_ = std::move(txn_layer);
       db_main->storage_layer_ = std::move(storage_layer);
       db_main->catalog_layer_ = std::move(catalog_layer);
+      db_main->recovery_manager_ = std::move(recovery_manager);
       db_main->gc_thread_ = std::move(gc_thread);
       db_main->stats_storage_ = std::move(stats_storage);
       db_main->execution_layer_ = std::move(execution_layer);
@@ -475,6 +542,7 @@ class DBMain {
       db_main->pilot_ = std::move(pilot);
       db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
+      db_main->replication_manager_ = std::move(replication_manager);
 
       return db_main;
     }
@@ -660,6 +728,15 @@ class DBMain {
     }
 
     /**
+     * @param identity Network identity. Must be unique across all replicas.
+     * @return self reference for chaining
+     */
+    Builder &SetNetworkIdentity(const std::string &identity) {
+      network_identity_ = identity;
+      return *this;
+    }
+
+    /**
      * @param port Network port
      * @return self reference for chaining
      */
@@ -674,15 +751,6 @@ class DBMain {
      */
     Builder &SetMessengerPort(const uint16_t port) {
       messenger_port_ = port;
-      return *this;
-    }
-
-    /**
-     * @param identity Messenger identity
-     * @return self reference for chaining
-     */
-    Builder &SetMessengerIdentity(const std::string &identity) {
-      messenger_identity_ = identity;
       return *this;
     }
 
@@ -763,7 +831,7 @@ class DBMain {
      * @return self reference for chaining
      */
     Builder &SetUseModelServer(const bool value) {
-      model_server_enable_ = value;
+      use_model_server_ = value;
       return *this;
     }
 
@@ -791,6 +859,35 @@ class DBMain {
     // These are meant to be reasonable defaults, mostly for tests. New settings should probably just mirror their
     // default values here. Larger scale tests and benchmarks may need to to use setters on the Builder to adjust these
     // before building DBMain. The real system should use the SettingsManager.
+
+    // clang-tidy complains about excessive padding if you're not careful about ordering things.
+    // This leads to somewhat unfortunate grouping but that shouldn't be too big an issue.
+
+    uint64_t record_buffer_segment_size_ = 1e5;
+    uint64_t record_buffer_segment_reuse_ = 1e4;
+    uint64_t wal_num_buffers_ = 100;
+    uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
+    uint64_t pilot_interval_ = 1e7;
+    uint64_t forecast_train_interval_ = 120e7;
+    uint64_t workload_forecast_interval_ = 1e7;
+    uint64_t block_store_size_ = 1e5;
+    uint64_t block_store_reuse_ = 1e3;
+    uint64_t optimizer_timeout_ = 5000;
+
+    std::string wal_file_path_ = "wal.log";
+    std::string model_save_path_;
+    std::string forecast_model_save_path_;
+    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
+    std::string network_identity_ = "primary";
+    std::string uds_file_directory_ = "/tmp/";
+    std::string replication_hosts_path_ = "./replication.config";
+    /**
+     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
+     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
+     * in use cases where such assumptions are no longer true.
+     */
+    std::string model_server_path_ = "../../script/model/model_server.py";
+
     bool use_settings_manager_ = false;
     bool use_thread_registry_ = false;
     bool use_metrics_ = false;
@@ -804,48 +901,34 @@ class DBMain {
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
-    uint64_t record_buffer_segment_size_ = 1e5;
-    uint64_t record_buffer_segment_reuse_ = 1e4;
-    std::string wal_file_path_ = "wal.log";
-    uint64_t wal_num_buffers_ = 100;
+
     int32_t wal_serialization_interval_ = 100;
     int32_t wal_persist_interval_ = 100;
-    uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
+    int32_t gc_interval_ = 1000;
+
+    uint16_t connection_thread_count_ = 4;
+    uint16_t network_port_ = 15721;
+    uint16_t messenger_port_ = 9022;
+    uint16_t replication_port_ = 15445;
+
+    execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
+
     bool use_logging_ = false;
     bool wal_async_commit_enable_ = false;
     bool use_gc_ = false;
-    bool use_pilot_thread_ = false;
-    bool pilot_planning_ = false;
-    uint64_t pilot_interval_ = 1e7;
-    uint64_t workload_forecast_interval_ = 1e7;
-    std::string model_save_path_;
-    std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     bool use_catalog_ = false;
     bool create_default_database_ = true;
-    uint64_t block_store_size_ = 1e5;
-    uint64_t block_store_reuse_ = 1e3;
-    int32_t gc_interval_ = 1000;
     bool use_gc_thread_ = false;
     bool use_stats_storage_ = false;
     bool use_execution_ = false;
     bool use_traffic_cop_ = false;
-    uint64_t optimizer_timeout_ = 5000;
     bool use_query_cache_ = true;
-    execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
-    uint16_t network_port_ = 15721;
-    std::string uds_file_directory_ = "/tmp/";
-    uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
     bool use_messenger_ = false;
-    uint16_t messenger_port_ = 9022;
-    std::string messenger_identity_ = "primary";
-    bool model_server_enable_ = false;
-    /**
-     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
-     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
-     * in use cases where such assumptions are no longer true.
-     */
-    std::string model_server_path_ = "../../script/model/model_server.py";
+    bool use_replication_ = false;
+    bool use_model_server_ = false;
+    bool use_pilot_thread_ = false;
+    bool pilot_planning_ = false;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -881,14 +964,17 @@ class DBMain {
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
       pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
+      forecast_train_interval_ = settings_manager->GetInt64(settings::Param::forecast_train_interval);
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
       model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
+      forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
       //  If you set it with the builder, it gets overwritten.
       //  If you set it with the setting manager, it isn't mutable.
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      network_identity_ = settings_manager->GetString(settings::Param::network_identity);
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
@@ -909,7 +995,11 @@ class DBMain {
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
 
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
-      model_server_enable_ = settings_manager->GetBool(settings::Param::model_server_enable);
+      messenger_port_ = settings_manager->GetInt(settings::Param::messenger_port);
+      use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
+      replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
+      replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
+      use_model_server_ = settings_manager->GetBool(settings::Param::model_server_enable);
       model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);
 
       return settings_manager;
@@ -1001,6 +1091,13 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
+  common::ManagedPointer<replication::ReplicationManager> GetReplicationManager() const {
+    return common::ManagedPointer(replication_manager_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
   common::ManagedPointer<selfdriving::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
 
   /**
@@ -1057,10 +1154,12 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<MessengerLayer> messenger_layer_;
+  std::unique_ptr<replication::ReplicationManager> replication_manager_;  // Depends on messenger.
+  std::unique_ptr<storage::RecoveryManager> recovery_manager_;            // Depends on replication manager.
   std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
   std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
-  std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 
 }  // namespace noisepage

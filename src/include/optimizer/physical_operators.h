@@ -997,9 +997,11 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
   /**
    * @param database_oid OID of the database
    * @param table_oid OID of the table
+   * @param columns list of columns to insert into
    * @return an InsertSelect operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<catalog::col_oid_t> &&columns);
 
   /**
    * Copy
@@ -1020,6 +1022,9 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
+  /** @return Columns to insert into */
+  const std::vector<catalog::col_oid_t> &GetColumns() const { return columns_; }
+
  private:
   /**
    * OID of the database
@@ -1030,6 +1035,9 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
+
+  /** Columns to insert into */
+  std::vector<catalog::col_oid_t> columns_;
 };
 
 /**

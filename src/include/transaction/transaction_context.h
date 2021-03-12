@@ -133,8 +133,8 @@ class TransactionContext {
   storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                                   const storage::ProjectedRowInitializer &initializer) {
     const uint32_t size = storage::RedoRecord::Size(initializer);
-    auto *const log_record =
-        storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, initializer);
+    auto *const log_record = storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size, retention_policy_),
+                                                             start_time_, db_oid, table_oid, initializer);
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 
@@ -149,7 +149,8 @@ class TransactionContext {
   void StageDelete(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                    const storage::TupleSlot slot) {
     const uint32_t size = storage::DeleteRecord::Size();
-    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, slot);
+    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size, retention_policy_), start_time_, db_oid, table_oid,
+                                      slot);
   }
 
   // TODO(Tianyu): We need to discuss what happens to the loose_ptrs field now that we have deferred actions.
@@ -203,6 +204,12 @@ class TransactionContext {
    */
   void SetMustAbort() { must_abort_ = true; }
 
+  /** Set the retention policy of the entire transaction. */
+  void SetRetentionPolicy(RetentionPolicy retention_policy) { retention_policy_ = retention_policy; }
+
+  /** @return The retention policy of the entire transaction. */
+  RetentionPolicy GetRetentionPolicy() { return retention_policy_; }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
@@ -234,6 +241,12 @@ class TransactionContext {
   bool must_abort_ = false;
 
   /**
+   * The retention policy of a transaction controls the retention policy for all of the buffers that are created by
+   * the transaction.
+   */
+  RetentionPolicy retention_policy_ = RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
+
+  /**
    * @warning This method is ONLY for recovery
    * Copy the log record into the transaction's redo buffer.
    * @param record log record to copy
@@ -242,7 +255,7 @@ class TransactionContext {
    * that you didn't succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   storage::RedoRecord *StageRecoveryWrite(storage::LogRecord *record) {
-    auto record_location = redo_buffer_.NewEntry(record->Size());
+    auto record_location = redo_buffer_.NewEntry(record->Size(), retention_policy_);
     memcpy(record_location, record, record->Size());
     // Overwrite the txn_begin timestamp
     auto *new_record = reinterpret_cast<storage::LogRecord *>(record_location);

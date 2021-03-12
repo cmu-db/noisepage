@@ -87,6 +87,8 @@ class ExpressionUtil {
       case ExpressionType::AGGREGATE_MIN:
       case ExpressionType::AGGREGATE_MAX:
       case ExpressionType::AGGREGATE_AVG:
+      case ExpressionType::AGGREGATE_TOP_K:
+      case ExpressionType::AGGREGATE_HISTOGRAM:
         return true;
       default:
         return false;

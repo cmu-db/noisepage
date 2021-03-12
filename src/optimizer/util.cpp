@@ -6,6 +6,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "optimizer/optimizer_defs.h"
+#include "parser/expression/star_expression.h"
 #include "parser/expression_util.h"
 
 namespace noisepage::optimizer {
@@ -54,19 +55,44 @@ std::vector<parser::AbstractExpression *> OptimizerUtil::GenerateTableColumnValu
   auto &columns = schema.GetColumns();
   std::vector<parser::AbstractExpression *> exprs;
   for (auto &column : columns) {
-    auto col_oid = column.Oid();
-    auto *col_expr = new parser::ColumnValueExpression(alias, column.Name());
-    col_expr->SetReturnValueType(column.Type());
-    col_expr->SetDatabaseOID(db_oid);
-    col_expr->SetTableOID(tbl_oid);
-    col_expr->SetColumnOID(col_oid);
-
-    col_expr->DeriveExpressionName();
-    col_expr->DeriveReturnValueType();
+    auto col_expr = GenerateColumnValueExpr(column, alias, db_oid, tbl_oid);
     exprs.push_back(col_expr);
   }
 
   return exprs;
+}
+
+parser::AbstractExpression *OptimizerUtil::GenerateColumnValueExpr(const catalog::Schema::Column &column,
+                                                                   const std::string &alias, catalog::db_oid_t db_oid,
+                                                                   catalog::table_oid_t tbl_oid) {
+  auto col_oid = column.Oid();
+  auto *col_expr = new parser::ColumnValueExpression(alias, column.Name());
+  col_expr->SetReturnValueType(column.Type());
+  col_expr->SetDatabaseOID(db_oid);
+  col_expr->SetTableOID(tbl_oid);
+  col_expr->SetColumnOID(col_oid);
+
+  col_expr->DeriveExpressionName();
+  col_expr->DeriveReturnValueType();
+  return col_expr;
+}
+
+parser::AbstractExpression *OptimizerUtil::GenerateAggregateExpr(const catalog::Schema::Column &column,
+                                                                 parser::ExpressionType aggregate_type, bool distinct,
+                                                                 const std::string &alias, catalog::db_oid_t db_oid,
+                                                                 catalog::table_oid_t tbl_oid) {
+  auto col_expr = std::unique_ptr<parser::AbstractExpression>(GenerateColumnValueExpr(column, alias, db_oid, tbl_oid));
+  std::vector<std::unique_ptr<parser::AbstractExpression>> agg_child;
+  agg_child.emplace_back(std::move(col_expr));
+  return new parser::AggregateExpression(aggregate_type, std::move(agg_child), distinct);
+}
+
+parser::AbstractExpression *OptimizerUtil::GenerateStarAggregateExpr(parser::ExpressionType aggregate_type,
+                                                                     bool distinct) {
+  auto star_expr = std::make_unique<parser::StarExpression>();
+  std::vector<std::unique_ptr<parser::AbstractExpression>> agg_child;
+  agg_child.emplace_back(std::move(star_expr));
+  return new parser::AggregateExpression(aggregate_type, std::move(agg_child), distinct);
 }
 
 }  // namespace noisepage::optimizer

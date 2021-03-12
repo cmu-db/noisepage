@@ -45,6 +45,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -73,6 +74,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -91,6 +93,29 @@ pipeline {
             }
         }
 
+        stage('Microbenchmark (Build only)') {
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
+                }
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
+
         stage('Test') {
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
@@ -102,16 +127,18 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
-                        
+
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_sample_rate=100" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
@@ -135,6 +162,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            label 'h0-only'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -143,7 +171,8 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(isCodeCoverage:true)
@@ -196,6 +225,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -206,6 +236,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -233,6 +264,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -243,6 +275,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -274,6 +307,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -284,6 +318,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -315,6 +350,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -376,7 +412,8 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
@@ -434,6 +471,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -446,14 +484,21 @@ pipeline {
                         // enough trace could be generated for training and testing.
                         sh script :'''
                         cd build
-                        PYTHONPATH=.. python3 -m script.forecasting.forecaster --gen_data --pattern_iter=3 --model_save_path=model.pickle --models=LSTM
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
+                        ''', label: 'Generate trace and perform training'
+
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --model_save_path=model.pickle --models=LSTM
                         ''', label: 'Generate trace and perform training'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
                         cd build
-                        PYTHONPATH=.. python3 -m script.forecasting.forecaster --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
                         ''', label: 'Perform inference on the trained model'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -473,22 +518,43 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
                         }
 
-                        // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
+                        // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
+                        // on query trace.
+                        // --pattern_iter determines how many times a sequence of TPCC phases is run. Set to 3 so that
+                        // enough trace could be generated for training and testing.
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
+                        ''', label: 'Forecasting model training data generation'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // This scripts runs TPCC benchmark with pipeline metrics enabled.
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics --pattern_iter=1
+                        mkdir concurrent_runner_input
+                        mv pipeline.csv concurrent_runner_input
+                        ''', label: 'Interference model training data generation'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // The parameters to the execution_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
                         // Specifically, the parameters chosen are:
-                        // - mini_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
+                        // - execution_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
                         // - rerun=0, which skips rerun since we are not testing benchmark performance here
-                        // - warm_num=1, which also tests the warm up phase for the mini_runners.
+                        // - warm_num=1, which also tests the warm up phase for the execution_runners.
                         // With the current set of parameters, the input generation process will finish under 10min
                         sh script :'''
                         cd build/bin
-                        ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=1
-                        ''', label: 'Mini-trainer input generation'
+                        ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
+                        ''', label: 'OU model training data generation'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
@@ -505,22 +571,6 @@ pipeline {
                             deleteDir()
                         }
                     }
-                }
-            }
-        }
-        stage('Microbenchmark') {
-            agent { label 'benchmark' }
-            steps {
-                sh 'echo $NODE_NAME'
-
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
-                }
-            }
-            post {
-                cleanup {
-                    deleteDir()
                 }
             }
         }
