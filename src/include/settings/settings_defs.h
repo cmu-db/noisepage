@@ -316,7 +316,7 @@ SETTING_int(
 SETTING_int(
   logging_metrics_sample_rate,
   "Sampling rate of metrics collection for logging.",
-  10,
+  100,
   0,
   100,
   true,
