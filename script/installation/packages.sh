@@ -61,6 +61,7 @@ PYTHON_TEST_PACKAGES=(\
   "sklearn" \
   "torch" \
   "tqdm" \
+  "coverage" \
 )
 
 

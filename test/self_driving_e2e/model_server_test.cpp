@@ -41,6 +41,7 @@ class ModelServerTest : public TerrierTest {
                        .SetUseStatsStorage(true)
                        .SetUseTrafficCop(true)
                        .SetModelServerPath(model_server_path)
+                       .SetModelServerEnablePythonCoverage(true)
                        .Build();
 
     return db_main;

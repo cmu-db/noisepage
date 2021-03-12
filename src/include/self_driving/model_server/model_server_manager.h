@@ -199,8 +199,10 @@ class ModelServerManager {
    * Construct a ModelServerManager with the given executable script to the Python ModelServer
    * @param model_bin Python script path
    * @param messenger Messenger pointer
+   * @param enable_python_coverage Whether to enable the Python code coverage. Should only be true in tests.
    */
-  ModelServerManager(const std::string &model_bin, const common::ManagedPointer<messenger::Messenger> &messenger);
+  ModelServerManager(const std::string &model_bin, const common::ManagedPointer<messenger::Messenger> &messenger,
+                     bool enable_python_coverage);
 
   /**
    * Stop the Python ModelServer when exits
@@ -368,17 +370,7 @@ class ModelServerManager {
    * 2. Prepare arguments and forks to initialize a Python daemon
    * 3. Record the pid
    */
-  void StartModelServer(const std::string &model_path);
-
-  /**
-   * A customized ModelServerManager server callback
-   * @param messenger Messenger handle
-   * @param sender_id  The sender's id (from the other end of communication)
-   * @param message  Message string content in JSON format
-   * @param recv_cb_id  Id of Callback to be invoked, will be interpreted by the server callback
-   */
-  static void ModelServerHandler(common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
-                                 std::string_view message, uint64_t recv_cb_id);
+  void StartModelServer(const std::string &model_path, bool enable_python_coverage);
 
   /**
    * Send a marshalled message string in JSON format through the Messenger
