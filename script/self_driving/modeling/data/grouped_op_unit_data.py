@@ -46,7 +46,7 @@ def _default_get_global_data(filename, sample_rate=100):
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
     x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    y = df.iloc[:, -data_info.instance.OU_MODEL_TARGET_NUM:].values
 
     # Construct the new data
     opunit = OpUnit[file_name.upper()]
@@ -66,7 +66,7 @@ def _txn_get_mini_runner_data(filename, txn_sample_rate):
     base_x = pd.DataFrame(data=np.ones((df.shape[0], 1), dtype=int))
     df = pd.concat([base_x, df], axis=1)
     x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    y = df.iloc[:, -data_info.instance.OU_MODEL_TARGET_NUM:].values
     start_times = df.iloc[:, data_info.instance.target_csv_index[data_info.instance.Target.START_TIME]].values
     cpu_ids = df.iloc[:, data_info.instance.target_csv_index[data_info.instance.Target.CPU_ID]].values
 
@@ -188,7 +188,7 @@ def _interval_get_grouped_op_unit_data(filename):
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
     x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    y = df.iloc[:, -data_info.instance.OU_MODEL_TARGET_NUM:].values
     start_times = df.iloc[:, data_info.instance.target_csv_index[Target.START_TIME]].values
     cpu_ids = df.iloc[:, data_info.instance.target_csv_index[Target.CPU_ID]].values
     interval = data_info.instance.PERIODIC_OPUNIT_INTERVAL
@@ -243,7 +243,7 @@ class GroupedOpUnitData:
         """
         self.name = name
         self.opunit_features = opunit_features
-        self.y = metrics[-data_info.instance.MINI_MODEL_TARGET_NUM:]
+        self.y = metrics[-data_info.instance.OU_MODEL_TARGET_NUM:]
         self.y_pred = None
         index_map = data_info.instance.target_csv_index
         self.start_time = metrics[index_map[Target.START_TIME]]
