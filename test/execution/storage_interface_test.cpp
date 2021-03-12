@@ -139,7 +139,7 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
     auto table_redo = exec_ctx_->GetTxn()->StageWrite(exec_ctx_->DBOid(), cte_table_oid, pri);
     auto *const insert_pr(table_redo->Delta());
     insert_pr->Set<int32_t, false>(0, *val_a, false);
-    exec_ctx_->RowsAffected()++;
+    exec_ctx_->AddRowsAffected(1);
     cte_table->Insert(exec_ctx_->GetTxn(), table_redo);
   }
 
