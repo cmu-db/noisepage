@@ -36,7 +36,7 @@ def _get_result_labels(test_only):
     else:
         datasets = ["Train", "Test"]
     for dataset in datasets:
-        for target in data_info.instance.MINI_MODEL_TARGET_LIST:
+        for target in data_info.instance.OU_MODEL_TARGET_LIST:
             labels.append(dataset + " " + target.name)
         labels.append("")
 

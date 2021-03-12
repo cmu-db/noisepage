@@ -747,6 +747,11 @@ namespace noisepage::execution::vm {
     OperandType::Local)                                                                                               \
   F(NpRunnersDummyInt, OperandType::Local)                                                                            \
   F(NpRunnersDummyReal, OperandType::Local)                                                                           \
+                                                                                                                      \
+  /* Replication. */                                                                                                  \
+  F(ReplicationGetLastRecordId, OperandType::Local, OperandType::Local)                                               \
+                                                                                                                      \
+  /* Miscellaneous functions. */                                                                                      \
   F(Version, OperandType::Local, OperandType::Local)                                                                  \
                                                                                                                       \
   /* Parameter support. */                                                                                            \

@@ -14,6 +14,14 @@ SETTING_int(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_string(
+    network_identity,
+    "The identity of this NoisePage instance (default: primary)",
+    "primary",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Preallocated connection handler threads and maximum number of connected clients
 SETTING_int(
     connection_thread_count,
@@ -375,6 +383,42 @@ SETTING_bool(
     messenger_enable,
     "Whether to enable the messenger (default: false)",
     false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    messenger_port,
+    "NoisePage messenger port (default: 9022)",
+    9022,
+    1024,
+    65535,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    replication_enable,
+    "Whether to enable replication (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    replication_port,
+    "NoisePage replication port (default: 15445)",
+    15445,
+    1024,
+    65535,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    replication_hosts_path,
+    "The path to the hosts.conf file for replication (default: ./replication.config)",
+    "./replication.config",
     false,
     noisepage::settings::Callbacks::NoOp
 )
