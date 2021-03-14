@@ -282,10 +282,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
                                           codegen_->ConstBool(index_schema.Unique())});
   auto *cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(function, cond);
-  {
-    TearDownStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
-    function->Append(codegen_->AbortTxn(GetExecutionContext()));
-  }
+  { function->Append(codegen_->AbortTxn(GetExecutionContext())); }
   success.EndIf();
 }
 
