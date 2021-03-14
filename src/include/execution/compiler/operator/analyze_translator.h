@@ -85,14 +85,13 @@ class AnalyzeTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<ast::Identifier> aggregate_variables_;
   // Maps a column oid to the variable that holds the value to insert into that column
   std::unordered_map<catalog::col_oid_t, ast::Identifier> pg_statistic_column_lookup_;
-  ast::Identifier pg_statistic_index_iterator_;
+  StateDescriptor::Entry pg_statistic_index_iterator_;  ///< IndexIterator on pg_statistic.
   ast::Identifier pg_statistic_index_pr_;
   StateDescriptor::Entry pg_statistic_updater_;  ///< Storage interface for updates.
   ast::Identifier pg_statistic_update_pr_;
 
   void SetPgStatisticColOids(FunctionBuilder *function) const;
   void InitPgStatisticVariables(WorkContext *context, FunctionBuilder *function) const;
-  void DeclarePgStatisticIterator(FunctionBuilder *function) const;
   void DeclarePgStatisticIndexPR(FunctionBuilder *function) const;
   void InitPgStatisticIterator(FunctionBuilder *function) const;
   void InitPgStatisticIndexPR(FunctionBuilder *function) const;

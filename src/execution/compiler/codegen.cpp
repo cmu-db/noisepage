@@ -456,7 +456,12 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) const {
 ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs,
                                       uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids) {
   // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
-  ast::Expr *iter_ptr = AddressOf(iter);
+  return IndexIteratorInit(AddressOf(iter), exec_ctx_var, num_attrs, table_oid, index_oid, col_oids);
+}
+
+ast::Expr *CodeGen::IndexIteratorInit(ast::Expr *iter_ptr, ast::Expr *exec_ctx_var, uint32_t num_attrs,
+                                      uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids) {
+  // @indexIteratorInit(iter_ptr, table_oid, index_oid, execCtx)
   ast::Expr *num_attrs_expr = Const32(static_cast<int32_t>(num_attrs));
   ast::Expr *table_oid_expr = Const32(static_cast<int32_t>(table_oid));
   ast::Expr *index_oid_expr = Const32(static_cast<int32_t>(index_oid));
