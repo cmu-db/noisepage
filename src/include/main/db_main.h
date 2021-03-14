@@ -509,8 +509,8 @@ class DBMain {
       std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
       if (use_model_server_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
-        model_server_manager =
-            std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+        model_server_manager = std::make_unique<modelserver::ModelServerManager>(
+            model_server_path_, messenger_layer->GetMessenger(), model_server_enable_python_coverage_);
       }
 
       std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
@@ -890,6 +890,15 @@ class DBMain {
     }
 
     /**
+     * @param value enable_python_coverage for ModelServer
+     * @return self reference for chaining
+     */
+    Builder &SetModelServerEnablePythonCoverage(const bool value) {
+      model_server_enable_python_coverage_ = value;
+      return *this;
+    }
+
+    /**
      * @param value the new path to the bytecode handler bitcode file
      * @return self reference for chaining
      */
@@ -944,6 +953,7 @@ class DBMain {
     uint8_t pipeline_metrics_sample_rate_ = 10;
     bool transaction_metrics_ = false;
     bool logging_metrics_ = false;
+    uint8_t logging_metrics_sample_rate_ = 100;
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
@@ -973,6 +983,7 @@ class DBMain {
     bool use_messenger_ = false;
     bool use_replication_ = false;
     bool use_model_server_ = false;
+    bool model_server_enable_python_coverage_ = false;
     bool use_pilot_thread_ = false;
     bool pilot_planning_ = false;
 
@@ -1037,6 +1048,7 @@ class DBMain {
       forecast_sample_limit_ = settings_manager->GetInt(settings::Param::forecast_sample_limit);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
       pipeline_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::pipeline_metrics_sample_rate);
+      logging_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::logging_metrics_sample_rate);
       transaction_metrics_ = settings_manager->GetBool(settings::Param::transaction_metrics_enable);
       logging_metrics_ = settings_manager->GetBool(settings::Param::logging_metrics_enable);
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
@@ -1062,6 +1074,7 @@ class DBMain {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
       metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE,
                                            pipeline_metrics_sample_rate_);
+      metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, logging_metrics_sample_rate_);
 
       if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
       metrics::QueryTraceMetricRawData::query_param_sample = forecast_sample_limit_;
