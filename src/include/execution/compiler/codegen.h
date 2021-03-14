@@ -642,6 +642,15 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
 
+  /**
+   * Call \@indexIteratorScanType(&iter_ptr[, limit])
+   * @param iter_ptr Pointer to the index iterator.
+   * @param scan_type The type of scan to perform.
+   * @param limit The limit of the scan in case of limited scans.
+   * @return The expression corresponding to the builtin call.
+   */
+  [[nodiscard]] ast::Expr *IndexIteratorScan(ast::Expr *iter_ptr, planner::IndexScanType scan_type, uint32_t limit);
+
   // -------------------------------------------------------
   //
   // VPI stuff

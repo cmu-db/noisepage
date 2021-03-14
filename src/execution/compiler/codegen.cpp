@@ -471,7 +471,11 @@ ast::Expr *CodeGen::IndexIteratorInit(ast::Expr *iter_ptr, ast::Expr *exec_ctx_v
 }
 
 ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
-  // @indexIteratorScanKey(&iter)
+  return IndexIteratorScan(AddressOf(iter), scan_type, limit);
+}
+
+ast::Expr *CodeGen::IndexIteratorScan(ast::Expr *iter_ptr, planner::IndexScanType scan_type, uint32_t limit) {
+  // @indexIteratorScanKey(iter_ptr)
   ast::Builtin builtin;
   bool asc_scan = false;
   bool use_limit = false;
@@ -507,9 +511,8 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
       UNREACHABLE("Unknown scan type");
   }
 
-  if (!use_limit && !asc_scan) return CallBuiltin(builtin, {AddressOf(iter)});
+  if (!use_limit && !asc_scan) return CallBuiltin(builtin, {iter_ptr});
 
-  ast::Expr *iter_ptr = AddressOf(iter);
   std::vector<ast::Expr *> args{iter_ptr};
 
   if (asc_scan) args.push_back(Const64(static_cast<int64_t>(asc_type)));
