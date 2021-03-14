@@ -211,8 +211,7 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
   try {
     messenger_->SendMessage(
         GetReplicaConnection(replica_name), "",
-        [&replica_name, &replica](common::ManagedPointer<messenger::Messenger> messenger,
-                                  const messenger::ZmqMessage &msg) {
+        [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
           auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
           auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
           replica.last_heartbeat_ = epoch_now_ms.count();

@@ -56,7 +56,7 @@ def _default_get_ou_runner_data(filename):
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
     x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    y = df.iloc[:, -data_info.instance.OU_MODEL_TARGET_NUM:].values
 
     return [OpUnitData(OpUnit[file_name.upper()], x, y)]
 
@@ -70,7 +70,7 @@ def _txn_get_ou_runner_data(filename, model_results_path, txn_sample_rate):
     base_x = pd.DataFrame(data=np.ones((df.shape[0], 1), dtype=int))
     df = pd.concat([base_x, df], axis=1)
     x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    y = df.iloc[:, -data_info.instance.OU_MODEL_TARGET_NUM:].values
     start_times = df.iloc[:, data_info.instance.TARGET_CSV_INDEX[data_info.instance.Target.START_TIME]].values
     cpu_ids = df.iloc[:, data_info.instance.TARGET_CSV_INDEX[data_info.instance.Target.CPU_ID]].values
 
@@ -123,7 +123,7 @@ def _interval_get_ou_runner_data(filename, model_results_path):
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
     x = df.iloc[:, :-data_info.instance.METRICS_OUTPUT_NUM].values
-    y = df.iloc[:, -data_info.instance.MINI_MODEL_TARGET_NUM:].values
+    y = df.iloc[:, -data_info.instance.OU_MODEL_TARGET_NUM:].values
     start_times = df.iloc[:, data_info.instance.RAW_TARGET_CSV_INDEX[Target.START_TIME]].values
     logging.info("Loaded file: {}".format(OpUnit[file_name.upper()]))
 
@@ -189,7 +189,7 @@ def _execution_get_ou_runner_data(filename, model_map, predict_cache, trim):
             record = [d for i, d in enumerate(line) if i >= raw_boundary]
             data = list(map(data_util.convert_string_to_numeric, record))
             x_multiple = data[:input_output_boundary]
-            y_merged = np.array(data[-data_info.instance.MINI_MODEL_TARGET_NUM:])
+            y_merged = np.array(data[-data_info.instance.OU_MODEL_TARGET_NUM:])
 
             # Get the opunits located within
             opunits = []
@@ -254,7 +254,7 @@ def _execution_get_ou_runner_data(filename, model_map, predict_cache, trim):
     for opunit, values in data_map.items():
         np_value = np.array(values)
         x = np_value[:, :input_output_boundary]
-        y = np_value[:, -data_info.instance.MINI_MODEL_TARGET_NUM:]
+        y = np_value[:, -data_info.instance.OU_MODEL_TARGET_NUM:]
         data_list.append(OpUnitData(opunit, x, y))
 
     return data_list

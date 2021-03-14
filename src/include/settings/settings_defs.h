@@ -313,6 +313,16 @@ SETTING_int(
     noisepage::settings::Callbacks::MetricsPipelineSampleRate
 )
 
+SETTING_int(
+  logging_metrics_sample_rate,
+  "Sampling rate of metrics collection for logging.",
+  100,
+  0,
+  100,
+  true,
+  noisepage::settings::Callbacks::MetricsLoggingSampleRate
+)
+
 SETTING_bool(
     bind_command_metrics_enable,
     "Metrics collection for the bind command.",
