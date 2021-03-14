@@ -157,7 +157,7 @@ class NoisePageServer:
                 LOG.info(f"Removing: {unix_socket}")
         self.print_db_logs()
         exit_code = self.db_process.returncode
-        LOG.info(f"DBMS stopped successfully, code: {exit_code}")
+        LOG.info(f"DBMS stopped, code: {exit_code}")
         self.db_process = None
         return exit_code
 
