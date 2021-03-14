@@ -29,6 +29,7 @@ class LoggingMetricsBenchmark : public benchmark::Fixture {
   const std::chrono::microseconds gc_period_{1000};
   const std::chrono::microseconds metrics_period_{10000};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
+  common::ConcurrentBlockingQueue<storage::BufferedLogWriter *> empty_buffer_queue_;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -55,10 +56,11 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
-                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-                                           common::ManagedPointer(&buffer_pool_),
-                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                common::ManagedPointer(&buffer_pool_), common::ManagedPointer(&empty_buffer_queue_),
+                                DISABLED, common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true, log_manager_);
@@ -106,10 +108,11 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
-                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-                                           common::ManagedPointer(&buffer_pool_),
-                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                common::ManagedPointer(&buffer_pool_), common::ManagedPointer(&empty_buffer_queue_),
+                                DISABLED, common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true, log_manager_);
@@ -157,10 +160,11 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
-                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-                                           common::ManagedPointer(&buffer_pool_),
-                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                common::ManagedPointer(&buffer_pool_), common::ManagedPointer(&empty_buffer_queue_),
+                                DISABLED, common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true, log_manager_);
@@ -208,10 +212,11 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
-                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-                                           common::ManagedPointer(&buffer_pool_),
-                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                common::ManagedPointer(&buffer_pool_), common::ManagedPointer(&empty_buffer_queue_),
+                                DISABLED, common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true, log_manager_);
@@ -259,10 +264,11 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
-                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-                                           common::ManagedPointer(&buffer_pool_),
-                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                common::ManagedPointer(&buffer_pool_), common::ManagedPointer(&empty_buffer_queue_),
+                                DISABLED, common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true, log_manager_);
