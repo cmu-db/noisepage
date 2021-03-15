@@ -38,7 +38,7 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Initialize the counters.
+   * Initialize the storage interface and counters.
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
@@ -52,6 +52,9 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
+
+  /** Tear down the storage interface. */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /** Record the counters for Lin's models. */
   void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
@@ -112,8 +115,8 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
   static std::vector<catalog::col_oid_t> CollectOids(const catalog::Schema &schema);
 
  private:
-  // Storage interface struct that we are updating with.
-  ast::Identifier updater_;
+  // Storage interface for updates.
+  StateDescriptor::Entry si_updater_;
 
   // Projected row that we use to update.
   ast::Identifier update_pr_;
