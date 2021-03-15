@@ -15,7 +15,6 @@ namespace noisepage::execution::compiler {
 DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DELETE),
-      deleter_(GetCodeGen()->MakeFreshIdentifier("deleter")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   // Prepare the child.
@@ -30,15 +29,17 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
   }
 
   num_deletes_ = CounterDeclare("num_deletes", pipeline);
+  ast::Expr *storage_interface_type = GetCodeGen()->BuiltinType(ast::BuiltinType::StorageInterface);
+  si_deleter_ = pipeline->DeclarePipelineStateEntry("storageInterface", storage_interface_type);
 }
 
 void DeleteTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  DeclareDeleter(function);
   CounterSet(function, num_deletes_, 0);
 }
 
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
-  DeclareDeleter(function);
   GenTableDelete(function);
   function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
 
@@ -48,7 +49,9 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   for (const auto &index_oid : indexes) {
     GenIndexDelete(function, context, index_oid);
   }
+}
 
+void DeleteTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   GenDeleterFree(function);
 }
 
@@ -63,30 +66,27 @@ void DeleteTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuil
 void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
   // var col_oids : [0]uint32
   SetOids(builder);
-  // var deleter : StorageInterface
-  auto *storage_interface_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
-  builder->Append(GetCodeGen()->DeclareVarNoInit(deleter_, storage_interface_type));
-  // @storageInterfaceInit(&deleter, execCtx, table_oid, col_oids, true)
+  // @storageInterfaceInit(&pipelineState.storageInterface, execCtx, table_oid, col_oids, true)
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
-  ast::Expr *deleter_setup = GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(),
+  ast::Expr *deleter_setup = GetCodeGen()->StorageInterfaceInit(si_deleter_.GetPtr(GetCodeGen()), GetExecutionContext(),
                                                                 op.GetTableOid().UnderlyingValue(), col_oids_, true);
   builder->Append(GetCodeGen()->MakeStmt(deleter_setup));
 }
 
 void DeleteTranslator::GenDeleterFree(FunctionBuilder *builder) const {
-  // @storageInterfaceFree(&deleter)
+  // @storageInterfaceFree(&pipelineState.storageInterface)
   ast::Expr *deleter_free =
-      GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {GetCodeGen()->AddressOf(deleter_)});
+      GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {si_deleter_.GetPtr(GetCodeGen())});
   builder->Append(GetCodeGen()->MakeStmt(deleter_free));
 }
 
 void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
-  // if (!@tableDelete(&deleter, &slot)) { Abort(); }
+  // if (!@tableDelete(&pipelineState.storageInterface, &slot)) { Abort(); }
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
   const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
   NOISEPAGE_ASSERT(child != nullptr, "delete should have a child");
   const auto &delete_slot = child->GetSlotAddress();
-  std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), delete_slot};
+  std::vector<ast::Expr *> delete_args{si_deleter_.GetPtr(GetCodeGen()), delete_slot};
   auto *delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, delete_args);
   auto *delete_failed = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
   If check(builder, delete_failed);
@@ -101,9 +101,9 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
 
 void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *context,
                                       const catalog::index_oid_t &index_oid) const {
-  // var delete_index_pr = @getIndexPR(&deleter, oid)
+  // var delete_index_pr = @getIndexPR(&pipelineState.storageInterface, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
-  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(deleter_),
+  std::vector<ast::Expr *> pr_call_args{si_deleter_.GetPtr(GetCodeGen()),
                                         GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
@@ -125,8 +125,8 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 
-  // @indexDelete(&deleter)
-  std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), child->GetSlotAddress()};
+  // @indexDelete(&pipelineState.storageInterface)
+  std::vector<ast::Expr *> delete_args{si_deleter_.GetPtr(GetCodeGen()), child->GetSlotAddress()};
   auto *index_delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
   builder->Append(GetCodeGen()->MakeStmt(index_delete_call));
 }

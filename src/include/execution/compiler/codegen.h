@@ -621,6 +621,19 @@ class CodeGen {
                                              uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
 
   /**
+   * Call \@indexIteratorInit(iter_ptr, execCtx, table_oid, index_oid, col_oids)
+   * @param iter_ptr Pointer to the index iterator.
+   * @param exec_ctx_var The execution context variable.
+   * @param num_attrs Number of attributes
+   * @param table_oid The oid of the index's table.
+   * @param index_oid The oid the index.
+   * @param col_oids The identifier of the array of column oids to read.
+   * @return The expression corresponding to the builtin call.
+   */
+  [[nodiscard]] ast::Expr *IndexIteratorInit(ast::Expr *iter_ptr, ast::Expr *exec_ctx_var, uint32_t num_attrs,
+                                             uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
+
+  /**
    * Call \@indexIteratorScanType(&iter[, limit])
    * @param iter The identifier of the index iterator.
    * @param scan_type The type of scan to perform.
@@ -628,6 +641,15 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   [[nodiscard]] ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
+
+  /**
+   * Call \@indexIteratorScanType(&iter_ptr[, limit])
+   * @param iter_ptr Pointer to the index iterator.
+   * @param scan_type The type of scan to perform.
+   * @param limit The limit of the scan in case of limited scans.
+   * @return The expression corresponding to the builtin call.
+   */
+  [[nodiscard]] ast::Expr *IndexIteratorScan(ast::Expr *iter_ptr, planner::IndexScanType scan_type, uint32_t limit);
 
   // -------------------------------------------------------
   //
@@ -1373,16 +1395,16 @@ class CodeGen {
   [[nodiscard]] ast::Expr *CSVReaderClose(ast::Expr *reader);
 
   /**
-   * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
-   * @param si The storage interface to initialize
+   * Call \@storageInterfaceInit(si_ptr, execCtx, table_oid, col_oids, need_indexes)
+   * @param storage_interface_ptr A pointer to the storage interface to initialize.
    * @param exec_ctx The execution context that we are running in.
    * @param table_oid The oid of the table being accessed.
    * @param col_oids The identifier of the array of column oids to access.
    * @param need_indexes Whether the storage interface will need to use indexes
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids,
-                                  bool need_indexes);
+  ast::Expr *StorageInterfaceInit(ast::Expr *storage_interface_ptr, ast::Expr *exec_ctx, uint32_t table_oid,
+                                  ast::Identifier col_oids, bool need_indexes);
 
   // ---------------------------------------------------------------------------
   //
