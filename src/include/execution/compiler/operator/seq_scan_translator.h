@@ -129,11 +129,11 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   /** @return The index of the given column OID inside the col_oids that the plan is scanning over. */
   uint32_t GetColOidIndex(catalog::col_oid_t col_oid) const;
 
-  // The name of the declared TVI and VPI.
-  ast::Identifier tvi_var_;
-  ast::Identifier vpi_var_;
-  // The name of the col_oids that the plan wants to scan over.
-  ast::Identifier col_oids_var_;
+  StateDescriptor::Entry tvi_base_;        ///< The TVI is declared at pipeline setup/teardown.
+  StateDescriptor::Entry tvi_needs_free_;  ///< If true, \@tableIterClose(&tviBase) needs to be called.
+  ast::Identifier tvi_var_;                ///< If it exists, the name of the declared TVI. Holds a pointer to TVI base.
+  ast::Identifier vpi_var_;                ///< The VPI variable.
+  ast::Identifier col_oids_var_;           ///< The col_oids variable that the plan wants to scan over.
 
   ast::Identifier slot_var_;
 
