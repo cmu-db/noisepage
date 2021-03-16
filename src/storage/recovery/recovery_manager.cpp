@@ -17,9 +17,12 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_registry.h"
+#include "common/json.h"
+#include "replication/replication_manager.h"
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/index/index_metadata.h"
+#include "storage/recovery/replication_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -28,21 +31,30 @@ namespace noisepage::storage {
 
 void RecoveryManager::StartRecovery() {
   NOISEPAGE_ASSERT(recovery_task_ == nullptr, "Recovery already started");
+  recovery_task_loop_again_ = true;  // RecoveryTask will loop by default to enable replication use cases.
   recovery_task_ =
       thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
 }
 
 void RecoveryManager::WaitForRecoveryToFinish() {
+  recovery_task_loop_again_ = false;  // Stop looping RecoveryTask.
   NOISEPAGE_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
   if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
     throw std::runtime_error("Recovery task termination failed");
   }
+  recovery_task_ = nullptr;
 }
 
-void RecoveryManager::RecoverFromLogs() {
+void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    auto pair = log_provider_->GetNextRecord();
+    if (replication_manager_ != DISABLED &&
+        log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
+      auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
+      if (!rep_log_provider->NonBlockingHasMoreRecords()) break;
+    }
+
+    auto pair = log_provider->GetNextRecord();
     auto *log_record = pair.first;
 
     // If we have exhausted all the logs, break from the loop
@@ -91,6 +103,19 @@ void RecoveryManager::RecoverFromLogs() {
       DeferRecordDeletes(txn.first, true);
     }
     buffered_changes_map_.clear();
+  }
+
+  if (replication_manager_ != DISABLED &&
+      log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
+    auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
+    rep_log_provider->LatchPrimaryAckables();
+    std::vector<uint64_t> &ackables = rep_log_provider->GetPrimaryAckables();
+    std::vector<uint64_t> ackables_copy = ackables;
+    ackables.clear();
+    rep_log_provider->UnlatchPrimaryAckables();
+    for (const uint64_t primary_cb_id : ackables_copy) {
+      replication_manager_->ReplicaAck("primary", primary_cb_id, false);
+    }
   }
 }
 
@@ -872,6 +897,10 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->pg_proc_.procs_);
       break;
     }
+    case (catalog::postgres::PgStatistic::STATISTIC_TABLE_OID.UnderlyingValue()): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->pg_stat_.statistics_);
+      break;
+    }
     default:
       table_ptr = db_catalog_ptr->GetTable(common::ManagedPointer(txn), table_oid);
   }
@@ -984,6 +1013,10 @@ common::ManagedPointer<storage::index::Index> RecoveryManager::GetCatalogIndex(
 
     case (catalog::postgres::PgProc::PRO_NAME_INDEX_OID.UnderlyingValue()): {
       return db_catalog->pg_proc_.procs_name_index_;
+    }
+
+    case (catalog::postgres::PgStatistic::STATISTIC_OID_INDEX_OID.UnderlyingValue()): {
+      return db_catalog->pg_stat_.statistic_oid_index_;
     }
 
     default:

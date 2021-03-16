@@ -255,7 +255,7 @@ TEST_F(MetricsTests, PipelineCSVTest) {
     if (update_interval) {
       // Set the sampling interval correctly
       auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-      settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, interval,
+      settings_manager_->SetInt(settings::Param::pipeline_metrics_sample_rate, interval,
                                 common::ManagedPointer(action_context), setter_callback);
     }
 
@@ -290,17 +290,17 @@ TEST_F(MetricsTests, PipelineCSVTest) {
   // Create table
   insert_txn(port_, true, 0);
 
-  // Enable, interval = 0, 5 inserts means 5 recorded data points
-  verify_scenario(true, true, 0, 5, 5);
+  // Enable, rate = 100, 5 inserts means 5 recorded data points
+  verify_scenario(true, true, 100, 5, 5);
 
-  // Disable, interval = 1, 5 inserts means 0 recorded data points
-  verify_scenario(false, true, 1, 5, 0);
+  // Disable, rate = 50, 5 inserts means 0 recorded data points
+  verify_scenario(false, true, 50, 5, 0);
 
-  // Enable, keep interval, 5 inserts means 2 recorded data points
-  verify_scenario(true, false, 0, 5, 2);
+  // Enable, keep rate, 100 inserts means 50 recorded data points
+  verify_scenario(true, false, 100, 100, 50);
 
-  // Enable, interval = 3, 5 inserts means 1 recorded data points
-  verify_scenario(true, true, 3, 5, 1);
+  // Enable, rate = 25, 100 inserts means 25 recorded data points
+  verify_scenario(true, true, 25, 100, 25);
 }
 
 /**

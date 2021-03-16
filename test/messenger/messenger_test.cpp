@@ -1,5 +1,6 @@
 #include "messenger/messenger.h"
 
+#include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -72,7 +73,7 @@ class MessengerTests : public TerrierTest {
                        .SetNetworkPort(network_port)
                        .SetUseMessenger(true)
                        .SetMessengerPort(messenger_port)
-                       .SetMessengerIdentity(messenger_identity)
+                       .SetNetworkIdentity(messenger_identity)
                        .SetUseExecution(true)
                        .Build();
 
@@ -112,22 +113,47 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   done[1] = false;
   done[2] = false;
 
-  auto spin_until_init = [init]() {
+  auto *pmutex = static_cast<pthread_mutex_t *>(
+      mmap(nullptr, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pmutex, "mmap() failed.");
+  pthread_mutexattr_t mutexattr;
+  pthread_mutexattr_init(&mutexattr);
+  pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
+  pthread_mutex_init(pmutex, &mutexattr);
+
+  auto *pcond = static_cast<pthread_cond_t *>(
+      mmap(nullptr, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pcond, "mmap() failed.");
+  pthread_condattr_t condattr;
+  pthread_condattr_init(&condattr);
+  pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
+  pthread_cond_init(pcond, &condattr);
+
+  auto sleep_until_init = [init, pmutex, pcond]() {
     while (!(init[0] && init[1] && init[2])) {
+      pthread_mutex_lock(pmutex);
+      pthread_cond_wait(pcond, pmutex);
+      pthread_mutex_unlock(pmutex);
     }
   };
 
-  auto spin_until_done = [done]() {
+  auto sleep_until_done = [done, pmutex, pcond]() {
     while (!(done[0] && done[1] && done[2])) {
+      pthread_mutex_lock(pmutex);
+      pthread_cond_wait(pcond, pmutex);
+      pthread_mutex_unlock(pmutex);
     }
   };
+
+  auto wake_all = [pcond]() { pthread_cond_broadcast(pcond); };
 
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
     primary->GetNetworkLayer()->GetServer()->RunServer();
 
     init[0] = true;
-    spin_until_init();
+    wake_all();
+    sleep_until_init();
     DirtySleep();
 
     while (!(done[1] && done[2])) {
@@ -135,7 +161,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
     primary->ForceShutdown();
   };
@@ -145,7 +172,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     replica1->GetNetworkLayer()->GetServer()->RunServer();
 
     init[1] = true;
-    spin_until_init();
+    wake_all();
+    sleep_until_init();
     DirtySleep();
 
     // Set up a connection to the primary.
@@ -158,10 +186,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "potato",
-          [&reply_primary_potato](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                  std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
-            EXPECT_EQ("potato", message);
+          [&reply_primary_potato](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("potato", msg.GetMessage());
             reply_primary_potato = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -172,10 +199,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "tomato",
-          [&reply_primary_tomato](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                  std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
-            EXPECT_EQ("tomato", message);
+          [&reply_primary_tomato](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("tomato", msg.GetMessage());
             reply_primary_tomato = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -186,7 +212,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
     replica1->ForceShutdown();
   };
@@ -196,7 +223,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     replica2->GetNetworkLayer()->GetServer()->RunServer();
 
     init[2] = true;
-    spin_until_init();
+    wake_all();
+    sleep_until_init();
     DirtySleep();
 
     // Set up a connection to the primary.
@@ -209,10 +237,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "elephant",
-          [&reply_primary_elephant](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                    std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
-            EXPECT_EQ("elephant", message);
+          [&reply_primary_elephant](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("elephant", msg.GetMessage());
             reply_primary_elephant = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -223,10 +250,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "correct HORSE battery staple",
-          [&reply_primary_chbs](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
-            EXPECT_EQ("correct HORSE battery staple", message);
+          [&reply_primary_chbs](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("correct HORSE battery staple", msg.GetMessage());
             reply_primary_chbs = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -237,7 +263,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 
     MESSENGER_LOG_TRACE("Replica 2 done.");
     done[2] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 2 exit.");
     replica2->ForceShutdown();
   };
@@ -245,8 +272,12 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn, replica2_fn});
 
   // Spin until all done.
-  while (!(done[0] && done[1] && done[2])) {
-  }
+  sleep_until_done();
+
+  pthread_mutex_destroy(pmutex);
+  pthread_mutexattr_destroy(&mutexattr);
+  pthread_cond_destroy(pcond);
+  pthread_condattr_destroy(&condattr);
 
   DirtySleep();
   {
@@ -255,6 +286,14 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   }
   {
     UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pmutex), sizeof(pthread_mutex_t));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pcond), sizeof(pthread_cond_t));
     NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
   }
 }
@@ -283,15 +322,33 @@ TEST_F(MessengerTests, BasicListenTest) {
   done[0] = false;
   done[1] = false;
 
-  auto spin_until_init = [init]() {
+  auto *pmutex = static_cast<pthread_mutex_t *>(
+      mmap(nullptr, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pmutex, "mmap() failed.");
+  pthread_mutexattr_t mutexattr;
+  pthread_mutexattr_init(&mutexattr);
+  pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
+  pthread_mutex_init(pmutex, &mutexattr);
+
+  auto *pcond = static_cast<pthread_cond_t *>(
+      mmap(nullptr, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != pcond, "mmap() failed.");
+  pthread_condattr_t condattr;
+  pthread_condattr_init(&condattr);
+  pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
+  pthread_cond_init(pcond, &condattr);
+
+  auto sleep_until_init = [init]() {
     while (!(init[0] && init[1])) {
     }
   };
 
-  auto spin_until_done = [done]() {
+  auto sleep_until_done = [done]() {
     while (!(done[0] && done[1])) {
     }
   };
+
+  auto wake_all = [pcond]() { pthread_cond_broadcast(pcond); };
 
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
@@ -299,19 +356,18 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     ConnectionDestination dest_listen = Messenger::GetEndpointIPC("listen", port_listen);
     primary->GetMessengerLayer()->GetMessenger()->ListenForConnection(
-        dest_listen, "listen",
-        [](common::ManagedPointer<Messenger> messenger, std::string_view sender_id, std::string_view message,
-           uint64_t recv_cb_id) {
-          MESSENGER_LOG_TRACE("Messenger (listen) received from {}: {} {}", sender_id, message,
-                              message.compare("KILLME") == 0);
-          if (message.compare("KILLME") == 0) {
-            messenger->SendMessage(messenger->GetConnectionRouter("listen"), std::string(sender_id), "QUIT",
-                                   CallbackFns::Noop, recv_cb_id);
+        dest_listen, "listen", [](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+          MESSENGER_LOG_TRACE("Messenger (listen) received from {}: {} {}", msg.GetRoutingId(), msg.GetRawPayload(),
+                              msg.GetMessage().compare("KILLME") == 0);
+          if (msg.GetMessage().compare("KILLME") == 0) {
+            messenger->SendMessage(messenger->GetConnectionRouter("listen"), std::string(msg.GetRoutingId()), "QUIT",
+                                   CallbackFns::Noop, msg.GetSourceCallbackId());
           }
         });
 
     init[0] = true;
-    spin_until_init();
+    wake_all();
+    sleep_until_init();
     DirtySleep();
 
     while (!done[1]) {
@@ -319,7 +375,8 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Primary exit.");
     primary->ForceShutdown();
   };
@@ -328,7 +385,8 @@ TEST_F(MessengerTests, BasicListenTest) {
     auto replica1 = BuildDBMain(port_replica1, port_messenger_replica1, "replica1");
     replica1->GetNetworkLayer()->GetServer()->RunServer();
     init[1] = true;
-    spin_until_init();
+    wake_all();
+    sleep_until_init();
     DirtySleep();
 
     // Set up a connection to the primary via the listen endpoint.
@@ -345,10 +403,10 @@ TEST_F(MessengerTests, BasicListenTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "KILLME",
-          [&reply_primary_quit](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
-            EXPECT_EQ("QUIT", message);
+          [&reply_primary_quit](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {} {}", msg.GetRoutingId(),
+                                            msg.GetRawPayload(), msg.GetMessage().compare("QUIT") == 0));
+            EXPECT_EQ("QUIT", msg.GetMessage());
             reply_primary_quit = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
@@ -363,7 +421,8 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
-    spin_until_done();
+    wake_all();
+    sleep_until_done();
     MESSENGER_LOG_TRACE("Replica 1 exit.");
     replica1->ForceShutdown();
   };
@@ -371,8 +430,12 @@ TEST_F(MessengerTests, BasicListenTest) {
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn});
 
   // Spin until all done.
-  while (!(done[0] && done[1])) {
-  }
+  sleep_until_done();
+
+  pthread_mutex_destroy(pmutex);
+  pthread_mutexattr_destroy(&mutexattr);
+  pthread_cond_destroy(pcond);
+  pthread_condattr_destroy(&condattr);
 
   DirtySleep();
   {
@@ -381,6 +444,14 @@ TEST_F(MessengerTests, BasicListenTest) {
   }
   {
     UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pmutex), sizeof(pthread_mutex_t));
+    NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  }
+  {
+    UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(pcond), sizeof(pthread_cond_t));
     NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
   }
 }

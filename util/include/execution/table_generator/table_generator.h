@@ -10,8 +10,8 @@
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
-#include "runner/mini_runners_data_config.h"
-#include "runner/mini_runners_settings.h"
+#include "runner/execution_runners_data_config.h"
+#include "runner/execution_runners_settings.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::sql {
@@ -85,15 +85,15 @@ class TableGenerator {
   void GenerateTestTables();
 
   /**
-   * Generate the tables for the mini runner
-   * @param settings Mini-runners settings
-   * @param config Data Configuration for mini-runners
+   * Generate the tables for the execution runner
+   * @param settings Execution-runners settings
+   * @param config Data Configuration for execution-runners
    */
-  void GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
-                               const runner::MiniRunnersDataConfig &config);
+  void GenerateExecutionRunnersData(const runner::ExecutionRunnersSettings &settings,
+                                    const runner::ExecutionRunnersDataConfig &config);
 
   /**
-   * Adds a mini-runner index
+   * Adds a execution-runner index
    * Function does not check whether an index of the same key_num
    * already exists on the table GenerateTableName({type}, {tbl_cols}, row_num, row_num)
    *
@@ -102,10 +102,10 @@ class TableGenerator {
    * @param row_num # of rows in the underlying table
    * @param key_num Number of keys comprising the index
    */
-  void BuildMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
+  void BuildExecutionRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
 
   /**
-   * Drops a unique mini-runner index on GenerateTableName({type}, {tbl_cols}, row_num, row_num)
+   * Drops a unique execution-runner index on GenerateTableName({type}, {tbl_cols}, row_num, row_num)
    *
    * @param type Datatype of the underlying table
    * @param tbl_cols Number of columns in the table
@@ -113,7 +113,7 @@ class TableGenerator {
    * @param key_num Number of keys comprising the index
    * @returns bool indicating whether successful
    */
-  bool DropMiniRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
+  bool DropExecutionRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
 
  private:
   exec::ExecutionContext *exec_ctx_;
