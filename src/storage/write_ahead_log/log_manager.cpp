@@ -58,8 +58,6 @@ void LogManager::PersistAndStop() {
   NOISEPAGE_ASSERT(result, "DiskLogConsumerTask should have been stopped");
   NOISEPAGE_ASSERT(disk_filled_buffer_queue_.Empty(),
                    "disk log consumer task should have processed all filled buffers\n");
-  NOISEPAGE_ASSERT(replication_filled_buffer_queue_.Empty(),
-                   "replication manager should have processed all filled buffers\n");
 
   // Close the buffers corresponding to the log file
   for (auto &buf : buffers_) {
