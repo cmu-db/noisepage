@@ -134,9 +134,11 @@ class TestServer:
         result = constants.ErrorCode.ERROR
         try:
             self.run_pre_suite()
-            exit_codes = self.run_test_suite(test_suite)
-            has_error = any([x is None or x != constants.ErrorCode.SUCCESS
-                             for x in exit_codes.values()])
+            exit_codes, dbms_exit_codes = self.run_test_suite(test_suite)
+            has_error_test = any([x is None or x != constants.ErrorCode.SUCCESS
+                                  for x in exit_codes.values()])
+            has_error_dbms = any(x != 0 for x in dbms_exit_codes)
+            has_error = has_error_test or has_error_dbms
             result = constants.ErrorCode.ERROR if has_error else constants.ErrorCode.SUCCESS
         except KeyboardInterrupt:
             raise KeyboardInterrupt
@@ -162,14 +164,19 @@ class TestServer:
         -------
         exit_codes : dict
             A dictionary mapping test cases to their exit codes.
+        dbms_exit_codes : [int]
+            A list of DBMS exit codes that were produced as the test was run, i.e.,
+            one exit code for every time the DBMS was requested to be stopped.
         """
         exit_codes = {}
+        dbms_exit_codes = []
         dbms_started = self.db_instance.run_db(self.is_dry_run)
         first_run = True
         for test_case in test_suite:
             try:
                 if test_case.db_restart and self.db_instance.db_process and not first_run:
-                    self.db_instance.stop_db(self.is_dry_run)
+                    dbms_exit_code = self.db_instance.stop_db(self.is_dry_run)
+                    dbms_exit_codes.append(dbms_exit_code)
                     dbms_started = self.db_instance.run_db(self.is_dry_run)
                 first_run = False
                 if not self.is_dry_run:
@@ -200,7 +207,8 @@ class TestServer:
         # The DBMS is not restarted between tests as you may want the DBMS to
         # persist create/load data.
         if dbms_started:
-            self.db_instance.stop_db(self.is_dry_run)
+            dbms_exit_code = self.db_instance.stop_db(self.is_dry_run)
+            dbms_exit_codes.append(dbms_exit_code)
             self.db_instance.delete_wal()
 
-        return exit_codes
+        return exit_codes, dbms_exit_codes
