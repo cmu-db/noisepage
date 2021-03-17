@@ -10,17 +10,23 @@ namespace noisepage::optimizer {
 StatsStorageValue &StatsStorage::GetStatsStorageValue(const catalog::db_oid_t database_id,
                                                       const catalog::table_oid_t table_id,
                                                       catalog::CatalogAccessor *accessor) {
+  stats_latch_.LockShared();
+
   StatsStorageKey stats_storage_key{database_id, table_id};
   auto table_it = table_stats_storage_.find(stats_storage_key);
 
   if (table_it == table_stats_storage_.end()) {
+    stats_latch_.UnlockShared();
     InsertTableStats(database_id, table_id, accessor);
     table_it = table_stats_storage_.find(stats_storage_key);
+    stats_latch_.LockShared();
   }
 
   auto &stats_storage_value = table_it->second;
 
   UpdateStaleColumns(table_id, &stats_storage_value, accessor);
+
+  stats_latch_.UnlockShared();
 
   return stats_storage_value;
 }
@@ -65,7 +71,8 @@ void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_
 
 void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                     catalog::CatalogAccessor *accessor) {
-  std::unique_lock<std::mutex> latch(insert_latch_);
+  common::SharedLatch::ScopedExclusiveLatch scoped_stats_latch{&stats_latch_};
+
   StatsStorageKey stats_storage_key{database_id, table_id};
   if (table_stats_storage_.count(stats_storage_key) == 0) {
     table_stats_storage_.emplace(stats_storage_key, accessor->GetTableStatistics(table_id));

@@ -137,10 +137,9 @@ class StatsStorage {
   std::unordered_map<StatsStorageKey, StatsStorageValue> table_stats_storage_;
 
   /**
-   * latch for inserting into stats storage cache. Prevents one thread from accidentally replacing a TableStats object
-   * inserted by another thread for the same table.
+   * latch for reading and modifying table_stats_storage_.
    */
-  std::mutex insert_latch_;
+  common::SharedLatch stats_latch_;
 
   /**
    * Returns a reference the cached TableStats object for a specific table
