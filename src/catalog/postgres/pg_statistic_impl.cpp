@@ -247,6 +247,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, size_t non_null_rows, size_t distinct_values,
     const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, type::TypeId type) {
   using CppType = decltype(T::val_);
+  // top_k and histogram will be NULL on a newly created table
   auto top_k = top_k_str != nullptr
                    ? optimizer::TopKElements<CppType>::Deserialize(top_k_str->Content(), top_k_str->Size())
                    : optimizer::TopKElements<CppType>();
