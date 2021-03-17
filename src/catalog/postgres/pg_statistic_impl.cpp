@@ -80,14 +80,14 @@ bool PgStatisticImpl::DeleteColumnStatistics(const common::ManagedPointer<transa
     auto *pr_lo = oid_pri.InitializeRow(key_buffer);
     auto *pr_hi = oid_pri.InitializeRow(key_buffer_2);
 
-    // Low key (class, min col_oid_t)
+    // Low key (table_oid_t, min col_oid_t)
     pr_lo->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
     pr_lo->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::min()),
                                  false);
 
-    // High key (class + 1, max col_oid_t)
+    // High key (table_oid_t + 1, min col_oid_t)
     pr_hi->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid + 1, false);
-    pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::max()),
+    pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::min()),
                                  false);
 
     statistic_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
@@ -174,13 +174,13 @@ optimizer::TableStats PgStatisticImpl::GetTableStatistics(common::ManagedPointer
     auto *pr = oid_pri.InitializeRow(buffer);
     auto *pr_hi = oid_pri.InitializeRow(key_buffer);
 
-    // Low key (class, min col_oid_t)
+    // Low key (table_oid_t, min col_oid_t)
     pr->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
     pr->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::min()), false);
 
-    // High key (class + 1, max col_oid_t)
+    // High key (table_oid_t + 1, max col_oid_t)
     pr_hi->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid + 1, false);
-    pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::max()),
+    pr_hi->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid_t(std::numeric_limits<uint32_t>::min()),
                                  false);
 
     statistic_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, pr_hi, 0, &index_results);
