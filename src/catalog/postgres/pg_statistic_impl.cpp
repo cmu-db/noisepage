@@ -235,12 +235,8 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
                                                         top_k_str, histogram_str, type);
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY:
-      /*
-       * TODO(Joe Koshakow) The current implementation of Histogram produces meaningless results for strings. See
-       * histogram.h for a more detailed explanation. For now we just use an empty histogram.
-       */
       return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
-                                                          top_k_str, nullptr, type);
+                                                          top_k_str, histogram_str, type);
     default:
       UNREACHABLE("Invalid column type");
   }

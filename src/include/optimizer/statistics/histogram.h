@@ -27,12 +27,9 @@ namespace noisepage::optimizer {
  *    http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf
  * Specifically Algorithm 1, 3, and 4.
  *
- * Histogram supports any key type that can be easily converted into a double. However in order to get meaningful
- * results from the histogram the ordering of the keys should be preserved in this conversion. So for example if
- * key1 > key2 then ConvertToPoint(key1) > ConvertToPoint(key2) where ConvertToPoint(k) converts k to a double.
- *
- * Histogram currently supports strings by hashing them, but since hashing doesn't preserve lexicographical ordering
- * it's pretty much useless
+ * Histogram supports any key type that can be converted into a double. However in order to get meaningful results from
+ * the histogram the ordering of the keys should be preserved in this conversion. So for example if key1 > key2
+ * then ConvertToPoint(key1) > ConvertToPoint(key2) where ConvertToPoint(k) converts k to a double.
  */
 template <typename KeyType>
 class Histogram {
@@ -600,7 +597,23 @@ class Histogram {
     return static_cast<double>(key);
   }
 
-  static double ConvertToPoint(const decltype(execution::sql::StringVal::val_) &key) { return key.Hash(); }
+  /*
+   * Inspired by:
+   * https://stackoverflow.com/questions/1914977/map-strings-to-numbers-maintaining-the-lexicographic-ordering/1915258#1915258
+   * Which attempts to map the string to a number between 0 and 1 while maintaining lexicographical order.
+   * An extension was made from that SO post to support characters beyond a-z and one issue was corrected
+   */
+  static double ConvertToPoint(const decltype(execution::sql::StringVal::val_) &key) {
+    double result = 0;
+    double scale = 1;
+    auto s = key.StringView();
+    for (size_t i = 0; i < key.Size(); i++) {
+      scale /= 256;
+      int index = 1 + s.at(i);
+      result += index * scale;
+    }
+    return result;
+  }
 
   static double ConvertToPoint(const decltype(execution::sql::DateVal::val_) &key) {
     return static_cast<double>(key.ToNative());
