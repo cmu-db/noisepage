@@ -4,12 +4,14 @@
 #include <limits>
 
 #include "common/managed_pointer.h"
-#include "optimizer/statistics/column_stats.h"
-#include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
 #include "parser/expression/constant_value_expression.h"
 
 namespace noisepage::optimizer {
+
+template <typename>
+class ColumnStats;
+class TableStats;
 
 static constexpr double DEFAULT_SELECTIVITY_VALUE = 0.5;
 
