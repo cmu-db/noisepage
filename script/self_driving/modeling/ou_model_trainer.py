@@ -152,7 +152,7 @@ class OUModelTrainer:
         self.model_map = {}
 
         # Create the results files for the paper
-        header = ["OpUnit", "Method"] + [target.name for target in data_info.instance.MINI_MODEL_TARGET_LIST]
+        header = ["OpUnit", "Method"] + [target.name for target in data_info.instance.OU_MODEL_TARGET_LIST]
         summary_file = "{}/ou_runner.csv".format(self.model_metrics_path)
         io_util.create_csv_file(summary_file, header)
 

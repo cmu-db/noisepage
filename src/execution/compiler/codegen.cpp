@@ -456,7 +456,12 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) const {
 ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs,
                                       uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids) {
   // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
-  ast::Expr *iter_ptr = AddressOf(iter);
+  return IndexIteratorInit(AddressOf(iter), exec_ctx_var, num_attrs, table_oid, index_oid, col_oids);
+}
+
+ast::Expr *CodeGen::IndexIteratorInit(ast::Expr *iter_ptr, ast::Expr *exec_ctx_var, uint32_t num_attrs,
+                                      uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids) {
+  // @indexIteratorInit(iter_ptr, table_oid, index_oid, execCtx)
   ast::Expr *num_attrs_expr = Const32(static_cast<int32_t>(num_attrs));
   ast::Expr *table_oid_expr = Const32(static_cast<int32_t>(table_oid));
   ast::Expr *index_oid_expr = Const32(static_cast<int32_t>(index_oid));
@@ -466,7 +471,11 @@ ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_
 }
 
 ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
-  // @indexIteratorScanKey(&iter)
+  return IndexIteratorScan(AddressOf(iter), scan_type, limit);
+}
+
+ast::Expr *CodeGen::IndexIteratorScan(ast::Expr *iter_ptr, planner::IndexScanType scan_type, uint32_t limit) {
+  // @indexIteratorScanKey(iter_ptr)
   ast::Builtin builtin;
   bool asc_scan = false;
   bool use_limit = false;
@@ -502,9 +511,8 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
       UNREACHABLE("Unknown scan type");
   }
 
-  if (!use_limit && !asc_scan) return CallBuiltin(builtin, {AddressOf(iter)});
+  if (!use_limit && !asc_scan) return CallBuiltin(builtin, {iter_ptr});
 
-  ast::Expr *iter_ptr = AddressOf(iter);
   std::vector<ast::Expr *> args{iter_ptr};
 
   if (asc_scan) args.push_back(Const64(static_cast<int64_t>(asc_type)));
@@ -1272,14 +1280,13 @@ ast::Expr *CodeGen::CSVReaderClose(ast::Expr *reader) {
   return call;
 }
 
-ast::Expr *CodeGen::StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid,
+ast::Expr *CodeGen::StorageInterfaceInit(ast::Expr *storage_interface_ptr, ast::Expr *exec_ctx, uint32_t table_oid,
                                          ast::Identifier col_oids, bool need_indexes) {
-  ast::Expr *si_ptr = AddressOf(si);
   ast::Expr *table_oid_expr = Const64(static_cast<int64_t>(table_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
   ast::Expr *need_indexes_expr = ConstBool(need_indexes);
 
-  std::vector<ast::Expr *> args{si_ptr, exec_ctx, table_oid_expr, col_oids_expr, need_indexes_expr};
+  std::vector<ast::Expr *> args{storage_interface_ptr, exec_ctx, table_oid_expr, col_oids_expr, need_indexes_expr};
   return CallBuiltin(ast::Builtin::StorageInterfaceInit, args);
 }
 
