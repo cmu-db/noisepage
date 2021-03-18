@@ -128,18 +128,18 @@ class BufferedLogWriter {
    *
    * @param policy The retention policy that describes the destinations for this BufferedLogWriter.
    */
-  void PrepareForSerialization(transaction::RetentionPolicy policy) {
+  void PrepareForSerialization(transaction::DurabilityPolicy policy) {
     NOISEPAGE_ASSERT(serialize_refcount_.load() == 0, "This buffer is already being serialized.");
     switch (policy) {
-      case transaction::RetentionPolicy::DISABLE_RETENTION: {
+      case transaction::DurabilityPolicy::DISABLE: {
         serialize_refcount_.store(0);  // Nothing.
         break;
       }
-      case transaction::RetentionPolicy::RETENTION_LOCAL_DISK: {
+      case transaction::DurabilityPolicy::LOCAL_DISK: {
         serialize_refcount_.store(1);  // DiskLogConsumerTask.
         break;
       }
-      case transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS: {
+      case transaction::DurabilityPolicy::LOCAL_AND_REPLICAS: {
         serialize_refcount_.store(2);  // DiskLogConsumerTask + ReplicationManager.
         break;
       }

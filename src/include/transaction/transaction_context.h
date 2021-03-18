@@ -205,10 +205,10 @@ class TransactionContext {
   void SetMustAbort() { must_abort_ = true; }
 
   /** Set the retention policy of the entire transaction. */
-  void SetRetentionPolicy(RetentionPolicy retention_policy) { retention_policy_ = retention_policy; }
+  void SetRetentionPolicy(DurabilityPolicy retention_policy) { retention_policy_ = retention_policy; }
 
   /** @return The retention policy of the entire transaction. */
-  RetentionPolicy GetRetentionPolicy() { return retention_policy_; }
+  DurabilityPolicy GetRetentionPolicy() { return retention_policy_; }
 
  private:
   friend class storage::GarbageCollector;
@@ -244,7 +244,7 @@ class TransactionContext {
    * The retention policy of a transaction controls the retention policy for all of the buffers that are created by
    * the transaction.
    */
-  RetentionPolicy retention_policy_ = RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
+  DurabilityPolicy retention_policy_ = DurabilityPolicy::LOCAL_DISK;
 
   /**
    * @warning This method is ONLY for recovery

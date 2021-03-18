@@ -143,10 +143,10 @@ void LogSerializerTask::HandFilledBufferToWriter() {
   //  happens, the individual queues can deal with calling PrepareForSerialization with their respective retention
   //  policies, so the below assert will become unnecessary.
   auto retention_policy = primary_replication_manager_ == DISABLED
-                              ? transaction::RetentionPolicy::RETENTION_LOCAL_DISK
-                              : transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
+                              ? transaction::DurabilityPolicy::LOCAL_DISK
+                              : transaction::DurabilityPolicy::LOCAL_AND_REPLICAS;
   NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED ||
-                       retention_policy != transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS,
+                       retention_policy != transaction::DurabilityPolicy::LOCAL_AND_REPLICAS,
                    "If replication is disabled, then you can't send buffers to replicas.");
 
   if (filled_buffer_ != nullptr) {

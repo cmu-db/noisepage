@@ -340,7 +340,7 @@ class RedoBuffer {
    * @param retention_policy retention policy of the record
    * @return a new redo record with at least the given size reserved
    */
-  byte *NewEntry(uint32_t size, transaction::RetentionPolicy retention_policy);
+  byte *NewEntry(uint32_t size, transaction::DurabilityPolicy retention_policy);
 
   /**
    * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
@@ -348,7 +348,7 @@ class RedoBuffer {
    * @param flush_buffer whether the transaction holding this RedoBuffer should flush the its redo buffer
    * @param retention_policy retention policy of the record
    */
-  void Finalize(bool flush_buffer, transaction::RetentionPolicy retention_policy);
+  void Finalize(bool flush_buffer, transaction::DurabilityPolicy retention_policy);
 
   /**
    * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
