@@ -490,6 +490,16 @@ SETTING_int(
     noisepage::settings::Callbacks::ForecastSampleLimit
 )
 
+SETTING_int(
+    task_pool_size,
+    "Number of threads available to the task manager",
+    1,
+    1,
+    32,
+    true,
+    noisepage::settings::Callbacks::TaskPoolSize
+)
+
 SETTING_string(
     startup_ddl_path,
     "Path to startup DDL (default: startup.sql)",

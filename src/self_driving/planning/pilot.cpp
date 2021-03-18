@@ -25,17 +25,13 @@
 #include "self_driving/planning/mcts/monte_carlo_tree_search.h"
 #include "self_driving/planning/pilot_util.h"
 #include "settings/settings_manager.h"
+#include "task/task_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
-#include "util/query_internal_thread.h"
 
 namespace noisepage::selfdriving {
 
 uint64_t Pilot::planning_iteration = 1;
-
-void Pilot::SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util) {
-  query_exec_util_ = std::move(query_exec_util);
-}
 
 Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
              common::ManagedPointer<catalog::Catalog> catalog,
@@ -43,7 +39,9 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
              common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
              common::ManagedPointer<settings::SettingsManager> settings_manager,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage,
-             common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval)
+             common::ManagedPointer<transaction::TransactionManager> txn_manager,
+             std::unique_ptr<util::QueryExecUtil> query_exec_util,
+             common::ManagedPointer<task::TaskManager> task_manager, uint64_t workload_forecast_interval)
     : model_save_path_(std::move(model_save_path)),
       forecast_model_save_path_(std::move(forecast_model_save_path)),
       catalog_(catalog),
@@ -52,6 +50,8 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
       settings_manager_(settings_manager),
       stats_storage_(stats_storage),
       txn_manager_(txn_manager),
+      query_exec_util_(std::move(query_exec_util)),
+      task_manager_(task_manager),
       workload_forecast_interval_(workload_forecast_interval) {
   forecast_ = nullptr;
   while (!model_server_manager_->ModelServerStarted()) {
@@ -130,7 +130,8 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
   }
 
   bool result = true;
-  query_exec_util_->BeginTransaction();
+  execution::exec::ExecutionSettings settings{};
+  query_exec_util_->BeginTransaction(catalog::INVALID_DATABASE_OID);
   {
     // Metadata query
     auto to_row_fn = [&metadata, types_conv](const std::vector<execution::sql::Val *> &values) {
@@ -156,8 +157,8 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     // can execute a prepared query without a corresponding text recording (if the query was
     // already prepared during a prior interval).
     auto query = "SELECT * FROM noisepage_forecast_texts";
-    query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
-    result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
+    result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
+                                           std::make_unique<optimizer::TrivialCostModel>(), settings);
   }
 
   {
@@ -173,8 +174,8 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     };
 
     auto query = fmt::format("SELECT * FROM noisepage_forecast_parameters WHERE iteration = {}", iteration);
-    query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
-    result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
+    result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
+                                           std::make_unique<optimizer::TrivialCostModel>(), settings);
   }
 
   query_exec_util_->EndTransaction(true);
@@ -188,7 +189,7 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(ui
   int64_t current_segment = INT64_MAX;
   int64_t segment_number = 0;
   std::unordered_map<int64_t, std::vector<double>> segments;
-  query_exec_util_->BeginTransaction();
+  query_exec_util_->BeginTransaction(catalog::INVALID_DATABASE_OID);
   auto to_row_fn = [&segments, &segment_number, &current_segment,
                     &current_iteration](const std::vector<execution::sql::Val *> &values) {
     auto qid = static_cast<execution::sql::Integer *>(values[1])->val_;
@@ -215,8 +216,9 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(ui
       "SELECT * FROM noisepage_forecast_frequencies WHERE iteration <= {} AND iteration >= {} ORDER BY iteration, "
       "interval",
       iteration, upper);
-  query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
-  *success = query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
+  execution::exec::ExecutionSettings settings{};
+  *success = query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
+                                          std::make_unique<optimizer::TrivialCostModel>(), settings);
   query_exec_util_->EndTransaction(true);
   for (auto &seg : segments) {
     seg.second.resize(segment_number);
@@ -228,38 +230,13 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(ui
 void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
                                              const selfdriving::WorkloadForecastPrediction &prediction,
                                              const WorkloadMetadata &metadata) {
-  if (query_internal_thread_ == nullptr) {
+  if (task_manager_ == nullptr) {
     return;
   }
 
-  // We don't want to do these inserts as part of forecasting itself.
-  // So we create the result and let a background thread actually handle it.
-  util::ExecuteRequest cluster_request;
-  util::ExecuteRequest forecast_request;
-
-  {
-    // Clusters
-    cluster_request.type_ = util::RequestType::DML;
-    cluster_request.notify_ = nullptr;
-    cluster_request.db_oid_ = catalog::INVALID_DATABASE_OID;
-    cluster_request.query_text_ = "INSERT INTO noisepage_forecast_clusters VALUES ($1, $2, $3, $4)";
-    cluster_request.cost_model_ = nullptr;
-    cluster_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                    type::TypeId::INTEGER};
-  }
-
-  {
-    // Forecasts
-    forecast_request.type_ = util::RequestType::DML;
-    forecast_request.notify_ = nullptr;
-    forecast_request.db_oid_ = catalog::INVALID_DATABASE_OID;
-    forecast_request.query_text_ = "INSERT INTO noisepage_forecast_forecasts VALUES ($1, $2, $3, $4)";
-    forecast_request.cost_model_ = nullptr;
-    forecast_request.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                     type::TypeId::REAL};
-  }
-
   // This is a bit more memory intensive, since we have to copy all the parameters
+  std::vector<std::vector<parser::ConstantValueExpression>> clusters_params_vec;
+  std::vector<std::vector<parser::ConstantValueExpression>> forecast_params_vec;
   for (auto &cluster : prediction) {
     for (auto &qid_info : cluster.second) {
       execution::query_id_t qid{static_cast<uint32_t>(qid_info.first)};
@@ -275,7 +252,7 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
           parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(qid_info.first));
       clusters_params[3] = parser::ConstantValueExpression(
           type::TypeId::INTEGER, execution::sql::Integer(metadata.query_id_to_dboid_.find(qid)->second));
-      cluster_request.params_.emplace_back(std::move(clusters_params));
+      clusters_params_vec.emplace_back(std::move(clusters_params));
 
       for (size_t interval = 0; interval < qid_info.second.size(); interval++) {
         std::vector<parser::ConstantValueExpression> forecasts_params(4);
@@ -286,14 +263,31 @@ void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
         forecasts_params[2] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(interval));
         forecasts_params[3] =
             parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(qid_info.second[interval]));
-        forecast_request.params_.emplace_back(std::move(forecasts_params));
+        forecast_params_vec.emplace_back(std::move(forecasts_params));
       }
     }
   }
+  if (!clusters_params_vec.empty()) {
+    // Clusters
+    auto db_oid = catalog::INVALID_DATABASE_OID;
+    auto query_text = "INSERT INTO noisepage_forecast_clusters VALUES ($1, $2, $3, $4)";
+    std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
+                                             type::TypeId::INTEGER};
+    task_manager_->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
+                                                           std::make_unique<optimizer::TrivialCostModel>(),
+                                                           std::move(clusters_params_vec), std::move(param_types)));
+  }
 
-  // Submit the request to be executed
-  query_internal_thread_->AddRequest(std::move(cluster_request));
-  query_internal_thread_->AddRequest(std::move(forecast_request));
+  if (!forecast_params_vec.empty()) {
+    // Forecasts
+    auto db_oid = catalog::INVALID_DATABASE_OID;
+    auto query_text = "INSERT INTO noisepage_forecast_forecasts VALUES ($1, $2, $3, $4)";
+    std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
+                                             type::TypeId::REAL};
+    task_manager_->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
+                                                           std::make_unique<optimizer::TrivialCostModel>(),
+                                                           std::move(forecast_params_vec), std::move(param_types)));
+  }
 }
 
 void Pilot::LoadWorkloadForecast() {
@@ -301,7 +295,7 @@ void Pilot::LoadWorkloadForecast() {
   auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
   bool metrics_in_db = metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB;
   metrics_thread_->GetMetricsManager()->Aggregate();
-  metrics_thread_->GetMetricsManager()->ToOutput();
+  metrics_thread_->GetMetricsManager()->ToOutput(common::ManagedPointer(query_exec_util_), task_manager_);
 
   std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> out_metadata;
   std::unordered_map<execution::query_id_t, std::vector<std::string>> out_params;
@@ -314,8 +308,7 @@ void Pilot::LoadWorkloadForecast() {
     if (raw != nullptr) {
       // Perform a flush to database. This will also get any temporary data.
       // This is also used to flush all parameter information at a forecast interval.
-      raw->WriteToDB(common::ManagedPointer(query_exec_util_), common::ManagedPointer(query_internal_thread_), true,
-                     true, &out_metadata, &out_params);
+      raw->WriteToDB(common::ManagedPointer(query_exec_util_), task_manager_, true, true, &out_metadata, &out_params);
 
       // TODO(wz2): Maybe we should insert a synchronization point here.
       // We can submit another task to the query_internal_thread_ to flush

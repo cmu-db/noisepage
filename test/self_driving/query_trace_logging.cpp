@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "metrics/query_trace_metric.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "test_util/test_harness.h"
 
 namespace noisepage::selfdriving::pilot::test {
@@ -30,6 +31,7 @@ class QueryTraceLogging : public TerrierTest {
     db_main_->GetMetricsThread()->PauseMetrics();  // We want to aggregate them manually, so pause the thread.
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    task_manager_ = db_main_->GetTaskManager();
     db_main_->TryLoadStartupDDL();
   }
 
@@ -41,10 +43,12 @@ class QueryTraceLogging : public TerrierTest {
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<task::TaskManager> task_manager_;
 };
 
 // NOLINTNEXTLINE
 TEST_F(QueryTraceLogging, BasicLogging) {
+  auto util = db_main_->GetQueryExecUtil();
   metrics_manager_->RegisterThread();
   metrics_manager_->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, metrics::MetricsOutput::DB);
 
@@ -99,25 +103,17 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   }
 
   metrics_manager_->Aggregate();
-  metrics_manager_->ToOutput();
+  metrics_manager_->ToOutput(util, task_manager_);
+  task_manager_->Flush();
 
-  {
-    auto thread = db_main_->GetQueryInternalThread();
-    util::ExecuteRequest req;
-    common::Future<bool> future;
-    req.type_ = util::RequestType::SYNC;
-    req.notify_ = common::ManagedPointer(&future);
-    thread->AddRequest(std::move(req));
-    future.Wait();
-  }
-
-  auto util = db_main_->GetQueryExecUtil();
   auto select_count = [util](const std::string &query, size_t target) {
-    util->BeginTransaction();
+    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
     uint64_t row_count = 0;
     auto to_row_fn = [&row_count](const std::vector<execution::sql::Val *> &values) { row_count++; };
 
-    bool result = util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr);
+    execution::exec::ExecutionSettings settings{};
+    bool result = util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
+                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
     NOISEPAGE_ASSERT(result, "SELECT should have succeeded");
     NOISEPAGE_ASSERT(row_count == target, "Row count incorrect");
     util->EndTransaction(true);
@@ -128,7 +124,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   select_count("SELECT * FROM noisepage_forecast_parameters", 0);
 
   auto check_freqs = [util, &qids, &totals, &timestamps](size_t num_interval) {
-    util->BeginTransaction();
+    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
     size_t seen = 0;
     std::unordered_map<size_t, std::unordered_map<size_t, size_t>> qid_map;
     auto freq_check = [&seen, &qid_map](const std::vector<execution::sql::Val *> &values) {
@@ -149,8 +145,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
       combined += totals[i];
     }
 
-    bool result =
-        util->ExecuteDML("SELECT * FROM noisepage_forecast_frequencies", nullptr, nullptr, freq_check, nullptr);
+    execution::exec::ExecutionSettings settings{};
+    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_frequencies", nullptr, nullptr, freq_check,
+                                   nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings);
     NOISEPAGE_ASSERT(result, "SELECT frequencies should have succeeded");
     NOISEPAGE_ASSERT(seen == combined, "Incorrect number recorded");
     NOISEPAGE_ASSERT(qid_map.size() == qids.size(), "Incorrect number qids recorded");
@@ -172,12 +169,11 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   // Flush to the database
   auto raw = reinterpret_cast<metrics::QueryTraceMetricRawData *>(
       metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::QUERY_TRACE)).get());
-  raw->WriteToDB(common::ManagedPointer(db_main_->GetQueryExecUtil()),
-                 common::ManagedPointer(db_main_->GetQueryInternalThread()), true, true, nullptr, nullptr);
-  std::this_thread::sleep_for(std::chrono::seconds(3));
+  raw->WriteToDB(util, task_manager_, true, true, nullptr, nullptr);
+  task_manager_->Flush();
 
   {
-    util->BeginTransaction();
+    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
     std::unordered_set<int64_t> val;
     auto func = [&val, qids, texts, db_oids, &parameters](const std::vector<execution::sql::Val *> &values) {
       int64_t qid = reinterpret_cast<execution::sql::Integer *>(values[1])->val_;
@@ -203,14 +199,16 @@ TEST_F(QueryTraceLogging, BasicLogging) {
       NOISEPAGE_ASSERT(type_json == correct, "Invalid parameters recorded");
     };
 
-    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr);
+    execution::exec::ExecutionSettings settings{};
+    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr,
+                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
     NOISEPAGE_ASSERT(result, "select should have succeeded");
     NOISEPAGE_ASSERT(val.size() == qids.size(), "Incorrect number recorded");
     util->EndTransaction(true);
   }
 
   {
-    util->BeginTransaction();
+    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
     size_t row_count = 0;
     std::unordered_set<int64_t> seen;
     auto func = [&row_count, qids, &seen](const std::vector<execution::sql::Val *> &values) {
@@ -221,7 +219,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
       row_count++;
     };
 
-    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr);
+    execution::exec::ExecutionSettings settings{};
+    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr,
+                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
     NOISEPAGE_ASSERT(result, "Select should have succeeded");
     NOISEPAGE_ASSERT(seen.size() == qids.size(), "Must sample at least 1 per qid");
     NOISEPAGE_ASSERT(row_count <= qids.size() * num_sample, "Sampling limit exceeded");

@@ -189,6 +189,14 @@ void Callbacks::ForecastSampleLimit(void *old_value, void *new_value, DBMain *db
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::TaskPoolSize(void *old_value, void *new_value, DBMain *db_main,
+                             common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int task_size = *static_cast<int *>(new_value);
+  db_main->GetTaskManager()->SetTaskPoolSize(task_size);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value, DBMain *const db_main,
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);

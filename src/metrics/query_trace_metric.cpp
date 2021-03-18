@@ -1,9 +1,10 @@
 #include "metrics/query_trace_metric.h"
 #include "common/json.h"
 #include "execution/sql/value_util.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "self_driving/planning/pilot.h"
+#include "task/task_manager.h"
 #include "util/query_exec_util.h"
-#include "util/query_internal_thread.h"
 
 namespace noisepage::metrics {
 
@@ -23,31 +24,29 @@ void QueryTraceMetadata::RecordQueryParamSample(uint64_t timestamp, execution::q
 }
 
 void QueryTraceMetricRawData::ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                                   common::ManagedPointer<util::QueryInternalThread> query_internal_thread) {
+                                   common::ManagedPointer<task::TaskManager> task_manager) {
   // On regular ToDB calls from metrics manager, we don't want to flush the time data or parameters.
   // Only on a forecast interval should we be doing that. Rather, ToDB will write out time-series data
   // only if a segment has elapsed.
-  WriteToDB(query_exec_util, query_internal_thread, false, false, nullptr, nullptr);
+  WriteToDB(query_exec_util, task_manager, false, false, nullptr, nullptr);
 }
 
 void QueryTraceMetricRawData::WriteToDB(
-    common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-    common::ManagedPointer<util::QueryInternalThread> query_internal_thread, bool flush_timeseries,
-    bool write_parameters, std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
+    common::ManagedPointer<util::QueryExecUtil> query_exec_util, common::ManagedPointer<task::TaskManager> task_manager,
+    bool flush_timeseries, bool write_parameters,
+    std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
     std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params) {
-  NOISEPAGE_ASSERT(query_exec_util != nullptr && query_internal_thread != nullptr,
-                   "Internal execution utility not initialized");
+  NOISEPAGE_ASSERT(query_exec_util != nullptr && task_manager != nullptr, "Internal execution utility not initialized");
 
   auto iteration = selfdriving::Pilot::GetCurrentPlanIteration();
   if (write_parameters) {
     {
       // Submit a job to update the query text data
-      util::ExecuteRequest texts;
-      texts.type_ = util::RequestType::DML;
-      texts.notify_ = nullptr;
-      texts.db_oid_ = catalog::INVALID_DATABASE_OID;
-      texts.query_text_ = "INSERT INTO noisepage_forecast_texts VALUES ($1, $2, $3, $4)";
-      texts.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR, type::TypeId::VARCHAR};
+      auto db_oid = catalog::INVALID_DATABASE_OID;
+      auto query_text = "INSERT INTO noisepage_forecast_texts VALUES ($1, $2, $3, $4)";
+      std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR,
+                                               type::TypeId::VARCHAR};
+      std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
       for (auto &data : metadata_.qmetadata_) {
         std::vector<parser::ConstantValueExpression> params(4);
         params[0] = parser::ConstantValueExpression(
@@ -69,11 +68,13 @@ void QueryTraceMetricRawData::WriteToDB(
           params[3] =
               parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
         }
-        texts.params_.emplace_back(std::move(params));
+        params_vec.emplace_back(std::move(params));
       }
 
-      if (!texts.params_.empty()) {
-        query_internal_thread->AddRequest(std::move(texts));
+      if (!params_vec.empty()) {
+        task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
+                                                              std::make_unique<optimizer::TrivialCostModel>(),
+                                                              std::move(params_vec), std::move(param_types)));
       }
 
       if (out_metadata != nullptr) {
@@ -83,13 +84,10 @@ void QueryTraceMetricRawData::WriteToDB(
 
     {
       // Submit a job to update the parameters table
-      util::ExecuteRequest params;
-      params.type_ = util::RequestType::DML;
-      params.notify_ = nullptr;
-      params.db_oid_ = catalog::INVALID_DATABASE_OID;
-      params.query_text_ = "INSERT INTO noisepage_forecast_parameters VALUES ($1, $2, $3)";
-      params.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR};
-
+      auto db_oid = catalog::INVALID_DATABASE_OID;
+      auto query_text = "INSERT INTO noisepage_forecast_parameters VALUES ($1, $2, $3)";
+      std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR};
+      std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
       for (auto &data : metadata_.qid_param_samples_) {
         std::vector<std::string> samples = data.second.GetSamples();
         for (auto &sample : samples) {
@@ -102,7 +100,7 @@ void QueryTraceMetricRawData::WriteToDB(
           auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
           param_vec[2] =
               parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
-          params.params_.emplace_back(std::move(param_vec));
+          params_vec.emplace_back(std::move(param_vec));
         }
 
         if (out_params != nullptr) {
@@ -110,8 +108,10 @@ void QueryTraceMetricRawData::WriteToDB(
         }
       }
 
-      if (!params.params_.empty()) {
-        query_internal_thread->AddRequest(std::move(params));
+      if (!params_vec.empty()) {
+        task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
+                                                              std::make_unique<optimizer::TrivialCostModel>(),
+                                                              std::move(params_vec), std::move(param_types)));
       }
     }
 
@@ -132,12 +132,11 @@ void QueryTraceMetricRawData::WriteToDB(
     metadata_.InitTimeseriesIterator();
   }
 
-  util::ExecuteRequest seen;
-  seen.type_ = util::RequestType::DML;
-  seen.notify_ = nullptr;
-  seen.db_oid_ = catalog::INVALID_DATABASE_OID;
-  seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
-  seen.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
+  auto db_oid = catalog::INVALID_DATABASE_OID;
+  auto query_text = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
+  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
+                                           type::TypeId::REAL};
+  std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
 
   std::unordered_map<execution::query_id_t, int> freqs;
   while (metadata_.iterator_ != metadata_.timeseries_.end()) {
@@ -159,22 +158,21 @@ void QueryTraceMetricRawData::WriteToDB(
               parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(segment_number_));
           param_vec[3] = parser::ConstantValueExpression(type::TypeId::REAL,
                                                          execution::sql::Real(static_cast<double>(info.second)));
-          seen.params_.emplace_back(std::move(param_vec));
+          params_vec.emplace_back(std::move(param_vec));
         }
 
         // Submit the insert request if not empty
         {
-          query_internal_thread->AddRequest(std::move(seen));
+          task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
+                                                                std::make_unique<optimizer::TrivialCostModel>(),
+                                                                std::move(params_vec), std::move(param_types)));
           freqs.clear();
         }
 
         // Reset the metadata
         // NOLINTNEXTLINE
-        seen.type_ = util::RequestType::DML;
-        seen.notify_ = nullptr;
-        seen.db_oid_ = catalog::INVALID_DATABASE_OID;
-        seen.query_text_ = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
-        seen.param_types_ = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
+        param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
+        params_vec.clear();
         segment_number_++;
       }
 
@@ -203,10 +201,12 @@ void QueryTraceMetricRawData::WriteToDB(
       param_vec[2] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(segment_number_));
       param_vec[3] =
           parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(info.second)));
-      seen.params_.emplace_back(std::move(param_vec));
+      params_vec.emplace_back(std::move(param_vec));
     }
 
-    query_internal_thread->AddRequest(std::move(seen));
+    task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
+                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::move(params_vec), std::move(param_types)));
   }
 
   if (flush_timeseries || metadata_.iterator_ == metadata_.timeseries_.end()) {

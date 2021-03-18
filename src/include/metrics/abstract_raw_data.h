@@ -7,8 +7,11 @@
 
 namespace noisepage::util {
 class QueryExecUtil;
-class QueryInternalThread;
 }  // namespace noisepage::util
+
+namespace noisepage::task {
+class TaskManager;
+}
 
 namespace noisepage::metrics {
 /**
@@ -43,10 +46,10 @@ class AbstractRawData {
   /**
    * Writes the data to internal tables
    * @param query_exec_util Execution utility for internal SQL execution
-   * @param query_internal_thread Internal thread to submit SQL tasks to
+   * @param task_manager Task manager to submit tasks to
    */
   virtual void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                    common::ManagedPointer<util::QueryInternalThread> query_internal_thread) {}
+                    common::ManagedPointer<task::TaskManager> task_manager) {}
 
   /**
    * Writes the data to files, and then clears the data

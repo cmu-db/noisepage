@@ -16,8 +16,8 @@ namespace noisepage::settings {
 class Callbacks;
 }
 
-namespace noisepage::util {
-class QueryInternalThread;
+namespace noisepage::task {
+class TaskManager;
 }
 
 namespace noisepage::metrics {
@@ -66,7 +66,8 @@ class MetricsManager {
   /**
    * Output aggregated metrics.
    */
-  void ToOutput() const;
+  void ToOutput(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+                common::ManagedPointer<task::TaskManager> task_manager) const;
 
   /**
    * @param component to be enabled
@@ -115,18 +116,6 @@ class MetricsManager {
     return metrics_output_[static_cast<uint8_t>(component)];
   }
 
-  /**
-   * Sets the query execution utility to be used by the MetricsManager
-   * @param query_exec_util to be used
-   */
-  void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
-
-  /**
-   * Sets the query internal thread for the MetricsManager to submit jobs to
-   * @param query_internal_thread to be used
-   */
-  void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> query_internal_thread);
-
  private:
   /**
    * Dump aggregated metrics to CSV files.
@@ -136,7 +125,8 @@ class MetricsManager {
   /**
    * Dump aggregated metrics to internal tables.
    */
-  void ToDB(uint8_t component) const;
+  void ToDB(uint8_t component, common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+            common::ManagedPointer<task::TaskManager> task_manager) const;
 
   void ResetMetric(MetricsComponent component) const;
 
@@ -149,8 +139,6 @@ class MetricsManager {
 
   std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
   std::array<MetricsOutput, NUM_COMPONENTS> metrics_output_;
-  std::unique_ptr<util::QueryExecUtil> query_exec_util_;
-  common::ManagedPointer<util::QueryInternalThread> query_internal_thread_;
 };
 
 }  // namespace noisepage::metrics

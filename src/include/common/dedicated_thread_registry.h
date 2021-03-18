@@ -75,7 +75,7 @@ class DedicatedThreadRegistry {
   template <class T, class... Targs>
   common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {
     common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
-    auto *task = new T(args...);  // Create task
+    auto *task = new T(std::forward<Targs>(args)...);  // Create task
     thread_owners_table_[requester].insert(task);
     threads_table_.emplace(task, std::thread([=] {
                              if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();

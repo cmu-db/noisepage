@@ -25,11 +25,11 @@
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/recovery/recovery_manager.h"
+#include "task/task_manager.h"
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
-#include "util/query_internal_thread.h"
 
 namespace noisepage {
 
@@ -384,12 +384,9 @@ class DBMain {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
       if (use_metrics_) metrics_manager = BootstrapMetricsManager();
 
-      std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
-      if (use_metrics_thread_) {
-        NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
-                         "Can't have a MetricsThread without a MetricsManager.");
-        metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
-                                                                  std::chrono::microseconds{metrics_interval_});
+      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
+      if (use_stats_storage_) {
+        stats_storage = std::make_unique<optimizer::StatsStorage>();
       }
 
       std::unique_ptr<common::DedicatedThreadRegistry> thread_registry = DISABLED;
@@ -453,6 +450,33 @@ class DBMain {
                                            common::ManagedPointer(log_manager), create_default_database_);
       }
 
+      // Instantiate the task manager
+      std::unique_ptr<util::QueryExecUtil> query_exec_util = DISABLED;
+      std::unique_ptr<task::TaskManager> task_manager = DISABLED;
+      if (thread_registry && txn_layer && use_catalog_ && use_settings_manager_) {
+        // Create the base QueryExecUtil
+        query_exec_util = std::make_unique<util::QueryExecUtil>(
+            txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), common::ManagedPointer(settings_manager),
+            common::ManagedPointer(stats_storage), optimizer_timeout_);
+
+        task_manager = std::make_unique<task::TaskManager>(
+            common::ManagedPointer(thread_registry),
+            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util)), task_pool_size_);
+      }
+
+      std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
+      if (use_metrics_thread_) {
+        NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
+                         "Can't have a MetricsThread without a MetricsManager.");
+
+        std::unique_ptr<util::QueryExecUtil> util =
+            query_exec_util ? util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util))
+                            : nullptr;
+        metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
+                                                                  std::move(util), common::ManagedPointer(task_manager),
+                                                                  std::chrono::microseconds{metrics_interval_});
+      }
+
       std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
       if (use_replication_) {
         auto log_provider = replication_manager->IsPrimary()
@@ -474,11 +498,6 @@ class DBMain {
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
                                                                       std::chrono::microseconds{gc_interval_},
                                                                       common::ManagedPointer(metrics_manager));
-      }
-
-      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
-      if (use_stats_storage_) {
-        stats_storage = std::make_unique<optimizer::StatsStorage>();
       }
 
       std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
@@ -517,11 +536,15 @@ class DBMain {
       std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
         NOISEPAGE_ASSERT(use_model_server_, "Pilot requires model server manager.");
+        std::unique_ptr<util::QueryExecUtil> util =
+            query_exec_util ? util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util))
+                            : nullptr;
         pilot = std::make_unique<selfdriving::Pilot>(
             model_save_path_, forecast_model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
             common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
             common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
-            common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
+            common::ManagedPointer(txn_layer->GetTransactionManager()), std::move(util),
+            common::ManagedPointer(task_manager), workload_forecast_interval_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
@@ -559,36 +582,8 @@ class DBMain {
       db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
       db_main->replication_manager_ = std::move(replication_manager);
-
-      if (db_main->txn_layer_ && use_catalog_ && use_settings_manager_ && use_metrics_ && use_stats_storage_) {
-        auto *bootstrap_txn = db_main->txn_layer_->GetTransactionManager()->BeginTransaction();
-        auto db_oid = db_main->catalog_layer_->GetCatalog()->GetDatabaseOid(common::ManagedPointer(bootstrap_txn),
-                                                                            catalog::DEFAULT_DATABASE);
-        db_main->txn_layer_->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback,
-                                                             nullptr);
-
-        // Create the base QueryExecUtil
-        db_main->query_exec_util_ = std::make_unique<util::QueryExecUtil>(
-            db_oid, db_main->txn_layer_->GetTransactionManager(), db_main->catalog_layer_->GetCatalog(),
-            common::ManagedPointer(db_main->settings_manager_), common::ManagedPointer(db_main->stats_storage_),
-            optimizer_timeout_);
-
-        // Startup the internal query thread
-        db_main->query_internal_thread_ = std::make_unique<util::QueryInternalThread>(
-            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
-
-        // Hand out and attach references to MetricsManager and Pilot
-        db_main->metrics_manager_->SetQueryExecUtil(
-            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
-        db_main->metrics_manager_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
-
-        if (use_pilot_thread_) {
-          db_main->pilot_->SetQueryExecUtil(
-              util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(db_main->query_exec_util_)));
-          db_main->pilot_->SetQueryInternalThread(common::ManagedPointer(db_main->query_internal_thread_));
-        }
-      }
-
+      db_main->query_exec_util_ = std::move(query_exec_util);
+      db_main->task_manager_ = std::move(task_manager);
       return db_main;
     }
 
@@ -927,6 +922,7 @@ class DBMain {
     uint64_t block_store_size_ = 1e5;
     uint64_t block_store_reuse_ = 1e3;
     uint64_t optimizer_timeout_ = 5000;
+    uint32_t task_pool_size_ = 1;
 
     std::string wal_file_path_ = "wal.log";
     std::string model_save_path_;
@@ -1025,6 +1021,7 @@ class DBMain {
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
       model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
       forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
+      task_pool_size_ = settings_manager->GetInt(settings::Param::task_pool_size);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
@@ -1208,10 +1205,8 @@ class DBMain {
     return common::ManagedPointer(query_exec_util_);
   }
 
-  /** @return ManagedPointer to internal query execution thread */
-  common::ManagedPointer<util::QueryInternalThread> GetQueryInternalThread() const {
-    return common::ManagedPointer(query_internal_thread_);
-  }
+  /** @return ManagedPointer to task manager */
+  common::ManagedPointer<task::TaskManager> GetTaskManager() const { return common::ManagedPointer(task_manager_); }
 
  private:
   // Order matters here for destruction order
@@ -1237,7 +1232,7 @@ class DBMain {
   std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
-  std::unique_ptr<util::QueryInternalThread> query_internal_thread_;
+  std::unique_ptr<task::TaskManager> task_manager_;
 };
 
 }  // namespace noisepage

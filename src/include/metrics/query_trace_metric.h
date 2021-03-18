@@ -159,7 +159,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
   MetricsComponent GetMetricType() const override { return MetricsComponent::QUERY_TRACE; }
 
   void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-            common::ManagedPointer<util::QueryInternalThread> query_internal_thread) final;
+            common::ManagedPointer<task::TaskManager> task_manager) final;
 
   /**
    * Perform a write to the internal tables. Inserts are performed asynchronously on a background thread.
@@ -167,15 +167,14 @@ class QueryTraceMetricRawData : public AbstractRawData {
    * the data out of this class.
    *
    * @param query_exec_util Query execution utility
-   * @param query_internal_thread Target to submit jobs to
+   * @param task_manager Task manager to submit jobs to
    * @param flush_timeseries Whether to write all time data out or not
    * @param write_parameters Whether to write all parameters or not
    * @param out_metadata Pass out cached query metadata
    * @param out_params Pass out cached parameters
    */
   void WriteToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                 common::ManagedPointer<util::QueryInternalThread> query_internal_thread, bool flush_timeseries,
-                 bool write_parameters,
+                 common::ManagedPointer<task::TaskManager> task_manager, bool flush_timeseries, bool write_parameters,
                  std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
                  std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params);
 

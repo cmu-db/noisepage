@@ -12,6 +12,7 @@
 #include "network/network_util.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
@@ -24,51 +25,46 @@ namespace noisepage::util {
 
 std::unique_ptr<util::QueryExecUtil> QueryExecUtil::ConstructThreadLocal(
     common::ManagedPointer<util::QueryExecUtil> util) {
-  return std::make_unique<util::QueryExecUtil>(util->db_oid_, util->txn_manager_, util->catalog_, util->settings_,
-                                               util->stats_, util->optimizer_timeout_);
+  return std::make_unique<util::QueryExecUtil>(util->txn_manager_, util->catalog_, util->settings_, util->stats_,
+                                               util->optimizer_timeout_);
 }
 
-QueryExecUtil::QueryExecUtil(catalog::db_oid_t db_oid,
-                             common::ManagedPointer<transaction::TransactionManager> txn_manager,
+QueryExecUtil::QueryExecUtil(common::ManagedPointer<transaction::TransactionManager> txn_manager,
                              common::ManagedPointer<catalog::Catalog> catalog,
                              common::ManagedPointer<settings::SettingsManager> settings,
                              common::ManagedPointer<optimizer::StatsStorage> stats, uint64_t optimizer_timeout)
-    : db_oid_(db_oid),
-      txn_manager_(txn_manager),
+    : txn_manager_(txn_manager),
       catalog_(catalog),
       settings_(settings),
       stats_(stats),
-      optimizer_timeout_(optimizer_timeout),
-      cost_func_(nullptr) {
-  exec_settings_ = execution::exec::ExecutionSettings{};
-  exec_settings_.UpdateFromSettingsManager(settings_);
-}
-
-void QueryExecUtil::SetDefaultDatabase() {
-  auto *txn = txn_manager_->BeginTransaction();
-  SetDatabase(catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE));
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-}
-
-void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) { db_oid_ = db_oid; }
-
-void QueryExecUtil::SetExecutionSettings(execution::exec::ExecutionSettings exec_settings) {
-  exec_settings_ = exec_settings;
-}
+      optimizer_timeout_(optimizer_timeout) {}
 
 void QueryExecUtil::ClearPlans() {
   schemas_.clear();
   exec_queries_.clear();
 }
 
-void QueryExecUtil::UseTransaction(common::ManagedPointer<transaction::TransactionContext> txn) {
+void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) {
+  if (db_oid != catalog::INVALID_DATABASE_OID) {
+    db_oid_ = db_oid;
+  } else {
+    auto *txn = txn_manager_->BeginTransaction();
+    db_oid_ = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  }
+}
+
+void QueryExecUtil::UseTransaction(catalog::db_oid_t db_oid,
+                                   common::ManagedPointer<transaction::TransactionContext> txn) {
   NOISEPAGE_ASSERT(!own_txn_, "QueryExecUtil already using a transaction");
+  SetDatabase(db_oid);
   txn_ = txn.Get();
   own_txn_ = false;
 }
 
-void QueryExecUtil::BeginTransaction() {
+void QueryExecUtil::BeginTransaction(catalog::db_oid_t db_oid) {
   NOISEPAGE_ASSERT(txn_ == nullptr, "Nesting transactions not supported");
+  SetDatabase(db_oid);
   txn_ = txn_manager_->BeginTransaction();
   own_txn_ = true;
 }
@@ -84,17 +80,12 @@ void QueryExecUtil::EndTransaction(bool commit) {
   own_txn_ = false;
 }
 
-void QueryExecUtil::SetCostModelFunction(std::function<std::unique_ptr<optimizer::AbstractCostModel>()> func) {
-  cost_func_ = std::move(func);
-}
-
 std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> QueryExecUtil::PlanStatement(
     const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-    common::ManagedPointer<std::vector<type::TypeId>> param_types) {
+    common::ManagedPointer<std::vector<type::TypeId>> param_types, std::unique_ptr<optimizer::AbstractCostModel> cost) {
   NOISEPAGE_ASSERT(txn_ != nullptr, "Transaction must have been started");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
-  auto model = cost_func_();
 
   std::unique_ptr<network::Statement> statement;
   try {
@@ -121,35 +112,16 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
   }
 
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(txn, common::ManagedPointer(accessor), statement->ParseResult(),
-                                                       db_oid_, stats_, std::move(model), optimizer_timeout_)
+                                                       db_oid_, stats_, std::move(cost), optimizer_timeout_)
                       ->TakePlanNodeOwnership();
   return std::make_pair(std::move(statement), std::move(out_plan));
 }
 
-std::pair<common::ManagedPointer<transaction::TransactionContext>, bool> QueryExecUtil::GetTxn() {
-  auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  bool require_commit = false;
-  if (txn_ == nullptr) {
-    require_commit = true;
-    BeginTransaction();
-    txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  }
-
-  return std::make_pair(txn, require_commit);
-}
-
-void QueryExecUtil::ReturnTransaction(common::ManagedPointer<transaction::TransactionContext> txn, bool require_commit,
-                                      bool commit) {
-  NOISEPAGE_ASSERT(txn == txn_, "Returning an unknown transaction");
-  if (require_commit) {
-    EndTransaction(commit);
-  }
-}
-
 bool QueryExecUtil::ExecuteDDL(const std::string &query) {
-  auto [txn, require_commit] = GetTxn();
+  NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
+  auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
-  auto result = PlanStatement(query, nullptr, nullptr);
+  auto result = PlanStatement(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>());
   const std::unique_ptr<network::Statement> &statement = result.first;
   const std::unique_ptr<planner::AbstractPlanNode> &out_plan = result.second;
   NOISEPAGE_ASSERT(!network::NetworkUtil::DMLQueryType(statement->GetQueryType()), "ExecuteDDL expects DDL statement");
@@ -190,41 +162,42 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
     }
   }
 
-  ReturnTransaction(txn, require_commit, status);
   return status;
 }
 
-size_t QueryExecUtil::CompileQuery(const std::string &statement,
-                                   common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                                   common::ManagedPointer<std::vector<type::TypeId>> param_types, bool *success) {
-  auto [txn, require_commit] = GetTxn();
+bool QueryExecUtil::CompileQuery(const std::string &statement,
+                                 common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
+                                 common::ManagedPointer<std::vector<type::TypeId>> param_types,
+                                 std::unique_ptr<optimizer::AbstractCostModel> cost,
+                                 const execution::exec::ExecutionSettings &exec_settings, uint64_t *idx) {
+  NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
+  auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
-  auto result = PlanStatement(statement, params, param_types);
+  auto result = PlanStatement(statement, params, param_types, std::move(cost));
   if (!result.first || !result.second) {
-    *success = false;
-    ReturnTransaction(txn, require_commit, false);
-    return 0;
+    return false;
   }
 
   const std::unique_ptr<planner::AbstractPlanNode> &out_plan = result.second;
   NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result.first->GetQueryType()), "ExecuteDML expects DML");
   common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
 
-  auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings_, accessor.get(),
+  auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                      execution::compiler::CompilationMode::OneShot);
   schemas_.push_back(schema->Copy());
   exec_queries_.push_back(std::move(exec_query));
 
-  ReturnTransaction(txn, require_commit, false);
-  *success = true;
-  return exec_queries_.size() - 1;
+  *idx = exec_queries_.size() - 1;
+  return true;
 }
 
 bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                                 common::ManagedPointer<metrics::MetricsManager> metrics) {
+                                 common::ManagedPointer<metrics::MetricsManager> metrics,
+                                 const execution::exec::ExecutionSettings &exec_settings) {
   NOISEPAGE_ASSERT(idx < exec_queries_.size(), "Invalid query index");
-  auto [txn, require_commit] = GetTxn();
+  NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
+  auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   planner::OutputSchema *schema = schemas_[idx].get();
   auto consumer = [&tuple_fn, schema](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
     if (tuple_fn != nullptr) {
@@ -251,27 +224,26 @@ bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
   execution::exec::OutputCallback callback = consumer;
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings_, metrics, nullptr);
+      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, nullptr);
 
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
 
   exec_queries_[idx]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-
-  ReturnTransaction(txn, require_commit, true);
   return true;
 }
 
 bool QueryExecUtil::ExecuteDML(const std::string &query,
                                common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
-                               common::ManagedPointer<metrics::MetricsManager> metrics) {
-  bool success = false;
-  size_t idx = CompileQuery(query, params, param_types, &success);
-  if (success) {
-    return ExecuteQuery(idx, std::move(tuple_fn), params, metrics);
+                               common::ManagedPointer<metrics::MetricsManager> metrics,
+                               std::unique_ptr<optimizer::AbstractCostModel> cost,
+                               const execution::exec::ExecutionSettings &exec_settings) {
+  uint64_t idx = 0;
+  if (!CompileQuery(query, params, param_types, std::move(cost), exec_settings, &idx)) {
+    return false;
   }
 
-  return false;
+  return ExecuteQuery(idx, std::move(tuple_fn), params, metrics, exec_settings);
 }
 
 }  // namespace noisepage::util

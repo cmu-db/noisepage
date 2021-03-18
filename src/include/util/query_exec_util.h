@@ -80,22 +80,22 @@ class QueryExecUtil {
   /**
    * Construct a QueryExecUtil
    *
-   * @param db_oid Database OID to use
    * @param txn_manager Transaction manager
    * @param catalog Catalog
    * @param settings Settings manager
    * @param stats Stats storage
    * @param optimizer_timeout Timeout for optimizer
    */
-  QueryExecUtil(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionManager> txn_manager,
+  QueryExecUtil(common::ManagedPointer<transaction::TransactionManager> txn_manager,
                 common::ManagedPointer<catalog::Catalog> catalog,
                 common::ManagedPointer<settings::SettingsManager> settings,
                 common::ManagedPointer<optimizer::StatsStorage> stats, uint64_t optimizer_timeout);
 
   /**
    * Starts a new transaction from the utility's viewpoint.
+   * @param db_oid Database OID to use (INVALID_DATABASE_OID for default)
    */
-  void BeginTransaction();
+  void BeginTransaction(catalog::db_oid_t db_oid);
 
   /**
    * Instructs the utility to utilize the specified transaction.
@@ -104,27 +104,10 @@ class QueryExecUtil {
    * @note It is the caller's responsibility to invoke UseTransaction(nullptr)
    * once the transaction no longer requires this utility.
    *
+   * @param db_oid Database OID to use (INVALID_DATABASE_OID for default)
    * @param txn Transaction to use
    */
-  void UseTransaction(common::ManagedPointer<transaction::TransactionContext> txn);
-
-  /**
-   * Specifies a function to invoke to retrieve the cost model.
-   * Caller is responsible for ensuring function stays in relevant state.
-   * @param func Function to invoke for costing.
-   */
-  void SetCostModelFunction(std::function<std::unique_ptr<optimizer::AbstractCostModel>()> func);
-
-  /**
-   * Specifies the database that is being targeted.
-   * @param db_oid Database to target
-   */
-  void SetDatabase(catalog::db_oid_t db_oid);
-
-  /**
-   * Set database identifier to the default database
-   */
-  void SetDefaultDatabase();
+  void UseTransaction(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Set external execution settings to adopt
@@ -156,7 +139,9 @@ class QueryExecUtil {
    */
   bool ExecuteDML(const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                   common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
-                  common::ManagedPointer<metrics::MetricsManager> metrics);
+                  common::ManagedPointer<metrics::MetricsManager> metrics,
+                  std::unique_ptr<optimizer::AbstractCostModel> cost,
+                  const execution::exec::ExecutionSettings &exec_settings);
 
   /**
    * Compiles a query and caches the resultant plan
@@ -164,11 +149,14 @@ class QueryExecUtil {
    * @param params placeholder parameters for query
    * @param param_types Types of the query parameters
    * @param success Flag indicating if compile succeeded
-   * @return compiled query identifier passed into ExecuteQuery
+   * @param idx[out] compiled query identifier passed out
+   * @return whether compilation succeeded or not
    */
-  size_t CompileQuery(const std::string &statement,
-                      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                      common::ManagedPointer<std::vector<type::TypeId>> param_types, bool *success);
+  bool CompileQuery(const std::string &statement,
+                    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
+                    common::ManagedPointer<std::vector<type::TypeId>> param_types,
+                    std::unique_ptr<optimizer::AbstractCostModel> cost,
+                    const execution::exec::ExecutionSettings &exec_settings, uint64_t *idx);
 
   /**
    * Executes a pre-compiled query
@@ -180,7 +168,8 @@ class QueryExecUtil {
    */
   bool ExecuteQuery(size_t idx, TupleFunction tuple_fn,
                     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                    common::ManagedPointer<metrics::MetricsManager> metrics);
+                    common::ManagedPointer<metrics::MetricsManager> metrics,
+                    const execution::exec::ExecutionSettings &exec_settings);
 
   /**
    * Plans a query
@@ -191,43 +180,29 @@ class QueryExecUtil {
    */
   std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> PlanStatement(
       const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-      common::ManagedPointer<std::vector<type::TypeId>> param_types);
+      common::ManagedPointer<std::vector<type::TypeId>> param_types,
+      std::unique_ptr<optimizer::AbstractCostModel> cost);
 
   /** Erases all cached plans */
   void ClearPlans();
 
  private:
-  /**
-   * Gets the transaction context to use, optionally starting one.
-   * @return pair where first element is txn to use and second is whether it was started
-   */
-  std::pair<common::ManagedPointer<transaction::TransactionContext>, bool> GetTxn();
+  void SetDatabase(catalog::db_oid_t db_oid);
 
-  /**
-   * "Inverse" of GetTxn. This function commits any implicitly started transaction
-   * with the specified commit flag.
-   *
-   * @param txn Transaction to commit (if started)
-   * @param require_commit Whether transaction was implicitly started
-   * @param commit Whether to commit or abort
-   */
-  void ReturnTransaction(common::ManagedPointer<transaction::TransactionContext> txn, bool require_commit, bool commit);
-
-  catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<settings::SettingsManager> settings_;
   common::ManagedPointer<optimizer::StatsStorage> stats_;
   uint64_t optimizer_timeout_;
 
+  /** Database being accessed */
+  catalog::db_oid_t db_oid_{catalog::INVALID_DATABASE_OID};
   bool own_txn_ = false;
-  std::function<std::unique_ptr<optimizer::AbstractCostModel>()> cost_func_;
   transaction::TransactionContext *txn_ = nullptr;
 
+  /** Information about cached executable queries */
   std::vector<std::unique_ptr<planner::OutputSchema>> schemas_;
   std::vector<std::unique_ptr<execution::compiler::ExecutableQuery>> exec_queries_;
-
-  execution::exec::ExecutionSettings exec_settings_;
 };
 
 }  // namespace noisepage::util

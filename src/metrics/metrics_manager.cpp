@@ -14,7 +14,6 @@
 #include "execution/compiler/executable_query.h"
 #include "planner/plannodes/output_schema.h"
 #include "util/query_exec_util.h"
-#include "util/query_internal_thread.h"
 
 namespace noisepage::metrics {
 
@@ -38,14 +37,6 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
       outfiles->back() << common::ResourceTracker::Metrics::COLUMNS << std::endl;
     }
   }
-}
-
-void MetricsManager::SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util) {
-  query_exec_util_ = std::move(query_exec_util);
-}
-
-void MetricsManager::SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> query_internal_thread) {
-  query_internal_thread_ = query_internal_thread;
 }
 
 MetricsManager::MetricsManager() {
@@ -162,7 +153,8 @@ void MetricsManager::UnregisterThread() {
   common::thread_context.metrics_store_ = nullptr;
 }
 
-void MetricsManager::ToOutput() const {
+void MetricsManager::ToOutput(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+                              common::ManagedPointer<task::TaskManager> task_manager) const {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
     if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
@@ -172,19 +164,20 @@ void MetricsManager::ToOutput() const {
       }
 
       if (output == MetricsOutput::DB || output == MetricsOutput::CSV_DB) {
-        ToDB(component);
+        ToDB(component, query_exec_util, task_manager);
       }
     }
   }
 
-  if (query_exec_util_ != nullptr) {
-    query_exec_util_->ClearPlans();
+  if (query_exec_util != nullptr) {
+    query_exec_util->ClearPlans();
   }
 }
 
-void MetricsManager::ToDB(uint8_t component) const {
-  if (query_exec_util_ != nullptr && query_internal_thread_ != nullptr) {
-    aggregated_metrics_[component]->ToDB(common::ManagedPointer(query_exec_util_), query_internal_thread_);
+void MetricsManager::ToDB(uint8_t component, common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+                          common::ManagedPointer<task::TaskManager> task_manager) const {
+  if (query_exec_util != nullptr && task_manager != nullptr) {
+    aggregated_metrics_[component]->ToDB(query_exec_util, task_manager);
   }
 }
 

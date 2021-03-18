@@ -49,8 +49,11 @@ class TransactionManager;
 
 namespace util {
 class QueryExecUtil;
-class QueryInternalThread;
 }  // namespace util
+
+namespace task {
+class TaskManager;
+}
 
 }  // namespace noisepage
 
@@ -85,7 +88,9 @@ class Pilot {
         common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
         common::ManagedPointer<settings::SettingsManager> settings_manager,
         common::ManagedPointer<optimizer::StatsStorage> stats_storage,
-        common::ManagedPointer<transaction::TransactionManager> txn_manager, uint64_t workload_forecast_interval);
+        common::ManagedPointer<transaction::TransactionManager> txn_manager,
+        std::unique_ptr<util::QueryExecUtil> query_exec_util, common::ManagedPointer<task::TaskManager> task_manager,
+        uint64_t workload_forecast_interval);
 
   /** @return the current planning iteration */
   static uint64_t GetCurrentPlanIteration() { return Pilot::planning_iteration; }
@@ -164,20 +169,6 @@ class Pilot {
    */
   void ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq);
 
-  /**
-   * Sets the query execution utility for the pilot to use
-   * @param query_exec_util to use
-   */
-  void SetQueryExecUtil(std::unique_ptr<util::QueryExecUtil> query_exec_util);
-
-  /**
-   * Sets the internal query thread for the pilot to submit jobs to
-   * @param thread to use
-   */
-  void SetQueryInternalThread(common::ManagedPointer<util::QueryInternalThread> thread) {
-    query_internal_thread_ = thread;
-  }
-
  private:
   /**
    * WorkloadForecast object performing the query execution and feature gathering
@@ -210,7 +201,7 @@ class Pilot {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
-  common::ManagedPointer<util::QueryInternalThread> query_internal_thread_;
+  common::ManagedPointer<task::TaskManager> task_manager_;
   uint64_t workload_forecast_interval_{10000000};
   uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};

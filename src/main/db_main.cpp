@@ -38,8 +38,7 @@ void DBMain::TryLoadStartupDDL() {
   }
 
   if (!startup_ddls.empty() && query_exec_util_ != nullptr) {
-    query_exec_util_->BeginTransaction();
-    query_exec_util_->SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
+    query_exec_util_->BeginTransaction(catalog::INVALID_DATABASE_OID);
     for (auto &ddl : startup_ddls) {
       query_exec_util_->ExecuteDDL(ddl);
     }
@@ -75,21 +74,10 @@ void DBMain::ForceShutdown() {
     recovery_manager_->WaitForRecoveryToFinish();
   }
 
-  {
-    // Release all claims to QueryInternalThread
-    if (metrics_manager_ != nullptr) {
-      metrics_manager_->SetQueryInternalThread(nullptr);
-    }
-
-    if (pilot_ != nullptr) {
-      pilot_->SetQueryInternalThread(nullptr);
-    }
-    (void)pilot_thread_.release();
-    (void)metrics_thread_.release();
-
-    // Need to let internal thread flush through requests
-    (void)query_internal_thread_.release();
-  }
+  // Need to let internal thread flush through requests
+  (void)pilot_thread_.release();
+  (void)metrics_thread_.release();
+  (void)task_manager_.release();
 
   if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
     network_layer_->GetServer()->StopServer();

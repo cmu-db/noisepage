@@ -36,10 +36,9 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
                             catalog::db_oid_t db_oid) {
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
-  util::QueryExecUtil util(db_oid, txn_manager, catalog, pilot->settings_manager_, pilot->stats_storage_,
+  util::QueryExecUtil util(txn_manager, catalog, pilot->settings_manager_, pilot->stats_storage_,
                            pilot->settings_manager_->GetInt(settings::Param::task_execution_timeout));
-  util.BeginTransaction();
-  util.SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
+  util.BeginTransaction(db_oid);
 
   bool is_query_ddl = false;
   bool is_create_idx = false;
@@ -52,19 +51,24 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
     is_create_idx = statement->GetQueryType() == network::QueryType::QUERY_CREATE_INDEX;
   }
 
+  execution::exec::ExecutionSettings settings{};
   if (is_query_ddl) {
     util.ExecuteDDL(sql_query);
 
     if (is_create_idx) {
-      bool success = true;
-      size_t idx = util.CompileQuery(sql_query, nullptr, nullptr, &success);
-      if (success) util.ExecuteQuery(idx, nullptr, nullptr, nullptr);
+      size_t idx = 0;
+      if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings,
+                            &idx)) {
+        util.ExecuteQuery(idx, nullptr, nullptr, nullptr, settings);
+      }
     }
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
-    bool success = true;
-    size_t idx = util.CompileQuery(sql_query, nullptr, nullptr, &success);
-    if (success) util.ExecuteQuery(idx, nullptr, nullptr, nullptr);
+    size_t idx = 0;
+    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings,
+                          &idx)) {
+      util.ExecuteQuery(idx, nullptr, nullptr, nullptr, settings);
+    }
   }
 
   // Commit
@@ -81,22 +85,21 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
     }
   }
 
-  util::QueryExecUtil query_exec_util(catalog::INVALID_DATABASE_OID, pilot->txn_manager_, pilot->catalog_,
-                                      pilot->settings_manager_, pilot->stats_storage_,
+  util::QueryExecUtil query_exec_util(pilot->txn_manager_, pilot->catalog_, pilot->settings_manager_,
+                                      pilot->stats_storage_,
                                       pilot->settings_manager_->GetInt(settings::Param::task_execution_timeout));
-  query_exec_util.UseTransaction(common::ManagedPointer(txn));
-  query_exec_util.SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
   for (auto qid : qids) {
     auto query_text = forecast->GetQuerytextByQid(qid);
     auto db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
-    query_exec_util.SetDatabase(db_oid);
+    query_exec_util.UseTransaction(db_oid, common::ManagedPointer(txn));
 
     auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
     auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
-    auto result = query_exec_util.PlanStatement(query_text, params, param_types);
+    auto result =
+        query_exec_util.PlanStatement(query_text, params, param_types, std::make_unique<optimizer::TrivialCostModel>());
     plan_vecs->emplace_back(std::move(result.second));
+    query_exec_util.UseTransaction(db_oid, nullptr);
   }
-  query_exec_util.UseTransaction(nullptr);
 }
 
 double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
@@ -157,30 +160,28 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     }
   }
 
-  util::QueryExecUtil query_exec_util(catalog::INVALID_DATABASE_OID, pilot->txn_manager_, pilot->catalog_,
-                                      pilot->settings_manager_, pilot->stats_storage_,
+  util::QueryExecUtil query_exec_util(pilot->txn_manager_, pilot->catalog_, pilot->settings_manager_,
+                                      pilot->stats_storage_,
                                       pilot->settings_manager_->GetInt(settings::Param::task_execution_timeout));
-  query_exec_util.SetCostModelFunction([]() { return std::make_unique<optimizer::TrivialCostModel>(); });
+  execution::exec::ExecutionSettings settings{};
   auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   for (const auto &qid : qids) {
     // Begin transaction to get the executable query
     catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
-    query_exec_util.BeginTransaction();
-    query_exec_util.SetDatabase(db_oid);
+    query_exec_util.BeginTransaction(db_oid);
     auto query_text = forecast->GetQuerytextByQid(qid);
 
     auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
     auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
 
-    bool success = true;
-    size_t idx = query_exec_util.CompileQuery(query_text, params, param_types, &success);
-    if (success) {
+    size_t idx = 0;
+    if (query_exec_util.CompileQuery(query_text, params, param_types, std::make_unique<optimizer::TrivialCostModel>(),
+                                     settings, &idx)) {
       pipeline_qids->push_back(qid);
       for (auto &params : *(forecast->GetQueryparamsByQid(qid))) {
-        query_exec_util.ExecuteQuery(idx, nullptr, common::ManagedPointer(&params), metrics_manager);
+        query_exec_util.ExecuteQuery(idx, nullptr, common::ManagedPointer(&params), metrics_manager, settings);
       }
     }
-
     query_exec_util.EndTransaction(false);
   }
 
