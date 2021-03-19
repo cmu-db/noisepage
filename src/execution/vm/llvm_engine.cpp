@@ -483,7 +483,7 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const CompilerOptions &
   //
 
   {
-    auto memory_buffer = llvm::MemoryBuffer::getFile(options.GetBytecodeHandlersBcPath());
+    auto memory_buffer = llvm::MemoryBuffer::getFile(GetEngineSettings()->GetBytecodeHandlersBcPath());
     if (auto error = memory_buffer.getError()) {
       EXECUTION_LOG_ERROR("There was an error loading the handler bytecode: {}", error.message());
     }
@@ -1139,7 +1139,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
 // LLVM Engine
 // ---------------------------------------------------------
 
-void LLVMEngine::Initialize() {
+void LLVMEngine::Initialize(std::unique_ptr<const Settings> &&settings) {
   // Global LLVM initialization
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
@@ -1147,9 +1147,14 @@ void LLVMEngine::Initialize() {
 
   // Make all exported TPL symbols available to JITed code
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+
+  engine_settings = std::move(settings);
 }
 
-void LLVMEngine::Shutdown() { llvm::llvm_shutdown(); }
+void LLVMEngine::Shutdown() {
+  engine_settings.reset();
+  llvm::llvm_shutdown();
+}
 
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeModule &module,
                                                                 const CompilerOptions &options) {
@@ -1172,6 +1177,11 @@ std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeMo
   compiled_module->Load(module);
 
   return compiled_module;
+}
+
+const LLVMEngine::Settings *LLVMEngine::GetEngineSettings() {
+  NOISEPAGE_ASSERT(static_cast<bool>(engine_settings), "LLVMEngine must be initialized before use");
+  return engine_settings.get();
 }
 
 }  // namespace noisepage::execution::vm

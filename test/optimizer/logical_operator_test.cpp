@@ -102,23 +102,32 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
 
   catalog::db_oid_t database_oid(123);
   catalog::table_oid_t table_oid(789);
+  std::vector<catalog::col_oid_t> cols{catalog::col_oid_t{1}, catalog::col_oid_t{2}, catalog::col_oid_t{666}};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalInsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
+  Operator op1 =
+      LogicalInsertSelect::Make(database_oid, table_oid, std::move(cols)).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALINSERTSELECT);
   EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetColumns().at(0).UnderlyingValue(), 1);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetColumns().at(1).UnderlyingValue(), 2);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetColumns().at(2).UnderlyingValue(), 666);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalInsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
+  std::vector<catalog::col_oid_t> cols2{catalog::col_oid_t{1}, catalog::col_oid_t{2}, catalog::col_oid_t{666}};
+  Operator op2 =
+      LogicalInsertSelect::Make(database_oid, table_oid, std::move(cols2)).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalInsertSelect::Make(other_database_oid, table_oid).RegisterWithTxnContext(txn_context);
+  std::vector<catalog::col_oid_t> cols3{catalog::col_oid_t{1}, catalog::col_oid_t{2}, catalog::col_oid_t{666}};
+  Operator op3 =
+      LogicalInsertSelect::Make(other_database_oid, table_oid, std::move(cols3)).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1517,7 +1526,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   Operator op1 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BPLUSTREE, true,
                                "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
 
@@ -1526,13 +1535,13 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetIndexName(), "index_1");
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
-  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetIndexType(), parser::IndexType::BWTREE);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetIndexType(), parser::IndexType::BPLUSTREE);
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->IsUnique(), true);
 
   Operator op2 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BPLUSTREE, true,
                                "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
@@ -1545,7 +1554,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
           new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9)))};
   auto raw_values_copy = raw_values;
   Operator op3 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy))
+                                          parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy))
                      .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op3.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_FALSE(op3 == op1);
@@ -1553,7 +1562,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   auto raw_values_copy2 = raw_values;
   Operator op4 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy2))
+                                          parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy2))
                      .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op4.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_TRUE(op3 == op4);
@@ -1566,21 +1575,21 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
           new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9)))};
   auto raw_values_copy3 = raw_values_2;
   Operator op10 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy3))
+                                           parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy3))
                       .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op10.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
   EXPECT_FALSE(op3 == op10);
   EXPECT_NE(op10.Hash(), op3.Hash());
 
   Operator op5 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), parser::IndexType::BPLUSTREE, true,
                                "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   Operator op6 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(2), parser::IndexType::BWTREE, true,
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(2), parser::IndexType::BPLUSTREE, true,
                                "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
@@ -1594,14 +1603,14 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   EXPECT_NE(op1.Hash(), op7.Hash());
 
   Operator op8 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, false,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BPLUSTREE,
+                               false, "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
   Operator op9 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BPLUSTREE, true,
                                "index_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op9);

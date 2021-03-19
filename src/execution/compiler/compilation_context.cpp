@@ -22,6 +22,7 @@
 #include "execution/compiler/expression/star_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/function_builder.h"
+#include "execution/compiler/operator/analyze_translator.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
@@ -296,6 +297,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::CREATE_INDEX: {
       const auto &create_index = dynamic_cast<const planner::CreateIndexPlanNode &>(plan);
       translator = std::make_unique<IndexCreateTranslator>(create_index, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::ANALYZE: {
+      const auto &analyze = dynamic_cast<const planner::AnalyzePlanNode &>(plan);
+      translator = std::make_unique<AnalyzeTranslator>(analyze, this, pipeline);
       break;
     }
     default: {

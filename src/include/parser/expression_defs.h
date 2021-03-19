@@ -52,6 +52,8 @@ namespace noisepage::parser {
   T(ExpressionType, AGGREGATE_MIN)                    \
   T(ExpressionType, AGGREGATE_MAX)                    \
   T(ExpressionType, AGGREGATE_AVG)                    \
+  T(ExpressionType, AGGREGATE_TOP_K)                  \
+  T(ExpressionType, AGGREGATE_HISTOGRAM)              \
                                                       \
   T(ExpressionType, FUNCTION)                         \
                                                       \

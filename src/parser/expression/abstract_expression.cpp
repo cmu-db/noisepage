@@ -127,7 +127,9 @@ JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
     case ExpressionType::AGGREGATE_SUM:
     case ExpressionType::AGGREGATE_MIN:
     case ExpressionType::AGGREGATE_MAX:
-    case ExpressionType::AGGREGATE_AVG: {
+    case ExpressionType::AGGREGATE_AVG:
+    case ExpressionType::AGGREGATE_TOP_K:
+    case ExpressionType::AGGREGATE_HISTOGRAM: {
       expr = std::make_unique<AggregateExpression>();
       break;
     }

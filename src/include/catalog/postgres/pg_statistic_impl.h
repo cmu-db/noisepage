@@ -25,6 +25,31 @@ class Builder;
 
 /** The NoisePage version of pg_statistic. */
 class PgStatisticImpl {
+ public:
+  /**
+   * Contains information on how to derive values for the columns within pg_statistic
+   */
+  struct PgStatisticColInfo {
+    /** The type of aggregate to use */
+    parser::ExpressionType aggregate_type_;
+    /** Whether the aggregate is distinct */
+    bool distinct_;
+    /** Oid of the column */
+    catalog::col_oid_t column_oid_;
+  };
+  /** Number of aggregates per column that Analyze uses */
+  static constexpr uint8_t NUM_ANALYZE_AGGREGATES = 4;
+  /** Information on each aggregate that Analyze uses to compute statistics */
+  static constexpr std::array<PgStatisticColInfo, NUM_ANALYZE_AGGREGATES> ANALYZE_AGGREGATES = {
+      {// COUNT(col) - non-null rows
+       {parser::ExpressionType::AGGREGATE_COUNT, false, PgStatistic::STA_NONNULLROWS.oid_},
+       // COUNT(DISTINCT col) - distinct values
+       {parser::ExpressionType::AGGREGATE_COUNT, true, PgStatistic::STA_DISTINCTROWS.oid_},
+       // TOPK(col)
+       {parser::ExpressionType::AGGREGATE_TOP_K, false, PgStatistic::STA_TOPK.oid_},
+       // HISTOGRAM(col)
+       {parser::ExpressionType::AGGREGATE_HISTOGRAM, false, PgStatistic::STA_HISTOGRAM.oid_}}};
+
  private:
   friend class Builder;                   ///< The builder is used to construct pg_statistic.
   friend class storage::RecoveryManager;  ///< The RM accesses tables and indexes without going through the catalog.

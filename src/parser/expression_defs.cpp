@@ -28,6 +28,8 @@ std::string ExpressionTypeToShortString(ExpressionType type) {
     case ExpressionType::AGGREGATE_MIN:                     return "MIN";
     case ExpressionType::AGGREGATE_MAX:                     return "MAX";
     case ExpressionType::AGGREGATE_AVG:                     return "AVG";
+    case ExpressionType::AGGREGATE_TOP_K:                   return "TOP_K";
+    case ExpressionType::AGGREGATE_HISTOGRAM:               return "HISTOGRAM";
     default: return ExpressionTypeToString(type);
       // clang-format on
   }

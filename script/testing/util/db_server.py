@@ -78,25 +78,31 @@ class NoisePageServer:
         LOG.info(f'Running: {db_run_command}')
         start_time = time.time()
         db_process = subprocess.Popen(shlex.split(db_run_command),
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE)
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
         LOG.info(f'Ran: {db_run_command} [PID={db_process.pid}]')
 
         logs = []
+
+        check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
+        LOG.info(f'Waiting until DBMS stdout contains: {check_line}')
+
         while True:
             log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
-            check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
             now = time.time()
+            if log_line.strip() != '':
+                logs.append(log_line)
             if log_line.endswith(check_line):
                 LOG.info(f'DB process is verified as running in {round(now - start_time, 2)} sec.')
                 self.db_process = db_process
+                log_output = '\n' + '\n'.join(logs)
+                LOG.info("************ DB Logs Start ************" + log_output)
+                LOG.info("************* DB Logs End *************")
                 return True
-            else:
-                logs.append(log_line)
 
-            if now - start_time >= 60:
+            if now - start_time >= 600:
                 LOG.error('\n'.join(logs))
-                LOG.error(f'DBMS [PID={db_process.pid} took more than 60 seconds to start up. Killing.')
+                LOG.error(f'DBMS [PID={db_process.pid}] took more than 600 seconds to start up. Killing.')
                 db_process.kill()
                 return False
 
@@ -110,6 +116,11 @@ class NoisePageServer:
             True if the commands that will be run should be printed,
             with the commands themselves not actually executing.
 
+        Returns
+        -------
+        exit_code : int
+            The exit code of the DBMS.
+
         Raises
         ------
         RuntimeError if the DBMS is not running when this is called.
@@ -120,16 +131,35 @@ class NoisePageServer:
         if not self.db_process:
             raise RuntimeError("System is in an invalid state.")
 
+        # Check if the DBMS is still running.
         return_code = self.db_process.poll()
-        if return_code is None:
-            self.db_process.terminate()
-            LOG.info("DBMS stopped successfully.")
-            self.db_process = None
-        else:
+        if return_code is not None:
             msg = f"DBMS already terminated, code: {self.db_process.returncode}"
             LOG.info(msg)
             self.print_db_logs()
             raise RuntimeError(msg)
+
+        try:
+            # Try to kill the process politely and wait for 60 seconds.
+            self.db_process.terminate()
+            self.db_process.wait(60)
+        except subprocess.TimeoutExpired:
+            # Otherwise, try to kill the process forcefully and wait another 60 seconds.
+            # If the process hasn't died yet, then something terrible has happened and we raise an error.
+            self.db_process.kill()
+            self.db_process.wait(60)
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
+        finally:
+            unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
+            if os.path.exists(unix_socket):
+                os.remove(unix_socket)
+                LOG.info(f"Removing: {unix_socket}")
+        self.print_db_logs()
+        exit_code = self.db_process.returncode
+        LOG.info(f"DBMS stopped, code: {exit_code}")
+        self.db_process = None
+        return exit_code
 
     def delete_wal(self):
         """
@@ -150,7 +180,11 @@ class NoisePageServer:
         print_pipe(self.db_process)
         LOG.info("************* DB Logs End *************")
 
-    def execute(self, sql, autocommit=True, expect_result=True, user=DEFAULT_DB_USER):
+    @property
+    def identity(self):
+        return self.server_args.get("network_identity", "")
+
+    def execute(self, sql, expect_result=True, quiet=True, user=DEFAULT_DB_USER, autocommit=True):
         """
         Create a new connection to the DBMS and execute the supplied SQL.
 
@@ -158,23 +192,31 @@ class NoisePageServer:
         ----------
         sql : str
             The SQL to be executed.
-        autocommit : bool
-            True if the connection should autocommit.
         expect_result : bool
             True if rows are expected to be fetched and returned.
+        quiet : bool
+            False if the SQL should be printed before executing. True otherwise.
         user : str
             The default username for this connection.
+        autocommit : bool
+            True if the connection should autocommit.
 
         Returns
         -------
         rows
-            None if an error occurs or if no results are expected.
+            None if no results are expected.
             Otherwise, the rows that are fetched are returned.
+
+        Raises
+        ------
+        Exception if any errors happened while executing the SQL.
         """
         try:
             with psql.connect(port=self.db_port, host=self.db_host, user=user) as conn:
                 conn.set_session(autocommit=autocommit)
                 with conn.cursor() as cursor:
+                    if not quiet:
+                        LOG.info(f"Executing SQL on {self.identity}: {sql}")
                     cursor.execute(sql)
                     if expect_result:
                         rows = cursor.fetchall()
