@@ -46,7 +46,7 @@
                                                                                                  \
   /** @return Enum version of @p str. */                                                         \
   inline EnumName EnumName##FromString(const std::string &str) { /* NOLINT inline usage */       \
-    if (false) {                                                                                 \
+    if (false) { /* This check starts an if-else chain for the macro. */                         \
     }                                                                                            \
     EnumValMacro(ENUM_FROM_STRING) else { /* NOLINT readability/braces confusion */              \
       throw CONVERSION_EXCEPTION("No enum conversion for: " + str);                              \
