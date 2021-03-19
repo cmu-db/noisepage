@@ -1,9 +1,15 @@
+# db_server.py
+# Class definition for `NoisePageServer` used in JUnit tests.
+
 import os
-import shlex
-import subprocess
 import time
+import shlex
+import pathlib
+import subprocess
 
 import psycopg2 as psql
+
+from typing import Dict, List
 
 from .common import print_pipe
 from .constants import (DEFAULT_DB_BIN, DEFAULT_DB_HOST,
@@ -325,8 +331,14 @@ def construct_server_argument(attr, value, meta):
         handle_flags,
     ]
 
-    preprocessed_attr  = apply_all(ATTR_PREPROCESSORS, attr, meta)
-    preprocessed_value = apply_all(VALUE_PREPROCESSORS, value, meta)
+    # Make the value available to the attribute preprocessors
+    attr_meta = {**meta, **{"value": value}}
+
+    # Make the attribute available to the value preprocessors
+    value_meta = {**meta, **{"attr": attr}}
+
+    preprocessed_attr  = apply_all(ATTR_PREPROCESSORS, attr, attr_meta)
+    preprocessed_value = apply_all(VALUE_PREPROCESSORS, value, value_meta)
     return f"-{preprocessed_attr}{preprocessed_value}"
 
 # -----------------------------------------------------------------------------
@@ -377,7 +389,7 @@ def applies_to(*target_types):
 #       ...
 
 @applies_to(bool)
-def lower_booleans(value, meta):
+def lower_booleans(value: str, meta: Dict) -> str:
     """
     Lower boolean string values to the format expected by the DBMS server.
     
@@ -400,7 +412,7 @@ def lower_booleans(value, meta):
     return str(value).lower()
 
 @applies_to(str)
-def resolve_relative_paths(value, meta):
+def resolve_relative_paths(value: str, meta: Dict) -> str:
     """
     Resolve relative paths in the DBMS server arguments to their equivalent absolute paths.
 
@@ -428,16 +440,23 @@ def resolve_relative_paths(value, meta):
     -------
     The preprocessed server argument value
     """
-    is_relative = str.startswith(value, "./") or str.startswith(value, "../")
-    # TODO(Kyle): This doesn't actually do any "resolving", it merely appends
-    # the absolute path to the binary directory to the relative path as it 
-    # presently exists; this works fine, but also means we might pass a needlessly
-    # long string to the DBMS server e.g. bin/././././whatever.txt is possible.
-    # It might be worth it to find some portable way to completely resolve these.
-    return os.path.join(meta["bin_dir"], value) if is_relative else value
+    # NOTE(Kyle): This is somewhat dirty because it introduces a
+    # 'hidden' dependency that is not reflected in the DBMS code:
+    # we only resolve those arguments that actually end with `_path`.
+    # In practice, I prefer this to the alternative of just assuming
+    # that anything that starts with './' or '../' is a relative path,
+    # and it ensures that, at worst, we do LESS resolving than might
+    # otherwise be expected, never more.
+    is_path = str.endswith(meta["attr"], "_path")
+    is_relative = not os.path.isabs(value)
+    
+    if is_path and is_relative:
+        return pathlib.Path(os.path.join(meta["bin_dir"], value)).resolve()
+    else:
+        return value
 
 @applies_to(AllTypes)
-def handle_flags(value, meta):
+def handle_flags(value: str, meta: Dict) -> str:
     """
     Handle DBMS server arguments with no associated value.
 
@@ -465,7 +484,7 @@ def handle_flags(value, meta):
 # -----------------------------------------------------------------------------
 # Utility
 
-def apply_all(functions, init_obj, meta):
+def apply_all(functions: List, init_obj, meta: Dict):
     """
     Apply all of the functions in `functions` to object `init_obj` sequentially,
     supplying metadata object `meta` to each function invocation.
