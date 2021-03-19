@@ -162,7 +162,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            label 'h0-only'
+                            label 'dgb'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -507,6 +507,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            label 'dgb'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
