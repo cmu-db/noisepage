@@ -162,13 +162,13 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   auto customer_secondary_index_schema =
       Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, index_type, db_oid, customer_table_oid);
   auto new_order_primary_index_schema = Schemas::BuildNewOrderPrimaryIndexSchema(
-      new_order_schema, storage::index::IndexType::BWTREE, db_oid, new_order_table_oid);
+      new_order_schema, storage::index::IndexType::BPLUSTREE, db_oid, new_order_table_oid);
   auto order_primary_index_schema =
       Schemas::BuildOrderPrimaryIndexSchema(order_schema, index_type, db_oid, order_table_oid);
-  auto order_secondary_index_schema =
-      Schemas::BuildOrderSecondaryIndexSchema(order_schema, storage::index::IndexType::BWTREE, db_oid, order_table_oid);
+  auto order_secondary_index_schema = Schemas::BuildOrderSecondaryIndexSchema(
+      order_schema, storage::index::IndexType::BPLUSTREE, db_oid, order_table_oid);
   auto order_line_primary_index_schema = Schemas::BuildOrderLinePrimaryIndexSchema(
-      order_line_schema, storage::index::IndexType::BWTREE, db_oid, order_line_table_oid);
+      order_line_schema, storage::index::IndexType::BPLUSTREE, db_oid, order_line_table_oid);
   auto item_primary_index_schema =
       Schemas::BuildItemPrimaryIndexSchema(item_schema, index_type, db_oid, item_table_oid);
   auto stock_primary_index_schema =
@@ -272,11 +272,12 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
     NOISEPAGE_ASSERT(customer_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(customer_secondary_index->Type() == storage::index::IndexType::HASHMAP,
                      "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(new_order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BWTREE,
+    NOISEPAGE_ASSERT(new_order_index->Type() == storage::index::IndexType::BPLUSTREE,
                      "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE,
+    NOISEPAGE_ASSERT(order_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BPLUSTREE,
+                     "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BPLUSTREE,
                      "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(item_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(stock_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
@@ -302,21 +303,25 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
     NOISEPAGE_ASSERT(stock_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
                      "Constructed the wrong index key type.");
   } else {
-    NOISEPAGE_ASSERT(index_type == storage::index::IndexType::BWTREE,
-                     "This branch expects the BwTree. Did you add another IndexType to the system?");
-    NOISEPAGE_ASSERT(warehouse_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(district_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(customer_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(customer_secondary_index->Type() == storage::index::IndexType::BWTREE,
+    NOISEPAGE_ASSERT(index_type == storage::index::IndexType::BPLUSTREE,
+                     "This branch expects the BPlusTree. Did you add another IndexType to the system?");
+    NOISEPAGE_ASSERT(warehouse_index->Type() == storage::index::IndexType::BPLUSTREE,
                      "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(new_order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BWTREE,
+    NOISEPAGE_ASSERT(district_index->Type() == storage::index::IndexType::BPLUSTREE,
                      "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE,
+    NOISEPAGE_ASSERT(customer_index->Type() == storage::index::IndexType::BPLUSTREE,
                      "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(item_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(stock_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(customer_secondary_index->Type() == storage::index::IndexType::BPLUSTREE,
+                     "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(new_order_index->Type() == storage::index::IndexType::BPLUSTREE,
+                     "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(order_index->Type() == storage::index::IndexType::BPLUSTREE, "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BPLUSTREE,
+                     "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BPLUSTREE,
+                     "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(item_index->Type() == storage::index::IndexType::BPLUSTREE, "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(stock_index->Type() == storage::index::IndexType::BPLUSTREE, "Constructed the wrong index type.");
 
     NOISEPAGE_ASSERT(warehouse_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
                      "Constructed the wrong index key type.");

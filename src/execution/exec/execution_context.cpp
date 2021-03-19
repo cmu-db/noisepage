@@ -5,6 +5,7 @@
 #include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
+#include "replication/replication_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "transaction/transaction_context.h"
@@ -33,6 +34,10 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
     tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
   }
   return tuple_size;
+}
+
+uint64_t ExecutionContext::ReplicationGetLastRecordId() const {
+  return replication_manager_ == DISABLED ? 0 : replication_manager_->GetLastRecordId();
 }
 
 void ExecutionContext::RegisterThreadWithMetricsManager() {

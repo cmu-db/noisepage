@@ -73,7 +73,7 @@ class MessengerTests : public TerrierTest {
                        .SetNetworkPort(network_port)
                        .SetUseMessenger(true)
                        .SetMessengerPort(messenger_port)
-                       .SetMessengerIdentity(messenger_identity)
+                       .SetNetworkIdentity(messenger_identity)
                        .SetUseExecution(true)
                        .Build();
 
@@ -186,10 +186,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "potato",
-          [&reply_primary_potato](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                  std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
-            EXPECT_EQ("potato", message);
+          [&reply_primary_potato](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("potato", msg.GetMessage());
             reply_primary_potato = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -200,10 +199,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "tomato",
-          [&reply_primary_tomato](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                  std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
-            EXPECT_EQ("tomato", message);
+          [&reply_primary_tomato](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("tomato", msg.GetMessage());
             reply_primary_tomato = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -239,10 +237,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "elephant",
-          [&reply_primary_elephant](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                    std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
-            EXPECT_EQ("elephant", message);
+          [&reply_primary_elephant](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("elephant", msg.GetMessage());
             reply_primary_elephant = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -253,10 +250,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "correct HORSE battery staple",
-          [&reply_primary_chbs](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
-            EXPECT_EQ("correct HORSE battery staple", message);
+          [&reply_primary_chbs](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", msg.GetRoutingId(), msg.GetRawPayload()));
+            EXPECT_EQ("correct HORSE battery staple", msg.GetMessage());
             reply_primary_chbs = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
@@ -360,14 +356,12 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     ConnectionDestination dest_listen = Messenger::GetEndpointIPC("listen", port_listen);
     primary->GetMessengerLayer()->GetMessenger()->ListenForConnection(
-        dest_listen, "listen",
-        [](common::ManagedPointer<Messenger> messenger, std::string_view sender_id, std::string_view message,
-           uint64_t recv_cb_id) {
-          MESSENGER_LOG_TRACE("Messenger (listen) received from {}: {} {}", sender_id, message,
-                              message.compare("KILLME") == 0);
-          if (message.compare("KILLME") == 0) {
-            messenger->SendMessage(messenger->GetConnectionRouter("listen"), std::string(sender_id), "QUIT",
-                                   CallbackFns::Noop, recv_cb_id);
+        dest_listen, "listen", [](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+          MESSENGER_LOG_TRACE("Messenger (listen) received from {}: {} {}", msg.GetRoutingId(), msg.GetRawPayload(),
+                              msg.GetMessage().compare("KILLME") == 0);
+          if (msg.GetMessage().compare("KILLME") == 0) {
+            messenger->SendMessage(messenger->GetConnectionRouter("listen"), std::string(msg.GetRoutingId()), "QUIT",
+                                   CallbackFns::Noop, msg.GetSourceCallbackId());
           }
         });
 
@@ -409,10 +403,10 @@ TEST_F(MessengerTests, BasicListenTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "KILLME",
-          [&reply_primary_quit](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
-                                std::string_view message, uint64_t recv_cb_id) {
-            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
-            EXPECT_EQ("QUIT", message);
+          [&reply_primary_quit](common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {} {}", msg.GetRoutingId(),
+                                            msg.GetRawPayload(), msg.GetMessage().compare("QUIT") == 0));
+            EXPECT_EQ("QUIT", msg.GetMessage());
             reply_primary_quit = true;
           },
           static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));

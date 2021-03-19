@@ -86,7 +86,7 @@ class RecoveryTests : public TerrierTest {
         "", type::TypeId::INTEGER, false,
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
-    return catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
+    return catalog::IndexSchema(keycols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
   }
 
   catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn,
@@ -177,6 +177,7 @@ class RecoveryTests : public TerrierTest {
                                      recovery_catalog_,
                                      recovery_txn_manager_,
                                      recovery_deferred_action_manager_,
+                                     DISABLED,
                                      recovery_thread_registry_,
                                      recovery_block_store_};
     recovery_manager.StartRecovery();
@@ -197,6 +198,7 @@ class RecoveryTests : public TerrierTest {
                                      recovery_catalog_,
                                      recovery_txn_manager_,
                                      recovery_deferred_action_manager_,
+                                     DISABLED,
                                      recovery_thread_registry_,
                                      recovery_block_store_};
     recovery_manager.StartRecovery();
@@ -662,6 +664,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
                                    recovery_catalog_,
                                    recovery_txn_manager_,
                                    recovery_deferred_action_manager_,
+                                   DISABLED,
                                    recovery_thread_registry_,
                                    recovery_block_store_};
   recovery_manager.StartRecovery();
@@ -722,7 +725,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   DiskLogProvider secondary_log_provider(secondary_log_file);
   RecoveryManager secondary_recovery_manager(common::ManagedPointer<AbstractLogProvider>(&secondary_log_provider),
                                              secondary_recovery_catalog, secondary_recovery_txn_manager,
-                                             secondary_recovery_deferred_action_manager,
+                                             secondary_recovery_deferred_action_manager, DISABLED,
                                              secondary_recovery_thread_registry, secondary_recovery_block_store);
   secondary_recovery_manager.StartRecovery();
   secondary_recovery_manager.WaitForRecoveryToFinish();

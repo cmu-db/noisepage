@@ -2633,6 +2633,20 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   }
 }
 
+void BytecodeGenerator::VisitBuiltinReplicationCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::ReplicationGetLastRecordId: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar record_id = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::ReplicationGetLastRecordId, record_id, exec_ctx);
+      GetExecutionResult()->SetDestination(record_id.ValueOf());
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented replication function!");
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ast::Builtin builtin;
 
@@ -3090,6 +3104,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Rtrim:
     case ast::Builtin::Concat: {
       VisitBuiltinStringCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ReplicationGetLastRecordId: {
+      VisitBuiltinReplicationCall(call, builtin);
       break;
     }
     case ast::Builtin::NpRunnersEmitInt:

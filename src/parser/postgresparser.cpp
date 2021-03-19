@@ -1381,9 +1381,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
   // TODO(WAN): do we need to do case conversion?
   if (strcmp(access_method, "invalid") == 0) {
     index_type = IndexType::INVALID;
-  } else if ((strcmp(access_method, "btree") == 0) || (strcmp(access_method, "bwtree") == 0)) {
+  } else if (strcmp(access_method, "bwtree") == 0) {
     index_type = IndexType::BWTREE;
-  } else if ((strcmp(access_method, "b+tree") == 0) || (strcmp(access_method, "bplustree") == 0)) {
+  } else if ((strcmp(access_method, "btree") == 0) || (strcmp(access_method, "bplustree") == 0)) {
     index_type = IndexType::BPLUSTREE;
   } else if (strcmp(access_method, "hash") == 0) {
     index_type = IndexType::HASH;

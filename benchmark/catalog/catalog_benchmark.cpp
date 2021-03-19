@@ -105,7 +105,7 @@ class CatalogBenchmark : public benchmark::Fixture {
                                 const catalog::Schema::Column &col) {
     std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
         col.Name(), type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, col.Oid())}};
-    auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+    auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
     const auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, index_name, index_schema);
     NOISEPAGE_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
     auto true_schema = accessor->GetIndexSchema(idx_oid);

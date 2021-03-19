@@ -36,7 +36,7 @@ def run_test(test_server, test_command):
 
 def run_tests_junit(test_server):
     LOG.info(section_header("TEST JUNIT"))
-    return run_test(test_server, JUNIT_TEST_CMD_JUNIT)
+    return ("junit", run_test(test_server, JUNIT_TEST_CMD_JUNIT))
 
 
 def run_tests_tracefiles(test_server):
@@ -60,7 +60,7 @@ def run_tests_tracefiles(test_server):
 
         return errcode
 
-    return [run_tracefile(test_server, item)
+    return [(item, run_tracefile(test_server, item))
             for item in sorted(os.listdir(noise_trace_dir)) if item.endswith(TESTFILES_SUFFIX)]
 
 
@@ -101,9 +101,11 @@ if __name__ == "__main__":
         unset_env_vars()
 
     # Compute the final exit code.
+    LOG.info("Tests:")
     final_code = 0 if len(errcodes) > 0 else 1
-    for c in errcodes:
-        final_code = final_code or c
+    for (item, errcode) in errcodes:
+        final_code = final_code or errcode
+        LOG.info("\t{} : {}".format("FAIL" if errcode else "SUCCESS", item))
 
     LOG.info("Final Status => {}".format("FAIL" if final_code else "SUCCESS"))
     sys.exit(final_code)
