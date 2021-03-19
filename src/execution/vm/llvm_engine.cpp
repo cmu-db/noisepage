@@ -28,6 +28,8 @@
 #include <utility>
 #include <vector>
 
+#include <iostream>
+
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecode_traits.h"
@@ -1159,6 +1161,8 @@ void LLVMEngine::Shutdown() {
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeModule &module,
                                                                 const CompilerOptions &options) {
   CompiledModuleBuilder builder(options, module);
+
+  // module.Dump(std::cerr);
 
   builder.DeclareStaticLocals();
 
