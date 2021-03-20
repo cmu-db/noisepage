@@ -35,7 +35,7 @@ ast::Expr *ArithmeticTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
       return codegen->BinaryOp(parsing::Token::Type::PERCENT, left_val, right_val);
     default: {
       throw NOT_IMPLEMENTED_EXCEPTION(
-          fmt::format("Translation of arithmetic type {}", parser::ExpressionTypeToString(expr_type, true)));
+          fmt::format("Translation of arithmetic type {}", parser::ExpressionTypeToString(expr_type)));
     }
   }
 }
