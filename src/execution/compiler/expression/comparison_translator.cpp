@@ -58,7 +58,7 @@ ast::Expr *ComparisonTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
       return codegen->NotLike(left_val, right_val);
     default: {
       throw NOT_IMPLEMENTED_EXCEPTION(
-          fmt::format("Translation of comparison type {}", parser::ExpressionTypeToString(expr_type, true)));
+          fmt::format("Translation of comparison type {}", parser::ExpressionTypeToString(expr_type)));
     }
   }
 }

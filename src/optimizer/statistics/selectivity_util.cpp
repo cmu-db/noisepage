@@ -30,7 +30,7 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats
       return DistinctFrom(column_stats, condition);
     default:
       OPTIMIZER_LOG_WARN("Expression type {0} not supported for computing selectivity",
-                         ExpressionTypeToString(condition.GetType(), false).c_str());
+                         ExpressionTypeToString(condition.GetType()).c_str());
       return DEFAULT_SELECTIVITY_VALUE;
   }
 }
