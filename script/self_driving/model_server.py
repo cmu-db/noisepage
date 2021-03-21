@@ -169,7 +169,7 @@ class AbstractModel(ABC):
         save_path_str = str(save_path)
 
         # Load from cache
-        if self.model_cache.get(save_path, None) is not None:
+        if self.model_cache.get(save_path_str, None) is not None:
             return self.model_cache[save_path_str]
 
         # Load into cache

@@ -276,7 +276,7 @@ std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, co
 
   // Callback to notify waiter with result
   auto callback = [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-    MODEL_SERVER_LOG_INFO("Callback :recv_cb_id={}, message={}", msg.GetDestinationCallbackId(), msg.GetMessage());
+    MODEL_SERVER_LOG_DEBUG("Callback :recv_cb_id={}, message={}", msg.GetDestinationCallbackId(), msg.GetMessage());
     future.Done(msg.GetMessage());
   };
 
