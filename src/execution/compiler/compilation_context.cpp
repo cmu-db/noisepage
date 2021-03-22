@@ -388,9 +388,8 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
       break;
     }
     default: {
-      throw NOT_IMPLEMENTED_EXCEPTION(
-          fmt::format("Code generation for expression type '{}' not supported.",
-                      parser::ExpressionTypeToString(expression.GetExpressionType(), false)));
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("Code generation for expression type '{}' not supported.",
+                                                  parser::ExpressionTypeToString(expression.GetExpressionType())));
     }
   }
 
