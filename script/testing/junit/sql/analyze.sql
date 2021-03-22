@@ -1,5 +1,5 @@
 CREATE TABLE foo (a int, b int);
-
+-- These SELECTS are designed to target different selectivity calculations before and after analyzing a table
 SELECT a FROM foo WHERE a < 666;
 SELECT a FROM foo WHERE a <= 42;
 SELECT a FROM foo WHERE a > 999;
