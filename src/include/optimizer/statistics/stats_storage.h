@@ -139,7 +139,7 @@ class StatsStorage {
   /**
    * latch for reading and modifying table_stats_storage_.
    */
-  common::SharedLatch stats_latch_;
+  common::SharedLatch stats_storage_latch_;
 
   /**
    * Returns a reference the cached TableStats object for a specific table

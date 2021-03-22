@@ -10,23 +10,23 @@ namespace noisepage::optimizer {
 StatsStorageValue &StatsStorage::GetStatsStorageValue(const catalog::db_oid_t database_id,
                                                       const catalog::table_oid_t table_id,
                                                       catalog::CatalogAccessor *accessor) {
-  stats_latch_.LockShared();
+  stats_storage_latch_.LockShared();
 
   StatsStorageKey stats_storage_key{database_id, table_id};
   auto table_it = table_stats_storage_.find(stats_storage_key);
 
   if (table_it == table_stats_storage_.end()) {
-    stats_latch_.UnlockShared();
+    stats_storage_latch_.UnlockShared();
     InsertTableStats(database_id, table_id, accessor);
+    stats_storage_latch_.LockShared();
     table_it = table_stats_storage_.find(stats_storage_key);
-    stats_latch_.LockShared();
   }
 
   auto &stats_storage_value = table_it->second;
 
   UpdateStaleColumns(table_id, &stats_storage_value, accessor);
 
-  stats_latch_.UnlockShared();
+  stats_storage_latch_.UnlockShared();
 
   return stats_storage_value;
 }
@@ -61,6 +61,7 @@ std::unique_ptr<ColumnStatsBase> StatsStorage::GetColumnStats(catalog::db_oid_t 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                   const std::vector<catalog::col_oid_t> &col_ids) {
   StatsStorageKey stats_storage_key{database_id, table_id};
+  common::SharedLatch::ScopedSharedLatch scoped_stats_storage_latch{&stats_storage_latch_};
   auto stats_storage_value = table_stats_storage_.find(stats_storage_key);
   if (stats_storage_value != table_stats_storage_.end()) {
     for (const auto &col_id : col_ids) {
@@ -71,7 +72,7 @@ void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_
 
 void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                     catalog::CatalogAccessor *accessor) {
-  common::SharedLatch::ScopedExclusiveLatch scoped_stats_latch{&stats_latch_};
+  common::SharedLatch::ScopedExclusiveLatch scoped_stats_storage_latch{&stats_storage_latch_};
 
   StatsStorageKey stats_storage_key{database_id, table_id};
   if (table_stats_storage_.count(stats_storage_key) == 0) {
