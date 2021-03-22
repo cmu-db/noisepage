@@ -57,12 +57,14 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing logical get with no predicates
   Operator logical_get =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
 
+  // CVE for column 1
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   ExprSet required_cols;
@@ -77,12 +79,14 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
 
 // NOLINTNEXTLINE
 TEST_F(StatsCalculatorTests, TestInvalidLogicalGet) {
+  // Constructing logical get with no predicates
   Operator logical_get =
       LogicalGet::Make(test_db_oid_, catalog::INVALID_TABLE_OID, {}, "", false).RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
 
+  // CVE for column 1
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   ExprSet required_cols;
@@ -102,6 +106,7 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with NOT EQUALS predicate
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
@@ -139,6 +144,7 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with IS NOT NULL predicate
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   std::vector<std::unique_ptr<parser::AbstractExpression>> not_null_child_exprs;
@@ -171,6 +177,7 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with predicate with column value on the left side of predicate
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
@@ -204,6 +211,8 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with predicate with column value on the left side of predicate and param on the right side
+  // of predicate
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
@@ -242,6 +251,7 @@ TEST_F(StatsCalculatorTests, TestRightSidePredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with predicate with column value on the right side of predicate
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
@@ -275,6 +285,8 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with predicate with column value on the right side of predicate and param on the left side
+  // of predicate
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
@@ -307,12 +319,69 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
+  RunQuery("INSERT INTO " + table_name_2_ + " VALUES(1, TRUE), (NULL, FALSE), (3, FALSE);");
+  RunQuery("ANALYZE " + table_name_2_ + ";");
+  txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+  test_txn_ = txn_manager_->BeginTransaction();
+
+  // Constructing Logical Get with two param predicates
+  parser::ColumnValueExpression col_a(table_name_2_, table_2_col_1_name_, test_db_oid_, table_oid_2_,
+                                      table_2_col_1_oid_, type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_b(table_name_2_, table_2_col_2_name_, test_db_oid_, table_oid_2_,
+                                      table_2_col_2_oid_, type::TypeId::INTEGER);
+  auto param1 = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
+  auto param2 = std::make_unique<parser::ParameterValueExpression>(1, type::TypeId::BOOLEAN);
+
+  std::vector<std::unique_ptr<parser::AbstractExpression>> equal1_child_exprs;
+  equal1_child_exprs.emplace_back(col_a.Copy());
+  equal1_child_exprs.emplace_back(std::move(param1));
+  parser::ComparisonExpression equals1(parser::ExpressionType::COMPARE_EQUAL, std::move(equal1_child_exprs));
+  common::ManagedPointer<parser::AbstractExpression> equal_expr1(&equals1);
+  AnnotatedExpression annotated_equals1(equal_expr1, {});
+
+  std::vector<std::unique_ptr<parser::AbstractExpression>> equal2_child_exprs;
+  equal2_child_exprs.emplace_back(col_b.Copy());
+  equal2_child_exprs.emplace_back(std::move(param2));
+  parser::ComparisonExpression equals2(parser::ExpressionType::COMPARE_EQUAL, std::move(equal2_child_exprs));
+  common::ManagedPointer<parser::AbstractExpression> equal_expr2(&equals2);
+  AnnotatedExpression annotated_equals2(equal_expr2, {});
+
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_2_, {annotated_equals1, annotated_equals2}, table_name_2_, false)
+          .RegisterWithTxnContext(test_txn_);
+  GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
+  gexpr->SetGroupID(group_id_t(1));
+  context_.GetMemo().InsertExpression(gexpr, false);
+
+  parser::ConstantValueExpression one(type::TypeId::INTEGER, execution::sql::Integer(1));
+  parser::ConstantValueExpression true_val(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+  std::vector<parser::ConstantValueExpression> params;
+  params.emplace_back(one);
+  params.emplace_back(true_val);
+  context_.SetParams(common::ManagedPointer(&params));
+
+  ExprSet required_cols;
+  required_cols.emplace(&col_a);
+  required_cols.emplace(&col_b);
+
+  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+
+  auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
+  // Unfortunately the calculation is not that accurate
+  EXPECT_EQ(root_group->GetNumRows(), 0);
+  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_1_name_));
+  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_2_name_));
+}
+
+// NOLINTNEXTLINE
 TEST_F(StatsCalculatorTests, TestAndPredicate) {
   RunQuery("INSERT INTO " + table_name_1_ + " VALUES(1), (NULL), (3);");
   RunQuery("ANALYZE " + table_name_1_ + ";");
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with AND predicate consisting of two EQUALS predicates
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
 
@@ -359,6 +428,7 @@ TEST_F(StatsCalculatorTests, TestOrPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Get with OR predicate consisting of two EQUALS predicates
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
 
@@ -406,6 +476,7 @@ TEST_F(StatsCalculatorTests, TestLogicalLimit) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Limit with no predicate
   Operator logical_get =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr = new GroupExpression(logical_get, {}, test_txn_);
@@ -440,6 +511,7 @@ TEST_F(StatsCalculatorTests, TestLogicalSemiJoin) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Semi Join with join predicates
   Operator logical_get1 =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr1 = new GroupExpression(logical_get1, {}, test_txn_);
@@ -502,6 +574,7 @@ TEST_F(StatsCalculatorTests, TestLogicalInnerJoin) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
+  // Constructing Logical Inner Join with join predicates
   Operator logical_get1 =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr1 = new GroupExpression(logical_get1, {}, test_txn_);
