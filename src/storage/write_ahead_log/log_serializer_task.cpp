@@ -217,7 +217,7 @@ void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destinatio
         empty_buffer_queue_->Enqueue(logs.first);
       }
     }
-    
+
     replication_commits_in_buffer_.clear();
     replication_filled_buffer_ = nullptr;
   }
