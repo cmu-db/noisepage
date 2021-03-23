@@ -58,12 +58,6 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     // immutability of all of these Optimizer inputs to reduce copies.
 
     CollectSelectProperties(sel_stmt, &property_set);
-  } else if (type == parser::StatementType::ANALYZE) {
-    const auto analyze_stmt = query->GetStatement(0).CastManagedPointerTo<parser::AnalyzeStatement>();
-    auto table_oid = analyze_stmt->GetTableOid();
-    std::vector<catalog::col_oid_t> col_oids;
-    std::copy(analyze_stmt->GetColumnOids().begin(), analyze_stmt->GetColumnOids().end(), std::back_inserter(col_oids));
-    txn->RegisterCommitAction([=]() { stats_storage->MarkStatsStale(db_oid, table_oid, col_oids); });
   }
 
   auto query_info = optimizer::QueryInfo(type, std::move(output), &property_set);

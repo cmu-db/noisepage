@@ -26,11 +26,13 @@
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "parser/variable_show_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/analyze_plan_node.h"
 #include "settings/settings_manager.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
@@ -410,6 +412,21 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
           query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
       "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+
+  /*
+   * ANALYZE will update the statistics held in the pg_statistic catalog table. These statistics are also cached in
+   * StatsStorage. So once ANALYZE commits, we need to mark the columns updated as dirty in StatsStorage.
+   */
+  if (query_type == network::QueryType::QUERY_ANALYZE) {
+    const auto analyze_plan = physical_plan.CastManagedPointerTo<planner::AnalyzePlanNode>();
+    auto db_oid = analyze_plan->GetDatabaseOid();
+    auto table_oid = analyze_plan->GetTableOid();
+    std::vector<catalog::col_oid_t> col_oids;
+    std::copy(analyze_plan->GetColumnOids().begin(), analyze_plan->GetColumnOids().end(), std::back_inserter(col_oids));
+    connection_ctx->Transaction()->RegisterCommitAction(
+        [=]() { stats_storage_->MarkStatsStale(db_oid, table_oid, col_oids); });
+  }
+
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   // A std::function<> requires the target to be CopyConstructible and CopyAssignable. In certain
