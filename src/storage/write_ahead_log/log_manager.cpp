@@ -67,9 +67,10 @@ void LogManager::PersistAndStop() {
   buffers_.clear();
 }
 
-void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
+void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment,
+                                       const transaction::TransactionPolicy &policy) {
   NOISEPAGE_ASSERT(run_log_manager_, "Must call Start on log manager before handing it buffers");
-  log_serializer_task_->AddBufferToFlushQueue(buffer_segment);
+  log_serializer_task_->AddBufferToFlushQueue(buffer_segment, policy);
 }
 
 void LogManager::SetSerializationInterval(int32_t interval) {

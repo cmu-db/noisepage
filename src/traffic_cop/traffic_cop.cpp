@@ -40,32 +40,26 @@ namespace noisepage::trafficcop {
 
 /** The commit callback argument. */
 struct CommitCallbackArg {
-  std::atomic<uint8_t> durability_countdown_;  ///< A countdown latch for what else needs to persist.
-  std::promise<bool> ready_to_commit_;         ///< Set this promise to true to wake up the thread for commit.
+  std::atomic<uint8_t> persist_countdown_;  ///< A countdown latch for what else needs to persist.
+  std::promise<bool> ready_to_commit_;      ///< Set this promise to true to wake up the thread for commit.
 
-  explicit CommitCallbackArg(transaction::DurabilityPolicy policy) {
-    // The value for the durability_countdown_ field.
+  explicit CommitCallbackArg(const transaction::TransactionPolicy &policy) {
+    // The value for the persist_countdown_ field.
     // Note that the field will be decremented exactly once every time a commit callback is invoked.
-    uint8_t durability_countdown_val;
-    switch (policy) {
-      case transaction::DurabilityPolicy::DISABLE:
-        durability_countdown_val = 1;
-        break;
-      case transaction::DurabilityPolicy::LOCAL_DISK:
-        durability_countdown_val = 2;
-        break;
-      case transaction::DurabilityPolicy::LOCAL_AND_REPLICAS:
-        durability_countdown_val = 3;
-        break;
+    persist_countdown_ = 0;
+    if (policy.durability_ != transaction::DurabilityPolicy::DISABLE) {
+      persist_countdown_ += 1;
     }
-    durability_countdown_ = durability_countdown_val;
+    if (policy.replication_ != transaction::ReplicationPolicy::DISABLE) {
+      persist_countdown_ += 1;
+    }
   }
 };
 
 static void CommitCallback(void *const callback_arg) {
   auto *const cb_arg = reinterpret_cast<CommitCallbackArg *const>(callback_arg);
-  --cb_arg->durability_countdown_;
-  if (cb_arg->durability_countdown_ == 0) {
+  --cb_arg->persist_countdown_;
+  if (cb_arg->persist_countdown_ == 0) {
     cb_arg->ready_to_commit_.set_value(true);
   }
 }
@@ -88,7 +82,7 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
     NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                      "Invalid ConnectionContext state, not in a transaction that can be committed.");
     // Set up a blocking callback. Will be invoked when we can tell the client that commit is complete.
-    CommitCallbackArg cb_arg(txn->GetRetentionPolicy());
+    CommitCallbackArg cb_arg({txn->GetDurabilityPolicy(), txn->GetReplicationPolicy()});
     auto future = cb_arg.ready_to_commit_.get_future();
     NOISEPAGE_ASSERT(future.valid(), "future must be valid for synchronization to work.");
     txn_manager_->Commit(txn.Get(), CommitCallback, &cb_arg);
@@ -510,7 +504,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     const network::connection_id_t connection_id, const std::string &database_name) {
   auto *const txn = txn_manager_->BeginTransaction();
-  txn->SetRetentionPolicy(transaction::DurabilityPolicy::DISABLE);
+  txn->SetDurabilityPolicy(transaction::DurabilityPolicy::DISABLE);
 
   const auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
@@ -539,7 +533,7 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   NOISEPAGE_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID,
                    "Called DropTempNamespace() with an invalid namespace oid.");
   auto *const txn = txn_manager_->BeginTransaction();
-  txn->SetRetentionPolicy(transaction::DurabilityPolicy::DISABLE);
+  txn->SetDurabilityPolicy(transaction::DurabilityPolicy::DISABLE);
 
   const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   NOISEPAGE_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");

@@ -118,33 +118,31 @@ class BufferedLogWriter {
 
   /**
    * Mark that the BufferedLogWriter is now ready to be persisted and sent to different destinations.
+   * Note that the BufferedLogWriter represents a batch of different logs.
    *
    * For example, the BufferedLogWriter may then be sent to any of the following destinations:
    * - Serialized to disk.
    * - Sent to replicas over the network.
    *
    * This function exists to avoid copying the BufferedLogWriter's buffers needlessly.
-   * Instead, a refcount is maintained depending on the retention policy.
+   * Instead, a refcount is maintained depending on the durability and replication policies.
    *
-   * @param policy The retention policy that describes the destinations for this BufferedLogWriter.
+   * @param policy The transaction-wide policies for this batch of logs.
    */
-  void PrepareForSerialization(transaction::DurabilityPolicy policy) {
+  void PrepareForSerialization(const transaction::TransactionPolicy &policy) {
     NOISEPAGE_ASSERT(serialize_refcount_.load() == 0, "This buffer is already being serialized.");
-    switch (policy) {
-      case transaction::DurabilityPolicy::DISABLE: {
-        serialize_refcount_.store(0);  // Nothing.
-        break;
-      }
-      case transaction::DurabilityPolicy::LOCAL_DISK: {
-        serialize_refcount_.store(1);  // DiskLogConsumerTask.
-        break;
-      }
-      case transaction::DurabilityPolicy::LOCAL_AND_REPLICAS: {
-        serialize_refcount_.store(2);  // DiskLogConsumerTask + ReplicationManager.
-        break;
-      }
-      default:
-        throw std::runtime_error("Unknown retention policy in PrepareForSerialization().");
+    serialize_refcount_ = 0;
+    if (policy.durability_ != transaction::DurabilityPolicy::DISABLE) {
+      NOISEPAGE_ASSERT(policy.durability_ == transaction::DurabilityPolicy::SYNC ||
+                           policy.durability_ == transaction::DurabilityPolicy::ASYNC,
+                       "Unknown durability policy.");
+      serialize_refcount_ += 1;
+    }
+    if (policy.replication_ != transaction::ReplicationPolicy::DISABLE) {
+      NOISEPAGE_ASSERT(policy.replication_ == transaction::ReplicationPolicy::SYNC ||
+                           policy.replication_ == transaction::ReplicationPolicy::ASYNC,
+                       "Unknown replication policy.");
+      serialize_refcount_ += 1;
     }
   }
 
@@ -158,7 +156,7 @@ class BufferedLogWriter {
   bool MarkSerialized() {
     auto count = serialize_refcount_.fetch_sub(1);
     NOISEPAGE_ASSERT(serialize_refcount_.load() >= 0, "This buffer was serialized too many times?");
-    return count == 1;
+    return count == 0;
   }
 
  private:
