@@ -772,7 +772,7 @@ ast::Expr *CodeGen::VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::Expres
       break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("CodeGen: Vector filter type {} from VPI not supported.",
-                                                  parser::ExpressionTypeToString(comp_type, true)));
+                                                  parser::ExpressionTypeToString(comp_type)));
   }
   ast::Expr *call = CallBuiltin(builtin, {exec_ctx, vp, Const32(col_idx), filter_val, tids});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
