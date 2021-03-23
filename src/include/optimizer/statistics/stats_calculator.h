@@ -22,7 +22,6 @@ class StatsCalculator : public OperatorVisitor {
   /**
    * Calculates stats for a logical GroupExpression
    * @param gexpr GroupExpression
-   * @param required_cols Required column statistics
    * @param context OptimizerContext
    */
   void CalculateStats(GroupExpression *gexpr, OptimizerContext *context);
