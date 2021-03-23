@@ -36,12 +36,10 @@ std::vector<common::ManagedPointer<ColumnStatsBase>> TableStats::GetColumnStats(
   return column_stats;
 }
 
-std::unique_ptr<ColumnStatsBase> TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
+void TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {
   auto col_it = column_stats_.find(column_id);
   NOISEPAGE_ASSERT(col_it != column_stats_.end(), "Every column should have an associated column stats object");
-  auto col_stats = std::move(col_it->second);
   column_stats_.erase(col_it);
-  return col_stats;
 }
 
 nlohmann::json TableStats::ToJson() const {

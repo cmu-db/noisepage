@@ -40,6 +40,17 @@ struct StatsStorageValue {
   /** Shared Latch for Table Statistics */
   common::SharedLatch shared_latch_;
 };
+
+/** Thread safe value to return back to consumers of cache */
+struct StatsStorageReference {
+  explicit StatsStorageReference(StatsStorageValue *stats_storage_value,
+                                 common::SharedLatch::UniqueSharedLatch stats_storage_shared_latch)
+      : stats_storage_value_(stats_storage_value), stats_storage_shared_latch_(std::move(stats_storage_shared_latch)) {}
+  /** Stats Storage Value */
+  StatsStorageValue *stats_storage_value_;
+  /** Unique Shared Latch on Stats Storage */
+  common::SharedLatch::UniqueSharedLatch stats_storage_shared_latch_;
+};
 }  // namespace noisepage::optimizer
 
 namespace std {  // NOLINT
@@ -86,37 +97,22 @@ namespace noisepage::optimizer {
  * add, update, or delete table stats objects from the storage map.
  *
  * TODO(Joe Koshakow) Currently there is no cache eviction policy, which means that stats storage will grow forever. If
- * this becomes an issue we can implement a max number of columns to store with some eviction policy
+ *  this becomes an issue we can implement a max number of columns to store with some eviction policy
  */
 class StatsStorage {
  public:
   /**
-   * Returns a copy of the TableStats object for a specific table
-   *
-   * Currently all consumers of this method require their own copy of the statistics objects. Instead of them having to
-   * create their own copies, we just create a copy for them. This helps simplify thread safety and reduce contention.
-   * If a new consumer doesn't need a copy we may want to consider changing this to return a ManagedPointer to prevent
-   * unnecessary copying.
+   * Returns a reference of a TableStats object for a specific table, and an acquired read lock on the entire Stats
+   * Storage
    *
    * @param database_id - oid of database
    * @param table_id - oid of table
    * @param accessor - catalog accessor
-   * @return pointer to a TableStats object
+   * @return reference to a TableStats object, latch for that TableStats object, and an acquired shared latch on
+   * StatsStorage
    */
-  std::unique_ptr<TableStats> GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                                            catalog::CatalogAccessor *accessor);
-
-  /**
-   * Returns a copy of the ColumnStats object for a specific table and column
-   *
-   * @param database_id - oid of database
-   * @param table_id - oid of table
-   * @param column_oid - oid of column
-   * @param accessor - catalog accessor
-   * @return pointer to a ColumnStats object
-   */
-  std::unique_ptr<ColumnStatsBase> GetColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                                                  catalog::col_oid_t column_oid, catalog::CatalogAccessor *accessor);
+  StatsStorageReference GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+                                      catalog::CatalogAccessor *accessor);
 
   /**
    * Mark column statistic objects in the cache as having stale information. Next time someone tries to retrieve this
@@ -142,16 +138,12 @@ class StatsStorage {
   common::SharedLatch stats_storage_latch_;
 
   /**
-   * Returns a reference the cached TableStats object for a specific table
-   *
+   * Checks with StatsStorage contains stats for a certain table
    * @param database_id - oid of database
    * @param table_id - oid of table
-   * @param column_oids - oids of columns
-   * @param accessor - catalog accessor
-   * @return pointer to a TableStats object
+   * @return true if StatsStorage contains stats for specified table, false otherwise
    */
-  StatsStorageValue &GetStatsStorageValue(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
-                                          catalog::CatalogAccessor *accessor);
+  bool ContainsTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
 
   /**
    * Inserts a TableStats pointer in the table stats storage map.

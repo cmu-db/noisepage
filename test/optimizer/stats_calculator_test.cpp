@@ -70,11 +70,11 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 3);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -92,11 +92,11 @@ TEST_F(StatsCalculatorTests, TestInvalidLogicalGet) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), -1);
-  EXPECT_FALSE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_FALSE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -130,11 +130,11 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -163,11 +163,11 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -197,11 +197,11 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -237,11 +237,11 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -271,11 +271,11 @@ TEST_F(StatsCalculatorTests, TestRightSidePredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -311,11 +311,11 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 1);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -365,13 +365,12 @@ TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
   required_cols.emplace(&col_a);
   required_cols.emplace(&col_b);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   // Unfortunately the calculation is not that accurate
   EXPECT_EQ(root_group->GetNumRows(), 0);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_1_name_));
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_2_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -414,11 +413,11 @@ TEST_F(StatsCalculatorTests, TestAndPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 0);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -461,12 +460,12 @@ TEST_F(StatsCalculatorTests, TestOrPredicate) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(gexpr->GetGroupID());
   // In reality it's two but that calculations aren't accurate enough to capture this
   EXPECT_EQ(root_group->GetNumRows(), 1);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -493,12 +492,15 @@ TEST_F(StatsCalculatorTests, TestLogicalLimit) {
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
-  stats_calculator_.CalculateStats(get_gexpr, required_cols, &context_);
-  stats_calculator_.CalculateStats(limit_gexpr, required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr, &context_);
+  stats_calculator_.CalculateStats(limit_gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(limit_gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
+  auto *get_group = context_.GetMemo().GetGroupByID(get_gexpr->GetGroupID());
+  EXPECT_EQ(get_group->GetNumRows(), 3);
+  EXPECT_TRUE(get_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -553,15 +555,18 @@ TEST_F(StatsCalculatorTests, TestLogicalSemiJoin) {
   join_required_cols.emplace(&col_a2);
   join_required_cols.emplace(&col_b);
 
-  stats_calculator_.CalculateStats(get_gexpr1, get1_required_cols, &context_);
-  stats_calculator_.CalculateStats(get_gexpr2, get2_required_cols, &context_);
-  stats_calculator_.CalculateStats(join_gexpr, join_required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr1, &context_);
+  stats_calculator_.CalculateStats(get_gexpr2, &context_);
+  stats_calculator_.CalculateStats(join_gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(join_gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_1_name_));
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_2_name_));
+  auto *get1_group = context_.GetMemo().GetGroupByID(get_gexpr1->GetGroupID());
+  EXPECT_EQ(get1_group->GetNumRows(), 2);
+  EXPECT_TRUE(get1_group->HasNumRows());
+  auto *get2_group = context_.GetMemo().GetGroupByID(get_gexpr2->GetGroupID());
+  EXPECT_EQ(get2_group->GetNumRows(), 4);
+  EXPECT_TRUE(get2_group->HasNumRows());
 }
 
 // NOLINTNEXTLINE
@@ -616,15 +621,19 @@ TEST_F(StatsCalculatorTests, TestLogicalInnerJoin) {
   join_required_cols.emplace(&col_a2);
   join_required_cols.emplace(&col_b);
 
-  stats_calculator_.CalculateStats(get_gexpr1, get1_required_cols, &context_);
-  stats_calculator_.CalculateStats(get_gexpr2, get2_required_cols, &context_);
-  stats_calculator_.CalculateStats(join_gexpr, join_required_cols, &context_);
+  stats_calculator_.CalculateStats(get_gexpr1, &context_);
+  stats_calculator_.CalculateStats(get_gexpr2, &context_);
+  stats_calculator_.CalculateStats(join_gexpr, &context_);
 
   auto *root_group = context_.GetMemo().GetGroupByID(join_gexpr->GetGroupID());
   EXPECT_EQ(root_group->GetNumRows(), 2);
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_1_ + "." + table_1_col_1_name_));
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_1_name_));
-  EXPECT_TRUE(root_group->HasColumnStats(table_name_2_ + "." + table_2_col_2_name_));
+  EXPECT_TRUE(root_group->HasNumRows());
+  auto *get1_group = context_.GetMemo().GetGroupByID(get_gexpr1->GetGroupID());
+  EXPECT_EQ(get1_group->GetNumRows(), 2);
+  EXPECT_TRUE(get1_group->HasNumRows());
+  auto *get2_group = context_.GetMemo().GetGroupByID(get_gexpr2->GetGroupID());
+  EXPECT_EQ(get2_group->GetNumRows(), 4);
+  EXPECT_TRUE(get2_group->HasNumRows());
 }
 
 }  // namespace noisepage::optimizer

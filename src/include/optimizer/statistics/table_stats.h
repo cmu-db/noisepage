@@ -49,11 +49,6 @@ class TableStats {
   bool AddColumnStats(std::unique_ptr<ColumnStatsBase> col_stats);
 
   /**
-   * Removes all the ColumnStats objects in the ColumnStats map
-   */
-  void ClearColumnStats() { column_stats_.clear(); }
-
-  /**
    * Gets the number of columns in the table
    * @return the number of columns
    */
@@ -80,11 +75,10 @@ class TableStats {
   std::vector<common::ManagedPointer<ColumnStatsBase>> GetColumnStats() const;
 
   /**
-   * Removes and returns the ColumnStats object for the given column oid in the ColumnStats map
+   * Removes the ColumnStats object for the given column oid in the ColumnStats map
    * @param column_id - the oid of the column
-   * @return - the removed ColumnStats object
    */
-  std::unique_ptr<ColumnStatsBase> RemoveColumnStats(catalog::col_oid_t column_id);
+  void RemoveColumnStats(catalog::col_oid_t column_id);
 
   /**
    * Gets the number of rows in the table
@@ -93,23 +87,17 @@ class TableStats {
   size_t GetNumRows() const { return num_rows_; }
 
   /**
+   * Updates the number of rows in the table
+   * @param num_rows new number of rows
+   */
+  void SetNumRows(size_t num_rows) { num_rows_ = num_rows; }
+
+  /**
    * Checks if any of the columns statistics within this table statistics is stale
    * @return true if table statistics contains stale column, false otherwise
    */
   bool HasStaleValues() const {
     return std::any_of(column_stats_.begin(), column_stats_.end(), [](const auto &it) { return it.second->IsStale(); });
-  }
-
-  /**
-   * Make a deep copy of TableStats
-   * @return a copy of the underlying object
-   */
-  std::unique_ptr<TableStats> Copy() {
-    std::vector<std::unique_ptr<ColumnStatsBase>> column_copies;
-    for (const auto &[col_oid, col_stat] : column_stats_) {
-      column_copies.emplace_back(col_stat->Copy());
-    }
-    return std::make_unique<TableStats>(database_id_, table_id_, &column_copies);
   }
 
   /**

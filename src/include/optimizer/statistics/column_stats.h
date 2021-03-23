@@ -71,11 +71,6 @@ class ColumnStatsBase {
    * Marks this column stat as stale
    */
   virtual void MarkStale() = 0;
-  /**
-   * Make a copy of ColumnStats
-   * @return a copy of the underlying object
-   */
-  virtual std::unique_ptr<ColumnStatsBase> Copy() = 0;
 };
 
 /**
@@ -250,12 +245,6 @@ class ColumnStats : public ColumnStatsBase {
    * Marks this column stat as stale
    */
   void MarkStale() override { stale_ = true; }
-
-  /**
-   * Make a copy of ColumnStats
-   * @return a copy of the underlying object
-   */
-  std::unique_ptr<ColumnStatsBase> Copy() override { return std::make_unique<ColumnStats<T>>(*this); }
 
  private:
   /**

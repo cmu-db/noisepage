@@ -25,7 +25,7 @@ class StatsCalculator : public OperatorVisitor {
    * @param required_cols Required column statistics
    * @param context OptimizerContext
    */
-  void CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerContext *context);
+  void CalculateStats(GroupExpression *gexpr, OptimizerContext *context);
 
   /**
    * Visit a LogicalGet
@@ -87,11 +87,6 @@ class StatsCalculator : public OperatorVisitor {
    * GroupExpression
    */
   GroupExpression *gexpr_;
-
-  /**
-   * Required column statistics to generate
-   */
-  ExprSet required_cols_;
 
   /**
    * Metadata
