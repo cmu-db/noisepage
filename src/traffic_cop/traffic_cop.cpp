@@ -421,8 +421,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     const auto analyze_plan = physical_plan.CastManagedPointerTo<planner::AnalyzePlanNode>();
     auto db_oid = analyze_plan->GetDatabaseOid();
     auto table_oid = analyze_plan->GetTableOid();
-    std::vector<catalog::col_oid_t> col_oids;
-    std::copy(analyze_plan->GetColumnOids().begin(), analyze_plan->GetColumnOids().end(), std::back_inserter(col_oids));
+    std::vector<catalog::col_oid_t> col_oids = analyze_plan->GetColumnOids();
     connection_ctx->Transaction()->RegisterCommitAction(
         [=]() { stats_storage_->MarkStatsStale(db_oid, table_oid, col_oids); });
   }

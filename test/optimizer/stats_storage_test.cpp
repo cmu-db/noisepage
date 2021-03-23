@@ -113,4 +113,41 @@ TEST_F(StatsStorageTests, StaleColumnTest) {
   EXPECT_EQ(col_stats_solo->GetColumnID(), col_oid_);
 }
 
+// NOLINTNEXTLINE
+TEST_F(StatsStorageTests, MultithreadedTest) {
+  std::vector<std::string> test_tables{"empty_table", "empty_nullable_table", "empty_table2",
+                                       "all_types_empty_nullable_table", "all_types_empty_table"};
+  std::vector<catalog::table_oid_t> table_oids;
+  for (const std::string &test_table : test_tables) {
+    table_oids.emplace_back(accessor_->GetTableOid(test_table));
+  }
+
+  std::vector<std::thread> threads;
+  auto forward_traversal = [&]() {
+    for (const catalog::table_oid_t &table_oid : table_oids) {
+      auto table_stats = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
+      EXPECT_EQ(0, table_stats->GetNumRows());
+    }
+  };
+
+  auto backward_traversal = [&]() {
+    for (auto it = table_oids.rbegin(); it != table_oids.rend(); it++) {
+      const auto &table_oid = *it;
+      auto table_stats = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
+      EXPECT_EQ(0, table_stats->GetNumRows());
+    }
+  };
+
+  for (int i = 0; i < 5; i++) {
+    threads.emplace_back(forward_traversal);
+  }
+  for (int i = 0; i < 5; i++) {
+    threads.emplace_back(backward_traversal);
+  }
+
+  for (auto &t : threads) {
+    t.join();
+  }
+}
+
 }  // namespace noisepage::optimizer

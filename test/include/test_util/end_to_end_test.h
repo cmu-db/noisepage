@@ -13,6 +13,7 @@
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/analyze_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 
 namespace noisepage::test {
@@ -54,6 +55,16 @@ class EndToEndTest : public execution::SqlBasedTest {
                                              common::ManagedPointer(stmt_list), test_db_oid_, stats_storage_,
                                              std::move(cost_model), 1000000, nullptr)
             ->TakePlanNodeOwnership();
+
+    // This is pretty hacky, but since this skips over some of the traffic cop code, I need to manually add this
+    // callback
+    if (out_plan->GetPlanNodeType() == planner::PlanNodeType::ANALYZE) {
+      const auto analyze_plan = static_cast<planner::AnalyzePlanNode *>(out_plan.get());
+      auto db_oid = analyze_plan->GetDatabaseOid();
+      auto table_oid = analyze_plan->GetTableOid();
+      std::vector<catalog::col_oid_t> col_oids = analyze_plan->GetColumnOids();
+      test_txn_->RegisterCommitAction([=]() { stats_storage_->MarkStatsStale(db_oid, table_oid, col_oids); });
+    }
 
     // Execute
     execution::compiler::test::OutputStore store{output_checker, out_plan->GetOutputSchema().Get()};
