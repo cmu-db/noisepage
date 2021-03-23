@@ -114,7 +114,6 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
 
       // Loop over all the new buffers we found
       while (!temp_disk_flush_queue_.empty()) {
-        STORAGE_LOG_ERROR("Process disk flush queue.");
         RecordBufferSegment *buffer = temp_disk_flush_queue_.front();
         temp_disk_flush_queue_.pop();
 
