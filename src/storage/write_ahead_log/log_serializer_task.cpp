@@ -114,6 +114,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
 
       // Loop over all the new buffers we found
       while (!temp_disk_flush_queue_.empty()) {
+        STORAGE_LOG_ERROR("Process disk flush queue.");
         RecordBufferSegment *buffer = temp_disk_flush_queue_.front();
         temp_disk_flush_queue_.pop();
 
@@ -209,6 +210,15 @@ void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destinatio
     replication_filled_buffer_queue_->Enqueue(
         std::make_pair(replication_filled_buffer_, replication_commits_in_buffer_));
     // Mark that the task doesn't have a buffer in its possession to which it can write to
+    SerializedLogs logs;
+    replication_filled_buffer_queue_->Dequeue(&logs);
+    if (logs.first != nullptr) {
+      logs.first->FlushBuffer();
+      if (logs.first->MarkSerialized()) {
+        empty_buffer_queue_->Enqueue(logs.first);
+      }
+    }
+    
     replication_commits_in_buffer_.clear();
     replication_filled_buffer_ = nullptr;
   }
