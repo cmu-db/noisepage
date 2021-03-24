@@ -58,8 +58,12 @@ struct CommitCallbackArg {
 
 static void CommitCallback(void *const callback_arg) {
   auto *const cb_arg = reinterpret_cast<CommitCallbackArg *const>(callback_arg);
-  --cb_arg->persist_countdown_;
-  if (cb_arg->persist_countdown_ == 0) {
+  uint8_t countdown = cb_arg->persist_countdown_.fetch_sub(1);
+  NOISEPAGE_ASSERT(
+      countdown != 0,
+      "Every component should have invoked the callback already. The policy may not have been correctly initialized?");
+  bool was_last_callback = countdown == 1;
+  if (was_last_callback) {
     cb_arg->ready_to_commit_.set_value(true);
   }
 }
