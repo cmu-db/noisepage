@@ -43,6 +43,11 @@ struct StatsStorageValue {
 
 /** Thread safe value to return back to consumers of cache */
 struct StatsStorageReference {
+  /**
+   * Constructor
+   * @param stats_storage_value pointer to stats_storage_value
+   * @param stats_storage_shared_latch acquired read latch on stats storage
+   */
   explicit StatsStorageReference(StatsStorageValue *stats_storage_value,
                                  common::SharedLatch::UniqueSharedLatch stats_storage_shared_latch)
       : stats_storage_value_(stats_storage_value), stats_storage_shared_latch_(std::move(stats_storage_shared_latch)) {}
