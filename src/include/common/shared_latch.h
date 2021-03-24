@@ -91,16 +91,8 @@ class SharedLatch {
      * Acquire read lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit UniqueSharedLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch) {
+    explicit UniqueSharedLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch), owns_(false) {
       rw_latch_->LockShared();
-      owns_ = true;
-    }
-    /**
-     * Moves owner of other UniqueSharedLatch to this
-     * @param other UniqueSharedLatch to move ownership from
-     */
-    UniqueSharedLatch(UniqueSharedLatch &&other) noexcept : rw_latch_(other.rw_latch_) {
-      other.owns_ = false;
       owns_ = true;
     }
     /**
@@ -111,11 +103,22 @@ class SharedLatch {
         rw_latch_->UnlockShared();
       }
     }
+    /**
+     * Moves owner of other UniqueSharedLatch to this
+     * @param other UniqueSharedLatch to move ownership from
+     */
+    UniqueSharedLatch(UniqueSharedLatch &&other) noexcept : rw_latch_(other.rw_latch_), owns_(other.owns_) {
+      other.owns_ = false;
+    }
+    /*
+     * Move assignment is currently unimplemented because it's not needed yet
+     */
+    UniqueSharedLatch &operator=(UniqueSharedLatch &&other) = delete;
     DISALLOW_COPY(UniqueSharedLatch)
 
    private:
-    bool owns_;
     SharedLatch *const rw_latch_;
+    bool owns_;
   };
 
   /**
@@ -127,31 +130,34 @@ class SharedLatch {
      * Acquire read lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit UniqueExclusiveLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch) {
+    explicit UniqueExclusiveLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch), owns_(false) {
       rw_latch_->LockExclusive();
       owns_ = true;
     }
     /**
-     * Moves owner of other UniqueExclusiveLatch to this
-     * @param other UniqueExclusiveLatch to move ownership from
-     */
-    UniqueExclusiveLatch(UniqueExclusiveLatch &&other) noexcept : rw_latch_(other.rw_latch_) {
-      other.owns_ = false;
-      owns_ = true;
-    }
-    /**
-     * Release read lock (if acquired).
+     * Release read lock (if acquired and owned).
      */
     ~UniqueExclusiveLatch() {
       if (owns_) {
         rw_latch_->UnlockExclusive();
       }
     }
+    /**
+     * Moves owner of other UniqueExclusiveLatch to this
+     * @param other UniqueExclusiveLatch to move ownership from
+     */
+    UniqueExclusiveLatch(UniqueExclusiveLatch &&other) noexcept : rw_latch_(other.rw_latch_), owns_(other.owns_) {
+      other.owns_ = false;
+    }
+    /*
+     * Move assignment is currently unimplemented because it's not needed yet
+     */
+    UniqueExclusiveLatch &operator=(UniqueExclusiveLatch &&other) = delete;
     DISALLOW_COPY(UniqueExclusiveLatch)
 
    private:
-    bool owns_;
     SharedLatch *const rw_latch_;
+    bool owns_;
   };
 
  private:
