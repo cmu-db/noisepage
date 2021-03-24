@@ -78,6 +78,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
       // TODO(WAN): Tianlei to add multiple queues in the log serializer task here based on policy.
       flush_queue_.push(buffer_segment);
+      buffer_policies_.emplace(buffer_segment, policy);
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();
     }
@@ -109,6 +110,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   std::mutex flush_queue_latch_;
   // Stores unserialized buffers handed off by transactions
   std::queue<RecordBufferSegment *> flush_queue_;
+  /** The policies to apply to each buffer in the flush_queue_. */
+  std::unordered_map<RecordBufferSegment *, transaction::TransactionPolicy> buffer_policies_;
 
   // conditional variable to be notified when there are logs to be processed
   std::condition_variable flush_queue_cv_;
@@ -118,6 +121,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
   // Current buffer we are serializing logs to
   BufferedLogWriter *filled_buffer_;
+  std::optional<transaction::TransactionPolicy> filled_buffer_policy_;  ///< Transaction policy for the current buffer.
   // Commit callbacks for commit records currently in filled_buffer
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 

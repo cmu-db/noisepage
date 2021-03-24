@@ -66,5 +66,10 @@ enum class ReplicationPolicy : uint8_t {
 struct TransactionPolicy {
   DurabilityPolicy durability_;    ///< Durability policy for the entire transaction.
   ReplicationPolicy replication_;  ///< Replication policy for the entire transaction.
+
+  /** @return True if the transaction policies are identical. False otherwise. */
+  bool operator==(const TransactionPolicy &other) const {
+    return durability_ == other.durability_ && replication_ == other.replication_;
+  }
 };
 }  // namespace noisepage::transaction

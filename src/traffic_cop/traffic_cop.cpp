@@ -504,7 +504,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     const network::connection_id_t connection_id, const std::string &database_name) {
   auto *const txn = txn_manager_->BeginTransaction();
-  txn->SetDurabilityPolicy(transaction::DurabilityPolicy::DISABLE);
+  txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
 
   const auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
@@ -533,7 +533,7 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   NOISEPAGE_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID,
                    "Called DropTempNamespace() with an invalid namespace oid.");
   auto *const txn = txn_manager_->BeginTransaction();
-  txn->SetDurabilityPolicy(transaction::DurabilityPolicy::DISABLE);
+  txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
 
   const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   NOISEPAGE_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");
