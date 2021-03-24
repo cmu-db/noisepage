@@ -365,8 +365,8 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
     const_value_expr_ptr = std::make_unique<parser::ConstantValueExpression>(
         type::TypeId::REAL, execution::sql::Real(static_cast<float>(i)));
     // Create a value condition to pass to SelectivityUtil.
-    value_condition =
-        ValueCondition(table3_real_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
+    value_condition = ValueCondition(table3_real_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
+                                     std::move(const_value_expr_ptr));
     res = SelectivityUtil::ComputeSelectivity(table_stats_3_, value_condition);
 
     // Count min sketch can over-estimate the number of matching columns.
