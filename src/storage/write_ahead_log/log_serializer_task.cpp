@@ -104,7 +104,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
             HandFilledBufferToWriter();
             filled_buffer_policy_.reset();
           }
-          // At this point, either filled_buffers_ is back to nullptr or the policy is compatible.
+          // At this point, either filled_buffer_ is back to nullptr or the policy is compatible.
           filled_buffer_policy_ = policy;
         }
 

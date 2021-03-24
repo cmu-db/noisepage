@@ -154,9 +154,9 @@ class BufferedLogWriter {
    *         it is safe to now reuse this BufferedLogWriter.
    */
   bool MarkSerialized() {
-    auto count = serialize_refcount_.fetch_sub(1);
+    auto count_before_sub = serialize_refcount_.fetch_sub(1);
     NOISEPAGE_ASSERT(serialize_refcount_.load() >= 0, "This buffer was serialized too many times?");
-    return count == 0;
+    return count_before_sub == 1;
   }
 
  private:
