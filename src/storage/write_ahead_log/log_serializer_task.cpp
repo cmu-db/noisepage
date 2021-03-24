@@ -167,7 +167,7 @@ void LogSerializerTask::HandFilledBufferToWriter() {
                        "Replication enabled but replication manager disabled?");
       NOISEPAGE_ASSERT(filled_buffer_policy_->replication_ == transaction::ReplicationPolicy::SYNC,
                        "No async support yet.");
-      primary_replication_manager_->ReplicateBuffer(filled_buffer_);
+      primary_replication_manager_->ReplicateBuffer(filled_buffer_, commits_in_buffer_);
     }
   }
   // Hand over the filled buffer
@@ -193,7 +193,8 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
         // necessary for the transaction's callback function to be invoked, but there is no need to serialize it, as
         // it corresponds to a transaction with nothing to redo.
         if (!commit_record->IsReadOnly()) num_bytes += SerializeRecord(record);
-        commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
+        commits_in_buffer_.emplace_back(
+            CommitCallback{commit_record->CommitCallback(), commit_record->CommitCallbackArg(), record.TxnBegin()});
         // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
         serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
         num_txns++;
@@ -203,8 +204,8 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
       case (LogRecordType::ABORT): {
         // If an abort record shows up at all, the transaction cannot be read-only
         num_bytes += SerializeRecord(record);
-        auto *abord_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
-        serialized_txns_[abord_record->TimestampManager()].push_back(record.TxnBegin());
+        auto *abort_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
+        serialized_txns_[abort_record->TimestampManager()].push_back(record.TxnBegin());
         num_txns++;
         break;
       }

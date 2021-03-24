@@ -255,10 +255,16 @@ PrimaryReplicationManager::PrimaryReplicationManager(
 
 PrimaryReplicationManager::~PrimaryReplicationManager() = default;
 
-void PrimaryReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer) {
+void PrimaryReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer,
+                                                const std::vector<storage::CommitCallback> &commit_callbacks) {
   if (!replication_enabled_) {
     REPLICATION_LOG_WARN(fmt::format("Skipping replicate buffer as replication is disabled."));
     return;
+  }
+
+  // Collect the list of transaction callbacks.
+  for (const auto &callback : commit_callbacks) {
+    txn_callbacks_.insert({callback.txn_start_time_, {callback.fn_, callback.arg_, callback.txn_start_time_}});
   }
 
   NOISEPAGE_ASSERT(buffer != nullptr,

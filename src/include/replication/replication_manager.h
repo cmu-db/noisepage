@@ -14,6 +14,7 @@
 #include "common/managed_pointer.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
+#include "storage/write_ahead_log/log_io.h"
 
 namespace noisepage::storage {
 class AbstractLogProvider;
@@ -241,6 +242,8 @@ class ReplicationManager {
 
   /** Once used, buffers are returned to a central empty buffer queue. */
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
+  /** Map from transaction start times (aka transaction ID) to commit callbacks. */
+  std::unordered_map<transaction::timestamp_t, storage::CommitCallback> txn_callbacks_;
 
  private:
   /**
@@ -286,9 +289,10 @@ class PrimaryReplicationManager final : public ReplicationManager {
   /**
    * Send a buffer to all the replicas as a REPLICATE_BUFFER message.
    *
-   * @param buffer          The buffer to be replicated.
+   * @param buffer              The batch of records to be replicated.
+   * @param commit_callbacks    The commit callbacks associated with the batch of records.
    */
-  void ReplicateBuffer(storage::BufferedLogWriter *buffer);
+  void ReplicateBuffer(storage::BufferedLogWriter *buffer, const std::vector<storage::CommitCallback> &commit_callbacks);
 
  protected:
   uint64_t next_buffer_sent_id_ = 1;  ///< The ID of the next buffer to send.

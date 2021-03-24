@@ -239,10 +239,12 @@ class BufferedLogReader {
   void RefillBuffer();
 };
 
-/**
- * Callback function and arguments to be called when record is persisted
- */
-using CommitCallback = std::pair<transaction::callback_fn, void *>;
+/** A commit callback is of the form fn_(arg_), and is invoked when the corresponding commit record is persisted. */
+struct CommitCallback {
+  transaction::callback_fn fn_;              ///< The commit callback to invoke.
+  void *arg_;                                ///< The argument to invoke the commit callback with.
+  transaction::timestamp_t txn_start_time_;  ///< (Metadata) The transaction ID that generated this commit callback.
+};
 
 /**
  * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are
