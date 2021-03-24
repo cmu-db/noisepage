@@ -58,8 +58,12 @@ struct CommitCallbackArg {
 
 static void CommitCallback(void *const callback_arg) {
   auto *const cb_arg = reinterpret_cast<CommitCallbackArg *const>(callback_arg);
-  --cb_arg->persist_countdown_;
-  if (cb_arg->persist_countdown_ == 0) {
+  uint8_t count_before_sub = cb_arg->persist_countdown_.fetch_sub(1);
+  NOISEPAGE_ASSERT(
+      count_before_sub != 0,
+      "Every component should have invoked the callback already. The policy may not have been correctly initialized?");
+  bool was_last_callback = count_before_sub == 1;
+  if (was_last_callback) {
     cb_arg->ready_to_commit_.set_value(true);
   }
 }
@@ -82,7 +86,7 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
     NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                      "Invalid ConnectionContext state, not in a transaction that can be committed.");
     // Set up a blocking callback. Will be invoked when we can tell the client that commit is complete.
-    CommitCallbackArg cb_arg({txn->GetDurabilityPolicy(), txn->GetReplicationPolicy()});
+    CommitCallbackArg cb_arg(txn->GetTransactionPolicy());
     auto future = cb_arg.ready_to_commit_.get_future();
     NOISEPAGE_ASSERT(future.valid(), "future must be valid for synchronization to work.");
     txn_manager_->Commit(txn.Get(), CommitCallback, &cb_arg);
