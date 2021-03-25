@@ -98,7 +98,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
       if (!temp_replication_flush_queue_.empty()) {
         replication_buffers_processed = true;
       }
-  
+
       while (!temp_replication_flush_queue_.empty()) {
         RecordBufferSegment *buffer = temp_replication_flush_queue_.front();
         temp_replication_flush_queue_.pop();
