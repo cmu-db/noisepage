@@ -32,7 +32,6 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param buffer_pool                        Buffer pool to use to release serialized buffers.
    * @param empty_buffer_queue                 Pointer to queue to pop empty buffers from.
    * @param disk_filled_buffer_queue           Pointer to disk queue to push filled buffers to.
-   * @param replication_filled_buffer_queue    Pointer to replication queue to push filled buffers to.
    * @param disk_log_writer_thread_cv          Pointer to cvar to notify consumer when a new buffer has handed over.
    * @param primary_replication_manager        Pointer to replication manager where to-be-replicated serialized logs are
    * sent.
@@ -41,7 +40,6 @@ class LogSerializerTask : public common::DedicatedThreadTask {
       const std::chrono::microseconds serialization_interval, RecordBufferSegmentPool *buffer_pool,
       common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue,
       common::ConcurrentQueue<storage::SerializedLogs> *disk_filled_buffer_queue,
-      common::ConcurrentQueue<storage::SerializedLogs> *replication_filled_buffer_queue,
       std::condition_variable *disk_log_writer_thread_cv,
       common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager)
       : run_task_(false),
@@ -51,7 +49,6 @@ class LogSerializerTask : public common::DedicatedThreadTask {
         replication_filled_buffer_(nullptr),
         empty_buffer_queue_(empty_buffer_queue),
         disk_filled_buffer_queue_(disk_filled_buffer_queue),
-        replication_filled_buffer_queue_(replication_filled_buffer_queue),
         disk_log_writer_thread_cv_(disk_log_writer_thread_cv),
         primary_replication_manager_(primary_replication_manager) {}
 

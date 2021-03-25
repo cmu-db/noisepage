@@ -170,7 +170,6 @@ class LogManager : public common::DedicatedThreadOwner {
   common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
   common::ConcurrentQueue<SerializedLogs> disk_filled_buffer_queue_;
-  common::ConcurrentQueue<SerializedLogs> replication_filled_buffer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);

@@ -27,8 +27,7 @@ void LogManager::Start() {
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
       this /* requester */, serialization_interval_, buffer_pool_, empty_buffer_queue_, &disk_filled_buffer_queue_,
-      &replication_filled_buffer_queue_, &disk_log_writer_task_->disk_log_writer_thread_cv_,
-      primary_replication_manager_);
+      &disk_log_writer_task_->disk_log_writer_thread_cv_, primary_replication_manager_);
 }
 
 void LogManager::ForceFlush() {
@@ -66,7 +65,6 @@ void LogManager::PersistAndStop() {
   // Clear buffer queues
   empty_buffer_queue_->Clear();
   disk_filled_buffer_queue_.Clear();
-  replication_filled_buffer_queue_.Clear();
   buffers_.clear();
 }
 
