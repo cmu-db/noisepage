@@ -55,6 +55,7 @@ class RecordBufferSegment {
  private:
   template <class RecordType>
   friend class IterableBufferSegment;
+  friend class LogSerializerTask;
 
   friend class UndoBuffer;
 

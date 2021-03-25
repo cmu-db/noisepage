@@ -98,7 +98,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
       if (!temp_replication_flush_queue_.empty()) {
         replication_buffers_processed = true;
       }
-
+  
       while (!temp_replication_flush_queue_.empty()) {
         RecordBufferSegment *buffer = temp_replication_flush_queue_.front();
         temp_replication_flush_queue_.pop();
@@ -106,6 +106,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         // Serialize the Redo buffer and release it to the buffer pool
         IterableBufferSegment<LogRecord> task_buffer(buffer);
         const auto num_bytes_records_and_txns = SerializeBuffer(&task_buffer, SerializeDestination::REPLICAS);
+        buffer_pool_->Release(buffer);
 
         num_bytes += std::get<0>(num_bytes_records_and_txns);
         num_records += std::get<1>(num_bytes_records_and_txns);
