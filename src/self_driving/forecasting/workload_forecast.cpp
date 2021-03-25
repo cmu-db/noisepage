@@ -27,7 +27,7 @@ WorkloadForecast::WorkloadForecast(uint64_t forecast_interval) : forecast_interv
  * These segments will eventually store the result of workload/query arrival rate prediction.
  */
 void WorkloadForecast::CreateSegments() {
-  std::unordered_map<execution::query_id_t, uint64_t> curr_segment;
+  std::map<execution::query_id_t, uint64_t> curr_segment;
 
   uint64_t curr_time = query_timestamp_to_id_.begin()->first;
 
@@ -36,7 +36,7 @@ void WorkloadForecast::CreateSegments() {
     if (it.first > curr_time + forecast_interval_) {
       forecast_segments_.emplace_back(std::move(curr_segment));
       curr_time = it.first;
-      curr_segment = std::unordered_map<execution::query_id_t, uint64_t>();
+      curr_segment = std::map<execution::query_id_t, uint64_t>();
     }
 
     if (curr_segment.find(it.second) == curr_segment.end()) curr_segment.emplace(it.second, 0);

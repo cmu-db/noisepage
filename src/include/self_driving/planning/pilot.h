@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <map>
 #include <memory>
 #include <string>
@@ -74,7 +75,7 @@ class Pilot {
    * @param txn_manager transaction manager
    * @param workload_forecast_interval Interval used in the forecastor
    */
-  Pilot(std::string model_save_path, std::string forecast_model_save_path,
+  Pilot(std::string ou_model_save_path, std::string interference_model_save_path, std::string forecast_model_save_path,
         common::ManagedPointer<catalog::Catalog> catalog, common::ManagedPointer<metrics::MetricsThread> metrics_thread,
         common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
         common::ManagedPointer<settings::SettingsManager> settings_manager,
@@ -85,7 +86,7 @@ class Pilot {
    * Get model save path
    * @return save path of the mini model
    */
-  const std::string &GetModelSavePath() { return model_save_path_; }
+  const std::string &GetOUModelSavePath() { return ou_model_save_path_; }
 
   /**
    * Get pointer to model server manager
@@ -123,16 +124,19 @@ class Pilot {
   /**
    * Execute, collect pipeline metrics, and get ou prediction for each pipeline under different query parameters for
    * queries between start and end segment indices (both inclusive) in workload forecast.
-   * @param pipeline_to_prediction to be populated, map from a pipeline in forecasted queries to the list of ou
-   * prediction for different parameters, each ou prediction is a 2D double array
    * @param start_segment_index start segment index in forecast to be considered
    * @param end_segment_index end segment index in forecast to be considered
+   * @param query_info
+   * @param segment_to_offset
+   * @param interference_result_matrix
    */
-  void ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction,
-                       uint64_t start_segment_index, uint64_t end_segment_index);
+  void ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
+                       std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+                       std::map<uint32_t, uint64_t> *segment_to_offset,
+                       std::vector<std::vector<double>> *interference_result_matrix);
 
-  std::string model_save_path_;
+  std::string ou_model_save_path_;
+  std::string interference_model_save_path_;
   std::string forecast_model_save_path_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<metrics::MetricsThread> metrics_thread_;

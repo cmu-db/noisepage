@@ -125,6 +125,36 @@ class PilotUtil {
   static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t start_segment_index, uint64_t end_segment_index);
 
+  static void InterferenceInference(
+      const std::string &interference_model_save_path,
+      common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+      const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
+          std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
+      common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+      uint64_t start_segment_index, uint64_t end_segment_index,
+      std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+      std::map<uint32_t, uint64_t> *segment_to_offset,
+      std::vector<std::vector<double>> *interference_result_matrix);
+  /**
+   *
+   * @param feature
+   * @param delta_feature
+   * @param normalization
+   */
+  static void SumFeatureInPlace(std::vector<double> feature, std::vector<double> delta_feature, double normalization);
+
+
+  /**
+   * Populate interference with first 9 dimension as feature vector normalized by the last dimension (ELAPSED_US);
+   * next 9 dimension as sum of ou features in current segment normazlied by interval of segment;
+   * last 9 dimension as all zeros.
+   * @param feature
+   * @param normalization
+   * @return
+   */
+  static std::vector<double> GetInterferenceFeature(std::vector<double> feature,
+                                                    std::vector<double> normalized_feat_sum);
+
  private:
   /**
    * Group pipeline features by ou for block inference
@@ -143,6 +173,8 @@ class PilotUtil {
       const std::vector<execution::query_id_t> &pipeline_qids,
       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
       std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features);
+
+  static const uint64_t interference_dimension{27};
 };
 
 }  // namespace noisepage::selfdriving

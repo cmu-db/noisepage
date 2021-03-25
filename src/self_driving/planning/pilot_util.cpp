@@ -135,45 +135,66 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
   }
 }
 
+void PilotUtil::SumFeatureInPlace(std::vector<double> feature, std::vector<double> delta_feature, double normalization) {
+  for (auto i = 0; i < feature.size(); i++) {
+    feature[i] += delta_feature[i] / normalization;
+  }
+}
+
+/**
+ * Normalize feature by the last dimension
+ * @param feature
+ * @param normalization
+ * @return
+ */
+std::vector<double> PilotUtil::GetInterferenceFeature(std::vector<double> feature,
+                                                      std::vector<double> normalized_feat_sum) {
+  std::vector<double> interference_feat;
+  for (auto i = 0; i < feature.size(); i++) {
+    interference_feat.emplace_back(feature[i] / feature[feature.size() - 1]);
+  }
+
+  interference_feat.insert(interference_feat.end(), normalized_feat_sum.begin(), normalized_feat_sum.end());
+  NOISEPAGE_ASSERT(interference_feat.size() == 18, "expect 18 nonzero elements in interference feature");
+  interference_feat.resize(interference_dimension - interference_feat.size(), 0.0);
+  return interference_feat;
+}
+
 double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                               uint64_t start_segment_index, uint64_t end_segment_index) {
   // Compute cost as total latency of queries based on their num of exec
-  // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
-  // (where each entry corresponds to a different query param)
-  // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
-  // parameters
-  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
-      pipeline_to_prediction;
-  pilot->ExecuteForecast(&pipeline_to_prediction, start_segment_index, end_segment_index);
 
-  std::vector<std::pair<execution::query_id_t, double>> query_cost;
-  execution::query_id_t prev_qid = pipeline_to_prediction.begin()->first.first;
-  query_cost.emplace_back(prev_qid, 0);
+  // query id, num_param of this query executed, total number of collected ous for this query
+  std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> query_info;
+  // This is to record the start index of ou records belonging to a segment in input to the interference model
+  std::map<uint32_t, uint64_t> segment_to_offset;
+  std::vector<std::vector<double>> interference_result_matrix;
 
-  for (auto const &pipeline_to_pred : pipeline_to_prediction) {
-    double pipeline_sum = 0;
-    for (auto const &pipeline_res : pipeline_to_pred.second) {
-      for (auto ou_res : pipeline_res) {
-        // sum up the latency of ous
-        pipeline_sum += ou_res[ou_res.size() - 1];
+  pilot->ExecuteForecast(start_segment_index, end_segment_index, &query_info, &segment_to_offset,
+                         &interference_result_matrix);
+
+  double total_cost = 0.0;
+
+  for (auto seg_idx = start_segment_index; seg_idx <= end_segment_index; seg_idx ++) {
+    std::vector<std::pair<execution::query_id_t, double>> query_cost;
+
+    auto query_ou_offset = segment_to_offset[seg_idx];
+
+    // separately get the cost of each query, averaged over diff set of params, for this segment
+    // iterate through the sorted list of qids for this segment
+    for (auto id_num_exec : forecast->GetSegmentByIndex(seg_idx).GetIdToNumexec()) {
+      double curr_query_cost = 0.0;
+      for (auto ou_idx = query_ou_offset; ou_idx < query_ou_offset + query_info[id_num_exec.first].second; ou_idx ++) {
+        curr_query_cost +=
+            interference_result_matrix.at(ou_idx).back() / static_cast<double>(query_info[id_num_exec.first].first);
+
       }
-    }
-    // record average cost of this pipeline among the same queries with diff param
-    if (prev_qid == pipeline_to_pred.first.first) {
-      query_cost.back().second += pipeline_sum / pipeline_to_pred.second.size();
-    } else {
-      query_cost.emplace_back(pipeline_to_pred.first.first, pipeline_sum / pipeline_to_pred.second.size());
-      prev_qid = pipeline_to_pred.first.first;
+      total_cost += (double) id_num_exec.second * curr_query_cost;
+      query_ou_offset += query_info[id_num_exec.first].second;
+
     }
   }
-  double total_cost = 0, num_queries = 0;
-  for (auto qcost : query_cost) {
-    for (auto i = start_segment_index; i <= end_segment_index; i++) {
-      total_cost += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first) * qcost.second;
-      num_queries += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first);
-    }
-  }
-  NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");
+
   return total_cost;
 }
 
@@ -248,7 +269,7 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
   return aggregated_data->pipeline_data_;
 }
 
-void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
+void PilotUtil::InferenceWithFeatures(const std::string &ou_model_save_path,
                                       common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
                                       const std::vector<execution::query_id_t> &pipeline_qids,
                                       const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
@@ -264,7 +285,7 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
     auto res = model_server_manager->InferOUModel(
-        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), model_save_path,
+        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), ou_model_save_path,
         ou_map_it.second);
     if (!res.second) {
       throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
@@ -287,6 +308,87 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
     }
     pipeline_to_prediction->at(pipeline_key).emplace_back(std::move(pipeline_result));
   }
+
+}
+
+void PilotUtil::InterferenceInference(
+    const std::string &interference_model_save_path,
+    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+    const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
+        std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
+    common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+    uint64_t start_segment_index, uint64_t end_segment_index,
+    std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+    std::map<uint32_t, uint64_t> *segment_to_offset,
+    std::vector<std::vector<double>> *interference_result_matrix) {
+
+  std::vector<std::pair<execution::query_id_t, std::vector<double>>> query_feat_sum;
+  execution::query_id_t curr_qid = pipeline_to_prediction.begin()->first.first;
+
+  auto feat_dim = pipeline_to_prediction.begin()->second.back().size();
+  query_feat_sum.emplace_back(curr_qid, std::vector<double> (feat_dim,0.0));
+
+  // Compute the sum of ous for a query, averaged over diff set of params
+  for (auto const &pipeline_to_pred : pipeline_to_prediction) {
+    std::vector<double> pipeline_sum(feat_dim,0.0);
+    auto num_ou_for_ppl = 0;
+
+    for (auto const &pipeline_res : pipeline_to_pred.second) {
+      for (auto ou_res : pipeline_res) {
+        // sum up the ou prediction results of all ous in a pipeline
+        SumFeatureInPlace(pipeline_sum, ou_res, 1);
+      }
+      num_ou_for_ppl += pipeline_res.size();
+    }
+    // record average feat sum of this pipeline among the same queries with diff param
+    if (curr_qid == pipeline_to_pred.first.first) {
+      SumFeatureInPlace(query_feat_sum.back().second, pipeline_sum, pipeline_to_pred.second.size());
+      query_info->at(curr_qid).second += num_ou_for_ppl;
+    } else {
+      query_feat_sum.emplace_back(pipeline_to_pred.first.first, std::vector<double> (feat_dim,0.0));
+      query_info->emplace(pipeline_to_pred.first.first, std::make_pair(pipeline_to_pred.second.size(), 0));
+
+      SumFeatureInPlace(query_feat_sum.back().second, pipeline_sum, pipeline_to_pred.second.size());
+      query_info->at(curr_qid).second += num_ou_for_ppl;
+      curr_qid = pipeline_to_pred.first.first;
+    }
+  }
+
+  // Populate interference_features matrix:
+  //  Compute sum of all ous in a segment, normalized by its interval
+  std::vector<std::vector<double>> interference_features;
+
+  for (auto i = start_segment_index; i <= end_segment_index; i++) {
+    std::vector<double> normalized_feat_sum(feat_dim,0.0);
+    auto id_to_num_exec = forecast->GetSegmentByIndex(i).GetIdToNumexec();
+
+    segment_to_offset->emplace(i, interference_features.size());
+
+    for (auto const& id_to_query_sum: query_feat_sum) {
+      if (id_to_num_exec.find(id_to_query_sum.first) != id_to_num_exec.end()) {
+        // account for number of exec of this query
+        // and normalize the ou_sum in an interval by the length of this interval
+        SumFeatureInPlace(normalized_feat_sum, id_to_query_sum.second,
+                          forecast->forecast_interval_ / id_to_num_exec[id_to_query_sum.first]);
+      }
+    }
+    // curr_feat_sum now holds the sum of all ous in this segment normalized by its interval
+    for (auto const &pipeline_to_pred : pipeline_to_prediction) {
+      if (id_to_num_exec.find(pipeline_to_pred.first.first) == id_to_num_exec.end()) {
+        continue;
+      }
+      for (auto const &pipeline_res : pipeline_to_pred.second) {
+        for (auto ou_res : pipeline_res) {
+          interference_features.emplace_back(GetInterferenceFeature(ou_res, normalized_feat_sum));
+        }
+      }
+    }
+  }
+
+  auto interference_result =
+      model_server_manager->InferInterferenceModel(interference_model_save_path, interference_features);
+  NOISEPAGE_ASSERT(interference_result.second, "Inference through interference model has error");
+  *interference_result_matrix = interference_result.first;
 }
 
 void PilotUtil::GroupFeaturesByOU(
