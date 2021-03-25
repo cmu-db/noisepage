@@ -37,16 +37,17 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   NOISEPAGE_ASSERT(records_batch != nullptr,
                    "Don't try to replicate null buffers. That's pointless."
                    "You might plausibly want to track statistics at some point, but that should not happen here.");
+
+  // Send the batch of records to all replicas.
   ReplicationMessageMetadata metadata(GetNextMessageId());
-
   RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
-
   messenger::messenger_cb_id_t destination_cb =
       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
   for (const auto &replica : replicas_) {
     Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb);
   }
 
+  // Return the buffered log writer to the pool if necessary.
   if (records_batch->MarkSerialized()) {
     empty_buffer_queue_->Enqueue(records_batch);
   }

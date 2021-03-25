@@ -41,7 +41,7 @@ class TimestampManager {
    * it is guaranteed that the return timestamp is older than any transactions live.
    * @warning If logging is enabled, txns are not removed from the txn set until they are serialized. Thus, the active
    * txn set can grow greatly in size, making this call expensive. Consider using CachedOldestTransactionStartTime for
-   * better peformance at the cost of a more stale timestamp.
+   * better performance at the cost of a more stale timestamp.
    * @return timestamp that is older than any transactions alive
    */
   timestamp_t OldestTransactionStartTime();
