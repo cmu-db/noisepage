@@ -2,11 +2,11 @@
 #include <cmath>
 #include <random>
 
-#include "self_driving/forecast/workload_forecast.h"
-#include "self_driving/pilot/action/abstract_action.h"
-#include "self_driving/pilot/mcts/tree_node.h"
-#include "self_driving/pilot/pilot.h"
-#include "self_driving/pilot_util.h"
+#include "self_driving/forecasting/workload_forecast.h"
+#include "self_driving/planning/action/abstract_action.h"
+#include "self_driving/planning/mcts/tree_node.h"
+#include "self_driving/planning/pilot.h"
+#include "self_driving/planning/pilot_util.h"
 
 #define EPSILON 1e-3
 

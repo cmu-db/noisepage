@@ -6,10 +6,10 @@
 #include <utility>
 #include <vector>
 
-#include "self_driving/pilot/action/abstract_action.h"
-#include "self_driving/pilot/action/action_defs.h"
-#include "self_driving/pilot/mcts/tree_node.h"
-#include "self_driving/pilot/pilot.h"
+#include "self_driving/planning/action/abstract_action.h"
+#include "self_driving/planning/action/action_defs.h"
+#include "self_driving/planning/mcts/tree_node.h"
+#include "self_driving/planning/pilot.h"
 
 namespace noisepage::selfdriving {
 class Pilot;

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "self_driving/pilot/action/action_defs.h"
+#include "self_driving/planning/action/action_defs.h"
 
 #define EPSILON 1e-3
 #define NULL_ACTION INT32_MAX

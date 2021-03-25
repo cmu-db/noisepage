@@ -1,4 +1,4 @@
-#include "self_driving/pilot/mcts/monte_carlo_tree_search.h"
+#include "self_driving/planning/mcts/monte_carlo_tree_search.h"
 
 #include <map>
 #include <vector>
@@ -6,9 +6,9 @@
 #include "common/managed_pointer.h"
 #include "loggers/selfdriving_logger.h"
 #include "planner/plannodes/abstract_plan_node.h"
-#include "self_driving/pilot/action/generators/change_knob_action_generator.h"
-#include "self_driving/pilot/action/generators/index_action_generator.h"
-#include "self_driving/pilot_util.h"
+#include "self_driving/planning/action/generators/change_knob_action_generator.h"
+#include "self_driving/planning/action/generators/index_action_generator.h"
+#include "self_driving/planning/pilot_util.h"
 #include "transaction/transaction_manager.h"
 
 namespace noisepage::selfdriving::pilot {
