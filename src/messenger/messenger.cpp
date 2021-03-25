@@ -553,9 +553,11 @@ void Messenger::ProcessMessage(const ZmqMessage &msg) {
                        "Bad message ID.");
       // Default: there should be a stored callback.
       MESSENGER_LOG_TRACE(fmt::format("[PID={}] Callback: invoking stored callback {}", ::getpid(), recv_cb_id));
+      callbacks_mutex_.lock();
       auto &callback = callbacks_.at(recv_cb_id);
       callback(common::ManagedPointer(this), msg);
       callbacks_.erase(recv_cb_id);
+      callbacks_mutex_.unlock();
     }
   }
 }

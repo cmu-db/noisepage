@@ -71,6 +71,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
   std::queue<std::vector<storage::CommitCallback>> txn_callbacks_;
   /** Map from transaction start times (aka transaction ID) to list of replicas that have applied the transaction. */
   std::unordered_map<transaction::timestamp_t, std::unordered_set<std::string>> txns_applied_on_replicas_;
+  std::mutex callbacks_mutex_; ///< Protecting txn_callbacks_ and txns_applied_on_replicas_.
   /** ID of the next batch of log records to be sent out to replicas. */
   std::atomic<record_batch_id_t> next_batch_id_{1};
 };

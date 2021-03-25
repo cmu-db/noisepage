@@ -514,7 +514,7 @@ class DBMain {
       }
 
       // If replication is enabled, perform synchronous replication by default.
-      if (use_replication_) {
+      if (use_replication_ && replication_manager->IsPrimary()) {
         txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
             transaction::ReplicationPolicy::SYNC);
       }

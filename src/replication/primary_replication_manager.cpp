@@ -31,8 +31,19 @@ void PrimaryReplicationManager::EventLoop(common::ManagedPointer<messenger::Mess
 
 void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWriter *records_batch,
                                                         const std::vector<storage::CommitCallback> &commit_callbacks) {
+  // TODO(WAN): DEBUG BLOCK
+  {
+    std::vector<transaction::timestamp_t> ts;
+    for (auto &cb : commit_callbacks) {
+      ts.emplace_back(cb.txn_start_time_);
+    }
+  }
+
   // Copy the commit callbacks into our local list.
-  txn_callbacks_.emplace(commit_callbacks);
+  {
+    std::unique_lock lock(callbacks_mutex_);
+    txn_callbacks_.emplace(commit_callbacks);
+  }
 
   NOISEPAGE_ASSERT(records_batch != nullptr,
                    "Don't try to replicate null buffers. That's pointless."
@@ -41,10 +52,12 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   // Send the batch of records to all replicas.
   ReplicationMessageMetadata metadata(GetNextMessageId());
   RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
+  REPLICATION_LOG_TRACE(fmt::format("BATCH {} TXNS {}", msg.GetBatchId(), common::json(ts).dump()));
+
   messenger::messenger_cb_id_t destination_cb =
       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
   for (const auto &replica : replicas_) {
-    Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb);
+    Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
   }
 
   // Return the buffered log writer to the pool if necessary.
@@ -62,20 +75,24 @@ record_batch_id_t PrimaryReplicationManager::GetNextBatchId() {
 }
 
 void PrimaryReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const TxnAppliedMsg &msg) {
-  REPLICATION_LOG_TRACE(fmt::format("[RECV] TxnAppliedMsg from {}: {}", zmq_msg.GetRoutingId(), msg.GetAppliedTxnId()));
+  REPLICATION_LOG_TRACE(fmt::format("[RECV] TxnAppliedMsg from {}: ID {} TXN {}", zmq_msg.GetRoutingId(),
+                                    msg.GetMessageId(), msg.GetAppliedTxnId()));
   // Acknowledge receipt of the txn having been applied on the replica.
   SendAckForMessage(zmq_msg, msg);
   // Mark the transaction as applied by the specific replica.
   transaction::timestamp_t txn_id = msg.GetAppliedTxnId();
-  if (txns_applied_on_replicas_.find(txn_id) == txns_applied_on_replicas_.end()) {
-    txns_applied_on_replicas_.emplace(txn_id, std::unordered_set<std::string>{});
-  }
-  std::unordered_set<std::string> &replicas = txns_applied_on_replicas_.at(txn_id);
-  replicas.emplace(zmq_msg.GetRoutingId());
-  // Check if all the replicas have applied this transaction.
-  if (replicas.size() == replicas_.size()) {
-    // If so, there may be new transaction callbacks that we can invoke.
-    ProcessTxnCallbacks();
+  {
+    std::unique_lock lock(callbacks_mutex_);
+    if (txns_applied_on_replicas_.find(txn_id) == txns_applied_on_replicas_.end()) {
+      txns_applied_on_replicas_.emplace(txn_id, std::unordered_set<std::string>{});
+    }
+    std::unordered_set<std::string> &replicas = txns_applied_on_replicas_.at(txn_id);
+    replicas.emplace(zmq_msg.GetRoutingId());
+    // Check if all the replicas have applied this transaction.
+    if (replicas.size() == replicas_.size()) {
+      // If so, there may be new transaction callbacks that we can invoke.
+      ProcessTxnCallbacks();
+    }
   }
 }
 

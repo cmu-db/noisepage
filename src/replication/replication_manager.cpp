@@ -12,7 +12,8 @@ ReplicationManager::ReplicationManager(
     const std::string &replication_hosts_path,
     common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
     : empty_buffer_queue_(empty_buffer_queue), messenger_(messenger), identity_(network_identity), port_(port) {
-  replication_logger->set_level(spdlog::level::trace);
+  // TODO(WAN): DEBUG BLOCK
+  { replication_logger->set_level(spdlog::level::trace); }
   // Start listening on the given replication port.
   messenger::ConnectionDestination listen_destination =
       messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
@@ -29,13 +30,21 @@ ReplicationManager::ReplicationManager(
 
 ReplicationManager::~ReplicationManager() = default;
 
-msg_id_t ReplicationManager::GetNextMessageId() { return next_msg_id_++; }
+msg_id_t ReplicationManager::GetNextMessageId() {
+  msg_id_t next_msg_id = next_msg_id_++;
+  if (next_msg_id_.load() == INVALID_MSG_ID) {
+    next_msg_id_++;
+  }
+  return next_msg_id;
+}
 
 void ReplicationManager::SendAckForMessage(const messenger::ZmqMessage &zmq_msg, const BaseReplicationMessage &msg) {
-  REPLICATION_LOG_TRACE(fmt::format("[SEND] AckMsg -> {}: {}", zmq_msg.GetRoutingId(), msg.GetMessageId()));
+  msg_id_t msg_id = GetNextMessageId();
+  REPLICATION_LOG_TRACE(
+      fmt::format("[SEND] AckMsg -> {}: ID {} ACKING {}", zmq_msg.GetRoutingId(), msg_id, msg.GetMessageId()));
 
-  AckMsg ack(ReplicationMessageMetadata(GetNextMessageId()), msg.GetMessageId());
-  Send(std::string(zmq_msg.GetRoutingId()), ack, nullptr, zmq_msg.GetSourceCallbackId());
+  AckMsg ack(ReplicationMessageMetadata(msg_id), msg.GetMessageId());
+  Send(std::string(zmq_msg.GetRoutingId()), ack, nullptr, zmq_msg.GetSourceCallbackId(), false);
 }
 
 void ReplicationManager::NodeConnect(const std::string &node_name, const std::string &hostname, uint16_t port) {
@@ -105,39 +114,43 @@ void ReplicationManager::BuildReplicationNetwork(const std::string &replication_
 
 void ReplicationManager::Send(const std::string &destination, const BaseReplicationMessage &message,
                               const messenger::CallbackFn &source_callback,
-                              messenger::messenger_cb_id_t destination_callback) {
+                              messenger::messenger_cb_id_t destination_callback, bool track_message) {
   common::ManagedPointer<messenger::ConnectionId> con_id = GetNodeConnection(destination);
 
-  REPLICATION_LOG_INFO(fmt::format("[SEND] -> {}: {} // PREVIEW {}", destination, message.GetMessageId(),
-                                   message.ToJson().dump().substr(0, MESSAGE_PREVIEW_LEN)));
+  REPLICATION_LOG_TRACE(fmt::format("[SEND] -> {}: ID {}        // PREVIEW {}", destination, message.GetMessageId(),
+                                    message.ToJson().dump().substr(0, MESSAGE_PREVIEW_LEN)));
 
-  msg_id_t msg_id = message.GetMessageId();
-  pending_msg_mutex_.lock();
-  if (pending_msg_.find(msg_id) == pending_msg_.end()) {
+  if (track_message) {
+    msg_id_t msg_id = message.GetMessageId();
+    pending_msg_mutex_.lock();
+    if (pending_msg_.find(msg_id) == pending_msg_.end()) {
+      pending_msg_.emplace(msg_id, message);
+    }
     pending_msg_.emplace(msg_id, message);
+    if (pending_msg_dests_.find(msg_id) == pending_msg_dests_.end()) {
+      pending_msg_dests_.emplace(msg_id, std::unordered_set<std::string>{});
+    }
+    pending_msg_dests_.at(msg_id).emplace(destination);
+    pending_msg_mutex_.unlock();
   }
-  pending_msg_.emplace(msg_id, message);
-  if (pending_msg_dests_.find(msg_id) == pending_msg_dests_.end()) {
-    pending_msg_dests_.emplace(msg_id, std::unordered_set<std::string>{});
-  }
-  pending_msg_dests_.at(msg_id).emplace(destination);
-  pending_msg_mutex_.unlock();
 
   messenger_->SendMessage(con_id, message.ToJson().dump(), source_callback, destination_callback);
 }
 
 void ReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const AckMsg &msg) {
-  REPLICATION_LOG_TRACE(fmt::format("ACK from {}: {}", zmq_msg.GetRoutingId(), msg.GetMessageAckId()));
+  REPLICATION_LOG_TRACE(fmt::format("[RECV] ACK from {}: {}", zmq_msg.GetRoutingId(), msg.GetMessageAckId()));
 
   // The callback will have been invoked by the Messenger poll loop already.
-  // However, need to clean up the message from the list of pending messages.
+  // However, need to clean up the message from the list of pending messages, if it was added there.
   msg_id_t msg_id = msg.GetMessageAckId();
   pending_msg_mutex_.lock();
-  std::unordered_set<std::string> &dests = pending_msg_dests_.find(msg_id)->second;
-  dests.erase(std::string(zmq_msg.GetRoutingId()));
-  if (dests.empty()) {
-    pending_msg_dests_.erase(msg_id);
-    pending_msg_.erase(msg_id);
+  if (auto it = pending_msg_dests_.find(msg_id); it != pending_msg_dests_.end()) {
+    std::unordered_set<std::string> &dests = it->second;
+    dests.erase(std::string(zmq_msg.GetRoutingId()));
+    if (dests.empty()) {
+      pending_msg_dests_.erase(msg_id);
+      pending_msg_.erase(msg_id);
+    }
   }
   pending_msg_mutex_.unlock();
 }

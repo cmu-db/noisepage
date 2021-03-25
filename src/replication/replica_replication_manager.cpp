@@ -14,7 +14,8 @@ ReplicaReplicationManager::ReplicaReplicationManager(
 ReplicaReplicationManager::~ReplicaReplicationManager() = default;
 
 void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const RecordsBatchMsg &msg) {
-  REPLICATION_LOG_TRACE(fmt::format("[RECV] RecordsBatchMsg from {}: {}", zmq_msg.GetRoutingId(), msg.GetMessageId()));
+  REPLICATION_LOG_TRACE(fmt::format("[RECV] RecordsBatchMsg from {}: ID {} BATCH {}", zmq_msg.GetRoutingId(),
+                                    msg.GetMessageId(), msg.GetBatchId()));
   // Acknowledge receipt of the batch of records.
   SendAckForMessage(zmq_msg, msg);
   // Add the batch of log records directly to the provider, which handles out of order batches.
@@ -38,10 +39,12 @@ void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Mess
 }
 
 void ReplicaReplicationManager::NotifyPrimaryTransactionApplied(transaction::timestamp_t txn_start_time) {
-  REPLICATION_LOG_TRACE(fmt::format("[SEND] TxnAppliedMsg -> primary: {}", txn_start_time));
+  msg_id_t msg_id = GetNextMessageId();
+  REPLICATION_LOG_TRACE(fmt::format("[SEND] TxnAppliedMsg -> primary: ID {} START {}", msg_id, txn_start_time));
 
-  TxnAppliedMsg msg(ReplicationMessageMetadata(GetNextMessageId()), txn_start_time);
-  Send("primary", msg, nullptr, messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
+  TxnAppliedMsg msg(ReplicationMessageMetadata(msg_id), txn_start_time);
+  Send("primary", msg, nullptr, messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP),
+       true);
 }
 
 }  // namespace noisepage::replication

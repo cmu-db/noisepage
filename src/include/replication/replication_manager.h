@@ -85,9 +85,11 @@ class ReplicationManager {
    * @param message                     The message to send.
    * @param source_callback             The callback to invoke on the response received, can be nullptr.
    * @param destination_callback        The callback that should be invoked on the destination.
+   * @param track_message               True if the message should be tracked in pending_msg_.
    */
   void Send(const std::string &destination, const BaseReplicationMessage &message,
-            const messenger::CallbackFn &source_callback, messenger::messenger_cb_id_t destination_callback);
+            const messenger::CallbackFn &source_callback, messenger::messenger_cb_id_t destination_callback,
+            bool track_message);
 
   /** The main event loop that all nodes run. This handles receiving messages. */
   virtual void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &zmq_msg,
@@ -129,7 +131,7 @@ class ReplicationManager {
   std::unordered_map<msg_id_t, std::unordered_set<std::string>> pending_msg_dests_;
   std::mutex pending_msg_mutex_;  ///< Mutex to protect pending_msg_ and pending_msg_dests_.
 
-  std::atomic<msg_id_t> next_msg_id_{0};  ///< ID of the next message being sent out.
+  std::atomic<msg_id_t> next_msg_id_{1};  ///< ID of the next message being sent out.
 };
 
 }  // namespace noisepage::replication
