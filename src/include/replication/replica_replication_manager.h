@@ -52,7 +52,7 @@ class ReplicaReplicationManager final : public ReplicationManager {
  protected:
   /** The main event loop that all replicas run. This handles receiving messages. */
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &zmq_msg,
-                 const BaseReplicationMessage &msg) override;
+                 common::ManagedPointer<BaseReplicationMessage> msg) override;
 
  private:
   void Handle(const messenger::ZmqMessage &zmq_msg, const RecordsBatchMsg &msg);

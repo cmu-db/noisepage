@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -75,6 +76,9 @@ class ReplicationManager {
    */
   msg_id_t GetNextMessageId();
 
+  /** Send an acknowledgement for the given message. */
+  void SendAckForMessage(const messenger::ZmqMessage &zmq_msg, const BaseReplicationMessage &msg);
+
   /**
    * Send the message to the given destination.
    * @param destination                 The destination to send the message to.
@@ -87,9 +91,9 @@ class ReplicationManager {
 
   /** The main event loop that all nodes run. This handles receiving messages. */
   virtual void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &zmq_msg,
-                         const BaseReplicationMessage &msg);
+                         common::ManagedPointer<BaseReplicationMessage> msg);
 
-  static constexpr size_t MESSAGE_PREVIEW_LEN = 20;    ///< The number of characters to preview in a message in debug.
+  static constexpr size_t MESSAGE_PREVIEW_LEN = 100;   ///< The number of characters to preview in a message in debug.
   std::unordered_map<std::string, Replica> replicas_;  ///< Replica Name -> Connection ID.
   /** Once used, buffers are returned to a central empty buffer queue. */
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;

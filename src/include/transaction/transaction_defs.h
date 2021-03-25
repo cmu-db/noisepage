@@ -49,14 +49,17 @@ using DeferredAction = std::function<void(timestamp_t)>;
 // see https://docs.singlestore.com/v7.3/key-concepts-and-features/cluster-management/replication-and-durability/
 
 /** DurabilityPolicy controls whether commits must wait for logs to be written to disk. */
-enum class DurabilityPolicy : uint8_t {
+enum class DurabilityPolicy : uint32_t {
   DISABLE = 0,  ///< Do not make any buffers durable.
   SYNC,         ///< Synchronous: commits must wait for logs to be written to disk.
   ASYNC         ///< Asynchronous: commits do not need to wait for logs to be written to disk.
 };
 
-/** ReplicationPolicy controls whether logs should be replicated over the network. */
-enum class ReplicationPolicy : uint8_t {
+/**
+ * ReplicationPolicy controls whether logs should be replicated over the network,
+ * and whether logs must be applied on replicas before commit callbacks are invoked.
+ */
+enum class ReplicationPolicy : uint32_t {
   DISABLE = 0,  ///< Do not replicate any logs.
   SYNC,         ///< Synchronous: commits must wait for logs to be replicated and applied.
   ASYNC         ///< Asynchronous: logs will be replicated, but commits do not need to wait for replication to happen.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <unordered_set>
 
 #include "replication/replication_manager.h"
@@ -39,7 +40,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
    * @param commit_callbacks    The commit callbacks associated with the batch of records.
    */
   void ReplicateBatchOfRecords(storage::BufferedLogWriter *records_batch,
-                             const std::vector<storage::CommitCallback> &commit_callbacks);
+                               const std::vector<storage::CommitCallback> &commit_callbacks);
 
   /** @return The ID of the last transaction that was sent to the replicas. */
   transaction::timestamp_t GetLastSentTransactionId() const { return transaction::timestamp_t{0}; }
@@ -47,14 +48,17 @@ class PrimaryReplicationManager final : public ReplicationManager {
  protected:
   /** The main event loop that the primary runs. This handles receiving messages. */
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &zmq_msg,
-                 const BaseReplicationMessage &msg) override;
+                 common::ManagedPointer<BaseReplicationMessage> msg) override;
 
  private:
+  record_batch_id_t GetNextBatchId();
+
   void Handle(const messenger::ZmqMessage &zmq_msg, const TxnAppliedMsg &msg);
 
   /**
    * Process every transaction callback where the associated transaction has been applied by all replicas.
-   * TODO(WAN): If implementing async, do NOT reuse this function in ReplicateBatchOfRecords() unless you add mutex+cvar.
+   * TODO(WAN): If implementing async, do NOT reuse this function in ReplicateBatchOfRecords() unless you add
+   * mutex+cvar.
    */
   void ProcessTxnCallbacks();
 
@@ -64,11 +68,11 @@ class PrimaryReplicationManager final : public ReplicationManager {
    * Each commit callback should be executed in order of addition, the reason for the double vector is so that
    * multiple calls to ReplicateBatchOfRecords() will not end up growing resizing a single vector repeatedly.
    * */
-  std::vector<std::vector<storage::CommitCallback>> txn_callbacks_;
+  std::queue<std::vector<storage::CommitCallback>> txn_callbacks_;
   /** Map from transaction start times (aka transaction ID) to list of replicas that have applied the transaction. */
   std::unordered_map<transaction::timestamp_t, std::unordered_set<std::string>> txns_applied_on_replicas_;
   /** ID of the next batch of log records to be sent out to replicas. */
-  std::atomic<record_batch_id_t> next_batch_id_{0};
+  std::atomic<record_batch_id_t> next_batch_id_{1};
 };
 
 }  // namespace noisepage::replication

@@ -99,13 +99,15 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         {
           transaction::TransactionPolicy &policy = buffer_policies_.at(buffer);
           // If the buffer policy is incompatible, then hand off the current filled buffer.
-          bool compatible = filled_buffer_policy_.has_value() && filled_buffer_policy_.value() == policy;
+          bool compatible = !filled_buffer_policy_.has_value() ||
+                            (filled_buffer_policy_.has_value() && filled_buffer_policy_.value() == policy);
           if (!compatible) {
             HandFilledBufferToWriter();
             filled_buffer_policy_.reset();
           }
           // At this point, either filled_buffer_ is back to nullptr or the policy is compatible.
           filled_buffer_policy_ = policy;
+          buffer_policies_.erase(buffer);
         }
 
         temp_flush_queue_.pop();

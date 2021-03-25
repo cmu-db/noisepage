@@ -1,5 +1,8 @@
 #include "replication/replica_replication_manager.h"
 
+#include "loggers/replication_logger.h"
+#include "replication/replication_messages.h"
+
 namespace noisepage::replication {
 
 ReplicaReplicationManager::ReplicaReplicationManager(
@@ -11,14 +14,19 @@ ReplicaReplicationManager::ReplicaReplicationManager(
 ReplicaReplicationManager::~ReplicaReplicationManager() = default;
 
 void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const RecordsBatchMsg &msg) {
-  // TODO(WAN): process batch of records
+  REPLICATION_LOG_TRACE(fmt::format("[RECV] RecordsBatchMsg from {}: {}", zmq_msg.GetRoutingId(), msg.GetMessageId()));
+  // Acknowledge receipt of the batch of records.
+  SendAckForMessage(zmq_msg, msg);
+  // Add the batch of log records directly to the provider, which handles out of order batches.
+  provider_.AddBatchOfRecords(msg);
 }
 
 void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
-                                          const messenger::ZmqMessage &zmq_msg, const BaseReplicationMessage &msg) {
-  switch (msg.GetMessageType()) {
+                                          const messenger::ZmqMessage &zmq_msg,
+                                          common::ManagedPointer<BaseReplicationMessage> msg) {
+  switch (msg->GetMessageType()) {
     case ReplicationMessageType::RECORDS_BATCH: {
-      Handle(zmq_msg, *(msg.GetAs<RecordsBatchMsg>()));
+      Handle(zmq_msg, *msg.CastManagedPointerTo<RecordsBatchMsg>());
       break;
     }
     default: {
@@ -30,7 +38,10 @@ void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Mess
 }
 
 void ReplicaReplicationManager::NotifyPrimaryTransactionApplied(transaction::timestamp_t txn_start_time) {
-  // TODO(WAN): send message to primary, add corresponding handling code
+  REPLICATION_LOG_TRACE(fmt::format("[SEND] TxnAppliedMsg -> primary: {}", txn_start_time));
+
+  TxnAppliedMsg msg(ReplicationMessageMetadata(GetNextMessageId()), txn_start_time);
+  Send("primary", msg, nullptr, messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
 }
 
 }  // namespace noisepage::replication

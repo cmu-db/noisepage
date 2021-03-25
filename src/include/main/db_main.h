@@ -513,6 +513,12 @@ class DBMain {
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
       }
 
+      // If replication is enabled, perform synchronous replication by default.
+      if (use_replication_) {
+        txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
+            transaction::ReplicationPolicy::SYNC);
+      }
+
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);

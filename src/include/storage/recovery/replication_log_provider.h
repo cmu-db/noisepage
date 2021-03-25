@@ -7,114 +7,127 @@
 #include <vector>
 
 #include "network/network_io_utils.h"
+#include "replication/replication_messages.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
 
 namespace noisepage::storage {
 
 /**
- * Log provider for logs being received over network.
+ * Log provider for the logs being received over network.
  * Provides logs to the recovery manager from logs being sent by master node over the network.
  */
 class ReplicationLogProvider final : public AbstractLogProvider {
  public:
   LogProviderType GetType() const override { return LogProviderType::REPLICATION; }
 
-  /**
-   * Notifies the log provider that replication is ending.
-   */
+  /** Notify the log provider that replication is ending. This signals all relevant condition variables. */
   void EndReplication() {
     std::unique_lock<std::mutex> lock(replication_latch_);
     replication_active_ = false;
     replication_cv_.notify_all();
   }
 
-  /** Buffer the message. */
-  void AddBufferFromMessage(const uint64_t primary_callback_id, const std::string &content) {
-    std::vector<unsigned char> bytes(content.begin(), content.end());
-    network::ReadBufferView view(bytes.size(), bytes.begin());
-    auto buffer = std::make_unique<network::ReadBuffer>();
-    buffer->FillBufferFrom(view, bytes.size());
-    {
-      std::unique_lock<std::mutex> lock(replication_latch_);
-      arrived_buffer_queue_.emplace(primary_callback_id, std::move(buffer));
-      replication_cv_.notify_one();
-    }
-
-    // TODO(WAN): if you want sync/async I think this is where you do it
+  /** Add the batch of records to the log provider. */
+  void AddBatchOfRecords(const replication::RecordsBatchMsg &msg) {
+    replication_latch_.lock();
+    received_batch_queue_.emplace(msg);
+    replication_latch_.unlock();
+    replication_cv_.notify_all();
   }
 
   /** @return True if there are more records. False otherwise. */
   bool NonBlockingHasMoreRecords() const {
-    return (curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !arrived_buffer_queue_.empty();
+    return (curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !received_batch_queue_.empty();
   }
 
  private:
-  /** True if replication is currently active. */
-  bool replication_active_ = true;
+  /** @return True if left > right. False otherwise. */
+  static bool CompareBatches(const replication::RecordsBatchMsg &left, const replication::RecordsBatchMsg &right) {
+    return left.GetBatchId() > right.GetBatchId();
+  }
 
-  // Current buffer to read logs from
-  std::unique_ptr<network::ReadBuffer> curr_buffer_ = nullptr;
-
-  // (Primary callback ID, buffers) that have arrived in packets from the master node
-  // TODO(Gus): For now, these buffers will most likely be allocated on demand by the network layer. We could consider
-  // having a buffer pool if allocation becomes a bottleneck
-  std::queue<std::pair<uint64_t, std::unique_ptr<network::ReadBuffer>>> arrived_buffer_queue_;
-
-  /**
-   * Callbacks that should be invoked on the primary once the current set of buffers that have been taken off the
-   * arrived buffer queue have been processed.
-   */
-  std::vector<uint64_t> primary_ackables_;
-
-  // Synchronisation primitives to synchronise arrival of packets and process termination
-  std::mutex replication_latch_;
-  std::condition_variable replication_cv_;
+  /** @return True if the next batch has arrived. Assumes replication_latch_ is held. */
+  bool NextBatchReady() {
+    // If there are no batches, then the next batch certainly has not arrived.
+    if (received_batch_queue_.empty()) {
+      return false;
+    }
+    // The next batch is ready for application if no batch has been applied yet or if the batch ID is consecutive.
+    bool no_batch_applied_yet = last_batch_popped_ == replication::INVALID_RECORD_BATCH_ID;
+    bool top_batch_is_next =
+        !received_batch_queue_.empty() &&
+        received_batch_queue_.top().GetBatchId() == replication::RecordsBatchMsg::NextBatchId(last_batch_popped_);
+    return no_batch_applied_yet || top_batch_is_next;
+  }
 
   /**
-   * @return true if log file contains more records, false otherwise. Can be blocking if waiting for message from
-   * master, or master has timed out.
+   * @return        If replication has ended, false.
+   *                If there are more log records that can be immediately applied, true.
+   *                If there are no such log records and replication has not yet ended, blocks.
    */
   bool HasMoreRecords() override {
     std::unique_lock<std::mutex> lock(replication_latch_);
-    // We wake up from CV if:
-    //  2. Someone ends replication
-    //  3. We have a current buffer and it has more bytes available
-    //  4. A new packet has arrived
-    replication_cv_.wait(lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords(); });
+    replication_cv_.wait(lock,
+                         [&] { return !replication_active_ || (NonBlockingHasMoreRecords() && NextBatchReady()); });
     return replication_active_;
   }
 
   /**
    * Read data from the log file into the destination provided.
-   * @param dest pointer to location to read into.
-   * @param size number of bytes to read.
-   * @return true if we read the given number of bytes.
+   * @param dest    Pointer to location to read into.
+   * @param size    Number of bytes to read.
+   * @return        True if the given number of bytes were read. False otherwise.
    */
   bool Read(void *dest, uint32_t size) override {
     if (curr_buffer_ == nullptr || !curr_buffer_->HasMore()) {
       std::unique_lock<std::mutex> lock(replication_latch_);
-      replication_cv_.wait(lock, [&] { return !replication_active_ || !arrived_buffer_queue_.empty(); });
-      // If we timeout or replication is shut down, return false
+      replication_cv_.wait(lock, [&] { return !replication_active_ || NextBatchReady(); });
+      // Check if replication has shut down.
       if (!replication_active_) return false;
 
-      NOISEPAGE_ASSERT(!arrived_buffer_queue_.empty(),
-                       "If we did not shut down or timeout, CV should only wake up when a new buffer arrives");
-      auto &buffer_elem = arrived_buffer_queue_.front();
-      // The first element is the numeric callback that we should invoke on the primary after processing buffers.
-      primary_ackables_.emplace_back(buffer_elem.first);
-      curr_buffer_ = std::move(buffer_elem.second);
-      arrived_buffer_queue_.pop();
+      // Pop the next batch of records off into curr_buffer_.
+      {
+        const replication::RecordsBatchMsg &msg = received_batch_queue_.top();
+        std::string contents = msg.GetContents();
+        std::vector<unsigned char> bytes(contents.begin(), contents.end());
+        network::ReadBufferView view(bytes.size(), bytes.begin());
+        auto buffer = std::make_unique<network::ReadBuffer>();
+        buffer->FillBufferFrom(view, bytes.size());
+
+        NOISEPAGE_ASSERT((last_batch_popped_ == replication::INVALID_RECORD_BATCH_ID) ||
+                             (msg.GetBatchId() == replication::RecordsBatchMsg::NextBatchId(last_batch_popped_)),
+                         "Batches are being added out of order?");
+
+        last_batch_popped_ = msg.GetBatchId();
+        curr_buffer_ = std::move(buffer);
+        received_batch_queue_.pop();
+        replication_cv_.notify_one();
+      }
     }
 
-    // Read in as much as as is availible in this buffer.
+    // Read in as much as is available in this buffer.
     auto readable_size = curr_buffer_->HasMore(size) ? size : curr_buffer_->BytesAvailable();
     curr_buffer_->ReadIntoView(readable_size).Read(readable_size, dest);
 
-    // If we didn't read all that we needed to, call Read again to read the rest of the data
-    // We cast dest to char* to increase pointer by the size we read.
+    // If there is more data to read, recursively call Read until all of the data is read.
     return (readable_size < size) ? Read(static_cast<char *>(dest) + readable_size, size - readable_size) : true;
   }
+
+  bool replication_active_ = true;  ///< True if replication is currently active. False otherwise.
+  std::unique_ptr<network::ReadBuffer> curr_buffer_ = nullptr;  ///< Current buffer to read logs from.
+
+  /** The batches received from replication. */
+  std::priority_queue<replication::RecordsBatchMsg, std::vector<replication::RecordsBatchMsg>,
+                      std::function<bool(replication::RecordsBatchMsg, replication::RecordsBatchMsg)>>
+      received_batch_queue_{CompareBatches};
+  replication::record_batch_id_t last_batch_popped_ = replication::INVALID_RECORD_BATCH_ID;
+
+  /** Synchronizes received_batch_queue_ and process termination. */
+  ///@{
+  std::mutex replication_latch_;
+  std::condition_variable replication_cv_;
+  ///@}
 };
 
 }  // namespace noisepage::storage

@@ -45,6 +45,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
         serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
         filled_buffer_(nullptr),
+        filled_buffer_policy_(std::nullopt),
         empty_buffer_queue_(empty_buffer_queue),
         filled_buffer_queue_(filled_buffer_queue),
         disk_log_writer_thread_cv_(disk_log_writer_thread_cv),
@@ -78,6 +79,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
       // TODO(WAN): Tianlei to add multiple queues in the log serializer task here based on policy.
       flush_queue_.push(buffer_segment);
+      NOISEPAGE_ASSERT(buffer_policies_.find(buffer_segment) == buffer_policies_.end(),
+                       "Clear the map, otherwise C++ map insertion behavior may give you a fun debugging surprise.");
       buffer_policies_.emplace(buffer_segment, policy);
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();

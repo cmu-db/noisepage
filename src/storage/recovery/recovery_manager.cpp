@@ -48,12 +48,6 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    if (replication_manager_ != DISABLED &&
-        log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
-      auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
-      if (!rep_log_provider->NonBlockingHasMoreRecords()) break;
-    }
-
     auto pair = log_provider->GetNextRecord();
     auto *log_record = pair.first;
 
@@ -109,6 +103,9 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
+  if (replication_manager_->IsReplica()) {
+    txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
+  }
 
   // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
   for (uint32_t idx = 0; idx < buffered_changes_map_[txn_id].size(); idx++) {

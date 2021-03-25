@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "common/enum_defs.h"
 #include "common/json_header.h"
 #include "messenger/messenger_defs.h"
@@ -48,47 +50,35 @@ class ReplicationMessageMetadata {
 /** Base class for all replicated messages. */
 class BaseReplicationMessage {
  public:
+  /** Destructor. */
+  virtual ~BaseReplicationMessage() = default;
+
   /** @return     The type of replication message that this is. */
-  virtual ReplicationMessageType GetMessageType() const { return ReplicationMessageType::INVALID; }
+  virtual ReplicationMessageType GetMessageType() const { return type_; }
 
   /** @return     The JSON form of this message. */
   virtual common::json ToJson() const;
 
   /** @return     The parsed replication message. */
-  static BaseReplicationMessage ParseFromJson(const common::json &json);
+  static std::unique_ptr<BaseReplicationMessage> ParseFromJson(const common::json &json);
 
   /** @return     The metadata for this message. */
   const ReplicationMessageMetadata &GetMetadata() const { return metadata_; }
 
-  /**
-   * @return      This replicated message as a message of the desired type.
-   * @warning     No error checking!
-   */
-  template <class T>
-  T *GetAs() {
-    // TODO(WAN): You could add error checking here based on T and the message type.
-    return dynamic_cast<T *>(this);
-  }
-
-  /**
-   * @return      This replicated message as a message of the desired type.
-   * @warning     No error checking!
-   */
-  template <class T>
-  const T *GetAs() const {
-    // TODO(WAN): You could add error checking here based on T and the message type.
-    return dynamic_cast<const T *>(this);
-  }
+  /** @return     The message ID from the metadata. Convenience function. */
+  msg_id_t GetMessageId() const { return GetMetadata().GetMessageId(); }
 
  protected:
   /** Constructor (to send). */
-  explicit BaseReplicationMessage(ReplicationMessageMetadata metadata);
+  explicit BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata);
   /** Constructor (to receive). */
   explicit BaseReplicationMessage(const common::json &json);
 
  private:
-  static const char *key_message_type;   ///< JSON key for the message type.
-  static const char *key_metadata;       ///< JSON key for the message metadata.
+  static const char *key_message_type;  ///< JSON key for the message type.
+  static const char *key_metadata;      ///< JSON key for the message metadata.
+
+  ReplicationMessageType type_;          ///< The type of this message.
   ReplicationMessageMetadata metadata_;  ///< The metadata for this message.
 };
 
@@ -100,16 +90,16 @@ class AckMsg : public BaseReplicationMessage {
  public:
   /** Constructor (to send). */
   AckMsg(ReplicationMessageMetadata metadata, msg_id_t message_ack_id);
+  /** Constructor (to receive). */
+  explicit AckMsg(const common::json &json);
+  /** Destructor. */
+  virtual ~AckMsg() = default;
+
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::ACK; }
   common::json ToJson() const override;
 
   /** @return The ID of the message being acknowledged. */
   msg_id_t GetMessageAckId() const { return message_ack_id_; }
-
- private:
-  friend BaseReplicationMessage;
-  /** Constructor (to receive). */
-  explicit AckMsg(const common::json &json);
 
  private:
   static const char *key_message_ack_id;  ///< JSON key for the ID of the message being acknowledged.
@@ -131,6 +121,11 @@ class RecordsBatchMsg : public BaseReplicationMessage {
    * @param buffer              The contents of this batch of log records.
    */
   RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id, storage::BufferedLogWriter *buffer);
+  /** Constructor (to receive). */
+  explicit RecordsBatchMsg(const common::json &json);
+  /** Destructor. */
+  virtual ~RecordsBatchMsg() = default;
+
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::RECORDS_BATCH; }
   common::json ToJson() const override;
 
@@ -140,11 +135,15 @@ class RecordsBatchMsg : public BaseReplicationMessage {
   /** @return The contents of this batch of log records. */
   std::string GetContents() const { return contents_; }
 
- private:
-  friend BaseReplicationMessage;
-  /** Constructor (to receive). */
-  explicit RecordsBatchMsg(const common::json &json);
+  /** @return The batch ID that should appear after the given batch ID. */
+  static record_batch_id_t NextBatchId(record_batch_id_t batch_id) {
+    if (batch_id.UnderlyingValue() == std::numeric_limits<uint64_t>::max()) {
+      return record_batch_id_t{NULL_ID + 1};
+    }
+    return record_batch_id_t{batch_id.UnderlyingValue() + 1};
+  }
 
+ private:
   static const char *key_batch_id;  ///< JSON key for the batch ID.
   static const char *key_contents;  ///< JSON key for the contents.
 
@@ -158,16 +157,16 @@ class TxnAppliedMsg : public BaseReplicationMessage {
  public:
   /** Constructor (to send). */
   explicit TxnAppliedMsg(ReplicationMessageMetadata metadata, transaction::timestamp_t applied_txn_id);
+  /** Constructor (to receive). */
+  explicit TxnAppliedMsg(const common::json &json);
+  /** Destructor. */
+  virtual ~TxnAppliedMsg() = default;
+
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::TXN_APPLIED; }
   common::json ToJson() const override;
 
   /** @return The ID of the transaction that was applied on the replica. */
   transaction::timestamp_t GetAppliedTxnId() const { return applied_txn_id_; }
-
- private:
-  friend BaseReplicationMessage;
-  /** Constructor (to receive). */
-  explicit TxnAppliedMsg(const common::json &json);
 
  private:
   static const char *key_applied_txn_id;  ///< JSON key for the applied transaction ID.

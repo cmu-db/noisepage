@@ -20,10 +20,9 @@ TransactionContext *TransactionManager::BeginTransaction() {
   if (txn_metrics_enabled) common::thread_context.resource_tracker_.Start();
   start_time = timestamp_manager_->BeginTransaction();
   result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
-  // If async commit is enabled, set the durability policy to be async accordingly.
-  if (wal_async_commit_enable_) {
-    result->SetDurabilityPolicy(DurabilityPolicy::ASYNC);
-  }
+  // Set the current default policies for durability and replication.
+  result->SetDurabilityPolicy(default_txn_policy_.durability_);
+  result->SetReplicationPolicy(default_txn_policy_.replication_);
   // Ensure we do not return from this function if there are ongoing write commits
   txn_gate_.Traverse();
 

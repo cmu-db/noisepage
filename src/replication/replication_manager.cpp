@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "common/error/exception.h"
+#include "loggers/replication_logger.h"
 
 namespace noisepage::replication {
 
@@ -11,6 +12,7 @@ ReplicationManager::ReplicationManager(
     const std::string &replication_hosts_path,
     common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
     : empty_buffer_queue_(empty_buffer_queue), messenger_(messenger), identity_(network_identity), port_(port) {
+  replication_logger->set_level(spdlog::level::trace);
   // Start listening on the given replication port.
   messenger::ConnectionDestination listen_destination =
       messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
@@ -18,8 +20,8 @@ ReplicationManager::ReplicationManager(
       listen_destination, network_identity,
       [this](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
         auto json = nlohmann::json::parse(msg.GetMessage());
-        BaseReplicationMessage replication_msg = BaseReplicationMessage::ParseFromJson(json);
-        EventLoop(messenger, msg, replication_msg);
+        auto replication_msg = BaseReplicationMessage::ParseFromJson(json);
+        EventLoop(messenger, msg, common::ManagedPointer(replication_msg));
       });
   // Connect to all of the other nodes.
   BuildReplicationNetwork(replication_hosts_path);
@@ -28,6 +30,13 @@ ReplicationManager::ReplicationManager(
 ReplicationManager::~ReplicationManager() = default;
 
 msg_id_t ReplicationManager::GetNextMessageId() { return next_msg_id_++; }
+
+void ReplicationManager::SendAckForMessage(const messenger::ZmqMessage &zmq_msg, const BaseReplicationMessage &msg) {
+  REPLICATION_LOG_TRACE(fmt::format("[SEND] AckMsg -> {}: {}", zmq_msg.GetRoutingId(), msg.GetMessageId()));
+
+  AckMsg ack(ReplicationMessageMetadata(GetNextMessageId()), msg.GetMessageId());
+  Send(std::string(zmq_msg.GetRoutingId()), ack, nullptr, zmq_msg.GetSourceCallbackId());
+}
 
 void ReplicationManager::NodeConnect(const std::string &node_name, const std::string &hostname, uint16_t port) {
   // Note that creating a Replica will result in a network call.
@@ -99,7 +108,10 @@ void ReplicationManager::Send(const std::string &destination, const BaseReplicat
                               messenger::messenger_cb_id_t destination_callback) {
   common::ManagedPointer<messenger::ConnectionId> con_id = GetNodeConnection(destination);
 
-  msg_id_t msg_id = message.GetMetadata().GetMessageId();
+  REPLICATION_LOG_INFO(fmt::format("[SEND] -> {}: {} // PREVIEW {}", destination, message.GetMessageId(),
+                                   message.ToJson().dump().substr(0, MESSAGE_PREVIEW_LEN)));
+
+  msg_id_t msg_id = message.GetMessageId();
   pending_msg_mutex_.lock();
   if (pending_msg_.find(msg_id) == pending_msg_.end()) {
     pending_msg_.emplace(msg_id, message);
@@ -115,6 +127,8 @@ void ReplicationManager::Send(const std::string &destination, const BaseReplicat
 }
 
 void ReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const AckMsg &msg) {
+  REPLICATION_LOG_TRACE(fmt::format("ACK from {}: {}", zmq_msg.GetRoutingId(), msg.GetMessageAckId()));
+
   // The callback will have been invoked by the Messenger poll loop already.
   // However, need to clean up the message from the list of pending messages.
   msg_id_t msg_id = msg.GetMessageAckId();
@@ -129,15 +143,16 @@ void ReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const AckM
 }
 
 void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
-                                   const messenger::ZmqMessage &zmq_msg, const BaseReplicationMessage &msg) {
-  switch (msg.GetMessageType()) {
+                                   const messenger::ZmqMessage &zmq_msg,
+                                   common::ManagedPointer<BaseReplicationMessage> msg) {
+  switch (msg->GetMessageType()) {
     case ReplicationMessageType::ACK: {
-      Handle(zmq_msg, *(msg.GetAs<AckMsg>()));
+      Handle(zmq_msg, *msg.CastManagedPointerTo<AckMsg>());
       break;
     }
     default: {
       throw REPLICATION_EXCEPTION(fmt::format("Not sure how to handle in ReplicationManager: {}",
-                                              ReplicationMessageTypeToString(msg.GetMessageType())));
+                                              ReplicationMessageTypeToString(msg->GetMessageType())));
     }
   }
 }
