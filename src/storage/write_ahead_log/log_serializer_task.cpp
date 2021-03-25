@@ -206,18 +206,13 @@ void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destinatio
     }
 
     // Hand over the filled buffer
-    replication_filled_buffer_queue_->Enqueue(
-        std::make_pair(replication_filled_buffer_, replication_commits_in_buffer_));
-    // Mark that the task doesn't have a buffer in its possession to which it can write to
-    SerializedLogs logs;
-    replication_filled_buffer_queue_->Dequeue(&logs);
-    if (logs.first != nullptr) {
-      logs.first->FlushBuffer();
-      if (logs.first->MarkSerialized()) {
-        empty_buffer_queue_->Enqueue(logs.first);
+    if (replication_filled_buffer_ != nullptr) {
+      if (replication_filled_buffer_->MarkSerialized()) {
+        empty_buffer_queue_->Enqueue(replication_filled_buffer_);
       }
     }
 
+    // Mark that the task doesn't have a buffer in its possession to which it can write to
     replication_commits_in_buffer_.clear();
     replication_filled_buffer_ = nullptr;
   }
