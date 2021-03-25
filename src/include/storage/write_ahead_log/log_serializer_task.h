@@ -154,7 +154,6 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
   // The queue containing filled buffers. Task should push filled serialized buffers into this queue
   common::ConcurrentQueue<SerializedLogs> *disk_filled_buffer_queue_;
-  common::ConcurrentQueue<SerializedLogs> *replication_filled_buffer_queue_;
 
   // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
   std::condition_variable *disk_log_writer_thread_cv_;
