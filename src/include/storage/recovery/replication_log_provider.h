@@ -68,8 +68,7 @@ class ReplicationLogProvider final : public AbstractLogProvider {
    */
   bool HasMoreRecords() override {
     std::unique_lock<std::mutex> lock(replication_latch_);
-    replication_cv_.wait(lock,
-                         [&] { return !replication_active_ || (NonBlockingHasMoreRecords() && NextBatchReady()); });
+    replication_cv_.wait(lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords() || NextBatchReady(); });
     return replication_active_;
   }
 
