@@ -162,7 +162,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            label 'h0-only'
+                            label 'dgb'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -507,6 +507,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            label 'dgb'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -583,6 +584,10 @@ pipeline {
 
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
