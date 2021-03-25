@@ -502,10 +502,11 @@ class DBMain {
       if (use_pilot_thread_) {
         NOISEPAGE_ASSERT(use_model_server_, "Pilot requires model server manager.");
         pilot = std::make_unique<selfdriving::Pilot>(
-            model_save_path_, forecast_model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
-            common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
-            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
-            common::ManagedPointer(txn_layer->GetTransactionManager()), workload_forecast_interval_);
+            ou_model_save_path_, interference_model_save_path_, forecast_model_save_path_,
+            common::ManagedPointer(catalog_layer->GetCatalog()), common::ManagedPointer(metrics_thread),
+            common::ManagedPointer(model_server_manager), common::ManagedPointer(settings_manager),
+            common::ManagedPointer(stats_storage), common::ManagedPointer(txn_layer->GetTransactionManager()),
+            workload_forecast_interval_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
@@ -884,7 +885,8 @@ class DBMain {
     uint64_t optimizer_timeout_ = 5000;
 
     std::string wal_file_path_ = "wal.log";
-    std::string model_save_path_;
+    std::string ou_model_save_path_;
+    std::string interference_model_save_path_;
     std::string forecast_model_save_path_;
     std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     std::string network_identity_ = "primary";
@@ -977,7 +979,8 @@ class DBMain {
       pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
       forecast_train_interval_ = settings_manager->GetInt64(settings::Param::forecast_train_interval);
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
-      model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
+      ou_model_save_path_ = settings_manager->GetString(settings::Param::ou_model_save_path);
+      interference_model_save_path_ = settings_manager->GetString(settings::Param::interference_model_save_path);
       forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
