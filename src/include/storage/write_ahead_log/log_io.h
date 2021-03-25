@@ -112,6 +112,11 @@ class BufferedLogWriter {
   }
 
   /**
+   * Empties the buffer.
+   */
+  void EmptyBuffer() { buffer_size_ = 0; }
+
+  /**
    * @return if the buffer is full
    */
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }

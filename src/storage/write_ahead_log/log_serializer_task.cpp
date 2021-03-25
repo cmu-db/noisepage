@@ -95,6 +95,22 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         empty_ = true;
       }
 
+      // Loop over all the new buffers we found
+      while (!temp_disk_flush_queue_.empty()) {
+        RecordBufferSegment *buffer = temp_disk_flush_queue_.front();
+        temp_disk_flush_queue_.pop();
+
+        // Serialize the Redo buffer and release it to the buffer pool
+        IterableBufferSegment<LogRecord> task_buffer(buffer);
+        const auto num_bytes_records_and_txns = SerializeBuffer(&task_buffer, SerializeDestination::DISK);
+        buffer_pool_->Release(buffer);
+        num_bytes += std::get<0>(num_bytes_records_and_txns);
+        num_records += std::get<1>(num_bytes_records_and_txns);
+        num_txns += std::get<2>(num_bytes_records_and_txns);
+      }
+
+      disk_buffers_processed = true;
+
       if (!temp_replication_flush_queue_.empty()) {
         replication_buffers_processed = true;
       }
@@ -112,22 +128,6 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         num_records += std::get<1>(num_bytes_records_and_txns);
         num_txns += std::get<2>(num_bytes_records_and_txns);
       }
-
-      // Loop over all the new buffers we found
-      while (!temp_disk_flush_queue_.empty()) {
-        RecordBufferSegment *buffer = temp_disk_flush_queue_.front();
-        temp_disk_flush_queue_.pop();
-
-        // Serialize the Redo buffer and release it to the buffer pool
-        IterableBufferSegment<LogRecord> task_buffer(buffer);
-        const auto num_bytes_records_and_txns = SerializeBuffer(&task_buffer, SerializeDestination::DISK);
-        buffer_pool_->Release(buffer);
-        num_bytes += std::get<0>(num_bytes_records_and_txns);
-        num_records += std::get<1>(num_bytes_records_and_txns);
-        num_txns += std::get<2>(num_bytes_records_and_txns);
-      }
-
-      disk_buffers_processed = true;
     }
 
     // Mark the last buffer that was written to as full
@@ -209,6 +209,7 @@ void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destinatio
     // Hand over the filled buffer
     if (replication_filled_buffer_ != nullptr) {
       if (replication_filled_buffer_->MarkSerialized()) {
+        replication_filled_buffer_->EmptyBuffer();
         empty_buffer_queue_->Enqueue(replication_filled_buffer_);
       }
     }
