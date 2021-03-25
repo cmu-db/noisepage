@@ -18,7 +18,7 @@
 #include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/json.h"
-#include "replication/replication_manager.h"
+#include "replication/replica_replication_manager.h"
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/index/index_metadata.h"
@@ -104,19 +104,6 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
     }
     buffered_changes_map_.clear();
   }
-
-  if (replication_manager_ != DISABLED &&
-      log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
-    auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
-    rep_log_provider->LatchPrimaryAckables();
-    std::vector<uint64_t> &ackables = rep_log_provider->GetPrimaryAckables();
-    std::vector<uint64_t> ackables_copy = ackables;
-    ackables.clear();
-    rep_log_provider->UnlatchPrimaryAckables();
-    for (const uint64_t primary_cb_id : ackables_copy) {
-      replication_manager_->ReplicaAck("primary", primary_cb_id, false);
-    }
-  }
 }
 
 void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
@@ -145,6 +132,13 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
 
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  if (replication_manager_ != DISABLED) {
+    // Replicas have to send back their list of deferred transactions that were processed, periodically.
+    if (replication_manager_->IsReplica()) {
+      replication_manager_->GetAsReplica()->NotifyPrimaryTransactionApplied(txn_id);
+    }
+  }
 }
 
 void RecoveryManager::DeferRecordDeletes(noisepage::transaction::timestamp_t txn_id, bool delete_varlens) {

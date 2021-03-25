@@ -2594,10 +2594,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // Replication functions
   // -------------------------------------------------------
 
-  OP(ReplicationGetLastRecordId) : {
+  OP(ReplicationGetLastTransactionId) : {
     auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpReplicationGetLastRecordId(result, exec_ctx);
+    OpReplicationGetLastTransactionId(result, exec_ctx);
     DISPATCH_NEXT();
   }
 

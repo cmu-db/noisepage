@@ -16,7 +16,7 @@
 #include "storage/write_ahead_log/log_record.h"
 
 namespace noisepage::replication {
-class ReplicationManager;
+class PrimaryReplicationManager;
 }  // namespace noisepage::replication
 
 namespace noisepage::storage {

@@ -1,11 +1,13 @@
 #include "execution/exec/execution_context.h"
 
+#include "common/error/error_code.h"
 #include "common/thread_context.h"
 #include "execution/sql/value.h"
 #include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
-#include "replication/replication_manager.h"
+#include "replication/primary_replication_manager.h"
+#include "replication/replica_replication_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "transaction/transaction_context.h"
@@ -36,8 +38,17 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
   return tuple_size;
 }
 
-uint64_t ExecutionContext::ReplicationGetLastRecordId() const {
-  return replication_manager_ == DISABLED ? 0 : replication_manager_->GetLastRecordId();
+uint64_t ExecutionContext::ReplicationGetLastTransactionId() const {
+  if (replication_manager_ == DISABLED) {
+    throw EXECUTION_EXCEPTION("Replication is disabled. There is no record ID to get.",
+                              common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+
+  if (replication_manager_->IsPrimary()) {
+    return replication_manager_->GetAsPrimary()->GetLastSentTransactionId().UnderlyingValue();
+  }
+  NOISEPAGE_ASSERT(replication_manager_->IsReplica(), "Neither primary nor replica?");
+  return replication_manager_->GetAsReplica()->GetLastAppliedTransactionId().UnderlyingValue();
 }
 
 void ExecutionContext::RegisterThreadWithMetricsManager() {

@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 
 namespace noisepage::messenger {
 
@@ -21,5 +22,7 @@ class CallbackFns {
   /** A noop version of CallbackFn, provided for convenience. */
   static void Noop(common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {}
 };
+
+STRONG_TYPEDEF_HEADER(messenger_cb_id_t, uint64_t);
 
 }  // namespace noisepage::messenger

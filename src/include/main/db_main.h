@@ -16,7 +16,8 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
-#include "replication/replication_manager.h"
+#include "replication/primary_replication_manager.h"
+#include "replication/replica_replication_manager.h"
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_thread.h"
@@ -219,6 +220,7 @@ class DBMain {
       // Bootstrap the default database in the catalog.
       if (create_default_database) {
         auto *bootstrap_txn = txn_layer->GetTransactionManager()->BeginTransaction();
+        bootstrap_txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
         catalog_->CreateDatabase(common::ManagedPointer(bootstrap_txn), catalog::DEFAULT_DATABASE, true);
         txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
@@ -509,18 +511,6 @@ class DBMain {
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
-      }
-
-      // TODO(WAN): I now consider this hacky.
-      //  The original motivation is that you do NOT want the catalog's bootstrapping transaction to be replicated
-      //  to the replicas, which will perform their own bootstrapping (and therefore the bootstrapping would conflict).
-      //  However, with the addition of the RetentionPolicy enum, we really should be able to just say that the catalog
-      //  bootstrap has a RetentionPolicy::LOCAL so that it still gets written to the local WAL but not sent to the
-      //  replicas. Unfortuantely, the current implementation of retention policies is a little hacky and it is not
-      //  currently clear to me how we can fix that, so in the interests of getting some basic replication merged
-      //  we are simply disabling replication until the bootstrap is complete.
-      if (use_replication_) {
-        replication_manager->EnableReplication();
       }
 
       db_main->settings_manager_ = std::move(settings_manager);

@@ -1,81 +1,55 @@
 #include "replication/replication_manager.h"
 
-#include <chrono>  // NOLINT
 #include <fstream>
-#include <optional>
 
 #include "common/error/exception.h"
-#include "common/json.h"
-#include "loggers/replication_logger.h"
-#include "network/network_io_utils.h"
-#include "storage/recovery/replication_log_provider.h"
-#include "storage/write_ahead_log/log_io.h"
-
-namespace {
-
-/** @return True if left > right. False otherwise. */
-bool CompareMessages(const noisepage::replication::ReplicateBufferMessage &left,
-                     const noisepage::replication::ReplicateBufferMessage &right) {
-  return left.GetMessageId() > right.GetMessageId();
-}
-
-}  // namespace
 
 namespace noisepage::replication {
-
-Replica::Replica(common::ManagedPointer<messenger::Messenger> messenger, const std::string &replica_name,
-                 const std::string &hostname, uint16_t port)
-    : replica_info_(messenger::ConnectionDestination::MakeTCP(replica_name, hostname, port)),
-      connection_(messenger->MakeConnection(replica_info_)),
-      last_heartbeat_(0) {}
-
-const char *ReplicateBufferMessage::key_buf_id = "buf_id";
-const char *ReplicateBufferMessage::key_content = "content";
-
-ReplicateBufferMessage ReplicateBufferMessage::FromMessage(const messenger::ZmqMessage &msg) {
-  // TODO(WAN): Sanity-check the received message.
-  common::json message = nlohmann::json::parse(msg.GetMessage());
-  uint64_t source_callback_id = msg.GetSourceCallbackId();
-  uint64_t buffer_id = message.at(key_buf_id);
-  std::string contents = nlohmann::json::from_cbor(message[key_content].get<std::vector<uint8_t>>());
-  return ReplicateBufferMessage(buffer_id, std::move(contents), source_callback_id);
-}
-
-common::json ReplicateBufferMessage::ToJson() {
-  common::json json;
-  json[key_buf_id] = buffer_id_;
-  json[key_content] = nlohmann::json::to_cbor(contents_);
-  // TODO(WAN): Add a size and checksum to message.
-  return json;
-}
 
 ReplicationManager::ReplicationManager(
     common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
     const std::string &replication_hosts_path,
     common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
-    : messenger_(messenger), identity_(network_identity), port_(port), empty_buffer_queue_(empty_buffer_queue) {
-  auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
-  messenger_->ListenForConnection(listen_destination, network_identity,
-                                  [this](common::ManagedPointer<messenger::Messenger> messenger,
-                                         const messenger::ZmqMessage &msg) { EventLoop(messenger, msg); });
-  BuildReplicaList(replication_hosts_path);
+    : empty_buffer_queue_(empty_buffer_queue), messenger_(messenger), identity_(network_identity), port_(port) {
+  // Start listening on the given replication port.
+  messenger::ConnectionDestination listen_destination =
+      messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
+  messenger_->ListenForConnection(
+      listen_destination, network_identity,
+      [this](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
+        auto json = nlohmann::json::parse(msg.GetMessage());
+        BaseReplicationMessage replication_msg = BaseReplicationMessage::ParseFromJson(json);
+        EventLoop(messenger, msg, replication_msg);
+      });
+  // Connect to all of the other nodes.
+  BuildReplicationNetwork(replication_hosts_path);
 }
-
-const char *ReplicationManager::key_message_type = "message_type";
 
 ReplicationManager::~ReplicationManager() = default;
 
-void ReplicationManager::EnableReplication() {
-  REPLICATION_LOG_TRACE(fmt::format("[PID={}] Replication enabled.", ::getpid()));
-  replication_enabled_ = true;
+msg_id_t ReplicationManager::GetNextMessageId() { return next_msg_id_++; }
+
+void ReplicationManager::NodeConnect(const std::string &node_name, const std::string &hostname, uint16_t port) {
+  // Note that creating a Replica will result in a network call.
+  UNUSED_ATTRIBUTE auto result = replicas_.try_emplace(node_name, messenger_, node_name, hostname, port);
+  NOISEPAGE_ASSERT(result.second, "Failed to connect to a replica?");
 }
 
-void ReplicationManager::DisableReplication() {
-  REPLICATION_LOG_TRACE(fmt::format("[PID={}] Replication disabled.", ::getpid()));
-  replication_enabled_ = false;
+common::ManagedPointer<messenger::ConnectionId> ReplicationManager::GetNodeConnection(const std::string &replica_name) {
+  return replicas_.at(replica_name).GetConnectionId();
 }
 
-void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_path) {
+common::ManagedPointer<PrimaryReplicationManager> ReplicationManager::GetAsPrimary() {
+  NOISEPAGE_ASSERT(IsPrimary(), "This should only be called from the primary node!");
+  return common::ManagedPointer(this).CastManagedPointerTo<PrimaryReplicationManager>();
+}
+
+common::ManagedPointer<ReplicaReplicationManager> ReplicationManager::GetAsReplica() {
+  NOISEPAGE_ASSERT(IsReplica(), "This should only be called from a replica node!");
+  return common::ManagedPointer(this).CastManagedPointerTo<ReplicaReplicationManager>();
+}
+
+void ReplicationManager::BuildReplicationNetwork(const std::string &replication_hosts_path) {
   // The replication.config file is expected to have the following format:
   //   IGNORED LINE (can be used for comments)
   //   REPLICA NAME
@@ -109,7 +83,7 @@ void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_p
           NOISEPAGE_ASSERT(replica_port == port_, "Mismatch of identity/port combo in replica config.");
         } else {
           // Connect to the replica.
-          ReplicaConnect(replica_name, replica_hostname, replica_port);
+          NodeConnect(replica_name, replica_hostname, replica_port);
         }
         break;
       default:
@@ -120,219 +94,50 @@ void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_p
   hosts_file.close();
 }
 
-void ReplicationManager::ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port) {
-  replicas_.try_emplace(replica_name, messenger_, replica_name, hostname, port);
-}
+void ReplicationManager::Send(const std::string &destination, const BaseReplicationMessage &message,
+                              const messenger::CallbackFn &source_callback,
+                              messenger::messenger_cb_id_t destination_callback) {
+  common::ManagedPointer<messenger::ConnectionId> con_id = GetNodeConnection(destination);
 
-void ReplicationManager::ReplicaAck(const std::string &replica_name, const uint64_t callback_id, const bool block) {
-  ReplicaSendInternal(replica_name, MessageType::ACK, common::json{}, callback_id, block);
-}
-
-void ReplicationManager::ReplicaSend(const std::string &replica_name, common::json msg, const bool block) {
-  ReplicaSendInternal(replica_name, MessageType::REPLICATE_BUFFER, std::move(msg),
-                      static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP), block);
-}
-
-void ReplicationManager::ReplicaSendInternal(const std::string &replica_name, const MessageType msg_type,
-                                             common::json msg_json, const uint64_t remote_cb_id, const bool block) {
-  if (!replication_enabled_) {
-    REPLICATION_LOG_WARN(fmt::format("Skipping send -> {} as replication is disabled."));
-    return;
+  msg_id_t msg_id = message.GetMetadata().GetMessageId();
+  pending_msg_mutex_.lock();
+  if (pending_msg_.find(msg_id) == pending_msg_.end()) {
+    pending_msg_.emplace(msg_id, message);
   }
-
-  msg_json[key_message_type] = static_cast<uint8_t>(msg_type);
-  auto msg = msg_json.dump();
-
-  REPLICATION_LOG_TRACE(fmt::format("Send -> {} (block {}): msg size {} preview {}", replica_name, block, msg.size(),
-                                    msg.substr(0, MESSAGE_PREVIEW_LEN)));
-  bool completed = false;
-  try {
-    messenger_->SendMessage(
-        GetReplicaConnection(replica_name), msg,
-        [this, block, &completed](common::ManagedPointer<messenger::Messenger> messenger,
-                                  const messenger::ZmqMessage &msg) {
-          if (block) {
-            // If this isn't a blocking send, then completed will fall out of scope.
-            completed = true;
-            blocking_send_cvar_.notify_all();
-          }
-        },
-        remote_cb_id);
-
-    if (block) {
-      std::unique_lock<std::mutex> lock(blocking_send_mutex_);
-      // If the caller requested to block until the operation was completed, the thread waits.
-      if (!blocking_send_cvar_.wait_for(lock, REPLICATION_MAX_BLOCKING_WAIT_TIME, [&completed] { return completed; })) {
-        // TODO(WAN): Additionally, this is hackily a messenger exception so that it gets handled by the catch.
-        throw MESSENGER_EXCEPTION("TODO(WAN): Handle a replica dying in synchronous replication.");
-      }
-    }
-  } catch (const MessengerException &e) {
-    // TODO(WAN): This assumes that the replica has died. If the replica has in fact not died, and somehow the message
-    //  just crapped out and failed to send, this will hang the replica since the replica expects messages to be
-    //  received in order and we don't try to resend the message.
-    REPLICATION_LOG_WARN(fmt::format("[FAILED] Send -> {} (block {}): msg size {} preview {}", replica_name, block,
-                                     msg.size(), msg.substr(0, MESSAGE_PREVIEW_LEN)));
+  pending_msg_.emplace(msg_id, message);
+  if (pending_msg_dests_.find(msg_id) == pending_msg_dests_.end()) {
+    pending_msg_dests_.emplace(msg_id, std::unordered_set<std::string>{});
   }
+  pending_msg_dests_.at(msg_id).emplace(destination);
+  pending_msg_mutex_.unlock();
+
+  messenger_->SendMessage(con_id, message.ToJson().dump(), source_callback, destination_callback);
+}
+
+void ReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const AckMsg &msg) {
+  // The callback will have been invoked by the Messenger poll loop already.
+  // However, need to clean up the message from the list of pending messages.
+  msg_id_t msg_id = msg.GetMessageAckId();
+  pending_msg_mutex_.lock();
+  std::unordered_set<std::string> &dests = pending_msg_dests_.find(msg_id)->second;
+  dests.erase(std::string(zmq_msg.GetRoutingId()));
+  if (dests.empty()) {
+    pending_msg_dests_.erase(msg_id);
+    pending_msg_.erase(msg_id);
+  }
+  pending_msg_mutex_.unlock();
 }
 
 void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
-                                   const messenger::ZmqMessage &msg) {
-  common::json json = nlohmann::json::parse(msg.GetMessage());
-  switch (static_cast<MessageType>(json.at(key_message_type))) {
-    case MessageType::ACK: {
-      REPLICATION_LOG_TRACE(fmt::format("ACK: {}", json.dump()));
-      break;
-    }
-    case MessageType::HEARTBEAT: {
-      REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
-  Replica &replica = replicas_.at(replica_name);
-
-  // If the replica's heartbeat time has not been initialized yet, set the heartbeat time to the current time.
-  {
-    auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
-    auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
-    if (0 == replica.last_heartbeat_) {
-      replica.last_heartbeat_ = epoch_now_ms.count();
-      REPLICATION_LOG_TRACE(
-          fmt::format("Replica {}: heartbeat initialized at {}.", replica_name, replica.last_heartbeat_));
-    }
-  }
-
-  REPLICATION_LOG_TRACE(fmt::format("Replica {}: heartbeat start.", replica_name));
-  try {
-    messenger_->SendMessage(
-        GetReplicaConnection(replica_name), "",
-        [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-          auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
-          auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
-          replica.last_heartbeat_ = epoch_now_ms.count();
-          REPLICATION_LOG_TRACE(fmt::format("Replica {}: last heartbeat {}, heartbeat {} OK.", replica_name,
-                                            replica.last_heartbeat_, epoch_now_ms.count()));
-        },
-        static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP));
-  } catch (const MessengerException &e) {
-    REPLICATION_LOG_TRACE(
-        fmt::format("Replica {}: last heartbeat {}, heartbeat failed.", replica_name, replica.last_heartbeat_));
-  }
-  auto epoch_now = std::chrono::system_clock::now().time_since_epoch();
-  auto epoch_now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_now);
-  if (epoch_now_ms.count() - replica.last_heartbeat_ >= REPLICATION_CARDIAC_ARREST_MS) {
-    REPLICATION_LOG_WARN(fmt::format("Replica {}: last heartbeat {}, declared dead {}.", replica_name,
-                                     replica.last_heartbeat_, epoch_now_ms.count()));
-  }
-  REPLICATION_LOG_TRACE(fmt::format("Replica {}: heartbeat end.", replica_name));
-}
-
-common::ManagedPointer<messenger::ConnectionId> ReplicationManager::GetReplicaConnection(
-    const std::string &replica_name) {
-  return replicas_.at(replica_name).GetConnectionId();
-}
-
-common::ManagedPointer<PrimaryReplicationManager> ReplicationManager::GetAsPrimary() {
-  NOISEPAGE_ASSERT(IsPrimary(), "This should only be called from the primary node!");
-  return common::ManagedPointer(this).CastManagedPointerTo<PrimaryReplicationManager>();
-}
-
-common::ManagedPointer<ReplicaReplicationManager> ReplicationManager::GetAsReplica() {
-  NOISEPAGE_ASSERT(IsReplica(), "This should only be called from a replica node!");
-  return common::ManagedPointer(this).CastManagedPointerTo<ReplicaReplicationManager>();
-}
-
-PrimaryReplicationManager::PrimaryReplicationManager(
-    common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
-    const std::string &replication_hosts_path,
-    common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
-    : ReplicationManager(messenger, network_identity, port, replication_hosts_path, empty_buffer_queue) {}
-
-PrimaryReplicationManager::~PrimaryReplicationManager() = default;
-
-void PrimaryReplicationManager::ReplicateBuffer(storage::BufferedLogWriter *buffer,
-                                                const std::vector<storage::CommitCallback> &commit_callbacks) {
-  if (!replication_enabled_) {
-    REPLICATION_LOG_WARN(fmt::format("Skipping replicate buffer as replication is disabled."));
-    return;
-  }
-
-  // Collect the list of transaction callbacks.
-  for (const auto &callback : commit_callbacks) {
-    txn_callbacks_.insert({callback.txn_start_time_, {callback.fn_, callback.arg_, callback.txn_start_time_}});
-  }
-
-  NOISEPAGE_ASSERT(buffer != nullptr,
-                   "Don't try to replicate null buffers. That's pointless."
-                   "You might plausibly want to track statistics at some point, but that should not happen here.");
-  ReplicateBufferMessage msg{next_buffer_sent_id_++, std::string(buffer->buffer_, buffer->buffer_size_)};
-
-  for (const auto &replica : replicas_) {
-    // TODO(WAN): many things break when block is flipped from true to false.
-    ReplicaSend(replica.first, msg.ToJson(), true);
-  }
-
-  if (buffer->MarkSerialized()) {
-    empty_buffer_queue_->Enqueue(buffer);
-  }
-}
-
-ReplicaReplicationManager::ReplicaReplicationManager(
-    common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity, uint16_t port,
-    const std::string &replication_hosts_path,
-    common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
-    : ReplicationManager(messenger, network_identity, port, replication_hosts_path, empty_buffer_queue),
-      provider_(std::make_unique<storage::ReplicationLogProvider>(std::chrono::seconds(1))),
-      received_message_queue_(CompareMessages) {}
-
-ReplicaReplicationManager::~ReplicaReplicationManager() = default;
-
-void ReplicaReplicationManager::HandleReplicatedBuffer(const messenger::ZmqMessage &msg) {
-  auto rb_msg = ReplicateBufferMessage::FromMessage(msg);
-  REPLICATION_LOG_TRACE(fmt::format("ReplicateBuffer from: {} {}", msg.GetRoutingId(), rb_msg.GetMessageId()));
-
-  // Check if the message needs to be buffered.
-  if (rb_msg.GetMessageId() > last_record_received_id_ + 1) {
-    // The message should be buffered if there are gaps in between the last seen buffer.
-    received_message_queue_.push(rb_msg);
-  } else {
-    // Otherwise, pull out the log record from the message and hand the record to the replication log provider.
-    provider_->AddBufferFromMessage(rb_msg.GetSourceCallbackId(), rb_msg.GetContents());
-    last_record_received_id_ = rb_msg.GetMessageId();
-    // This may unleash the rest of the buffered messages.
-    while (!received_message_queue_.empty()) {
-      auto &top = received_message_queue_.top();
-      // Stop once you're missing a buffer.
-      if (top.GetMessageId() > last_record_received_id_ + 1) {
-        break;
-      }
-      // Otherwise, send the top buffer's contents along.
-      received_message_queue_.pop();
-      NOISEPAGE_ASSERT(top.GetMessageId() == last_record_received_id_ + 1, "Duplicate buffer? Old buffer?");
-      provider_->AddBufferFromMessage(top.GetSourceCallbackId(), top.GetContents());
-      last_record_received_id_ = top.GetMessageId();
-    }
-  }
-}
-
-void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
-                                          const messenger::ZmqMessage &msg) {
-  // TODO(WAN): This is inefficient because the JSON is parsed again.
-  auto json = nlohmann::json::parse(msg.GetMessage());
-  switch (static_cast<MessageType>(json.at(ReplicationManager::key_message_type))) {
-    case MessageType::REPLICATE_BUFFER: {
-      HandleReplicatedBuffer(msg);
+                                   const messenger::ZmqMessage &zmq_msg, const BaseReplicationMessage &msg) {
+  switch (msg.GetMessageType()) {
+    case ReplicationMessageType::ACK: {
+      Handle(zmq_msg, *(msg.GetAs<AckMsg>()));
       break;
     }
     default: {
-      // Delegate to the common ReplicationManager event loop.
-      ReplicationManager::EventLoop(messenger, msg);
-      break;
+      throw REPLICATION_EXCEPTION(fmt::format("Not sure how to handle in ReplicationManager: {}",
+                                              ReplicationMessageTypeToString(msg.GetMessageType())));
     }
   }
 }

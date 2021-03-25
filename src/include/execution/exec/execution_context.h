@@ -235,10 +235,10 @@ class EXPORT ExecutionContext {
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
   /**
-   * @return    On the primary, returns the last record ID that was successfully transmitted to all replicas.
-   *            On a replica, returns the last record ID that was successfully applied.
+   * @return    On the primary, returns the ID of the last txn sent.
+   *            On a replica, returns the ID of the last txn applied.
    */
-  uint64_t ReplicationGetLastRecordId() const;
+  uint64_t ReplicationGetLastTransactionId() const;
 
   /**
    * If the calling thread is not registered with any metrics manager, this function

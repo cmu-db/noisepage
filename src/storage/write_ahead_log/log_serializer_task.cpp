@@ -6,7 +6,7 @@
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
-#include "replication/replication_manager.h"
+#include "replication/primary_replication_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
@@ -167,7 +167,7 @@ void LogSerializerTask::HandFilledBufferToWriter() {
                        "Replication enabled but replication manager disabled?");
       NOISEPAGE_ASSERT(filled_buffer_policy_->replication_ == transaction::ReplicationPolicy::SYNC,
                        "No async support yet.");
-      primary_replication_manager_->ReplicateBuffer(filled_buffer_, commits_in_buffer_);
+      primary_replication_manager_->ReplicateBatchOfRecords(filled_buffer_, commits_in_buffer_);
     }
   }
   // Hand over the filled buffer

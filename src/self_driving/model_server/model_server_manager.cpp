@@ -58,8 +58,8 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
       })) {
   // Model Initialization handling logic
   auto msm_handler = [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-    uint64_t sender_id UNUSED_ATTRIBUTE = msg.GetSourceCallbackId();
-    uint64_t recv_cb_id UNUSED_ATTRIBUTE = msg.GetDestinationCallbackId();
+    messenger::messenger_cb_id_t sender_id UNUSED_ATTRIBUTE = msg.GetSourceCallbackId();
+    messenger::messenger_cb_id_t recv_cb_id UNUSED_ATTRIBUTE = msg.GetDestinationCallbackId();
     std::string_view message = msg.GetMessage();
 
     // ModelServer connected
@@ -183,7 +183,7 @@ void ModelServerManager::StartModelServer(const std::string &model_path, bool en
 bool ModelServerManager::SendMessage(const std::string &payload, messenger::CallbackFn cb) {
   try {
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, std::move(cb),
-                            static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP));
+                            messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
     return true;
   } catch (std::exception &e) {
     MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to send message: {}. Error: {}", ::getpid(), payload,

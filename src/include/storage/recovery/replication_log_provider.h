@@ -18,14 +18,6 @@ namespace noisepage::storage {
  */
 class ReplicationLogProvider final : public AbstractLogProvider {
  public:
-  /**
-   * Create a new ReplicationLogProvider.
-   *
-   * @param replication_timeout         The replication timeout. TODO(WAN): kill this?
-   */
-  explicit ReplicationLogProvider(std::chrono::seconds replication_timeout)
-      : replication_active_(true), replication_timeout_(replication_timeout) {}
-
   LogProviderType GetType() const override { return LogProviderType::REPLICATION; }
 
   /**
@@ -57,20 +49,9 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     return (curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !arrived_buffer_queue_.empty();
   }
 
-  /** Unlock the primary ackables. */
-  void LatchPrimaryAckables() { replication_latch_.lock(); }
-  /** Unlock the primary ackables. */
-  void UnlatchPrimaryAckables() { replication_latch_.unlock(); }
-  /** @return A reference to the vector of source callback IDs from the primary that should be ack'd. */
-  std::vector<uint64_t> &GetPrimaryAckables() { return primary_ackables_; }
-
  private:
   /** True if replication is currently active. */
-  bool replication_active_;
-
-  // TODO(Gus): Put in settings manager
-  /** The number of seconds before replication times out. */
-  std::chrono::seconds replication_timeout_;
+  bool replication_active_ = true;
 
   // Current buffer to read logs from
   std::unique_ptr<network::ReadBuffer> curr_buffer_ = nullptr;
@@ -113,10 +94,9 @@ class ReplicationLogProvider final : public AbstractLogProvider {
   bool Read(void *dest, uint32_t size) override {
     if (curr_buffer_ == nullptr || !curr_buffer_->HasMore()) {
       std::unique_lock<std::mutex> lock(replication_latch_);
-      bool predicate = replication_cv_.wait_for(lock, replication_timeout_,
-                                                [&] { return !replication_active_ || !arrived_buffer_queue_.empty(); });
+      replication_cv_.wait(lock, [&] { return !replication_active_ || !arrived_buffer_queue_.empty(); });
       // If we timeout or replication is shut down, return false
-      if (!predicate || !replication_active_) return false;
+      if (!replication_active_) return false;
 
       NOISEPAGE_ASSERT(!arrived_buffer_queue_.empty(),
                        "If we did not shut down or timeout, CV should only wake up when a new buffer arrives");

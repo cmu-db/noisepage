@@ -20,9 +20,7 @@
 #include "transaction/transaction_defs.h"
 
 namespace noisepage::replication {
-class ReplicationManager;
-class PrimaryReplicationManager;
-class ReplicaReplicationManager;
+class RecordsBatchMsg;
 }  // namespace noisepage::replication
 
 namespace noisepage::storage {
@@ -160,9 +158,7 @@ class BufferedLogWriter {
   }
 
  private:
-  friend class replication::ReplicationManager;
-  friend class replication::PrimaryReplicationManager;
-  friend class replication::ReplicaReplicationManager;
+  friend class replication::RecordsBatchMsg;
 
   int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
