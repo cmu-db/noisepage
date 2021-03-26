@@ -38,9 +38,11 @@ class PrimaryReplicationManager final : public ReplicationManager {
    *
    * @param records_batch       The batch of records to be replicated.
    * @param commit_callbacks    The commit callbacks associated with the batch of records.
+   * @param policy              The replication policy to use.
    */
   void ReplicateBatchOfRecords(storage::BufferedLogWriter *records_batch,
-                               const std::vector<storage::CommitCallback> &commit_callbacks);
+                               const std::vector<storage::CommitCallback> &commit_callbacks,
+                               const transaction::ReplicationPolicy &policy);
 
   /** @return The ID of the last transaction that was sent to the replicas. */
   transaction::timestamp_t GetLastSentTransactionId() const { return transaction::timestamp_t{0}; }
@@ -51,6 +53,12 @@ class PrimaryReplicationManager final : public ReplicationManager {
                  common::ManagedPointer<BaseReplicationMessage> msg) override;
 
  private:
+  /** Every batch of commit callbacks may or may not have corresponding commit records. */
+  struct BatchOfCommitCallbacks {
+    std::vector<storage::CommitCallback> callbacks_;
+    bool has_records_;
+  };
+
   record_batch_id_t GetNextBatchId();
 
   void Handle(const messenger::ZmqMessage &zmq_msg, const TxnAppliedMsg &msg);
@@ -63,15 +71,15 @@ class PrimaryReplicationManager final : public ReplicationManager {
   void ProcessTxnCallbacks();
 
   /**
-   * Vector of vector of commit callbacks.
-   * Each vector is a separate invocation of ReplicateBatchOfRecords()'s commit callbacks.
-   * Each commit callback should be executed in order of addition, the reason for the double vector is so that
+   * Queue of batches of commit callbacks and the records (if exist) associated with each batch of commit callbacks.
+   * Each item in the queue is a separate invocation of ReplicateBatchOfRecords() being recorded.
+   * Each commit callback should be executed in order of addition, the reason for the queue wrapper is so that
    * multiple calls to ReplicateBatchOfRecords() will not end up growing resizing a single vector repeatedly.
    * */
-  std::queue<std::vector<storage::CommitCallback>> txn_callbacks_;
+  std::queue<BatchOfCommitCallbacks> txn_callbacks_;
   /** Map from transaction start times (aka transaction ID) to list of replicas that have applied the transaction. */
   std::unordered_map<transaction::timestamp_t, std::unordered_set<std::string>> txns_applied_on_replicas_;
-  std::mutex callbacks_mutex_; ///< Protecting txn_callbacks_ and txns_applied_on_replicas_.
+  std::mutex callbacks_mutex_;  ///< Protecting txn_callbacks_ and txns_applied_on_replicas_.
   /** ID of the next batch of log records to be sent out to replicas. */
   std::atomic<record_batch_id_t> next_batch_id_{1};
 };

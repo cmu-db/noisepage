@@ -18,7 +18,7 @@
 #include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/json.h"
-#include "loggers/replication_logger.h" // TODO(WAN): DEBUG BLOCK
+#include "loggers/replication_logger.h"  // TODO(WAN): DEBUG BLOCK
 #include "replication/replica_replication_manager.h"
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"

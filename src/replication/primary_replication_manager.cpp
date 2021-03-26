@@ -30,39 +30,52 @@ void PrimaryReplicationManager::EventLoop(common::ManagedPointer<messenger::Mess
 }
 
 void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWriter *records_batch,
-                                                        const std::vector<storage::CommitCallback> &commit_callbacks) {
+                                                        const std::vector<storage::CommitCallback> &commit_callbacks,
+                                                        const transaction::ReplicationPolicy &policy) {
+  NOISEPAGE_ASSERT(policy != transaction::ReplicationPolicy::DISABLE, "Replication is disabled, so why are we here?");
+
+  // Unfortunately, read-only transactions do not generate log records.
+  // Therefore there may be nothing to replicate, but the commit callbacks still have to be invoked.
+  bool has_records = records_batch != nullptr;
+
   // TODO(WAN): DEBUG BLOCK
+  std::vector<transaction::timestamp_t> ts;
   {
-    std::vector<transaction::timestamp_t> ts;
     for (auto &cb : commit_callbacks) {
       ts.emplace_back(cb.txn_start_time_);
     }
   }
 
-  // Copy the commit callbacks into our local list.
-  {
-    std::unique_lock lock(callbacks_mutex_);
-    txn_callbacks_.emplace(commit_callbacks);
+  if (policy == transaction::ReplicationPolicy::ASYNC) {
+    // In asynchronous replication, just invoke the commit callbacks immediately.
+    for (const auto &cb : commit_callbacks) {
+      cb.fn_(cb.arg_);
+    }
+  } else {
+    // Copy the commit callbacks into our local list. The callbacks are invoked when the replicas notify the primary
+    // that the replicas have applied their corresponding transactions.
+    {
+      std::unique_lock lock(callbacks_mutex_);
+      txn_callbacks_.emplace(BatchOfCommitCallbacks{commit_callbacks, has_records});
+    }
   }
 
-  NOISEPAGE_ASSERT(records_batch != nullptr,
-                   "Don't try to replicate null buffers. That's pointless."
-                   "You might plausibly want to track statistics at some point, but that should not happen here.");
+  if (has_records) {
+    // Send the batch of records to all replicas.
+    ReplicationMessageMetadata metadata(GetNextMessageId());
+    RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
+    REPLICATION_LOG_TRACE(fmt::format("BATCH {} TXNS {}", msg.GetBatchId(), common::json(ts).dump()));
 
-  // Send the batch of records to all replicas.
-  ReplicationMessageMetadata metadata(GetNextMessageId());
-  RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
-  REPLICATION_LOG_TRACE(fmt::format("BATCH {} TXNS {}", msg.GetBatchId(), common::json(ts).dump()));
+    messenger::messenger_cb_id_t destination_cb =
+        messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
+    for (const auto &replica : replicas_) {
+      Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
+    }
 
-  messenger::messenger_cb_id_t destination_cb =
-      messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
-  for (const auto &replica : replicas_) {
-    Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
-  }
-
-  // Return the buffered log writer to the pool if necessary.
-  if (records_batch->MarkSerialized()) {
-    empty_buffer_queue_->Enqueue(records_batch);
+    // Return the buffered log writer to the pool if necessary.
+    if (records_batch->MarkSerialized()) {
+      empty_buffer_queue_->Enqueue(records_batch);
+    }
   }
 }
 
@@ -101,21 +114,31 @@ void PrimaryReplicationManager::ProcessTxnCallbacks() {
   // TODO(WAN): Do NOT reuse this function without checking for races.
 
   while (!txn_callbacks_.empty()) {
-    std::vector<storage::CommitCallback> &callbacks = txn_callbacks_.front();
-    for (auto vec_it = callbacks.begin(); vec_it != callbacks.end();) {
-      storage::CommitCallback &callback = *vec_it;
-      // Check if all the replicas have applied the transaction.
-      bool all_replicas_applied =
-          (txns_applied_on_replicas_.find(callback.txn_start_time_) != txns_applied_on_replicas_.end()) &&
-          (txns_applied_on_replicas_.at(callback.txn_start_time_).size() == replicas_.size());
-      if (!all_replicas_applied) {
-        return;
+    BatchOfCommitCallbacks &item = txn_callbacks_.front();
+
+    if (!item.has_records_) {
+      // If there are no records, just execute all of the callbacks.
+      for (const auto &callback : item.callbacks_) {
+        callback.fn_(callback.arg_);
       }
-      // If all replicas have applied the transaction, then invoke the callback and erase the callback.
-      callback.fn_(callback.arg_);
-      txns_applied_on_replicas_.erase(callback.txn_start_time_);
-      REPLICATION_LOG_TRACE(fmt::format("Commit callback invoked for txn: {}", callback.txn_start_time_));
-      vec_it = callbacks.erase(vec_it);
+    } else {
+      // Otherwise, check that each respective callback's transaction has been applied on all the replicas.
+      std::vector<storage::CommitCallback> &callbacks = item.callbacks_;
+      for (auto vec_it = callbacks.begin(); vec_it != callbacks.end();) {
+        storage::CommitCallback &callback = *vec_it;
+        // Check if all the replicas have applied the transaction.
+        bool all_replicas_applied =
+            (txns_applied_on_replicas_.find(callback.txn_start_time_) != txns_applied_on_replicas_.end()) &&
+            (txns_applied_on_replicas_.at(callback.txn_start_time_).size() == replicas_.size());
+        if (!all_replicas_applied) {
+          return;
+        }
+        // If all replicas have applied the transaction, then invoke the callback and erase the callback.
+        callback.fn_(callback.arg_);
+        txns_applied_on_replicas_.erase(callback.txn_start_time_);
+        REPLICATION_LOG_TRACE(fmt::format("Commit callback invoked for txn: {}", callback.txn_start_time_));
+        vec_it = callbacks.erase(vec_it);
+      }
     }
     // If all the callbacks in one batch have been exhausted, erase the exhausted batch.
     txn_callbacks_.pop();

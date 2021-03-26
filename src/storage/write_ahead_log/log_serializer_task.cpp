@@ -153,24 +153,21 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
-  // If the buffer exists, mark the buffer as ready for serialization and replicate the buffer.
-  // The buffer may not exist for read-only transactions, however, the commit callback of the read-only transaction
-  // must still be invoked in order.
+  NOISEPAGE_ASSERT(filled_buffer_policy_.has_value(),
+                   "Make sure policies are being set whenever filled_buffer_ is being updated or "
+                   "HandFilledBufferToWriter() is being called.");
+  const transaction::TransactionPolicy &txn_policy = filled_buffer_policy_.value();
+
+  // If the buffer exists, mark the buffer as ready for serialization.
   if (filled_buffer_ != nullptr) {
     // Prepare the buffer for serialization. This initializes a reference count on the batch of logs within.
-    NOISEPAGE_ASSERT(filled_buffer_policy_.has_value(),
-                     "Make sure policies are being set whenever filled_buffer_ is being updated or "
-                     "HandFilledBufferToWriter() is being called.");
-    filled_buffer_->PrepareForSerialization(filled_buffer_policy_.value());
-
-    // Replicate the buffer if the buffer exists.
-    if (filled_buffer_policy_->replication_ != transaction::ReplicationPolicy::DISABLE) {
-      NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED,
-                       "Replication enabled but replication manager disabled?");
-      NOISEPAGE_ASSERT(filled_buffer_policy_->replication_ == transaction::ReplicationPolicy::SYNC,
-                       "No async support yet.");
-      primary_replication_manager_->ReplicateBatchOfRecords(filled_buffer_, commits_in_buffer_);
-    }
+    filled_buffer_->PrepareForSerialization(txn_policy);
+  }
+  // Replicate the buffer if the buffer exists.
+  // However, even if the buffer doesn't exist, the commit callback needs to be invoked.
+  if (txn_policy.replication_ != transaction::ReplicationPolicy::DISABLE) {
+    NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED, "Replication enabled but replication manager disabled?");
+    primary_replication_manager_->ReplicateBatchOfRecords(filled_buffer_, commits_in_buffer_, txn_policy.replication_);
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
