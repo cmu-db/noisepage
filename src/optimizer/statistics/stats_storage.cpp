@@ -19,7 +19,7 @@ StatsStorageReference StatsStorage::GetTableStats(const catalog::db_oid_t databa
     InsertTableStats(database_id, table_id, accessor);
   }
 
-  common::SharedLatch::UniqueSharedLatch unique_stats_storage_latch{&stats_storage_latch_};
+  common::SharedLatchGuard shared_stats_storage_latch{&stats_storage_latch_};
 
   StatsStorageKey stats_storage_key{database_id, table_id};
   auto table_it = table_stats_storage_.find(stats_storage_key);
@@ -28,13 +28,17 @@ StatsStorageReference StatsStorage::GetTableStats(const catalog::db_oid_t databa
 
   UpdateStaleColumns(table_id, &stats_storage_value, accessor);
 
-  return StatsStorageReference(&stats_storage_value, std::move(unique_stats_storage_latch));
+  return StatsStorageReference(&stats_storage_value, std::move(shared_stats_storage_latch));
 }
 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                   const std::vector<catalog::col_oid_t> &col_ids) {
+  /*
+   * It's ok to mark something stale while someone is reading it, the worst that happens is they end up using slightly
+   * stale statistics without realizing it.
+   */
   StatsStorageKey stats_storage_key{database_id, table_id};
-  common::SharedLatch::UniqueSharedLatch unique_stats_storage_latch{&stats_storage_latch_};
+  common::SharedLatch::ScopedSharedLatch shared_stats_storage_latch{&stats_storage_latch_};
   auto stats_storage_value = table_stats_storage_.find(stats_storage_key);
   if (stats_storage_value != table_stats_storage_.end()) {
     for (const auto &col_id : col_ids) {
@@ -44,14 +48,14 @@ void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_
 }
 
 bool StatsStorage::ContainsTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id) {
-  common::SharedLatch::UniqueSharedLatch unique_stats_storage_latch{&stats_storage_latch_};
+  common::SharedLatch::ScopedSharedLatch shared_stats_storage_latch{&stats_storage_latch_};
   StatsStorageKey stats_storage_key{database_id, table_id};
   return table_stats_storage_.count(stats_storage_key) > 0;
 }
 
 void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                     catalog::CatalogAccessor *accessor) {
-  common::SharedLatch::UniqueSharedLatch unique_stats_storage_latch{&stats_storage_latch_};
+  common::SharedLatch::ScopedExclusiveLatch exclusive_stats_storage_latch{&stats_storage_latch_};
 
   StatsStorageKey stats_storage_key{database_id, table_id};
   if (table_stats_storage_.count(stats_storage_key) == 0) {
@@ -62,13 +66,13 @@ void StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::tabl
 void StatsStorage::UpdateStaleColumns(catalog::table_oid_t table_id, StatsStorageValue *stats_storage_value,
                                       catalog::CatalogAccessor *accessor) {
   {
-    common::SharedLatch::UniqueSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
+    common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
     if (!stats_storage_value->table_stats_.HasStaleValues()) {
       return;
     }
   }
 
-  common::SharedLatch::UniqueSharedLatch exclusive_table_latch{&stats_storage_value->shared_latch_};
+  common::SharedLatch::ScopedExclusiveLatch exclusive_table_latch{&stats_storage_value->shared_latch_};
 
   auto &table_stats = stats_storage_value->table_stats_;
   for (auto column_stat : table_stats.GetColumnStats()) {

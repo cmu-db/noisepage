@@ -49,12 +49,12 @@ struct StatsStorageReference {
    * @param stats_storage_shared_latch acquired read latch on stats storage
    */
   explicit StatsStorageReference(StatsStorageValue *stats_storage_value,
-                                 common::SharedLatch::UniqueSharedLatch stats_storage_shared_latch)
+                                 common::SharedLatchGuard stats_storage_shared_latch)
       : stats_storage_value_(stats_storage_value), stats_storage_shared_latch_(std::move(stats_storage_shared_latch)) {}
   /** Stats Storage Value */
   StatsStorageValue *stats_storage_value_;
   /** Unique Shared Latch on Stats Storage */
-  common::SharedLatch::UniqueSharedLatch stats_storage_shared_latch_;
+  common::SharedLatchGuard stats_storage_shared_latch_;
 };
 }  // namespace noisepage::optimizer
 

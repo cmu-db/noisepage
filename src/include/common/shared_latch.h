@@ -6,10 +6,54 @@
 
 namespace noisepage::common {
 
+// In order to be used with std::unique_lock, the adapted
+// type must meet the requirements of Lockable and BasicLockable
+template <typename Lockable>
+class UniqueLockAdapter {
+ public:
+  // NOLINT
+  void lock() {
+    auto &latch = static_cast<Lockable &>(*this);
+    latch.LockExclusive();
+  }
+  // NOLINT
+  void unlock() {
+    auto &latch = static_cast<Lockable &>(*this);
+    latch.UnlockExclusive();
+  }
+  // NOLINT
+  void try_lock() {
+    auto &latch = static_cast<Lockable &>(*this);
+    latch.TryLockExclusive();
+  }
+};
+
+// In order to be used with std::shared_lock, the adapted
+// type must meet the requirements of SharedMutex
+template <typename Lockable>
+class SharedLockAdapter {
+ public:
+  // NOLINT
+  void lock_shared() {
+    auto &latch = static_cast<Lockable &>(*this);
+    latch.LockShared();
+  }
+  // NOLINT
+  void unlock_shared() {
+    auto &latch = static_cast<Lockable &>(*this);
+    latch.UnlockShared();
+  }
+  // NOLINT
+  void try_lock_shared() {
+    auto &latch = static_cast<Lockable &>(*this);
+    latch.TryLockShared();
+  }
+};
+
 /**
  * A cheap(?) and easy shared (reader-writer) latch, currently wraps std::shared_mutex.
  */
-class SharedLatch {
+class SharedLatch : public SharedLockAdapter<SharedLatch>, public UniqueLockAdapter<SharedLatch> {
  public:
   /**
    * Acquire exclusive lock on mutex.
@@ -82,86 +126,40 @@ class SharedLatch {
     SharedLatch *const rw_latch_;
   };
 
-  /**
-   * Unique read latch that guarantees releasing the latch when destructed.
-   */
-  class UniqueSharedLatch {
-   public:
-    /**
-     * Acquire read lock on ReaderWriterLatch.
-     * @param rw_latch pointer to ReaderWriterLatch to acquire
-     */
-    explicit UniqueSharedLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch), owns_(false) {
-      rw_latch_->LockShared();
-      owns_ = true;
-    }
-    /**
-     * Release read lock (if acquired and owned).
-     */
-    ~UniqueSharedLatch() {
-      if (owns_) {
-        rw_latch_->UnlockShared();
-      }
-    }
-    /**
-     * Moves owner of other UniqueSharedLatch to this
-     * @param other UniqueSharedLatch to move ownership from
-     */
-    UniqueSharedLatch(UniqueSharedLatch &&other) noexcept : rw_latch_(other.rw_latch_), owns_(other.owns_) {
-      other.owns_ = false;
-    }
-    /*
-     * Move assignment is currently unimplemented because it's not needed yet
-     */
-    UniqueSharedLatch &operator=(UniqueSharedLatch &&other) = delete;
-    DISALLOW_COPY(UniqueSharedLatch)
-
-   private:
-    SharedLatch *const rw_latch_;
-    bool owns_;
-  };
-
-  /**
-   * Unique write latch that guarantees releasing the latch when destructed.
-   */
-  class UniqueExclusiveLatch {
-   public:
-    /**
-     * Acquire read lock on ReaderWriterLatch.
-     * @param rw_latch pointer to ReaderWriterLatch to acquire
-     */
-    explicit UniqueExclusiveLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch), owns_(false) {
-      rw_latch_->LockExclusive();
-      owns_ = true;
-    }
-    /**
-     * Release read lock (if acquired and owned).
-     */
-    ~UniqueExclusiveLatch() {
-      if (owns_) {
-        rw_latch_->UnlockExclusive();
-      }
-    }
-    /**
-     * Moves owner of other UniqueExclusiveLatch to this
-     * @param other UniqueExclusiveLatch to move ownership from
-     */
-    UniqueExclusiveLatch(UniqueExclusiveLatch &&other) noexcept : rw_latch_(other.rw_latch_), owns_(other.owns_) {
-      other.owns_ = false;
-    }
-    /*
-     * Move assignment is currently unimplemented because it's not needed yet
-     */
-    UniqueExclusiveLatch &operator=(UniqueExclusiveLatch &&other) = delete;
-    DISALLOW_COPY(UniqueExclusiveLatch)
-
-   private:
-    SharedLatch *const rw_latch_;
-    bool owns_;
-  };
-
  private:
   std::shared_mutex latch_;
+};
+
+// In order to provide movable unique and shared latches we wrap C++ STL unique_lock and shared_lock
+
+/**
+ * exclusive movable write latch that guarantees releasing the latch when destructed.
+ */
+class UniqueLatch {
+ public:
+  /**
+   * Acquire write latch on ReaderWriterLatch.
+   * @param rw_latch pointer to ReaderWriterLatch to acquire
+   */
+  explicit UniqueLatch(SharedLatch *const rw_latch) : unique_lock_(*rw_latch) {}
+
+ private:
+  std::unique_lock<SharedLatch> unique_lock_;
+};
+
+/**
+ * shared movable read latch that guarantees releasing the latch when destructed.
+ */
+class SharedLatchGuard {
+ public:
+  /**
+   * Acquire read latch on ReaderWriterLatch.
+   * @param rw_latch pointer to ReaderWriterLatch to acquire
+   */
+  explicit SharedLatchGuard(SharedLatch *const rw_latch) : shared_lock_(*rw_latch) {}
+
+ private:
+  std::shared_lock<SharedLatch> shared_lock_;
 };
 
 }  // namespace noisepage::common
