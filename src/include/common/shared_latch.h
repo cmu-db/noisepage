@@ -6,21 +6,32 @@
 
 namespace noisepage::common {
 
-// In order to be used with std::unique_lock, the adapted
-// type must meet the requirements of Lockable and BasicLockable
+/**
+ * In order to be used with std::unique_lock, the adapted
+ * type must meet the requirements of Lockable and BasicLockable
+ */
 template <typename Lockable>
 class UniqueLockAdapter {
  public:
+  /**
+   * lock
+   */
   // NOLINT
   void lock() {
     auto &latch = static_cast<Lockable &>(*this);
     latch.LockExclusive();
   }
+  /**
+   * unlock
+   */
   // NOLINT
   void unlock() {
     auto &latch = static_cast<Lockable &>(*this);
     latch.UnlockExclusive();
   }
+  /**
+   * try lock
+   */
   // NOLINT
   void try_lock() {
     auto &latch = static_cast<Lockable &>(*this);
@@ -28,21 +39,32 @@ class UniqueLockAdapter {
   }
 };
 
-// In order to be used with std::shared_lock, the adapted
-// type must meet the requirements of SharedMutex
+/**
+ * In order to be used with std::shared_lock, the adapted
+ * type must meet the requirements of SharedMutex
+ */
 template <typename Lockable>
 class SharedLockAdapter {
  public:
+  /**
+   * lock shared
+   */
   // NOLINT
   void lock_shared() {
     auto &latch = static_cast<Lockable &>(*this);
     latch.LockShared();
   }
+  /**
+   * unlock shared
+   */
   // NOLINT
   void unlock_shared() {
     auto &latch = static_cast<Lockable &>(*this);
     latch.UnlockShared();
   }
+  /**
+   * try lock shared
+   */
   // NOLINT
   void try_lock_shared() {
     auto &latch = static_cast<Lockable &>(*this);
