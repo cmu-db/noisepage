@@ -16,24 +16,21 @@ class UniqueLockAdapter {
   /**
    * lock
    */
-  // NOLINT
-  void lock() {
+  void lock() {  // NOLINT
     auto &latch = static_cast<Lockable &>(*this);
     latch.LockExclusive();
   }
   /**
    * unlock
    */
-  // NOLINT
-  void unlock() {
+  void unlock() {  // NOLINT
     auto &latch = static_cast<Lockable &>(*this);
     latch.UnlockExclusive();
   }
   /**
    * try lock
    */
-  // NOLINT
-  void try_lock() {
+  void try_lock() {  // NOLINT
     auto &latch = static_cast<Lockable &>(*this);
     latch.TryLockExclusive();
   }
@@ -49,24 +46,21 @@ class SharedLockAdapter {
   /**
    * lock shared
    */
-  // NOLINT
-  void lock_shared() {
+  void lock_shared() {  // NOLINT
     auto &latch = static_cast<Lockable &>(*this);
     latch.LockShared();
   }
   /**
    * unlock shared
    */
-  // NOLINT
-  void unlock_shared() {
+  void unlock_shared() {  // NOLINT
     auto &latch = static_cast<Lockable &>(*this);
     latch.UnlockShared();
   }
   /**
    * try lock shared
    */
-  // NOLINT
-  void try_lock_shared() {
+  void try_lock_shared() {  // NOLINT
     auto &latch = static_cast<Lockable &>(*this);
     latch.TryLockShared();
   }
