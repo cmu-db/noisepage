@@ -26,10 +26,8 @@ TEST_F(StatsStorageTests, EmptyTableTest) {
   std::vector<catalog::col_oid_t> col_oids{col_oid_};
   EXPECT_NO_THROW(stats_storage_->MarkStatsStale(test_db_oid_, table_oid, col_oids));
 
-  const auto &stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
-  auto *stats_storage_value = stats_cache_reference.stats_storage_value_;
-  common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
-  const auto &table_stats = stats_storage_value->table_stats_;
+  const auto stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
+  const auto &table_stats = stats_cache_reference.table_stats_;
   EXPECT_EQ(table_stats.GetNumRows(), 0);
   EXPECT_EQ(table_stats.GetColumnCount(), 1);
   EXPECT_TRUE(table_stats.HasColumnStats(col_oid_));
@@ -46,10 +44,8 @@ TEST_F(StatsStorageTests, NonEmptyTableTest) {
 
   std::vector<catalog::col_oid_t> col_oids{col_oid_};
 
-  const auto &stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
-  auto *stats_storage_value = stats_cache_reference.stats_storage_value_;
-  common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
-  const auto &table_stats = stats_storage_value->table_stats_;
+  const auto stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
+  const auto &table_stats = stats_cache_reference.table_stats_;
   EXPECT_EQ(table_stats.GetNumRows(), 3);
   EXPECT_EQ(table_stats.GetColumnCount(), 1);
   EXPECT_TRUE(table_stats.HasColumnStats(col_oid_));
@@ -79,10 +75,8 @@ TEST_F(StatsStorageTests, StaleColumnTest) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  const auto &stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
-  auto *stats_storage_value = stats_cache_reference.stats_storage_value_;
-  common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
-  const auto &table_stats = stats_storage_value->table_stats_;
+  const auto stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
+  const auto &table_stats = stats_cache_reference.table_stats_;
   EXPECT_EQ(table_stats.GetNumRows(), 4);
   EXPECT_EQ(table_stats.GetColumnCount(), 1);
   EXPECT_TRUE(table_stats.HasColumnStats(col_oid_));
@@ -108,10 +102,8 @@ TEST_F(StatsStorageTests, MultithreadedTest) {
 
   auto forward_traversal = [&]() {
     for (const catalog::table_oid_t &table_oid : table_oids) {
-      const auto &stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
-      auto *stats_storage_value = stats_cache_reference.stats_storage_value_;
-      common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
-      const auto &table_stats = stats_storage_value->table_stats_;
+      const auto stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
+      const auto &table_stats = stats_cache_reference.table_stats_;
       EXPECT_EQ(0, table_stats.GetNumRows());
     }
   };
@@ -119,10 +111,8 @@ TEST_F(StatsStorageTests, MultithreadedTest) {
   auto backward_traversal = [&]() {
     for (auto it = table_oids.rbegin(); it != table_oids.rend(); it++) {
       const auto &table_oid = *it;
-      const auto &stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
-      auto *stats_storage_value = stats_cache_reference.stats_storage_value_;
-      common::SharedLatch::ScopedSharedLatch shared_table_latch{&stats_storage_value->shared_latch_};
-      const auto &table_stats = stats_storage_value->table_stats_;
+      const auto stats_cache_reference = stats_storage_->GetTableStats(test_db_oid_, table_oid, accessor_.get());
+      const auto &table_stats = stats_cache_reference.table_stats_;
       EXPECT_EQ(0, table_stats.GetNumRows());
     }
   };

@@ -57,7 +57,7 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing logical get with no predicates
+  // Constructing logical get with no predicates from "empty_nullable_table"
   Operator logical_get =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
@@ -79,7 +79,7 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
 
 // NOLINTNEXTLINE
 TEST_F(StatsCalculatorTests, TestInvalidLogicalGet) {
-  // Constructing logical get with no predicates
+  // Constructing logical get with no predicates from invalid table
   Operator logical_get =
       LogicalGet::Make(test_db_oid_, catalog::INVALID_TABLE_OID, {}, "", false).RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
@@ -106,7 +106,7 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Get with NOT EQUALS predicate
+  // Constructing Logical Get with NOT EQUALS predicate "NOT colA = 1" from "empty_nullable_table"
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
@@ -144,7 +144,7 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Get with IS NOT NULL predicate
+  // Constructing Logical Get with IS NOT NULL predicate "colA IS NOT NULL" from "empty_nullable_table"
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   std::vector<std::unique_ptr<parser::AbstractExpression>> not_null_child_exprs;
@@ -177,7 +177,8 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Get with predicate with column value on the left side of predicate
+  // Constructing Logical Get with predicate with column value on the left side of predicate "colA = 1" from
+  // "empty_nullable_table"
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
@@ -212,7 +213,7 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   test_txn_ = txn_manager_->BeginTransaction();
 
   // Constructing Logical Get with predicate with column value on the left side of predicate and param on the right side
-  // of predicate
+  // of predicate "colA = param" from "empty_nullable_table". (param is 1)
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
@@ -251,7 +252,8 @@ TEST_F(StatsCalculatorTests, TestRightSidePredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Get with predicate with column value on the right side of predicate
+  // Constructing Logical Get with predicate with column value on the right side of predicate "3 = colA" from
+  // "empty_nullable_table"
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
@@ -286,7 +288,7 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   test_txn_ = txn_manager_->BeginTransaction();
 
   // Constructing Logical Get with predicate with column value on the right side of predicate and param on the left side
-  // of predicate
+  // of predicate "param = colA" from "empty_nullable_table". (param is 3)
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
   auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
@@ -325,7 +327,8 @@ TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Get with two param predicates
+  // Constructing Logical Get with two param predicates "calA = param1 AND colB = param2" from "empty_table2".
+  // (param1 is 1, param2 is true)
   parser::ColumnValueExpression col_a(table_name_2_, table_2_col_1_name_, test_db_oid_, table_oid_2_,
                                       table_2_col_1_oid_, type::TypeId::INTEGER);
   parser::ColumnValueExpression col_b(table_name_2_, table_2_col_2_name_, test_db_oid_, table_oid_2_,
@@ -380,7 +383,8 @@ TEST_F(StatsCalculatorTests, TestAndPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Get with AND predicate consisting of two EQUALS predicates
+  // Constructing Logical Get with AND predicate consisting of two EQUALS predicates "colA = 3 AND colA = 1"
+  // from "empty_nullable_table".
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
 
@@ -427,7 +431,8 @@ TEST_F(StatsCalculatorTests, TestOrPredicate) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Get with OR predicate consisting of two EQUALS predicates
+  // Constructing Logical Get with OR predicate consisting of two EQUALS predicates "colA = 3 OR colA = 1"
+  // from "empty_nullable_table"
   parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
                                       type::TypeId::INTEGER);
 
@@ -475,7 +480,7 @@ TEST_F(StatsCalculatorTests, TestLogicalLimit) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Limit with no predicate
+  // Constructing Logical Limit with logical get with no predicate from "empty_nullable_table"
   Operator logical_get =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr = new GroupExpression(logical_get, {}, test_txn_);
@@ -513,7 +518,8 @@ TEST_F(StatsCalculatorTests, TestLogicalSemiJoin) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Semi Join with join predicates
+  // Constructing Logical Semi Join with join predicates "JOIN empty_nullable_table AND empty_table2
+  // ON empty_nullable_table.colA = empty_table2.colA"
   Operator logical_get1 =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr1 = new GroupExpression(logical_get1, {}, test_txn_);
@@ -579,7 +585,8 @@ TEST_F(StatsCalculatorTests, TestLogicalInnerJoin) {
   txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
   test_txn_ = txn_manager_->BeginTransaction();
 
-  // Constructing Logical Inner Join with join predicates
+  // Constructing Logical Inner Join with join predicates "JOIN empty_nullable_table AND empty_table2
+  //  ON empty_nullable_table.colA = empty_table2.colA"
   Operator logical_get1 =
       LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr1 = new GroupExpression(logical_get1, {}, test_txn_);

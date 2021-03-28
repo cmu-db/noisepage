@@ -28,21 +28,25 @@ StatsStorageReference StatsStorage::GetTableStats(const catalog::db_oid_t databa
 
   UpdateStaleColumns(table_id, &stats_storage_value, accessor);
 
-  return StatsStorageReference(&stats_storage_value, std::move(shared_stats_storage_latch));
+  common::SharedLatchGuard shared_table_stats_latch{&stats_storage_value.shared_latch_};
+  return StatsStorageReference(stats_storage_value.table_stats_, std::move(shared_stats_storage_latch),
+                               std::move(shared_table_stats_latch));
 }
 
 void StatsStorage::MarkStatsStale(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                   const std::vector<catalog::col_oid_t> &col_ids) {
-  /*
-   * It's ok to mark something stale while someone is reading it, the worst that happens is they end up using slightly
-   * stale statistics without realizing it.
-   */
   StatsStorageKey stats_storage_key{database_id, table_id};
   common::SharedLatch::ScopedSharedLatch shared_stats_storage_latch{&stats_storage_latch_};
-  auto stats_storage_value = table_stats_storage_.find(stats_storage_key);
-  if (stats_storage_value != table_stats_storage_.end()) {
+  auto stats_storage_value_it = table_stats_storage_.find(stats_storage_key);
+  if (stats_storage_value_it != table_stats_storage_.end()) {
+    auto &stats_storage_value = table_stats_storage_.at(stats_storage_key);
+    /*
+     * We don't need an exclusive latch because it's ok to mark something stale while someone is reading it. The worst
+     * that happens is they end up using slightly stale statistics without realizing it.
+     */
+    common::SharedLatch::ScopedSharedLatch shared_table_stats_latch{&stats_storage_value.shared_latch_};
     for (const auto &col_id : col_ids) {
-      table_stats_storage_.at(stats_storage_key).table_stats_.GetColumnStats(col_id)->MarkStale();
+      stats_storage_value.table_stats_.GetColumnStats(col_id)->MarkStale();
     }
   }
 }
