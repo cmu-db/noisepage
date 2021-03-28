@@ -45,7 +45,8 @@ struct StatsStorageValue {
 struct StatsStorageReference {
   /**
    * Constructor
-   * @param stats_storage_value pointer to stats_storage_value
+   * @param table_stats reference to the table stats
+   * @param table_stats_shared_latch acquired read latch on the table stats
    * @param stats_storage_shared_latch acquired read latch on stats storage
    */
   explicit StatsStorageReference(const TableStats &table_stats, common::SharedLatchGuard table_stats_shared_latch,
