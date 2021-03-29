@@ -46,7 +46,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     }
   }
 
-  if (policy == transaction::ReplicationPolicy::ASYNC) {
+  if (policy == transaction::ReplicationPolicy::ASYNC || !has_records) {
     // In asynchronous replication, just invoke the commit callbacks immediately.
     for (const auto &cb : commit_callbacks) {
       cb.fn_(cb.arg_);
