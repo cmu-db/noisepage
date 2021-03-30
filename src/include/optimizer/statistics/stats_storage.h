@@ -112,14 +112,15 @@ namespace noisepage::optimizer {
 class StatsStorage {
  public:
   /**
-   * Returns a reference of a TableStats object for a specific table, and an acquired read lock on the entire Stats
-   * Storage
+   * Returns a reference of a TableStats object for a specific table, an acquired shared latch for that TableStats
+   * object, and an acquired shared latch on the entire Stats Storage. No locking or unlocking is needed from the
+   * consumer, both latches are already acquired and will automatically unlock when they fall out of scope.
    *
    * @param database_id - oid of database
    * @param table_id - oid of table
    * @param accessor - catalog accessor
-   * @return reference to a TableStats object, latch for that TableStats object, and an acquired shared latch on
-   * StatsStorage
+   * @return reference to a TableStats object, an acquired shared latch for that TableStats object, and an acquired
+   * shared latch on StatsStorage
    */
   LatchedTableStatsReference GetTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
                                            catalog::CatalogAccessor *accessor);
