@@ -39,14 +39,14 @@ void StatsCalculator::Visit(const LogicalGet *op) {
 
   // Compute selectivity at the first time
   if (root_group->GetNumRows() == -1) {
-    const auto stats_cache_reference = context_->GetStatsStorage()->GetTableStats(
+    const auto latched_table_stats_reference = context_->GetStatsStorage()->GetTableStats(
         op->GetDatabaseOid(), op->GetTableOid(), context_->GetCatalogAccessor());
 
-    NOISEPAGE_ASSERT(stats_cache_reference.table_stats_.GetColumnCount() != 0,
+    NOISEPAGE_ASSERT(latched_table_stats_reference.table_stats_.GetColumnCount() != 0,
                      "Should have table stats for all tables");
     // Use predicates to estimate cardinality.
-    auto est = EstimateCardinalityForFilter(stats_cache_reference.table_stats_.GetNumRows(),
-                                            stats_cache_reference.table_stats_, op->GetPredicates());
+    auto est = EstimateCardinalityForFilter(latched_table_stats_reference.table_stats_.GetNumRows(),
+                                            latched_table_stats_reference.table_stats_, op->GetPredicates());
     root_group->SetNumRows(static_cast<int>(est));
   }
 }
