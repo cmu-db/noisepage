@@ -20,33 +20,9 @@ ReplicationManager::ReplicationManager(
   messenger_->ListenForConnection(
       listen_destination, network_identity,
       [this](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-        // TODO(WAN): I am _intensely_ uncomfortable with this
-        //  HACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACK
-        //  HACK
-        //  HACK
-        //  HACK why the fuck is this getting sent at the end of OLTPBench?
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACK
-        //  HACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACKHACK
-
-        if (!msg.GetMessage().empty()) {
-          auto json = nlohmann::json::parse(msg.GetMessage());
-          auto replication_msg = BaseReplicationMessage::ParseFromJson(json);
-          EventLoop(messenger, msg, common::ManagedPointer(replication_msg));
-        }
+        auto json = nlohmann::json::parse(msg.GetMessage());
+        auto replication_msg = BaseReplicationMessage::ParseFromJson(json);
+        EventLoop(messenger, msg, common::ManagedPointer(replication_msg));
       });
   // Connect to all of the other nodes.
   BuildReplicationNetwork(replication_hosts_path);
