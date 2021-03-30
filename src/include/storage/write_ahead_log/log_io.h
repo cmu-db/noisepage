@@ -112,9 +112,10 @@ class BufferedLogWriter {
   }
 
   /**
-   * Empties the buffer.
+   * Resets the buffer.
+   * Use this instead of FlushBuffer if you don't want the contents to be flushed disk.
    */
-  void EmptyBuffer() { buffer_size_ = 0; }
+  void ResetBuffer() { buffer_size_ = 0; }
 
   /**
    * @return if the buffer is full

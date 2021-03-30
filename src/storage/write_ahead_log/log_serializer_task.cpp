@@ -61,6 +61,8 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   Process();
   NOISEPAGE_ASSERT(disk_flush_queue_.empty(),
                    "Termination of LogSerializerTask should hand off all buffers to consumers");
+  NOISEPAGE_ASSERT(replication_flush_queue_.empty(),
+                   "Termination of LogSerializerTask should hand off all buffers to consumers");
 }
 
 std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
@@ -174,16 +176,6 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer(SerializeDestination
  */
 void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destination) {
   // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
-
-  // TODO(WAN): Tianlei will be adding code that has different queues for different retention policies. When this
-  //  happens, the individual queues can deal with calling PrepareForSerialization with their respective retention
-  //  policies, so the below assert will become unnecessary.
-  auto retention_policy = primary_replication_manager_ == DISABLED
-                              ? transaction::RetentionPolicy::RETENTION_LOCAL_DISK
-                              : transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
-  NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED ||
-                       retention_policy != transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS,
-                   "If replication is disabled, then you can't send buffers to replicas.");
   if (destination == SerializeDestination::DISK) {
     if (disk_filled_buffer_ != nullptr) {
       disk_filled_buffer_->PrepareForSerialization(retention_policy);
@@ -204,10 +196,8 @@ void LogSerializerTask::HandFilledBufferToWriter(SerializeDestination destinatio
       if (primary_replication_manager_ != DISABLED) {
         primary_replication_manager_->ReplicateBuffer(replication_filled_buffer_);
       }
-    }
 
-    // Hand over the filled buffer
-    if (replication_filled_buffer_ != nullptr) {
+      // Hand over the filled buffer
       if (replication_filled_buffer_->MarkSerialized()) {
         replication_filled_buffer_->EmptyBuffer();
         empty_buffer_queue_->Enqueue(replication_filled_buffer_);
