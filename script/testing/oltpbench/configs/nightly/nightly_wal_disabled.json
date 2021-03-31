@@ -3,7 +3,7 @@
     "server_args":{
         "wal_enable": false,
         "connection_thread_count": 32,
-        "record_buffer_segment_size": 1000000
+        "record_buffer_segment_size": 10000000
     },
     "continue_on_error": true,
     "env":{
