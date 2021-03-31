@@ -2,7 +2,7 @@
     "type": "oltpbenchmark",
     "server_args":{
         "connection_thread_count": 32,
-        "wal_file_path": "/mnt/ramdisk/wal.log",
+        "wal_file_path": "/mnt/ramdisk/noisepage-wal.log",
         "record_buffer_segment_size": 10000000
     },
     "env":{

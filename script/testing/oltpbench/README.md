@@ -147,7 +147,7 @@ The following example shows a oltpbenchmark test with 4 testcases
     "type": "oltpbenchmark",
     "server_args":{
         "connection_thread_count": 32,
-        "wal_file_path": "/mnt/ramdisk/wal.log"    
+        "wal_file_path": "/mnt/ramdisk/noisepage-wal.log"    
     },
     "testcases": [
         {
