@@ -3,6 +3,7 @@ import os
 import shlex
 import subprocess
 import sys
+import time
 
 import psutil
 
@@ -56,6 +57,8 @@ def run_command(command,
                 out = p.stdout.readline()
                 if out:
                     LOG.info(out.decode("utf-8").rstrip("\n"))
+        # To prevent us from burning up the CPU
+        time.sleep(0.1)
 
     rc = p.poll()
     return rc, p.stdout, p.stderr

@@ -1,5 +1,8 @@
 {
     "type": "oltpbenchmark",
+    "server_args":{
+        "record_buffer_segment_size": 10000000
+    },
     "testcases": [
         {
             "base": {
