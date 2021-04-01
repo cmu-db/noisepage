@@ -45,8 +45,8 @@ SETTING_string(
 // RecordBufferSegmentPool size limit
 SETTING_int(
     record_buffer_segment_size,
-    "The maximum number of record buffer segments in the system. (default: 100000)",
-    100000,
+    "The maximum number of record buffer segments in the system. (default: 1000000)",
+    1000000,
     1,
     1000000000,
     true,
@@ -67,8 +67,8 @@ SETTING_int(
 // BlockStore for catalog size limit
 SETTING_int(
     block_store_size,
-    "The maximum number of storage blocks for the catalog. (default: 100000)",
-    100000,
+    "The maximum number of storage blocks for the catalog. (default: 1000000)",
+    1000000,
     1,
     1000000000,
     true,

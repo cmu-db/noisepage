@@ -20,7 +20,7 @@ class SettingsTests : public TerrierTest {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool_;
 
-  const uint64_t default_buffer_pool_size_ = 100000;
+  const uint64_t default_buffer_pool_size_ = 1000000;
 
   void SetUp() override {
     std::unordered_map<Param, ParamInfo> param_map;
