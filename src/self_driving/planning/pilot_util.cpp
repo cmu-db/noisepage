@@ -325,8 +325,9 @@ void PilotUtil::InterferenceInference(
   std::vector<std::pair<execution::query_id_t, std::vector<double>>> query_feat_sum;
   execution::query_id_t curr_qid = pipeline_to_prediction.begin()->first.first;
 
-  auto feat_dim = pipeline_to_prediction.begin()->second.back().size();
+  auto feat_dim = pipeline_to_prediction.begin()->second.back().back().size();
   query_feat_sum.emplace_back(curr_qid, std::vector<double> (feat_dim,0.0));
+  query_info->emplace(curr_qid, std::make_pair(pipeline_to_prediction.begin()->second.size(), 0));
 
   // Compute the sum of ous for a query, averaged over diff set of params
   for (auto const &pipeline_to_pred : pipeline_to_prediction) {
