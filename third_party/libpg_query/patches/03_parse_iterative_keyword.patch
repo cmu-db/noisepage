@@ -1,0 +1,87 @@
+diff -Naur a/third_party/libpg_query/src/postgres/gram.y b/third_party/libpg_query/src/postgres/gram.y
+--- a/third_party/libpg_query/src/postgres/gram.y	2020-11-01 19:56:51.000000000 -0800
++++ b/libpg_query/src/postgres/gram.y	            2020-11-01 19:52:22.000000000 -0800
+@@ -598,7 +598,7 @@
+ 	IDENTITY_P IF_P ILIKE IMMEDIATE IMMUTABLE IMPLICIT_P IMPORT_P IN_P
+ 	INCLUDING INCREMENT INDEX INDEXES INHERIT INHERITS INITIALLY INLINE_P
+ 	INNER_P INOUT INPUT_P INSENSITIVE INSERT INSTEAD INT_P INTEGER
+-	INTERSECT INTERVAL INTO INVOKER IS ISNULL ISOLATION
++	INTERSECT INTERVAL INTO INVOKER IS ISNULL ISOLATION ITERATIVE
+
+ 	JOIN
+
+@@ -10059,7 +10059,7 @@
+ /*
+  * SQL standard WITH clause looks like:
+  *
+- * WITH [ RECURSIVE ] <query name> [ (<column>,...) ]
++ * WITH [ RECURSIVE|ITERATIVE ] <query name> [ (<column>,...) ]
+  *		AS (query) [ SEARCH or CYCLE clause ]
+  *
+  * We don't currently support the SEARCH or CYCLE clause.
+@@ -10072,6 +10072,7 @@
+ 				$$ = makeNode(WithClause);
+ 				$$->ctes = $2;
+ 				$$->recursive = false;
++				$$->iterative = false;
+ 				$$->location = @1;
+ 			}
+ 		| WITH_LA cte_list
+@@ -10079,6 +10080,7 @@
+ 				$$ = makeNode(WithClause);
+ 				$$->ctes = $2;
+ 				$$->recursive = false;
++				$$->iterative = false;
+ 				$$->location = @1;
+ 			}
+ 		| WITH RECURSIVE cte_list
+@@ -10086,8 +10088,17 @@
+ 				$$ = makeNode(WithClause);
+ 				$$->ctes = $3;
+ 				$$->recursive = true;
++				$$->iterative = false;
+ 				$$->location = @1;
+ 			}
++		| WITH ITERATIVE cte_list
++		    {
++		        $$ = makeNode(WithClause);
++                $$->ctes = $3;
++                $$->recursive = false;
++                $$->iterative = true;
++                $$->location = @1;
++		    }
+ 		;
+
+ cte_list:
+@@ -13773,6 +13784,7 @@
+ 			| INSTEAD
+ 			| INVOKER
+ 			| ISOLATION
++			| ITERATIVE
+ 			| KEY
+ 			| LABEL
+ 			| LANGUAGE
+diff -Naur a/third_party/libpg_query/src/postgres/include/nodes/parsenodes.h b/third_party/libpg_query/src/postgres/include/nodes/parsenodes.h
+--- a/third_party/libpg_query/src/postgres/include/nodes/parsenodes.h	2020-11-01 19:56:51.000000000 -0800
++++ b/third_party/libpg_query/src/postgres/include/nodes/parsenodes.h	2020-10-29 23:46:11.000000000 -0700
+@@ -1131,7 +1131,8 @@
+ {
+ 	NodeTag		type;
+ 	List	   *ctes;			/* list of CommonTableExprs */
+-	bool		recursive;		/* true = WITH RECURSIVE */
++	bool		recursive;		/* true = WITH RECURSIVE or WITH ITERATIVE */
++        bool        iterative;                  /* true = WITH ITERATIVE */
+ 	int			location;		/* token location, or -1 if unknown */
+ } WithClause;
+
+diff -Naur a/third_party/libpg_query/src/postgres/include/parser/kwlist.h b/third_party/libpg_query/src/postgres/include/parser/kwlist.h
+--- a/third_party/libpg_query/src/postgres/include/parser/kwlist.h	2020-11-01 19:56:51.000000000 -0800
++++ b/third_party/libpg_query/src/postgres/include/parser/kwlist.h	2020-10-29 23:46:11.000000000 -0700
+@@ -212,6 +212,7 @@
+ PG_KEYWORD("is", IS, TYPE_FUNC_NAME_KEYWORD)
+ PG_KEYWORD("isnull", ISNULL, TYPE_FUNC_NAME_KEYWORD)
+ PG_KEYWORD("isolation", ISOLATION, UNRESERVED_KEYWORD)
++PG_KEYWORD("iterative", ITERATIVE, UNRESERVED_KEYWORD)
+ PG_KEYWORD("join", JOIN, TYPE_FUNC_NAME_KEYWORD)
+ PG_KEYWORD("key", KEY, UNRESERVED_KEYWORD)
+ PG_KEYWORD("label", LABEL, UNRESERVED_KEYWORD)

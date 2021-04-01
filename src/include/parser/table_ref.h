@@ -140,6 +140,20 @@ class TableRef {
       : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)) {}
 
   /**
+   * @param alias alias for table ref
+   * @param select select statement to use in creation
+   * @param cte_col_aliases aliases for the columns
+   * @param cte_type The type of cte this table is referencing (iterative, recursive, simple)
+   */
+  TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
+           parser::CTEType cte_type)
+      : type_(TableReferenceType::SELECT),
+        alias_(std::move(alias)),
+        select_(std::move(select)),
+        cte_col_aliases_(std::move(cte_col_aliases)),
+        cte_type_(cte_type) {}
+
+  /**
    * @param list table refs to use in creation
    */
   explicit TableRef(std::vector<std::unique_ptr<TableRef>> list)
@@ -167,6 +181,19 @@ class TableRef {
    */
   static std::unique_ptr<TableRef> CreateTableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select) {
     return std::make_unique<TableRef>(std::move(alias), std::move(select));
+  }
+
+  /**
+   * @param alias alias for table ref
+   * @param select select statement to use in creation
+   * @param cte_col_aliases aliases for column names
+   * @param cte_type the type of cte (simple/recursive/iterative)
+   * @return unique pointer to the created (CTE) table ref
+   */
+  static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,
+                                                             std::vector<AliasType> cte_col_aliases,
+                                                             parser::CTEType cte_type) {
+    return std::make_unique<TableRef>(std::move(alias), std::move(select), std::move(cte_col_aliases), cte_type);
   }
 
   /**
@@ -198,6 +225,12 @@ class TableRef {
     if (alias_.empty()) alias_ = table_info_->GetTableName();
     return alias_;
   }
+
+  /** @return column alias names */
+  std::vector<AliasType> GetCteColumnAliases() { return cte_col_aliases_; }
+
+  /** @return cte recursive flag */
+  parser::CTEType GetCteType() { return cte_type_; }
 
   /** @return table name */
   const std::string &GetTableName() { return table_info_->GetTableName(); }
@@ -243,6 +276,13 @@ class TableRef {
    */
   bool operator!=(const TableRef &rhs) const { return !(operator==(rhs)); }
 
+  /**
+   * Inserts all the table aliases forming a table ref into the input set.
+   * (i.e., all the aliases used in the from clause, including all aliases in all JOINs)
+   * @param aliases set to insert aliases into
+   */
+  void GetConstituentTableAliases(std::vector<std::string> *aliases);
+
   /** @return TableRef serialized to json */
   nlohmann::json ToJson() const;
 
@@ -257,6 +297,9 @@ class TableRef {
 
   std::unique_ptr<TableInfo> table_info_;
   std::unique_ptr<SelectStatement> select_;
+
+  std::vector<AliasType> cte_col_aliases_;
+  parser::CTEType cte_type_{CTEType::INVALID};
 
   std::vector<std::unique_ptr<TableRef>> list_;
   std::unique_ptr<JoinDefinition> join_;

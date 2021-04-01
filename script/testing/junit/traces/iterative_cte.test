@@ -1,0 +1,10 @@
+statement ok
+CREATE TABLE tree (node INTEGER, parent INTEGER);
+
+statement ok
+INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 11), (111, 11);
+
+query I nosort
+WITH ITERATIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
+----
+4 values hashing to e99fa9e0eb936b87249ffcfe1c8806ef

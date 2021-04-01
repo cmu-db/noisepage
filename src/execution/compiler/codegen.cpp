@@ -617,6 +617,15 @@ ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, ca
   return call;
 }
 
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr, ast::Identifier col_oids,
+                                      ast::Expr *exec_ctx_expr) {
+  ast::Expr *tvi_ptr = MakeExpr(tvi);
+  ast::Expr *col_oids_expr = MakeExpr(col_oids);
+
+  std::vector<ast::Expr *> args{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr};
+  return CallBuiltin(ast::Builtin::TempTableIterInitBind, args);
+}
+
 ast::Expr *CodeGen::TableIterAdvance(ast::Expr *table_iter) {
   ast::Expr *call = CallBuiltin(ast::Builtin::TableIterAdvance, {table_iter});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Bool));
@@ -1322,6 +1331,25 @@ util::RegionVector<ast::FieldDecl *> CodeGen::MakeFieldList(std::initializer_lis
 
 ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const {
   return context_->GetNodeFactory()->NewFieldDecl(position_, name, type);
+}
+
+ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table, ast::Identifier col_ids,
+                                        ast::Identifier col_types, ast::Expr *exec_ctx_var) {
+  ast::Expr *col_oids_expr = MakeExpr(col_ids);
+  ast::Expr *col_types_expr = MakeExpr(col_types);
+
+  std::vector<ast::Expr *> args{csi, exec_ctx_var, Const32(table.UnderlyingValue()), col_oids_expr, col_types_expr};
+  return CallBuiltin(ast::Builtin::CteScanInit, args);
+}
+
+ast::Expr *CodeGen::IndCteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table_oid, ast::Identifier col_ids,
+                                           ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var) {
+  ast::Expr *col_ids_expr = MakeExpr(col_ids);
+  ast::Expr *col_types_expr = MakeExpr(col_types);
+
+  std::vector<ast::Expr *> args{csi,          exec_ctx_var,   Const32(table_oid.UnderlyingValue()),
+                                col_ids_expr, col_types_expr, ConstBool(is_recursive)};
+  return CallBuiltin(ast::Builtin::IndCteScanInit, args);
 }
 
 ast::AstNodeFactory *CodeGen::GetFactory() { return context_->GetNodeFactory(); }

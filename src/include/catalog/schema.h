@@ -77,6 +77,27 @@ class Schema {
     }
 
     /**
+     * Instantiates a Column object, primary to be used for building a Schema object (non VARLEN attributes)
+     * @param name column name
+     * @param type SQL type for this column
+     * @param nullable true if the column is nullable, false otherwise
+     * @param default_value for the column
+     * @param oid col_oid for the column, must be unique for each column in the table
+     */
+    Column(std::string name, const type::TypeId type, const bool nullable,
+           const parser::AbstractExpression &default_value, const col_oid_t oid)
+        : name_(std::move(name)),
+          type_(type),
+          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          nullable_(nullable),
+          oid_(oid),
+          default_value_(default_value.Copy()) {
+      // TODO(Rohan,Gautam,Preetansh): We need to manually set the max varlen size here
+      //  as we cannot get this from Output schema for now
+      type_modifier_ = -1;
+    }
+
+    /**
      * Overrides default copy constructor to ensure we do a deep copy on the abstract expressions
      * @param old_column to be copied
      */

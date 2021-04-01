@@ -328,11 +328,12 @@ class SelectStatement : public SQLStatement {
    * @param group_by group by condition
    * @param order_by order by condition
    * @param limit limit condition
+   * @param with accompanying cte query
    */
   SelectStatement(std::vector<common::ManagedPointer<AbstractExpression>> select, bool select_distinct,
                   std::unique_ptr<TableRef> from, common::ManagedPointer<AbstractExpression> where,
                   std::unique_ptr<GroupByDescription> group_by, std::unique_ptr<OrderByDescription> order_by,
-                  std::unique_ptr<LimitDescription> limit)
+                  std::unique_ptr<LimitDescription> limit, std::vector<std::unique_ptr<TableRef>> &&with)
       : SQLStatement(StatementType::SELECT),
         select_(std::move(select)),
         select_distinct_(select_distinct),
@@ -341,7 +342,8 @@ class SelectStatement : public SQLStatement {
         group_by_(std::move(group_by)),
         order_by_(std::move(order_by)),
         limit_(std::move(limit)),
-        union_select_(nullptr) {}
+        union_select_(nullptr),
+        with_table_(std::move(with)) {}
 
   /** Default constructor for deserialization. */
   SelectStatement() = default;
@@ -372,6 +374,15 @@ class SelectStatement : public SQLStatement {
   /** @return select limit */
   common::ManagedPointer<LimitDescription> GetSelectLimit() { return common::ManagedPointer(limit_); }
 
+  /** @return select with */
+  std::vector<common::ManagedPointer<TableRef>> GetSelectWith() {
+    std::vector<common::ManagedPointer<TableRef>> ret;
+    for (auto &ref : with_table_) {
+      ret.emplace_back(common::ManagedPointer<TableRef>(ref));
+    }
+    return ret;
+  }
+
   /** @return depth of the select statement */
   int GetDepth() { return depth_; }
 
@@ -380,6 +391,14 @@ class SelectStatement : public SQLStatement {
    * @param select_stmt select statement to union with
    */
   void SetUnionSelect(std::unique_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }
+
+  /**
+   * Gets the select statement this statement is unioned with if at all
+   * @return The select statement this is unioned with if that exists else nullptr
+   */
+  common::ManagedPointer<SelectStatement> GetUnionSelect() {
+    return common::ManagedPointer<SelectStatement>(union_select_);
+  }
 
   /**
    * @return the hashed value of this select statement
@@ -417,6 +436,7 @@ class SelectStatement : public SQLStatement {
   std::unique_ptr<LimitDescription> limit_;
   std::unique_ptr<SelectStatement> union_select_;
   int depth_ = -1;
+  std::vector<std::unique_ptr<TableRef>> with_table_;
 
   /** @param select List of select columns */
   void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }

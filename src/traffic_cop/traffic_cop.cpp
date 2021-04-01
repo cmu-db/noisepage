@@ -178,7 +178,7 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
   NOISEPAGE_ASSERT(show_stmt->GetName() == "transaction_isolation", "Nothing else is supported right now.");
 
   auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
-  expr->SetAlias("transaction_isolation");
+  expr->SetAlias(parser::AliasType("transaction_isolation"));
   std::vector<noisepage::planner::OutputSchema::Column> cols;
   cols.emplace_back("transaction_isolation", type::TypeId::VARCHAR, std::move(expr));
   execution::sql::StringVal dummy_result("snapshot isolation");

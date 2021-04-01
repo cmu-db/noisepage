@@ -16,6 +16,7 @@ namespace parser {
 struct ColumnDefinition;
 class ColumnValueExpression;
 class CreateStatement;
+class SelectStatement;
 class TableRef;
 class TableStarExpression;
 }  // namespace parser
@@ -77,9 +78,28 @@ class BinderContext {
    * Update the nested table alias map
    * @param table_alias Alias of the table
    * @param select_list List of select columns
+   * @param col_aliases Aliases to assign to each column in select_list for the temp nested table schema
    */
   void AddNestedTable(const std::string &table_alias,
-                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
+                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
+                      const std::vector<parser::AliasType> &col_aliases);
+
+  /**
+   * Adds a Common Table Expression table to the binder. Currently, this adds it to the nested table aliases map
+   * @param table_name Name of the cte table
+   * @param select_list List of selected columns that form the query to build the CTE
+   * @param col_aliases Aliases for each column (this must be of the same size as the select_list vector)
+   */
+  void AddCTETable(const std::string &table_name,
+                   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
+                   const std::vector<parser::AliasType> &col_aliases);
+
+  /**
+   * Update the nested table alias map to create a copy of CTE table's entry for given alias
+   * @param cte_table_name CTE table name
+   * @param table_alias Alias of the table
+   */
+  void AddCTETableAlias(const std::string &cte_table_name, const std::string &table_alias);
 
   /**
    * Add the new table by update the nested table alias map. This is called only in create table statement.
@@ -114,6 +134,14 @@ class BinderContext {
   static void SetColumnPosTuple(const std::string &col_name,
                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
                                 common::ManagedPointer<parser::ColumnValueExpression> expr);
+
+  /**
+   * Set the table_name for a column value expression to the name used in the select statement
+   * @param expr Column value expression to modify
+   * @param node Select statement
+   */
+  void SetTableName(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                    common::ManagedPointer<parser::SelectStatement> node);
 
   /**
    * Construct the column position tuple given only the column value expression and the context.
@@ -203,7 +231,7 @@ class BinderContext {
   /**
    * Map the table alias to maps which is from table alias to the value type
    */
-  std::unordered_map<std::string, std::unordered_map<std::string, type::TypeId>> nested_table_alias_map_;
+  std::unordered_map<std::string, std::unordered_map<parser::AliasType, type::TypeId>> nested_table_alias_map_;
 
   /**
    * Upper binder context of the current binder context
