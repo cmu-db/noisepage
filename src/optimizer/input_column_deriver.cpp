@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/postgres/pg_statistic_impl.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"
@@ -233,7 +234,12 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
 }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) { Passdown(); }
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) {
+  // Push the output to the child select, the insert has no output
+  PT1 output;
+  auto input = PT2{required_cols_};
+  output_input_cols_ = std::make_pair(std::move(output), std::move(input));
+}
 
 void InputColumnDeriver::InputBaseTableColumns(const std::string &alias, catalog::db_oid_t db,
                                                catalog::table_oid_t tbl) {
@@ -463,6 +469,28 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
 void InputColumnDeriver::Passdown() {
   auto input = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{required_cols_};
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
+}
+
+void InputColumnDeriver::Visit(const Analyze *op) {
+  // Generate child's aggregate expressions
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> aggregate_inputs;
+  // COUNT(*) - num rows
+  auto *count_rows = OptimizerUtil::GenerateStarAggregateExpr(parser::ExpressionType::AGGREGATE_COUNT, false);
+  aggregate_inputs.emplace_back(count_rows);
+  txn_->RegisterCommitAction([=]() { delete count_rows; });
+  txn_->RegisterAbortAction([=]() { delete count_rows; });
+  for (const auto &col_oid : op->GetColumns()) {
+    auto col = accessor_->GetSchema(op->GetTableOid()).GetColumn(col_oid);
+    for (const auto &col_info : catalog::postgres::PgStatisticImpl::ANALYZE_AGGREGATES) {
+      auto *agg_expr = OptimizerUtil::GenerateAggregateExpr(col, col_info.aggregate_type_, col_info.distinct_, "",
+                                                            op->GetDatabaseOid(), op->GetTableOid());
+      aggregate_inputs.emplace_back(agg_expr);
+      txn_->RegisterCommitAction([=]() { delete agg_expr; });
+      txn_->RegisterAbortAction([=]() { delete agg_expr; });
+    }
+  }
+  PT2 child_cols = PT2{aggregate_inputs};
+  output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(child_cols));
 }
 
 }  // namespace noisepage::optimizer

@@ -14,6 +14,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_statistic.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "common/error/error_code.h"
@@ -38,7 +39,8 @@ DatabaseCatalog::DatabaseCatalog(const db_oid_t oid,
       pg_type_(db_oid_),
       pg_constraint_(db_oid_),
       pg_language_(db_oid_),
-      pg_proc_(db_oid_) {}
+      pg_proc_(db_oid_),
+      pg_stat_(db_oid_) {}
 
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto teardown_pg_core = pg_core_.GetTearDownFn(txn, common::ManagedPointer(this));
@@ -66,6 +68,7 @@ void DatabaseCatalog::BootstrapPRIs() {
   pg_constraint_.BootstrapPRIs();
   pg_language_.BootstrapPRIs();
   pg_proc_.BootstrapPRIs();
+  pg_stat_.BootstrapPRIs();
 }
 
 void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn) {
@@ -82,6 +85,7 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   pg_constraint_.Bootstrap(txn, common::ManagedPointer(this));
   pg_language_.Bootstrap(txn, common::ManagedPointer(this));
   pg_proc_.Bootstrap(txn, common::ManagedPointer(this));
+  pg_stat_.Bootstrap(txn, common::ManagedPointer(this));
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -112,6 +116,11 @@ table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transactio
 bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table) {
   if (!TryLock(txn)) return false;
+  // Delete associated entries in pg_statistic.
+  {
+    auto result = pg_stat_.DeleteColumnStatistics(txn, table);
+    if (!result) return false;
+  }
   return pg_core_.DeleteTable(txn, common::ManagedPointer(this), table);
 }
 
@@ -325,6 +334,13 @@ void DatabaseCatalog::BootstrapIndex(const common::ManagedPointer<transaction::T
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
+  // Create associated entries in pg_statistic.
+  {
+    col_oid_t col_oid(1);
+    for (auto &col : schema.GetColumns()) {
+      pg_stat_.CreateColumnStatistic(txn, table_oid, col_oid++, col);
+    }
+  }
   return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
 }
 

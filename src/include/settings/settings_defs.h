@@ -14,6 +14,14 @@ SETTING_int(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_string(
+    network_identity,
+    "The identity of this NoisePage instance (default: primary)",
+    "primary",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Preallocated connection handler threads and maximum number of connected clients
 SETTING_int(
     connection_thread_count,
@@ -37,8 +45,8 @@ SETTING_string(
 // RecordBufferSegmentPool size limit
 SETTING_int(
     record_buffer_segment_size,
-    "The maximum number of record buffer segments in the system. (default: 100000)",
-    100000,
+    "The maximum number of record buffer segments in the system. (default: 1000000)",
+    1000000,
     1,
     1000000000,
     true,
@@ -59,8 +67,8 @@ SETTING_int(
 // BlockStore for catalog size limit
 SETTING_int(
     block_store_size,
-    "The maximum number of storage blocks for the catalog. (default: 100000)",
-    100000,
+    "The maximum number of storage blocks for the catalog. (default: 1000000)",
+    1000000,
     1,
     1000000000,
     true,
@@ -107,6 +115,15 @@ SETTING_string(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Asynchronous commit txns when WAL is enabled
+SETTING_bool(
+    wal_async_commit_enable,
+    "Enable commit confirmation before results are durable in the WAL. (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     wal_num_buffers,
@@ -125,8 +142,8 @@ SETTING_int(
     100,
     1,
     10000,
-    false,
-    noisepage::settings::Callbacks::NoOp
+    true,
+    noisepage::settings::Callbacks::WalSerializationInterval
 )
 
 // Log file persisting interval
@@ -178,7 +195,7 @@ SETTING_int(
 
 SETTING_int64(
     workload_forecast_interval,
-    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: ns)",
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: micro-second)",
     10000000,
     10000000,
     1000000000000,
@@ -188,9 +205,19 @@ SETTING_int64(
 
 SETTING_int64(
     pilot_interval,
-    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000, unit: ns)",
+    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000, unit: micro-second)",
     1000000,
     1000000,
+    10000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    forecast_train_interval,
+    "Interval of Pilot Forecast Train Invocation when planning enabled. (default : 120000000, unit: micro-second)",
+    120000000,
+    120000000,
     10000000000,
     true,
     noisepage::settings::Callbacks::NoOp
@@ -277,14 +304,23 @@ SETTING_bool(
 )
 
 SETTING_int(
-    pipeline_metrics_interval,
-    "Sampling rate of metrics collection for the ExecutionEngine pipelines with 0 = 100%, 1 = 50%, "
-    "9 = 10%, X = 1/(X+1)% (default: 9 for 10%).",
-    9,
-    0,
+    pipeline_metrics_sample_rate,
+    "Sampling rate of metrics collection for the ExecutionEngine pipelines.",
     10,
+    0,
+    100,
     true,
-    noisepage::settings::Callbacks::MetricsPipelineSamplingInterval
+    noisepage::settings::Callbacks::MetricsPipelineSampleRate
+)
+
+SETTING_int(
+  logging_metrics_sample_rate,
+  "Sampling rate of metrics collection for logging.",
+  100,
+  0,
+  100,
+  true,
+  noisepage::settings::Callbacks::MetricsLoggingSampleRate
 )
 
 SETTING_bool(
@@ -361,6 +397,42 @@ SETTING_bool(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int(
+    messenger_port,
+    "NoisePage messenger port (default: 9022)",
+    9022,
+    1024,
+    65535,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    replication_enable,
+    "Whether to enable replication (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    replication_port,
+    "NoisePage replication port (default: 15445)",
+    15445,
+    1024,
+    65535,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    replication_hosts_path,
+    "The path to the hosts.conf file for replication (default: ./replication.config)",
+    "./replication.config",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     model_server_enable,
     "Whether to enable the ModelServerManager (default: false)",
@@ -382,7 +454,23 @@ SETTING_string(
 SETTING_string(
     model_save_path,
     "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
-    "/../script/model/terrier_model_server_trained/mini_model_test.pickle",
+    "../script/model/terrier_model_server_trained/mini_model_test.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    forecast_model_save_path,
+    "Save path of the forecast model relative to the build path (default: forecast_model.pickle)",
+    "forecast_model.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    bytecode_handlers_path,
+    "The path to the bytecode handlers bitcode file (default: ./bytecode_handlers_ir.bc)",
+    "./bytecode_handlers_ir.bc",
     false,
     noisepage::settings::Callbacks::NoOp
 )

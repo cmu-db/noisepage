@@ -1,5 +1,4 @@
 import requests
-
 from util.constants import LOG
 
 

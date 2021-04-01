@@ -32,6 +32,14 @@ TEST_F(CountMinSketchTests, BasicIntegerTest) {
 
   // The last one can be larger but *not* smaller
   EXPECT_GE(sketch.EstimateItemCount(4), 100000);
+
+  // Try clearing sketch
+  sketch.Clear();
+  EXPECT_EQ(sketch.GetTotalCount(), 0);
+  EXPECT_EQ(sketch.EstimateItemCount(1), 0);
+  EXPECT_EQ(sketch.EstimateItemCount(2), 0);
+  EXPECT_EQ(sketch.EstimateItemCount(3), 0);
+  EXPECT_EQ(sketch.EstimateItemCount(4), 0);
 }
 
 // Basic testing with string datatype.
@@ -59,6 +67,104 @@ TEST_F(CountMinSketchTests, BasicStringTest) {
   // DEAR FUTURE TRAVELLER:
   // If this line below is failing, then you can just remove it.
   // EXPECT_EQ(sketch.EstimateItemCount("WuTang"), 0);
+
+  // Try clearing sketch
+  sketch.Clear();
+  EXPECT_EQ(sketch.GetTotalCount(), 0);
+  EXPECT_EQ(sketch.EstimateItemCount("10"), 0);
+  EXPECT_EQ(sketch.EstimateItemCount("5"), 0);
+  EXPECT_EQ(sketch.EstimateItemCount("1"), 0);
+  EXPECT_EQ(sketch.EstimateItemCount("Million"), 0);
+}
+
+// NOLINTNEXTLINE
+TEST_F(CountMinSketchTests, MergeTest) {
+  CountMinSketch<int> sketch1(1000);
+  EXPECT_EQ(sketch1.GetWidth(), 1000);
+  CountMinSketch<int> sketch2(1000);
+  EXPECT_EQ(sketch1.GetWidth(), 1000);
+
+  sketch1.Increment(1, 10);
+  sketch1.Increment(2, 5);
+  sketch2.Increment(3, 1);
+  sketch2.Increment(4, 100000);
+
+  // These smaller values should give exact counts
+  EXPECT_EQ(sketch1.EstimateItemCount(1), 10);
+  EXPECT_EQ(sketch1.EstimateItemCount(2), 5);
+  EXPECT_EQ(sketch2.EstimateItemCount(3), 1);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(sketch2.EstimateItemCount(4), 100000);
+
+  sketch1.Merge(sketch2);
+  // These smaller values should give exact counts
+  EXPECT_EQ(sketch1.EstimateItemCount(1), 10);
+  EXPECT_EQ(sketch1.EstimateItemCount(2), 5);
+  EXPECT_EQ(sketch1.EstimateItemCount(3), 1);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(sketch1.EstimateItemCount(4), 100000);
+}
+
+// NOLINTNEXTLINE
+TEST_F(CountMinSketchTests, IntSerializationTest) {
+  CountMinSketch<int> sketch(1000);
+  EXPECT_EQ(sketch.GetWidth(), 1000);
+
+  sketch.Increment(1, 10);
+  sketch.Increment(2, 5);
+  sketch.Increment(3, 1);
+  sketch.Increment(4, 100000);
+
+  // These smaller values should give exact counts
+  EXPECT_EQ(sketch.EstimateItemCount(1), 10);
+  EXPECT_EQ(sketch.EstimateItemCount(2), 5);
+  EXPECT_EQ(sketch.EstimateItemCount(3), 1);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(sketch.EstimateItemCount(4), 100000);
+
+  size_t size;
+  auto serialized_sketch = sketch.Serialize(&size);
+  auto deserialized_sketch = CountMinSketch<int>::Deserialize(serialized_sketch.get(), size);
+
+  // These smaller values should give exact counts
+  EXPECT_EQ(deserialized_sketch.EstimateItemCount(1), 10);
+  EXPECT_EQ(deserialized_sketch.EstimateItemCount(2), 5);
+  EXPECT_EQ(deserialized_sketch.EstimateItemCount(3), 1);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(deserialized_sketch.EstimateItemCount(4), 100000);
+}
+
+// NOLINTNEXTLINE
+TEST_F(CountMinSketchTests, StringSerializationTest) {
+  CountMinSketch<const char *> sketch(1000);
+  EXPECT_EQ(sketch.GetWidth(), 1000);
+
+  sketch.Increment("10", 10);
+  sketch.Increment("5", 5);
+  sketch.Increment("1", 1);
+  sketch.Increment("Million", 1000000);
+
+  EXPECT_EQ(sketch.EstimateItemCount("10"), 10);
+  EXPECT_EQ(sketch.EstimateItemCount("5"), 5);
+  EXPECT_EQ(sketch.EstimateItemCount("1"), 1);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(sketch.EstimateItemCount("Million"), 100000);
+
+  size_t size;
+  auto serialized_sketch = sketch.Serialize(&size);
+  auto deserialized_sketch = CountMinSketch<const char *>::Deserialize(serialized_sketch.get(), size);
+
+  EXPECT_EQ(deserialized_sketch.EstimateItemCount("10"), 10);
+  EXPECT_EQ(deserialized_sketch.EstimateItemCount("5"), 5);
+  EXPECT_EQ(deserialized_sketch.EstimateItemCount("1"), 1);
+
+  // The last one can be larger but *not* smaller
+  EXPECT_GE(deserialized_sketch.EstimateItemCount("Million"), 100000);
 }
 
 // Basic test that checks that the approximation is reasonable

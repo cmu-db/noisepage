@@ -77,12 +77,6 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
   connection_ctx->SetAccessor(nullptr);
 }
 
-void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer) {
-  NOISEPAGE_ASSERT(replication_log_provider_ != DISABLED,
-                   "Should not be handing off logs if no log provider was given");
-  replication_log_provider_->HandBufferToReplication(std::move(buffer));
-}
-
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
                                              const bool explicit_txn_block,
@@ -367,10 +361,11 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
-  NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                       query_type == network::QueryType::QUERY_CREATE_INDEX ||
-                       query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
-                   "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+  NOISEPAGE_ASSERT(
+      query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+          query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
+          query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
+      "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
@@ -409,10 +404,11 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
-  NOISEPAGE_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                       query_type == network::QueryType::QUERY_CREATE_INDEX ||
-                       query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
-                   "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+  NOISEPAGE_ASSERT(
+      query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+          query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
+          query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
+      "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   // A std::function<> requires the target to be CopyConstructible and CopyAssignable. In certain
@@ -437,7 +433,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings, metrics);
+      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_);
 
   exec_ctx->SetParams(portal->Parameters());
 
@@ -463,8 +459,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
 
   if (query_trace_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now(),
-                                                            portal->Parameters());
+    common::thread_context.metrics_store_->RecordQueryTrace(connection_ctx->GetDatabaseOid(), exec_query->GetQueryId(),
+                                                            metrics::MetricsUtil::Now(), portal->Parameters());
   }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
@@ -476,7 +472,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     }
     // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
     // might not have any output otherwise
-    return {ResultType::COMPLETE, exec_ctx->RowsAffected()};
+    return {ResultType::COMPLETE, exec_ctx->GetRowsAffected()};
   }
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
@@ -488,6 +484,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     const network::connection_id_t connection_id, const std::string &database_name) {
   auto *const txn = txn_manager_->BeginTransaction();
+  txn->SetRetentionPolicy(transaction::RetentionPolicy::DISABLE_RETENTION);
+
   const auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
   if (db_oid == catalog::INVALID_DATABASE_OID) {
@@ -515,8 +513,9 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   NOISEPAGE_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID,
                    "Called DropTempNamespace() with an invalid namespace oid.");
   auto *const txn = txn_manager_->BeginTransaction();
-  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+  txn->SetRetentionPolicy(transaction::RetentionPolicy::DISABLE_RETENTION);
 
+  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   NOISEPAGE_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");
 
   const auto result = db_accessor->DropNamespace(ns_oid);

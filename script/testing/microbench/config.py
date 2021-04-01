@@ -1,18 +1,20 @@
 import os
 import sys
 
-from microbench.benchmarks import BENCHMARKS_TO_RUN
-from util.constants import LOG
-from microbench.constants import (LAX_TOLERANCE, MIN_TIME, BENCHMARK_THREADS,
-                                  BENCHMARK_PATH, BENCHMARK_LOGFILE_PATH, LOCAL_REPO_DIR, JENKINS_REF_PROJECT)
+from ..util.constants import LOG
+from .benchmarks import BENCHMARKS_TO_RUN
+from .constants import (BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH,
+                        BENCHMARK_THREADS, JENKINS_REF_PROJECT, LAX_TOLERANCE,
+                        LOCAL_REPO_DIR, MIN_TIME)
 
 
 class Config(object):
     """ Configuration for run_micro_bench. All information is read-only. """
 
-    def __init__(self, benchmark_path=BENCHMARK_PATH, benchmarks=BENCHMARKS_TO_RUN, lax_tolerance=LAX_TOLERANCE, min_time=MIN_TIME,
-                 num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False, jenkins_folders=[], branch=None, publish_results_env='none',
-                 publish_results_username=None, publish_results_password=None):
+    def __init__(self, benchmark_path=BENCHMARK_PATH, benchmarks=BENCHMARKS_TO_RUN, lax_tolerance=LAX_TOLERANCE,
+                 min_time=MIN_TIME, num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False,
+                 jenkins_folders=[], branch=None, publish_results_env='none', publish_results_username=None,
+                 publish_results_password=None):
 
         validate_benchmark_path(benchmark_path)
         # path to benchmark binaries

@@ -17,6 +17,10 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
+namespace noisepage::replication {
+class ReplicationManager;
+}  // namespace noisepage::replication
+
 namespace noisepage::storage {
 
 class LogSerializerTask;
@@ -44,28 +48,37 @@ class LogManager : public common::DedicatedThreadOwner {
   /**
    * Constructs a new LogManager, writing its logs out to the given file.
    *
-   * @param log_file_path path to the desired log file location. If the log file does not exist, one will be created;
-   *                      otherwise, changes are appended to the end of the file.
-   * @param num_buffers Number of buffers to use for buffering logs
-   * @param serialization_interval Interval time between log serializations
-   * @param persist_interval Interval time between log flushing
-   * @param persist_threshold data written threshold to trigger log file persist
-   * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
-   *                    buffers from
-   * @param thread_registry DedicatedThreadRegistry dependency injection
+   * @param log_file_path                   Path to the desired log file location.
+   *                                        If the log file does not exist, one will be created;
+   *                                        otherwise, changes are appended to the end of the file.
+   * @param num_buffers                     Number of buffers to use for buffering logs
+   * @param serialization_interval          Interval time between log serializations
+   * @param persist_interval                Interval time between log flushing
+   * @param persist_threshold               Data written threshold to trigger log file persist.
+   * @param buffer_pool                     The object pool to draw log buffers from.
+   *                                        This must be the same pool transactions draw their buffers from.
+   * @param empty_buffer_queue              The queue that empty buffers should be drawn from and returned to.
+   * @param primary_replication_manager     The replication manager that handles shipping logs over the network.
+   *                                        Currently only the primary does this.
+   * @param thread_registry                 DedicatedThreadRegistry dependency injection
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
-             common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry)
+             common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue,
+             common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager,
+             common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
         buffer_pool_(buffer_pool.Get()),
+        empty_buffer_queue_(empty_buffer_queue),
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
-        persist_threshold_(persist_threshold) {}
+        persist_threshold_(persist_threshold),
+        primary_replication_manager_(primary_replication_manager) {}
+
   /**
    * Starts log manager. Does the following in order:
    *    1. Initialize buffers to pass serialized logs to log consumers
@@ -117,14 +130,23 @@ class LogManager : public common::DedicatedThreadOwner {
     if (new_num_buffers >= num_buffers_) {
       // Add in new buffers
       for (size_t i = 0; i < new_num_buffers - num_buffers_; i++) {
-        buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
-        empty_buffer_queue_.Enqueue(&buffers_[num_buffers_ + i]);
+        buffers_.emplace_back(log_file_path_.c_str());
+        empty_buffer_queue_->Enqueue(&buffers_[num_buffers_ + i]);
       }
       num_buffers_ = new_num_buffers;
       return true;
     }
     return false;
   }
+
+  /**
+   * Set the new log serialization interval in microseconds.
+   * @param interval the new serialization interval in microseconds (should > 0)
+   */
+  void SetSerializationInterval(int32_t interval);
+
+  /** @return the log serialization interval */
+  int32_t GetSerializationInterval() { return serialization_interval_.count(); }
 
  private:
   // Flag to tell us when the log manager is running or during termination
@@ -144,14 +166,14 @@ class LogManager : public common::DedicatedThreadOwner {
   std::vector<BufferedLogWriter> buffers_;
   // The queue containing empty buffers which the serializer thread will use. We use a blocking queue because the
   // serializer thread should block when requesting a new buffer until it receives an empty buffer
-  common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
+  common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
   common::ConcurrentQueue<SerializedLogs> filled_buffer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
   // Interval used by log serialization task
-  const std::chrono::microseconds serialization_interval_;
+  std::chrono::microseconds serialization_interval_;
 
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
@@ -160,6 +182,8 @@ class LogManager : public common::DedicatedThreadOwner {
   const std::chrono::microseconds persist_interval_;
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
+
+  common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

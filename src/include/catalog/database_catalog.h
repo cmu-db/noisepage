@@ -10,6 +10,7 @@
 #include "catalog/postgres/pg_core_impl.h"
 #include "catalog/postgres/pg_language_impl.h"
 #include "catalog/postgres/pg_proc_impl.h"
+#include "catalog/postgres/pg_statistic_impl.h"
 #include "catalog/postgres/pg_type_impl.h"
 #include "common/managed_pointer.h"
 
@@ -192,6 +193,7 @@ class DatabaseCatalog {
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
   friend class postgres::PgTypeImpl;
+  friend class postgres::PgStatisticImpl;
   ///@}
   friend class Catalog;                   ///< Accesses write_lock_ (creating accessor) and TearDown (cleanup).
   friend class postgres::Builder;         ///< Initializes DatabaseCatalog's tables.
@@ -209,6 +211,7 @@ class DatabaseCatalog {
   postgres::PgConstraintImpl pg_constraint_;  ///< Constraints: pg_constraint.
   postgres::PgLanguageImpl pg_language_;      ///< Languages: pg_language.
   postgres::PgProcImpl pg_proc_;              ///< Procedures: pg_proc.
+  postgres::PgStatisticImpl pg_stat_;         ///< Statistics: pg_statistic.
 
   /** @brief Create a new DatabaseCatalog. Does not create any tables until Bootstrap is called. */
   DatabaseCatalog(db_oid_t oid, common::ManagedPointer<storage::GarbageCollector> garbage_collector);

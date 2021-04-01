@@ -1,33 +1,39 @@
-#!/usr/bin/env python3
-
 import os
-import distro
 import re
 from decimal import Decimal
 
-from reporting.parsers.oltpbench.config_parser import parse_config_file
-from reporting.parsers.oltpbench.summary_parser import parse_summary_file
-from reporting.parsers.oltpbench.res_parser import parse_res_file
-from util.constants import LOG
-from reporting.constants import UNKNOWN_RESULT
+import distro
+
+from ...util.constants import LOG
+from ..constants import UNKNOWN_RESULT
+from .oltpbench.config_parser import parse_config_file
+from .oltpbench.res_parser import parse_res_file
+from .oltpbench.summary_parser import parse_summary_file
 
 
 def parse_oltpbench_data(results_dir):
-    """ 
-    Collect the information needed to send to the performance storage service
-    from the files produced by OLTPBench
-
-    Args:
-        results_dir (str): The directory where the OLTPBench results were stored
-
-    Returns: 
-        metadata (dict): The metadata of the OLTPBench test
-        timestamp (int): When the test was run in milliseconds
-        type (str): The benchmark type (i.e. tpcc)
-        parameters (dict): The parameters that were used to run the test
-        metrics (dict): The metrics gathered from the result of the test
     """
-    env_metadata = parse_jenkins_env_vars()
+    Collect the information needed to send to the performance storage service
+    from the files produced by OLTPBench.
+
+    Args
+    -----
+    results_dir : str
+        The directory where the OLTPBench results were stored
+    Returns
+    --------
+    metadata : dict
+        The metadata of the OLTPBench test
+    timestamp : int
+        When the test was run in milliseconds
+    type : str
+        The benchmark type (i.e. tpcc)
+    parameters : dict
+        The parameters that were used to run the test
+    metrics : dict
+        The metrics gathered from the result of the test
+    """
+    env_metadata = _parse_jenkins_env_vars()
     files_metadata, timestamp, benchmark_type, parameters, metrics = parse_oltpbench_files(
         results_dir)
     metadata = {**env_metadata, **files_metadata}
@@ -49,7 +55,6 @@ def parse_microbenchmark_data(artifact_processor_comparison):
         test_name (str): The name of the specific benchmark test
         metrics (dict): The metrics gathered from the result of the test
     """
-    env_metadata = parse_jenkins_env_vars()
     metadata = parse_standard_metadata()
     test_suite, test_name, metrics = parse_microbenchmark_comparison(
         artifact_processor_comparison)
@@ -57,36 +62,45 @@ def parse_microbenchmark_data(artifact_processor_comparison):
 
 
 def parse_standard_metadata():
-    """ Gather the standard metadata infromation from Jenkins and the DBMS.
-    This will get the DB version from a file. If there is a better way to
-    get that information from the test then that is advisible 
-    (like OLTPBench)"""
-    env_metadata = parse_jenkins_env_vars()
-    metadata = {**env_metadata, **parse_db_metadata()}
-    return metadata
+    """
+    Gather the standard metadata information from Jenkins and the DBMS.
+
+    Returns
+    -------
+    The metadata obtained from Jenkins and the DBMS.
+
+    Warnings
+    --------
+    Underlying implementation is hacky right now.
+    """
+    return {**_parse_jenkins_env_vars(), **_parse_db_metadata()}
 
 
-def parse_jenkins_env_vars():
-    """ get some metadata from the environment values that Jenkins has 
-    populated and from the operating system"""
-    jenkins_job_id = os.environ['BUILD_ID']
-    git_branch = os.environ['GIT_BRANCH']
-    commit_id = os.environ['GIT_COMMIT']
-    os_version = ' '.join(distro.linux_distribution())
-    os_cpu_number = os.cpu_count()
+def _parse_jenkins_env_vars():
+    """
+    Parse environment variables from Jenkins and the OS.
+
+    Returns
+    -------
+    metadata : dict
+        Metadata about the Jenkins environment.
+        WARNING: Note that cpu_socket is a completely garbage value.
+        TODO(WAN): I'd remove cpu_socket except I'm afraid of breakages.
+    """
     # TODO find a way to get the socket number of
     os_cpu_socket = 'true'
+
     metadata = {
         'jenkins': {
-            'jenkins_job_id': jenkins_job_id
+            'jenkins_job_id': os.environ['BUILD_ID'],
         },
         'github': {
-            'git_branch': git_branch,
-            'git_commit_id': commit_id
+            'git_branch': os.environ['GIT_BRANCH'],
+            'git_commit_id': os.environ['GIT_COMMIT'],
         },
         'environment': {
-            'os_version': os_version,
-            'cpu_number': os_cpu_number,
+            'os_version': ' '.join(distro.linux_distribution()),
+            'cpu_number': os.cpu_count(),
             'cpu_socket': os_cpu_socket
         }
     }
@@ -95,17 +109,26 @@ def parse_jenkins_env_vars():
 
 def parse_oltpbench_files(results_dir):
     """
-    Parse information from the config and summary files
+    Parse information from the config and summary files generated by OLTPBench.
 
-    Args:
-        results_dir (str): The location of directory where the oltpbench results are stored.
+    Parameters
+    ----------
+    results_dir : str
+        The directory where OLTPBench results are stored.
 
-    Returns:
-        metadata (dict): An object containing metadata information.
-        timestamp (int): The timestamp when the benchmark was created in milliseconds.
-        type (str): The type of OLTPBench test it was (tatp, noop, etc.)
-        parameters (dict): Information about the parameters with which the test was run.
-        metrics (dict): The summary measurements that were gathered from the test.
+    Returns
+    -------
+    metadata : dict
+        An object containing metadata information.
+    timestamp : int
+        The timestamp when the benchmark was created, in milliseconds.
+        TODO(WAN): wtf is this?
+    benchmark_type : str
+        The benchmark that was run (e.g., tatp, noop).
+    parameters : dict
+        Information about the parameters with which the test was run.
+    metrics : dict
+        The summary measurements that were gathered from the test.
     """
     config_parameters = parse_config_file(results_dir + '/oltpbench.expconfig')
     metadata, timestamp, benchmark_type, summary_parameters, metrics = parse_summary_file(
@@ -134,14 +157,25 @@ def parse_microbenchmark_comparison(artifact_processor_comparison):
     return test_suite, test_name, metrics
 
 
-def parse_db_metadata():
-    """ Lookup the DB version from the version.h file. This is error prone
-    due to it being reliant on file location and no tests that will fail
-    if the version.h moves and this is not updated. We use a fallback of
-    unknown result so the tests won't fail if this happens"""
+def _parse_db_metadata():
+    """
+    Parse metadata from the DBMS.
+
+    Returns
+    -------
+    metadata : dict
+        A dictionary containing metadata about the database.
+
+    Warnings
+    --------
+    Giant hack that parses a hardcoded constant NOISEPAGE_VERSION
+    in src/include/common/version.h.
+
+    If the hack is unsuccessful, it defaults to UNKNOWN_RESULT.
+    """
     regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
     curr_dir = os.path.dirname(os.path.realpath(__file__))
-    # FIXME: The relative path for the version.h may change in the future
+    # TODO(WAN): Don't do this. We support SELECT VERSION(), do that instead.
     version_file_relative = '../../../../src/include/common/version.h'
     version_file = os.path.join(curr_dir, version_file_relative)
     db_metadata = {'noisepage': {'db_version': UNKNOWN_RESULT}}

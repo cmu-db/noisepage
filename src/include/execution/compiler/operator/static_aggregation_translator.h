@@ -51,6 +51,13 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
+   * Tear-down and destroy the thread-local aggregators, if needed.
+   * @param pipeline Current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
    * Initialize the global aggregation hash table.
    */
   void InitializeQueryState(FunctionBuilder *function) const override;
