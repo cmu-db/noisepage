@@ -151,7 +151,7 @@ void File::CreateTemp(bool delete_on_close) {
   Close();
 
   // Attempt to create a temporary file
-  char tmp[] = "/tmp/tpl.XXXXXX";
+  char tmp[] = "/tmp/noisepage-tpl.XXXXXX";
   int32_t fd = HANDLE_EINTR(mkstemp(tmp));
 
   // Fail?
