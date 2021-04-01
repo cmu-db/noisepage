@@ -78,10 +78,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
     {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
       // TODO(WAN): Tianlei to add multiple queues in the log serializer task here based on policy.
-      flush_queue_.push(buffer_segment);
-      NOISEPAGE_ASSERT(buffer_policies_.find(buffer_segment) == buffer_policies_.end(),
-                       "Clear the map, otherwise C++ map insertion behavior may give you a fun debugging surprise.");
-      buffer_policies_.emplace(buffer_segment, policy);
+      flush_queue_.push(std::make_pair(buffer_segment, policy));
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();
     }
@@ -111,10 +108,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   //  optimization we applied to the GC queue.
   // Latch to protect flush queue
   std::mutex flush_queue_latch_;
-  // Stores unserialized buffers handed off by transactions
-  std::queue<RecordBufferSegment *> flush_queue_;
-  /** The policies to apply to each buffer in the flush_queue_. */
-  std::unordered_map<RecordBufferSegment *, transaction::TransactionPolicy> buffer_policies_;
+  /** Stores unserialized buffers handed off by transactions, along with their associated transaction policy. */
+  std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>> flush_queue_;
 
   // conditional variable to be notified when there are logs to be processed
   std::condition_variable flush_queue_cv_;
@@ -129,7 +124,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   std::vector<storage::CommitCallback> commits_in_buffer_;
 
   // Used by the serializer thread to store buffers it has grabbed from the log manager
-  std::queue<RecordBufferSegment *> temp_flush_queue_;
+  std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>> temp_flush_queue_;
 
   // We aggregate all transactions we serialize so we can bulk remove the from the timestamp manager
   // TODO(Gus): If we guarantee there is only one TSManager in the system, this can just be a vector. We could also pass

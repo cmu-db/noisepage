@@ -87,17 +87,18 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         }
 
         temp_flush_queue_ = std::move(flush_queue_);
-        flush_queue_ = std::queue<RecordBufferSegment *>();
+        flush_queue_ = std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>>();
         empty_ = true;
       }
 
       // Loop over all the new buffers we found
       while (!temp_flush_queue_.empty()) {
-        RecordBufferSegment *buffer = temp_flush_queue_.front();
+        auto &front = temp_flush_queue_.front();
+        RecordBufferSegment *buffer = front.first;
+        transaction::TransactionPolicy &policy = front.second;
 
         // Check if the buffer's policy is compatible with the current filled buffer.
         {
-          transaction::TransactionPolicy &policy = buffer_policies_.at(buffer);
           // If the buffer policy is incompatible, then hand off the current filled buffer.
           bool compatible = !filled_buffer_policy_.has_value() ||
                             (filled_buffer_policy_.has_value() && filled_buffer_policy_.value() == policy);
@@ -107,7 +108,6 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
           }
           // At this point, either filled_buffer_ is back to nullptr or the policy is compatible.
           filled_buffer_policy_ = policy;
-          buffer_policies_.erase(buffer);
         }
 
         temp_flush_queue_.pop();
