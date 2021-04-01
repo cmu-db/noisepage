@@ -1,7 +1,8 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
-        "parallel_execution": false
+        "parallel_execution": false,
+        "record_buffer_segment_size": 10000000
     },
     "testcases": [
         {

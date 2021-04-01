@@ -13,12 +13,12 @@ DIR_TMP = "/tmp"
 # default settings of the TestServer
 DEFAULT_DB_HOST = "127.0.0.1"
 DEFAULT_DB_PORT = 15721
-DEFAULT_DB_OUTPUT_FILE = "/tmp/db_log.txt"
+DEFAULT_DB_OUTPUT_FILE = os.path.join(DIR_TMP, "noisepage-db_log.txt")
 DEFAULT_DB_BIN = "noisepage"
 DEFAULT_DB_USER = "noisepage"
-DEFAULT_TEST_OUTPUT_FILE = "/tmp/noisepage_test_{}.log".format(
-    datetime.utcnow().isoformat(sep="-", timespec="seconds").replace(":", "-"))
-DEFAULT_DB_WAL_FILE = "wal.log"
+DEFAULT_TEST_OUTPUT_FILE = os.path.join(DIR_TMP, "noisepage-test_{}.log".format(
+    datetime.utcnow().isoformat(sep="-", timespec="seconds").replace(":", "-")))
+DEFAULT_DB_WAL_FILE = "noisepage-wal.log"
 # Whether the database should stop the whole test if one of test cases fail,
 DEFAULT_CONTINUE_ON_ERROR = False
 

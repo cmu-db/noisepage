@@ -1,67 +1,73 @@
 # Testing Scripts
 
-## Documentation
-
-Read and follow this: https://numpydoc.readthedocs.io/en/latest/format.html
+This document describes the benchmarks and tests defined in this directory.
 
 ## Folder structure
-All tests are compatible with python3
-- `util`: all the common utilities for running all kinds of tests
-- `junit`: entry script to fire a junit test (and many other supporting configs)
-- `micro_bench`: entry script to run the microbenchmark tests
-- `oltpbench`: entry script to fire an oltp bench test
-- `artifact_stats`: entry script to collect the artifact stats
-- `reporting`: utility scripts for posting test data to Django API and formating JSON payloads
 
-## Util
-`util` folder contains a list of common Python scripts
-- `common.py`: functions that can be used in many different settings
-- `constants.py`: all the constants used in the any file under the `util` or across the different tests
-- `db_server.py`: It provides a `NoisePageServer` class that can start, stop, or restart an instance of the NoisePage
-- `test_server.py`: the base `TestServer` class for running all types of tests
-- `test_case.py`: the base `TestCase` class for all types of test cases.
-- `mem_metrics.py`: the `MemoryMetric` class and `MemoryInfo` named tuple to manage the memory related information during the run time of the tests.
-- `periodic_task.py`: the `PeriodicTask` class provides a general utility in Python which runs a separate thread that will execute a subprocess every `x` seconds until told to stop.
+A brief overview of the contents of this directory follows below.
 
-## OLTP Bench
-`oltpbench` folder contains Python scripts for running an oltp bench test. Refer to [OLTP Benchmark Testing](https://github.com/cmu-db/noisepage/tree/master/script/testing/oltpbench/README.md) for more details.
+- `util/`: All the common utilities for running all kinds of tests
+- `junit/`: Entry script to fire a junit test (and many other supporting configs)
+- `microbench/`: Entry script to run the microbenchmark tests
+- `oltpbench/`: Entry script to fire an OLTPBench test
+- `artifact_stats/`: Entry script to collect the artifact stats
+- `reporting/`: Utility scripts for posting test data to Django API and formatting JSON payloads
 
-## How to run a test
-To run a test of a certain type, just run the `run_<TEST TYPE>.py` script in the respective folder. For example, if you want to run a junit test, just simply run `python3 junit/run_junit.py`.
+## Utilities
 
-By doing that, `junit/run_junit.py` script will try to import the `TestJUnit` class from the `util/TestJunit.py`, which subsequently use most of the functionalities provided from its super class `TestServer` from `util/TestServer.py`.
+The `util/` subdirectory contains a list of common Python scripts:
 
-## QueryMode
-For both `junit` and `oltpbench`, we support 2 query modes with the optional argument `--query-mode`
+- `common.py`: Contains functions that can be used in many different settings
+- `constants.py`: Contains all the constants used in the any file under the `util` or across the different tests
+- `db_server.py`: Provides a `NoisePageServer` class that can start, stop, or restart an instance of the NoisePage
+- `test_server.py`: Defines the base `TestServer` class for running all types of tests
+- `test_case.py`: Defines the base `TestCase` class for all types of test cases
+- `mem_metrics.py`: Defines the `MemoryMetric` class and `MemoryInfo` named tuple to manage the memory related information during the run time of the tests
+- `periodic_task.py`: Defines the `PeriodicTask` class provides a general utility in Python which runs a separate thread that will execute a subprocess every `x` seconds until told to stop
+
+## OLTPBench
+
+The `oltpbench/` subdirectory contains Python scripts for running an OLTPBench test. Refer to [OLTP Benchmark Testing](https://github.com/cmu-db/noisepage/tree/master/script/testing/oltpbench/README.md) for more details.
+
+## Running a Test
+
+To run a test of a certain type, just run the `run_<TEST TYPE>.py` script in the respective folder. For example, if you want to run a JUnit test, just simply run `python3 junit/run_junit.py`.
+
+By doing that, `junit/run_junit.py` script will try to import the `TestJUnit` class from the `util/TestJunit.py`, which subsequently uses most of the functionalities provided from its super class `TestServer` from `util/TestServer.py`.
+
+## Query Modes
+
+For both JUnit tests and OLTPBench benchmarks, we support two query modes with the optional argument `--query-mode`:
+
 - `simple` (default if not specified)
 - `extended`
 
 If you specify the `--query-mode extended`, you then can also indicate the prepare threshold (default is `5`) with the optional argument `--prepare-threshold` with type `int`. Please be reminded that if you choose the query mode as `simple`, the prepare threshold will be ignored.
 
-## TestServer
-`TestServer` is the base class for running all types of the tests. 
+## Test workflow
 
-### Test workflow
-- check if the noisepage bin exists
-- run the pre-suite task (test suite specific)
+- Check if the noisepage bin exists
+- Run the pre-suite task (test suite specific)
   - e.g. install oltp bin 
-- run the test sequentially
-  - [Optional] fork a subprocess to start the DB (via python subprocess.Popen) 
-    - if skip this step, the test will run on the used database
-  - run the pre-test task (test specific)
-  - fork a subprocess to start the test process using the command (via python subprocess.Popen)
-  - check the return code from the OS
-  - write the stdout and the stderr to the test output log file
-  - run the post-test task (test specific)
-  - [Optional] stop the DB
-    - if skip this step, the populated database can be used for following experiments
-- run the post-suite task (test suite specific) 
-- print out the logs to the stdout
+- Run the test sequentially
+  - [Optional] Fork a subprocess to start the DB (via python subprocess.Popen) 
+    - If skip this step, the test will run on the used database
+  - Run the pre-test task (test specific)
+  - Fork a subprocess to start the test process using the command (via python subprocess.Popen)
+  - Check the return code from the OS
+  - Write the stdout and the stderr to the test output log file
+  - Run the post-test task (test specific)
+  - [Optional] Stop the DB
+    - If skip this step, the populated database can be used for following experiments
+- Run the post-suite task (test suite specific) 
+- Print out the logs to the stdout
 
-### Adding a new test case
-The classes in the `util` folder can be used and extend to help you create a new test type.
+## Adding a New Test Case
+
+The classes in the `util/` subdirectory can be used and extend to help you create a new test type.
 
 All test cases should inherit from the `TestCase` class. Anyone is free to modify any attribute from the base class.
+
 - Mandatory attributes
   - `test_command` (`List(str)`): the command to run the test case
 - Optional attributes
@@ -72,7 +78,8 @@ All test cases should inherit from the `TestCase` class. Anyone is free to modif
   - `run_post_test`: the post-test tasks required for the test
     - e.g. parse the output json, etc.
 
-### Base classes
+## Base classes
+
 - `NoisePageServer`
   - Manage the lifecycle of the NoisePage instance. It create a Python subprocess for the NoisePage process, poll the logs, and terminate or kill it when the test finishes
 - `TestCase`
@@ -80,9 +87,10 @@ All test cases should inherit from the `TestCase` class. Anyone is free to modif
   - The `TestCase` class also provides `run_pre_test` and `run_post_test` functions for you to override for preparation and clean up of each test case.
 - `TestServer`
   - Manage the entire lifecycle of a test. It uses the `NoisePageServer` to manage the database process. One `TestServer` can have a list of `TestCase`s and treats the entire collection as a suite. 
-  - It also provides the `run_pre_suite` and `run_post_suite` functions for you to override to specify any preparation and cleanup at the suite level.
+  - Also provides the `run_pre_suite` and `run_post_suite` functions for you to override to specify any preparation and cleanup at the suite level.
 
-### Step-by-step instructions
+## Step-by-step instructions
+
 - Create the folder for your test under `noisepage/script/testing/<mytest>`
 - In the folder of your test, create the following files
   - `run_<mytest>.py`
@@ -102,6 +110,7 @@ All test cases should inherit from the `TestCase` class. Anyone is free to modif
     - You can refer to [oltpbench/util.py](https://github.com/cmu-db/noisepage/blob/master/script/testing/oltpbench/util.py) for reference.
 - Create a stage for your test in Jenkins pipeline
   - Go to `noisepage/Jenkinsfile`, create a stage at the place of your choice, and create the stage based on the template config as below.
+  
   ```groovy
   stage('My Test') {
       parallel{
@@ -141,3 +150,13 @@ All test cases should inherit from the `TestCase` class. Anyone is free to modif
       }
   }
   ```
+
+## Testing the Tests (_Meta-Tests_)
+
+The `meta` subdirectory contains some basic unit tests for various functionality provided by the testing infrastructure. You can run the unit tests from the top level directory (`testing/`) with:
+
+```bash
+$ python -m unittest discover -s meta -t .
+```
+
+This will run all of the unit tests defined in the `meta/` subdirectory.
