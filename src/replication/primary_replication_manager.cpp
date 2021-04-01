@@ -38,14 +38,6 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   // Therefore there may be nothing to replicate, but the commit callbacks still have to be invoked.
   bool has_records = records_batch != nullptr;
 
-  // TODO(WAN): DEBUG BLOCK
-  std::vector<transaction::timestamp_t> ts;
-  {
-    for (auto &cb : commit_callbacks) {
-      ts.emplace_back(cb.txn_start_time_);
-    }
-  }
-
   if (policy == transaction::ReplicationPolicy::ASYNC || !has_records) {
     // In asynchronous replication, just invoke the commit callbacks immediately.
     for (const auto &cb : commit_callbacks) {
@@ -64,7 +56,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     // Send the batch of records to all replicas.
     ReplicationMessageMetadata metadata(GetNextMessageId());
     RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
-    REPLICATION_LOG_TRACE(fmt::format("BATCH {} TXNS {}", msg.GetBatchId(), common::json(ts).dump()));
+    REPLICATION_LOG_TRACE(fmt::format("[SEND] BATCH {}", msg.GetBatchId()));
 
     messenger::messenger_cb_id_t destination_cb =
         messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
@@ -79,11 +71,24 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   }
 }
 
+void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t oldest_active_txn) {
+  ReplicationMessageMetadata metadata(GetNextMessageId());
+  NotifyOATMsg msg(metadata, last_sent_batch_id_, oldest_active_txn);
+  REPLICATION_LOG_TRACE(fmt::format("[SEND] BATCH {} OAT {}", msg.GetBatchId(), msg.GetOldestActiveTxn()));
+
+  messenger::messenger_cb_id_t destination_cb =
+      messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
+  for (const auto &replica : replicas_) {
+    Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
+  }
+}
+
 record_batch_id_t PrimaryReplicationManager::GetNextBatchId() {
   record_batch_id_t next_batch_id = next_batch_id_++;
   if (next_batch_id_.load() == INVALID_RECORD_BATCH_ID) {
     next_batch_id_++;
   }
+  last_sent_batch_id_ = next_batch_id;
   return next_batch_id;
 }
 

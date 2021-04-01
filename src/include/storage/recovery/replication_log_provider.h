@@ -19,6 +19,12 @@ namespace noisepage::storage {
  */
 class ReplicationLogProvider final : public AbstractLogProvider {
  public:
+  /** ReplicationEvent describes what kind of action should happen next for the log consumer. */
+  enum class ReplicationEvent : uint8_t {
+    LOGS = 0,  ///< Unprocessed replication logs (ReplicateBatchMsg) available.
+    OAT        ///< Unprocessed oldest active txn (NotifyOATMsg) available.
+  };
+
   LogProviderType GetType() const override { return LogProviderType::REPLICATION; }
 
   /** Notify the log provider that replication is ending. This signals all relevant condition variables. */
@@ -41,11 +47,59 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     return (curr_buffer_ != nullptr && curr_buffer_->HasMore()) || !received_batch_queue_.empty();
   }
 
+  /** @return True if there is an unprocessed OAT that is ready to be applied. */
+  bool OATReady() const { return !oats_.empty() && oats_.top().batch_id_ <= last_batch_popped_; }
+
+  /**
+   * Block until a replication event is available, i.e., either logs are received or an OAT is available.
+   * @return The type of replication event that became available.
+   */
+  ReplicationEvent WaitUntilEvent() {
+    std::unique_lock<std::mutex> lock(replication_latch_);
+    replication_cv_.wait(
+        lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords() || NextBatchReady() || OATReady(); });
+    return OATReady() ? ReplicationEvent::OAT : ReplicationEvent::LOGS;
+  }
+
+  /**
+   * Update the latest OAT of the replication log provider.
+   *
+   * The OAT is used to signal to a replication log consumer, e.g., recovery, that all transactions up to and including
+   * OAT are now safe to be applied, as long as all replication batches up to batch ID have been processed.
+   *
+   * @param oldest_active_txn The last transaction inclusive that is safe to be applied, once batches are processed.
+   * @param batch_id The last batch ID that must have been processed before the OAT can be applied.
+   */
+  void UpdateOAT(transaction::timestamp_t oldest_active_txn, replication::record_batch_id_t batch_id) {
+    std::unique_lock lock(replication_latch_);
+    oats_.emplace(OATPair{oldest_active_txn, batch_id});
+    replication_cv_.notify_all();
+  }
+
+  /** @return The latest OAT to be applied, popped off the replication log. */
+  transaction::timestamp_t PopOAT() {
+    std::unique_lock lock(replication_latch_);
+    NOISEPAGE_ASSERT(!oats_.empty(), "Who's telling you to pop the OAT?");
+    transaction::timestamp_t oat = oats_.top().oat_;
+    oats_.pop();
+    replication_cv_.notify_all();
+    return oat;
+  }
+
  private:
   /** @return True if left > right. False otherwise. */
   static bool CompareBatches(const replication::RecordsBatchMsg &left, const replication::RecordsBatchMsg &right) {
     return left.GetBatchId() > right.GetBatchId();
   }
+
+  /** A pair of OAT and associated batch ID that must be processed before the OAT. */
+  struct OATPair {
+    transaction::timestamp_t oat_;             ///< The last transaction inclusive that is safe to be applied.
+    replication::record_batch_id_t batch_id_;  ///< The last batch inclusive that must be processed before applying OAT.
+  };
+
+  /** @return True if left > right. False otherwise. */
+  static bool CompareOATs(const OATPair &left, const OATPair &right) { return left.batch_id_ > right.batch_id_; }
 
   /** @return True if the next batch has arrived. Assumes replication_latch_ is held. */
   bool NextBatchReady() {
@@ -121,6 +175,7 @@ class ReplicationLogProvider final : public AbstractLogProvider {
                       std::function<bool(replication::RecordsBatchMsg, replication::RecordsBatchMsg)>>
       received_batch_queue_{CompareBatches};
   replication::record_batch_id_t last_batch_popped_ = replication::INVALID_RECORD_BATCH_ID;
+  std::priority_queue<OATPair, std::vector<OATPair>, std::function<bool(OATPair, OATPair)>> oats_{CompareOATs};
 
   /** Synchronizes received_batch_queue_ and process termination. */
   ///@{

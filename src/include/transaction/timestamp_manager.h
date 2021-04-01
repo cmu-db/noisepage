@@ -93,8 +93,9 @@ class TimestampManager {
    * Bulk remove a set of timestamps from the active txn set. Only grabs the curr_running_txns_latch_ once for all the
    * timestamps.
    * @param timestamps vector of timestamps to remove
+   * @return True if there are no more running transactions after removal. False otherwise.
    */
-  void RemoveTransactions(const std::vector<timestamp_t> &timestamps);
+  bool RemoveTransactions(const std::vector<timestamp_t> &timestamps);
 
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue any time soon.

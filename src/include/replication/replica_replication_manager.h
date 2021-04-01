@@ -55,6 +55,7 @@ class ReplicaReplicationManager final : public ReplicationManager {
                  common::ManagedPointer<BaseReplicationMessage> msg) override;
 
  private:
+  void Handle(const messenger::ZmqMessage &zmq_msg, const NotifyOATMsg &msg);
   void Handle(const messenger::ZmqMessage &zmq_msg, const RecordsBatchMsg &msg);
 
   storage::ReplicationLogProvider provider_;  ///< The log records being provided to recovery.

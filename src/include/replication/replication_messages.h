@@ -19,6 +19,8 @@ namespace noisepage::replication {
   T(ReplicationMessageType, INVALID)                                                        \
   /** Acknowledgement of received messages between primary and replicas. */                 \
   T(ReplicationMessageType, ACK)                                                            \
+  /** Primary notifying the replica of the oldest active txn time. */                       \
+  T(ReplicationMessageType, NOTIFY_OAT)                                                     \
   /** Primary sending the replica a batch of log records.*/                                 \
   T(ReplicationMessageType, RECORDS_BATCH)                                                  \
   /** Replica notifying the primary that the replica has applied a specific transaction. */ \
@@ -93,7 +95,7 @@ class AckMsg : public BaseReplicationMessage {
   /** Constructor (to receive). */
   explicit AckMsg(const common::json &json);
   /** Destructor. */
-  virtual ~AckMsg() = default;
+  ~AckMsg() override = default;
 
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::ACK; }
   common::json ToJson() const override;
@@ -105,6 +107,43 @@ class AckMsg : public BaseReplicationMessage {
   static const char *key_message_ack_id;  ///< JSON key for the ID of the message being acknowledged.
 
   msg_id_t message_ack_id_;  ///< The ID of the message being acknowledged.
+};
+
+/**
+ * NotifyOATMsg is sent from primary -> replicas.
+ * This is used to notify the replicas that the oldest active transaction on the primary has been updated.
+ */
+class NotifyOATMsg : public BaseReplicationMessage {
+ public:
+  /**
+   * Constructor (to send).
+   *
+   * @param metadata            The metadata of the message.
+   * @param batch_id            The ID for the last sent batch of log records.
+   * @param oldest_active_txn   The oldest active txn time.
+   */
+  NotifyOATMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
+               transaction::timestamp_t oldest_active_txn);
+  /** Constructor (to receive). */
+  explicit NotifyOATMsg(const common::json &json);
+  /** Destructor. */
+  ~NotifyOATMsg() override = default;
+
+  ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::NOTIFY_OAT; }
+  common::json ToJson() const override;
+
+  /** @return The ID of the last batch of log records that was sent. */
+  record_batch_id_t GetBatchId() const { return batch_id_; }
+
+  /** @return The oldest active transaction of the OAT. */
+  transaction::timestamp_t GetOldestActiveTxn() const { return oldest_active_txn_; }
+
+ private:
+  static const char *key_batch_id;           ///< JSON key for the batch ID.
+  static const char *key_oldest_active_txn;  ///< JSON key for the oldest active transaction.
+
+  record_batch_id_t batch_id_;  ///< The batch ID identifies the batch that must be received before applying this OAT.
+  transaction::timestamp_t oldest_active_txn_;  ///< Oldest active transaction.
 };
 
 /**
@@ -124,7 +163,7 @@ class RecordsBatchMsg : public BaseReplicationMessage {
   /** Constructor (to receive). */
   explicit RecordsBatchMsg(const common::json &json);
   /** Destructor. */
-  virtual ~RecordsBatchMsg() = default;
+  ~RecordsBatchMsg() override = default;
 
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::RECORDS_BATCH; }
   common::json ToJson() const override;
@@ -160,7 +199,7 @@ class TxnAppliedMsg : public BaseReplicationMessage {
   /** Constructor (to receive). */
   explicit TxnAppliedMsg(const common::json &json);
   /** Destructor. */
-  virtual ~TxnAppliedMsg() = default;
+  ~TxnAppliedMsg() override = default;
 
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::TXN_APPLIED; }
   common::json ToJson() const override;

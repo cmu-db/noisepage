@@ -21,12 +21,13 @@ void TimestampManager::RemoveTransaction(timestamp_t timestamp) {
   NOISEPAGE_ASSERT(ret == 1, "erased timestamp did not exist");
 }
 
-void TimestampManager::RemoveTransactions(const std::vector<noisepage::transaction::timestamp_t> &timestamps) {
+bool TimestampManager::RemoveTransactions(const std::vector<noisepage::transaction::timestamp_t> &timestamps) {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   for (const auto &timestamp : timestamps) {
     const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(timestamp);
     NOISEPAGE_ASSERT(ret == 1, "erased timestamp did not exist");
   }
+  return curr_running_txns_.empty();
 }
 
 }  // namespace noisepage::transaction

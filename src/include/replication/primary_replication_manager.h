@@ -44,6 +44,13 @@ class PrimaryReplicationManager final : public ReplicationManager {
                                const std::vector<storage::CommitCallback> &commit_callbacks,
                                const transaction::ReplicationPolicy &policy);
 
+  /**
+   * Notify all of the replicas that the current oldest active transaction (OAT) is at least as new as the supplied OAT.
+   *
+   * @param oldest_active_txn   The begin timestamp of the oldest active transaction.
+   */
+  void NotifyReplicasOfOAT(transaction::timestamp_t oldest_active_txn);
+
   /** @return The ID of the last transaction that was sent to the replicas. */
   transaction::timestamp_t GetLastSentTransactionId() const { return transaction::timestamp_t{0}; }
 
@@ -82,6 +89,8 @@ class PrimaryReplicationManager final : public ReplicationManager {
   std::mutex callbacks_mutex_;  ///< Protecting txn_callbacks_ and txns_applied_on_replicas_.
   /** ID of the next batch of log records to be sent out to replicas. */
   std::atomic<record_batch_id_t> next_batch_id_{1};
+  /** ID of the last batch of log records that was sent out to all replicas. */
+  record_batch_id_t last_sent_batch_id_;
 };
 
 }  // namespace noisepage::replication

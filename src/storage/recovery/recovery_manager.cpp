@@ -49,6 +49,21 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
+    if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
+      auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
+      auto event = rlp->WaitUntilEvent();
+      if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
+        auto oat = rlp->PopOAT();
+        // TODO(WAN): DEBUG BLOCK
+        { REPLICATION_LOG_TRACE(fmt::format("OAT: {}", oat)); }
+        recovered_txns_ += ProcessDeferredTransactions(oat);
+        continue;
+      }
+      NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
+                       "What other replication events have been added?");
+      NOISEPAGE_ASSERT(rlp->NonBlockingHasMoreRecords(), "There are no log records, why are we awake?");
+    }
+
     auto pair = log_provider->GetNextRecord();
     auto *log_record = pair.first;
 
@@ -109,7 +124,7 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
-  if (replication_manager_->IsReplica()) {
+  if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
     txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
   }
 

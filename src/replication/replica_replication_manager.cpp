@@ -13,6 +13,15 @@ ReplicaReplicationManager::ReplicaReplicationManager(
 
 ReplicaReplicationManager::~ReplicaReplicationManager() = default;
 
+void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const NotifyOATMsg &msg) {
+  REPLICATION_LOG_TRACE(fmt::format("[RECV] NotifyOATMsg from {}: OAT {} BATCH {}", zmq_msg.GetRoutingId(),
+                                    msg.GetOldestActiveTxn(), msg.GetBatchId()));
+  // Acknowledge receipt of the batch of records.
+  SendAckForMessage(zmq_msg, msg);
+  // Notify the provider that the latest OAT has arrived, though the OAT itself may need to be batched.
+  provider_.UpdateOAT(msg.GetOldestActiveTxn(), msg.GetBatchId());
+}
+
 void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const RecordsBatchMsg &msg) {
   REPLICATION_LOG_TRACE(fmt::format("[RECV] RecordsBatchMsg from {}: ID {} BATCH {}", zmq_msg.GetRoutingId(),
                                     msg.GetMessageId(), msg.GetBatchId()));
@@ -26,6 +35,10 @@ void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Mess
                                           const messenger::ZmqMessage &zmq_msg,
                                           common::ManagedPointer<BaseReplicationMessage> msg) {
   switch (msg->GetMessageType()) {
+    case ReplicationMessageType::NOTIFY_OAT: {
+      Handle(zmq_msg, *msg.CastManagedPointerTo<NotifyOATMsg>());
+      break;
+    }
     case ReplicationMessageType::RECORDS_BATCH: {
       Handle(zmq_msg, *msg.CastManagedPointerTo<RecordsBatchMsg>());
       break;

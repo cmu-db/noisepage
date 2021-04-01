@@ -213,9 +213,6 @@ class TransactionContext {
   /** Set the replication policy of the entire transaction. */
   void SetReplicationPolicy(ReplicationPolicy replication_policy) {
     NOISEPAGE_ASSERT(durability_policy_ != DurabilityPolicy::DISABLE, "Replication needs durability enabled.");
-    NOISEPAGE_ASSERT(
-        replication_policy_ == ReplicationPolicy::DISABLE || replication_policy_ == ReplicationPolicy::ASYNC,
-        "Only asynchronous replication is currently supported due to OAT issue.");
     replication_policy_ = replication_policy;
   }
 

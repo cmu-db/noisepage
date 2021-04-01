@@ -11,6 +11,8 @@ const char *ReplicationMessageMetadata::key_message_id = "message_id";
 const char *BaseReplicationMessage::key_message_type = "message_type";
 const char *BaseReplicationMessage::key_metadata = "metadata";
 const char *AckMsg::key_message_ack_id = "message_ack_id";
+const char *NotifyOATMsg::key_batch_id = "oat_batch";
+const char *NotifyOATMsg::key_oldest_active_txn = "oat_ts";
 const char *RecordsBatchMsg::key_batch_id = "batch_id";
 const char *RecordsBatchMsg::key_contents = "contents";
 const char *TxnAppliedMsg::key_applied_txn_id = "applied_txn_id";
@@ -57,6 +59,26 @@ AckMsg::AckMsg(const common::json &json)
 AckMsg::AckMsg(ReplicationMessageMetadata metadata, msg_id_t message_ack_id)
     : BaseReplicationMessage(ReplicationMessageType::ACK, metadata), message_ack_id_(message_ack_id) {}
 
+// NotifyOATMsg
+
+common::json NotifyOATMsg::ToJson() const {
+  common::json json = BaseReplicationMessage::ToJson();
+  json[key_batch_id] = batch_id_;
+  json[key_oldest_active_txn] = oldest_active_txn_;
+  return json;
+}
+
+NotifyOATMsg::NotifyOATMsg(const common::json &json)
+    : BaseReplicationMessage(json),
+      batch_id_(json[key_batch_id].get<record_batch_id_t>()),
+      oldest_active_txn_(json[key_oldest_active_txn].get<transaction::timestamp_t>()) {}
+
+NotifyOATMsg::NotifyOATMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
+                           transaction::timestamp_t oldest_active_txn)
+    : BaseReplicationMessage(ReplicationMessageType::NOTIFY_OAT, metadata),
+      batch_id_(batch_id),
+      oldest_active_txn_(oldest_active_txn) {}
+
 // RecordsBatchMsg
 
 common::json RecordsBatchMsg::ToJson() const {
@@ -97,9 +119,10 @@ std::unique_ptr<BaseReplicationMessage> BaseReplicationMessage::ParseFromJson(co
   switch (msg_type) {
       // clang-format off
     case ReplicationMessageType::ACK:                 { return std::make_unique<AckMsg>(json); }
+    case ReplicationMessageType::NOTIFY_OAT:          { return std::make_unique<NotifyOATMsg>(json); }
     case ReplicationMessageType::RECORDS_BATCH:       { return std::make_unique<RecordsBatchMsg>(json); }
     case ReplicationMessageType::TXN_APPLIED:         { return std::make_unique<TxnAppliedMsg>(json); }
-    case ReplicationMessageType::INVALID:             // fall-through
+    case ReplicationMessageType::INVALID:             // Fall-through.
     case ReplicationMessageType::NUM_ENUM_ENTRIES:
       throw REPLICATION_EXCEPTION("Got an INVALID ReplicationMessage?");
       // clang-format on

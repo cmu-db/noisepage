@@ -130,7 +130,21 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
     // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
     // for each timestamp we remove.
     for (const auto &txns : serialized_txns_) {
-      txns.first->RemoveTransactions(txns.second);
+      auto &txn_ids = txns.second;
+      bool all_txns_removed = txns.first->RemoveTransactions(txn_ids);
+
+      auto minmax = std::minmax_element(txn_ids.cbegin(), txn_ids.cend());
+      transaction::timestamp_t oldest_txn = *minmax.first;
+      transaction::timestamp_t newest_txn = *minmax.second;
+      newest_txn_serialized_ = std::max(newest_txn_serialized_, newest_txn);
+
+      // If all the transactions were removed, then that all the txns seen so far have been serialized.
+      // Crucially, the oldest active transaction at the end of removal is actually the maximum of the txn_ids.
+      // This may trigger a manual update of what the true OAT is.
+      if (primary_replication_manager_ != DISABLED && !txn_ids.empty() && all_txns_removed &&
+          newest_txn_serialized_ != oldest_txn) {
+        primary_replication_manager_->NotifyReplicasOfOAT(newest_txn_serialized_);
+      }
     }
     serialized_txns_.clear();
   }
