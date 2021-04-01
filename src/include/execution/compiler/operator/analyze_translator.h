@@ -28,6 +28,20 @@ class AnalyzeTranslator : public OperatorTranslator, public PipelineDriver {
   AnalyzeTranslator(const planner::AnalyzePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
   /**
+   * Initialize the storage interface.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * Tear down the storage interface.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
    * Implement analyze logic where it uses the aggregate values of it's child to fill the pg_statistic table.
    * @param context The context of the work.
    * @param function The pipeline generating function.
@@ -71,14 +85,13 @@ class AnalyzeTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<ast::Identifier> aggregate_variables_;
   // Maps a column oid to the variable that holds the value to insert into that column
   std::unordered_map<catalog::col_oid_t, ast::Identifier> pg_statistic_column_lookup_;
-  ast::Identifier pg_statistic_index_iterator_;
+  StateDescriptor::Entry pg_statistic_index_iterator_;  ///< IndexIterator on pg_statistic.
   ast::Identifier pg_statistic_index_pr_;
-  ast::Identifier pg_statistic_updater_;
+  StateDescriptor::Entry pg_statistic_updater_;  ///< Storage interface for updates.
   ast::Identifier pg_statistic_update_pr_;
 
   void SetPgStatisticColOids(FunctionBuilder *function) const;
   void InitPgStatisticVariables(WorkContext *context, FunctionBuilder *function) const;
-  void DeclarePgStatisticIterator(FunctionBuilder *function) const;
   void DeclarePgStatisticIndexPR(FunctionBuilder *function) const;
   void InitPgStatisticIterator(FunctionBuilder *function) const;
   void InitPgStatisticIndexPR(FunctionBuilder *function) const;

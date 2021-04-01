@@ -116,6 +116,11 @@ class NoisePageServer:
             True if the commands that will be run should be printed,
             with the commands themselves not actually executing.
 
+        Returns
+        -------
+        exit_code : int
+            The exit code of the DBMS.
+
         Raises
         ------
         RuntimeError if the DBMS is not running when this is called.
@@ -126,32 +131,35 @@ class NoisePageServer:
         if not self.db_process:
             raise RuntimeError("System is in an invalid state.")
 
+        # Check if the DBMS is still running.
         return_code = self.db_process.poll()
-        if return_code is None:
-            try:
-                # Try to kill the process politely and wait for 60 seconds.
-                self.db_process.terminate()
-                self.db_process.wait(60)
-            except subprocess.TimeoutExpired:
-                # Otherwise, try to kill the process forcefully and wait another 60 seconds.
-                # If the process hasn't died yet, then something terrible has happened and we raise an error.
-                self.db_process.kill()
-                self.db_process.wait(60)
-            except KeyboardInterrupt:
-                raise KeyboardInterrupt
-            finally:
-                unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
-                if os.path.exists(unix_socket):
-                    os.remove(unix_socket)
-                    LOG.info(f"Removing: {unix_socket}")
-            self.print_db_logs()
-            LOG.info(f"DBMS stopped successfully, code: {self.db_process.returncode}")
-            self.db_process = None
-        else:
+        if return_code is not None:
             msg = f"DBMS already terminated, code: {self.db_process.returncode}"
             LOG.info(msg)
             self.print_db_logs()
             raise RuntimeError(msg)
+
+        try:
+            # Try to kill the process politely and wait for 60 seconds.
+            self.db_process.terminate()
+            self.db_process.wait(60)
+        except subprocess.TimeoutExpired:
+            # Otherwise, try to kill the process forcefully and wait another 60 seconds.
+            # If the process hasn't died yet, then something terrible has happened and we raise an error.
+            self.db_process.kill()
+            self.db_process.wait(60)
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
+        finally:
+            unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
+            if os.path.exists(unix_socket):
+                os.remove(unix_socket)
+                LOG.info(f"Removing: {unix_socket}")
+        self.print_db_logs()
+        exit_code = self.db_process.returncode
+        LOG.info(f"DBMS stopped, code: {exit_code}")
+        self.db_process = None
+        return exit_code
 
     def delete_wal(self):
         """
