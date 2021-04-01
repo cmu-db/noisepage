@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -135,6 +136,8 @@ class QueryExecUtil {
    * @param param_types Types of query parameters
    * @param tuple_fn A function to be called per row
    * @param metrics Metrics manager to use for recording
+   * @param cost Cost model to use
+   * @param exec_settings ExecutionSettings to utilize
    * @return true if success
    */
   bool ExecuteDML(const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
@@ -145,28 +148,29 @@ class QueryExecUtil {
 
   /**
    * Compiles a query and caches the resultant plan
-   * @param statement Statement to compile
+   * @param statement Statement to compile (serves as unique identifier)
    * @param params placeholder parameters for query
    * @param param_types Types of the query parameters
-   * @param success Flag indicating if compile succeeded
-   * @param idx[out] compiled query identifier passed out
+   * @param cost cost model to use for compilation
+   * @param exec_settings ExecutionSettings to use for compiling
    * @return whether compilation succeeded or not
    */
   bool CompileQuery(const std::string &statement,
                     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                     common::ManagedPointer<std::vector<type::TypeId>> param_types,
                     std::unique_ptr<optimizer::AbstractCostModel> cost,
-                    const execution::exec::ExecutionSettings &exec_settings, uint64_t *idx);
+                    const execution::exec::ExecutionSettings &exec_settings);
 
   /**
    * Executes a pre-compiled query
-   * @param idx Compiled query identifier to execute
+   * @param statement Previously compiled query statement (serves as identifier)
    * @param tuple_fn Per-row function invoked during output
    * @param params Parameters to use for execution
    * @param metrics Metrics manager to use for recording
+   * @param exec_settings ExecutionSettings to use for executing
    * @return true if success
    */
-  bool ExecuteQuery(size_t idx, TupleFunction tuple_fn,
+  bool ExecuteQuery(const std::string &statement, TupleFunction tuple_fn,
                     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                     common::ManagedPointer<metrics::MetricsManager> metrics,
                     const execution::exec::ExecutionSettings &exec_settings);
@@ -176,6 +180,7 @@ class QueryExecUtil {
    * @param query Statement to plan
    * @param params Placeholder parameters for query plan
    * @param param_types Types of query parameters
+   * @param cost Cost model to use
    * @return pair of resultant statement and plan node
    */
   std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> PlanStatement(
@@ -200,9 +205,12 @@ class QueryExecUtil {
   bool own_txn_ = false;
   transaction::TransactionContext *txn_ = nullptr;
 
-  /** Information about cached executable queries */
-  std::vector<std::unique_ptr<planner::OutputSchema>> schemas_;
-  std::vector<std::unique_ptr<execution::compiler::ExecutableQuery>> exec_queries_;
+  /**
+   * Information about cached executable queries
+   * Assumes that the query string is a unique identifier.
+   */
+  std::unordered_map<std::string, std::unique_ptr<planner::OutputSchema>> schemas_;
+  std::unordered_map<std::string, std::unique_ptr<execution::compiler::ExecutableQuery>> exec_queries_;
 };
 
 }  // namespace noisepage::util

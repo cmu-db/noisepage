@@ -97,13 +97,13 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     return {nullptr, nullptr};
   }
 
-  // This is unfortunate, but we currently cannot optimize SET queries.
+  // If QUERY_SET can be run through the optimizer and/or a executor,
+  // then we don't need to do this special case here.
   if (statement->GetQueryType() == network::QueryType::QUERY_SET) {
     return std::make_pair(std::move(statement), nullptr);
   }
 
   try {
-    // TODO(wz2): Specify params?
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
     binder.BindNameToNode(statement->ParseResult(), params, param_types);
   } catch (std::exception &e) {
@@ -148,13 +148,16 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
                                                             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
         break;
       case network::QueryType::QUERY_CREATE_INDEX:
-        // TODO(lin): We actually don't need to populate the index tuples after creating the index placeholder for the
-        //  "what-if" API. But since we need to execute the query to get the features, we need to compile and execute
-        //  the query for now.
         status = execution::sql::DDLExecutors::CreateIndexExecutor(
             common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
                 .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+        if (status) {
+          execution::exec::ExecutionSettings settings{};
+          if (CompileQuery(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings)) {
+            ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
+          }
+        }
         break;
       default:
         NOISEPAGE_ASSERT(false, "Unsupported QueryExecUtil::ExecuteStatement");
@@ -169,7 +172,7 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                  common::ManagedPointer<std::vector<type::TypeId>> param_types,
                                  std::unique_ptr<optimizer::AbstractCostModel> cost,
-                                 const execution::exec::ExecutionSettings &exec_settings, uint64_t *idx) {
+                                 const execution::exec::ExecutionSettings &exec_settings) {
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
@@ -184,21 +187,19 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
 
   auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                      execution::compiler::CompilationMode::OneShot);
-  schemas_.push_back(schema->Copy());
-  exec_queries_.push_back(std::move(exec_query));
-
-  *idx = exec_queries_.size() - 1;
+  schemas_[statement] = schema->Copy();
+  exec_queries_[statement] = std::move(exec_query);
   return true;
 }
 
-bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
+bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tuple_fn,
                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                  common::ManagedPointer<metrics::MetricsManager> metrics,
                                  const execution::exec::ExecutionSettings &exec_settings) {
-  NOISEPAGE_ASSERT(idx < exec_queries_.size(), "Invalid query index");
+  NOISEPAGE_ASSERT(exec_queries_.find(statement) != exec_queries_.end(), "Cached query not found");
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  planner::OutputSchema *schema = schemas_[idx].get();
+  planner::OutputSchema *schema = schemas_[statement].get();
   auto consumer = [&tuple_fn, schema](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
     if (tuple_fn != nullptr) {
       for (uint32_t row = 0; row < num_tuples; row++) {
@@ -228,7 +229,7 @@ bool QueryExecUtil::ExecuteQuery(size_t idx, TupleFunction tuple_fn,
 
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
 
-  exec_queries_[idx]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  exec_queries_[statement]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   return true;
 }
 
@@ -238,12 +239,11 @@ bool QueryExecUtil::ExecuteDML(const std::string &query,
                                common::ManagedPointer<metrics::MetricsManager> metrics,
                                std::unique_ptr<optimizer::AbstractCostModel> cost,
                                const execution::exec::ExecutionSettings &exec_settings) {
-  uint64_t idx = 0;
-  if (!CompileQuery(query, params, param_types, std::move(cost), exec_settings, &idx)) {
+  if (!CompileQuery(query, params, param_types, std::move(cost), exec_settings)) {
     return false;
   }
 
-  return ExecuteQuery(idx, std::move(tuple_fn), params, metrics, exec_settings);
+  return ExecuteQuery(query, std::move(tuple_fn), params, metrics, exec_settings);
 }
 
 }  // namespace noisepage::util

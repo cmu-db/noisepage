@@ -244,18 +244,24 @@ bool ModelServerManager::TrainModel(ModelType::Type model, const std::vector<std
 
 bool ModelServerManager::TrainForecastModel(const std::vector<std::string> &methods, const std::string &input_path,
                                             const std::string &save_path, uint64_t interval_micro,
+                                            uint64_t sequence_length, uint64_t horizon_length,
                                             common::ManagedPointer<ModelServerFuture<std::string>> future) {
   nlohmann::json j;
   j["interval_micro_sec"] = interval_micro;
+  j["sequence_length"] = sequence_length;
+  j["horizon_length"] = horizon_length;
   return TrainModel(ModelType::Type::Forecast, methods, &input_path, save_path, &j, future);
 }
 
 bool ModelServerManager::TrainForecastModel(const std::vector<std::string> &methods,
                                             std::unordered_map<int64_t, std::vector<double>> *input_data,
                                             const std::string &save_path, uint64_t interval_micro,
+                                            uint64_t sequence_length, uint64_t horizon_length,
                                             common::ManagedPointer<ModelServerFuture<std::string>> future) {
   nlohmann::json j;
   j["interval_micro_sec"] = interval_micro;
+  j["sequence_length"] = sequence_length;
+  j["horizon_length"] = horizon_length;
   j["input_sequence"] = std::move(*input_data);
   return TrainModel(ModelType::Type::Forecast, methods, nullptr, save_path, &j, future);
 }
@@ -325,11 +331,14 @@ std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::Inf
 
 std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::InferForecastModel(
     std::unordered_map<int64_t, std::vector<double>> *input_data, const std::string &model_path,
-    const std::vector<std::string> &model_names, std::string *models_config, uint64_t interval_micro_sec) {
+    const std::vector<std::string> &model_names, std::string *models_config, uint64_t interval_micro_sec,
+    uint64_t sequence_length, uint64_t horizon_length) {
   nlohmann::json j;
   j["input_sequence"] = std::move(*input_data);
   j["model_names"] = model_names;
   j["interval_micro_sec"] = interval_micro_sec;
+  j["sequence_length"] = sequence_length;
+  j["horizon_length"] = horizon_length;
   if (models_config != nullptr) {
     j["models_config"] = *models_config;
   }
@@ -339,11 +348,13 @@ std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::Inf
 
 std::pair<selfdriving::WorkloadForecastPrediction, bool> ModelServerManager::InferForecastModel(
     const std::string &input_path, const std::string &model_path, const std::vector<std::string> &model_names,
-    std::string *models_config, uint64_t interval_micro_sec) {
+    std::string *models_config, uint64_t interval_micro_sec, uint64_t sequence_length, uint64_t horizon_length) {
   nlohmann::json j;
   j["input_path"] = input_path;
   j["model_names"] = model_names;
   j["interval_micro_sec"] = interval_micro_sec;
+  j["sequence_length"] = sequence_length;
+  j["horizon_length"] = horizon_length;
   if (models_config != nullptr) {
     j["models_config"] = *models_config;
   }

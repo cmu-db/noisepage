@@ -195,14 +195,34 @@ SETTING_int(
 
 SETTING_int64(
     workload_forecast_interval,
-    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 500000, unit: micro-second)",
-    500000,
-    500000,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 1000000, unit: micro-second)",
+    1000000,
+    1000000,
     1000000000000,
     true,
 
     // When this callback is implemented in the near-fuure, do not
     // forget to update QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    sequence_length,
+    "Length of a planning data sequence. (default: 10, unit: workload_forecast_intervals)",
+    10,
+    1,
+    1000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    horizon_length,
+    "Length of the planning horizon. (default: 30, unit: workload_forecast_intervals)",
+    30,
+    1,
+    1000000,
+    true,
     noisepage::settings::Callbacks::NoOp
 )
 
@@ -290,12 +310,10 @@ SETTING_bool(
     noisepage::settings::Callbacks::MetricsQueryTrace
 )
 
-SETTING_int(
+SETTING_string(
     query_trace_metrics_output,
     "Output type for Query Traces Metrics (default: CSV)",
-    1,
-    1,
-    3,
+    "CSV",
     true,
     noisepage::settings::Callbacks::MetricsQueryTraceOutput
 )

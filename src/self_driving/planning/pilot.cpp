@@ -27,11 +27,10 @@
 #include "settings/settings_manager.h"
 #include "task/task_manager.h"
 #include "transaction/transaction_manager.h"
+#include "util/forecast_recording_util.h"
 #include "util/query_exec_util.h"
 
 namespace noisepage::selfdriving {
-
-uint64_t Pilot::planning_iteration = 1;
 
 Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
              common::ManagedPointer<catalog::Catalog> catalog,
@@ -41,7 +40,8 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage,
              common::ManagedPointer<transaction::TransactionManager> txn_manager,
              std::unique_ptr<util::QueryExecUtil> query_exec_util,
-             common::ManagedPointer<task::TaskManager> task_manager, uint64_t workload_forecast_interval)
+             common::ManagedPointer<task::TaskManager> task_manager, uint64_t workload_forecast_interval,
+             uint64_t sequence_length, uint64_t horizon_length)
     : model_save_path_(std::move(model_save_path)),
       forecast_model_save_path_(std::move(forecast_model_save_path)),
       catalog_(catalog),
@@ -52,14 +52,26 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
       txn_manager_(txn_manager),
       query_exec_util_(std::move(query_exec_util)),
       task_manager_(task_manager),
-      workload_forecast_interval_(workload_forecast_interval) {
+      workload_forecast_interval_(workload_forecast_interval),
+      sequence_length_(sequence_length),
+      horizon_length_(horizon_length) {
   forecast_ = nullptr;
   while (!model_server_manager_->ModelServerStarted()) {
   }
 }
 
+std::pair<uint64_t, uint64_t> Pilot::ComputeTimestampDataRange(uint64_t now) {
+  // Evaluation length is sequence length + 2 horizons
+  uint64_t eval_length = sequence_length_ + 2 * horizon_length_;
+
+  // Sequence length and horizon length are in workload_forecast_interval_ time units
+  uint64_t eval_time = eval_length * workload_forecast_interval_;
+
+  return std::make_pair(now - eval_time, now - 1);
+}
+
 void Pilot::PerformForecasterTrain() {
-  auto iteration = Pilot::planning_iteration;
+  uint64_t timestamp = metrics::MetricsUtil::Now();
   std::vector<std::string> models{"LSTM"};
   modelserver::ModelServerFuture<std::string> future;
 
@@ -69,19 +81,21 @@ void Pilot::PerformForecasterTrain() {
     bool success = false;
     std::unordered_map<int64_t, std::vector<double>> segment_information;
     if (metrics_in_db && query_exec_util_) {
-      // Only get the most recent interval information
+      // Only get the data corresponding to the closest horizon range
       // TODO(wz2): Do we want to get all the information from the beginning
-      segment_information = GetSegmentInformation(iteration, 1, &success);
+      segment_information = GetSegmentInformation(ComputeTimestampDataRange(timestamp), &success);
     }
 
     if (segment_information.empty() || !success) {
       // If the segment information is empty, use the file instead on disk
       std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
       model_server_manager_->TrainForecastModel(models, input_path, forecast_model_save_path_,
-                                                workload_forecast_interval_, common::ManagedPointer(&future));
+                                                workload_forecast_interval_, sequence_length_, horizon_length_,
+                                                common::ManagedPointer(&future));
     } else {
       model_server_manager_->TrainForecastModel(models, &segment_information, forecast_model_save_path_,
-                                                workload_forecast_interval_, common::ManagedPointer(&future));
+                                                workload_forecast_interval_, sequence_length_, horizon_length_,
+                                                common::ManagedPointer(&future));
     }
   }
 
@@ -89,7 +103,7 @@ void Pilot::PerformForecasterTrain() {
 }
 
 std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
-    uint64_t iteration,
+    std::pair<uint64_t, uint64_t> bounds,
     const std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> &out_metadata,
     const std::unordered_map<execution::query_id_t, std::vector<std::string>> &out_params) {
   // Initialize the workload metadata
@@ -107,7 +121,6 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
 
   // Lambda function to convert a JSON-serialized constants to a vector of cexpressions
   auto cves_conv = [](const WorkloadMetadata &metadata, execution::query_id_t qid, const std::string &cve) {
-    // Read the parameters. In the worse case
     std::vector<parser::ConstantValueExpression> cves;
     const std::vector<type::TypeId> &types = metadata.query_id_to_param_types_.find(qid)->second;
     auto json_decomp = nlohmann::json::parse(cve);
@@ -173,7 +186,8 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
       }
     };
 
-    auto query = fmt::format("SELECT * FROM noisepage_forecast_parameters WHERE iteration = {}", iteration);
+    auto query = fmt::format("SELECT * FROM noisepage_forecast_parameters WHERE ts >= {} AND ts <= {}", bounds.first,
+                             bounds.second);
     result &= query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
                                            std::make_unique<optimizer::TrivialCostModel>(), settings);
   }
@@ -182,40 +196,34 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
   return std::make_pair(std::move(metadata), result);
 }
 
-std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(uint64_t iteration, size_t range,
+std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(std::pair<uint64_t, uint64_t> bounds,
                                                                               bool *success) {
   NOISEPAGE_ASSERT(query_exec_util_, "GetSegmentInformation() requires execution utility");
-  int64_t current_iteration = INT64_MAX;
-  int64_t current_segment = INT64_MAX;
-  int64_t segment_number = 0;
+  uint64_t low_timestamp = bounds.first;
+  uint64_t segment_number = 0;
   std::unordered_map<int64_t, std::vector<double>> segments;
   query_exec_util_->BeginTransaction(catalog::INVALID_DATABASE_OID);
-  auto to_row_fn = [&segments, &segment_number, &current_segment,
-                    &current_iteration](const std::vector<execution::sql::Val *> &values) {
-    auto qid = static_cast<execution::sql::Integer *>(values[1])->val_;
-    auto itv = static_cast<execution::sql::Integer *>(values[0])->val_;
-    auto seg = static_cast<execution::sql::Integer *>(values[2])->val_;
-    auto seen = static_cast<execution::sql::Real *>(values[3])->val_;
-    if (current_iteration == INT64_MAX) {
-      current_iteration = itv;
-      current_segment = seg;
-    } else if (current_iteration != itv || current_segment != seg) {
-      current_iteration = itv;
-      current_segment = seg;
-      segment_number++;
-    }
 
+  uint64_t interval = workload_forecast_interval_;
+  auto to_row_fn = [&segments, &segment_number, &low_timestamp,
+                    interval](const std::vector<execution::sql::Val *> &values) {
+    // We need to do some postprocessing here on the rows because we want
+    // to fully capture empty intervals (i.e., an interval of time where
+    // no query at all has been executed).
+    auto ts = static_cast<execution::sql::Integer *>(values[0])->val_;
+    auto qid = static_cast<execution::sql::Integer *>(values[1])->val_;
+    auto seen = static_cast<execution::sql::Real *>(values[2])->val_;
+
+    // Compute the correct segment the data belongs to
+    uint64_t segment_idx = (ts - low_timestamp) / interval;
+    segment_number = std::max(segment_number, segment_idx);
     segments[qid].resize(segment_number + 1);
     segments[qid][segment_number] = seen;
   };
 
-  // This will give us the history of seen frequencies. It will also be ordered in increasing
-  // prediction iteration, followed by interval (i.e., matches vector push_back order).
-  auto upper = std::min(iteration, iteration - range + 1);
-  auto query = fmt::format(
-      "SELECT * FROM noisepage_forecast_frequencies WHERE iteration <= {} AND iteration >= {} ORDER BY iteration, "
-      "interval",
-      iteration, upper);
+  // This will give us the history of seen frequencies.
+  auto query = fmt::format("SELECT * FROM noisepage_forecast_frequencies WHERE ts <= {} AND ts >= {} ORDER BY ts",
+                           bounds.first, bounds.second);
   execution::exec::ExecutionSettings settings{};
   *success = query_exec_util_->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
                                           std::make_unique<optimizer::TrivialCostModel>(), settings);
@@ -227,67 +235,15 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(ui
   return segments;
 }
 
-void Pilot::RecordWorkloadForecastPrediction(uint64_t iteration,
+void Pilot::RecordWorkloadForecastPrediction(uint64_t timestamp,
                                              const selfdriving::WorkloadForecastPrediction &prediction,
                                              const WorkloadMetadata &metadata) {
   if (task_manager_ == nullptr) {
     return;
   }
 
-  // This is a bit more memory intensive, since we have to copy all the parameters
-  std::vector<std::vector<parser::ConstantValueExpression>> clusters_params_vec;
-  std::vector<std::vector<parser::ConstantValueExpression>> forecast_params_vec;
-  for (auto &cluster : prediction) {
-    for (auto &qid_info : cluster.second) {
-      execution::query_id_t qid{static_cast<uint32_t>(qid_info.first)};
-
-      // This assert is correct because we loaded the entire query history from the internal tables.
-      NOISEPAGE_ASSERT(metadata.query_id_to_dboid_.find(qid) != metadata.query_id_to_dboid_.end(),
-                       "Expected QID info to exist");
-      std::vector<parser::ConstantValueExpression> clusters_params(4);
-      clusters_params[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
-      clusters_params[1] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(cluster.first));
-      clusters_params[2] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(qid_info.first));
-      clusters_params[3] = parser::ConstantValueExpression(
-          type::TypeId::INTEGER, execution::sql::Integer(metadata.query_id_to_dboid_.find(qid)->second));
-      clusters_params_vec.emplace_back(std::move(clusters_params));
-
-      for (size_t interval = 0; interval < qid_info.second.size(); interval++) {
-        std::vector<parser::ConstantValueExpression> forecasts_params(4);
-        forecasts_params[0] =
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
-        forecasts_params[1] =
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(cluster.first));
-        forecasts_params[2] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(interval));
-        forecasts_params[3] =
-            parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(qid_info.second[interval]));
-        forecast_params_vec.emplace_back(std::move(forecasts_params));
-      }
-    }
-  }
-  if (!clusters_params_vec.empty()) {
-    // Clusters
-    auto db_oid = catalog::INVALID_DATABASE_OID;
-    auto query_text = "INSERT INTO noisepage_forecast_clusters VALUES ($1, $2, $3, $4)";
-    std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                             type::TypeId::INTEGER};
-    task_manager_->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
-                                                           std::make_unique<optimizer::TrivialCostModel>(),
-                                                           std::move(clusters_params_vec), std::move(param_types)));
-  }
-
-  if (!forecast_params_vec.empty()) {
-    // Forecasts
-    auto db_oid = catalog::INVALID_DATABASE_OID;
-    auto query_text = "INSERT INTO noisepage_forecast_forecasts VALUES ($1, $2, $3, $4)";
-    std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                             type::TypeId::REAL};
-    task_manager_->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
-                                                           std::make_unique<optimizer::TrivialCostModel>(),
-                                                           std::move(forecast_params_vec), std::move(param_types)));
-  }
+  util::ForecastRecordingUtil::RecordForecastClusters(timestamp, metadata, prediction, task_manager_);
+  util::ForecastRecordingUtil::RecordForecastQueryFrequencies(timestamp, metadata, prediction, task_manager_);
 }
 
 void Pilot::LoadWorkloadForecast() {
@@ -296,6 +252,9 @@ void Pilot::LoadWorkloadForecast() {
   bool metrics_in_db = metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB;
   metrics_thread_->GetMetricsManager()->Aggregate();
   metrics_thread_->GetMetricsManager()->ToOutput(common::ManagedPointer(query_exec_util_), task_manager_);
+
+  // Get the current timestamp
+  uint64_t timestamp = metrics::MetricsUtil::Now();
 
   std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> out_metadata;
   std::unordered_map<execution::query_id_t, std::vector<std::string>> out_params;
@@ -308,19 +267,19 @@ void Pilot::LoadWorkloadForecast() {
     if (raw != nullptr) {
       // Perform a flush to database. This will also get any temporary data.
       // This is also used to flush all parameter information at a forecast interval.
-      raw->WriteToDB(common::ManagedPointer(query_exec_util_), task_manager_, true, true, &out_metadata, &out_params);
+      raw->WriteToDB(common::ManagedPointer(query_exec_util_), task_manager_, true, timestamp, &out_metadata,
+                     &out_params);
 
-      // TODO(wz2): Maybe we should insert a synchronization point here.
-      // We can submit another task to the query_internal_thread_ to flush
-      // any tasks submitted by WriteToDB.
+      // We don't have to worry about flushing the tasks submitted by WriteToDB.
+      // The query metadata and parameters that would have been flushed out
+      // have already been captured by out_metadata and out_params.
+      //
+      // Under the assumption that the task manager is not backlogged by tasks
+      // submitted by QueryTraceMetricRawData to write frequency information,
+      // the frequency information we pull from the tables should also be
+      // reasonably up to date.
     }
   }
-
-  // TODO(wz2): This will always increment the iteration forwards. If this iteration
-  // has no queries executed, then GetSegmentInformation() will return no data (which
-  // may not be ideal). If we don't increment the counter when this interval has no
-  // executed queries, then GetSegmentInformation() will return the last interval's data.
-  auto iteration = Pilot::planning_iteration++;
 
   // This flag is used to make sure the 2 separate stages (get forecast prediction, construct
   // WorkloadForecast object) are consistent. "Consistency" here means that all the data comes
@@ -333,7 +292,7 @@ void Pilot::LoadWorkloadForecast() {
     std::vector<std::string> models{"LSTM"};
     std::unordered_map<int64_t, std::vector<double>> segment_information;
     if (metrics_in_db && query_exec_util_) {
-      segment_information = GetSegmentInformation(iteration, 1, &success);
+      segment_information = GetSegmentInformation(ComputeTimestampDataRange(timestamp), &success);
     }
 
     if (segment_information.empty() || !success) {
@@ -341,12 +300,14 @@ void Pilot::LoadWorkloadForecast() {
       std::string input_path{metrics::QueryTraceMetricRawData::FILES[1]};
 
       // If the segment information is empty, use the file instead on disk
-      result = model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, nullptr,
-                                                         workload_forecast_interval_);
+      result =
+          model_server_manager_->InferForecastModel(input_path, forecast_model_save_path_, models, nullptr,
+                                                    workload_forecast_interval_, sequence_length_, horizon_length_);
     } else {
       loaded_from_internal = true;
-      result = model_server_manager_->InferForecastModel(&segment_information, forecast_model_save_path_, models,
-                                                         nullptr, workload_forecast_interval_);
+      result =
+          model_server_manager_->InferForecastModel(&segment_information, forecast_model_save_path_, models, nullptr,
+                                                    workload_forecast_interval_, sequence_length_, horizon_length_);
     }
 
     if (!result.second) {
@@ -358,7 +319,7 @@ void Pilot::LoadWorkloadForecast() {
 
   if (query_exec_util_ && metrics_in_db && loaded_from_internal) {
     // Retrieve query information from internal tables
-    auto metadata_result = RetrieveWorkloadMetadata(iteration, out_metadata, out_params);
+    auto metadata_result = RetrieveWorkloadMetadata(ComputeTimestampDataRange(timestamp), out_metadata, out_params);
     if (!metadata_result.second) {
       SELFDRIVING_LOG_ERROR("Failed to read from internal trace metadata tables");
       metrics_thread_->ResumeMetrics();
@@ -366,29 +327,17 @@ void Pilot::LoadWorkloadForecast() {
     }
 
     // Record forecast into internal tables
-    RecordWorkloadForecastPrediction(iteration, result.first, metadata_result.first);
+    RecordWorkloadForecastPrediction(timestamp, result.first, metadata_result.first);
 
     // Construct workload forecast
-    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, &metadata_result.first);
+    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, std::move(metadata_result.first));
   } else {
     auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
     forecast_ = std::make_unique<selfdriving::WorkloadForecast>(workload_forecast_interval_, sample);
   }
-
-  // Copy file for backup -- future will not use this data
-  // /TODO(wz2): Do we want to do this?
-  for (size_t i = 0; i < 2; i++) {
-    std::string input_path{metrics::QueryTraceMetricRawData::FILES[i]};
-    auto filename = fmt::format("{}_{}", input_path.c_str(), iteration);
-    std::rename(input_path.c_str(), filename.c_str());
-  }
 }
 
 void Pilot::PerformPlanning() {
-  // We do the inference by having the python process read in the query_trace.csv file.
-  // However, for the sampled parameters and query information, we will actually pull
-  // that data directly from the internal SQL tables.
-
   // Suspend the metrics thread while we are handling the data (snapshot).
   metrics_thread_->PauseMetrics();
 

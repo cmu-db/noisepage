@@ -10,6 +10,10 @@ namespace noisepage::common {
  * Describes a chunked array. A chunked array batch allocates Size number of elements
  * of type Type at a given time. The premise for this is to amortize comparably
  * expensive memory allocation calls over a large number of inserts.
+ *
+ * Unlike a std::vector iterator that can get invalidated whenever an element is
+ * added to the container, ChunkedArray::Iterator remains valid as new elements
+ * are pushed.
  */
 template <class Type, size_t Size>
 class ChunkedArray {

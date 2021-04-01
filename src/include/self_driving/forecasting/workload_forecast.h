@@ -48,7 +48,7 @@ class WorkloadMetadata {
 class WorkloadForecast {
  public:
   /**
-   * Constructor for WorkloadForecast
+   * Constructor for WorkloadForecast from disk file
    * @param forecast_interval Interval used to partition the queries into segments
    * @param num_sample Number of samples for query parameters
    */
@@ -59,7 +59,7 @@ class WorkloadForecast {
    * @param inference Workload inference
    * @param metadata Workload metadata information
    */
-  explicit WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata *metadata);
+  explicit WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &&metadata);
 
   /**
    * Get number of forecasted segments
@@ -75,23 +75,28 @@ class WorkloadForecast {
   }
 
   std::string GetQuerytextByQid(execution::query_id_t qid) {
-    NOISEPAGE_ASSERT(query_id_to_text_.find(qid) != query_id_to_text_.end(), "invalid qid");
-    return query_id_to_text_.at(qid);
+    NOISEPAGE_ASSERT(workload_metadata_.query_id_to_text_.find(qid) != workload_metadata_.query_id_to_text_.end(),
+                     "invalid qid");
+    return workload_metadata_.query_id_to_text_.at(qid);
   }
 
   std::vector<std::vector<parser::ConstantValueExpression>> *GetQueryparamsByQid(execution::query_id_t qid) {
-    NOISEPAGE_ASSERT(query_id_to_params_.find(qid) != query_id_to_params_.end(), "invalid qid");
-    return &(query_id_to_params_.at(qid));
+    NOISEPAGE_ASSERT(workload_metadata_.query_id_to_params_.find(qid) != workload_metadata_.query_id_to_params_.end(),
+                     "invalid qid");
+    return &(workload_metadata_.query_id_to_params_.at(qid));
   }
 
   std::vector<type::TypeId> *GetParamtypesByQid(execution::query_id_t qid) {
-    NOISEPAGE_ASSERT(query_id_to_param_types_.find(qid) != query_id_to_param_types_.end(), "invalid qid");
-    return &(query_id_to_param_types_.at(qid));
+    NOISEPAGE_ASSERT(
+        workload_metadata_.query_id_to_param_types_.find(qid) != workload_metadata_.query_id_to_param_types_.end(),
+        "invalid qid");
+    return &(workload_metadata_.query_id_to_param_types_.at(qid));
   }
 
   uint64_t GetDboidByQid(execution::query_id_t qid) {
-    NOISEPAGE_ASSERT(query_id_to_dboid_.find(qid) != query_id_to_dboid_.end(), "invalid qid");
-    return query_id_to_dboid_.at(qid);
+    NOISEPAGE_ASSERT(workload_metadata_.query_id_to_dboid_.find(qid) != workload_metadata_.query_id_to_dboid_.end(),
+                     "invalid qid");
+    return workload_metadata_.query_id_to_dboid_.at(qid);
   }
 
   void LoadQueryTrace();
@@ -99,12 +104,8 @@ class WorkloadForecast {
   void CreateSegments();
 
   std::multimap<uint64_t, execution::query_id_t> query_timestamp_to_id_;
-  std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
-      query_id_to_params_;
-  std::unordered_map<execution::query_id_t, std::vector<type::TypeId>> query_id_to_param_types_;
-  std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
-  std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
   uint64_t num_sample_;
+  WorkloadMetadata workload_metadata_;
 
   std::vector<WorkloadForecastSegment> forecast_segments_;
   uint64_t num_forecast_segment_;

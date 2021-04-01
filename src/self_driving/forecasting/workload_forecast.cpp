@@ -15,17 +15,14 @@
 namespace noisepage::selfdriving {
 
 WorkloadForecast::WorkloadForecast(uint64_t forecast_interval, uint64_t num_sample)
-    : num_sample_(num_sample), forecast_interval_(forecast_interval) {
+    : num_sample_(num_sample), workload_metadata_({}), forecast_interval_(forecast_interval) {
   LoadQueryText();
   LoadQueryTrace();
   CreateSegments();
 }
 
-WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata *metadata) {
-  query_id_to_dboid_ = std::move(metadata->query_id_to_dboid_);
-  query_id_to_text_ = std::move(metadata->query_id_to_text_);
-  query_id_to_params_ = std::move(metadata->query_id_to_params_);
-  query_id_to_param_types_ = std::move(metadata->query_id_to_param_types_);
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &&metadata) {
+  workload_metadata_ = std::move(metadata);
 
   bool init = false;
   for (auto &cluster : inference) {
@@ -136,7 +133,7 @@ void WorkloadForecast::LoadQueryText() {
     db_oid = static_cast<uint64_t>(std::stoi(val_vec[0]));
     query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[1]));
     type_string = val_vec[4];
-    query_id_to_text_[query_id] = val_vec[query_text_col];
+    workload_metadata_.query_id_to_text_[query_id] = val_vec[query_text_col];
 
     // extract each type in the type_string
     while ((pos = type_string.find(';')) != std::string::npos) {
@@ -144,8 +141,8 @@ void WorkloadForecast::LoadQueryText() {
       type_string.erase(0, pos + 1);
     }
 
-    query_id_to_dboid_[query_id] = db_oid;
-    query_id_to_param_types_[query_id] = std::move(param_types);
+    workload_metadata_.query_id_to_dboid_[query_id] = db_oid;
+    workload_metadata_.query_id_to_param_types_[query_id] = std::move(param_types);
   }
   // Close file
   query_text_file.close();
@@ -201,14 +198,14 @@ void WorkloadForecast::LoadQueryTrace() {
     // extract each parameter in the param_string
     std::vector<parser::ConstantValueExpression> param_vec;
     while ((pos = param_string.find(';')) != std::string::npos) {
-      auto cve = parser::ConstantValueExpression::FromString(param_string.substr(0, pos),
-                                                             query_id_to_param_types_[query_id][param_vec.size()]);
+      auto cve = parser::ConstantValueExpression::FromString(
+          param_string.substr(0, pos), workload_metadata_.query_id_to_param_types_[query_id][param_vec.size()]);
       param_vec.push_back(cve);
       param_string.erase(0, pos + 1);
     }
 
-    if (query_id_to_params_[query_id].size() < num_sample_) {
-      query_id_to_params_[query_id].push_back(param_vec);
+    if (workload_metadata_.query_id_to_params_[query_id].size() < num_sample_) {
+      workload_metadata_.query_id_to_params_[query_id].push_back(param_vec);
     }
     query_timestamp_to_id_.insert(std::make_pair(std::stoull(val_vec[2]), query_id));
   }

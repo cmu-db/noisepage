@@ -22,27 +22,29 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   // This works for now. Fixing the above issue will make it work beter.
   execution::exec::ExecutionSettings settings{};
   if (params_.empty()) {
-    result = query_exec_util->ExecuteDML(query_text_, nullptr, nullptr, nullptr, nullptr,
+    result = query_exec_util->ExecuteDML(query_text_, nullptr, nullptr, tuple_fn_, nullptr,
                                          std::make_unique<optimizer::TrivialCostModel>(), settings);
   } else {
-    size_t compile_idx = 0;
     std::vector<parser::ConstantValueExpression> &params_0 = params_[0];
-    compiled_result = query_exec_util->CompileQuery(query_text_, common::ManagedPointer(&params_0),
-                                                    common::ManagedPointer(&param_types_), std::move(cost_model_),
-                                                    settings, &compile_idx);
+    compiled_result =
+        query_exec_util->CompileQuery(query_text_, common::ManagedPointer(&params_0),
+                                      common::ManagedPointer(&param_types_), std::move(cost_model_), settings);
     if (compiled_result) {
       // Execute with specified parameters
       for (auto &param_vec : params_) {
         if (!result) break;
 
-        result &=
-            query_exec_util->ExecuteQuery(compile_idx, nullptr, common::ManagedPointer(&param_vec), nullptr, settings);
+        result &= query_exec_util->ExecuteQuery(query_text_, tuple_fn_, common::ManagedPointer(&param_vec), nullptr,
+                                                settings);
       }
       query_exec_util->ClearPlans();
     }
   }
 
   query_exec_util->EndTransaction(!compiled_result || result);
+  if (sync_) {
+    sync_->Success(compiled_result && result);
+  }
 }
 
 }  // namespace noisepage::task

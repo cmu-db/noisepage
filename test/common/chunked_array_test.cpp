@@ -35,12 +35,12 @@ void FillMergeSize(size_t size1, size_t size2) {
   size_t idx = 0;
   auto it = array1.begin();
   while (it != array1.end()) {
-    ASSERT_EQ(vec[idx], *it);
+    EXPECT_EQ(vec[idx], *it);
     it++;
     idx++;
   }
 
-  ASSERT_EQ(idx, size1 + size2);
+  EXPECT_EQ(idx, size1 + size2);
 }
 
 // NOLINTNEXTLINE

@@ -133,10 +133,13 @@ class QueryTraceMetadata {
 class QueryTraceMetricRawData : public AbstractRawData {
  public:
   /** Parameter of how many query params to keep in sample */
-  static uint64_t query_param_sample;
+  static uint64_t QUERY_PARAM_SAMPLE;
 
   /** Parameter controlling size of a query segment */
-  static uint64_t query_segment_interval;
+  static uint64_t QUERY_SEGMENT_INTERVAL;
+
+  /** Query string for recording observed queries */
+  static constexpr char QUERY_OBSERVED_INSERT_STMT[] = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3)";
 
   void Aggregate(AbstractRawData *other) override {
     auto other_db_metric = dynamic_cast<QueryTraceMetricRawData *>(other);
@@ -168,13 +171,14 @@ class QueryTraceMetricRawData : public AbstractRawData {
    *
    * @param query_exec_util Query execution utility
    * @param task_manager Task manager to submit jobs to
-   * @param flush_timeseries Whether to write all time data out or not
    * @param write_parameters Whether to write all parameters or not
+   * @param write_timestamp Timestamp at which WriteToDB was invoked
    * @param out_metadata Pass out cached query metadata
    * @param out_params Pass out cached parameters
    */
   void WriteToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                 common::ManagedPointer<task::TaskManager> task_manager, bool flush_timeseries, bool write_parameters,
+                 common::ManagedPointer<task::TaskManager> task_manager, bool write_parameters,
+                 uint64_t write_timestamp,
                  std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
                  std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params);
 
@@ -220,13 +224,22 @@ class QueryTraceMetricRawData : public AbstractRawData {
   friend class QueryTraceMetric;
   FRIEND_TEST(MetricsTests, QueryCSVTest);
 
+  /**
+   * Submit job to update internal history table
+   * @param timestamp Timestamp to record frequency information at
+   * @param freqs Map of query id to frequency
+   * @param task_manager Task Manager to submit the jobs to
+   */
+  void SubmitFrequencyRecordJob(uint64_t timestamp, std::unordered_map<execution::query_id_t, int> &&freqs,
+                                common::ManagedPointer<task::TaskManager> task_manager);
+
   void RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
                        const std::string &type_string, const std::string &type_json, const uint64_t timestamp) {
     query_text_.emplace_back(db_oid, query_id, query_text, type_string, timestamp);
     metadata_.RecordQueryText(query_id, db_oid, query_text, type_json);
 
     // Don't track range of time data for QueryText.
-    // QueryText is not linked with when the query is run.
+    // When query is run, RecordQueryTrace is invoked but not necessarily RecordQueryText.
   }
 
   void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
@@ -267,7 +280,6 @@ class QueryTraceMetricRawData : public AbstractRawData {
   std::list<QueryText> query_text_;
   std::list<QueryTrace> query_trace_;
   QueryTraceMetadata metadata_;
-  uint64_t segment_number_{0};
   uint64_t low_timestamp_{UINT64_MAX};
   uint64_t high_timestamp_{0};
 };

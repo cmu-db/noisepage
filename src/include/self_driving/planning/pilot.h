@@ -81,7 +81,11 @@ class Pilot {
    * @param settings_manager settings manager
    * @param stats_storage stats_storage
    * @param txn_manager transaction manager
+   * @param query_exec_util query execution utility for the pilot to use
+   * @param task_manager task manager to submit internal jobs to
    * @param workload_forecast_interval Interval used in the forecastor
+   * @param sequence_length Length of a planning sequence
+   * @param horizon_length Length of the planning horizon
    */
   Pilot(std::string model_save_path, std::string forecast_model_save_path,
         common::ManagedPointer<catalog::Catalog> catalog, common::ManagedPointer<metrics::MetricsThread> metrics_thread,
@@ -90,10 +94,7 @@ class Pilot {
         common::ManagedPointer<optimizer::StatsStorage> stats_storage,
         common::ManagedPointer<transaction::TransactionManager> txn_manager,
         std::unique_ptr<util::QueryExecUtil> query_exec_util, common::ManagedPointer<task::TaskManager> task_manager,
-        uint64_t workload_forecast_interval);
-
-  /** @return the current planning iteration */
-  static uint64_t GetCurrentPlanIteration() { return Pilot::planning_iteration; }
+        uint64_t workload_forecast_interval, uint64_t sequence_length, uint64_t horizon_length);
 
   /**
    * Get model save path
@@ -109,43 +110,34 @@ class Pilot {
 
   /**
    * Rerieve segment information
-   * @param iteration current iteration
-   * @param range number of iterations to retrieve
+   * TODO(wz2): Addressing clustering based on this data will be left for the future.
    *
-   * @note when retrieving multiple iterations, it is assumed
-   * that the last segment of iteration i-1 ends where the first
-   * segment of iteration i begins (i.e., the iterations are
-   * continuous).
-   *
-   * TODO(wz2): This data does not have granular timestamp information.
-   * Addressing clustering based on this data will be left for the future.
-   *
+   * @param bounds (inclusive) bounds of the time range
    * @param success [out] indicator of whether query succeeded or not
-   *
    * @return segment information
    */
-  std::unordered_map<int64_t, std::vector<double>> GetSegmentInformation(uint64_t iteration, size_t range,
+  std::unordered_map<int64_t, std::vector<double>> GetSegmentInformation(std::pair<uint64_t, uint64_t> bounds,
                                                                          bool *success);
 
   /**
    * Retrieve workload metadata
-   * @param iteration current iteration
+   * @param bounds (inclusive) bounds of the time range to pull data
    * @param out_metadata Query Metadata from metrics
    * @param out_params Query parameters fro mmetrics
    * @return pair where first is metadata and second is flag of success
    */
   std::pair<selfdriving::WorkloadMetadata, bool> RetrieveWorkloadMetadata(
-      uint64_t iteration,
+      std::pair<uint64_t, uint64_t> bounds,
       const std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> &out_metadata,
       const std::unordered_map<execution::query_id_t, std::vector<std::string>> &out_params);
 
   /**
    * Record the workload forecast to the internal tables
-   * @param iteration current iteration
+   * @param timestamp Timestamp to record forecast at
    * @param prediction Forecast model prediction
    * @param metadata Metadata about the queries
    */
-  void RecordWorkloadForecastPrediction(uint64_t iteration, const selfdriving::WorkloadForecastPrediction &prediction,
+  void RecordWorkloadForecastPrediction(uint64_t timestamp, const selfdriving::WorkloadForecastPrediction &prediction,
                                         const WorkloadMetadata &metadata);
 
   /**
@@ -192,6 +184,13 @@ class Pilot {
                                 std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction,
                        uint64_t start_segment_index, uint64_t end_segment_index);
 
+  /**
+   * Computes the valid range of data to be pulling from the internal tables.
+   * @param now Current timestamp of the planning/training
+   * @return inclusive start and end bounds of data to query
+   */
+  std::pair<uint64_t, uint64_t> ComputeTimestampDataRange(uint64_t now);
+
   std::string model_save_path_;
   std::string forecast_model_save_path_;
   common::ManagedPointer<catalog::Catalog> catalog_;
@@ -202,10 +201,11 @@ class Pilot {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   common::ManagedPointer<task::TaskManager> task_manager_;
-  uint64_t workload_forecast_interval_{10000000};
+  uint64_t workload_forecast_interval_{1000000};
+  uint64_t sequence_length_{10};
+  uint64_t horizon_length_{30};
   uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};
-  static uint64_t planning_iteration;
   friend class noisepage::selfdriving::PilotUtil;
   friend class noisepage::selfdriving::pilot::MonteCarloTreeSearch;
 };

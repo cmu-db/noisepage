@@ -4,18 +4,19 @@
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "self_driving/planning/pilot.h"
 #include "task/task_manager.h"
+#include "util/forecast_recording_util.h"
 #include "util/query_exec_util.h"
 
 namespace noisepage::metrics {
 
-uint64_t QueryTraceMetricRawData::query_param_sample = 5;
-uint64_t QueryTraceMetricRawData::query_segment_interval = 0;
+uint64_t QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = 5;
+uint64_t QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL = 0;
 
 void QueryTraceMetadata::RecordQueryParamSample(uint64_t timestamp, execution::query_id_t qid,
                                                 std::string query_param) {
   if (qid_param_samples_.find(qid) == qid_param_samples_.end()) {
     qid_param_samples_.emplace(qid,
-                               common::ReservoirSampling<std::string>(QueryTraceMetricRawData::query_param_sample));
+                               common::ReservoirSampling<std::string>(QueryTraceMetricRawData::QUERY_PARAM_SAMPLE));
   }
 
   // Record the sample and time event
@@ -23,102 +24,68 @@ void QueryTraceMetadata::RecordQueryParamSample(uint64_t timestamp, execution::q
   timeseries_.Push(QueryTimeId{timestamp, qid});
 }
 
+void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
+                                                       std::unordered_map<execution::query_id_t, int> &&freqs,
+                                                       common::ManagedPointer<task::TaskManager> task_manager) {
+  std::string query = QueryTraceMetricRawData::QUERY_OBSERVED_INSERT_STMT;
+  std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
+  for (auto &info : freqs) {
+    std::vector<parser::ConstantValueExpression> param_vec(4);
+
+    // Since the frequency information is per segment interval,
+    // we record the timestamp (i.e., low_timestamp_) corresponding to it.
+    param_vec[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(timestamp));
+
+    // Record the query identifier.
+    param_vec[1] =
+        parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(info.first.UnderlyingValue()));
+
+    // Record how many queries seen
+    param_vec[2] =
+        parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(info.second)));
+    params_vec.emplace_back(std::move(param_vec));
+  }
+
+  // Submit the insert request if not empty
+  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
+                                           type::TypeId::REAL};
+  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
+                                                        std::make_unique<optimizer::TrivialCostModel>(),
+                                                        std::move(params_vec), std::move(param_types)));
+}
+
 void QueryTraceMetricRawData::ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                                    common::ManagedPointer<task::TaskManager> task_manager) {
   // On regular ToDB calls from metrics manager, we don't want to flush the time data or parameters.
   // Only on a forecast interval should we be doing that. Rather, ToDB will write out time-series data
   // only if a segment has elapsed.
-  WriteToDB(query_exec_util, task_manager, false, false, nullptr, nullptr);
+  uint64_t timestamp = metrics::MetricsUtil::Now();
+  WriteToDB(query_exec_util, task_manager, false, timestamp, nullptr, nullptr);
 }
 
 void QueryTraceMetricRawData::WriteToDB(
     common::ManagedPointer<util::QueryExecUtil> query_exec_util, common::ManagedPointer<task::TaskManager> task_manager,
-    bool flush_timeseries, bool write_parameters,
+    bool write_parameters, uint64_t write_timestamp,
     std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
     std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params) {
   NOISEPAGE_ASSERT(query_exec_util != nullptr && task_manager != nullptr, "Internal execution utility not initialized");
 
-  auto iteration = selfdriving::Pilot::GetCurrentPlanIteration();
   if (write_parameters) {
-    {
-      // Submit a job to update the query text data
-      auto db_oid = catalog::INVALID_DATABASE_OID;
-      auto query_text = "INSERT INTO noisepage_forecast_texts VALUES ($1, $2, $3, $4)";
-      std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR,
-                                               type::TypeId::VARCHAR};
-      std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
-      for (auto &data : metadata_.qmetadata_) {
-        std::vector<parser::ConstantValueExpression> params(4);
-        params[0] = parser::ConstantValueExpression(
-            type::TypeId::INTEGER,
-            execution::sql::Integer(static_cast<int64_t>(data.second.db_oid_.UnderlyingValue())));
-        params[1] = parser::ConstantValueExpression(type::TypeId::INTEGER,
-                                                    execution::sql::Integer(data.first.UnderlyingValue()));
-
-        {
-          const auto string = std::string_view(data.second.text_);
-          auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-          params[2] =
-              parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
-        }
-
-        {
-          const auto string = std::string_view(data.second.param_type_);
-          auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-          params[3] =
-              parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
-        }
-        params_vec.emplace_back(std::move(params));
-      }
-
-      if (!params_vec.empty()) {
-        task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
-                                                              std::make_unique<optimizer::TrivialCostModel>(),
-                                                              std::move(params_vec), std::move(param_types)));
-      }
-
-      if (out_metadata != nullptr) {
-        *out_metadata = metadata_.qmetadata_;
-      }
+    util::ForecastRecordingUtil::RecordQueryMetadata(metadata_.qmetadata_, task_manager);
+    if (out_metadata != nullptr) {
+      *out_metadata = metadata_.qmetadata_;
     }
 
-    {
-      // Submit a job to update the parameters table
-      auto db_oid = catalog::INVALID_DATABASE_OID;
-      auto query_text = "INSERT INTO noisepage_forecast_parameters VALUES ($1, $2, $3)";
-      std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR};
-      std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
-      for (auto &data : metadata_.qid_param_samples_) {
-        std::vector<std::string> samples = data.second.GetSamples();
-        for (auto &sample : samples) {
-          std::vector<parser::ConstantValueExpression> param_vec(3);
-          param_vec[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
-          param_vec[1] = parser::ConstantValueExpression(type::TypeId::INTEGER,
-                                                         execution::sql::Integer(data.first.UnderlyingValue()));
-
-          const auto string = std::string_view(sample);
-          auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-          param_vec[2] =
-              parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
-          params_vec.emplace_back(std::move(param_vec));
-        }
-
-        if (out_params != nullptr) {
-          (*out_params)[data.first] = std::move(samples);
-        }
-      }
-
-      if (!params_vec.empty()) {
-        task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
-                                                              std::make_unique<optimizer::TrivialCostModel>(),
-                                                              std::move(params_vec), std::move(param_types)));
-      }
-    }
-
+    util::ForecastRecordingUtil::RecordQueryParameters(write_timestamp, &metadata_.qid_param_samples_, task_manager,
+                                                       out_params);
     metadata_.ResetQueryMetadata();
   }
 
-  if (!flush_timeseries && high_timestamp_ - low_timestamp_ < QueryTraceMetricRawData::query_segment_interval) {
+  // We update the high_timestamp under the assumption that metrics::MetricsUtil::Now()
+  // gives us a monotonically increasing clock time. This alows the periodic metrics
+  // thread to be able to commit segments.
+  high_timestamp_ = std::max(high_timestamp_, write_timestamp);
+  if (high_timestamp_ - low_timestamp_ < QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
     // Not ready to write data records out
     return;
   }
@@ -132,55 +99,37 @@ void QueryTraceMetricRawData::WriteToDB(
     metadata_.InitTimeseriesIterator();
   }
 
-  auto db_oid = catalog::INVALID_DATABASE_OID;
-  auto query_text = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3, $4)";
-  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                           type::TypeId::REAL};
-  std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
-
   std::unordered_map<execution::query_id_t, int> freqs;
   while (metadata_.iterator_ != metadata_.timeseries_.end()) {
-    if (!flush_timeseries && (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::query_segment_interval)) {
-      // If we aren't flushing and a query segment has not passed
+    if (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
+      // We don't have enough data to compose a query segment
       break;
     }
 
-    if ((*metadata_.iterator_).timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::query_segment_interval) {
+    if ((*metadata_.iterator_).timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
       // In this case, the iterator has moved to a point such that we have a complete segment.
       // Submit the insert job based on the accumulated frequency information.
       if (!freqs.empty()) {
-        for (auto &info : freqs) {
-          std::vector<parser::ConstantValueExpression> param_vec(4);
-          param_vec[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
-          param_vec[1] = parser::ConstantValueExpression(type::TypeId::INTEGER,
-                                                         execution::sql::Integer(info.first.UnderlyingValue()));
-          param_vec[2] =
-              parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(segment_number_));
-          param_vec[3] = parser::ConstantValueExpression(type::TypeId::REAL,
-                                                         execution::sql::Real(static_cast<double>(info.second)));
-          params_vec.emplace_back(std::move(param_vec));
-        }
-
-        // Submit the insert request if not empty
-        {
-          task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
-                                                                std::make_unique<optimizer::TrivialCostModel>(),
-                                                                std::move(params_vec), std::move(param_types)));
-          freqs.clear();
-        }
-
-        // Reset the metadata
-        // NOLINTNEXTLINE
-        param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
-        params_vec.clear();
-        segment_number_++;
+        SubmitFrequencyRecordJob(low_timestamp_, std::move(freqs), task_manager);
       }
 
-      // Bumped up the low_timestamp_. We can't publish this data record yet
-      // because the segment might not be ready yet. So we loop back around
-      // for another round>
-      low_timestamp_ += QueryTraceMetricRawData::query_segment_interval;
-      continue;
+      // Bump up the low_timestamp_
+      low_timestamp_ += QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL;
+
+      // The above line has bumped up the low_timestamp_ into a new segment.
+      // The following check makes sure that we have a whole segment of data
+      // present before we try to consume it.
+      //
+      // Assume segment_interval = 10 and the following data points are
+      // available: 0, 5, 10, 15, 20, 25; the current high_timestamp_ = 29.
+      //
+      // In this case, [0, 5] are committed as 1 segment. [10, 15] are committed
+      // as another segment. However, [20, 25] cannot be committed yet
+      // since high_timestamp_ (29) - low_timestamp_ (20) < segment_interval (10)
+      //
+      if (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
+        break;
+      }
     }
 
     // Update freqs with a frequency information
@@ -190,39 +139,29 @@ void QueryTraceMetricRawData::WriteToDB(
     metadata_.iterator_++;
   }
 
-  if (!freqs.empty()) {
-    // Flush any remaining data. For instance, if the iterator ended on a segment boundary
-    // or if we're flushing all timeseries data out.
-    for (auto &info : freqs) {
-      std::vector<parser::ConstantValueExpression> param_vec(4);
-      param_vec[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(iteration));
-      param_vec[1] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(info.first.UnderlyingValue()));
-      param_vec[2] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(segment_number_));
-      param_vec[3] =
-          parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(info.second)));
-      params_vec.emplace_back(std::move(param_vec));
-    }
+  // Since the high_timestamp_ is also controlled by the time the MetricsThread performs
+  // logging to disk or internal tables, it is possible for [freqs] to contain a full
+  // segment of data.
+  //
+  // This only happens in the following state:
+  // 1. The timeseries data has been fully read. If there is still remaining timeseries
+  //    data, then we should not be committing a segment here.
+  //
+  // 2. A segment interval has passed
+  if (high_timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL && !freqs.empty()) {
+    NOISEPAGE_ASSERT(metadata_.iterator_ == metadata_.timeseries_.end(), "Expect the timseries data to be exhausted");
 
-    task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
-                                                          std::move(params_vec), std::move(param_types)));
+    SubmitFrequencyRecordJob(low_timestamp_, std::move(freqs), task_manager);
+    low_timestamp_ += QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL;
   }
 
-  if (flush_timeseries || metadata_.iterator_ == metadata_.timeseries_.end()) {
-    // Only reset the segment number if flushed. Note that flush_timeseries
-    // corresponds to a new forecast interval
-    if (flush_timeseries) {
-      segment_number_ = 0;
-    }
+  // This assert is inserted here to verify that we do not drop data from any segment.
+  NOISEPAGE_ASSERT(freqs.empty(), "We should only have been writing out complete segments");
+  if (metadata_.iterator_ == metadata_.timeseries_.end()) {
+    // If we've exhausted all of the timeseries data, we can delete it.
+    // If timeseries data consumes too much memory, we might have to consider
+    // pruning some chunks while keeping the iterator stable.
     metadata_.ResetTimeseries();
-
-    // Reset times since all data flushed
-    low_timestamp_ = UINT64_MAX;
-    high_timestamp_ = 0;
-  } else {
-    // Set the low_timestamp to where iterator currently is
-    low_timestamp_ = (*metadata_.iterator_).timestamp_;
   }
 }
 

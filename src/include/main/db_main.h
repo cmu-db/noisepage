@@ -544,7 +544,7 @@ class DBMain {
             common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
             common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
             common::ManagedPointer(txn_layer->GetTransactionManager()), std::move(util),
-            common::ManagedPointer(task_manager), workload_forecast_interval_);
+            common::ManagedPointer(task_manager), workload_forecast_interval_, sequence_length_, horizon_length_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
@@ -918,7 +918,9 @@ class DBMain {
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     uint64_t pilot_interval_ = 1e7;
     uint64_t forecast_train_interval_ = 120e7;
-    uint64_t workload_forecast_interval_ = 1e7;
+    uint64_t workload_forecast_interval_ = 1e6;
+    uint64_t sequence_length_ = 10;
+    uint64_t horizon_length_ = 30;
     uint64_t block_store_size_ = 1e5;
     uint64_t block_store_reuse_ = 1e3;
     uint64_t optimizer_timeout_ = 5000;
@@ -1019,6 +1021,8 @@ class DBMain {
       pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
       forecast_train_interval_ = settings_manager->GetInt64(settings::Param::forecast_train_interval);
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
+      sequence_length_ = settings_manager->GetInt64(settings::Param::sequence_length);
+      horizon_length_ = settings_manager->GetInt64(settings::Param::horizon_length);
       model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
       forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
       task_pool_size_ = settings_manager->GetInt(settings::Param::task_pool_size);
@@ -1040,8 +1044,8 @@ class DBMain {
       bytecode_handlers_path_ = settings_manager->GetString(settings::Param::bytecode_handlers_path);
 
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
-      query_trace_metrics_output_ =
-          static_cast<metrics::MetricsOutput>(settings_manager->GetInt(settings::Param::query_trace_metrics_output));
+      query_trace_metrics_output_ = static_cast<metrics::MetricsOutput>(metrics::MetricsUtil::FromMetricsOutputString(
+          settings_manager->GetString(settings::Param::query_trace_metrics_output)));
       forecast_sample_limit_ = settings_manager->GetInt(settings::Param::forecast_sample_limit);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
       pipeline_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::pipeline_metrics_sample_rate);
@@ -1074,8 +1078,8 @@ class DBMain {
       metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, logging_metrics_sample_rate_);
 
       if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
-      metrics::QueryTraceMetricRawData::query_param_sample = forecast_sample_limit_;
-      metrics::QueryTraceMetricRawData::query_segment_interval = workload_forecast_interval_;
+      metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = forecast_sample_limit_;
+      metrics::QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL = workload_forecast_interval_;
       metrics_manager->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, query_trace_metrics_output_);
 
       if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);

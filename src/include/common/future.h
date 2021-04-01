@@ -1,3 +1,5 @@
+#pragma once
+
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <string>
@@ -62,8 +64,7 @@ class Future {
   }
 
   /**
-   * Indicate this future fails to retrieve expected results from the asynchronous call to the ModelServer.
-   * It could either be an error on the ModelServer, or failure of sending message by the Messenger
+   * Indicate this future failed to complete its task with a reason.
    */
   void Fail(const std::string &reason) {
     {

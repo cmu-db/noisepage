@@ -114,8 +114,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     execution::exec::ExecutionSettings settings{};
     bool result = util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
                                    std::make_unique<optimizer::TrivialCostModel>(), settings);
-    NOISEPAGE_ASSERT(result, "SELECT should have succeeded");
-    NOISEPAGE_ASSERT(row_count == target, "Row count incorrect");
+    EXPECT_TRUE(result && "SELECT should have succeeded");
+    EXPECT_TRUE(row_count == target && "Row count incorrect");
     util->EndTransaction(true);
   };
 
@@ -123,13 +123,12 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   select_count("SELECT * FROM noisepage_forecast_texts", 0);
   select_count("SELECT * FROM noisepage_forecast_parameters", 0);
 
-  auto check_freqs = [util, &qids, &totals, &timestamps](size_t num_interval) {
-    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
+  auto check_freqs = [task_manager_, util, &qids, &totals, &timestamps](size_t num_interval) {
     size_t seen = 0;
     std::unordered_map<size_t, std::unordered_map<size_t, size_t>> qid_map;
     auto freq_check = [&seen, &qid_map](const std::vector<execution::sql::Val *> &values) {
-      NOISEPAGE_ASSERT(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1,
-                       "Planning iteration should be 1");
+      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1 &&
+                  "Planning iteration should be 1");
 
       // Record <qid, <interval, seen>>
       qid_map[reinterpret_cast<execution::sql::Integer *>(values[1])->val_]
@@ -145,24 +144,30 @@ TEST_F(QueryTraceLogging, BasicLogging) {
       combined += totals[i];
     }
 
-    execution::exec::ExecutionSettings settings{};
-    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_frequencies", nullptr, nullptr, freq_check,
-                                   nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings);
-    NOISEPAGE_ASSERT(result, "SELECT frequencies should have succeeded");
-    NOISEPAGE_ASSERT(seen == combined, "Incorrect number recorded");
-    NOISEPAGE_ASSERT(qid_map.size() == qids.size(), "Incorrect number qids recorded");
+    std::vector<std::vector<parser::ConstantValueExpression>> params;
+    std::vector<type::TypeId> param_types;
+
+    common::Future<bool> sync;
+    task_manager_->AddTask(
+        std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
+                                        std::make_unique<optimizer::TrivialCostModel>(), nullptr, std::move(params),
+                                        std::move(param_types), freq_check, common::ManagedPointer(&sync)));
+
+    auto sync_result = sync.Wait();
+    bool result = sync_result.first;
+    EXPECT_TRUE(result && "SELECT frequencies should have succeeded");
+    EXPECT_TRUE(seen == combined && "Incorrect number recorded");
+    EXPECT_TRUE(qid_map.size() == qids.size() && "Incorrect number qids recorded");
 
     for (auto &info : qid_map) {
-      NOISEPAGE_ASSERT(info.first < qids.size(), "Incorrect qid recorded");
-      NOISEPAGE_ASSERT(info.second.size() == num_interval, "3rd interval should not be recorded");
+      EXPECT_TRUE(info.first < qids.size() && "Incorrect qid recorded");
+      EXPECT_TRUE(info.second.size() == num_interval && "3rd interval should not be recorded");
       for (auto &data : info.second) {
-        NOISEPAGE_ASSERT(data.first < 10, "Recorded occurrence incorrect");
-        NOISEPAGE_ASSERT(data.second == static_cast<size_t>(timestamps[info.first][data.first]),
-                         "Incorrect recorded for interval");
+        EXPECT_TRUE(data.first < 10 && "Recorded occurrence incorrect");
+        EXPECT_TRUE(data.second == static_cast<size_t>(timestamps[info.first][data.first]) &&
+                    "Incorrect recorded for interval");
       }
     }
-
-    util->EndTransaction(true);
   };
   check_freqs(2);
 
@@ -177,13 +182,13 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     std::unordered_set<int64_t> val;
     auto func = [&val, qids, texts, db_oids, &parameters](const std::vector<execution::sql::Val *> &values) {
       int64_t qid = reinterpret_cast<execution::sql::Integer *>(values[1])->val_;
-      NOISEPAGE_ASSERT(static_cast<size_t>(qid) < qids.size(), "Invalid qid");
-      NOISEPAGE_ASSERT(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == db_oids[qid], "Invalid db_oid");
+      EXPECT_TRUE(static_cast<size_t>(qid) < qids.size() && "Invalid qid");
+      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == db_oids[qid] && "Invalid db_oid");
 
       auto *text_val = reinterpret_cast<execution::sql::StringVal *>(values[2]);
       auto text = std::string(text_val->StringView().data() + 1, text_val->StringView().size() - 2);
-      NOISEPAGE_ASSERT(text == texts[qid], "Incorrect text recorded");
-      NOISEPAGE_ASSERT(val.find(qid) == val.end(), "Duplicate qid found");
+      EXPECT_TRUE(text == texts[qid] && "Incorrect text recorded");
+      EXPECT_TRUE(val.find(qid) == val.end() && "Duplicate qid found");
       val.insert(qid);
 
       auto type_json = std::string(reinterpret_cast<execution::sql::StringVal *>(values[3])->StringView());
@@ -196,14 +201,14 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
       nlohmann::json j = type_strs;
       std::string correct = j.dump();
-      NOISEPAGE_ASSERT(type_json == correct, "Invalid parameters recorded");
+      EXPECT_TRUE(type_json == correct && "Invalid parameters recorded");
     };
 
     execution::exec::ExecutionSettings settings{};
     bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr,
                                    std::make_unique<optimizer::TrivialCostModel>(), settings);
-    NOISEPAGE_ASSERT(result, "select should have succeeded");
-    NOISEPAGE_ASSERT(val.size() == qids.size(), "Incorrect number recorded");
+    EXPECT_TRUE(result && "select should have succeeded");
+    EXPECT_TRUE(val.size() == qids.size() && "Incorrect number recorded");
     util->EndTransaction(true);
   }
 
@@ -212,9 +217,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     size_t row_count = 0;
     std::unordered_set<int64_t> seen;
     auto func = [&row_count, qids, &seen](const std::vector<execution::sql::Val *> &values) {
-      NOISEPAGE_ASSERT(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1, "Iteration invalid");
-      NOISEPAGE_ASSERT(reinterpret_cast<execution::sql::Integer *>(values[1])->val_ < static_cast<int64_t>(qids.size()),
-                       "Invalid query identifier");
+      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1 && "Iteration invalid");
+      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[1])->val_ < static_cast<int64_t>(qids.size()) &&
+                  "Invalid query identifier");
       seen.insert(reinterpret_cast<execution::sql::Integer *>(values[1])->val_);
       row_count++;
     };
@@ -222,9 +227,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     execution::exec::ExecutionSettings settings{};
     bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr,
                                    std::make_unique<optimizer::TrivialCostModel>(), settings);
-    NOISEPAGE_ASSERT(result, "Select should have succeeded");
-    NOISEPAGE_ASSERT(seen.size() == qids.size(), "Must sample at least 1 per qid");
-    NOISEPAGE_ASSERT(row_count <= qids.size() * num_sample, "Sampling limit exceeded");
+    EXPECT_TRUE(result && "Select should have succeeded");
+    EXPECT_TRUE(seen.size() == qids.size() && "Must sample at least 1 per qid");
+    EXPECT_TRUE(row_count <= qids.size() * num_sample && "Sampling limit exceeded");
     util->EndTransaction(true);
   }
   check_freqs(3);

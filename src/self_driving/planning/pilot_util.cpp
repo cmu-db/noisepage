@@ -41,33 +41,21 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   util.BeginTransaction(db_oid);
 
   bool is_query_ddl = false;
-  bool is_create_idx = false;
   {
     std::string query = sql_query;
     auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
     auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
     is_query_ddl = network::NetworkUtil::DDLQueryType(statement->GetQueryType()) ||
                    statement->GetQueryType() == network::QueryType::QUERY_SET;
-    is_create_idx = statement->GetQueryType() == network::QueryType::QUERY_CREATE_INDEX;
   }
 
-  execution::exec::ExecutionSettings settings{};
   if (is_query_ddl) {
     util.ExecuteDDL(sql_query);
-
-    if (is_create_idx) {
-      size_t idx = 0;
-      if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings,
-                            &idx)) {
-        util.ExecuteQuery(idx, nullptr, nullptr, nullptr, settings);
-      }
-    }
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
-    size_t idx = 0;
-    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings,
-                          &idx)) {
-      util.ExecuteQuery(idx, nullptr, nullptr, nullptr, settings);
+    execution::exec::ExecutionSettings settings{};
+    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings)) {
+      util.ExecuteQuery(sql_query, nullptr, nullptr, nullptr, settings);
     }
   }
 
@@ -174,12 +162,11 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
     auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
 
-    size_t idx = 0;
     if (query_exec_util.CompileQuery(query_text, params, param_types, std::make_unique<optimizer::TrivialCostModel>(),
-                                     settings, &idx)) {
+                                     settings)) {
       pipeline_qids->push_back(qid);
       for (auto &params : *(forecast->GetQueryparamsByQid(qid))) {
-        query_exec_util.ExecuteQuery(idx, nullptr, common::ManagedPointer(&params), metrics_manager, settings);
+        query_exec_util.ExecuteQuery(query_text, nullptr, common::ManagedPointer(&params), metrics_manager, settings);
       }
     }
     query_exec_util.EndTransaction(false);

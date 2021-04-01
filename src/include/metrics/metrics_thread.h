@@ -1,7 +1,9 @@
 #pragma once
 
 #include <chrono>  //NOLINT
+#include <memory>
 #include <thread>  //NOLINT
+#include <utility>
 
 #include "metrics/metrics_manager.h"
 
@@ -15,6 +17,8 @@ class MetricsThread {
  public:
   /**
    * @param metrics_manager pointer to the object to be run on this thread
+   * @param query_exec_util query execution utility for the thread
+   * @param task_manager task manager for MetricsManager::Output to utilize
    * @param metrics_period sleep time between metrics invocations
    */
   MetricsThread(common::ManagedPointer<MetricsManager> metrics_manager,

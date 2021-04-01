@@ -16,6 +16,7 @@
 #include <condition_variable>  // NOLINT
 #include <string>
 #include <thread>  // NOLINT
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -218,12 +219,14 @@ class ModelServerManager {
    * @param input_path Path to input files for training model (seq file directory for MiniRunnerModel)
    * @param save_path path to where the trained model map will be stored at
    * @param interval_micro interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
    * @param future A future object which the caller waits for training to be done
    * @return True if sending train request suceeds
    */
   bool TrainForecastModel(const std::vector<std::string> &methods, const std::string &input_path,
-                          const std::string &save_path, uint64_t interval_micro,
-                          common::ManagedPointer<ModelServerFuture<std::string>> future);
+                          const std::string &save_path, uint64_t interval_micro, uint64_t sequence_length,
+                          uint64_t horizon_length, common::ManagedPointer<ModelServerFuture<std::string>> future);
 
   /**
    * Train a forecast model
@@ -237,12 +240,15 @@ class ModelServerManager {
    * @param input_data Input sequence data for training model
    * @param save_path path to where the trained model map will be stored at
    * @param interval_micro interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
    * @param future A future object which the caller waits for training to be done
    * @return True if sending train request suceeds
    */
   bool TrainForecastModel(const std::vector<std::string> &methods,
                           std::unordered_map<int64_t, std::vector<double>> *input_data, const std::string &save_path,
-                          uint64_t interval_micro, common::ManagedPointer<ModelServerFuture<std::string>> future);
+                          uint64_t interval_micro, uint64_t sequence_length, uint64_t horizon_length,
+                          common::ManagedPointer<ModelServerFuture<std::string>> future);
 
   /**
    * Perform inference on the given data file using a forecast model
@@ -254,12 +260,14 @@ class ModelServerManager {
    * @param model_names List of model names to train
    * @param models_config Optional parameter for model config
    * @param interval_micro_sec Forecast interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
    * @return a map<cluster_id, map<query_id, vector<segment predictions>>>  returned by ModelServer and
    *    if API succeeds (True when succeeds). When API fails, the return results will be an empty map
    */
   std::pair<selfdriving::WorkloadForecastPrediction, bool> InferForecastModel(
       const std::string &input_path, const std::string &model_path, const std::vector<std::string> &model_names,
-      std::string *models_config, uint64_t interval_micro_sec);
+      std::string *models_config, uint64_t interval_micro_sec, uint64_t sequence_length, uint64_t horizon_length);
 
   /**
    * Perform inference on the input data sequence using a forecast model
@@ -271,12 +279,15 @@ class ModelServerManager {
    * @param model_names List of model names to train
    * @param models_config Optional parameter for model config
    * @param interval_micro_sec Forecast interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
    * @return a map<cluster_id, map<query_id, vector<segment predictions>>>  returned by ModelServer and
    *    if API succeeds (True when succeeds). When API fails, the return results will be an empty map
    */
   std::pair<selfdriving::WorkloadForecastPrediction, bool> InferForecastModel(
       std::unordered_map<int64_t, std::vector<double>> *input_data, const std::string &model_path,
-      const std::vector<std::string> &model_names, std::string *models_config, uint64_t interval_micro_sec);
+      const std::vector<std::string> &model_names, std::string *models_config, uint64_t interval_micro_sec,
+      uint64_t sequence_length, uint64_t horizon_length);
 
   /**
    * Perform inference on the given data file using an OU model

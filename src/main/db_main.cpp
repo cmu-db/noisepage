@@ -74,8 +74,9 @@ void DBMain::ForceShutdown() {
     recovery_manager_->WaitForRecoveryToFinish();
   }
 
-  // Need to let internal thread flush through requests
+  // Shutdown the following resources to safely release the task manager.
   (void)pilot_thread_.release();
+  (void)pilot_.release();
   (void)metrics_thread_.release();
   (void)task_manager_.release();
 

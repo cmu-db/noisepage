@@ -176,7 +176,8 @@ void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, 
 void Callbacks::MetricsQueryTraceOutput(void *const old_value, void *const new_value, DBMain *const db_main,
                                         common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
-  auto output = static_cast<metrics::MetricsOutput>(*static_cast<uint8_t *>(new_value));
+  auto output = static_cast<metrics::MetricsOutput>(
+      metrics::MetricsUtil::FromMetricsOutputString(*static_cast<std::string *>(new_value)));
   db_main->GetMetricsManager()->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, output);
   action_context->SetState(common::ActionState::SUCCESS);
 }
@@ -185,7 +186,7 @@ void Callbacks::ForecastSampleLimit(void *old_value, void *new_value, DBMain *db
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int forecast_sample_limit = *static_cast<int *>(new_value);
-  metrics::QueryTraceMetricRawData::query_param_sample = static_cast<uint64_t>(forecast_sample_limit);
+  metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = static_cast<uint64_t>(forecast_sample_limit);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
