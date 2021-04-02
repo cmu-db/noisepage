@@ -92,55 +92,44 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
  private:
   friend class LogManager;
-  // Flag to signal task to run or stop
-  bool run_task_;
-  // Interval for serialization
-  std::chrono::microseconds serialization_interval_;
-
-  // Used to release processed buffers
-  RecordBufferSegmentPool *buffer_pool_;
-
-  // Ensures only one thread is serializing at a time.
-  common::SpinLatch serialization_latch_;
+  bool run_task_;                                     ///< Flag to signal task to run or stop.
+  std::chrono::microseconds serialization_interval_;  ///< Interval for serialization.
+  RecordBufferSegmentPool *buffer_pool_;              ///< Used to release processed buffers.
+  common::SpinLatch serialization_latch_;             ///< Ensures that only one thread serializes at a time.
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   //  optimization we applied to the GC queue.
-  // Latch to protect flush queue
-  std::mutex flush_queue_latch_;
+  std::mutex flush_queue_latch_;  ///< Protects flush_queue_.
   /** Stores unserialized buffers handed off by transactions, along with their associated transaction policy. */
   std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>> flush_queue_;
+  std::condition_variable flush_queue_cv_;  ///< Notified when there are logs to be processed.
 
-  // conditional variable to be notified when there are logs to be processed
-  std::condition_variable flush_queue_cv_;
+  bool sleeping_ = false;  ///< True if the logging thread is sleeping. False otherwise.
+  bool empty_ = true;      ///< True if the log queue is empty. False otherwise.
 
-  // bools representing whether the logging thread is sleeping and if the log queue is empty
-  bool sleeping_ = false, empty_ = true;
-
-  // Current buffer we are serializing logs to
-  BufferedLogWriter *filled_buffer_;
+  BufferedLogWriter *filled_buffer_;  ///< The current buffer that logs are being serialized to.
   std::optional<transaction::TransactionPolicy> filled_buffer_policy_;  ///< Transaction policy for the current buffer.
-  // Commit callbacks for the commit records currently in filled_buffer_.
-  std::vector<storage::CommitCallback> commits_in_buffer_;
-  transaction::timestamp_t newest_buffer_txn_ = transaction::INITIAL_TXN_TIMESTAMP;
+  std::vector<storage::CommitCallback> commits_in_buffer_;  ///< Commit callbacks for commit records in filled_buffer_.
+  transaction::timestamp_t newest_buffer_txn_ = transaction::INITIAL_TXN_TIMESTAMP;  ///< Newest txn ever in buffer.
 
-  // Used by the serializer thread to store buffers it has grabbed from the log manager
+  /** Used by the serializer thread to store buffers that were grabbed from the log manager. */
   std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>> temp_flush_queue_;
 
-  // We aggregate all transactions we serialize so we can bulk remove the from the timestamp manager
   // TODO(Gus): If we guarantee there is only one TSManager in the system, this can just be a vector. We could also pass
   // TS into the serializer instead of having a pointer for it in every commit/abort record
+  /** Aggregated list of all transactions that were serialized, enabling bulk removal from the timestamp manager. */
   std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> serialized_txns_;
+  /** The newest transaction that was successfully serialized. */
   transaction::timestamp_t newest_txn_serialized_ = transaction::INITIAL_TXN_TIMESTAMP;
 
-  // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
+  /** The queue containing empty buffers. Task will dequeue a buffer from this queue when a new buffer is needed. */
   common::ManagedPointer<common::ConcurrentBlockingQueue<BufferedLogWriter *>> empty_buffer_queue_;
-  // The queue containing filled buffers. Task should push filled serialized buffers into this queue
+  /** The queue containing filled buffers. Task should push filled serialized buffers into this queue. */
   common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
 
-  // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
+  /** Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue. */
   std::condition_variable *disk_log_writer_thread_cv_;
-
   /** The replication manager that serialized log records are shipped to. */
   common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager_;
 
