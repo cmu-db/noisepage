@@ -162,7 +162,7 @@ class DatabaseCatalog {
   proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
                              language_oid_t language_oid, namespace_oid_t procns, const std::vector<std::string> &args,
                              const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
-                             const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
+                             const std::vector<postgres::PgProc::ArgMode> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
   /** @brief Drop the specified procedure. @see PgProcImpl::DropProcedure */
   bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
