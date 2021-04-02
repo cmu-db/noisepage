@@ -55,8 +55,6 @@ if __name__ == "__main__":
         "wal_file_path": "noisepage-wal-{}.log".format(15721 + i)
     }) for (i, identity) in enumerate(["primary", "replica1", "replica2"])]
 
-    # TODO(WAN): Tests are disabled while fixing replication goes on.
-
     try:
         for server in servers:
             server.run_db()
