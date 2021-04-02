@@ -136,9 +136,12 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
       // If all the transactions were removed, then that all the txns seen so far have been serialized.
       // Crucially, the oldest active transaction at the end of removal is actually the maximum of the txn_ids.
       // This may trigger a manual update of what the true OAT is.
-      if (primary_replication_manager_ != DISABLED && !txn_ids.empty() && all_txns_removed && oat_replicas_) {
+      if (!txn_ids.empty()) {
         transaction::timestamp_t newest_txn = *std::max_element(txn_ids.cbegin(), txn_ids.cend());
         newest_txn_serialized_ = std::max(newest_txn_serialized_, newest_txn);
+      }
+
+      if (primary_replication_manager_ != DISABLED && all_txns_removed && oat_replicas_) {
         primary_replication_manager_->NotifyReplicasOfOAT(newest_txn_serialized_);
         oat_replicas_ = false;
       }
