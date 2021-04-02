@@ -97,8 +97,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         txn_manager_(txn_manager),
         deferred_action_manager_(deferred_action_manager),
         replication_manager_(replication_manager),
-        block_store_(store),
-        recovered_txns_(0) {
+        block_store_(store) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::PgClass::CLASS_TABLE_OID] =
         catalog::postgres::Builder::GetClassTableSchema();
