@@ -39,10 +39,12 @@ class PrimaryReplicationManager final : public ReplicationManager {
    * @param records_batch       The batch of records to be replicated.
    * @param commit_callbacks    The commit callbacks associated with the batch of records.
    * @param policy              The replication policy to use.
+   * @param newest_buffer_txn   The newest transaction inside the batch of records.
    */
   void ReplicateBatchOfRecords(storage::BufferedLogWriter *records_batch,
                                const std::vector<storage::CommitCallback> &commit_callbacks,
-                               const transaction::ReplicationPolicy &policy);
+                               const transaction::ReplicationPolicy &policy,
+                               transaction::timestamp_t newest_buffer_txn);
 
   /**
    * Notify all of the replicas that the current oldest active transaction (OAT) is at least as new as the supplied OAT.
@@ -52,7 +54,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
   void NotifyReplicasOfOAT(transaction::timestamp_t oldest_active_txn);
 
   /** @return The ID of the last transaction that was sent to the replicas. */
-  transaction::timestamp_t GetLastSentTransactionId() const { return transaction::timestamp_t{0}; }
+  transaction::timestamp_t GetLastSentTransactionId() const { return newest_txn_sent_; }
 
  protected:
   /** The main event loop that the primary runs. This handles receiving messages. */
@@ -91,6 +93,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
   std::atomic<record_batch_id_t> next_batch_id_{1};
   /** ID of the last batch of log records that was sent out to all replicas. */
   record_batch_id_t last_sent_batch_id_;
+  transaction::timestamp_t newest_txn_sent_ = transaction::INITIAL_TXN_TIMESTAMP;
 };
 
 }  // namespace noisepage::replication

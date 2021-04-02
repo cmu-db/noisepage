@@ -181,7 +181,8 @@ void LogSerializerTask::HandFilledBufferToWriter() {
   // However, even if the buffer doesn't exist, the commit callback needs to be invoked.
   if (txn_policy.replication_ != transaction::ReplicationPolicy::DISABLE) {
     NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED, "Replication enabled but replication manager disabled?");
-    primary_replication_manager_->ReplicateBatchOfRecords(filled_buffer_, commits_in_buffer_, txn_policy.replication_);
+    primary_replication_manager_->ReplicateBatchOfRecords(filled_buffer_, commits_in_buffer_, txn_policy.replication_,
+                                                          newest_buffer_txn_);
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
@@ -198,6 +199,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
 
   // Iterate over all redo records in the redo buffer through the provided iterator
   for (LogRecord &record : *buffer_to_serialize) {
+    newest_buffer_txn_ = std::max(newest_buffer_txn_, record.TxnBegin());
     switch (record.RecordType()) {
       case (LogRecordType::COMMIT): {
         auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();

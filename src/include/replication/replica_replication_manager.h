@@ -34,9 +34,6 @@ class ReplicaReplicationManager final : public ReplicationManager {
   /** @return False since this is a replica. */
   bool IsPrimary() const override { return false; }
 
-  /** @return The ID of the last transaction that was successfully applied. */
-  transaction::timestamp_t GetLastAppliedTransactionId() const { return transaction::timestamp_t{0}; }
-
   /** @return The replication log provider that (ordered) replication logs are pushed to. */
   common::ManagedPointer<storage::ReplicationLogProvider> GetReplicationLogProvider() {
     return common::ManagedPointer(&provider_);

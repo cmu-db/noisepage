@@ -123,6 +123,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   /** @return True if the recovery task is still running. */
   bool IsRecoveryTaskRunning() const { return recovery_task_ != nullptr; }
 
+  /** @return The ID of the last transaction that was applied. */
+  transaction::timestamp_t GetLastAppliedTransactionId() const { return last_applied_txn_id_; }
+
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;
@@ -180,8 +183,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   // them here
   std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
 
-  // Number of recovered committed txns. Used for benchmarking
-  uint32_t recovered_txns_;
+  transaction::timestamp_t last_applied_txn_id_ = transaction::INITIAL_TXN_TIMESTAMP;  ///< The last applied txn's ID.
+  uint32_t recovered_txns_ = 0;  ///< The number of recovered committed txns.
 
   /**
    * Recovers the databases using the provided log provider

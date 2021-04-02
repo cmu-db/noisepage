@@ -480,8 +480,9 @@ class DBMain {
         NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(),
-            common::ManagedPointer(replication_manager), common::ManagedPointer(settings_manager),
-            common::ManagedPointer(stats_storage), optimizer_timeout_, use_query_cache_, execution_mode_);
+            common::ManagedPointer(replication_manager), common::ManagedPointer(recovery_manager),
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_,
+            use_query_cache_, execution_mode_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;

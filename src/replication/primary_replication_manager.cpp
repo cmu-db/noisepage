@@ -31,7 +31,8 @@ void PrimaryReplicationManager::EventLoop(common::ManagedPointer<messenger::Mess
 
 void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWriter *records_batch,
                                                         const std::vector<storage::CommitCallback> &commit_callbacks,
-                                                        const transaction::ReplicationPolicy &policy) {
+                                                        const transaction::ReplicationPolicy &policy,
+                                                        const transaction::timestamp_t newest_buffer_txn) {
   NOISEPAGE_ASSERT(policy != transaction::ReplicationPolicy::DISABLE, "Replication is disabled, so why are we here?");
 
   // Unfortunately, read-only transactions do not generate log records.
@@ -63,6 +64,10 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     for (const auto &replica : replicas_) {
       Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
     }
+
+    NOISEPAGE_ASSERT(newest_buffer_txn >= newest_txn_sent_,
+                     "The assumption is that transactions are monotonically increasing.");
+    newest_txn_sent_ = newest_buffer_txn;
 
     // Return the buffered log writer to the pool if necessary.
     if (records_batch->MarkSerialized()) {

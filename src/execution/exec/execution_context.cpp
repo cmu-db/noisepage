@@ -10,6 +10,7 @@
 #include "replication/replica_replication_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
+#include "storage/recovery/recovery_manager.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::exec {
@@ -39,7 +40,7 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
 }
 
 uint64_t ExecutionContext::ReplicationGetLastTransactionId() const {
-  if (replication_manager_ == DISABLED) {
+  if (replication_manager_ == DISABLED || recovery_manager_ == DISABLED) {
     throw EXECUTION_EXCEPTION("Replication is disabled. There is no record ID to get.",
                               common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
@@ -48,7 +49,7 @@ uint64_t ExecutionContext::ReplicationGetLastTransactionId() const {
     return replication_manager_->GetAsPrimary()->GetLastSentTransactionId().UnderlyingValue();
   }
   NOISEPAGE_ASSERT(replication_manager_->IsReplica(), "Neither primary nor replica?");
-  return replication_manager_->GetAsReplica()->GetLastAppliedTransactionId().UnderlyingValue();
+  return recovery_manager_->GetLastAppliedTransactionId().UnderlyingValue();
 }
 
 void ExecutionContext::RegisterThreadWithMetricsManager() {

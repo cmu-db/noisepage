@@ -52,6 +52,11 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
     if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
       auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
       auto event = rlp->WaitUntilEvent();
+
+      if (event == ReplicationLogProvider::ReplicationEvent::END) {
+        break;
+      }
+
       if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
         auto oat = rlp->PopOAT();
         // TODO(WAN): DEBUG BLOCK
@@ -61,7 +66,6 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
       }
       NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
                        "What other replication events have been added?");
-      NOISEPAGE_ASSERT(rlp->NonBlockingHasMoreRecords(), "There are no log records, why are we awake?");
     }
 
     auto pair = log_provider->GetNextRecord();
@@ -151,6 +155,7 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  last_applied_txn_id_ = std::max(last_applied_txn_id_, txn_id);
   if (replication_manager_ != DISABLED) {
     // Replicas have to send back their list of deferred transactions that were processed, periodically.
     if (replication_manager_->IsReplica()) {

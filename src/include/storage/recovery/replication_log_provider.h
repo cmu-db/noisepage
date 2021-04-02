@@ -21,8 +21,9 @@ class ReplicationLogProvider final : public AbstractLogProvider {
  public:
   /** ReplicationEvent describes what kind of action should happen next for the log consumer. */
   enum class ReplicationEvent : uint8_t {
-    LOGS = 0,  ///< Unprocessed replication logs (ReplicateBatchMsg) available.
-    OAT        ///< Unprocessed oldest active txn (NotifyOATMsg) available.
+    END = 0,  ///< Replication ended.
+    LOGS,     ///< Unprocessed replication logs (ReplicateBatchMsg) available.
+    OAT       ///< Unprocessed oldest active txn (NotifyOATMsg) available.
   };
 
   LogProviderType GetType() const override { return LogProviderType::REPLICATION; }
@@ -58,7 +59,10 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     std::unique_lock<std::mutex> lock(replication_latch_);
     replication_cv_.wait(
         lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords() || NextBatchReady() || OATReady(); });
-    return OATReady() ? ReplicationEvent::OAT : ReplicationEvent::LOGS;
+    if (!replication_active_) return ReplicationEvent::END;
+    if (OATReady()) return ReplicationEvent::OAT;
+    NOISEPAGE_ASSERT(NonBlockingHasMoreRecords(), "There are no log records, why are we awake?");
+    return ReplicationEvent::LOGS;
   }
 
   /**

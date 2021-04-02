@@ -122,6 +122,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   std::optional<transaction::TransactionPolicy> filled_buffer_policy_;  ///< Transaction policy for the current buffer.
   // Commit callbacks for the commit records currently in filled_buffer_.
   std::vector<storage::CommitCallback> commits_in_buffer_;
+  transaction::timestamp_t newest_buffer_txn_ = transaction::INITIAL_TXN_TIMESTAMP;
 
   // Used by the serializer thread to store buffers it has grabbed from the log manager
   std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>> temp_flush_queue_;
