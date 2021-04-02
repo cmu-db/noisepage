@@ -220,7 +220,8 @@ class NoisePageServer:
         Exception if any errors happened while executing the SQL.
         """
         try:
-            with psql.connect(port=self.db_port, host=self.db_host, user=user) as conn:
+            conn = psql.connect(port=self.db_port, host=self.db_host, user=user)
+            try:
                 conn.set_session(autocommit=autocommit)
                 with conn.cursor() as cursor:
                     if not quiet:
@@ -230,6 +231,10 @@ class NoisePageServer:
                         rows = cursor.fetchall()
                         return rows
                     return None
+            finally:
+                # psycopg2 connection's context manager does NOT close
+                # the connection by default, only the txn.
+                conn.close()
         except Exception as e:
             LOG.error(f"Executing SQL failed: {sql}")
             raise e

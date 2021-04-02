@@ -133,17 +133,14 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
       auto &txn_ids = txns.second;
       bool all_txns_removed = txns.first->RemoveTransactions(txn_ids);
 
-      auto minmax = std::minmax_element(txn_ids.cbegin(), txn_ids.cend());
-      transaction::timestamp_t oldest_txn = *minmax.first;
-      transaction::timestamp_t newest_txn = *minmax.second;
-      newest_txn_serialized_ = std::max(newest_txn_serialized_, newest_txn);
-
       // If all the transactions were removed, then that all the txns seen so far have been serialized.
       // Crucially, the oldest active transaction at the end of removal is actually the maximum of the txn_ids.
       // This may trigger a manual update of what the true OAT is.
-      if (primary_replication_manager_ != DISABLED && !txn_ids.empty() && all_txns_removed &&
-          newest_txn_serialized_ != oldest_txn) {
+      if (primary_replication_manager_ != DISABLED && !txn_ids.empty() && all_txns_removed && oat_replicas_) {
+        transaction::timestamp_t newest_txn = *std::max_element(txn_ids.cbegin(), txn_ids.cend());
+        newest_txn_serialized_ = std::max(newest_txn_serialized_, newest_txn);
         primary_replication_manager_->NotifyReplicasOfOAT(newest_txn_serialized_);
+        oat_replicas_ = false;
       }
     }
     serialized_txns_.clear();
@@ -183,6 +180,7 @@ void LogSerializerTask::HandFilledBufferToWriter() {
     NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED, "Replication enabled but replication manager disabled?");
     primary_replication_manager_->ReplicateBatchOfRecords(filled_buffer_, commits_in_buffer_, txn_policy.replication_,
                                                           newest_buffer_txn_);
+    oat_replicas_ = true;
   }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));

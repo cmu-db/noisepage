@@ -33,6 +33,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
                                                         const std::vector<storage::CommitCallback> &commit_callbacks,
                                                         const transaction::ReplicationPolicy &policy,
                                                         const transaction::timestamp_t newest_buffer_txn) {
+  REPLICATION_LOG_TRACE(fmt::format("[SEND] Preparing ReplicateBatchOfRecords."));
   NOISEPAGE_ASSERT(policy != transaction::ReplicationPolicy::DISABLE, "Replication is disabled, so why are we here?");
 
   // Unfortunately, read-only transactions do not generate log records.
