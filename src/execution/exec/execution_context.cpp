@@ -40,14 +40,18 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
 }
 
 uint64_t ExecutionContext::ReplicationGetLastTransactionId() const {
+  // Both ReplicationManager and RecoveryManager participate in replication, which defines the last transaction ID
+  // sent from the primary and applied on the replicas respectively.
   if (replication_manager_ == DISABLED || recovery_manager_ == DISABLED) {
     throw EXECUTION_EXCEPTION("Replication is disabled. There is no record ID to get.",
                               common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 
+  // On the primary, this builtin returns the last transaction that was sent by the ReplicationManager.
   if (replication_manager_->IsPrimary()) {
     return replication_manager_->GetAsPrimary()->GetLastSentTransactionId().UnderlyingValue();
   }
+  // On a replica, this builtin returns the last transaction was was applied on the RecoveryManager.
   NOISEPAGE_ASSERT(replication_manager_->IsReplica(), "Neither primary nor replica?");
   return recovery_manager_->GetLastAppliedTransactionId().UnderlyingValue();
 }
