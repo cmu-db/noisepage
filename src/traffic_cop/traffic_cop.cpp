@@ -197,7 +197,9 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
   NOISEPAGE_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
-          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER || query_type == network::QueryType::QUERY_CREATE_FUNCTION,
+          query_type == network::QueryType::QUERY_CREATE_VIEW ||
+          query_type == network::QueryType::QUERY_CREATE_TRIGGER ||
+          query_type == network::QueryType::QUERY_CREATE_FUNCTION,
       "ExecuteCreateStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_CREATE_TABLE: {

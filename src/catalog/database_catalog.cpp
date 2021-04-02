@@ -428,12 +428,13 @@ proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::
                                             namespace_oid_t procns, const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::PgProc::ArgMode> &arg_modes,
-                                            type_oid_t rettype, const std::string &src, bool is_aggregate) {
+                                            const std::vector<postgres::PgProc::ArgMode> &arg_modes, type_oid_t rettype,
+                                            const std::string &src, bool is_aggregate) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
   proc_oid_t oid = proc_oid_t{next_oid_++};
   // TODO(Kyle): Why did Tanuj have his own implementation here?
-  const auto result = pg_proc_.CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype, src, is_aggregate);
+  const auto result = pg_proc_.CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types,
+                                               arg_modes, rettype, src, is_aggregate);
   return result ? oid : INVALID_PROC_OID;
 }
 

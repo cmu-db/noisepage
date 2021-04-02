@@ -139,8 +139,8 @@ TEST_F(CatalogTests, ProcTest) {
                                                 accessor->GetTypeOidFromTypeId(type::TypeId::BOOLEAN),
                                                 accessor->GetTypeOidFromTypeId(type::TypeId::SMALLINT)};
   std::vector<catalog::postgres::PgProc::ArgMode> arg_modes = {catalog::postgres::PgProc::ArgMode::IN,
-                                                                catalog::postgres::PgProc::ArgMode::IN,
-                                                                catalog::postgres::PgProc::ArgMode::IN};
+                                                               catalog::postgres::PgProc::ArgMode::IN,
+                                                               catalog::postgres::PgProc::ArgMode::IN};
   auto src = "int sample(arg1, arg2, arg3){return 2;}";
 
   auto proc_oid =

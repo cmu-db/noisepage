@@ -30,7 +30,8 @@ struct BaseFunctionParameter {
     VARCHAR,
     TEXT,
     BOOL,
-    BOOLEAN
+    BOOLEAN,
+    DATE
   };
 
   /** @param datatype data type of the parameter */
@@ -40,6 +41,41 @@ struct BaseFunctionParameter {
 
   /** @return data type of the parameter */
   DataType GetDataType() { return datatype_; }
+
+  /** @return internal type id of the parameter */
+  static type::TypeId DataTypeToTypeId(DataType datatype) {
+    switch (datatype) {
+      case DataType::INT:
+        return type::TypeId::INTEGER;
+      case DataType::INTEGER:
+        return type::TypeId::INTEGER;
+      case DataType::TINYINT:
+        return type::TypeId::TINYINT;
+      case DataType::SMALLINT:
+        return type::TypeId::SMALLINT;
+      case DataType::BIGINT:
+        return type::TypeId::BIGINT;
+      case DataType::CHAR:
+        return type::TypeId::INVALID;
+      case DataType::DOUBLE:
+        return type::TypeId::DECIMAL;
+      case DataType::FLOAT:
+        return type::TypeId::DECIMAL;
+      case DataType::DECIMAL:
+        return type::TypeId::DECIMAL;
+      case DataType::VARCHAR:
+        return type::TypeId::VARCHAR;
+      case DataType::TEXT:
+        return type::TypeId::VARCHAR;
+      case DataType::BOOL:
+        return type::TypeId::BOOLEAN;
+      case DataType::BOOLEAN:
+        return type::TypeId::BOOLEAN;
+      case DataType::DATE:
+        return type::TypeId::DATE;
+    }
+    return type::TypeId::INVALID;
+  }
 
  private:
   const DataType datatype_;
