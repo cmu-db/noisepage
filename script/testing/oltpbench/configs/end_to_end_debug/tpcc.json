@@ -2,7 +2,8 @@
     "type": "oltpbenchmark",
     "server_args":{
         "pipeline_metrics_enable": false,
-        "use_query_cache": true
+        "use_query_cache": true,
+        "record_buffer_segment_size": 10000000
     },
     "testcases": [
         {

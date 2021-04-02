@@ -1,7 +1,8 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
-        "connection_thread_count": 32
+        "connection_thread_count": 32,
+        "record_buffer_segment_size": 10000000
     },
     "continue_on_error": true,
     "env":{
