@@ -16,7 +16,7 @@ namespace noisepage::replication {
 class ReplicaReplicationManager final : public ReplicationManager {
  public:
   /**
-   * On construction, the replication manager establishes a listen destination on the messenger and connect to all the
+   * On construction, the replication manager establishes a listen destination on the messenger and connects to all the
    * replicas specified in the replication.config file located at @p replication_hosts_path.
    *
    * @param messenger                   The messenger instance to use.

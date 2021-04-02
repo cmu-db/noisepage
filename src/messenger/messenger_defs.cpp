@@ -1,5 +1,3 @@
-#pragma once
-
 #include "messenger/messenger_defs.h"
 
 #include "common/strong_typedef_body.h"

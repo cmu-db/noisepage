@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "common/error/exception.h"
+#include "common/json.h"
 #include "loggers/replication_logger.h"
 
 namespace noisepage::replication {
