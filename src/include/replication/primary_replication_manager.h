@@ -93,7 +93,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
   std::atomic<record_batch_id_t> next_batch_id_{1};
   /** ID of the last batch of log records that was sent out to all replicas. */
   record_batch_id_t last_sent_batch_id_;
-  /** ID of the newwst transaction that was sent out to all replicas. */
+  /** ID of the newest transaction that was sent out to all replicas. */
   transaction::timestamp_t newest_txn_sent_ = transaction::INITIAL_TXN_TIMESTAMP;
 };
 
