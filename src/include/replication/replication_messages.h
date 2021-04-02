@@ -192,8 +192,7 @@ class RecordsBatchMsg : public BaseReplicationMessage {
   std::string contents_;        ///< The actual contents of the buffer.
 };
 
-/** TxnAppliedMsg is sent from replica -> primary, indicating that a given transaction has been successfully applied.
- */
+/** TxnAppliedMsg is sent from replica -> primary, indicating that a given transaction has been successfully applied. */
 class TxnAppliedMsg : public BaseReplicationMessage {
  public:
   /** Constructor (to send). */
