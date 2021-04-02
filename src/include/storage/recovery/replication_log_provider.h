@@ -50,7 +50,11 @@ class ReplicationLogProvider final : public AbstractLogProvider {
   }
 
   /** @return True if there is an unprocessed OAT that is ready to be applied. See docs/design_replication.md. */
-  bool OATReady() const { return !oats_.empty() && oats_.top().batch_id_ <= last_batch_popped_; }
+  bool OATReady() const {
+    bool currently_reading_buffer = curr_buffer_ != nullptr && curr_buffer_->HasMore();
+    bool all_batches_popped = !oats_.empty() && oats_.top().batch_id_ <= last_batch_popped_;
+    return !currently_reading_buffer && all_batches_popped;
+  }
 
   /**
    * Block until a replication event is available; either replication ended, logs are received, or an OAT is available.
@@ -58,14 +62,16 @@ class ReplicationLogProvider final : public AbstractLogProvider {
    */
   ReplicationEvent WaitUntilEvent() {
     std::unique_lock<std::mutex> lock(replication_latch_);
-    replication_cv_.wait(
-        lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords() || NextBatchReady() || OATReady(); });
-    // The order here matters. Due to the AbstractLogProvider framework that was inherited, returning LOGS without
-    // having all of the replication logs currently available may cause the log consumer to block.
-    if (!replication_active_) return ReplicationEvent::END;
-    if (OATReady()) return ReplicationEvent::OAT;
-    NOISEPAGE_ASSERT(NonBlockingHasMoreRecords(), "There are no log records, why are we awake?");
-    return ReplicationEvent::LOGS;
+    while (true) {
+      // The order here matters. Due to the AbstractLogProvider framework that was inherited, returning LOGS without
+      // having all of the replication logs currently available may cause the log consumer to block.
+      // Moreover, check before blocking that there is really nothing to do, as cvar signals may have been missed.
+      if (!replication_active_) return ReplicationEvent::END;
+      if (OATReady()) return ReplicationEvent::OAT;
+      if (NonBlockingHasMoreRecords() || NextBatchReady()) return ReplicationEvent::LOGS;
+      replication_cv_.wait(
+          lock, [&] { return !replication_active_ || NonBlockingHasMoreRecords() || NextBatchReady() || OATReady(); });
+    }
   }
 
   /**

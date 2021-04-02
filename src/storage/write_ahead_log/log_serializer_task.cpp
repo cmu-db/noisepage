@@ -99,12 +99,16 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
 
         // Check if the buffer's policy is compatible with the current filled buffer.
         {
-          // If the buffer policy is incompatible, then hand off the current filled buffer.
-          bool compatible = !filled_buffer_policy_.has_value() ||
-                            (filled_buffer_policy_.has_value() && filled_buffer_policy_.value() == policy);
-          if (!compatible) {
-            HandFilledBufferToWriter();
-            filled_buffer_policy_.reset();
+          // The very first time that the log serializer task is executing, there is no filled buffer.
+          // Currently, the invariant is maintained that the filled buffer policy will ALWAYS have a value once buffers
+          // have started to be serialized.
+          if (filled_buffer_policy_.has_value()) {
+            // If the buffer policy is incompatible, then hand off the current filled buffer.
+            bool compatible = filled_buffer_policy_.value() == policy;
+            if (!compatible) {
+              HandFilledBufferToWriter();
+              filled_buffer_policy_.reset();
+            }
           }
           // At this point, either filled_buffer_ is back to nullptr or the policy is compatible.
           filled_buffer_policy_ = policy;
