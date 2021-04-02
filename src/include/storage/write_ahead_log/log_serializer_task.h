@@ -71,11 +71,13 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   /**
    * Hands a (possibly partially) filled buffer to the serializer task to be serialized
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
+   * @param policy The transaction policy for the entire log buffer.
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
+  void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment, const transaction::TransactionPolicy &policy) {
     {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
-      flush_queue_.push(buffer_segment);
+      // TODO(WAN): Tianlei to add multiple queues in the log serializer task here based on policy.
+      flush_queue_.push(std::make_pair(buffer_segment, policy));
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();
     }
@@ -105,8 +107,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   //  optimization we applied to the GC queue.
   // Latch to protect flush queue
   std::mutex flush_queue_latch_;
-  // Stores unserialized buffers handed off by transactions
-  std::queue<RecordBufferSegment *> flush_queue_;
+  /** Stores unserialized buffers handed off by transactions, along with their associated transaction policy. */
+  std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>> flush_queue_;
 
   // conditional variable to be notified when there are logs to be processed
   std::condition_variable flush_queue_cv_;
@@ -116,11 +118,12 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
   // Current buffer we are serializing logs to
   BufferedLogWriter *filled_buffer_;
+  std::optional<transaction::TransactionPolicy> filled_buffer_policy_;  ///< Transaction policy for the current buffer.
   // Commit callbacks for commit records currently in filled_buffer
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
   // Used by the serializer thread to store buffers it has grabbed from the log manager
-  std::queue<RecordBufferSegment *> temp_flush_queue_;
+  std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>> temp_flush_queue_;
 
   // We aggregate all transactions we serialize so we can bulk remove the from the timestamp manager
   // TODO(Gus): If we guarantee there is only one TSManager in the system, this can just be a vector. We could also pass
