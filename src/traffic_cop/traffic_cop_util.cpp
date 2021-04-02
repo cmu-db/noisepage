@@ -129,6 +129,9 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
           return network::QueryType::QUERY_CREATE_VIEW;
       }
     }
+    case parser::StatementType::CREATE_FUNC: {
+      return network::QueryType::QUERY_CREATE_FUNCTION;
+    }
     case parser::StatementType::DROP: {
       const auto drop_type = statement.CastManagedPointerTo<parser::DropStatement>()->GetDropType();
       switch (drop_type) {
