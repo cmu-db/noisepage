@@ -210,8 +210,8 @@ class TxnAppliedMsg : public BaseReplicationMessage {
   transaction::timestamp_t GetAppliedTxnId() const { return applied_txn_id_; }
 
  private:
-  static const char *key_applied_txn_id;  ///< JSON key for the applied transaction ID.
-  transaction::timestamp_t applied_txn_id_;
+  static const char *key_applied_txn_id;     ///< JSON key for the applied transaction ID.
+  transaction::timestamp_t applied_txn_id_;  ///< The ID of the transaction that was applied on the replica.
 };
 
 }  // namespace noisepage::replication
