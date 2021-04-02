@@ -77,7 +77,6 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment, const transaction::TransactionPolicy &policy) {
     {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
-      // TODO(WAN): Tianlei to add multiple queues in the log serializer task here based on policy.
       flush_queue_.push(std::make_pair(buffer_segment, policy));
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();
