@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "common/managed_pointer.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"

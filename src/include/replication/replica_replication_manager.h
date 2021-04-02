@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "replication/replication_manager.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "transaction/transaction_defs.h"

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <limits>
 #include <memory>
+#include <string>
 
 #include "common/enum_defs.h"
 #include "common/json_header.h"

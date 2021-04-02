@@ -1,7 +1,10 @@
 #pragma once
 
 #include <queue>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "replication/replication_manager.h"
 #include "storage/write_ahead_log/log_io.h"
