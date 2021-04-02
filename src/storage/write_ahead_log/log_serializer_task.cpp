@@ -104,7 +104,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
           // have started to be serialized.
           if (filled_buffer_policy_.has_value()) {
             // If the buffer policy is incompatible, then hand off the current filled buffer.
-            bool compatible = filled_buffer_policy_.value() == policy;
+            const bool compatible = filled_buffer_policy_.value() == policy;
             if (!compatible) {
               HandFilledBufferToWriter();
               filled_buffer_policy_.reset();
