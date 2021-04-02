@@ -79,8 +79,6 @@ void LogManager::SetSerializationInterval(int32_t interval) {
   if (log_serializer_task_ != nullptr) log_serializer_task_->SetSerializationInterval(interval);
 }
 
-void LogManager::HackStopNotifyOAT() {
-  log_serializer_task_->HackStopNotifyOAT();
-}
+void LogManager::HackStopNotifyOAT() { log_serializer_task_->HackStopNotifyOAT(); }
 
 }  // namespace noisepage::storage

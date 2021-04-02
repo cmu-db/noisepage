@@ -135,7 +135,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   /** The replication manager that serialized log records are shipped to. */
   common::ManagedPointer<replication::PrimaryReplicationManager> primary_replication_manager_;
   bool oat_replicas_ = false;  ///< True if the replicas may need an update of their OAT.
-  bool notify_oat_ = true; ///< TODO(WAN): A hack to prevent use after free.
+  bool notify_oat_ = true;     ///< TODO(WAN): A hack to prevent use after free.
 
   /**
    * Main serialization loop. Calls Process every interval. Processes all the accumulated log records and
