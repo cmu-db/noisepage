@@ -149,6 +149,9 @@ class LogManager : public common::DedicatedThreadOwner {
   /** @return the log serialization interval */
   int32_t GetSerializationInterval() { return serialization_interval_.count(); }
 
+  /** TODO(WAN): A hack around circular DBMain dependencies. Disable notifying OAT to replicas, used in teardown. */
+  void HackStopNotifyOAT();
+
  private:
   // Flag to tell us when the log manager is running or during termination
   bool run_log_manager_;

@@ -145,7 +145,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         newest_txn_serialized_ = std::max(newest_txn_serialized_, newest_txn);
       }
 
-      if (primary_replication_manager_ != DISABLED && all_txns_removed && oat_replicas_) {
+      if (notify_oat_ && primary_replication_manager_ != DISABLED && all_txns_removed && oat_replicas_) {
         primary_replication_manager_->NotifyReplicasOfOAT(newest_txn_serialized_);
         oat_replicas_ = false;
       }
