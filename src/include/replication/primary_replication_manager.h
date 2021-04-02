@@ -34,12 +34,12 @@ class PrimaryReplicationManager final : public ReplicationManager {
   bool IsPrimary() const override { return true; }
 
   /**
-   * Send a batch of records to all of the replicas as a REPLICATE_BUFFER_BATCH message.
+   * Send a batch of log records to all of the replicas.
    *
    * @param records_batch       The batch of records to be replicated.
    * @param commit_callbacks    The commit callbacks associated with the batch of records.
    * @param policy              The replication policy to use.
-   * @param newest_buffer_txn   The newest transaction inside the batch of records.
+   * @param newest_buffer_txn   (performance optimization) The newest transaction inside the batch of records.
    */
   void ReplicateBatchOfRecords(storage::BufferedLogWriter *records_batch,
                                const std::vector<storage::CommitCallback> &commit_callbacks,
@@ -64,35 +64,33 @@ class PrimaryReplicationManager final : public ReplicationManager {
  private:
   /** Every batch of commit callbacks may or may not have corresponding commit records. */
   struct BatchOfCommitCallbacks {
-    std::vector<storage::CommitCallback> callbacks_;
-    bool has_records_;
+    std::vector<storage::CommitCallback> callbacks_;  ///< The commit callbacks.
+    bool has_records_;  ///< True if the commit callbacks have commit records and false otherwise.
   };
+  /** Process every transaction callback where the associated transaction has been applied by all replicas. */
+  void ProcessTxnCallbacks();
 
+  /** @return The next batch ID that should be assigned in ReplicateBatchOfRecords(). */
   record_batch_id_t GetNextBatchId();
 
   void Handle(const messenger::ZmqMessage &zmq_msg, const TxnAppliedMsg &msg);
 
   /**
-   * Process every transaction callback where the associated transaction has been applied by all replicas.
-   * TODO(WAN): If implementing async, do NOT reuse this function in ReplicateBatchOfRecords() unless you add
-   * mutex+cvar.
-   */
-  void ProcessTxnCallbacks();
-
-  /**
-   * Queue of batches of commit callbacks and the records (if exist) associated with each batch of commit callbacks.
+   * Queue of batches of commit callbacks. Each batch is tagged with whether there are corresponding commit records.
    * Each item in the queue is a separate invocation of ReplicateBatchOfRecords() being recorded.
-   * Each commit callback should be executed in order of addition, the reason for the queue wrapper is so that
+   * Each commit callback should be executed in order of addition. The reason for the queue wrapper is so that
    * multiple calls to ReplicateBatchOfRecords() will not end up growing resizing a single vector repeatedly.
    * */
   std::queue<BatchOfCommitCallbacks> txn_callbacks_;
   /** Map from transaction start times (aka transaction ID) to list of replicas that have applied the transaction. */
   std::unordered_map<transaction::timestamp_t, std::unordered_set<std::string>> txns_applied_on_replicas_;
   std::mutex callbacks_mutex_;  ///< Protecting txn_callbacks_ and txns_applied_on_replicas_.
-  /** ID of the next batch of log records to be sent out to replicas. */
+
+  /** ID of the next batch of log records to be sent out to all replicas. */
   std::atomic<record_batch_id_t> next_batch_id_{1};
   /** ID of the last batch of log records that was sent out to all replicas. */
   record_batch_id_t last_sent_batch_id_;
+  /** ID of the newwst transaction that was sent out to all replicas. */
   transaction::timestamp_t newest_txn_sent_ = transaction::INITIAL_TXN_TIMESTAMP;
 };
 
