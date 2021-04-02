@@ -191,7 +191,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
             EXPECT_EQ("potato", msg.GetMessage());
             reply_primary_potato = true;
           },
-          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+          Messenger::GetBuiltinCallback(Messenger::BuiltinCallback::ECHO));
     }
 
     // Send "tomato" to the primary and expect "tomato" as a reply.
@@ -204,7 +204,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
             EXPECT_EQ("tomato", msg.GetMessage());
             reply_primary_tomato = true;
           },
-          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+          Messenger::GetBuiltinCallback(Messenger::BuiltinCallback::ECHO));
     }
 
     while (!(reply_primary_potato && reply_primary_tomato)) {
@@ -242,7 +242,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
             EXPECT_EQ("elephant", msg.GetMessage());
             reply_primary_elephant = true;
           },
-          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+          Messenger::GetBuiltinCallback(Messenger::BuiltinCallback::ECHO));
     }
 
     // Send "correct HORSE battery staple" to the primary and expect "correct HORSE battery staple" as a reply.
@@ -255,7 +255,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
             EXPECT_EQ("correct HORSE battery staple", msg.GetMessage());
             reply_primary_chbs = true;
           },
-          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+          Messenger::GetBuiltinCallback(Messenger::BuiltinCallback::ECHO));
     }
 
     while (!(reply_primary_elephant && reply_primary_chbs)) {
@@ -396,7 +396,7 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     // Send "replica1" to the primary to let them know who we are.
     messenger->SendMessage(common::ManagedPointer(&con_primary), "replica1", CallbackFns::Noop,
-                           static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
+                           Messenger::GetBuiltinCallback(Messenger::BuiltinCallback::NOOP));
 
     // Send "KILLME" to the primary and expect "QUIT" as a reply.
     volatile bool reply_primary_quit = false;
@@ -409,7 +409,7 @@ TEST_F(MessengerTests, BasicListenTest) {
             EXPECT_EQ("QUIT", msg.GetMessage());
             reply_primary_quit = true;
           },
-          static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
+          Messenger::GetBuiltinCallback(Messenger::BuiltinCallback::NOOP));
     }
 
     while (!reply_primary_quit) {
@@ -417,7 +417,7 @@ TEST_F(MessengerTests, BasicListenTest) {
 
     // Send "BYE" to the primary to let them know we're going.
     messenger->SendMessage(common::ManagedPointer(&con_primary), "BYE", CallbackFns::Noop,
-                           static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
+                           Messenger::GetBuiltinCallback(Messenger::BuiltinCallback::NOOP));
 
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;

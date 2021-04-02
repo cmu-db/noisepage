@@ -18,7 +18,6 @@
 #include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/json.h"
-#include "loggers/replication_logger.h"  // TODO(WAN): DEBUG BLOCK
 #include "replication/replica_replication_manager.h"
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"
@@ -59,8 +58,6 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 
       if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
         auto oat = rlp->PopOAT();
-        // TODO(WAN): DEBUG BLOCK
-        { REPLICATION_LOG_TRACE(fmt::format("OAT: {}", oat)); }
         recovered_txns_ += ProcessDeferredTransactions(oat);
         continue;
       }
@@ -89,15 +86,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 
         // We defer all transactions initially
         deferred_txns_.insert(log_record->TxnBegin());
-        // TODO(WAN): DEBUG BLOCK
-        {
-          REPLICATION_LOG_TRACE(
-              fmt::format("Defer: {}, Process: {}", log_record->TxnBegin(), commit_record->OldestActiveTxn()));
-        }
-
         // Process any deferred transactions that are safe to execute
         recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
-
         // Clean up the log record
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;

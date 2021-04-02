@@ -13,8 +13,6 @@ ReplicationManager::ReplicationManager(
     const std::string &replication_hosts_path,
     common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
     : empty_buffer_queue_(empty_buffer_queue), messenger_(messenger), identity_(network_identity), port_(port) {
-  // TODO(WAN): DEBUG BLOCK
-  { replication_logger->set_level(spdlog::level::trace); }
   // Start listening on the given replication port.
   messenger::ConnectionDestination listen_destination =
       messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);

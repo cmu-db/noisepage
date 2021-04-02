@@ -79,7 +79,7 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid_, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings_,
-          db_main_->GetMetricsManager(), DISABLED);
+          db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
       // generate executable query and emplace it into the vector; break down here
       auto exec_query =
@@ -120,6 +120,7 @@ void WorkloadCached::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per
                                                  common::ManagedPointer<catalog::CatalogAccessor>(accessor),
                                                  exec_settings_,
                                                  db_main_->GetMetricsManager(),
+                                                 DISABLED,
                                                  DISABLED};
       query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     }

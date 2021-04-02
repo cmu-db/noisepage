@@ -16,7 +16,7 @@ ReplicaReplicationManager::~ReplicaReplicationManager() = default;
 void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const NotifyOATMsg &msg) {
   REPLICATION_LOG_TRACE(fmt::format("[RECV] NotifyOATMsg from {}: OAT {} BATCH {}", zmq_msg.GetRoutingId(),
                                     msg.GetOldestActiveTxn(), msg.GetBatchId()));
-  // Acknowledge receipt of the batch of records.
+  // Acknowledge receipt of the OAT message.
   SendAckForMessage(zmq_msg, msg);
   // Notify the provider that the latest OAT has arrived, though the OAT itself may need to be batched.
   provider_.UpdateOAT(msg.GetOldestActiveTxn(), msg.GetBatchId());

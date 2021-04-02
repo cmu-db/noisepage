@@ -120,9 +120,6 @@ void PrimaryReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, con
 }
 
 void PrimaryReplicationManager::ProcessTxnCallbacks() {
-  // TODO(WAN): In theory, is async just "go ahead and process these without checking"?
-  // TODO(WAN): Do NOT reuse this function without checking for races.
-
   while (!txn_callbacks_.empty()) {
     BatchOfCommitCallbacks &item = txn_callbacks_.front();
 

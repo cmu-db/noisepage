@@ -213,7 +213,7 @@ class TransactionContext {
   /** Set the replication policy of the entire transaction. */
   void SetReplicationPolicy(ReplicationPolicy replication_policy) {
     NOISEPAGE_ASSERT(durability_policy_ != DurabilityPolicy::DISABLE, "Replication needs durability enabled.");
-    NOISEPAGE_ASSERT(!(replication_policy == ReplicationPolicy::ASYNC && durability_policy == DurabilityPolicy::SYNC),
+    NOISEPAGE_ASSERT(!(replication_policy == ReplicationPolicy::ASYNC && durability_policy_ == DurabilityPolicy::SYNC),
                      "In a theoretical world where fault-tolerance is supported, consider the following scenario "
                      "adapted from SingleStore. If the primary fails, a replica will be promoted to primary. "
                      "However, under async replication, the replica might not have received the logs that were "
