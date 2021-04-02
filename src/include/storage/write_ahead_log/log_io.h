@@ -34,7 +34,6 @@ namespace noisepage::storage {
  * Handles buffered writes to the write ahead log, and provides control over flushing.
  */
 class BufferedLogWriter {
-  // TODO(Tianyu): Checksum
  public:
   /**
    * Instantiates a new BufferedLogWriter to write to the specified log file.
@@ -42,7 +41,7 @@ class BufferedLogWriter {
    * @param log_file_path path to the the log file to write to. New entries are appended to the end of the file if the
    * file already exists; otherwise, a file is created.
    */
-  explicit BufferedLogWriter(const char *log_file_path)
+  explicit BufferedLogWriter(const char *const log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)) {}
 
   /**
@@ -53,8 +52,7 @@ class BufferedLogWriter {
    * moved at runtime -- this exists solely so that std::vector's emplace_back requirement of being both MoveInsertable
    * and EmplaceConstructible will be satisfied.
    */
-  BufferedLogWriter(BufferedLogWriter &&other) noexcept {
-    out_ = other.out_;
+  BufferedLogWriter(BufferedLogWriter &&other) noexcept : out_(other.out_) {
     memcpy(buffer_, other.buffer_, common::Constants::LOG_BUFFER_SIZE);
     buffer_size_ = other.buffer_size_;
     serialize_refcount_.store(other.serialize_refcount_.load());
@@ -75,7 +73,7 @@ class BufferedLogWriter {
    * @return number of bytes written. This function only writes until the buffer gets full, so this can be used as the
    * offset when calling this function again after flushing.
    */
-  uint32_t BufferWrite(const void *data, uint32_t size) {
+  uint32_t BufferWrite(const void *const data, uint32_t size) {
     // If we still do not have buffer space after flush, the write is too large to be buffered. We partially write the
     // buffer and return the number of bytes written
     if (!CanBuffer(size)) {
@@ -105,7 +103,7 @@ class BufferedLogWriter {
    * @return amount of data flushed
    */
   uint64_t FlushBuffer() {
-    auto size = buffer_size_;
+    const auto size = buffer_size_;
     WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
     return size;
@@ -114,7 +112,7 @@ class BufferedLogWriter {
   /**
    * @return if the buffer is full
    */
-  bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
+  bool IsBufferFull() const { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
   /**
    * Mark that the BufferedLogWriter is now ready to be persisted and sent to different destinations.
@@ -154,7 +152,7 @@ class BufferedLogWriter {
    *         it is safe to now reuse this BufferedLogWriter.
    */
   bool MarkSerialized() {
-    auto count_before_sub = serialize_refcount_.fetch_sub(1);
+    const auto count_before_sub = serialize_refcount_.fetch_sub(1);
     NOISEPAGE_ASSERT(serialize_refcount_.load() >= 0, "This buffer was serialized too many times?");
     return count_before_sub == 1;
   }
@@ -164,7 +162,7 @@ class BufferedLogWriter {
   friend class replication::PrimaryReplicationManager;
   friend class replication::ReplicaReplicationManager;
 
-  int out_;  // fd of the output files
+  const int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   uint32_t buffer_size_ = 0;
@@ -179,7 +177,6 @@ class BufferedLogWriter {
  * Buffered reads from the write ahead log
  */
 class BufferedLogReader {
-  // TODO(Tianyu): Checksum
  public:
   /**
    * Instantiates a new BufferedLogReader to read from the specified log file.

@@ -94,13 +94,13 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
       // Loop over all the new buffers we found
       while (!temp_flush_queue_.empty()) {
         auto &front = temp_flush_queue_.front();
-        RecordBufferSegment *buffer = front.first;
-        transaction::TransactionPolicy &policy = front.second;
+        RecordBufferSegment *const buffer = front.first;
+        const transaction::TransactionPolicy &policy = front.second;
 
         // Check if the buffer's policy is compatible with the current filled buffer.
         {
           // If the buffer policy is incompatible, then hand off the current filled buffer.
-          bool compatible = filled_buffer_policy_.has_value() && filled_buffer_policy_.value() == policy;
+          const bool compatible = filled_buffer_policy_.has_value() && filled_buffer_policy_.value() == policy;
           if (!compatible) {
             HandFilledBufferToWriter();
             filled_buffer_policy_.reset();
