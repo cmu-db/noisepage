@@ -57,9 +57,6 @@ if __name__ == "__main__":
 
     # TODO(WAN): Tests are disabled while fixing replication goes on.
 
-    LOG.warn("REPLICATION TESTS ARE CURRENTLY DISABLED.")
-
-    """
     try:
         for server in servers:
             server.run_db()
@@ -70,4 +67,3 @@ if __name__ == "__main__":
                 server.stop_db()
             except:
                 pass
-    """
