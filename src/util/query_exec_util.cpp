@@ -173,6 +173,11 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  common::ManagedPointer<std::vector<type::TypeId>> param_types,
                                  std::unique_ptr<optimizer::AbstractCostModel> cost,
                                  const execution::exec::ExecutionSettings &exec_settings) {
+  if (exec_queries_.find(statement) != exec_queries_.end()) {
+    // We have already optimized and compiled this query before
+    return true;
+  }
+
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);

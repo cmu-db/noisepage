@@ -161,23 +161,20 @@ class QueryTraceMetricRawData : public AbstractRawData {
    */
   MetricsComponent GetMetricType() const override { return MetricsComponent::QUERY_TRACE; }
 
-  void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-            common::ManagedPointer<task::TaskManager> task_manager) final;
+  void ToDB(common::ManagedPointer<task::TaskManager> task_manager) final;
 
   /**
    * Perform a write to the internal tables. Inserts are performed asynchronously on a background thread.
    * In case the data is needed immediately, out_metadata and out_params can be used for passing
    * the data out of this class.
    *
-   * @param query_exec_util Query execution utility
    * @param task_manager Task manager to submit jobs to
    * @param write_parameters Whether to write all parameters or not
    * @param write_timestamp Timestamp at which WriteToDB was invoked
    * @param out_metadata Pass out cached query metadata
    * @param out_params Pass out cached parameters
    */
-  void WriteToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                 common::ManagedPointer<task::TaskManager> task_manager, bool write_parameters,
+  void WriteToDB(common::ManagedPointer<task::TaskManager> task_manager, bool write_parameters,
                  uint64_t write_timestamp,
                  std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
                  std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params);

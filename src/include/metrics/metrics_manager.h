@@ -66,8 +66,7 @@ class MetricsManager {
   /**
    * Output aggregated metrics.
    */
-  void ToOutput(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                common::ManagedPointer<task::TaskManager> task_manager) const;
+  void ToOutput(common::ManagedPointer<task::TaskManager> task_manager) const;
 
   /**
    * @param component to be enabled
@@ -125,8 +124,7 @@ class MetricsManager {
   /**
    * Dump aggregated metrics to internal tables.
    */
-  void ToDB(uint8_t component, common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-            common::ManagedPointer<task::TaskManager> task_manager) const;
+  void ToDB(uint8_t component, common::ManagedPointer<task::TaskManager> task_manager) const;
 
   void ResetMetric(MetricsComponent component) const;
 

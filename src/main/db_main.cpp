@@ -37,14 +37,14 @@ void DBMain::TryLoadStartupDDL() {
     COMMON_LOG_WARN("TryLoadStartupDDL() invoked without SettingsManager");
   }
 
-  if (!startup_ddls.empty() && query_exec_util_ != nullptr) {
-    query_exec_util_->BeginTransaction(catalog::INVALID_DATABASE_OID);
+  if (!startup_ddls.empty() && task_manager_ != nullptr) {
     for (auto &ddl : startup_ddls) {
-      query_exec_util_->ExecuteDDL(ddl);
+      task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::INVALID_DATABASE_OID, ddl));
     }
-    query_exec_util_->EndTransaction(true);
-  } else if (query_exec_util_ == nullptr) {
-    COMMON_LOG_WARN("TryLoadStartupDDL() invoked without QueryExecUtil");
+
+    task_manager_->Flush();
+  } else if (task_manager_ == nullptr) {
+    COMMON_LOG_WARN("TryLoadStartupDDL() invoked without TaskManager");
   }
 }
 

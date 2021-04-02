@@ -17,16 +17,13 @@ class MetricsThread {
  public:
   /**
    * @param metrics_manager pointer to the object to be run on this thread
-   * @param query_exec_util query execution utility for the thread
    * @param task_manager task manager for MetricsManager::Output to utilize
    * @param metrics_period sleep time between metrics invocations
    */
   MetricsThread(common::ManagedPointer<MetricsManager> metrics_manager,
-                std::unique_ptr<util::QueryExecUtil> query_exec_util,
                 common::ManagedPointer<task::TaskManager> task_manager,
                 const std::chrono::microseconds metrics_period)  // NOLINT
       : metrics_manager_(metrics_manager),
-        query_exec_util_(std::move(query_exec_util)),
         task_manager_(task_manager),
         run_metrics_(true),
         metrics_paused_(false),
@@ -36,7 +33,7 @@ class MetricsThread {
   ~MetricsThread() {
     run_metrics_ = false;
     metrics_thread_.join();
-    metrics_manager_->ToOutput(common::ManagedPointer(query_exec_util_), task_manager_);
+    metrics_manager_->ToOutput(task_manager_);
   }
 
   /**
@@ -62,7 +59,6 @@ class MetricsThread {
 
  private:
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
-  std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   common::ManagedPointer<task::TaskManager> task_manager_;
   volatile bool run_metrics_;
   volatile bool metrics_paused_;
@@ -74,7 +70,7 @@ class MetricsThread {
       std::this_thread::sleep_for(metrics_period_);
       if (!metrics_paused_) {
         metrics_manager_->Aggregate();
-        metrics_manager_->ToOutput(common::ManagedPointer(query_exec_util_), task_manager_);
+        metrics_manager_->ToOutput(task_manager_);
       }
     }
   }

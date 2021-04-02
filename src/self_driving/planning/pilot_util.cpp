@@ -26,6 +26,8 @@
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/planning/pilot.h"
 #include "settings/settings_manager.h"
+#include "task/task.h"
+#include "task/task_manager.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
@@ -73,20 +75,20 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
     }
   }
 
-  util::QueryExecUtil query_exec_util(pilot->txn_manager_, pilot->catalog_, pilot->settings_manager_,
-                                      pilot->stats_storage_,
-                                      pilot->settings_manager_->GetInt(settings::Param::task_execution_timeout));
+  // Use QueryExecUtil since we want the abstract plan nodes.
+  // We don't care about compilation right now.
+  auto query_exec_util = util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(pilot->query_exec_util_));
   for (auto qid : qids) {
     auto query_text = forecast->GetQuerytextByQid(qid);
     auto db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
-    query_exec_util.UseTransaction(db_oid, common::ManagedPointer(txn));
+    query_exec_util->UseTransaction(db_oid, common::ManagedPointer(txn));
 
     auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
     auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
-    auto result =
-        query_exec_util.PlanStatement(query_text, params, param_types, std::make_unique<optimizer::TrivialCostModel>());
+    auto result = query_exec_util->PlanStatement(query_text, params, param_types,
+                                                 std::make_unique<optimizer::TrivialCostModel>());
     plan_vecs->emplace_back(std::move(result.second));
-    query_exec_util.UseTransaction(db_oid, nullptr);
+    query_exec_util->UseTransaction(db_oid, nullptr);
   }
 }
 
@@ -148,28 +150,21 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     }
   }
 
-  util::QueryExecUtil query_exec_util(pilot->txn_manager_, pilot->catalog_, pilot->settings_manager_,
-                                      pilot->stats_storage_,
-                                      pilot->settings_manager_->GetInt(settings::Param::task_execution_timeout));
-  execution::exec::ExecutionSettings settings{};
   auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   for (const auto &qid : qids) {
-    // Begin transaction to get the executable query
     catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
-    query_exec_util.BeginTransaction(db_oid);
     auto query_text = forecast->GetQuerytextByQid(qid);
 
-    auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
-    auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
+    // If this copying gets expensive, we might have to tweak the Task::TaskDML
+    // constructor to allow specifying pointer params or a custom planning task.
+    std::vector<type::TypeId> param_types(*forecast->GetParamtypesByQid(qid));
+    std::vector<std::vector<parser::ConstantValueExpression>> params(*forecast->GetQueryparamsByQid(qid));
 
-    if (query_exec_util.CompileQuery(query_text, params, param_types, std::make_unique<optimizer::TrivialCostModel>(),
-                                     settings)) {
-      pipeline_qids->push_back(qid);
-      for (auto &params : *(forecast->GetQueryparamsByQid(qid))) {
-        query_exec_util.ExecuteQuery(query_text, nullptr, common::ManagedPointer(&params), metrics_manager, settings);
-      }
-    }
-    query_exec_util.EndTransaction(false);
+    common::Future<bool> sync;
+    pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
+        db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types),
+        nullptr, metrics_manager, true, common::ManagedPointer(&sync)));
+    sync.Wait();
   }
 
   // retrieve the features

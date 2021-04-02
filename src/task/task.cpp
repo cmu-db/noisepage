@@ -15,7 +15,7 @@ void TaskDDL::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
 
 void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                       common::ManagedPointer<task::TaskManager> task_manager) {
-  bool result = true, compiled_result = true;
+  bool result = true;
   query_exec_util->BeginTransaction(db_oid_);
 
   // TODO(wz2): https://github.com/cmu-db/noisepage/issues/1352
@@ -26,24 +26,26 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
                                          std::make_unique<optimizer::TrivialCostModel>(), settings);
   } else {
     std::vector<parser::ConstantValueExpression> &params_0 = params_[0];
-    compiled_result =
-        query_exec_util->CompileQuery(query_text_, common::ManagedPointer(&params_0),
-                                      common::ManagedPointer(&param_types_), std::move(cost_model_), settings);
-    if (compiled_result) {
-      // Execute with specified parameters
+    result = query_exec_util->CompileQuery(query_text_, common::ManagedPointer(&params_0),
+                                           common::ManagedPointer(&param_types_), std::move(cost_model_), settings);
+
+    // Execute with specified parameters only if compilation succeeded
+    if (!result) {
       for (auto &param_vec : params_) {
         if (!result) break;
 
         result &= query_exec_util->ExecuteQuery(query_text_, tuple_fn_, common::ManagedPointer(&param_vec), nullptr,
                                                 settings);
       }
-      query_exec_util->ClearPlans();
     }
+
+    // TODO(wz2): Require disciplined plan for clearing the plans
+    // query_exec_util->ClearPlans();
   }
 
-  query_exec_util->EndTransaction(!compiled_result || result);
+  query_exec_util->EndTransaction(result && !force_abort_);
   if (sync_) {
-    sync_->Success(compiled_result && result);
+    sync_->Success(result);
   }
 }
 

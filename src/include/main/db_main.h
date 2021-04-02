@@ -469,11 +469,8 @@ class DBMain {
         NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
                          "Can't have a MetricsThread without a MetricsManager.");
 
-        std::unique_ptr<util::QueryExecUtil> util =
-            query_exec_util ? util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util))
-                            : nullptr;
         metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
-                                                                  std::move(util), common::ManagedPointer(task_manager),
+                                                                  common::ManagedPointer(task_manager),
                                                                   std::chrono::microseconds{metrics_interval_});
       }
 

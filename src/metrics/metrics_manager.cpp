@@ -13,7 +13,6 @@
 #include "common/macros.h"
 #include "execution/compiler/executable_query.h"
 #include "planner/plannodes/output_schema.h"
-#include "util/query_exec_util.h"
 
 namespace noisepage::metrics {
 
@@ -153,8 +152,7 @@ void MetricsManager::UnregisterThread() {
   common::thread_context.metrics_store_ = nullptr;
 }
 
-void MetricsManager::ToOutput(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                              common::ManagedPointer<task::TaskManager> task_manager) const {
+void MetricsManager::ToOutput(common::ManagedPointer<task::TaskManager> task_manager) const {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
     if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
@@ -164,20 +162,15 @@ void MetricsManager::ToOutput(common::ManagedPointer<util::QueryExecUtil> query_
       }
 
       if (output == MetricsOutput::DB || output == MetricsOutput::CSV_DB) {
-        ToDB(component, query_exec_util, task_manager);
+        ToDB(component, task_manager);
       }
     }
   }
-
-  if (query_exec_util != nullptr) {
-    query_exec_util->ClearPlans();
-  }
 }
 
-void MetricsManager::ToDB(uint8_t component, common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                          common::ManagedPointer<task::TaskManager> task_manager) const {
-  if (query_exec_util != nullptr && task_manager != nullptr) {
-    aggregated_metrics_[component]->ToDB(query_exec_util, task_manager);
+void MetricsManager::ToDB(uint8_t component, common::ManagedPointer<task::TaskManager> task_manager) const {
+  if (task_manager != nullptr) {
+    aggregated_metrics_[component]->ToDB(task_manager);
   }
 }
 

@@ -5,7 +5,6 @@
 #include "self_driving/planning/pilot.h"
 #include "task/task_manager.h"
 #include "util/forecast_recording_util.h"
-#include "util/query_exec_util.h"
 
 namespace noisepage::metrics {
 
@@ -54,21 +53,19 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
                                                         std::move(params_vec), std::move(param_types)));
 }
 
-void QueryTraceMetricRawData::ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                                   common::ManagedPointer<task::TaskManager> task_manager) {
+void QueryTraceMetricRawData::ToDB(common::ManagedPointer<task::TaskManager> task_manager) {
   // On regular ToDB calls from metrics manager, we don't want to flush the time data or parameters.
   // Only on a forecast interval should we be doing that. Rather, ToDB will write out time-series data
   // only if a segment has elapsed.
   uint64_t timestamp = metrics::MetricsUtil::Now();
-  WriteToDB(query_exec_util, task_manager, false, timestamp, nullptr, nullptr);
+  WriteToDB(task_manager, false, timestamp, nullptr, nullptr);
 }
 
 void QueryTraceMetricRawData::WriteToDB(
-    common::ManagedPointer<util::QueryExecUtil> query_exec_util, common::ManagedPointer<task::TaskManager> task_manager,
-    bool write_parameters, uint64_t write_timestamp,
+    common::ManagedPointer<task::TaskManager> task_manager, bool write_parameters, uint64_t write_timestamp,
     std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
     std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params) {
-  NOISEPAGE_ASSERT(query_exec_util != nullptr && task_manager != nullptr, "Internal execution utility not initialized");
+  NOISEPAGE_ASSERT(task_manager != nullptr, "Task Manager not initialized");
 
   if (write_parameters) {
     util::ForecastRecordingUtil::RecordQueryMetadata(metadata_.qmetadata_, task_manager);

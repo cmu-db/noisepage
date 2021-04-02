@@ -312,7 +312,7 @@ SETTING_bool(
 
 SETTING_string(
     query_trace_metrics_output,
-    "Output type for Query Traces Metrics (default: CSV)",
+    "Output type for Query Traces Metrics (default: CSV, values: NONE, CSV, DB, CSV_DB)",
     "CSV",
     true,
     noisepage::settings::Callbacks::MetricsQueryTraceOutput

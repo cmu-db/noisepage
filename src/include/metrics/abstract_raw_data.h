@@ -45,11 +45,9 @@ class AbstractRawData {
 
   /**
    * Writes the data to internal tables
-   * @param query_exec_util Execution utility for internal SQL execution
    * @param task_manager Task manager to submit tasks to
    */
-  virtual void ToDB(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-                    common::ManagedPointer<task::TaskManager> task_manager) {}
+  virtual void ToDB(common::ManagedPointer<task::TaskManager> task_manager) {}
 
   /**
    * Writes the data to files, and then clears the data
