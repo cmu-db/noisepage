@@ -1,6 +1,7 @@
 #include <sstream>
 
 #include "binder/bind_node_visitor.h"
+#include "execution/ast/udf/udf_ast_nodes.h"
 #include "loggers/parser_logger.h"
 #include "parser/udf/udf_parser.h"
 
@@ -13,7 +14,9 @@
 namespace noisepage {
 namespace parser {
 namespace udf {
+
 using namespace nlohmann;
+using namespace execution::ast::udf;
 
 // TODO(Kyle): constexpr
 // TODO(Kyle): Define elsewhere?
@@ -82,8 +85,8 @@ std::unique_ptr<FunctionAST> PLpgSQLParser::ParsePLpgSQL(std::vector<std::string
     udf_ast_context_->SetVariableType(udf_name, param_types[i++]);
   }
   const auto function = function_list[0][kPLpgSQL_function];
-  std::unique_ptr<FunctionAST> function_ast(
-      new FunctionAST(ParseFunction(function), std::move(param_names), std::move(param_types)));
+  auto function_ast =
+      std::make_unique<FunctionAST>(ParseFunction(function), std::move(param_names), std::move(param_types));
   return function_ast;
 }
 
@@ -245,46 +248,47 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseFor(const nlohmann::json &loop) {
   return std::unique_ptr<ForStmtAST>(new ForStmtAST(std::move(var_vec), std::move(parse_result), std::move(body_stmt)));
 }
 
+// TODO(Kyle): Implement
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt) {
-  PARSER_LOG_DEBUG("ParseSQL");
-  auto sql_query = sql_stmt[kSqlstmt][kPLpgSQL_expr][kQuery].get<std::string>();
-  auto var_name = sql_stmt[kRow][kPLpgSQL_row][kFields][0][kName].get<std::string>();
-  auto parse_result = PostgresParser::BuildParseTree(sql_query.c_str());
-  if (parse_result == nullptr) {
-    PARSER_LOG_DEBUG("Bad SQL statement");
-    return nullptr;
-  }
-  binder::BindNodeVisitor visitor(accessor_, db_oid_);
+  throw NOT_IMPLEMENTED_EXCEPTION("ParseSQL Not Implemented");
+  // auto sql_query = sql_stmt[kSqlstmt][kPLpgSQL_expr][kQuery].get<std::string>();
+  // auto var_name = sql_stmt[kRow][kPLpgSQL_row][kFields][0][kName].get<std::string>();
+  // auto parse_result = PostgresParser::BuildParseTree(sql_query.c_str());
+  // if (parse_result == nullptr) {
+  //   PARSER_LOG_DEBUG("Bad SQL statement");
+  //   return nullptr;
+  // }
+  // binder::BindNodeVisitor visitor(accessor_, db_oid_);
 
-  std::unordered_map<std::string, std::pair<std::string, size_t>> query_params;
+  // std::unordered_map<std::string, std::pair<std::string, size_t>> query_params;
 
-  try {
-    // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
-    // binder::BindNodeVisitor visitor(accessor_, db_oid_);
-    query_params = visitor.BindAndGetUDFParams(common::ManagedPointer(parse_result), udf_ast_context_);
-  } catch (BinderException &b) {
-    PARSER_LOG_DEBUG("Bad SQL statement");
-    return nullptr;
-  }
+  // try {
+  //   // TODO(Matt): I don't think the binder should need the database name. It's already bound in the
+  //   ConnectionContext
+  //   // binder::BindNodeVisitor visitor(accessor_, db_oid_);
+  //   query_params = visitor.BindAndGetUDFParams(common::ManagedPointer(parse_result), udf_ast_context_);
+  // } catch (BinderException &b) {
+  //   PARSER_LOG_DEBUG("Bad SQL statement");
+  //   return nullptr;
+  // }
 
-  // check to see if a record type can be bound to this
-  type::TypeId type;
-  auto ret = udf_ast_context_->GetVariableType(var_name, &type);
-  if (!ret) {
-    throw PARSER_EXCEPTION("PL/pgSQL parser : Didn't declare variable");
-  }
-  if (type == type::TypeId::INVALID) {
-    std::vector<std::pair<std::string, type::TypeId>> elems;
-    auto sel = parse_result->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>()->GetSelectColumns();
-    for (auto col : sel) {
-      elems.emplace_back(col->GetAliasName(), col->GetReturnValueType());
-    }
-    udf_ast_context_->SetRecordType(var_name, std::move(elems));
-  }
+  // // check to see if a record type can be bound to this
+  // type::TypeId type;
+  // auto ret = udf_ast_context_->GetVariableType(var_name, &type);
+  // if (!ret) {
+  //   throw PARSER_EXCEPTION("PL/pgSQL parser : Didn't declare variable");
+  // }
+  // if (type == type::TypeId::INVALID) {
+  //   std::vector<std::pair<std::string, type::TypeId>> elems;
+  //   auto sel = parse_result->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>()->GetSelectColumns();
+  //   for (auto col : sel) {
+  //     elems.emplace_back(col->GetAliasName(), col->GetReturnValueType());
+  //   }
+  //   udf_ast_context_->SetRecordType(var_name, std::move(elems));
+  // }
 
-  return std::unique_ptr<SQLStmtAST>(
-      new SQLStmtAST(std::move(parse_result), std::move(var_name), std::move(query_params)));
-  //  return nullptr;
+  // return std::unique_ptr<SQLStmtAST>(
+  //     new SQLStmtAST(std::move(parse_result), std::move(var_name), std::move(query_params)));
 }
 
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseDynamicSQL(const nlohmann::json &sql_stmt) {
@@ -340,8 +344,8 @@ std::unique_ptr<ExprAST> PLpgSQLParser::ParseExpr(common::ManagedPointer<parser:
     return std::unique_ptr<IsNullExprAST>(new IsNullExprAST(true, ParseExpr(expr->GetChild(0))));
   }
   throw PARSER_EXCEPTION("PL/pgSQL parser : Expression type not supported");
-  return nullptr;
 }
+
 }  // namespace udf
 }  // namespace parser
 }  // namespace noisepage

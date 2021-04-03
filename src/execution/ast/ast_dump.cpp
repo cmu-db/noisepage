@@ -171,6 +171,11 @@ void AstDumperImpl::VisitFunctionDecl(FunctionDecl *node) {
   DumpExpr(node->Function());
 }
 
+void AstDumperImpl::VisitLambdaExpr(LambdaExpr *node) {
+  DumpNodeCommon(node);
+  DumpExpr(node->GetFunctionLitExpr());
+}
+
 void AstDumperImpl::VisitVariableDecl(VariableDecl *node) {
   DumpNodeCommon(node);
   DumpIdentifier(node->Name());
@@ -202,6 +207,8 @@ void AstDumperImpl::VisitBlockStmt(BlockStmt *node) {
     DumpStmt(stmt);
   }
 }
+
+void AstDumperImpl::VisitBreakStmt(BreakStmt *node) { DumpNodeCommon(node); }
 
 void AstDumperImpl::VisitDeclStmt(DeclStmt *node) { AstVisitor<AstDumperImpl>::Visit(node->Declaration()); }
 
@@ -257,6 +264,11 @@ void AstDumperImpl::VisitCallExpr(CallExpr *node) {
       }
       case CallExpr::CallKind::Regular: {
         out_ << "Regular";
+        break;
+      }
+      case CallExpr::CallKind::Lambda: {
+        out_ << "Lambda";
+        break;
       }
     }
   }
@@ -373,6 +385,11 @@ void AstDumperImpl::VisitMapTypeRepr(MapTypeRepr *node) {
   DumpNodeCommon(node);
   DumpExpr(node->KeyType());
   DumpExpr(node->ValType());
+}
+
+void AstDumperImpl::VisitLambdaTypeRepr(LambdaTypeRepr *node) {
+  DumpNodeCommon(node);
+  DumpExpr(node->FunctionType());
 }
 
 std::string AstDump::Dump(AstNode *node) {

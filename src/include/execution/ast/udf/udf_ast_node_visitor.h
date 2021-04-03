@@ -30,27 +30,27 @@ class FunctionAST;
 class ASTNodeVisitor {
  public:
   virtual ~ASTNodeVisitor(){};
-
-  virtual void Visit(AbstractAST *){};
-  virtual void Visit(StmtAST *){};
-  virtual void Visit(ExprAST *){};
-  virtual void Visit(FunctionAST *){};
-  virtual void Visit(ValueExprAST *){};
-  virtual void Visit(VariableExprAST *){};
-  virtual void Visit(BinaryExprAST *){};
-  virtual void Visit(IsNullExprAST *){};
-  virtual void Visit(CallExprAST *){};
-  virtual void Visit(MemberExprAST *){};
-  virtual void Visit(SeqStmtAST *){};
-  virtual void Visit(DeclStmtAST *){};
-  virtual void Visit(IfStmtAST *){};
-  virtual void Visit(WhileStmtAST *){};
-  virtual void Visit(RetStmtAST *){};
-  virtual void Visit(AssignStmtAST *){};
-  virtual void Visit(ForStmtAST *){};
-  virtual void Visit(SQLStmtAST *){};
-  virtual void Visit(DynamicSQLStmtAST *){};
+  virtual void Visit(AbstractAST *ast) = 0;
+  virtual void Visit(StmtAST *ast) = 0;
+  virtual void Visit(ExprAST *ast) = 0;
+  virtual void Visit(FunctionAST *ast) = 0;
+  virtual void Visit(ValueExprAST *ast) = 0;
+  virtual void Visit(VariableExprAST *ast) = 0;
+  virtual void Visit(BinaryExprAST *ast) = 0;
+  virtual void Visit(IsNullExprAST *ast) = 0;
+  virtual void Visit(CallExprAST *ast) = 0;
+  virtual void Visit(MemberExprAST *ast) = 0;
+  virtual void Visit(SeqStmtAST *ast) = 0;
+  virtual void Visit(DeclStmtAST *ast) = 0;
+  virtual void Visit(IfStmtAST *ast) = 0;
+  virtual void Visit(WhileStmtAST *ast) = 0;
+  virtual void Visit(RetStmtAST *ast) = 0;
+  virtual void Visit(AssignStmtAST *ast) = 0;
+  virtual void Visit(ForStmtAST *ast) = 0;
+  virtual void Visit(SQLStmtAST *ast) = 0;
+  virtual void Visit(DynamicSQLStmtAST *ast) = 0;
 };
+
 }  // namespace udf
 }  // namespace ast
 }  // namespace execution

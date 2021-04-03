@@ -3,9 +3,8 @@
 #include "binder/bind_node_visitor.h"
 
 #include "execution/ast/ast.h"
-
-// TODO(Kyle): Not Ported Yet
-// #include "execution/ast/ast_clone.h"
+#include "execution/ast/ast_clone.h"
+#include "execution/ast/context.h"
 
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
@@ -14,8 +13,8 @@
 #include "execution/exec/execution_settings.h"
 
 #include "catalog/catalog_accessor.h"
-#include "optimizer/statistics/stats_storage.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/statistics/stats_storage.h"
 
 #include "traffic_cop/traffic_cop_util.h"
 
@@ -51,11 +50,11 @@ UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
 
 const char *UDFCodegen::GetReturnParamString() { return "return_val"; }
 
-void UDFCodegen::GenerateUDF(AbstractAST *ast) { ast->Accept(this); }
+void UDFCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
 
-void UDFCodegen::Visit(AbstractAST *ast) { UNREACHABLE("Not implemented"); }
+void UDFCodegen::Visit(ast::udf::AbstractAST *ast) { UNREACHABLE("Not implemented"); }
 
-void UDFCodegen::Visit(DynamicSQLStmtAST *ast) { UNREACHABLE("Not implemented"); }
+void UDFCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) { UNREACHABLE("Not implemented"); }
 
 catalog::type_oid_t UDFCodegen::GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type) {
   switch (type) {
@@ -71,8 +70,19 @@ catalog::type_oid_t UDFCodegen::GetCatalogTypeOidFromSQLType(execution::ast::Bui
   }
 }
 
-void UDFCodegen::Visit(CallExprAST *ast) {
-  //  UNREACHABLE("Not implemented");
+execution::ast::File *UDFCodegen::Finish() {
+  auto fn = fb_->Finish();
+  //  util::RegionVector<ast::Decl *> decls_reg_vec{decls->begin(), decls->end(), codegen.Region()};
+  execution::util::RegionVector<execution::ast::Decl *> decls({fn}, codegen_->GetAstContext()->GetRegion());
+  //    for(auto decl : aux_decls_){
+  //      decls.push_back(decl);
+  //    }
+  decls.insert(decls.begin(), aux_decls_.begin(), aux_decls_.end());
+  auto file = codegen_->GetAstContext()->GetNodeFactory()->NewFile({0, 0}, std::move(decls));
+  return file;
+}
+
+void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
   auto &args = ast->args;
   std::vector<execution::ast::Expr *> args_ast;
   std::vector<execution::ast::Expr *> args_ast_region_vec;
@@ -89,6 +99,7 @@ void UDFCodegen::Visit(CallExprAST *ast) {
   }
   auto proc_oid = accessor_->GetProcOid(ast->callee, arg_types);
   NOISEPAGE_ASSERT(proc_oid != catalog::INVALID_PROC_OID, "Invalid call");
+
   auto context = accessor_->GetProcCtxPtr(proc_oid);
   if (context->IsBuiltin()) {
     fb_->Append(codegen_->MakeStmt(codegen_->CallBuiltin(context->GetBuiltin(), std::move(args_ast))));
@@ -109,14 +120,15 @@ void UDFCodegen::Visit(CallExprAST *ast) {
     }
     fb_->Append(codegen_->MakeStmt(codegen_->Call(ident_expr, args_ast_region_vec)));
   }
-  //    fb_->Append(codegen_->Call)
+
+  // fb_->Append(codegen_->Call)
 }
 
-void UDFCodegen::Visit(StmtAST *ast) { UNREACHABLE("Not implemented"); }
+void UDFCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented"); }
 
-void UDFCodegen::Visit(ExprAST *ast) { UNREACHABLE("Not implemented"); }
+void UDFCodegen::Visit(ast::udf::ExprAST *ast) { UNREACHABLE("Not implemented"); }
 
-void UDFCodegen::Visit(DeclStmtAST *ast) {
+void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   if (ast->name == "*internal*") {
     return;
   }
@@ -148,7 +160,7 @@ void UDFCodegen::Visit(DeclStmtAST *ast) {
   current_type_ = prev_type;
 }
 
-void UDFCodegen::Visit(FunctionAST *ast) {
+void UDFCodegen::Visit(ast::udf::FunctionAST *ast) {
   for (size_t i = 0; i < ast->param_types_.size(); i++) {
     //    auto param_type = codegen_->TplType(ast->param_types_[i]);
     str_to_ident_.emplace(ast->param_names_[i], codegen_->MakeFreshIdentifier("udf"));
@@ -156,13 +168,13 @@ void UDFCodegen::Visit(FunctionAST *ast) {
   ast->body.get()->Accept(this);
 }
 
-void UDFCodegen::Visit(VariableExprAST *ast) {
+void UDFCodegen::Visit(ast::udf::VariableExprAST *ast) {
   auto it = str_to_ident_.find(ast->name);
   NOISEPAGE_ASSERT(it != str_to_ident_.end(), "variable not declared");
   dst_ = codegen_->MakeExpr(it->second);
 }
 
-void UDFCodegen::Visit(ValueExprAST *ast) {
+void UDFCodegen::Visit(ast::udf::ValueExprAST *ast) {
   auto val = common::ManagedPointer(ast->value_).CastManagedPointerTo<parser::ConstantValueExpression>();
   if (val->IsNull()) {
     dst_ = codegen_->ConstNull(current_type_);
@@ -196,12 +208,12 @@ void UDFCodegen::Visit(ValueExprAST *ast) {
   }
 }
 
-void UDFCodegen::Visit(AssignStmtAST *ast) {
+void UDFCodegen::Visit(ast::udf::AssignStmtAST *ast) {
   type::TypeId left_type = type::TypeId::INVALID;
   udf_ast_context_->GetVariableType(ast->lhs->name, &left_type);
   current_type_ = left_type;
 
-  reinterpret_cast<AbstractAST *>(ast->rhs.get())->Accept(this);
+  reinterpret_cast<ast::udf::AbstractAST *>(ast->rhs.get())->Accept(this);
   auto rhs_expr = dst_;
 
   auto it = str_to_ident_.find(ast->lhs->name);
@@ -217,7 +229,7 @@ void UDFCodegen::Visit(AssignStmtAST *ast) {
   //  }
 }
 
-void UDFCodegen::Visit(BinaryExprAST *ast) {
+void UDFCodegen::Visit(ast::udf::BinaryExprAST *ast) {
   execution::parsing::Token::Type op_token;
   bool compare = false;
   switch (ast->op) {
@@ -278,7 +290,7 @@ void UDFCodegen::Visit(BinaryExprAST *ast) {
   }
 }
 
-void UDFCodegen::Visit(IfStmtAST *ast) {
+void UDFCodegen::Visit(ast::udf::IfStmtAST *ast) {
   ast->cond_expr->Accept(this);
   auto cond = dst_;
 
@@ -291,7 +303,7 @@ void UDFCodegen::Visit(IfStmtAST *ast) {
   branch.EndIf();
 }
 
-void UDFCodegen::Visit(IsNullExprAST *ast) {
+void UDFCodegen::Visit(ast::udf::IsNullExprAST *ast) {
   ast->child_->Accept(this);
   auto chld = dst_;
   dst_ = codegen_->CallBuiltin(execution::ast::Builtin::IsValNull, {chld});
@@ -300,13 +312,7 @@ void UDFCodegen::Visit(IsNullExprAST *ast) {
   }
 }
 
-void UDFCodegen::Visit(SeqStmtAST *ast) {
-  for (auto &stmt : ast->stmts) {
-    stmt->Accept(this);
-  }
-}
-
-void UDFCodegen::Visit(WhileStmtAST *ast) {
+void UDFCodegen::Visit(ast::udf::WhileStmtAST *ast) {
   ast->cond_expr->Accept(this);
   auto cond = dst_;
   //  cond = codegen_->Compare(execution::parsing::Token::Type::EQUAL_EQUAL, cond, )
@@ -316,332 +322,343 @@ void UDFCodegen::Visit(WhileStmtAST *ast) {
   loop.EndLoop();
 }
 
-void UDFCodegen::Visit(ForStmtAST *ast) {
-  needs_exec_ctx_ = true;
-  const auto query = common::ManagedPointer(ast->query_);
-  auto exec_ctx = fb_->GetParameterByPosition(0);
+// TODO(Kyle): Implement
+void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
+  throw NOT_IMPLEMENTED_EXCEPTION("Visit(ForStmtAst*) Not Implemented");
+  // needs_exec_ctx_ = true;
+  // const auto query = common::ManagedPointer(ast->query_);
+  // auto exec_ctx = fb_->GetParameterByPosition(0);
 
-  // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
-  binder::BindNodeVisitor visitor(common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_oid_);
-  auto query_params = visitor.BindAndGetUDFParams(query, common::ManagedPointer(udf_ast_context_));
+  // // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
+  // binder::BindNodeVisitor visitor(common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_oid_);
 
-  auto stats = optimizer::StatsStorage();
+  // auto query_params = visitor.BindAndGetUDFParams(query, common::ManagedPointer(udf_ast_context_));
 
-  std::unique_ptr<planner::AbstractPlanNode> plan = trafficcop::TrafficCopUtil::Optimize(
-      accessor_->GetTxn(), common::ManagedPointer(accessor_), query, db_oid_, common::ManagedPointer(&stats),
-      std::make_unique<optimizer::TrivialCostModel>(), 1000000);
-  // make lambda that just writes into this
-  std::vector<execution::ast::Identifier> var_idents;
-  auto lam_var = codegen_->MakeFreshIdentifier("looplamb");
-  execution::util::RegionVector<execution::ast::FieldDecl *> params(codegen_->GetAstContext()->GetRegion());
-  params.push_back(codegen_->MakeField(
-      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
-      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
-  size_t i = 0;
-  for (auto var : ast->vars_) {
-    var_idents.push_back(str_to_ident_.find(var)->second);
-    auto var_ident = var_idents.back();
-    //  NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
-    auto type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
+  // auto stats = optimizer::StatsStorage();
 
-    fb_->Append(codegen_->Assign(codegen_->MakeExpr(var_ident),
-                                 codegen_->ConstNull(plan->GetOutputSchema()->GetColumn(i).GetType())));
-    auto input = codegen_->MakeFreshIdentifier(var);
-    params.push_back(codegen_->MakeField(input, type));
-    i++;
-  }
-  execution::ast::LambdaExpr *lambda_expr;
-  FunctionBuilder fn(codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil));
-  {
-    size_t j = 1;
-    for (auto var : var_idents) {
-      fn.Append(codegen_->Assign(codegen_->MakeExpr(var), fn.GetParameterByPosition(j)));
-      j++;
-    }
-    auto prev_fb = fb_;
-    fb_ = &fn;
-    ast->body_stmt_->Accept(this);
-    fb_ = prev_fb;
-  }
+  // std::unique_ptr<planner::AbstractPlanNode> plan = trafficcop::TrafficCopUtil::Optimize(
+  //     accessor_->GetTxn(), common::ManagedPointer(accessor_), query, db_oid_, common::ManagedPointer(&stats),
+  //     std::make_unique<optimizer::TrivialCostModel>(), 1000000);
+  // // make lambda that just writes into this
+  // std::vector<execution::ast::Identifier> var_idents;
+  // auto lam_var = codegen_->MakeFreshIdentifier("looplamb");
+  // execution::util::RegionVector<execution::ast::FieldDecl *> params(codegen_->GetAstContext()->GetRegion());
+  // params.push_back(codegen_->MakeField(
+  //     exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
+  //     codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
+  // size_t i = 0;
+  // for (auto var : ast->vars_) {
+  //   var_idents.push_back(str_to_ident_.find(var)->second);
+  //   auto var_ident = var_idents.back();
+  //   //  NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
+  //   auto type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
 
-  execution::util::RegionVector<execution::ast::Expr *> captures(codegen_->GetAstContext()->GetRegion());
-  for (auto it : str_to_ident_) {
-    if (it.first == "executionCtx") {
-      continue;
-    }
-    captures.push_back(codegen_->MakeExpr(it.second));
-  }
+  //   fb_->Append(codegen_->Assign(codegen_->MakeExpr(var_ident),
+  //                                codegen_->ConstNull(plan->GetOutputSchema()->GetColumn(i).GetType())));
+  //   auto input = codegen_->MakeFreshIdentifier(var);
+  //   params.push_back(codegen_->MakeField(input, type));
+  //   i++;
+  // }
+  // execution::ast::LambdaExpr *lambda_expr;
+  // FunctionBuilder fn(codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil));
+  // {
+  //   size_t j = 1;
+  //   for (auto var : var_idents) {
+  //     fn.Append(codegen_->Assign(codegen_->MakeExpr(var), fn.GetParameterByPosition(j)));
+  //     j++;
+  //   }
+  //   auto prev_fb = fb_;
+  //   fb_ = &fn;
+  //   ast->body_stmt_->Accept(this);
+  //   fb_ = prev_fb;
+  // }
 
-  lambda_expr = fn.FinishLambda(std::move(captures));
-  lambda_expr->SetName(lam_var);
+  // execution::util::RegionVector<execution::ast::Expr *> captures(codegen_->GetAstContext()->GetRegion());
+  // for (auto it : str_to_ident_) {
+  //   if (it.first == "executionCtx") {
+  //     continue;
+  //   }
+  //   captures.push_back(codegen_->MakeExpr(it.second));
+  // }
 
-  // want to pass something down that will materialize the lambda function for me into lambda_expr and will
-  // also feed in a lambda_expr to the compiler
-  execution::exec::ExecutionSettings exec_settings{};
-  const std::string dummy_query = "";
-  auto exec_query = execution::compiler::CompilationContext::Compile(
-      *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot,
-      common::ManagedPointer<const std::string>(&dummy_query), lambda_expr, codegen_->GetAstContext());
-  auto fns = exec_query->GetFunctions();
-  auto decls = exec_query->GetDecls();
+  // lambda_expr = fn.FinishLambda(std::move(captures));
+  // lambda_expr->SetName(lam_var);
 
-  aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
+  // // want to pass something down that will materialize the lambda function for me into lambda_expr and will
+  // // also feed in a lambda_expr to the compiler
+  // execution::exec::ExecutionSettings exec_settings{};
+  // const std::string dummy_query = "";
+  // auto exec_query = execution::compiler::CompilationContext::Compile(
+  //     *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot,
+  //     common::ManagedPointer<const std::string>(&dummy_query), lambda_expr, codegen_->GetAstContext());
+  // auto fns = exec_query->GetFunctions();
+  // auto decls = exec_query->GetDecls();
 
-  fb_->Append(
-      codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLitExpr()->TypeRepr()), lambda_expr));
+  // aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
 
-  // make query state
-  auto query_state = codegen_->MakeFreshIdentifier("query_state");
-  fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
-  // set its execution context to whatever exec context was passed in here
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
-  std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec;
-  for (auto it = query_params.begin(); it != query_params.end(); it++) {
-    sorted_vec.push_back(it);
-  }
+  // fb_->Append(
+  //     codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLitExpr()->TypeRepr()),
+  //     lambda_expr));
 
-  std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second < y->second; });
-  for (auto entry : sorted_vec) {
-    // TODO(order these dudes)
-    type::TypeId type = type::TypeId::INVALID;
-    udf_ast_context_->GetVariableType(entry->first, &type);
-    //    NOISEPAGE_ASSERT(ret, "didn't find param in udf ast context");
+  // // make query state
+  // auto query_state = codegen_->MakeFreshIdentifier("query_state");
+  // fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
+  // // set its execution context to whatever exec context was passed in here
+  // fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
+  // std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec;
+  // for (auto it = query_params.begin(); it != query_params.end(); it++) {
+  //   sorted_vec.push_back(it);
+  // }
 
-    execution::ast::Builtin builtin;
-    switch (type) {
-      case type::TypeId::BOOLEAN:
-        builtin = execution::ast::Builtin::AddParamBool;
-        break;
-      case type::TypeId::TINYINT:
-        builtin = execution::ast::Builtin::AddParamTinyInt;
-        break;
-      case type::TypeId::SMALLINT:
-        builtin = execution::ast::Builtin::AddParamSmallInt;
-        break;
-      case type::TypeId::INTEGER:
-        builtin = execution::ast::Builtin::AddParamInt;
-        break;
-      case type::TypeId::BIGINT:
-        builtin = execution::ast::Builtin::AddParamBigInt;
-        break;
-      case type::TypeId::DECIMAL:
-        builtin = execution::ast::Builtin::AddParamDouble;
-        break;
-      case type::TypeId::DATE:
-        builtin = execution::ast::Builtin::AddParamDate;
-        break;
-      case type::TypeId::TIMESTAMP:
-        builtin = execution::ast::Builtin::AddParamTimestamp;
-        break;
-      case type::TypeId::VARCHAR:
-        builtin = execution::ast::Builtin::AddParamString;
-        break;
-      default:
-        UNREACHABLE("Unsupported parameter type");
-    }
-    fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(str_to_ident_[entry->first])}));
-  }
-  // set param 1
-  // set param 2
-  // etc etc
-  fb_->Append(codegen_->Assign(
-      codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
-  // set its execution context to whatever exec context was passed in here
+  // std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second < y->second; });
+  // for (auto entry : sorted_vec) {
+  //   // TODO(order these dudes)
+  //   type::TypeId type = type::TypeId::INVALID;
+  //   udf_ast_context_->GetVariableType(entry->first, &type);
+  //   //    NOISEPAGE_ASSERT(ret, "didn't find param in udf ast context");
 
-  for (auto &sub_fn : fns) {
-    //    aux_decls_.push_back(c)
-    if (sub_fn.find("Run") != std::string::npos) {
-      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn),
-                                 {codegen_->AddressOf(query_state), codegen_->MakeExpr(lam_var)}));
-    } else {
-      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn), {codegen_->AddressOf(query_state)}));
-    }
-  }
+  //   execution::ast::Builtin builtin;
+  //   switch (type) {
+  //     case type::TypeId::BOOLEAN:
+  //       builtin = execution::ast::Builtin::AddParamBool;
+  //       break;
+  //     case type::TypeId::TINYINT:
+  //       builtin = execution::ast::Builtin::AddParamTinyInt;
+  //       break;
+  //     case type::TypeId::SMALLINT:
+  //       builtin = execution::ast::Builtin::AddParamSmallInt;
+  //       break;
+  //     case type::TypeId::INTEGER:
+  //       builtin = execution::ast::Builtin::AddParamInt;
+  //       break;
+  //     case type::TypeId::BIGINT:
+  //       builtin = execution::ast::Builtin::AddParamBigInt;
+  //       break;
+  //     case type::TypeId::DECIMAL:
+  //       builtin = execution::ast::Builtin::AddParamDouble;
+  //       break;
+  //     case type::TypeId::DATE:
+  //       builtin = execution::ast::Builtin::AddParamDate;
+  //       break;
+  //     case type::TypeId::TIMESTAMP:
+  //       builtin = execution::ast::Builtin::AddParamTimestamp;
+  //       break;
+  //     case type::TypeId::VARCHAR:
+  //       builtin = execution::ast::Builtin::AddParamString;
+  //       break;
+  //     default:
+  //       UNREACHABLE("Unsupported parameter type");
+  //   }
+  //   fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(str_to_ident_[entry->first])}));
+  // }
+  // // set param 1
+  // // set param 2
+  // // etc etc
+  // fb_->Append(codegen_->Assign(
+  //     codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
+  // // set its execution context to whatever exec context was passed in here
 
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
+  // for (auto &sub_fn : fns) {
+  //   //    aux_decls_.push_back(c)
+  //   if (sub_fn.find("Run") != std::string::npos) {
+  //     fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn),
+  //                                {codegen_->AddressOf(query_state), codegen_->MakeExpr(lam_var)}));
+  //   } else {
+  //     fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn),
+  //     {codegen_->AddressOf(query_state)}));
+  //   }
+  // }
 
-  return;
+  // fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
+
+  // return;
 }
 
-void UDFCodegen::Visit(RetStmtAST *ast) {
+void UDFCodegen::Visit(ast::udf::RetStmtAST *ast) {
   ast->expr->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto ret_expr = dst_;
   fb_->Append(codegen_->Return(ret_expr));
 }
 
-void UDFCodegen::Visit(SQLStmtAST *ast) {
-  needs_exec_ctx_ = true;
-  auto exec_ctx = fb_->GetParameterByPosition(0);
-  const auto query = common::ManagedPointer(ast->query);
+// TODO(Kyle): Implement
+void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
+  throw NOT_IMPLEMENTED_EXCEPTION("Visit(SQLStmtAST*) Not Implemented");
+  // needs_exec_ctx_ = true;
+  // auto exec_ctx = fb_->GetParameterByPosition(0);
+  // const auto query = common::ManagedPointer(ast->query);
 
-  // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
-  binder::BindNodeVisitor visitor(common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_oid_);
-  //  auto query_params = visitor.BindAndGetUDFParams(query, common::ManagedPointer(udf_ast_context_));
-  auto query_params = ast->udf_params;
-  auto stats = optimizer::StatsStorage();
+  // // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
+  // binder::BindNodeVisitor visitor(common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_oid_);
 
-  std::unique_ptr<planner::AbstractPlanNode> plan = trafficcop::TrafficCopUtil::Optimize(
-      accessor_->GetTxn(), common::ManagedPointer(accessor_), query, db_oid_, common::ManagedPointer(&stats),
-      std::make_unique<optimizer::TrivialCostModel>(), 1000000);
-  // make lambda that just writes into this
+  // TODO(Kyle): Implement
+  // //  auto query_params = visitor.BindAndGetUDFParams(query, common::ManagedPointer(udf_ast_context_));
+  // auto query_params = ast->udf_params;
+  // auto stats = optimizer::StatsStorage();
 
-  auto lam_var = codegen_->MakeFreshIdentifier("lamb");
-  //  NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
-  auto &cols = plan->GetOutputSchema()->GetColumns();
-  //  auto &col = cols[0];
-  execution::util::RegionVector<execution::ast::FieldDecl *> params(codegen_->GetAstContext()->GetRegion());
-  std::vector<execution::ast::Expr *> assignees;
-  execution::util::RegionVector<execution::ast::Expr *> captures(codegen_->GetAstContext()->GetRegion());
-  size_t i = 0;
-  params.push_back(codegen_->MakeField(
-      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
-      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
-  for (auto &col : cols) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->var_name)->second);
-    type::TypeId udf_type;
-    udf_ast_context_->GetVariableType(ast->var_name, &udf_type);
-    if (udf_type == type::TypeId::INVALID) {
-      // record type
-      auto &struct_vars = udf_ast_context_->GetRecordType(ast->var_name);
-      if (captures.empty()) {
-        captures.push_back(capture_var);
-      }
-      capture_var = codegen_->AccessStructMember(capture_var, codegen_->MakeIdentifier(struct_vars[i].first));
-      assignees.push_back(capture_var);
-    } else {
-      assignees.push_back(capture_var);
-      captures.push_back(capture_var);
-    }
-    //    auto capture_var = str_to_ident_.find(ast->var_name)->second;
-    auto type = codegen_->TplType(execution::sql::GetTypeId(col.GetType()));
+  // std::unique_ptr<planner::AbstractPlanNode> plan = trafficcop::TrafficCopUtil::Optimize(
+  //     accessor_->GetTxn(), common::ManagedPointer(accessor_), query, db_oid_, common::ManagedPointer(&stats),
+  //     std::make_unique<optimizer::TrivialCostModel>(), 1000000);
+  // // make lambda that just writes into this
 
-    auto input_param = codegen_->MakeFreshIdentifier("input");
-    params.push_back(codegen_->MakeField(input_param, type));
-    i++;
-  }
+  // auto lam_var = codegen_->MakeFreshIdentifier("lamb");
+  // //  NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
+  // auto &cols = plan->GetOutputSchema()->GetColumns();
+  // //  auto &col = cols[0];
+  // execution::util::RegionVector<execution::ast::FieldDecl *> params(codegen_->GetAstContext()->GetRegion());
+  // std::vector<execution::ast::Expr *> assignees;
+  // execution::util::RegionVector<execution::ast::Expr *> captures(codegen_->GetAstContext()->GetRegion());
+  // size_t i = 0;
+  // params.push_back(codegen_->MakeField(
+  //     exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
+  //     codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
+  // for (auto &col : cols) {
+  //   execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->var_name)->second);
+  //   type::TypeId udf_type;
+  //   udf_ast_context_->GetVariableType(ast->var_name, &udf_type);
+  //   if (udf_type == type::TypeId::INVALID) {
+  //     // record type
+  //     auto &struct_vars = udf_ast_context_->GetRecordType(ast->var_name);
+  //     if (captures.empty()) {
+  //       captures.push_back(capture_var);
+  //     }
+  //     capture_var = codegen_->AccessStructMember(capture_var, codegen_->MakeIdentifier(struct_vars[i].first));
+  //     assignees.push_back(capture_var);
+  //   } else {
+  //     assignees.push_back(capture_var);
+  //     captures.push_back(capture_var);
+  //   }
+  //   //    auto capture_var = str_to_ident_.find(ast->var_name)->second;
+  //   auto type = codegen_->TplType(execution::sql::GetTypeId(col.GetType()));
 
-  execution::ast::LambdaExpr *lambda_expr;
-  FunctionBuilder fn(codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil));
-  {
-    for (size_t j = 0; j < assignees.size(); j++) {
-      auto capture_var = assignees[j];
-      auto input_param = fn.GetParameterByPosition(j + 1);
-      fn.Append(codegen_->Assign(capture_var, input_param));
-    }
-  }
+  //   auto input_param = codegen_->MakeFreshIdentifier("input");
+  //   params.push_back(codegen_->MakeField(input_param, type));
+  //   i++;
+  // }
 
-  lambda_expr = fn.FinishLambda(std::move(captures));
-  lambda_expr->SetName(lam_var);
+  // execution::ast::LambdaExpr *lambda_expr;
+  // FunctionBuilder fn(codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil));
+  // {
+  //   for (size_t j = 0; j < assignees.size(); j++) {
+  //     auto capture_var = assignees[j];
+  //     auto input_param = fn.GetParameterByPosition(j + 1);
+  //     fn.Append(codegen_->Assign(capture_var, input_param));
+  //   }
+  // }
 
-  // want to pass something down that will materialize the lambda function for me into lambda_expr and will
-  // also feed in a lambda_expr to the compiler
-  execution::exec::ExecutionSettings exec_settings{};
-  const std::string dummy_query = "";
-  auto exec_query = execution::compiler::CompilationContext::Compile(
-      *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot,
-      common::ManagedPointer<const std::string>(&dummy_query), lambda_expr, codegen_->GetAstContext());
-  auto fns = exec_query->GetFunctions();
-  auto decls = exec_query->GetDecls();
+  // lambda_expr = fn.FinishLambda(std::move(captures));
+  // lambda_expr->SetName(lam_var);
 
-  aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
+  // // want to pass something down that will materialize the lambda function for me into lambda_expr and will
+  // // also feed in a lambda_expr to the compiler
+  // execution::exec::ExecutionSettings exec_settings{};
+  // const std::string dummy_query = "";
+  // auto exec_query = execution::compiler::CompilationContext::Compile(
+  //     *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot,
+  //     common::ManagedPointer<const std::string>(&dummy_query), lambda_expr, codegen_->GetAstContext());
+  // auto fns = exec_query->GetFunctions();
+  // auto decls = exec_query->GetDecls();
 
-  fb_->Append(
-      codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLitExpr()->TypeRepr()), lambda_expr));
+  // aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
 
-  // make query state
-  auto query_state = codegen_->MakeFreshIdentifier("query_state");
-  fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
-  // set its execution context to whatever exec context was passed in here
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
-  std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec;
-  for (auto it = query_params.begin(); it != query_params.end(); it++) {
-    sorted_vec.push_back(it);
-  }
+  // fb_->Append(
+  //     codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLitExpr()->TypeRepr()),
+  //     lambda_expr));
 
-  std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second.second < y->second.second; });
-  for (auto entry : sorted_vec) {
-    // TODO(order these dudes)
-    type::TypeId type = type::TypeId::INVALID;
-    execution::ast::Expr *expr = nullptr;
-    if (entry->second.first.length() > 0) {
-      auto &fields = udf_ast_context_->GetRecordType(entry->second.first);
-      auto it = std::find_if(fields.begin(), fields.end(), [=](auto p) { return p.first == entry->first; });
-      type = it->second;
-      expr = codegen_->AccessStructMember(codegen_->MakeExpr(str_to_ident_[entry->second.first]),
-                                          codegen_->MakeIdentifier(entry->first));
-    } else {
-      udf_ast_context_->GetVariableType(entry->first, &type);
-      expr = codegen_->MakeExpr(str_to_ident_[entry->first]);
-    }
+  // // make query state
+  // auto query_state = codegen_->MakeFreshIdentifier("query_state");
+  // fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
+  // // set its execution context to whatever exec context was passed in here
+  // fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
+  // std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec;
+  // for (auto it = query_params.begin(); it != query_params.end(); it++) {
+  //   sorted_vec.push_back(it);
+  // }
 
-    //    NOISEPAGE_ASSERT(ret, "didn't find param in udf ast context");
-    execution::ast::Builtin builtin;
-    switch (type) {
-      case type::TypeId::BOOLEAN:
-        builtin = execution::ast::Builtin::AddParamBool;
-        break;
-      case type::TypeId::TINYINT:
-        builtin = execution::ast::Builtin::AddParamTinyInt;
-        break;
-      case type::TypeId::SMALLINT:
-        builtin = execution::ast::Builtin::AddParamSmallInt;
-        break;
-      case type::TypeId::INTEGER:
-        builtin = execution::ast::Builtin::AddParamInt;
-        break;
-      case type::TypeId::BIGINT:
-        builtin = execution::ast::Builtin::AddParamBigInt;
-        break;
-      case type::TypeId::DECIMAL:
-        builtin = execution::ast::Builtin::AddParamDouble;
-        break;
-      case type::TypeId::DATE:
-        builtin = execution::ast::Builtin::AddParamDate;
-        break;
-      case type::TypeId::TIMESTAMP:
-        builtin = execution::ast::Builtin::AddParamTimestamp;
-        break;
-      case type::TypeId::VARCHAR:
-        builtin = execution::ast::Builtin::AddParamString;
-        break;
-      default:
-        UNREACHABLE("Unsupported parameter type");
-    }
-    fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, expr}));
-  }
-  // set param 1
-  // set param 2
-  // etc etc
-  fb_->Append(codegen_->Assign(
-      codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
+  // std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second.second < y->second.second;
+  // }); for (auto entry : sorted_vec) {
+  //   // TODO(order these dudes)
+  //   type::TypeId type = type::TypeId::INVALID;
+  //   execution::ast::Expr *expr = nullptr;
+  //   if (entry->second.first.length() > 0) {
+  //     auto &fields = udf_ast_context_->GetRecordType(entry->second.first);
+  //     auto it = std::find_if(fields.begin(), fields.end(), [=](auto p) { return p.first == entry->first; });
+  //     type = it->second;
+  //     expr = codegen_->AccessStructMember(codegen_->MakeExpr(str_to_ident_[entry->second.first]),
+  //                                         codegen_->MakeIdentifier(entry->first));
+  //   } else {
+  //     udf_ast_context_->GetVariableType(entry->first, &type);
+  //     expr = codegen_->MakeExpr(str_to_ident_[entry->first]);
+  //   }
 
-  for (auto &col : cols) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->var_name)->second);
-    auto lhs = capture_var;
-    if (cols.size() > 1) {
-      // record struct type
-      lhs = codegen_->AccessStructMember(capture_var, codegen_->MakeIdentifier(col.GetName()));
-    }
-    fb_->Append(codegen_->Assign(lhs, codegen_->ConstNull(col.GetType())));
-  }
-  // set its execution context to whatever exec context was passed in here
+  //   //    NOISEPAGE_ASSERT(ret, "didn't find param in udf ast context");
+  //   execution::ast::Builtin builtin;
+  //   switch (type) {
+  //     case type::TypeId::BOOLEAN:
+  //       builtin = execution::ast::Builtin::AddParamBool;
+  //       break;
+  //     case type::TypeId::TINYINT:
+  //       builtin = execution::ast::Builtin::AddParamTinyInt;
+  //       break;
+  //     case type::TypeId::SMALLINT:
+  //       builtin = execution::ast::Builtin::AddParamSmallInt;
+  //       break;
+  //     case type::TypeId::INTEGER:
+  //       builtin = execution::ast::Builtin::AddParamInt;
+  //       break;
+  //     case type::TypeId::BIGINT:
+  //       builtin = execution::ast::Builtin::AddParamBigInt;
+  //       break;
+  //     case type::TypeId::DECIMAL:
+  //       builtin = execution::ast::Builtin::AddParamDouble;
+  //       break;
+  //     case type::TypeId::DATE:
+  //       builtin = execution::ast::Builtin::AddParamDate;
+  //       break;
+  //     case type::TypeId::TIMESTAMP:
+  //       builtin = execution::ast::Builtin::AddParamTimestamp;
+  //       break;
+  //     case type::TypeId::VARCHAR:
+  //       builtin = execution::ast::Builtin::AddParamString;
+  //       break;
+  //     default:
+  //       UNREACHABLE("Unsupported parameter type");
+  //   }
+  //   fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, expr}));
+  // }
+  // // set param 1
+  // // set param 2
+  // // etc etc
+  // fb_->Append(codegen_->Assign(
+  //     codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
 
-  for (auto &sub_fn : fns) {
-    //    aux_decls_.push_back(c)
-    if (sub_fn.find("Run") != std::string::npos) {
-      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn),
-                                 {codegen_->AddressOf(query_state), codegen_->MakeExpr(lam_var)}));
-    } else {
-      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn), {codegen_->AddressOf(query_state)}));
-    }
-  }
+  // for (auto &col : cols) {
+  //   execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->var_name)->second);
+  //   auto lhs = capture_var;
+  //   if (cols.size() > 1) {
+  //     // record struct type
+  //     lhs = codegen_->AccessStructMember(capture_var, codegen_->MakeIdentifier(col.GetName()));
+  //   }
+  //   fb_->Append(codegen_->Assign(lhs, codegen_->ConstNull(col.GetType())));
+  // }
+  // // set its execution context to whatever exec context was passed in here
 
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
+  // for (auto &sub_fn : fns) {
+  //   //    aux_decls_.push_back(c)
+  //   if (sub_fn.find("Run") != std::string::npos) {
+  //     fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn),
+  //                                {codegen_->AddressOf(query_state), codegen_->MakeExpr(lam_var)}));
+  //   } else {
+  //     fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn),
+  //     {codegen_->AddressOf(query_state)}));
+  //   }
+  // }
 
-  return;
+  // fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
+
+  // return;
 }
 
-void UDFCodegen::Visit(MemberExprAST *ast) {
+void UDFCodegen::Visit(ast::udf::MemberExprAST *ast) {
   ast->object->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto object = dst_;
   dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->field));

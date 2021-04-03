@@ -186,6 +186,14 @@ void BytecodeGenerator::VisitForStmt(ast::ForStmt *node) {
   loop_builder.JumpToHeader();
 }
 
+void BytecodeGenerator::VisitBreakStmt(ast::BreakStmt *node) {
+  // TODO(Kyle): Implement.
+  throw NOT_IMPLEMENTED_EXCEPTION("VisitBreakStmt Not Implemented");
+  // if(current_loop_ != nullptr && current_loop_->GetPrev() != nullptr) {
+  //   current_loop_->GetPrev()->Break();
+  // }
+}
+
 void BytecodeGenerator::VisitForInStmt(UNUSED_ATTRIBUTE ast::ForInStmt *node) {
   NOISEPAGE_ASSERT(false, "For-in statements not supported");
 }
@@ -207,6 +215,72 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
     BytecodePositionScope position_scope(this, func_info);
     Visit(node->Function());
   }
+}
+
+void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
+  // TODO(Kyle): Implement.
+  throw NOT_IMPLEMENTED_EXCEPTION("VisitLambdaExpr Not Implemented");
+  //   // The function's TPL type
+  //   auto *func_type = node->GetFunctionLitExpr()->GetType()->As<ast::FunctionType>();
+
+  //   // Allocate the function
+  // //  func_type->RegisterCapture();
+  //   if(!GetExecutionResult()->HasDestination()){
+  //     return;
+  //   }
+  //   auto captures = GetCurrentFunction()->NewLocal(node->GetCaptureStructType(), node->GetName().GetString() +
+  //   "captures"); auto fields = node->GetCaptureStructType()->As<ast::StructType>()->GetFieldsWithoutPadding();
+  // //  auto &locals = GetCurrentFunction()->GetLocals();
+  //   for(size_t i = 0;i < fields.size() - 1;i++){
+  //     auto field = fields[i];
+  //     ast::IdentifierExpr ident(node->Position(), field.name_);
+  //     ident.SetType(field.type_->GetPointeeType());
+  //     auto local = VisitExpressionForLValue(&ident);
+  // //    auto local_it = std::find_if(locals.begin(), locals.end(), [=](const auto &loc){ return loc.GetName() ==
+  // field.name_.GetString();});
+  // //    bool is_capture = false;
+  // //    LocalVar local;
+  // //    if(local_it == locals.end()){
+  // //      // should be inside captures
+  // //      NOISEPAGE_ASSERT(GetCurrentFunction()->IsLambda(), "not lambda and local to capture not found");
+  // //      is_capture = true;
+  // //      auto caller_captures = GetCurrentFunction()->GetFuncType()->GetCapturesType()->GetFieldsWithoutPadding();
+  // //
+  // //      auto cap_it = std::find_if(caller_captures.begin(), caller_captures.end(),
+  // //                                 [=](const auto &loc){ return loc.GetName() == field.name_.GetString();});
+  // //      NOISEPAGE_ASSERT(cap_it != caller_captures.end(), "local to capture straight up not found");
+  // //      GetEmitter()->
+  // //    }
+  //     LocalVar fieldvar = GetCurrentFunction()->NewLocal(
+  //         fields[i].type_->PointerTo(), "");
+  //     GetEmitter()->EmitLea(fieldvar, captures.AddressOf(),
+  //                                        node->GetCaptureStructType()
+  //                                            ->As<ast::StructType>()->GetOffsetOfFieldByName(fields[i].name_));
+  //     GetEmitter()->EmitAssign(Bytecode::Assign8, fieldvar.ValueOf(), local);
+  //   }
+
+  //   GetEmitter()->EmitAssign(Bytecode::Assign8, GetExecutionResult()->GetDestination(), captures.AddressOf());
+  //   FunctionInfo *func_info = AllocateFunc(node->GetName().GetString(), func_type);
+  //   GetCurrentFunction()->DeferAction([=](){
+  //   func_info->captures_ = captures;
+  //   func_info->is_lambda_ = true;
+  //    {
+  //       // Visit the body of the function. We use this handy scope object to track
+  //       // the start and end position of this function's bytecode in the module's
+  //       // bytecode array. Upon destruction, the scoped class will set the bytecode
+  //       // range in the function.
+  //       EnterFunction(func_info->GetId());
+  //       BytecodePositionScope position_scope(this, func_info);
+  //       Visit(node->GetFunctionLitExpr()->Body());
+  //     }
+  //     for(auto f : func_info->actions_){
+  //       f();
+  //     }
+  //   });
+}
+
+void BytecodeGenerator::VisitLambdaTypeRepr(ast::LambdaTypeRepr *node) {
+  UNREACHABLE("Should not visit type-representation nodes!");
 }
 
 void BytecodeGenerator::VisitIdentifierExpr(ast::IdentifierExpr *node) {

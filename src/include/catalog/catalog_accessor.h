@@ -341,6 +341,11 @@ class EXPORT CatalogAccessor {
   proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
   /**
+   * TODO(Kyle): Document.
+   */
+  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
+
+  /**
    * Sets the proc context pointer column of proc_oid to func_context
    * @param proc_oid The proc_oid whose pointer column we are setting here
    * @param func_context The context object to set to

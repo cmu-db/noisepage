@@ -51,7 +51,8 @@ void Sema::VisitFunctionTypeRepr(ast::FunctionTypeRepr *node) {
   }
 
   // Create type
-  ast::FunctionType *func_type = ast::FunctionType::Get(std::move(param_types), ret);
+  // TODO(Kyle): this is a bad API
+  ast::FunctionType *func_type = ast::FunctionType::Get(std::move(param_types), ret, false);
   node->SetType(func_type);
 }
 
@@ -88,6 +89,17 @@ void Sema::VisitMapTypeRepr(ast::MapTypeRepr *node) {
   }
 
   node->SetType(ast::MapType::Get(key_type, value_type));
+}
+
+void Sema::VisitLambdaTypeRepr(ast::LambdaTypeRepr *node) {
+  ast::FunctionType *fn_type = Resolve(node->FunctionType())->SafeAs<ast::FunctionType>();
+  if (fn_type == nullptr) {
+    return;
+  }
+
+  fn_type->GetParams().emplace_back(GetContext()->GetIdentifier("captures"),
+                                    GetBuiltinType(ast::BuiltinType::Kind::Int32)->PointerTo());
+  node->SetType(ast::LambdaType::Get(fn_type));
 }
 
 }  // namespace noisepage::execution::sema

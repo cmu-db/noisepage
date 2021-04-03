@@ -26,11 +26,12 @@ class UDFASTContext {
     return true;
   }
 
-  void AddVariable(std::string name) { local_variables_.push_back(name); }
+  void AddVariable(const std::string &name) { local_variables_.push_back(name); }
 
-  const std::string &GetVariableAtIndex(int index) {
+  const std::string &GetVariableAtIndex(const std::size_t index) {
     NOISEPAGE_ASSERT(local_variables_.size() >= index, "Bad var");
-    return local_variables_[index - 1];
+    // TODO(Kyle): Why did this originally have index - 1?
+    return local_variables_.at(index);
   }
 
   void SetRecordType(std::string var, std::vector<std::pair<std::string, type::TypeId>> &&elems) {

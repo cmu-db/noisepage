@@ -20,7 +20,9 @@ class Context;
   F(BuiltinType)     \
   F(StringType)      \
   F(PointerType)     \
+  F(ReferenceType)   \
   F(ArrayType)       \
+  F(LambdaType)      \
   F(MapType)         \
   F(StructType)      \
   F(FunctionType)
@@ -308,6 +310,11 @@ class Type : public util::RegionObject {
   PointerType *PointerTo();
 
   /**
+   * @return A new type that is a reference to the current type.
+   */
+  ReferenceType *ReferenceTo();
+
+  /**
    * @return If this is a pointer type, the type of the element pointed to. Returns null otherwise.
    */
   Type *GetPointeeType() const;
@@ -501,6 +508,37 @@ class PointerType : public Type {
 };
 
 /**
+ * Reference type.
+ */
+class ReferenceType : public Type {
+ public:
+  /**
+   * @return base type
+   */
+  Type *GetBase() const { return base_; }
+
+  /**
+   * Static Constructor
+   * @param base type
+   * @return reference to base type
+   */
+  static ReferenceType *Get(Type *base);
+
+  /**
+   * @param type checked type
+   * @return whether type is a reference type.
+   */
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::ReferenceType; }  // NOLINT
+
+ private:
+  explicit ReferenceType(Type *base)
+      : Type(base->GetContext(), sizeof(int8_t *), alignof(int8_t *), TypeId::ReferenceType), base_(base) {}
+
+ private:
+  Type *base_;
+};
+
+/**
  * Array type.
  */
 class ArrayType : public Type {
@@ -588,9 +626,14 @@ struct Field {
 class FunctionType : public Type {
  public:
   /**
-   * @return A constant reference to the list of parameters to a function.
+   * @return An immutable reference to the list of parameters to a function.
    */
   const util::RegionVector<Field> &GetParams() const { return params_; }
+
+  /**
+   * @return A mutable reference to the list of parameters to a function.
+   */
+  util::RegionVector<Field> &GetParams() { return params_; }
 
   /**
    * @return The number of parameters to the function.
@@ -602,13 +645,25 @@ class FunctionType : public Type {
    */
   Type *GetReturnType() const { return ret_; }
 
+  bool IsEqual(const FunctionType *other);
+
+  bool IsLambda() const { return is_lambda_; }
+
+  ast::StructType *GetCapturesType() const {
+    NOISEPAGE_ASSERT(is_lambda_, "Getting capture type from not lambda");
+    return captures_;
+  }
+
+  void RegisterCapture();
+
   /**
    * Create a function with parameters @em params and returning types of type @em ret.
    * @param params The parameters to the function.
    * @param ret The type of the object the function returns.
+   * @param is_lambda `true` if this function is a lambda, `false` otherwise.
    * @return The function type.
    */
-  static FunctionType *Get(util::RegionVector<Field> &&params, Type *ret);
+  static FunctionType *Get(util::RegionVector<Field> &&params, Type *ret, bool is_lambda);
 
   /**
    * @param type type to compare with
@@ -617,11 +672,13 @@ class FunctionType : public Type {
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::FunctionType; }  // NOLINT
 
  private:
-  explicit FunctionType(util::RegionVector<Field> &&params, Type *ret);
+  explicit FunctionType(util::RegionVector<Field> &&params, Type *ret, bool is_lambda);
 
  private:
   util::RegionVector<Field> params_;
   Type *ret_;
+  const bool is_lambda_;
+  ast::StructType *captures_{};
 };
 
 /**
@@ -659,6 +716,25 @@ class MapType : public Type {
  private:
   Type *key_type_;
   Type *val_type_;
+};
+
+/**
+ * Lambda type.
+ * TODO(Kyle): Document.
+ */
+class LambdaType : public Type {
+ public:
+  FunctionType *GetFunctionType() const { return fn_type_; }
+
+  static LambdaType *Get(FunctionType *fn_type);
+
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::LambdaType; }  // NOLINT
+
+ private:
+  LambdaType(FunctionType *fn_type);
+
+ private:
+  FunctionType *fn_type_;
 };
 
 /**

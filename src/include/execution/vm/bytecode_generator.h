@@ -155,6 +155,9 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *then_label, BytecodeLabel *else_label,
                               TestFallthrough fallthrough);
 
+  // Visit the body of a break statement
+  void VisitBreakStatement(ast::BreakStmt *break_stmt);
+
   // Visit the body of an iteration statement
   void VisitIterationStatement(ast::IterationStmt *iteration, LoopBuilder *loop_builder);
 

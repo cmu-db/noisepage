@@ -450,6 +450,11 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
 }
 
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetProcCtxPtr(
+    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
+  return pg_proc_.GetProcCtxPtr(txn, proc_oid);
+}
+
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {

@@ -47,6 +47,17 @@ class AstNodeFactory {
 
   /**
    * @param pos source position
+   * @param fun function literal (params, return type, body)
+   * @param captures lambda captures
+   * @return created LambdaExpr node.
+   */
+  LambdaExpr *NewLambdaExpr(const SourcePosition &pos, FunctionLitExpr *fun,
+                            util::RegionVector<ast::Expr *> &&captures) {
+    return new (region_) LambdaExpr(pos, fun, std::move(captures));
+  }
+
+  /**
+   * @param pos source position
    * @param name struct name
    * @param type_repr struct type (field names and types)
    * @return created StructDecl node.
@@ -132,6 +143,12 @@ class AstNodeFactory {
   IfStmt *NewIfStmt(const SourcePosition &pos, Expr *cond, BlockStmt *then_stmt, Stmt *else_stmt) {
     return new (region_) IfStmt(pos, cond, then_stmt, else_stmt);
   }
+
+  /**
+   * @param pos source position
+   * @return created BreakStmt node
+   */
+  BreakStmt *NewBreakStmt(const SourcePosition &pos) { return new (region_) BreakStmt(pos); }
 
   /**
    * @param pos source position
@@ -335,6 +352,15 @@ class AstNodeFactory {
    */
   MapTypeRepr *NewMapType(const SourcePosition &pos, Expr *key_type, Expr *val_type) {
     return new (region_) MapTypeRepr(pos, key_type, val_type);
+  }
+
+  /**
+   * @param pos source position
+   * @param fn_type the function type
+   * @return created LambdaTypeRepr
+   */
+  LambdaTypeRepr *NewLambdaType(const SourcePosition &pos, Expr *fn_type) {
+    return new (region_) LambdaTypeRepr(pos, fn_type);
   }
 
  private:

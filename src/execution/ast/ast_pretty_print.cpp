@@ -204,6 +204,12 @@ void AstPrettyPrintImpl::VisitMapTypeRepr(MapTypeRepr *node) {
   Visit(node->ValType());
 }
 
+void AstPrettyPrintImpl::VisitLambdaTypeRepr(LambdaTypeRepr *node) {
+  os_ << "lambda[";
+  Visit(node->FunctionType());
+  os_ << "]";
+}
+
 void AstPrettyPrintImpl::VisitLitExpr(LitExpr *node) {
   switch (node->GetLiteralKind()) {
     case LitExpr::LitKind::Nil:
@@ -223,6 +229,8 @@ void AstPrettyPrintImpl::VisitLitExpr(LitExpr *node) {
       break;
   }
 }
+
+void AstPrettyPrintImpl::VisitBreakStmt(BreakStmt *node) { os_ << "break;\n"; }
 
 void AstPrettyPrintImpl::VisitStructTypeRepr(StructTypeRepr *node) {
   // We want to ensure all types are aligned. Pre-process the fields to
@@ -281,6 +289,11 @@ void AstPrettyPrintImpl::VisitIndexExpr(IndexExpr *node) {
   os_ << "[";
   Visit(node->Index());
   os_ << "]";
+}
+
+void AstPrettyPrintImpl::VisitLambdaExpr(LambdaExpr *node) {
+  os_ << "lambda ";
+  VisitFunctionLitExpr(node->GetFunctionLitExpr());
 }
 
 void AstPrettyPrintImpl::VisitFunctionTypeRepr(FunctionTypeRepr *node) {

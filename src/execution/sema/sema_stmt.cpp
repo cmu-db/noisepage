@@ -70,6 +70,23 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
   Visit(node->Body());
 }
 
+// TODO(Kyle): Implement.
+void Sema::VisitBreakStmt(ast::BreakStmt *node) {
+  // look for a loop in my scope stack
+  //  auto scope = GetCurrentScope();
+  //  bool found_loop = false;
+  //  while(scope != nullptr){
+  //    found_loop |= scope->GetKind() == Scope::Kind::Loop;
+  //    if(found_loop){
+  //      break;
+  //    }
+  //    scope = scope->Outer();
+  //  }
+  //  if(!found_loop){
+  //    error_reporter_->Report(node->Position(), ErrorMessages::kNoScopeToBreak);
+  //  }
+}
+
 void Sema::VisitForInStmt(ast::ForInStmt *node) { NOISEPAGE_ASSERT(false, "Not supported"); }
 
 void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->Expression()); }

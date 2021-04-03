@@ -14,13 +14,10 @@ class CatalogAccessor;
 
 namespace noisepage {
 namespace execution {
-namespace compiler {
+
+// Forward declarations
+namespace ast {
 namespace udf {
-
-// TODO(Kyle): Is distinguishing the standard codegen
-// namespace stuff from the UDF stuff here going to be
-// an issue (i.e. disambiguation)?
-
 class AbstractAST;
 class StmtAST;
 class ExprAST;
@@ -36,56 +33,58 @@ class WhileStmtAST;
 class RetStmtAST;
 class AssignStmtAST;
 class SQLStmtAST;
+class FunctionAST;
+class IsNullExprAST;
 class DynamicSQLStmtAST;
 class ForStmtAST;
+}  // namespace udf
+}  // namespace ast
 
-class UDFCodegen : ASTNodeVisitor {
+namespace compiler {
+namespace udf {
+
+// TODO(Kyle): Is distinguishing the standard codegen
+// namespace stuff from the UDF stuff here going to be
+// an issue (i.e. disambiguation)?
+
+class UDFCodegen : ast::udf::ASTNodeVisitor {
  public:
-  UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb, parser::udf::UDFASTContext *udf_ast_context,
+  UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb, ast::udf::UDFASTContext *udf_ast_context,
              CodeGen *codegen, catalog::db_oid_t db_oid);
   ~UDFCodegen(){};
 
   catalog::type_oid_t GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type);
 
-  void GenerateUDF(AbstractAST *);
-  void Visit(AbstractAST *) override;
-  void Visit(FunctionAST *) override;
-  void Visit(StmtAST *) override;
-  void Visit(ExprAST *) override;
-  void Visit(ValueExprAST *) override;
-  void Visit(VariableExprAST *) override;
-  void Visit(BinaryExprAST *) override;
-  void Visit(CallExprAST *) override;
-  void Visit(IsNullExprAST *) override;
-  void Visit(SeqStmtAST *) override;
-  void Visit(DeclStmtAST *) override;
-  void Visit(IfStmtAST *) override;
-  void Visit(WhileStmtAST *) override;
-  void Visit(RetStmtAST *) override;
-  void Visit(AssignStmtAST *) override;
-  void Visit(SQLStmtAST *) override;
-  void Visit(DynamicSQLStmtAST *) override;
-  void Visit(ForStmtAST *) override;
-  void Visit(MemberExprAST *) override;
+  void GenerateUDF(ast::udf::AbstractAST *);
 
-  execution::ast::File *Finish() {
-    auto fn = fb_->Finish();
-    ////  util::RegionVector<ast::Decl *> decls_reg_vec{decls->begin(), decls->end(), codegen.Region()};
-    execution::util::RegionVector<execution::ast::Decl *> decls({fn}, codegen_->GetAstContext()->GetRegion());
-    //    for(auto decl : aux_decls_){
-    //      decls.push_back(decl);
-    //    }
-    decls.insert(decls.begin(), aux_decls_.begin(), aux_decls_.end());
-    auto file = codegen_->GetAstContext()->GetNodeFactory()->NewFile({0, 0}, std::move(decls));
-    return file;
-  }
+  void Visit(ast::udf::AbstractAST *) override;
+  void Visit(ast::udf::FunctionAST *) override;
+  void Visit(ast::udf::StmtAST *) override;
+  void Visit(ast::udf::ExprAST *) override;
+  void Visit(ast::udf::ValueExprAST *) override;
+  void Visit(ast::udf::VariableExprAST *) override;
+  void Visit(ast::udf::BinaryExprAST *) override;
+  void Visit(ast::udf::CallExprAST *) override;
+  void Visit(ast::udf::IsNullExprAST *) override;
+  void Visit(ast::udf::SeqStmtAST *) override;
+  void Visit(ast::udf::DeclStmtAST *) override;
+  void Visit(ast::udf::IfStmtAST *) override;
+  void Visit(ast::udf::WhileStmtAST *) override;
+  void Visit(ast::udf::RetStmtAST *) override;
+  void Visit(ast::udf::AssignStmtAST *) override;
+  void Visit(ast::udf::SQLStmtAST *) override;
+  void Visit(ast::udf::DynamicSQLStmtAST *) override;
+  void Visit(ast::udf::ForStmtAST *) override;
+  void Visit(ast::udf::MemberExprAST *) override;
+
+  execution::ast::File *Finish();
 
   static const char *GetReturnParamString();
 
  private:
   catalog::CatalogAccessor *accessor_;
   FunctionBuilder *fb_;
-  UDFASTContext *udf_ast_context_;
+  ast::udf::UDFASTContext *udf_ast_context_;
   CodeGen *codegen_;
   type::TypeId current_type_{type::TypeId::INVALID};
   execution::ast::Expr *dst_;

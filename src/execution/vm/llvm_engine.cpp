@@ -28,6 +28,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/error/exception.h"
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecode_traits.h"
@@ -182,6 +183,10 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       llvm_type = llvm::PointerType::getUnqual(GetLLVMType(ptr_type->GetBase()));
       break;
     }
+    case ast::Type::TypeId::ReferenceType: {
+      throw NOT_IMPLEMENTED_EXCEPTION("ReferenceType Not Implemented");
+      break;
+    }
     case ast::Type::TypeId::ArrayType: {
       auto *arr_type = type->As<ast::ArrayType>();
       llvm::Type *elem_type = GetLLVMType(arr_type->GetElementType());
@@ -202,6 +207,14 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
     }
     case ast::Type::TypeId::FunctionType: {
       llvm_type = GetLLVMFunctionType(type->As<ast::FunctionType>());
+      break;
+    }
+    case ast::Type::TypeId::LambdaType: {
+      throw NOT_IMPLEMENTED_EXCEPTION("LambdaType Not Implemented");
+      break;
+    }
+    default: {
+      UNREACHABLE("Unknown Type");
       break;
     }
   }
