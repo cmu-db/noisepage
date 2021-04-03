@@ -14,8 +14,8 @@
 #include "execution/exec/execution_settings.h"
 
 #include "catalog/catalog_accessor.h"
-#include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
 
 #include "traffic_cop/traffic_cop_util.h"
 
