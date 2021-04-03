@@ -54,6 +54,15 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
       if (!rep_log_provider->NonBlockingHasMoreRecords()) break;
     }
 
+    const bool logging_metrics_enabled =
+        common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
+
     auto pair = log_provider->GetNextRecord();
     auto *log_record = pair.first;
 
@@ -77,7 +86,18 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
         deferred_txns_.insert(log_record->TxnBegin());
 
         // Process any deferred transactions that are safe to execute
-        recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
+        auto [recovered_txns, log_records_processed] = ProcessDeferredTransactions(commit_record->OldestActiveTxn());
+        recovered_txns_ += recovered_txns;
+        log_records_processed++;
+
+        if (logging_metrics_enabled && log_records_processed > 0) {
+          // Stop the resource tracker for this operating unit
+          common::thread_context.resource_tracker_.Stop();
+          auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+          common::thread_context.metrics_store_->RecordRecoveryData(recovered_txns, log_records_processed,
+                                                                    resource_metrics);
+          recovered_txns = log_records_processed = 0;
+        }
 
         // Clean up the log record
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
@@ -119,7 +139,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
   }
 }
 
-void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
+uint32_t RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
+  auto records_processed = 0;
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
 
@@ -132,10 +153,13 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
 
     if (IsSpecialCaseCatalogRecord(buffered_record)) {
       idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
+      records_processed++;
     } else if (buffered_record->RecordType() == LogRecordType::REDO) {
       ReplayRedoRecord(txn, buffered_record);
+      records_processed++;
     } else {
       ReplayDeleteRecord(txn, buffered_record);
+      records_processed++;
     }
   }
 
@@ -145,6 +169,8 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
 
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  return records_processed;
 }
 
 void RecoveryManager::DeferRecordDeletes(noisepage::transaction::timestamp_t txn_id, bool delete_varlens) {
@@ -161,8 +187,10 @@ void RecoveryManager::DeferRecordDeletes(noisepage::transaction::timestamp_t txn
   });
 }
 
-uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::timestamp_t upper_bound_ts) {
+std::pair<uint32_t, uint32_t> RecoveryManager::ProcessDeferredTransactions(
+    noisepage::transaction::timestamp_t upper_bound_ts) {
   auto txns_processed = 0;
+  auto records_processed = 0;
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
   upper_bound_ts =
@@ -170,14 +198,14 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::ti
   auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
-    ProcessCommittedTransaction(*it);
+    records_processed += ProcessCommittedTransaction(*it);
     txns_processed++;
   }
 
   // If we actually processed some txns, remove them from the set
   if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
 
-  return txns_processed;
+  return {txns_processed, records_processed};
 }
 
 void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, LogRecord *record) {

@@ -199,8 +199,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   /**
    * @brief Replay a committed transaction corresponding to txn_id.
    * @param txn_id start timestamp for committed transaction
+   * @return number of records replayed
    */
-  void ProcessCommittedTransaction(transaction::timestamp_t txn_id);
+  uint32_t ProcessCommittedTransaction(transaction::timestamp_t txn_id);
 
   /**
    * Defers log records deletes with the transaction manager
@@ -213,9 +214,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * Replay any transaction who's txn start time is less than upper_bound. If upper_bound == transaction::NO_ACTIVE_TXN,
    * it will replay all deferred transactions
    * @param upper_bound upper bound for replaying
-   * @return number of transactions replayed
+   * @return number of transactions and records replayed
    */
-  uint32_t ProcessDeferredTransactions(transaction::timestamp_t upper_bound);
+  std::pair<uint32_t, uint32_t> ProcessDeferredTransactions(transaction::timestamp_t upper_bound);
 
   /**
    * Handles mapping of old tuple slot (before recovery) to new tuple slot (after recovery)

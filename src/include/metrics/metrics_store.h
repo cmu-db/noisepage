@@ -73,6 +73,16 @@ class MetricsStore {
     logging_metric_->RecordConsumerData(num_bytes, num_records, interval, resource_metrics);
   }
 
+  void RecordRecoveryData(const uint64_t num_records, const uint64_t num_txns,
+                          const common::ResourceTracker::Metrics &resource_metrics) {
+    if (!ComponentEnabled(MetricsComponent::LOGGING))
+      METRICS_LOG_WARN(
+          "RecordRecoveryData() called without logging metrics enabled. Was it recently disabled and the component is "
+          "just lagging?");
+    NOISEPAGE_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
+    logging_metric_->RecordRecoveryData(num_records, num_txns, resource_metrics);
+  }
+
   /**
    * Record metrics from GC
    * @param txns_deallocated first entry of metrics datapoint
