@@ -26,6 +26,7 @@ OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, Co
   pipeline->RegisterStep(this);
   // Prepare all output expressions.
   for (const auto &output_column : plan.GetOutputSchema()->GetColumns()) {
+    compilation_context->SetCurrentOp(this);
     compilation_context->Prepare(*output_column.GetExpr());
   }
 }
@@ -42,6 +43,18 @@ ast::Expr *OperatorTranslator::GetOutput(WorkContext *context, uint32_t attr_idx
 
   const auto output_expression = output_schema->GetColumn(attr_idx).GetExpr();
   return context->DeriveValue(*output_expression, this);
+}
+
+void OperatorTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
+  for (const auto &output_column : GetPlan().GetOutputSchema()->GetColumns()) {
+    GetCompilationContext()->LookupTranslator(*output_column.GetExpr())->DefineHelperFunctions(decls);
+  }
+}
+
+void OperatorTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
+  for (const auto &output_column : GetPlan().GetOutputSchema()->GetColumns()) {
+    GetCompilationContext()->LookupTranslator(*output_column.GetExpr())->DefineHelperStructs(decls);
+  }
 }
 
 ast::Expr *OperatorTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {

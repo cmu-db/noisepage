@@ -4,6 +4,7 @@
 
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
+#include "execution/ast/ast.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/context.h"
 #include "execution/compiler/compiler.h"
@@ -23,8 +24,8 @@ namespace noisepage::execution::compiler {
 //===----------------------------------------------------------------------===//
 
 ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fn,
-                                    std::unique_ptr<vm::Module> module)
-    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {}
+                                    std::unique_ptr<vm::Module> module, ast::File *file)
+    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)), file_(file) {}
 
 ExecutableQuery::Fragment::~Fragment() = default;
 
@@ -77,27 +78,42 @@ void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::Pip
   pipeline_operating_units_ = std::move(units);
 }
 
-ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings)
-    : plan_(plan),
-      exec_settings_(exec_settings),
-      errors_region_(std::make_unique<util::Region>("errors_region")),
-      context_region_(std::make_unique<util::Region>("context_region")),
-      errors_(std::make_unique<sema::ErrorReporter>(errors_region_.get())),
-      ast_context_(std::make_unique<ast::Context>(context_region_.get(), errors_.get())),
-      query_state_size_(0),
-      pipeline_operating_units_(nullptr),
-      query_id_(query_identifier++) {}
+ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
+                                 ast::Context *context)
+    : plan_{plan},
+      exec_settings_{exec_settings},
+      context_region_{std::make_unique<util::Region>("context_region")},
+      errors_region_{std::make_unique<util::Region>("errors_region")},
+      errors_{std::make_unique<sema::ErrorReporter>(errors_region_.get())},
+      ast_context_{context},
+      query_state_size_{0},
+      pipeline_operating_units_{nullptr},
+      query_id_{query_identifier++} {
+  if (ast_context_ == nullptr) {
+    ast_context_ = new ast::Context(context_region_.get(), errors_.get());
+    owned = true;
+  } else {
+    owned = false;
+  }
+}
 
 ExecutableQuery::ExecutableQuery(const std::string &contents,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
-                                 size_t query_state_size, const exec::ExecutionSettings &exec_settings)
+                                 std::size_t query_state_size, const exec::ExecutionSettings &exec_settings,
+                                 ast::Context *context)
     // TODO(WAN): Giant hack for the plan. The whole point is that you have no plan.
-    : plan_(reinterpret_cast<const planner::AbstractPlanNode &>(exec_settings)), exec_settings_(exec_settings) {
-  context_region_ = std::make_unique<util::Region>("context_region");
-  errors_region_ = std::make_unique<util::Region>("error_region");
-  errors_ = std::make_unique<sema::ErrorReporter>(errors_region_.get());
-  ast_context_ = std::make_unique<ast::Context>(context_region_.get(), errors_.get());
-
+    : plan_{reinterpret_cast<const planner::AbstractPlanNode &>(exec_settings)},
+      exec_settings_{exec_settings},
+      context_region_{std::make_unique<util::Region>("context_region")},
+      errors_region_{std::make_unique<util::Region>("error_region")},
+      errors_{std::make_unique<sema::ErrorReporter>(errors_region_.get())} {
+  if (context) {
+    ast_context_ = context;
+    owned = false;
+  } else {
+    ast_context_ = new ast::Context(context_region_.get(), errors_.get());
+    owned = true;
+  }
   // Let's scan the source
   std::string source;
   if (is_file) {
@@ -106,19 +122,21 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
       EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", contents, error.message());
       return;
     }
-
     // Copy the source into a temporary, compile, and run
     source = (*file)->getBuffer().str();
   } else {
     source = contents;
   }
 
-  auto input = Compiler::Input("tpl_source", ast_context_.get(), &source);
+  auto input = Compiler::Input("tpl_source", ast_context_, &source);
   auto module = compiler::Compiler::RunCompilationSimple(input);
 
   std::vector<std::string> functions{"main"};
   std::vector<std::string> teardown_functions;
-  auto fragment = std::make_unique<Fragment>(std::move(functions), std::move(teardown_functions), std::move(module));
+
+  // TODO(Kyle): bad API
+  auto fragment =
+      std::make_unique<Fragment>(std::move(functions), std::move(teardown_functions), std::move(module), nullptr);
 
   std::vector<std::unique_ptr<Fragment>> fragments;
   fragments.emplace_back(std::move(fragment));
@@ -132,8 +150,12 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 }
 
 // Needed because we forward-declare classes used as template types to std::unique_ptr<>
-ExecutableQuery::~ExecutableQuery() = default;
-
+ExecutableQuery::~ExecutableQuery() {
+  // TODO(Kyle): This is a bad ownership model, revisit
+  if (owned) {
+    delete ast_context_;
+  }
+}
 void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
                             std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units) {
   NOISEPAGE_ASSERT(
@@ -164,10 +186,15 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   for (const auto &fragment : fragments_) {
     fragment->Run(query_state.get(), mode);
   }
+}
 
-  // We do not currently re-use ExecutionContexts. However, this is unset to help ensure
-  // we don't *intentionally* retain any dangling pointers.
-  exec_ctx->SetQueryState(nullptr);
+std::vector<ast::Decl *> ExecutableQuery::GetDecls() const {
+  std::vector<ast::Decl *> decls;
+  for (auto &f : fragments_) {
+    auto frag_decls = f->GetFile()->Declarations();
+    decls.insert(decls.end(), frag_decls.begin(), frag_decls.end());
+  }
+  return decls;
 }
 
 }  // namespace noisepage::execution::compiler

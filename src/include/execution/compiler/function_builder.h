@@ -30,6 +30,14 @@ class FunctionBuilder {
                   ast::Expr *ret_type);
 
   /**
+   * Create a builder for a function with the provided return type and arguments.
+   * @param codegen The code generation instance.
+   * @param params The parameters to the function.
+   * @param ret_type The return type representation of the function.
+   */
+  FunctionBuilder(CodeGen *codegen, util::RegionVector<ast::FieldDecl *> &&params, ast::Expr *ret_type);
+
+  /**
    * Destructor.
    */
   ~FunctionBuilder();
@@ -65,10 +73,25 @@ class FunctionBuilder {
   ast::FunctionDecl *Finish(ast::Expr *ret = nullptr);
 
   /**
+   * Finish constructing the lambda.
+   * @param captures The lambda captures
+   * @param ret The return value, if present
+   * @return The lambda expression
+   */
+  noisepage::execution::ast::LambdaExpr *FinishLambda(util::RegionVector<ast::Expr *> &&captures,
+                                                      ast::Expr *ret = nullptr);
+
+  /**
    * @return The final constructed function; null if the builder hasn't been constructed through
    *         FunctionBuilder::Finish().
    */
-  ast::FunctionDecl *GetConstructedFunction() const { return decl_; }
+  ast::FunctionDecl *GetConstructedFunction() const { return decl_.fn_decl_; }
+
+  /**
+   * @return The final constructed lambda; null if the builder hasn't been constructed through
+   *         FunctionBuilder::FinishLambda().
+   */
+  ast::LambdaExpr *GetConstructedLambda() const { return decl_.lambda_expr_; }
 
   /**
    * @return The code generator instance.
@@ -88,8 +111,16 @@ class FunctionBuilder {
   SourcePosition start_;
   // The list of generated statements making up the function.
   ast::BlockStmt *statements_;
+
+  // `true` if this function is a lambda, `false` otherwise.
+  bool is_lambda_;
+
   // The cached function declaration. Constructed once in Finish().
-  ast::FunctionDecl *decl_;
+  // TODO(Kyle): This needs to be a variant...
+  union {
+    ast::FunctionDecl *fn_decl_{nullptr};
+    ast::LambdaExpr *lambda_expr_;
+  } decl_;
 };
 
 }  // namespace noisepage::execution::compiler
