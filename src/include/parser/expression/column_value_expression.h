@@ -111,6 +111,14 @@ class ColumnValueExpression : public AbstractExpression {
   /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
+  // TODO(Kyle): Why are we narrowing here?
+
+  /** @return parameter index */
+  std::int32_t GetParamIdx() const { return param_idx_; }
+
+  /** @brief set the parameter index */
+  void SetParamIdx(std::uint32_t param_idx) { param_idx_ = static_cast<std::int32_t>(param_idx); }
+
   /**
    * Get Column Full Name [tbl].[col]
    */
@@ -195,6 +203,9 @@ class ColumnValueExpression : public AbstractExpression {
 
   /** OID of the column */
   catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
+
+  /** parameter index */
+  std::int32_t param_idx_{-1};
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(ColumnValueExpression);
