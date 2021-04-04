@@ -48,14 +48,20 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
                                         commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn,
                                         timestamp_manager_.Get());
     } else if (txn->GetDurabilityPolicy() == DurabilityPolicy::ASYNC) {
-      // We still want to send this record to the LogManager, but we'll swap in the EmptyCallback to send with the
-      // LogRecord, and invoke the provided callback immediately. The WAL worker will still be responsible for
-      // removing it from the running transactions table once the record has been serialized. Otherwise the serializer
-      // might dereference bad memory if the GC prunes any varlens this transaction might be holding.
-      byte *const commit_record =
-          txn->redo_buffer_.NewEntry(storage::CommitRecord::Size(), txn->GetTransactionPolicy());
-      storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, TransactionUtil::EmptyCallback,
-                                        nullptr, oldest_active_txn, txn->IsReadOnly(), txn, timestamp_manager_.Get());
+      if (txn->IsReadOnly()) {
+        // Read-only txns have no external dependencies through the system, so remove it from running transactions table
+        // immediately
+        timestamp_manager_->RemoveTransaction(txn->StartTime());
+      } else {
+        // We still want to send this record to the LogManager, but we'll swap in the EmptyCallback to send with the
+        // LogRecord, and invoke the provided callback immediately. The WAL worker will still be responsible for
+        // removing it from the running transactions table once the record has been serialized. Otherwise the serializer
+        // might dereference bad memory if the GC prunes any varlens this transaction might be holding.
+        byte *const commit_record =
+            txn->redo_buffer_.NewEntry(storage::CommitRecord::Size(), txn->GetTransactionPolicy());
+        storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, TransactionUtil::EmptyCallback,
+                                          nullptr, oldest_active_txn, txn->IsReadOnly(), txn, timestamp_manager_.Get());
+      }
       commit_callback(commit_callback_arg);
     } else {
       NOISEPAGE_ASSERT(txn->GetDurabilityPolicy() == DurabilityPolicy::DISABLE, "Durability should be disabled.");
