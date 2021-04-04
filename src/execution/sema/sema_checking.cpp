@@ -269,6 +269,12 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
     return true;
   }
 
+  if (target_type->IsLambdaType() && (*expr)->GetType()->IsLambdaType()) {
+    auto fn_type = (*expr)->GetType()->As<ast::LambdaType>()->GetFunctionType();
+    auto target_fn = target_type->As<ast::LambdaType>()->GetFunctionType();
+    return fn_type->IsEqual(target_fn);
+  }
+
   // Integer expansion
   if (target_type->IsIntegerType() && (*expr)->GetType()->IsIntegerType()) {
     if (target_type->GetSize() > (*expr)->GetType()->GetSize()) {

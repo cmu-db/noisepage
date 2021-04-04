@@ -68,6 +68,16 @@ class Scope {
   ast::Type *LookupLocal(ast::Identifier name) const;
 
   /**
+   * TODO(Kyle): Document.
+   */
+  Kind GetKind() const;
+
+  /**
+   * TODO(Kyle): Document.
+   */
+  std::vector<std::pair<ast::Identifier, ast::Type *>> GetLocals() const;
+
+  /**
    * @return the parent scope
    */
   Scope *Outer() const { return outer_; }

@@ -83,6 +83,11 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
     return;
   }
 
+  // TODO(Kyle): This seems weird
+  if (node->GetType() != nullptr) {
+    return;
+  }
+
   // Resolve the function type
   ast::Type *type = Resolve(node->Function());
   if (type == nullptr) {
@@ -91,13 +96,30 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
 
   // Check that the resolved function type is actually a function
   auto *func_type = type->SafeAs<ast::FunctionType>();
+  auto *struct_type = type->SafeAs<ast::LambdaType>();
+  auto lambda_adjustment = 1;
   if (func_type == nullptr) {
-    GetErrorReporter()->Report(node->Position(), ErrorMessages::kNonFunction);
-    return;
+    if (struct_type != nullptr) {
+      func_type = struct_type->GetFunctionType();
+      // TODO(Kyle): find a better way to see if sema has processed this already
+      ast::IdentifierExpr *last_arg = nullptr;
+      if (!node->Arguments().empty()) {
+        last_arg = node->Arguments().back()->SafeAs<ast::IdentifierExpr>();
+      }
+      if (last_arg != nullptr && last_arg->Name() == node->GetFuncName()) {
+        // already processed
+        lambda_adjustment = 0;
+      }
+    } else {
+      GetErrorReporter()->Report(node->Position(), ErrorMessages::kNonFunction);
+      return;
+    }
   }
 
   // Check argument count matches
-  if (!CheckArgCount(node, func_type->GetNumParams())) {
+  // TODO(Kyle): Refactor this, gross.
+  if (!CheckArgCount(
+          node, struct_type != nullptr ? func_type->GetNumParams() - lambda_adjustment : func_type->GetNumParams())) {
     return;
   }
 
@@ -133,6 +155,10 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
     }
   }
 
+  if (struct_type != nullptr && lambda_adjustment > 0) {
+    node->PushArgument(GetContext()->GetNodeFactory()->NewIdentifierExpr(SourcePosition(), node->GetFuncName()));
+  }
+
   if (has_errors) {
     return;
   }
@@ -141,6 +167,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
   node->SetType(func_type->GetReturnType());
 }
 
+// TODO(Kyle): Implement this
 void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
   // make struct type
   //  node->SetType(Resolve(node->GetFunctionLitExpr()->TypeRepr()));
@@ -253,6 +280,15 @@ void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
   // The function scope
   FunctionSemaScope function_scope(this, node);
 
+  if (node->IsLambda()) {
+    auto &params = func_type->GetParams();
+    auto captures = params[params.size() - 1];
+    auto capture_type = captures.type_->As<ast::StructType>();
+    for (auto field : capture_type->GetFieldsWithoutPadding()) {
+      GetCurrentScope()->Declare(field.name_, field.type_->GetPointeeType()->ReferenceTo());
+    }
+  }
+
   // Declare function parameters in scope
   for (const auto &param : func_type->GetParams()) {
     GetCurrentScope()->Declare(param.name_, param.type_);
@@ -284,6 +320,11 @@ void Sema::VisitIdentifierExpr(ast::IdentifierExpr *node) {
 
   // Check the builtin types
   if (auto *type = GetContext()->LookupBuiltinType(node->Name())) {
+    node->SetType(type);
+    return;
+  }
+
+  if (auto *type = GetCurrentScope()->Lookup(node->Name())) {
     node->SetType(type);
     return;
   }
