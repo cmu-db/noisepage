@@ -84,6 +84,7 @@ namespace noisepage::execution::vm {
   F(Assign2, OperandType::Local, OperandType::Local)                                                                  \
   F(Assign4, OperandType::Local, OperandType::Local)                                                                  \
   F(Assign8, OperandType::Local, OperandType::Local)                                                                  \
+  F(AssignN, OperandType::Local, OperandType::Local, OperandType::UImm4)                                              \
   F(AssignImm1, OperandType::Local, OperandType::Imm1)                                                                \
   F(AssignImm2, OperandType::Local, OperandType::Imm2)                                                                \
   F(AssignImm4, OperandType::Local, OperandType::Imm4)                                                                \
@@ -765,6 +766,18 @@ namespace noisepage::execution::vm {
   F(GetParamDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(GetParamTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(GetParamString, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(AddParamBool, OperandType::Local, OperandType::Local)                                                             \
+  F(AddParamTinyInt, OperandType::Local, OperandType::Local)                                                          \
+  F(AddParamSmallInt, OperandType::Local, OperandType::Local)                                                         \
+  F(AddParamInt, OperandType::Local, OperandType::Local)                                                              \
+  F(AddParamBigInt, OperandType::Local, OperandType::Local)                                                           \
+  F(AddParamReal, OperandType::Local, OperandType::Local)                                                             \
+  F(AddParamDouble, OperandType::Local, OperandType::Local)                                                           \
+  F(AddParamDateVal, OperandType::Local, OperandType::Local)                                                          \
+  F(AddParamTimestampVal, OperandType::Local, OperandType::Local)                                                     \
+  F(AddParamString, OperandType::Local, OperandType::Local)                                                           \
+  F(StartNewParams, OperandType::Local)                                                                               \
+  F(FinishParams, OperandType::Local)                                                                                 \
                                                                                                                       \
   /* FOR TESTING ONLY */                                                                                              \
   F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4,          \

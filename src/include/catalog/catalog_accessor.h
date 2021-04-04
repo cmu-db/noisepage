@@ -345,6 +345,8 @@ class EXPORT CatalogAccessor {
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
 
+  // TODO(Kyle): Make these functions consistent
+
   /**
    * Sets the proc context pointer column of proc_oid to func_context
    * @param proc_oid The proc_oid whose pointer column we are setting here

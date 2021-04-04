@@ -135,6 +135,7 @@ class BytecodeGenerator::BytecodePositionScope {
 // Bytecode Generator begins
 // ---------------------------------------------------------
 
+// TODO(Kyle): reserve here on functions?
 BytecodeGenerator::BytecodeGenerator() noexcept : emitter_(&code_) {}
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
@@ -164,7 +165,8 @@ void BytecodeGenerator::VisitIterationStatement(ast::IterationStmt *iteration, L
 }
 
 void BytecodeGenerator::VisitForStmt(ast::ForStmt *node) {
-  LoopBuilder loop_builder(this);
+  LoopBuilder *prev = current_loop_;
+  LoopBuilder loop_builder{this, prev};
 
   if (node->Init() != nullptr) {
     Visit(node->Init());
@@ -177,7 +179,9 @@ void BytecodeGenerator::VisitForStmt(ast::ForStmt *node) {
     VisitExpressionForTest(node->Condition(), &loop_body_label, loop_builder.GetBreakLabel(), TestFallthrough::Then);
   }
 
+  current_loop_ = &loop_builder;
   VisitIterationStatement(node, &loop_builder);
+  current_loop_ = prev;
 
   if (node->Next() != nullptr) {
     Visit(node->Next());
@@ -205,7 +209,8 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
   auto *func_type = node->TypeRepr()->GetType()->As<ast::FunctionType>();
 
   // Allocate the function
-  FunctionInfo *func_info = AllocateFunc(node->Name().GetData(), func_type);
+  auto *func_info = AllocateFunc(node->Name().GetData(), func_type);
+  EnterFunction(func_info->GetId());
 
   {
     // Visit the body of the function. We use this handy scope object to track
@@ -214,6 +219,11 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
     // range in the function.
     BytecodePositionScope position_scope(this, func_info);
     Visit(node->Function());
+  }
+
+  // TODO(Kyle): what is this doing?
+  for (auto f : func_info->actions_) {
+    f();
   }
 }
 
@@ -279,6 +289,8 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   //   });
 }
 
+// TODO(Kyle): Do we need a VisitLambdaDecl()?
+
 void BytecodeGenerator::VisitLambdaTypeRepr(ast::LambdaTypeRepr *node) {
   UNREACHABLE("Should not visit type-representation nodes!");
 }
@@ -290,9 +302,58 @@ void BytecodeGenerator::VisitIdentifierExpr(ast::IdentifierExpr *node) {
 
   const std::string local_name = node->Name().GetData();
   LocalVar local = GetCurrentFunction()->LookupLocal(local_name);
+  std::string suffix{};
+  bool capture = false;
+
+  if (local.IsInvalid() && GetCurrentFunction()->is_lambda_) {
+    local = GetCurrentFunction()->LookupLocal(local_name + "ptr").ValueOf();
+    suffix = "ptr";
+    if (!local.IsInvalid()) {
+      if (GetExecutionResult()->IsRValue()) {
+        auto local_val = GetCurrentFunction()->NewLocal(node->GetType(), "");
+        GetEmitter()->EmitDerefN(local_val, local.ValueOf(), node->GetType()->GetSize());
+        local = local_val;
+      }
+    }
+  }
+
+  if (local.IsInvalid()) {
+    NOISEPAGE_ASSERT(GetCurrentFunction()->is_lambda_, "Not a lambda and variable not found");
+
+    // TODO(Kyle): modularize this fetch of capture struct
+    auto params = GetCurrentFunction()->func_type_->GetParams();
+    auto captures = GetCurrentFunction()->func_type_->GetCapturesType();
+    for (auto field : captures->GetFieldsWithoutPadding()) {
+      // TODO(Kyle): cache these
+      if (field.name_.GetString() == local_name) {
+        auto captures_local = GetCurrentFunction()->LookupLocal("captures");
+        auto local_ptr = GetCurrentFunction()->NewLocal(field.type_->PointerTo());
+        GetEmitter()->EmitLea(local_ptr, captures_local.ValueOf(), captures->GetOffsetOfFieldByName(field.name_));
+        auto local_ptr_2 = GetCurrentFunction()->NewLocal(field.type_, local_name + "ptr");
+        GetEmitter()->EmitDerefN(local_ptr_2, local_ptr.ValueOf(), field.type_->GetSize());
+        local = local_ptr_2;
+        suffix = "ptr";
+        if (GetExecutionResult()->IsRValue()) {
+          local = GetCurrentFunction()->NewLocal(field.type_->GetPointeeType(), "");
+          GetEmitter()->EmitDerefN(local, local_ptr_2.ValueOf(), field.type_->GetPointeeType()->GetSize());
+          suffix = "val";
+        }
+        local = local.ValueOf();
+        break;
+      }
+    }
+    capture = true;
+  }
+  NOISEPAGE_ASSERT(!local.IsInvalid(), "Local not found");
 
   if (GetExecutionResult()->IsLValue()) {
-    GetExecutionResult()->SetDestination(local);
+    // TODO(Kyle): crappy names
+    auto *local_info_2 = GetCurrentFunction()->LookupLocalInfoByOffset(local.GetOffset());
+    if (local_info_2->GetType()->IsPointerType() && local_info_2->GetType()->GetPointeeType()->IsSqlValueType()) {
+      GetExecutionResult()->SetDestination(local.ValueOf());
+    } else {
+      GetExecutionResult()->SetDestination(local);
+    }
     return;
   }
 
@@ -310,34 +371,39 @@ void BytecodeGenerator::VisitIdentifierExpr(ast::IdentifierExpr *node) {
 
   // If the local we want the R-Value of is a parameter, we can't take its
   // pointer for the deref, so we use an assignment. Otherwise, a deref is good.
-  if (auto *local_info = GetCurrentFunction()->LookupLocalInfoByName(local_name); local_info->IsParameter()) {
-    BuildAssign(dest, local.ValueOf(), node->GetType());
+  auto *local_info = GetCurrentFunction()->LookupLocalInfoByOffset(local.GetOffset());
+  if (local_info->IsParameter()) {
+    if (local_info->GetType()->IsPointerType() && local_info->GetType()->GetPointeeType()->IsSqlValueType() &&
+        GetExecutionResult()->IsRValue()) {
+      BuildDeref(dest, local.ValueOf(), node->GetType());
+    } else {
+      BuildAssign(dest, local.ValueOf(), node->GetType());
+    }
   } else {
     BuildDeref(dest, local, node->GetType());
   }
 
-  GetExecutionResult()->SetDestination(dest);
+  GetExecutionResult()->SetDestination(capture ? dest.ValueOf() : dest);
 }
 
 void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
+  LocalVar input = VisitExpressionForRValue(node->Input());
+
   switch (node->GetCastKind()) {
     case ast::CastKind::SqlBoolToBool: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-      LocalVar input = VisitExpressionForSQLValue(node->Input());
       GetEmitter()->Emit(Bytecode::ForceBoolTruth, dest, input);
       GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::CastKind::BoolToSqlBool: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-      LocalVar input = VisitExpressionForRValue(node->Input());
       GetEmitter()->Emit(Bytecode::InitBool, dest, input);
       GetExecutionResult()->SetDestination(dest);
       break;
     }
     case ast::CastKind::IntToSqlInt: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-      LocalVar input = VisitExpressionForRValue(node->Input());
       ast::Expr *arg = node->Input();
       Bytecode bytecode = Bytecode::InitInteger;
 
@@ -355,7 +421,6 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
     }
     case ast::CastKind::BitCast:
     case ast::CastKind::IntegralCast: {
-      LocalVar input = VisitExpressionForRValue(node->Input());
       // As an optimization, we only issue a new assignment if the input and
       // output types of the cast have different sizes.
       if (node->Input()->GetType()->GetSize() != node->GetType()->GetSize()) {
@@ -369,15 +434,13 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
     }
     case ast::CastKind::FloatToSqlReal: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-      LocalVar input = VisitExpressionForRValue(node->Input());
-      GetEmitter()->Emit(Bytecode::InitReal, dest, input);
+      GetEmitter()->Emit(Bytecode::InitReal, dest.AddressOf(), input.AddressOf());
       GetExecutionResult()->SetDestination(dest);
       break;
     }
     case ast::CastKind::SqlIntToSqlReal: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-      LocalVar input = VisitExpressionForSQLValue(node->Input());
-      GetEmitter()->Emit(Bytecode::IntegerToReal, dest, input);
+      GetEmitter()->Emit(Bytecode::IntegerToReal, dest.AddressOf(), input.AddressOf());
       GetExecutionResult()->SetDestination(dest);
       break;
     }
@@ -540,7 +603,7 @@ void BytecodeGenerator::VisitLogicalNotExpr(ast::UnaryOpExpr *op) {
     GetEmitter()->EmitUnaryOp(Bytecode::Not, dest, input);
     GetExecutionResult()->SetDestination(dest.ValueOf());
   } else if (op->GetType()->IsSqlBooleanType()) {
-    input = VisitExpressionForSQLValue(op->Input());
+    input = VisitExpressionForLValue(op->Input());
     GetEmitter()->EmitUnaryOp(Bytecode::NotSql, dest, input);
     GetExecutionResult()->SetDestination(dest);
   }
@@ -575,7 +638,7 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
   if (node->Ret() != nullptr) {
     LocalVar rv = GetCurrentFunction()->GetReturnValueLocal();
     if (node->Ret()->GetType()->IsSqlValueType()) {
-      LocalVar result = VisitExpressionForSQLValue(node->Ret());
+      LocalVar result = VisitExpressionForLValue(node->Ret());
       BuildDeref(rv.ValueOf(), result, node->Ret()->GetType());
     } else {
       LocalVar result = VisitExpressionForRValue(node->Ret());
@@ -648,17 +711,17 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::SqlToBool: {
-      auto input = VisitExpressionForSQLValue(call->Arguments()[0]);
+      auto input = VisitExpressionForLValue(call->Arguments()[0]);
       GetEmitter()->Emit(Bytecode::ForceBoolTruth, dest, input);
       GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
 
-#define GEN_CASE(Builtin, Bytecode)                                \
-  case Builtin: {                                                  \
-    auto input = VisitExpressionForSQLValue(call->Arguments()[0]); \
-    GetEmitter()->Emit(Bytecode, dest, input);                     \
-    break;                                                         \
+#define GEN_CASE(Builtin, Bytecode)                              \
+  case Builtin: {                                                \
+    auto input = VisitExpressionForRValue(call->Arguments()[0]); \
+    GetEmitter()->Emit(Bytecode, dest, input);                   \
+    break;                                                       \
   }
       GEN_CASE(ast::Builtin::ConvertBoolToInteger, Bytecode::BoolToInteger);
       GEN_CASE(ast::Builtin::ConvertIntegerToReal, Bytecode::IntegerToReal);
@@ -680,7 +743,7 @@ void BytecodeGenerator::VisitNullValueCall(ast::CallExpr *call, UNUSED_ATTRIBUTE
   switch (builtin) {
     case ast::Builtin::IsValNull: {
       LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      LocalVar input = VisitExpressionForSQLValue(call->Arguments()[0]);
+      LocalVar input = VisitExpressionForLValue(call->Arguments()[0]);
       GetEmitter()->Emit(Bytecode::ValIsNull, result, input);
       GetExecutionResult()->SetDestination(result.ValueOf());
       break;
@@ -703,15 +766,15 @@ void BytecodeGenerator::VisitNullValueCall(ast::CallExpr *call, UNUSED_ATTRIBUTE
 
 void BytecodeGenerator::VisitSqlStringLikeCall(ast::CallExpr *call) {
   auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-  auto input = VisitExpressionForSQLValue(call->Arguments()[0]);
-  auto pattern = VisitExpressionForSQLValue(call->Arguments()[1]);
+  auto input = VisitExpressionForLValue(call->Arguments()[0]);
+  auto pattern = VisitExpressionForLValue(call->Arguments()[1]);
   GetEmitter()->Emit(Bytecode::Like, dest, input, pattern);
   GetExecutionResult()->SetDestination(dest);
 }
 
 void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
   auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-  auto input = VisitExpressionForSQLValue(call->Arguments()[0]);
+  auto input = VisitExpressionForLValue(call->Arguments()[0]);
   auto date_type =
       sql::DatePartType(call->Arguments()[1]->As<ast::CallExpr>()->Arguments()[0]->As<ast::LitExpr>()->Int64Val());
 
@@ -909,13 +972,13 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
 
 #define GEN_CASE(BuiltinName, Bytecode)                                  \
   case ast::Builtin::BuiltinName: {                                      \
-    auto input = VisitExpressionForSQLValue(call->Arguments()[1]);       \
+    auto input = VisitExpressionForLValue(call->Arguments()[1]);         \
     auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val(); \
     GetEmitter()->EmitVPISet(Bytecode, vpi, input, col_idx);             \
     break;                                                               \
   }                                                                      \
   case ast::Builtin::BuiltinName##Null: {                                \
-    auto input = VisitExpressionForSQLValue(call->Arguments()[1]);       \
+    auto input = VisitExpressionForLValue(call->Arguments()[1]);         \
     auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val(); \
     GetEmitter()->EmitVPISet(Bytecode##Null, vpi, input, col_idx);       \
     break;                                                               \
@@ -953,7 +1016,7 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
   for (uint32_t idx = 0; idx < call->NumArgs(); idx++) {
     NOISEPAGE_ASSERT(call->Arguments()[idx]->GetType()->IsSqlValueType(), "Input to hash must be a SQL value type");
 
-    LocalVar input = VisitExpressionForSQLValue(call->Arguments()[idx]);
+    LocalVar input = VisitExpressionForLValue(call->Arguments()[idx]);
     const auto *type = call->Arguments()[idx]->GetType()->As<ast::BuiltinType>();
     switch (type->GetKind()) {
       case ast::BuiltinType::Integer:
@@ -1026,7 +1089,7 @@ void BytecodeGenerator::VisitBuiltinVectorFilterCall(ast::CallExpr *call, ast::B
 #define GEN_CASE(BYTECODE)                                                                         \
   LocalVar left_col = VisitExpressionForRValue(call->Arguments()[2]);                              \
   if (!call->Arguments()[3]->GetType()->IsIntegerType()) {                                         \
-    LocalVar right_val = VisitExpressionForSQLValue(call->Arguments()[3]);                         \
+    LocalVar right_val = VisitExpressionForLValue(call->Arguments()[3]);                           \
     GetEmitter()->Emit(BYTECODE##Val, exec_ctx, vector_projection, left_col, right_val, tid_list); \
   } else {                                                                                         \
     LocalVar right_col = VisitExpressionForRValue(call->Arguments()[3]);                           \
@@ -1907,7 +1970,7 @@ void BytecodeGenerator::VisitBuiltinThreadStateContainerCall(ast::CallExpr *call
 
 void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-  LocalVar src = VisitExpressionForSQLValue(call->Arguments()[0]);
+  LocalVar src = VisitExpressionForLValue(call->Arguments()[0]);
 
   switch (builtin) {
     case ast::Builtin::ACos: {
@@ -1935,7 +1998,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::ATan2: {
-      LocalVar src2 = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar src2 = VisitExpressionForLValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Atan2, dest, src, src2);
       break;
     }
@@ -1976,7 +2039,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::Exp: {
-      src = VisitExpressionForSQLValue(call->Arguments()[1]);
+      src = VisitExpressionForLValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Exp, dest, src);
       break;
     }
@@ -1993,12 +2056,12 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::Round2: {
-      LocalVar src2 = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar src2 = VisitExpressionForLValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Round2, dest, src, src2);
       break;
     }
     case ast::Builtin::Pow: {
-      LocalVar src2 = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar src2 = VisitExpressionForLValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Pow, dest, src, src2);
       break;
     }
@@ -2016,13 +2079,13 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
 
   switch (builtin) {
     case ast::Builtin::Abs: {
-      LocalVar src = VisitExpressionForSQLValue(call->Arguments()[0]);
+      LocalVar src = VisitExpressionForLValue(call->Arguments()[0]);
       GetEmitter()->Emit(is_integer_math ? Bytecode::AbsInteger : Bytecode::AbsReal, dest, src);
       break;
     }
     case ast::Builtin::Mod: {
-      LocalVar first_input = VisitExpressionForSQLValue(call->Arguments()[0]);
-      LocalVar second_input = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar first_input = VisitExpressionForLValue(call->Arguments()[0]);
+      LocalVar second_input = VisitExpressionForLValue(call->Arguments()[1]);
       if (!is_integer_math) {
         NOISEPAGE_ASSERT(call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
                              call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real),
@@ -2501,8 +2564,22 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
 
 void BytecodeGenerator::VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-  LocalVar param_idx = VisitExpressionForRValue(call->Arguments()[1]);
-  LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  LocalVar param_idx{};
+  if (builtin != ast::Builtin::StartNewParams && builtin != ast::Builtin::FinishNewParams) {
+    param_idx = VisitExpressionForRValue(call->Arguments()[1]);
+  }
+  LocalVar ret;
+  if (builtin < ast::Builtin::StartNewParams) {
+    ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  } else {
+    if (builtin != ast::Builtin::StartNewParams && builtin != ast::Builtin::FinishNewParams) {
+      if (call->Arguments()[1]->GetType()->IsPointerType()) {
+        param_idx = VisitExpressionForRValue(call->Arguments()[1]);
+      } else {
+        param_idx = VisitExpressionForLValue(call->Arguments()[1]);
+      }
+    }
+  }
   switch (builtin) {
     case ast::Builtin::GetParamBool:
       GetEmitter()->Emit(Bytecode::GetParamBool, ret, exec_ctx, param_idx);
@@ -2534,6 +2611,42 @@ void BytecodeGenerator::VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin 
     case ast::Builtin::GetParamString:
       GetEmitter()->Emit(Bytecode::GetParamString, ret, exec_ctx, param_idx);
       break;
+    case ast::Builtin::AddParamBool:
+      GetEmitter()->Emit(Bytecode::AddParamBool, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamTinyInt:
+      GetEmitter()->Emit(Bytecode::AddParamTinyInt, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamSmallInt:
+      GetEmitter()->Emit(Bytecode::AddParamSmallInt, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamInt:
+      GetEmitter()->Emit(Bytecode::AddParamInt, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamBigInt:
+      GetEmitter()->Emit(Bytecode::AddParamBigInt, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamReal:
+      GetEmitter()->Emit(Bytecode::AddParamReal, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamDouble:
+      GetEmitter()->Emit(Bytecode::AddParamDouble, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamDate:
+      GetEmitter()->Emit(Bytecode::AddParamDateVal, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamTimestamp:
+      GetEmitter()->Emit(Bytecode::AddParamTimestampVal, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::AddParamString:
+      GetEmitter()->Emit(Bytecode::AddParamString, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::StartNewParams:
+      GetEmitter()->Emit(Bytecode::StartNewParams, exec_ctx);
+      break;
+    case ast::Builtin::FinishNewParams:
+      GetEmitter()->Emit(Bytecode::FinishParams, exec_ctx);
+      break;
     default:
       UNREACHABLE("Impossible parameter call!");
   }
@@ -2544,35 +2657,35 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
     case ast::Builtin::SplitPart: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar delim = VisitExpressionForSQLValue(call->Arguments()[2]);
-      LocalVar field = VisitExpressionForSQLValue(call->Arguments()[3]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar delim = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar field = VisitExpressionForRValue(call->Arguments()[3]);
       GetEmitter()->Emit(Bytecode::SplitPart, ret, exec_ctx, input_string, delim, field);
       break;
     }
     case ast::Builtin::Chr: {
       // input_string here is a integer type number
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Chr, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::CharLength: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::CharLength, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::ASCII: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ASCII, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Lower: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Lower, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Upper: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Upper, ret, exec_ctx, input_string);
       break;
     }
@@ -2581,73 +2694,73 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::StartsWith: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar start_str = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar start_str = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::StartsWith, ret, exec_ctx, input_string, start_str);
       break;
     }
     case ast::Builtin::Substring: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar start_ind = VisitExpressionForSQLValue(call->Arguments()[2]);
-      LocalVar length = VisitExpressionForSQLValue(call->Arguments()[3]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar start_ind = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar length = VisitExpressionForRValue(call->Arguments()[3]);
       GetEmitter()->Emit(Bytecode::Substring, ret, exec_ctx, input_string, start_ind, length);
       break;
     }
     case ast::Builtin::Reverse: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Reverse, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Left: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar len = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::Left, ret, exec_ctx, input_string, len);
       break;
     }
     case ast::Builtin::Right: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar len = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::Right, ret, exec_ctx, input_string, len);
       break;
     }
     case ast::Builtin::Repeat: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar num_repeat = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar num_repeat = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::Repeat, ret, exec_ctx, input_string, num_repeat);
       break;
     }
     case ast::Builtin::Trim: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Trim, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Trim2: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar trim_str = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar trim_str = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::Trim2, ret, exec_ctx, input_string, trim_str);
       break;
     }
     case ast::Builtin::Position: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar sub_string = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar sub_string = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::Position, ret, exec_ctx, input_string, sub_string);
       break;
     }
     case ast::Builtin::Length: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Length, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::InitCap: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::InitCap, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Lpad: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar len = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
       if (call->NumArgs() == 4) {
-        LocalVar pad = VisitExpressionForSQLValue(call->Arguments()[3]);
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
         GetEmitter()->Emit(Bytecode::LPad3Arg, ret, exec_ctx, input_string, len, pad);
       } else {
         GetEmitter()->Emit(Bytecode::LPad2Arg, ret, exec_ctx, input_string, len);
@@ -2655,10 +2768,10 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::Rpad: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
-      LocalVar len = VisitExpressionForSQLValue(call->Arguments()[2]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
       if (call->NumArgs() == 4) {
-        LocalVar pad = VisitExpressionForSQLValue(call->Arguments()[3]);
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
         GetEmitter()->Emit(Bytecode::RPad3Arg, ret, exec_ctx, input_string, len, pad);
       } else {
         GetEmitter()->Emit(Bytecode::RPad2Arg, ret, exec_ctx, input_string, len);
@@ -2666,21 +2779,21 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::Ltrim: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       if (call->NumArgs() == 2) {
         GetEmitter()->Emit(Bytecode::LTrim1Arg, ret, exec_ctx, input_string);
       } else {
-        LocalVar chars = VisitExpressionForSQLValue(call->Arguments()[2]);
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
         GetEmitter()->Emit(Bytecode::LTrim2Arg, ret, exec_ctx, input_string, chars);
       }
       break;
     }
     case ast::Builtin::Rtrim: {
-      LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       if (call->NumArgs() == 2) {
         GetEmitter()->Emit(Bytecode::RTrim1Arg, ret, exec_ctx, input_string);
       } else {
-        LocalVar chars = VisitExpressionForSQLValue(call->Arguments()[2]);
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
         GetEmitter()->Emit(Bytecode::RTrim2Arg, ret, exec_ctx, input_string, chars);
       }
       break;
@@ -2695,7 +2808,7 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       auto arr_elem_ptr = GetCurrentFunction()->NewLocal(string_type->PointerTo()->PointerTo());
       for (uint32_t i = 0; i < num_inputs; i++) {
         GetEmitter()->EmitLea(arr_elem_ptr, inputs, i * 8);
-        LocalVar input_string = VisitExpressionForSQLValue(call->Arguments()[i + 1]);
+        LocalVar input_string = VisitExpressionForLValue(call->Arguments()[i + 1]);
         GetEmitter()->EmitAssign(Bytecode::Assign8, arr_elem_ptr.ValueOf(), input_string);
       }
 
@@ -3150,7 +3263,19 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::GetParamDouble:
     case ast::Builtin::GetParamDate:
     case ast::Builtin::GetParamTimestamp:
-    case ast::Builtin::GetParamString: {
+    case ast::Builtin::GetParamString:
+    case ast::Builtin::AddParamBool:
+    case ast::Builtin::AddParamTinyInt:
+    case ast::Builtin::AddParamSmallInt:
+    case ast::Builtin::AddParamInt:
+    case ast::Builtin::AddParamBigInt:
+    case ast::Builtin::AddParamReal:
+    case ast::Builtin::AddParamDouble:
+    case ast::Builtin::AddParamDate:
+    case ast::Builtin::AddParamTimestamp:
+    case ast::Builtin::AddParamString:
+    case ast::Builtin::StartNewParams:
+    case ast::Builtin::FinishNewParams: {
       VisitBuiltinParamCall(call, builtin);
       break;
     }
@@ -3314,11 +3439,15 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
 
 void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
   bool caller_wants_result = GetExecutionResult() != nullptr;
-  NOISEPAGE_ASSERT(!caller_wants_result || GetExecutionResult()->IsRValue(), "Calls can only be R-Values!");
-
+  NOISEPAGE_ASSERT(!caller_wants_result || GetExecutionResult()->IsRValue() ||
+                       (GetExecutionResult()->IsLValue() && call->GetType()->IsSqlValueType()),
+                   "Calls can only be R-Values!");
   std::vector<LocalVar> params;
 
-  auto *func_type = call->Function()->GetType()->As<ast::FunctionType>();
+  auto *func_type = call->Function()->GetType()->SafeAs<ast::FunctionType>();
+  if (func_type == nullptr) {
+    func_type = call->Function()->GetType()->SafeAs<ast::LambdaType>()->GetFunctionType();
+  }
 
   if (!func_type->GetReturnType()->IsNilType()) {
     LocalVar ret_val;
@@ -3327,6 +3456,9 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
 
       // Let the caller know where the result value is
       GetExecutionResult()->SetDestination(ret_val.ValueOf());
+      if (GetExecutionResult()->IsLValue()) {
+        GetExecutionResult()->SetDestination(ret_val.AddressOf());
+      }
     } else {
       ret_val = GetCurrentFunction()->NewLocal(func_type->GetReturnType());
     }
@@ -3336,12 +3468,21 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
   }
 
   // Collect non-return-value parameters as usual
-  for (uint32_t i = 0; i < func_type->GetNumParams(); i++) {
-    params.push_back(VisitExpressionForRValue(call->Arguments()[i]));
+  for (uint32_t i = 0; i < call->Arguments().size(); i++) {
+    if (func_type->GetParams()[i].type_->IsSqlValueType()) {
+      params.push_back(VisitExpressionForLValue(call->Arguments()[i]));
+    } else {
+      params.push_back(VisitExpressionForRValue(call->Arguments()[i]));
+    }
   }
 
   // Emit call
   const auto func_id = LookupFuncIdByName(call->GetFuncName().GetData());
+  if (func_id == FunctionInfo::K_INVALID_FUNC_ID) {
+    auto action = GetEmitter()->DeferedEmitCall(params);
+    deferred_function_create_actions_[call->GetFuncName().GetString()].push_back(action);
+    return;
+  }
   NOISEPAGE_ASSERT(func_id != FunctionInfo::K_INVALID_FUNC_ID, "Function not found!");
   GetEmitter()->EmitCall(func_id, params);
 }
@@ -3349,10 +3490,18 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
 void BytecodeGenerator::VisitCallExpr(ast::CallExpr *node) {
   ast::CallExpr::CallKind call_kind = node->GetCallKind();
 
-  if (call_kind == ast::CallExpr::CallKind::Builtin) {
-    VisitBuiltinCallExpr(node);
-  } else {
-    VisitRegularCallExpr(node);
+  switch (call_kind) {
+    case ast::CallExpr::CallKind::Builtin: {
+      VisitBuiltinCallExpr(node);
+      break;
+    }
+    case ast::CallExpr::CallKind::Regular: {
+      VisitRegularCallExpr(node);
+      break;
+    }
+    default: {
+      UNREACHABLE("Unknown Call Kind");
+    }
   }
 }
 
@@ -3368,7 +3517,7 @@ void BytecodeGenerator::VisitFile(ast::File *node) {
 }
 
 void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
-  NOISEPAGE_ASSERT(GetExecutionResult()->IsRValue(), "Literal expressions cannot be R-Values!");
+  NOISEPAGE_ASSERT(GetExecutionResult()->IsRValue(), "Literal expressions cannot be L-Values!");
 
   LocalVar target = GetExecutionResult()->GetOrCreateDestination(node->GetType());
 
@@ -3518,8 +3667,8 @@ void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
 
 void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-  LocalVar left = VisitExpressionForSQLValue(node->Left());
-  LocalVar right = VisitExpressionForSQLValue(node->Right());
+  LocalVar left = VisitExpressionForLValue(node->Left());
+  LocalVar right = VisitExpressionForLValue(node->Right());
 
   const bool is_integer_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
 
@@ -3605,8 +3754,8 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
 
 void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(compare->GetType());
-  LocalVar left = VisitExpressionForSQLValue(compare->Left());
-  LocalVar right = VisitExpressionForSQLValue(compare->Right());
+  LocalVar left = VisitExpressionForLValue(compare->Left());
+  LocalVar right = VisitExpressionForLValue(compare->Right());
 
   NOISEPAGE_ASSERT(compare->Left()->GetType() == compare->Right()->GetType(),
                    "Left and right input types to comparison are not equal");
@@ -3749,8 +3898,10 @@ void BytecodeGenerator::BuildAssign(LocalVar dest, LocalVar val, ast::Type *dest
     GetEmitter()->EmitAssign(Bytecode::Assign2, dest, val);
   } else if (size == 4) {
     GetEmitter()->EmitAssign(Bytecode::Assign4, dest, val);
-  } else {
+  } else if (size == 8 && dest_type != ast::BuiltinType::Get(dest_type->GetContext(), ast::BuiltinType::Date)) {
     GetEmitter()->EmitAssign(Bytecode::Assign8, dest, val);
+  } else {
+    GetEmitter()->EmitAssignN(dest, val, size);
   }
 }
 
@@ -3870,7 +4021,7 @@ void BytecodeGenerator::VisitMapTypeRepr(ast::MapTypeRepr *node) {
 FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast::FunctionType *const func_type) {
   // Allocate function
   const auto func_id = static_cast<FunctionId>(functions_.size());
-  functions_.emplace_back(func_id, func_name, func_type);
+  functions_.emplace_back(func_id, std::string(func_name), func_type);
   FunctionInfo *func = &functions_.back();
 
   // Register return type
@@ -3880,12 +4031,47 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
 
   // Register parameters
   for (const auto &param : func_type->GetParams()) {
+    if (param.type_->IsSqlValueType()) {
+      func->NewParameterLocal(param.type_->PointerTo(), param.name_.GetData());
+    } else {
+      func->NewParameterLocal(param.type_, param.name_.GetData());
+    }
+  }
+
+  // Cache
+  func_map_[func->GetName()] = func->GetId();
+  for (auto action : deferred_function_create_actions_[func->GetName()]) {
+    action(func->GetId());
+  }
+
+  return func;
+}
+
+FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast::FunctionType *func_type,
+                                              LocalVar captures, ast::Type *capture_type) {
+  // Allocate function
+  const auto func_id = static_cast<FunctionId>(functions_.size());
+  functions_.emplace_back(func_id, func_name, func_type);
+  FunctionInfo *func = &functions_.back();
+
+  // Register return type
+  if (auto *return_type = func_type->GetReturnType(); !return_type->IsNilType()) {
+    func->NewParameterLocal(return_type->PointerTo(), "hiddenRv");
+  }
+
+  // lambda captures
+  func->NewParameterLocal(capture_type->PointerTo(), "hiddenCaptures");
+
+  // Register parameters
+  for (const auto &param : func_type->GetParams()) {
     func->NewParameterLocal(param.type_, param.name_.GetData());
   }
 
   // Cache
   func_map_[func->GetName()] = func->GetId();
-
+  for (auto action : deferred_function_create_actions_[func->GetName()]) {
+    action(func->GetId());
+  }
   return func;
 }
 
@@ -3943,12 +4129,6 @@ LocalVar BytecodeGenerator::VisitExpressionForRValue(ast::Expr *expr) {
   return scope.GetDestination();
 }
 
-LocalVar BytecodeGenerator::VisitExpressionForSQLValue(ast::Expr *expr) { return VisitExpressionForLValue(expr); }
-
-void BytecodeGenerator::VisitExpressionForSQLValue(ast::Expr *expr, LocalVar dest) {
-  VisitExpressionForRValue(expr, dest);
-}
-
 void BytecodeGenerator::VisitExpressionForRValue(ast::Expr *expr, LocalVar dest) {
   RValueResultScope scope(this, dest);
   Visit(expr);
@@ -3957,7 +4137,7 @@ void BytecodeGenerator::VisitExpressionForRValue(ast::Expr *expr, LocalVar dest)
 void BytecodeGenerator::VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *then_label, BytecodeLabel *else_label,
                                                TestFallthrough fallthrough) {
   // Evaluate the expression
-  LocalVar cond = VisitExpressionForRValue(expr);
+  LocalVar cond = VisitExpressionForRValue(expr).ValueOf();
 
   switch (fallthrough) {
     case TestFallthrough::Then: {

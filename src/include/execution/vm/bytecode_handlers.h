@@ -170,6 +170,10 @@ VM_OP_HOT void OpAssign4(int32_t *dest, int32_t src) { *dest = src; }
 
 VM_OP_HOT void OpAssign8(int64_t *dest, int64_t src) { *dest = src; }
 
+VM_OP_HOT void OpAssignN(noisepage::byte *dest, const noisepage::byte *const src, uint32_t len) {
+  std::memcpy(dest, src, len);
+}
+
 VM_OP_HOT void OpAssignImm1(int8_t *dest, int8_t src) { *dest = src; }
 
 VM_OP_HOT void OpAssignImm2(int16_t *dest, int16_t src) { *dest = src; }
@@ -1408,6 +1412,9 @@ VM_OP_WARM void OpSorterIteratorSkipRows(noisepage::execution::sql::SorterIterat
 
 VM_OP void OpSorterIteratorFree(noisepage::execution::sql::SorterIterator *iter);
 
+VM_OP void OpPushParamContext(noisepage::execution::exec::ExecutionContext **new_ctx,
+                              noisepage::execution::exec::ExecutionContext *ctx);
+
 // ---------------------------------------------------------
 // Output
 // ---------------------------------------------------------
@@ -2139,6 +2146,30 @@ GEN_SCALAR_PARAM_GET(DateVal, DateVal)
 GEN_SCALAR_PARAM_GET(TimestampVal, TimestampVal)
 GEN_SCALAR_PARAM_GET(String, StringVal)
 #undef GEN_SCALAR_PARAM_GET
+
+// Parameter calls
+#define GEN_SCALAR_PARAM_ADD(Name, SqlType, typeId)                                       \
+  VM_OP_HOT void OpAddParam##Name(noisepage::execution::exec::ExecutionContext *exec_ctx, \
+                                  noisepage::execution::sql::SqlType *ret) {              \
+    exec_ctx->AddParam(noisepage::common::ManagedPointer<noisepage::execution::sql::Val>( \
+        reinterpret_cast<noisepage::execution::sql::Val *>(ret)));                        \
+  }
+
+GEN_SCALAR_PARAM_ADD(Bool, BoolVal, BOOLEAN)
+GEN_SCALAR_PARAM_ADD(TinyInt, Integer, TINYINT)
+GEN_SCALAR_PARAM_ADD(SmallInt, Integer, SMALLINT)
+GEN_SCALAR_PARAM_ADD(Int, Integer, INTEGER)
+GEN_SCALAR_PARAM_ADD(BigInt, Integer, BIGINT)
+GEN_SCALAR_PARAM_ADD(Real, Real, DECIMAL)
+GEN_SCALAR_PARAM_ADD(Double, Real, DECIMAL)
+GEN_SCALAR_PARAM_ADD(DateVal, DateVal, DATE)
+GEN_SCALAR_PARAM_ADD(TimestampVal, TimestampVal, TIMESTAMP)
+GEN_SCALAR_PARAM_ADD(String, StringVal, VARCHAR)
+#undef GEN_SCALAR_PARAM_ADD
+
+VM_OP_HOT void OpStartNewParams(noisepage::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->StartParams(); }
+
+VM_OP_HOT void OpFinishParams(noisepage::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->PopParams(); }
 
 // ---------------------------------
 // Replication functions

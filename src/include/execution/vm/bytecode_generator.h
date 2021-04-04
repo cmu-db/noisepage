@@ -70,6 +70,10 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   // Allocate a new function ID
   FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type);
 
+  // Allocate a new function ID with captures.
+  FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type, LocalVar captures,
+                             ast::Type *capture_type);
+
   void VisitAbortTxn(ast::CallExpr *call);
 
   // ONLY FOR TESTING!
@@ -189,7 +193,9 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void SetExecutionResult(ExpressionResultScope *exec_result) { execution_result_ = exec_result; }
 
   // Access the current function that's being generated. May be NULL.
-  FunctionInfo *GetCurrentFunction() { return &functions_.back(); }
+  FunctionInfo *GetCurrentFunction() { return &functions_[current_fn_]; }
+
+  void EnterFunction(FunctionId id) { current_fn_ = id; }
 
  private:
   // The data section of the module
@@ -206,14 +212,22 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   // Information about all generated functions
   std::vector<FunctionInfo> functions_;
 
+  // The ID of the current function.
+  FunctionId current_fn_{0};
+
   // Cache of function names to IDs for faster lookup
   std::unordered_map<std::string, FunctionId> func_map_;
+  std::unordered_map<std::string, std::vector<std::function<void(FunctionId)>>> deferred_function_create_actions_;
 
   // Emitter to write bytecode into the code section
   BytecodeEmitter emitter_;
 
   // RAII struct to capture semantics of expression evaluation
   ExpressionResultScope *execution_result_{nullptr};
+
+  // The loop builder for the current loop.
+  // TODO(Kyle): seems messy.
+  LoopBuilder *current_loop_{nullptr};
 };
 
 }  // namespace noisepage::execution::vm

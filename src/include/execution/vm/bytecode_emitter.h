@@ -67,6 +67,11 @@ class BytecodeEmitter {
   void EmitAssign(Bytecode bytecode, LocalVar dest, LocalVar src);
 
   /**
+   * TODO(Kyle): this.
+   */
+  void EmitAssignN(LocalVar dest, LocalVar src, uint32_t len);
+
+  /**
    * Emit assignment code for 1 byte values.
    * @param dest destination variable
    * @param val value to assign
@@ -166,6 +171,11 @@ class BytecodeEmitter {
    * @param params parameters of the function
    */
   void EmitCall(FunctionId func_id, const std::vector<LocalVar> &params);
+
+  /**
+   * TODO(Kyle): this.
+   */
+  std::function<void(FunctionId)> DeferedEmitCall(const std::vector<LocalVar> &params);
 
   /**
    * Emit a return bytecode
@@ -422,6 +432,14 @@ class BytecodeEmitter {
   auto EmitScalarValue(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     bytecode_->insert(bytecode_->end(), sizeof(T), 0);
     *reinterpret_cast<T *>(&*(bytecode_->end() - sizeof(T))) = val;
+  }
+
+  /**
+   * TODO(Kyle): this.
+   */
+  template <typename T>
+  auto EmitScalarValue(const T val, std::size_t index) -> std::enable_if_t<std::is_arithmetic_v<T>> {
+    *reinterpret_cast<T *>(&*(bytecode_->begin() + index)) = val;
   }
 
   /** Emit a bytecode */

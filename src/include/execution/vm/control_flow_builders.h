@@ -80,6 +80,17 @@ class LoopBuilder : public BreakableBlockBuilder {
   explicit LoopBuilder(BytecodeGenerator *generator) : BreakableBlockBuilder(generator) {}
 
   /**
+   * Construct a loop builder.
+   *
+   * TODO(Kyle): Why was this construtor removed?
+   *
+   * @param generator The generator the loop writes.
+   * @param prev
+   */
+  explicit LoopBuilder(BytecodeGenerator *generator, LoopBuilder *prev = nullptr)
+      : BreakableBlockBuilder(generator), prev_loop_(prev) {}
+
+  /**
    * Destructor.
    */
   ~LoopBuilder() override;
@@ -114,6 +125,7 @@ class LoopBuilder : public BreakableBlockBuilder {
  private:
   BytecodeLabel header_label_;
   BytecodeLabel continue_label_;
+  LoopBuilder *prev_loop_;
 };
 
 /**

@@ -170,6 +170,13 @@ void PrettyPrintFuncCode(std::ostream &os, const BytecodeModule &module, const F
           break;
         }
         case OperandType::FunctionId: {
+          auto fn_id = iter->GetFunctionIdOperand(i);
+          if (fn_id == FunctionInfo::K_INVALID_FUNC_ID) {
+            os << "func=<"
+               << "unresolved lambda"
+               << ">";
+            break;
+          }
           auto target = module.GetFuncInfoById(iter->GetFunctionIdOperand(i));
           os << "func=<" << target->GetName() << ">";
           break;

@@ -287,8 +287,13 @@ llvm::FunctionType *LLVMEngine::TypeMap::GetLLVMFunctionType(const ast::Function
   //
 
   for (const auto &param_info : func_type->GetParams()) {
-    llvm::Type *param_type = GetLLVMType(param_info.type_);
-    param_types.push_back(param_type);
+    // TODO(Kyle): make this read from bytecode stuff instead to avoid this
+    if (param_info.type_->IsSqlValueType()) {
+      param_types.push_back(GetLLVMType(param_info.type_->PointerTo()));
+    } else {
+      llvm::Type *param_type = GetLLVMType(param_info.type_);
+      param_types.push_back(param_type);
+    }
   }
 
   return llvm::FunctionType::get(return_type, param_types, false);
@@ -335,6 +340,16 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, 
     params_[param.GetOffset()] = &*arg_iter;
   }
 
+  if (func_info.IsLambda()) {
+    auto capture_type = type_map->GetLLVMType(func_info.GetFuncType()->GetCapturesType()->PointerTo());
+    auto capture_local = func_locals[local_idx - 1];
+    auto capture_param = params_[capture_local.GetOffset()];
+    auto new_capture_param = ir_builder->CreateBitCast(capture_param, capture_type);
+    params_[capture_local.GetOffset()] = new_capture_param;
+  }
+
+  auto calling_context = func_info;
+
   // Allocate all local variables up front.
   for (; local_idx < func_info.GetLocals().size(); local_idx++) {
     const LocalInfo &local_info = func_locals[local_idx];
@@ -346,7 +361,13 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, 
 
 llvm::Value *LLVMEngine::FunctionLocalsMap::GetArgumentById(LocalVar var) {
   if (auto iter = params_.find(var.GetOffset()); iter != params_.end()) {
-    return iter->second;
+    auto val = iter->second;
+    if ((var.GetAddressMode() == LocalVar::AddressMode::Address) && llvm::isa<llvm::Argument>(val)) {
+      auto new_val = ir_builder_->CreateAlloca(val->getType());
+      ir_builder_->CreateStore(val, new_val);
+      val = new_val;
+    }
+    return val;
   }
 
   if (auto iter = locals_.find(var.GetOffset()); iter != locals_.end()) {
@@ -636,6 +657,11 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
 void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_info, llvm::IRBuilder<> *ir_builder) {
   llvm::LLVMContext &ctx = ir_builder->getContext();
   llvm::Function *func = llvm_module_->getFunction(func_info.GetName());
+  if (func->getName().str().find("inline") != std::string::npos) {
+    func->setLinkage(llvm::Function::LinkOnceAnyLinkage);
+    func->addFnAttr(llvm::Attribute::AlwaysInline);
+  }
+
   llvm::BasicBlock *first_bb = llvm::BasicBlock::Create(ctx, "BB0", func);
   llvm::BasicBlock *entry_bb = llvm::BasicBlock::Create(ctx, "EntryBB", func, first_bb);
 
