@@ -121,6 +121,8 @@ class Parser {
 
   ast::Expr *ParseUnaryOpExpr();
 
+  ast::Expr *ParseLambdaExpr();
+
   ast::Expr *ParsePrimaryExpr();
 
   ast::Expr *ParseOperand();
@@ -138,6 +140,8 @@ class Parser {
   ast::Expr *ParseStructType();
 
   ast::Expr *ParseMapType();
+
+  ast::Expr *ParseLambdaType();
 
  private:
   // The source code scanner

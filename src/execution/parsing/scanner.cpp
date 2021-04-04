@@ -298,6 +298,8 @@ Token::Type Scanner::ScanIdentifierOrKeyword() {
   GROUP_START('i')                          \
   GROUP_ELEM("if", Token::Type::IF)         \
   GROUP_ELEM("in", Token::Type::IN)         \
+  GROUP_START('l')                          \
+  GROUP_ELEM("lambda", Token::Type::LAMBDA) \
   GROUP_START('m')                          \
   GROUP_ELEM("map", Token::Type::MAP)       \
   GROUP_START('n')                          \
