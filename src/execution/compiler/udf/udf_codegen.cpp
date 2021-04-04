@@ -312,6 +312,12 @@ void UDFCodegen::Visit(ast::udf::IsNullExprAST *ast) {
   }
 }
 
+void UDFCodegen::Visit(ast::udf::SeqStmtAST *ast) {
+  for (auto &stmt : ast->stmts) {
+    stmt->Accept(this);
+  }
+}
+
 void UDFCodegen::Visit(ast::udf::WhileStmtAST *ast) {
   ast->cond_expr->Accept(this);
   auto cond = dst_;

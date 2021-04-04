@@ -9,6 +9,10 @@ namespace noisepage::storage {
 class RecoveryManager;
 }  // namespace noisepage::storage
 
+namespace noisepage::execution::sql {
+class DDLExecutors;
+}  // namespace noisepage::execution::sql
+
 namespace noisepage::catalog::postgres {
 class Builder;
 class PgLanguageImpl;
@@ -17,10 +21,8 @@ class PgProcImpl;
 /** The OIDs used by the NoisePage version of pg_language. */
 class PgLanguage {
  private:
-  friend class storage::RecoveryManager;
   // TODO(Kyle): How do we want to expose these constants?
-  // This is a friend because the DDL executor needs to access
-  // the OID for the PL/pgSQL language...
+  friend class storage::RecoveryManager;
   friend class execution::sql::DDLExecutors;
 
   friend class Builder;
