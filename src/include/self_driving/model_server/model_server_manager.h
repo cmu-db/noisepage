@@ -16,9 +16,11 @@
 #include <condition_variable>  // NOLINT
 #include <string>
 #include <thread>  // NOLINT
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "common/future.h"
 #include "common/json.h"
 #include "common/managed_pointer.h"
 #include "messenger/messenger_defs.h"
@@ -62,42 +64,16 @@ class ModelType {
 };
 
 /**
- * ModelServerFuture is a wrapper over a condition_variable, and the condition.
- *
- * It is used to build synchronous API over asynchronous function calls:
- * ```c++
- *      ModelServerFuture future;
- *      AsyncCall(future);
- *
- *      auto result = future.Wait();
- *      bool success = result.first;
- *      auto data = result.second;
- * ```
- *
- * @tparam Result the type of the future's result
+ * ModelServerFuture extends Future to support deserializing a
+ * JSON response into the correct C++ type.
  */
 template <class Result>
-class ModelServerFuture {
+class ModelServerFuture : public common::Future<Result> {
  public:
   /**
    * Initialize a future object
    */
-  ModelServerFuture() = default;
-
-  /**
-   * Suspends the current thread and wait for the result to be ready
-   * @return Result, and success/fail
-   */
-  std::pair<Result, bool> Wait() {
-    {
-      std::unique_lock<std::mutex> lock(mtx_);
-
-      // Wait until the future is completed by someone with successful result or failure
-      cvar_.wait(lock, [&] { return done_.load(); });
-    }
-
-    return {result_, success_};
-  }
+  ModelServerFuture() : common::Future<Result>() {}
 
   /**
    * Indicate a future is done by parsing the message from the ModelServer
@@ -113,69 +89,14 @@ class ModelServerFuture {
       auto success = res.at("success").get<bool>();
       auto err = res.at("err").get<std::string>();
       if (success) {
-        Success(result);
+        this->Success(result);
       } else {
-        Fail(err);
+        this->Fail(err);
       }
     } catch (nlohmann::json::exception &e) {
-      Fail("WRONG_RESULT_FORMAT");
+      this->Fail("WRONG_RESULT_FORMAT");
     }
   }
-
-  /**
-   * Indicate this future is done with result supplied by the ModelServer
-   * @param result ModelServer's response
-   */
-  void Success(const Result &result) {
-    {
-      std::unique_lock<std::mutex> lock(mtx_);
-      result_ = result;
-      done_ = true;
-      success_ = true;
-    }
-
-    // A future will only be completed by one thread, but there could be waited by multiple threads.
-    // An example could be multiple threads waiting for the training process completion.
-    cvar_.notify_all();
-  }
-
-  /**
-   * Indicate this future fails to retrieve expected results from the asynchronous call to the ModelServer.
-   * It could either be an error on the ModelServer, or failure of sending message by the Messenger
-   */
-  void Fail(const std::string &reason) {
-    {
-      std::unique_lock<std::mutex> lock(mtx_);
-      done_ = true;
-      success_ = false;
-      fail_msg_ = reason;
-    }
-    cvar_.notify_all();
-  }
-
-  /**
-   * @return A message describing why the operation failed
-   */
-  const std::string &FailMessage() const { return fail_msg_; }
-
- private:
-  /** Result for the future */
-  Result result_;
-
-  /** Condition variable for waiter of this future to wait for it being ready */
-  std::condition_variable cvar_;
-
-  /** True If async operation done */
-  std::atomic<bool> done_ = false;
-
-  /** True If async operation succeeds */
-  std::atomic<bool> success_ = false;
-
-  /** Reason for failure */
-  std::string fail_msg_;
-
-  /** Mutex associated with the condition variable */
-  std::mutex mtx_;
 };
 
 /**
@@ -261,7 +182,7 @@ class ModelServerManager {
    * @param future A future object which the caller waits for training to be done
    * @return True if sending train request suceeds
    */
-  bool TrainModel(ModelType::Type model, const std::vector<std::string> &methods, const std::string &input_path,
+  bool TrainModel(ModelType::Type model, const std::vector<std::string> &methods, const std::string *input_path,
                   const std::string &save_path, nlohmann::json *arguments,
                   common::ManagedPointer<ModelServerFuture<std::string>> future);
 
@@ -298,11 +219,35 @@ class ModelServerManager {
    * @param input_path Path to input files for training model (seq file directory for MiniRunnerModel)
    * @param save_path path to where the trained model map will be stored at
    * @param interval_micro interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
    * @param future A future object which the caller waits for training to be done
    * @return True if sending train request suceeds
    */
   bool TrainForecastModel(const std::vector<std::string> &methods, const std::string &input_path,
-                          const std::string &save_path, uint64_t interval_micro,
+                          const std::string &save_path, uint64_t interval_micro, uint64_t sequence_length,
+                          uint64_t horizon_length, common::ManagedPointer<ModelServerFuture<std::string>> future);
+
+  /**
+   * Train a forecast model
+   *
+   * This function will be invoked asynchronously.
+   * The caller should wait on the future if it wants to synchronize with the training process.
+   *
+   * The caller should use the save_path as a handle to the trained model for inference later on.
+   *
+   * @param methods list of candidates methods that will be used for training
+   * @param input_data Input sequence data for training model
+   * @param save_path path to where the trained model map will be stored at
+   * @param interval_micro interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
+   * @param future A future object which the caller waits for training to be done
+   * @return True if sending train request suceeds
+   */
+  bool TrainForecastModel(const std::vector<std::string> &methods,
+                          std::unordered_map<int64_t, std::vector<double>> *input_data, const std::string &save_path,
+                          uint64_t interval_micro, uint64_t sequence_length, uint64_t horizon_length,
                           common::ManagedPointer<ModelServerFuture<std::string>> future);
 
   /**
@@ -315,12 +260,34 @@ class ModelServerManager {
    * @param model_names List of model names to train
    * @param models_config Optional parameter for model config
    * @param interval_micro_sec Forecast interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
    * @return a map<cluster_id, map<query_id, vector<segment predictions>>>  returned by ModelServer and
    *    if API succeeds (True when succeeds). When API fails, the return results will be an empty map
    */
   std::pair<selfdriving::WorkloadForecastPrediction, bool> InferForecastModel(
       const std::string &input_path, const std::string &model_path, const std::vector<std::string> &model_names,
-      std::string *models_config, uint64_t interval_micro_sec);
+      std::string *models_config, uint64_t interval_micro_sec, uint64_t sequence_length, uint64_t horizon_length);
+
+  /**
+   * Perform inference on the input data sequence using a forecast model
+   *
+   * This function is a blocking API call to the ModelServer, and only returns when result is sent back.
+   *
+   * @param input_data input sequence data
+   * @param model_path Path to a model that has been trained. (In pickle format)
+   * @param model_names List of model names to train
+   * @param models_config Optional parameter for model config
+   * @param interval_micro_sec Forecast interval in microseconds
+   * @param sequence_length length of single data sequence in interval_micro units
+   * @param horizon_length length of planning horizon in interval_micro units
+   * @return a map<cluster_id, map<query_id, vector<segment predictions>>>  returned by ModelServer and
+   *    if API succeeds (True when succeeds). When API fails, the return results will be an empty map
+   */
+  std::pair<selfdriving::WorkloadForecastPrediction, bool> InferForecastModel(
+      std::unordered_map<int64_t, std::vector<double>> *input_data, const std::string &model_path,
+      const std::vector<std::string> &model_names, std::string *models_config, uint64_t interval_micro_sec,
+      uint64_t sequence_length, uint64_t horizon_length);
 
   /**
    * Perform inference on the given data file using an OU model
@@ -351,6 +318,16 @@ class ModelServerManager {
       const std::string &model_path, const std::vector<std::vector<double>> &features);
 
  private:
+  /**
+   * Perform inference and coerce result into WorkloadForecastPrediction
+   *
+   * @param model_path Path to a model that has been trained. (In pickle format)
+   * @param j JSON input to Forecast model
+   * @return pair of workload forecast prediction and success indicator
+   */
+  std::pair<selfdriving::WorkloadForecastPrediction, bool> InferForecastModel(const std::string &model_path,
+                                                                              nlohmann::json *j);
+
   /**
    * Perform inference
    *

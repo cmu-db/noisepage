@@ -2046,7 +2046,7 @@ void InitializeRunnersState() {
 void EndRunnersState() {
   noisepage::execution::ExecutionUtil::ShutdownTPL();
   db_main->GetMetricsManager()->Aggregate();
-  db_main->GetMetricsManager()->ToCSV();
+  db_main->GetMetricsManager()->ToOutput();
   // free db main here so we don't need to use the loggers anymore
   delete db_main;
 }
@@ -2206,7 +2206,7 @@ void RunNetworkQueries(const NetworkWorkFunction &work) {
 
 void RunNetworkSequence(const NetworkWorkFunction &work) {
   noisepage::runner::db_main->GetMetricsManager()->Aggregate();
-  noisepage::runner::db_main->GetMetricsManager()->ToCSV();
+  noisepage::runner::db_main->GetMetricsManager()->ToOutput();
   noisepage::runner::InvokeGC();
 
   auto thread = std::thread([=] { RunNetworkQueries(work); });
@@ -2219,7 +2219,7 @@ void RunNetworkSequence(const NetworkWorkFunction &work) {
   }
 
   noisepage::runner::db_main->GetMetricsManager()->Aggregate();
-  noisepage::runner::db_main->GetMetricsManager()->ToCSV();
+  noisepage::runner::db_main->GetMetricsManager()->ToOutput();
   noisepage::runner::InvokeGC();
 
   thread.join();
@@ -2273,7 +2273,7 @@ void RunBenchmarkSequence(int rerun_counter) {
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     noisepage::runner::db_main->GetMetricsManager()->Aggregate();
-    noisepage::runner::db_main->GetMetricsManager()->ToCSV();
+    noisepage::runner::db_main->GetMetricsManager()->ToOutput();
 
     if (!noisepage::runner::rerun_start) {
       snprintf(buffer, sizeof(buffer), "execution_%s.csv", titles[i].c_str());

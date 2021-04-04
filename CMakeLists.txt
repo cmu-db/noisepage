@@ -61,6 +61,7 @@
 #   HEADER Tests.
 #   HEADER Benchmarks.
 #   HEADER Generated file destinations.
+#   HEADER startup.sql post-copy command
 #   HEADER Miscellaneous.
 
 #######################################################################################################################
@@ -1194,6 +1195,22 @@ if (${NOISEPAGE_ENABLE_SHARED})
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 endif ()
+
+#######################################################################################################################
+# HEADER startup.sql post-copy command.
+# startup.sql           :   Post-copy command for startup.sql into the bin directory
+#######################################################################################################################
+
+add_custom_command(
+        OUTPUT "${CMAKE_BINARY_DIR}/bin/startup.sql"
+        DEPENDS "${PROJECT_SOURCE_DIR}/src/main/startup.sql"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND cp ${PROJECT_SOURCE_DIR}/src/main/startup.sql ${CMAKE_BINARY_DIR}/bin/startup.sql
+        USES_TERMINAL
+)
+
+add_custom_target(startup_sql_generator DEPENDS "${CMAKE_BINARY_DIR}/bin/startup.sql")
+add_dependencies(noisepage startup_sql_generator)
 
 #######################################################################################################################
 # HEADER Miscellaneous.

@@ -173,6 +173,31 @@ void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, 
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::MetricsQueryTraceOutput(void *const old_value, void *const new_value, DBMain *const db_main,
+                                        common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  auto output = static_cast<metrics::MetricsOutput>(
+      metrics::MetricsUtil::FromMetricsOutputString(*static_cast<std::string *>(new_value)));
+  db_main->GetMetricsManager()->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, output);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
+void Callbacks::ForecastSampleLimit(void *old_value, void *new_value, DBMain *db_main,
+                                    common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int forecast_sample_limit = *static_cast<int *>(new_value);
+  metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = static_cast<uint64_t>(forecast_sample_limit);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
+void Callbacks::TaskPoolSize(void *old_value, void *new_value, DBMain *db_main,
+                             common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int task_size = *static_cast<int *>(new_value);
+  db_main->GetTaskManager()->SetTaskPoolSize(task_size);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value, DBMain *const db_main,
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
