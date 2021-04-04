@@ -136,7 +136,6 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry tvi_base_;        ///< The TVI is declared at pipeline setup/teardown.
   StateDescriptor::Entry tvi_needs_free_;  ///< If true, \@tableIterClose(&tviBase) needs to be called.
   ast::Identifier vpi_var_;                ///< The VPI variable.
-  ast::Identifier col_oids_var_;           ///< The col_oids variable that the plan wants to scan over.
 
   ast::Identifier slot_var_;
 

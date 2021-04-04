@@ -165,6 +165,7 @@ void Pipeline::LinkNestedPipeline(Pipeline *nested_pipeline, const OperatorTrans
   }
   if (!nested_pipeline->nested_) {
     nested_pipeline->nested_ = true;
+    nested_pipeline->parent_ = this;
     // add to pipeline params
     size_t i = 0;
     for (auto &col : op->GetPlan().GetOutputSchema()->GetColumns()) {
@@ -436,8 +437,10 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
       // SerialWork(queryState, pipelineState)
-      InjectStartResourceTracker(&builder, false);
-      started_tracker = true;
+//      if(!nested_) {
+        InjectStartResourceTracker(&builder, false);
+        started_tracker = true;
+//      }
 
       std::vector<ast::Expr *> args = {builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)};
       if (nested_) {
