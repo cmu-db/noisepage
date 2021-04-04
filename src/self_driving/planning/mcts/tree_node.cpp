@@ -15,13 +15,14 @@
 namespace noisepage::selfdriving::pilot {
 
 TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-                   double later_segments_cost)
+                   double later_segments_cost, uint64_t memory)
     : is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
       current_action_(current_action),
       ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
       parent_(parent),
-      number_of_visits_{1} {
+      number_of_visits_{1},
+      memory_(memory) {
   if (parent != nullptr) parent->is_leaf_ = false;
   cost_ = ancestor_cost_ + later_segments_cost;
   SELFDRIVING_LOG_INFO(
@@ -109,7 +110,7 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-                               const std::unordered_set<action_id_t> &candidate_actions) {
+                               const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint) {
   auto start_segment_index = tree_start_segment_index + depth_;
   auto end_segment_index = tree_end_segment_index;
   NOISEPAGE_ASSERT(start_segment_index <= end_segment_index,
