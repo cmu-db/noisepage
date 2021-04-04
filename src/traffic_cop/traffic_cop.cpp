@@ -446,14 +446,11 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor(), exec_settings, metrics, replication_manager_);
 
-  exec_ctx->SetParams(portal->Parameters());
-
-  // TODO(Kyle): Refactor to algorithm
-  // std::vector<common::ManagedPointer<const execution::sql::Val>> params{};
-  // for (auto &cve : *(portal->Parameters())){
-  //   params.push_back(common::ManagedPointer(cve.PeekPtr()));
-  // }
-  // exec_ctx->SetParams(common::ManagedPointer(&params));
+  std::vector<common::ManagedPointer<const execution::sql::Val>> params{};
+  params.reserve(portal->Parameters()->size());
+  std::transform(portal->Parameters()->cbegin(), portal->Parameters()->cend(), std::back_inserter(params),
+                 [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.PeekPtr()}; });
+  exec_ctx->SetParams(common::ManagedPointer(&params));
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 

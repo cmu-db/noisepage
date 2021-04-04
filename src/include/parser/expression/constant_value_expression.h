@@ -106,6 +106,11 @@ class ConstantValueExpression : public AbstractExpression {
     }
   }
 
+  // TODO(Kyle): Is this safe?
+  common::ManagedPointer<const execution::sql::Val> GetVal() const {
+    return common::ManagedPointer<const execution::sql::Val>(&std::get<execution::sql::Val>(value_));
+  }
+
   /**
    * @return copy of the underlying Val
    */
@@ -226,6 +231,11 @@ class ConstantValueExpression : public AbstractExpression {
    */
   template <typename T>
   T Peek() const;
+
+  /**
+   * TODO(Kyle): Document.
+   */
+  const execution::sql::Val *PeekPtr() const;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 

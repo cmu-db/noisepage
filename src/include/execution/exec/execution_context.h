@@ -11,6 +11,7 @@
 #include "execution/sql/memory_tracker.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/thread_state_container.h"
+#include "execution/sql/value.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
@@ -180,6 +181,16 @@ class EXPORT ExecutionContext {
    */
   void InitializeParallelOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
+  // TODO(Kyle): Document + revisit this.
+
+  void StartParams() { udf_param_stack_.push_back({}); }
+
+  void PopParams() { udf_param_stack_.pop_back(); }
+
+  void AddParam(common::ManagedPointer<sql::Val> val) {
+    udf_param_stack_.back().push_back(val.CastManagedPointerTo<const sql::Val>());
+  }
+
   /**
    * @return the db oid
    */
@@ -203,7 +214,7 @@ class EXPORT ExecutionContext {
    * Set the execution parameters.
    * @param params The execution parameters.
    */
-  void SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params) {
+  void SetParams(common::ManagedPointer<std::vector<common::ManagedPointer<const sql::Val>>> params) {
     params_ = params;
   }
 
@@ -211,7 +222,9 @@ class EXPORT ExecutionContext {
    * @param param_idx index of parameter to access
    * @return immutable parameter at provided index
    */
-  const parser::ConstantValueExpression &GetParam(uint32_t param_idx) const;
+  common::ManagedPointer<const sql::Val> GetParam(uint32_t param_idx) const {
+    return udf_param_stack_.empty() ? (*params_)[param_idx] : udf_param_stack_.back()[param_idx];
+  }
 
   /**
    * Set the PipelineOperatingUnits
@@ -347,11 +360,13 @@ class EXPORT ExecutionContext {
 
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
-  common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
+  common::ManagedPointer<std::vector<common::ManagedPointer<const sql::Val>>> params_;
   uint8_t execution_mode_;
   uint32_t rows_affected_ = 0;
 
   common::ManagedPointer<replication::ReplicationManager> replication_manager_;
+
+  std::vector<std::vector<common::ManagedPointer<const sql::Val>>> udf_param_stack_;
 
   bool memory_use_override_ = false;
   uint32_t memory_use_override_value_ = 0;

@@ -225,8 +225,12 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
           common::ManagedPointer(accessor), exec_settings, metrics_manager, DISABLED);
-
-      exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+      // TODO(Kyle): It sucks to call this in a loop... better way?
+      std::vector<common::ManagedPointer<const execution::sql::Val>> param_values{};
+      param_values.reserve(params.size());
+      std::transform(params.cbegin(), params.cend(), std::back_inserter(param_values),
+                     [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.PeekPtr()}; });
+      exec_ctx->SetParams(common::ManagedPointer(&param_values));
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
       txn_manager->Abort(txn);
     }

@@ -2119,15 +2119,13 @@ VM_OP_WARM void OpAbortTxn(noisepage::execution::exec::ExecutionContext *exec_ct
 }
 
 // Parameter calls
+// TODO(Kyle): this used to have a conditional check; was it safe to remove?
 #define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                     \
   VM_OP_HOT void OpGetParam##Name(noisepage::execution::sql::SqlType *ret,                                      \
                                   noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
-    const auto &cve = exec_ctx->GetParam(param_idx);                                                            \
-    if (cve.IsNull()) {                                                                                         \
-      ret->is_null_ = true;                                                                                     \
-    } else {                                                                                                    \
-      *ret = cve.Get##SqlType();                                                                                \
-    }                                                                                                           \
+    const auto &val =                                                                                           \
+        *reinterpret_cast<const noisepage::execution::sql::SqlType *>(exec_ctx->GetParam(param_idx).Get());     \
+    *ret = val;                                                                                                 \
   }
 
 GEN_SCALAR_PARAM_GET(Bool, BoolVal)

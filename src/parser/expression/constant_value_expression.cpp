@@ -91,6 +91,11 @@ T ConstantValueExpression::Peek() const {
   UNREACHABLE("Invalid type for Peek.");
 }
 
+const execution::sql::Val *ConstantValueExpression::PeekPtr() const {
+  // TODO(Kyle): seems unsafe.
+  return reinterpret_cast<const execution::sql::Val *>(&value_);
+}
+
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {
   if (this != &other) {  // self-assignment check expected
     // AbstractExpression fields we need copied over

@@ -89,8 +89,9 @@ class EXPORT OutputBuffer {
 
  private:
   sql::MemoryPool *memory_pool_;
-  uint32_t num_tuples_;
-  uint32_t tuple_size_;
+  // TODO(Kyle): Tanuj made this atomic, does it need to be?
+  std::uint32_t num_tuples_;
+  std::uint32_t tuple_size_;
   byte *tuples_;
 
   /**
