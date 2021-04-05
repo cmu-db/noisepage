@@ -23,7 +23,8 @@ class CallbackFns {
   static void Noop(common::ManagedPointer<Messenger> messenger, const ZmqMessage &msg) {}
 };
 
-/** A messenger callback ID. */
-STRONG_TYPEDEF_HEADER(messenger_cb_id_t, uint64_t);
+STRONG_TYPEDEF_HEADER(callback_id_t, uint64_t);
+STRONG_TYPEDEF_HEADER(connection_id_t, uint64_t);
+STRONG_TYPEDEF_HEADER(router_id_t, uint64_t);
 
 }  // namespace noisepage::messenger

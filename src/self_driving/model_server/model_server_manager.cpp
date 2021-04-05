@@ -33,15 +33,14 @@ static constexpr const char *COVERAGE_INCLUDE_PATH = "*/script/self_driving/*";
  */
 static constexpr const unsigned char MODEL_SERVER_SUBPROCESS_ERROR = 128;
 
-common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
+messenger::router_id_t ListenAndMakeConnection(
     const common::ManagedPointer<messenger::Messenger> &messenger, const std::string &ipc_path,
     messenger::CallbackFn model_server_logic) {
   // Create an IPC connection that the Python process will talk to.
   auto destination = messenger::ConnectionDestination::MakeIPC(MODEL_TARGET_NAME, ipc_path);
 
   // Listen for the connection
-  messenger->ListenForConnection(destination, MODEL_CONN_ID_NAME, std::move(model_server_logic));
-  return messenger->GetConnectionRouter(MODEL_CONN_ID_NAME);
+  return messenger->ListenForConnection(destination, MODEL_CONN_ID_NAME, std::move(model_server_logic));
 }
 
 }  // namespace noisepage::modelserver
@@ -58,8 +57,8 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
       })) {
   // Model Initialization handling logic
   auto msm_handler = [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-    messenger::messenger_cb_id_t sender_id UNUSED_ATTRIBUTE = msg.GetSourceCallbackId();
-    messenger::messenger_cb_id_t recv_cb_id UNUSED_ATTRIBUTE = msg.GetDestinationCallbackId();
+    messenger::callback_id_t sender_id UNUSED_ATTRIBUTE = msg.GetSourceCallbackId();
+    messenger::callback_id_t recv_cb_id UNUSED_ATTRIBUTE = msg.GetDestinationCallbackId();
     std::string_view message = msg.GetMessage();
 
     // ModelServer connected

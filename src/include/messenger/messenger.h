@@ -5,6 +5,8 @@
 #include <functional>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <optional>
+#include <queue>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -34,10 +36,10 @@ class ZmqUtil;
 class ZmqMessage {
  public:
   /** @return The callback to invoke on the source. */
-  messenger_cb_id_t GetSourceCallbackId() const { return source_cb_id_; }
+  callback_id_t GetSourceCallbackId() const { return source_cb_id_; }
 
   /** @return The callback to invoke on the destination. */
-  messenger_cb_id_t GetDestinationCallbackId() const { return dest_cb_id_; }
+  callback_id_t GetDestinationCallbackId() const { return dest_cb_id_; }
 
   /** @return The routing ID of this message. */
   std::string_view GetRoutingId() const { return std::string_view(routing_id_); }
@@ -60,7 +62,7 @@ class ZmqMessage {
    * @param message         The contents of the message.
    * @return A ZmqMessage encapsulating the given message.
    */
-  static ZmqMessage Build(messenger_cb_id_t source_cb_id, messenger_cb_id_t dest_cb_id, const std::string &routing_id,
+  static ZmqMessage Build(callback_id_t source_cb_id, callback_id_t dest_cb_id, const std::string &routing_id,
                           std::string_view message);
 
   /**
@@ -80,9 +82,9 @@ class ZmqMessage {
   std::string payload_;
 
   /** The cached id of the message (source). */
-  messenger_cb_id_t source_cb_id_;
+  callback_id_t source_cb_id_;
   /** The cached id of the message (destination). */
-  messenger_cb_id_t dest_cb_id_;
+  callback_id_t dest_cb_id_;
   /** The cached actual message. */
   std::string_view message_;
 };
@@ -90,13 +92,6 @@ class ZmqMessage {
 /** ConnectionId is an abstraction around establishing connections. */
 class ConnectionId {
  public:
-  /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
-  ~ConnectionId();
-
- private:
-  friend Messenger;
-  friend ZmqUtil;
-
   /**
    * Create a new ConnectionId that is connected to the specified target.
    * @param messenger   The messenger that owns this connection ID.
@@ -105,6 +100,13 @@ class ConnectionId {
    */
   explicit ConnectionId(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                         const std::string &identity);
+
+  /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
+  ~ConnectionId();
+
+ private:
+  friend Messenger;
+  friend ZmqUtil;
 
   /** The ZMQ socket. */
   std::unique_ptr<zmq::socket_t> socket_;
@@ -157,18 +159,26 @@ class Messenger : public common::DedicatedThreadTask {
    * the main serverloop thread for poll to function correctly.
    */
   struct RouterToBeAdded {
-    ConnectionDestination target_;
-    std::string identity_;
-    CallbackFn callback_;
+    router_id_t router_id_;         ///< The router ID to be assigned.
+    ConnectionDestination target_;  ///< The destination to listen on.
+    std::string identity_;          ///< The identity to listen as.
+    CallbackFn callback_;           ///< The callback to invoke on all messages that are received on this destination.
+  };
+
+  /**
+   * A ConnectionId that should be established. Unfortunately, ZeroMQ is not thread safe and this must be done from
+   * the main serverloop thread for sending/receiving messages to function correctly.
+   */
+  struct ConnectionToBeAdded {
+    connection_id_t connection_id_;  ///< The connection ID to be assigned.
+    ConnectionDestination target_;   ///< The target to be connected to.
   };
 
  public:
   /** Builtin callbacks useful for testing. */
   enum class BuiltinCallback : uint8_t { NOOP = 0, ECHO, NUM_BUILTIN_CALLBACKS };
   /** @return The callback ID for the builtin callback. */
-  static messenger_cb_id_t GetBuiltinCallback(BuiltinCallback cb) {
-    return messenger_cb_id_t{static_cast<uint64_t>(cb)};
-  }
+  static callback_id_t GetBuiltinCallback(BuiltinCallback cb) { return callback_id_t{static_cast<uint64_t>(cb)}; }
 
   /** @return The default TCP endpoint for a Messenger on the given port. */
   static ConnectionDestination GetEndpointTCP(std::string target_name, uint16_t port);
@@ -206,27 +216,26 @@ class Messenger : public common::DedicatedThreadTask {
    * @param target      The destination to listen on for new connections.
    * @param identity    The identity to listen as.
    * @param callback    The server loop for all messages received.
+   * @return            The ID of the router that was created.
    */
-  void ListenForConnection(const ConnectionDestination &target, const std::string &identity, CallbackFn callback);
+  router_id_t ListenForConnection(const ConnectionDestination &target, const std::string &identity,
+                                  CallbackFn callback);
 
   /**
    * Connect to the specified target destination.
    *
    * @param target      The destination to be connected to. Note that target_name is meaningless here.
-   * @return            A new ConnectionId. See warning!
-   *
-   * @warning           DO NOT USE THIS ConnectionId FROM A DIFFERENT THREAD THAN THE CALLER OF THIS FUNCTION!
-   *                    Make a new connection instead, connections are cheap.
+   * @return            The ID of the connection that was created.
    *
    * @warning           The default behavior of ZMQ sockets is to allow connections to any target and to queue messages.
-   *                    Obtaining a ConnectionId does NOT guarantee that a successful connection has been made.
+   *                    Obtaining a connection_id does NOT guarantee that a successful connection has been made.
    *                    If this is necessary, test the connection explicitly by sending a message through.
-   *                    Currently, ConnectionId is setup so that messages are only queued for successful connections.
+   *                    Currently, connection_id is setup so that messages are only queued for successful connections.
    *                    But note that it should not be necessary as your code should handle the case of the target
    *                    going away permanently anyway, in particular consider this ordering of events:
    *                      MakeConnection(target) success -> target dies -> SendMessage(target, ...)
    */
-  ConnectionId MakeConnection(const ConnectionDestination &target);
+  connection_id_t MakeConnection(const ConnectionDestination &target);
 
   /**
    * Send a message through the specified connection id.
@@ -242,8 +251,8 @@ class Messenger : public common::DedicatedThreadTask {
    *
    * @return                The callback ID that was assigned to the sent message.
    */
-  messenger_cb_id_t SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message,
-                                CallbackFn callback, messenger_cb_id_t remote_cb_id);
+  callback_id_t SendMessage(connection_id_t connection_id, const std::string &message, CallbackFn callback,
+                            callback_id_t remote_cb_id);
 
   /**
    * Send a message through the specified connection router.
@@ -260,11 +269,8 @@ class Messenger : public common::DedicatedThreadTask {
    *
    * @return                The callback ID that was assigned to the sent message.
    */
-  messenger_cb_id_t SendMessage(common::ManagedPointer<ConnectionRouter> router_id, const std::string &recv_id,
-                                const std::string &message, CallbackFn callback, messenger_cb_id_t remote_cb_id);
-
-  /** @return The ConnectionRouter with the specified router_id. Created by ListenForConnection. */
-  common::ManagedPointer<ConnectionRouter> GetConnectionRouter(const std::string &router_id);
+  callback_id_t SendMessage(router_id_t router_id, const std::string &recv_id, const std::string &message,
+                            CallbackFn callback, callback_id_t remote_cb_id);
 
  private:
   friend ConnectionId;
@@ -273,15 +279,30 @@ class Messenger : public common::DedicatedThreadTask {
   static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
   static constexpr const char *MESSENGER_DEFAULT_IPC = "./noisepage-ipc-{}";
   static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
-  static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::seconds(2);
+  static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::milliseconds(250);
   /** The maximum timeout that a send or recv operation is allowed to block for. TODO(WAN): 30, really? */
   static constexpr const std::chrono::milliseconds MESSENGER_SNDRCV_TIMEOUT = std::chrono::seconds(30);
 
   /** @return The next ID to be used when sending messages. */
-  messenger_cb_id_t GetNextSendMessageId();
+  callback_id_t GetNextSendMessageId();
 
   /** The main server loop. */
   void ServerLoop();
+  /** Add listening points. */
+  void ServerLoopAddRouters();
+  /** Make new connections to other listening points. */
+  void ServerLoopMakeConnections();
+  /** Send all queued messages. */
+  void ServerLoopSendMessages();
+  /** Receive and process any outstanding messages. */
+  void ServerLoopRecvAndProcessMessages();
+
+  struct PendingMessage {
+    common::ManagedPointer<zmq::socket_t> zmq_socket_;
+    std::string destination_id_;
+    ZmqMessage msg_;
+    bool is_router_socket_;
+  };
 
   /**
    * Processes messages.
@@ -303,17 +324,29 @@ class Messenger : public common::DedicatedThreadTask {
   std::unique_ptr<zmq::context_t> zmq_ctx_;
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
   std::unique_ptr<MessengerPolledSockets> polled_sockets_;
-  std::unordered_map<messenger_cb_id_t, CallbackFn> callbacks_;
+  std::unordered_map<callback_id_t, CallbackFn> callbacks_;
 
   std::vector<RouterToBeAdded> routers_to_be_added_;
   std::mutex routers_add_mutex_;
   std::condition_variable routers_add_cvar_;
-  std::unordered_map<std::string, std::unique_ptr<ConnectionRouter>> routers_;
+  std::unordered_map<router_id_t, std::unique_ptr<ConnectionRouter>> routers_;
+
+  std::vector<ConnectionToBeAdded> connections_to_be_added_;
+  std::mutex connections_add_mutex_;
+  std::condition_variable connections_add_cvar_;
+  std::unordered_map<connection_id_t, std::unique_ptr<ConnectionId>> connections_;
+
+  std::queue<PendingMessage> pending_messages_;
+  std::mutex pending_messages_mutex_;
 
   std::mutex callbacks_mutex_;
   bool is_messenger_running_ = false;
   /** The message ID that gets automatically prefixed to messages. */
-  std::atomic<messenger_cb_id_t> message_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
+  std::atomic<callback_id_t> message_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
+  /** The ID of the next listening router to be made from ListenForConnection(). */
+  std::atomic<router_id_t> next_router_id_{0};
+  /** The ID of the next outgoing connection to be made from MakeConnection(). */
+  std::atomic<connection_id_t> next_connection_id_{0};
 };
 
 /**

@@ -23,11 +23,11 @@ class Replica {
           const std::string &hostname, uint16_t port);
 
   /** @return The connection ID for this replica. */
-  common::ManagedPointer<messenger::ConnectionId> GetConnectionId() { return common::ManagedPointer(&connection_); }
+  messenger::connection_id_t GetConnectionId() const { return connection_id_; }
 
  private:
   messenger::ConnectionDestination replica_info_;  ///< The connection metadata for this replica.
-  messenger::ConnectionId connection_;             ///< The connection to this replica.
+  messenger::connection_id_t connection_id_;       ///< The connection ID to this replica.
 };
 
 }  // namespace noisepage::replication

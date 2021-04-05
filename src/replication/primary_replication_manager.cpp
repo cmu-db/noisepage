@@ -60,7 +60,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
     REPLICATION_LOG_TRACE(fmt::format("[SEND] BATCH {}", msg.GetBatchId()));
 
-    messenger::messenger_cb_id_t destination_cb =
+    messenger::callback_id_t destination_cb =
         messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
     for (const auto &replica : replicas_) {
       Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
@@ -82,7 +82,7 @@ void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t old
   NotifyOATMsg msg(metadata, last_sent_batch_id_, oldest_active_txn);
   REPLICATION_LOG_TRACE(fmt::format("[SEND] BATCH {} OAT {}", msg.GetBatchId(), msg.GetOldestActiveTxn()));
 
-  messenger::messenger_cb_id_t destination_cb =
+  messenger::callback_id_t destination_cb =
       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
   for (const auto &replica : replicas_) {
     Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);

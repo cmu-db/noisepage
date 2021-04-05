@@ -181,9 +181,9 @@ class ModelServerFuture {
 /**
  * This initializes a connection to the model by opening up a zmq connection
  * @param messenger
- * @return A ConnectionId that should be used only to the calling thread
+ * @return The ID of the connection router that was created.
  */
-common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
+messenger::router_id_t ListenAndMakeConnection(
     const common::ManagedPointer<messenger::Messenger> &messenger, const std::string &ipc_path,
     messenger::CallbackFn model_server_logic);
 
@@ -384,7 +384,7 @@ class ModelServerManager {
   common::ManagedPointer<messenger::Messenger> messenger_;
 
   /** Connection router */
-  common::ManagedPointer<messenger::ConnectionRouter> router_;
+  messenger::router_id_t router_;
 
   /** Thread the ModelServerManager runs in */
   std::thread thd_;

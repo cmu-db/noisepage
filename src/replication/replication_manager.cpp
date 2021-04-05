@@ -13,6 +13,7 @@ ReplicationManager::ReplicationManager(
     const std::string &replication_hosts_path,
     common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue)
     : empty_buffer_queue_(empty_buffer_queue), messenger_(messenger), identity_(network_identity), port_(port) {
+  replication_logger->set_level(spdlog::level::trace);
   // Start listening on the given replication port.
   messenger::ConnectionDestination listen_destination =
       messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
@@ -52,7 +53,7 @@ void ReplicationManager::NodeConnect(const std::string &node_name, const std::st
   NOISEPAGE_ASSERT(result.second, "Failed to connect to a replica?");
 }
 
-common::ManagedPointer<messenger::ConnectionId> ReplicationManager::GetNodeConnection(const std::string &replica_name) {
+messenger::connection_id_t ReplicationManager::GetNodeConnection(const std::string &replica_name) {
   return replicas_.at(replica_name).GetConnectionId();
 }
 
@@ -113,8 +114,8 @@ void ReplicationManager::BuildReplicationNetwork(const std::string &replication_
 
 void ReplicationManager::Send(const std::string &destination, const BaseReplicationMessage &message,
                               const messenger::CallbackFn &source_callback,
-                              messenger::messenger_cb_id_t destination_callback, bool track_message) {
-  common::ManagedPointer<messenger::ConnectionId> con_id = GetNodeConnection(destination);
+                              messenger::callback_id_t destination_callback, bool track_message) {
+  messenger::connection_id_t con_id = GetNodeConnection(destination);
 
   REPLICATION_LOG_TRACE(fmt::format("[SEND] -> {}: ID {}        // PREVIEW {}", destination, message.GetMessageId(),
                                     message.ToJson().dump().substr(0, MESSAGE_PREVIEW_LEN)));

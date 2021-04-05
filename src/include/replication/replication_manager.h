@@ -89,7 +89,7 @@ class ReplicationManager {
    * @param track_message               True if the message should be tracked in pending_msg_.
    */
   void Send(const std::string &destination, const BaseReplicationMessage &message,
-            const messenger::CallbackFn &source_callback, messenger::messenger_cb_id_t destination_callback,
+            const messenger::CallbackFn &source_callback, messenger::callback_id_t destination_callback,
             bool track_message);
 
   /** The main event loop that all nodes run. This handles receiving messages. */
@@ -121,7 +121,7 @@ class ReplicationManager {
   void NodeConnect(const std::string &node_name, const std::string &hostname, uint16_t port);
 
   /** @return The connection ID associated with a particular replica. */
-  common::ManagedPointer<messenger::ConnectionId> GetNodeConnection(const std::string &replica_name);
+  messenger::connection_id_t GetNodeConnection(const std::string &replica_name);
 
   common::ManagedPointer<messenger::Messenger> messenger_;  ///< The messenger used for all send/receive operations.
   std::string identity_;                                    ///< The identity of this replica.
