@@ -173,6 +173,8 @@ TEST(PlanNodeTest, AggregatePlanTest) {
   EXPECT_EQ(plan->GetAggregateTerms().size(), 1);
   EXPECT_EQ(*plan->GetAggregateTerms()[0], *aggr_term);
   EXPECT_EQ(*plan->GetHavingClausePredicate(), *predicate);
+  EXPECT_FALSE(plan->RequiresCleanup());
+  EXPECT_TRUE(plan->GetMemoryAllocatingAggregatorIndexes().empty());
 
   planner::AggregatePlanNode::Builder builder2;
   auto nc_aggr = dynamic_cast<parser::AggregateExpression *>(aggr_term->Copy().release());

@@ -12,7 +12,7 @@
 #include "planner/plannodes/plan_node_defs.h"
 
 namespace noisepage::runner {
-class MiniRunners;
+class ExecutionRunners;
 }
 
 namespace noisepage::optimizer {
@@ -223,8 +223,8 @@ class AbstractPlanNode {
   virtual void Accept(common::ManagedPointer<PlanVisitor> v) const = 0;
 
  private:
-  friend class noisepage::runner::MiniRunners;
   friend class noisepage::optimizer::Optimizer;
+  friend class noisepage::runner::ExecutionRunners;
 
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;

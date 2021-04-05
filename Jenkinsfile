@@ -45,6 +45,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -73,6 +74,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -91,6 +93,29 @@ pipeline {
             }
         }
 
+        stage('Microbenchmark (Build only)') {
+            agent {
+                docker {
+                    image 'noisepage:focal'
+                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
+                script{
+                    utils = utils ?: load(utilsFileName)
+                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
+                }
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
+
         stage('Test') {
             parallel {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
@@ -102,22 +127,27 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(useASAN:true, isJumboTest:true)
                         }
-                        
+
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && timeout 1h ninja jumbotests'
-                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_sample_rate=100" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_sample_rate=100" -a "counters_enable=True" -a "query_trace_metrics_enable=True" -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution with pipeline metrics, counters, and query trace metrics)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_interval=0" -a "counters_enable=True" -a "query_trace_metrics_enable=True"', label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
+                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -135,7 +165,8 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                            label 'dgb'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
@@ -143,7 +174,8 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(isCodeCoverage:true)
@@ -153,24 +185,20 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja check-tpl'
+                        sh 'cd build && timeout 1h ninja unittest'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
-                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && lcov --directory . --capture --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/test/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --list coverage.info'
-                        sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
-                        sh 'cd build && chmod a+x ./codecov.sh'
-                        sh 'cd build && /bin/bash ./codecov.sh -X gcov'
+
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.cppCoverage()
+                        }
+
                     }
                     post {
                         always {
@@ -196,6 +224,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -206,11 +235,14 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && timeout 1h ninja jumbotests'
-                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -228,11 +260,12 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -243,11 +276,14 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && timeout 1h ninja jumbotests'
-                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -265,7 +301,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
@@ -274,6 +310,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -284,11 +321,14 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && timeout 1h ninja jumbotests'
-                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
+                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -315,6 +355,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -325,38 +366,38 @@ pipeline {
 
                         sh script: '''
                         cd build
-                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug
                         ''', label:'OLTPBench (TATP)'
 
                         sh script: '''
                         cd build
-                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
                         ''', label: 'OLTPBench (No WAL)'
 
                         sh script: '''
                         cd build
-                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug
                         ''', label:'OLTPBench (Smallbank)'
 
                         sh script: '''
                         cd build
-                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
                         ''', label: 'OLTPBench (YCSB)'
 
                         sh script: '''
                         cd build
-                        timeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
+                        PYTHONPATH=.. timeout 5m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
                         ''', label: 'OLTPBench (NOOP)'
 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
                         sh script: '''
                         cd build
-                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug
+                        PYTHONPATH=.. timeout 30m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug
                         ''', label: 'OLTPBench (TPCC)'
 
                         sh script: '''
                         cd build
-                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
+                        PYTHONPATH=.. timeout 30m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
                         ''', label: 'OLTPBench (No Parallel)'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -376,7 +417,8 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+
                         script{
                             utils = utils ?: load(utilsFileName)
                             utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
@@ -386,32 +428,32 @@ pipeline {
 
                         sh script:'''
                         cd build
-                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                         ''', label: 'OLTPBench (TATP)'
 
                         sh script:'''
                         cd build
-                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                         ''', label: 'OLTPBench (TATP No WAL)'
 
                         sh script:'''
                         cd build
-                        timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                         ''', label: 'OLTPBench (TATP RamDisk WAL)'
 
                         sh script:'''
                         cd build
-                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        PYTHONPATH=.. timeout 30m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                         ''', label: 'OLTPBench (TPCC HDD WAL)'
 
                         sh script:'''
                         cd build
-                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        PYTHONPATH=.. timeout 30m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                         ''', label: 'OLTPBench (TPCC No WAL)'
 
                         sh script:'''
                         cd build
-                        timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        PYTHONPATH=.. timeout 30m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
                         ''', label: 'OLTPBench (TPCC RamDisk WAL)'
                     }
                     post {
@@ -434,6 +476,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
@@ -445,15 +488,22 @@ pipeline {
                         // --pattern_iter determines how many times a sequence of TPCC phases is run. Set to 3 so that
                         // enough trace could be generated for training and testing.
                         sh script :'''
-                        cd script/forecasting
-                        ./forecaster.py --gen_data --pattern_iter=3 --model_save_path=model.pickle --models=LSTM
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
+                        ''', label: 'Generate trace and perform training'
+
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --model_save_path=model.pickle --models=LSTM
                         ''', label: 'Generate trace and perform training'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         sh script: '''
-                        cd script/forecasting
-                        ./forecaster.py --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --test_file=query_trace.csv --model_load_path=model.pickle --test_model=LSTM
                         ''', label: 'Perform inference on the trained model'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
@@ -468,59 +518,91 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            label 'dgb'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
+                    environment {
+                        CODECOV_TOKEN=credentials('codecov-token')
+                    }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
 
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingE2ETests: true)
                         }
 
-                        // The parameters to the mini_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
+                        // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
+                        // on query trace.
+                        // --pattern_iter determines how many times a sequence of TPCC phases is run. Set to 3 so that
+                        // enough trace could be generated for training and testing.
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
+                        ''', label: 'Forecasting model training data generation'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // This scripts runs TPCC benchmark with pipeline metrics enabled.
+                        sh script :'''
+                        cd build
+                        PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics --pattern_iter=1
+                        mkdir concurrent_runner_input
+                        mv pipeline.csv concurrent_runner_input
+                        ''', label: 'Interference model training data generation'
+                        sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // The parameters to the execution_runners target are (arbitrarily picked to complete tests within a reasonable time / picked to exercise all OUs).
                         // Specifically, the parameters chosen are:
-                        // - mini_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
+                        // - execution_runner_rows_limit=100, which sets the maximal number of rows/tuples processed to be 100 (small table)
                         // - rerun=0, which skips rerun since we are not testing benchmark performance here
-                        // - warm_num=1, which also tests the warm up phase for the mini_runners.
+                        // - warm_num=1, which also tests the warm up phase for the execution_runners.
                         // With the current set of parameters, the input generation process will finish under 10min
                         sh script :'''
                         cd build/bin
-                        ../benchmark/mini_runners --mini_runner_rows_limit=100 --rerun=0 --warm_num=1
-                        ''', label: 'Mini-trainer input generation'
+                        ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
+                        ''', label: 'OU model training data generation'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // Recompile the c++ binaries in Debug mode to generate code coverage. We had to compile in
+                        // Release mode first to efficiently generate the data required by the tests
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(isCodeCoverage:true, isBuildTests:false, isBuildSelfDrivingE2ETests: true)
+                        }
 
                         sh script: '''
                         cd build
                         export BUILD_ABS_PATH=`pwd`
-                        timeout 10m ninja self_driving_test
-                        ''', label: 'Running self-driving test'
+                        timeout 10m ninja self_driving_e2e_test
+                        ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // We need `coverage combine` because coverage files are generated separately for each test and
+                        // then moved into the build root by `run-test.sh`
+                        sh script :'''
+                        cd build
+                        coverage combine
+                        ''', label: 'Combine Python code coverage'
+
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.cppCoverage()
+                        }
+
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
                     }
-                }
-            }
-        }
-        stage('Microbenchmark') {
-            agent { label 'benchmark' }
-            steps {
-                sh 'echo $NODE_NAME'
-
-                script{
-                    utils = utils ?: load(utilsFileName)
-                    utils.noisePageBuild(isBuildTests:false, isBuildBenchmarks:true)
-                }
-            }
-            post {
-                cleanup {
-                    deleteDir()
                 }
             }
         }

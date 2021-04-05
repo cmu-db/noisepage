@@ -12,6 +12,7 @@
 #include "execution/tpl_test.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
@@ -26,12 +27,18 @@ class SqlBasedTest : public TplTest {
     TplTest::SetUp();
     // Initialize noisepage objects
 
-    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
+    db_main_ = noisepage::DBMain::Builder()
+                   .SetUseGC(true)
+                   .SetUseGCThread(true)
+                   .SetUseCatalog(true)
+                   .SetUseStatsStorage(true)
+                   .Build();
     metrics_manager_ = db_main_->GetMetricsManager();
 
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    stats_storage_ = db_main_->GetStatsStorage();
 
     test_txn_ = txn_manager_->BeginTransaction();
 
@@ -56,7 +63,7 @@ class SqlBasedTest : public TplTest {
     const auto &callback_ref = (callback == nullptr) ? empty : *callback;
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback_ref,
                                                     schema, common::ManagedPointer(accessor_), *exec_settings_,
-                                                    metrics_manager_);
+                                                    metrics_manager_, DISABLED);
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
@@ -68,16 +75,19 @@ class SqlBasedTest : public TplTest {
     return catalog_->GetAccessor(common::ManagedPointer(test_txn_), test_db_oid_, DISABLED);
   }
 
+ protected:
+  std::unique_ptr<catalog::CatalogAccessor> accessor_;
+  catalog::db_oid_t test_db_oid_{0};
+  common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
+  transaction::TransactionContext *test_txn_;
+
  private:
   std::unique_ptr<DBMain> db_main_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  catalog::db_oid_t test_db_oid_{0};
   catalog::namespace_oid_t test_ns_oid_;
-  transaction::TransactionContext *test_txn_;
-  std::unique_ptr<catalog::CatalogAccessor> accessor_;
   std::unique_ptr<exec::ExecutionSettings> exec_settings_;
 };
 

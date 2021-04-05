@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from collections import namedtuple
 
 MemoryInfo = namedtuple("MemoryInfo", ["rss", "vms"])

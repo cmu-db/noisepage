@@ -112,6 +112,8 @@ std::string OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ExecutionOpera
       return "CREATE_INDEX";
     case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:
       return "CREATE_INDEX_MAIN";
+    case ExecutionOperatingUnitType::CTE_SCAN:
+      return "CTE_SCAN";
     default:
       UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
       break;

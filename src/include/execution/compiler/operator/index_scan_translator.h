@@ -42,7 +42,7 @@ class IndexScanTranslator : public OperatorTranslator, public PipelineDriver {
 
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *func) const override {}
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * @return The value (or value vector) of the column with the provided column OID in the table
@@ -78,7 +78,7 @@ class IndexScanTranslator : public OperatorTranslator, public PipelineDriver {
   const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm_;
 
   // Structs and local variables
-  ast::Identifier index_iter_;
+  StateDescriptor::Entry index_iter_;
   ast::Identifier col_oids_;
   ast::Identifier index_pr_;
   ast::Identifier lo_index_pr_;

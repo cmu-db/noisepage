@@ -104,11 +104,17 @@ enum class ExecutionOperatingUnitType : uint32_t {
   OUTPUT,
   /**
    * LIMIT
-   * num_rows:
-   * cardinality:
+   * We don't model LIMIT for now since there's no LIMIT operator. But we keep this OpUnit type since there's a LIMIT
+   * translator (which requires an OpUnit type). We skip this OpUnit in the OperatingUnitRecorder.
    */
   LIMIT,
   CTE_SCAN,
+  /**
+   * ANALYZE
+   * We don't model ANALYZE but we keep this OpUnit type since there's an ANALYZE translator (which requires an OpUnit
+   * type). We skip this OpUnit in the OperatingUnitRecorder.
+   */
+  ANALYZE,
 
   /**
    * num_rows: index size

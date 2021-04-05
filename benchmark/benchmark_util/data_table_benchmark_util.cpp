@@ -79,7 +79,7 @@ LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<u
       abort_count_(0),
       operation_ratio_(std::move(operation_ratio)),
       txn_manager_(common::ManagedPointer(&timestamp_manager_), DISABLED, common::ManagedPointer(buffer_pool), gc_on,
-                   common::ManagedPointer(log_manager)),
+                   false, common::ManagedPointer(log_manager)),
       txn_length_(txn_length),
       gc_on_(gc_on) {
   // Bootstrap the table to have the specified number of tuples

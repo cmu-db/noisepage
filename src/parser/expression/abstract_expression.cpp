@@ -79,7 +79,7 @@ void AbstractExpression::SetChild(int index, common::ManagedPointer<AbstractExpr
 
 nlohmann::json AbstractExpression::ToJson() const {
   nlohmann::json j;
-  j["expression_type"] = expression_type_;
+  j["expression_type"] = ExpressionTypeToString(expression_type_);
   j["expression_name"] = expression_name_;
   j["alias"] = alias_.GetName();
   j["depth"] = depth_;
@@ -97,7 +97,7 @@ nlohmann::json AbstractExpression::ToJson() const {
 std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> result_exprs;
 
-  expression_type_ = j.at("expression_type").get<ExpressionType>();
+  expression_type_ = ExpressionTypeFromString(j.at("expression_type").get<std::string>());
   expression_name_ = j.at("expression_name").get<std::string>();
   alias_ = parser::AliasType(j.at("alias").get<std::string>());
   return_value_type_ = j.at("return_value_type").get<type::TypeId>();
@@ -123,13 +123,15 @@ std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(co
 JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
   std::unique_ptr<AbstractExpression> expr;
 
-  auto expression_type = j.at("expression_type").get<ExpressionType>();
+  auto expression_type = ExpressionTypeFromString(j.at("expression_type").get<std::string>());
   switch (expression_type) {
     case ExpressionType::AGGREGATE_COUNT:
     case ExpressionType::AGGREGATE_SUM:
     case ExpressionType::AGGREGATE_MIN:
     case ExpressionType::AGGREGATE_MAX:
-    case ExpressionType::AGGREGATE_AVG: {
+    case ExpressionType::AGGREGATE_AVG:
+    case ExpressionType::AGGREGATE_TOP_K:
+    case ExpressionType::AGGREGATE_HISTOGRAM: {
       expr = std::make_unique<AggregateExpression>();
       break;
     }

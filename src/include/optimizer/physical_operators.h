@@ -144,12 +144,14 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @param is_for_update whether the scan is used for update
    * @param scan_type IndexScanType
    * @param bounds Bounds for IndexScan
+   * @param cover_all_columns whether the index covers all indexable columns (that we support) in the predicates
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
-                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
+                       bool cover_all_columns);
 
   /**
    * Copy
@@ -198,6 +200,11 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
     return bounds_;
   }
 
+  /**
+   * @return whether the index covers all predicate columns
+   */
+  bool GetCoverAllColumns() const { return cover_all_columns_; }
+
  private:
   /**
    * OID of the database
@@ -233,6 +240,12 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * Bounds
    */
   std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
+
+  /**
+   *
+   * The index covers all indexable columns in the predicates
+   */
+  bool cover_all_columns_;
 };
 
 /**
@@ -985,9 +998,11 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
   /**
    * @param database_oid OID of the database
    * @param table_oid OID of the table
+   * @param columns list of columns to insert into
    * @return an InsertSelect operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<catalog::col_oid_t> &&columns);
 
   /**
    * Copy
@@ -1008,6 +1023,9 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
+  /** @return Columns to insert into */
+  const std::vector<catalog::col_oid_t> &GetColumns() const { return columns_; }
+
  private:
   /**
    * OID of the database
@@ -1018,6 +1036,9 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
+
+  /** Columns to insert into */
+  std::vector<catalog::col_oid_t> columns_;
 };
 
 /**

@@ -93,9 +93,6 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   /** @return The expression representing the current VPI. */
   ast::Expr *GetVPI() const;
 
-  /** @return An expression that initializes the table iterator */
-  ast::Expr *TableIterInitExpr() const;
-
   /** @return Returns the schema for the underlying plan node */
   catalog::Schema GetPlanSchema() const;
 
@@ -136,7 +133,9 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   /** @return The index of the given column OID inside the col_oids that the plan is scanning over. */
   uint32_t GetColOidIndex(catalog::col_oid_t col_oid) const;
 
-  ast::Identifier vpi_var_;
+  StateDescriptor::Entry tvi_base_;        ///< The TVI is declared at pipeline setup/teardown.
+  StateDescriptor::Entry tvi_needs_free_;  ///< If true, \@tableIterClose(&tviBase) needs to be called.
+  ast::Identifier vpi_var_;                ///< The VPI variable.
 
   ast::Identifier slot_var_;
 

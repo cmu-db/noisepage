@@ -46,7 +46,7 @@ class DDLExecutorsTests : public TerrierTest {
                                                        catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
     index_schema_ =
-        std::make_unique<catalog::IndexSchema>(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
+        std::make_unique<catalog::IndexSchema>(keycols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
 
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED);

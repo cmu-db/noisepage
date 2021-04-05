@@ -159,6 +159,16 @@ class AggregatePlanNode : public AbstractPlanNode {
   bool IsStaticAggregation() const { return GetGroupByTerms().empty(); }
 
   /**
+   * @return true if any of the aggregators used needs to be cleaned up, false otherwise
+   */
+  bool RequiresCleanup() const;
+
+  /**
+   * @return a list of indexes corresponding to the aggregators that allocate memory
+   */
+  std::vector<size_t> GetMemoryAllocatingAggregatorIndexes() const;
+
+  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
