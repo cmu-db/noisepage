@@ -439,7 +439,7 @@ TEST_F(IndexKeyTests, IndexMetadataCompactIntsKeyTest) {
   key_cols.emplace_back("", type::TypeId::SMALLINT, false, parser::ConstantValueExpression(type::TypeId::SMALLINT));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
-  IndexMetadata metadata(catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true));
+  IndexMetadata metadata(catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true));
 
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
@@ -534,7 +534,7 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   key_cols.emplace_back("", type::TypeId::VARCHAR, 12, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
-  IndexMetadata metadata(catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true));
+  IndexMetadata metadata(catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true));
 
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
@@ -624,7 +624,7 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   key_cols.emplace_back("", type::TypeId::VARCHAR, 90, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
-  IndexMetadata metadata(catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true));
+  IndexMetadata metadata(catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true));
 
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
@@ -815,7 +815,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
     key_cols.emplace_back("", type_id, false, parser::ConstantValueExpression(type_id));
     StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(i));
   }
-  key_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
+  key_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true);
 
   const IndexMetadata metadata(key_schema);
   const auto &initializer = metadata.GetProjectedRowInitializer();
@@ -877,7 +877,7 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(
-      catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true));
+      catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
 
   auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -968,7 +968,7 @@ void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(
-      catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true));
+      catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
 
   auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -1045,7 +1045,7 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(
-      catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true));
+      catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
 
   auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -1153,7 +1153,7 @@ TEST_F(IndexKeyTests, GenericKeyNonInlineVarlenComparisons) {
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(
-      catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true));
+      catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true));
   const auto &initializer = metadata.GetProjectedRowInitializer();
 
   auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -1267,7 +1267,8 @@ TEST_F(IndexKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back("", type::TypeId::VARCHAR, 64, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(15445));
-  const auto key_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
+  const auto key_schema =
+      catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, false, false, false, true);
 
   IndexBuilder builder;
   builder.SetKeySchema(key_schema);

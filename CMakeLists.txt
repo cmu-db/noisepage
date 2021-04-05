@@ -53,6 +53,7 @@
 #   HEADER Dependencies.
 #   HEADER noisepage libraries.
 #   HEADER noisepage binary.
+#   HEADER noisepage miscellaneous files needed for operation.
 #   HEADER util_static and util_shared libraries.
 #   HEADER hack_bytecode_handlers_ir target.
 #   HEADER gen_opt_bc binary.
@@ -540,7 +541,7 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
-add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git v0.1.0)
+add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git v1.0.0)
 
 # Handle other dependencies.
 
@@ -698,6 +699,18 @@ target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 #######################################################################################################################
+# HEADER noisepage miscellaneous files needed for operation.
+# replication.config    :   The identities, hostnames, and ports, of all primaries and replicas.
+#######################################################################################################################
+
+# replication.config specifies the identities, hostnames, and ports, and is needed when replication is enabled.
+add_custom_command(
+        TARGET noisepage
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${BUILD_SUPPORT_DIR}/data/replication.config" "${CMAKE_BINARY_DIR}/bin/replication.config"
+        )
+
+#######################################################################################################################
 # HEADER util_static and util_shared libraries.
 # util_static           :   table_generator and table_reader for tests and benchmarks.
 # util_shared           :   table_generator and table_reader for tests and benchmarks.
@@ -781,7 +794,6 @@ add_dependencies(noisepage_static bitcode_generator)
 #######################################################################################################################
 # HEADER tpl binary.
 # tpl                   :   Standalone binary for testing .tpl files and commands.
-#                           Also generates POST_BUILD bytecode_handlers_ir.bc.
 #######################################################################################################################
 
 add_executable(tpl util/execution/tpl.cpp)

@@ -24,7 +24,7 @@ DEFAULT_FAILURE_THRESHOLD = 10
 BENCHMARK_THREADS = 4
 
 # The path to the logfile for the benchmarks.
-BENCHMARK_LOGFILE_PATH = "/tmp/benchmark.log"
+BENCHMARK_LOGFILE_PATH = "/tmp/noisepage-benchmark.log"
 
 # Where to find the benchmarks to execute
 BENCHMARK_PATH = os.path.realpath("../../build/benchmark/")

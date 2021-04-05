@@ -14,7 +14,6 @@
 #include "common/error/exception.h"
 #include "common/thread_context.h"
 #include "execution/compiler/compilation_context.h"
-#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
@@ -39,9 +38,34 @@
 
 namespace noisepage::trafficcop {
 
+/** The commit callback argument. */
+struct CommitCallbackArg {
+  std::atomic<uint8_t> persist_countdown_;  ///< A countdown latch for what else needs to persist.
+  std::promise<bool> ready_to_commit_;      ///< Set this promise to true to wake up the thread for commit.
+
+  explicit CommitCallbackArg(const transaction::TransactionPolicy &policy) {
+    // The value for the persist_countdown_ field.
+    // Note that the field will be decremented exactly once every time a commit callback is invoked.
+    persist_countdown_ = 0;
+    if (policy.durability_ != transaction::DurabilityPolicy::DISABLE) {
+      persist_countdown_ += 1;
+    }
+    if (policy.replication_ != transaction::ReplicationPolicy::DISABLE) {
+      persist_countdown_ += 1;
+    }
+  }
+};
+
 static void CommitCallback(void *const callback_arg) {
-  auto *const promise = reinterpret_cast<std::promise<bool> *const>(callback_arg);
-  promise->set_value(true);
+  auto *const cb_arg = reinterpret_cast<CommitCallbackArg *const>(callback_arg);
+  const uint8_t count_before_sub = cb_arg->persist_countdown_.fetch_sub(1);
+  NOISEPAGE_ASSERT(
+      count_before_sub != 0,
+      "Every component should have invoked the callback already. The policy may not have been correctly initialized?");
+  const bool was_last_callback = count_before_sub == 1;
+  if (was_last_callback) {
+    cb_arg->ready_to_commit_.set_value(true);
+  }
 }
 
 void TrafficCop::BeginTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
@@ -62,10 +86,10 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
     NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                      "Invalid ConnectionContext state, not in a transaction that can be committed.");
     // Set up a blocking callback. Will be invoked when we can tell the client that commit is complete.
-    std::promise<bool> promise;
-    auto future = promise.get_future();
+    CommitCallbackArg cb_arg(txn->GetTransactionPolicy());
+    auto future = cb_arg.ready_to_commit_.get_future();
     NOISEPAGE_ASSERT(future.valid(), "future must be valid for synchronization to work.");
-    txn_manager_->Commit(txn.Get(), CommitCallback, &promise);
+    txn_manager_->Commit(txn.Get(), CommitCallback, &cb_arg);
     future.wait();
     NOISEPAGE_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
   } else {
@@ -75,12 +99,6 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
   }
   connection_ctx->SetTransaction(nullptr);
   connection_ctx->SetAccessor(nullptr);
-}
-
-void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer) {
-  NOISEPAGE_ASSERT(replication_log_provider_ != DISABLED,
-                   "Should not be handing off logs if no log provider was given");
-  replication_log_provider_->HandBufferToReplication(std::move(buffer));
 }
 
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -440,7 +458,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings, metrics);
+      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_);
 
   exec_ctx->SetParams(portal->Parameters());
 
@@ -479,7 +497,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     }
     // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
     // might not have any output otherwise
-    return {ResultType::COMPLETE, exec_ctx->RowsAffected()};
+    return {ResultType::COMPLETE, exec_ctx->GetRowsAffected()};
   }
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
@@ -491,6 +509,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     const network::connection_id_t connection_id, const std::string &database_name) {
   auto *const txn = txn_manager_->BeginTransaction();
+  txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
+
   const auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
   if (db_oid == catalog::INVALID_DATABASE_OID) {
@@ -518,8 +538,9 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   NOISEPAGE_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID,
                    "Called DropTempNamespace() with an invalid namespace oid.");
   auto *const txn = txn_manager_->BeginTransaction();
-  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+  txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
 
+  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   NOISEPAGE_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");
 
   const auto result = db_accessor->DropNamespace(ns_oid);

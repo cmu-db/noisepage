@@ -1,9 +1,15 @@
+# db_server.py
+# Class definition for `NoisePageServer` used in JUnit tests.
+
 import os
-import shlex
-import subprocess
 import time
+import shlex
+import pathlib
+import subprocess
 
 import psycopg2 as psql
+
+from typing import Dict, List
 
 from .common import print_pipe
 from .constants import (DEFAULT_DB_BIN, DEFAULT_DB_HOST,
@@ -80,14 +86,17 @@ class NoisePageServer:
         LOG.info(f'Running: {db_run_command}')
         start_time = time.time()
         db_process = subprocess.Popen(shlex.split(db_run_command),
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE)
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
         LOG.info(f'Ran: {db_run_command} [PID={db_process.pid}]')
 
         logs = []
+
+        check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
+        LOG.info(f'Waiting until DBMS stdout contains: {check_line}')
+
         while True:
             log_line = db_process.stdout.readline().decode("utf-8").rstrip("\n")
-            check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
             now = time.time()
             if log_line.strip() != '':
                 logs.append(log_line)
@@ -115,6 +124,11 @@ class NoisePageServer:
             True if the commands that will be run should be printed,
             with the commands themselves not actually executing.
 
+        Returns
+        -------
+        exit_code : int
+            The exit code of the DBMS.
+
         Raises
         ------
         RuntimeError if the DBMS is not running when this is called.
@@ -125,32 +139,35 @@ class NoisePageServer:
         if not self.db_process:
             raise RuntimeError("System is in an invalid state.")
 
+        # Check if the DBMS is still running.
         return_code = self.db_process.poll()
-        if return_code is None:
-            try:
-                # Try to kill the process politely and wait for 60 seconds.
-                self.db_process.terminate()
-                self.db_process.wait(60)
-            except subprocess.TimeoutExpired:
-                # Otherwise, try to kill the process forcefully and wait another 60 seconds.
-                # If the process hasn't died yet, then something terrible has happened and we raise an error.
-                self.db_process.kill()
-                self.db_process.wait(60)
-            except KeyboardInterrupt:
-                raise KeyboardInterrupt
-            finally:
-                unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
-                if os.path.exists(unix_socket):
-                    os.remove(unix_socket)
-                    LOG.info(f"Removing: {unix_socket}")
-            self.print_db_logs()
-            LOG.info(f"DBMS stopped successfully, code: {self.db_process.returncode}")
-            self.db_process = None
-        else:
+        if return_code is not None:
             msg = f"DBMS already terminated, code: {self.db_process.returncode}"
             LOG.info(msg)
             self.print_db_logs()
             raise RuntimeError(msg)
+
+        try:
+            # Try to kill the process politely and wait for 60 seconds.
+            self.db_process.terminate()
+            self.db_process.wait(60)
+        except subprocess.TimeoutExpired:
+            # Otherwise, try to kill the process forcefully and wait another 60 seconds.
+            # If the process hasn't died yet, then something terrible has happened and we raise an error.
+            self.db_process.kill()
+            self.db_process.wait(60)
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
+        finally:
+            unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
+            if os.path.exists(unix_socket):
+                os.remove(unix_socket)
+                LOG.info(f"Removing: {unix_socket}")
+        self.print_db_logs()
+        exit_code = self.db_process.returncode
+        LOG.info(f"DBMS stopped, code: {exit_code}")
+        self.db_process = None
+        return exit_code
 
     def delete_wal(self):
         """
@@ -171,7 +188,11 @@ class NoisePageServer:
         print_pipe(self.db_process)
         LOG.info("************* DB Logs End *************")
 
-    def execute(self, sql, autocommit=True, expect_result=True, user=DEFAULT_DB_USER):
+    @property
+    def identity(self):
+        return self.server_args.get("network_identity", "")
+
+    def execute(self, sql, expect_result=True, quiet=True, user=DEFAULT_DB_USER, autocommit=True):
         """
         Create a new connection to the DBMS and execute the supplied SQL.
 
@@ -179,23 +200,31 @@ class NoisePageServer:
         ----------
         sql : str
             The SQL to be executed.
-        autocommit : bool
-            True if the connection should autocommit.
         expect_result : bool
             True if rows are expected to be fetched and returned.
+        quiet : bool
+            False if the SQL should be printed before executing. True otherwise.
         user : str
             The default username for this connection.
+        autocommit : bool
+            True if the connection should autocommit.
 
         Returns
         -------
         rows
-            None if an error occurs or if no results are expected.
+            None if no results are expected.
             Otherwise, the rows that are fetched are returned.
+
+        Raises
+        ------
+        Exception if any errors happened while executing the SQL.
         """
         try:
             with psql.connect(port=self.db_port, host=self.db_host, user=user) as conn:
                 conn.set_session(autocommit=autocommit)
                 with conn.cursor() as cursor:
+                    if not quiet:
+                        LOG.info(f"Executing SQL on {self.identity}: {sql}")
                     cursor.execute(sql)
                     if expect_result:
                         rows = cursor.fetchall()
@@ -302,8 +331,14 @@ def construct_server_argument(attr, value, meta):
         handle_flags,
     ]
 
-    preprocessed_attr  = apply_all(ATTR_PREPROCESSORS, attr, meta)
-    preprocessed_value = apply_all(VALUE_PREPROCESSORS, value, meta)
+    # Make the value available to the attribute preprocessors
+    attr_meta = {**meta, **{"value": value}}
+
+    # Make the attribute available to the value preprocessors
+    value_meta = {**meta, **{"attr": attr}}
+
+    preprocessed_attr  = apply_all(ATTR_PREPROCESSORS, attr, attr_meta)
+    preprocessed_value = apply_all(VALUE_PREPROCESSORS, value, value_meta)
     return f"-{preprocessed_attr}{preprocessed_value}"
 
 # -----------------------------------------------------------------------------
@@ -354,7 +389,7 @@ def applies_to(*target_types):
 #       ...
 
 @applies_to(bool)
-def lower_booleans(value, meta):
+def lower_booleans(value: str, meta: Dict) -> str:
     """
     Lower boolean string values to the format expected by the DBMS server.
     
@@ -377,7 +412,7 @@ def lower_booleans(value, meta):
     return str(value).lower()
 
 @applies_to(str)
-def resolve_relative_paths(value, meta):
+def resolve_relative_paths(value: str, meta: Dict) -> str:
     """
     Resolve relative paths in the DBMS server arguments to their equivalent absolute paths.
 
@@ -405,16 +440,23 @@ def resolve_relative_paths(value, meta):
     -------
     The preprocessed server argument value
     """
-    is_relative = str.startswith(value, "./") or str.startswith(value, "../")
-    # TODO(Kyle): This doesn't actually do any "resolving", it merely appends
-    # the absolute path to the binary directory to the relative path as it 
-    # presently exists; this works fine, but also means we might pass a needlessly
-    # long string to the DBMS server e.g. bin/././././whatever.txt is possible.
-    # It might be worth it to find some portable way to completely resolve these.
-    return os.path.join(meta["bin_dir"], value) if is_relative else value
+    # NOTE(Kyle): This is somewhat dirty because it introduces a
+    # 'hidden' dependency that is not reflected in the DBMS code:
+    # we only resolve those arguments that actually end with `_path`.
+    # In practice, I prefer this to the alternative of just assuming
+    # that anything that starts with './' or '../' is a relative path,
+    # and it ensures that, at worst, we do LESS resolving than might
+    # otherwise be expected, never more.
+    is_path = str.endswith(meta["attr"], "_path")
+    is_relative = not os.path.isabs(value)
+    
+    if is_path and is_relative:
+        return pathlib.Path(os.path.join(meta["bin_dir"], value)).resolve()
+    else:
+        return value
 
 @applies_to(AllTypes)
-def handle_flags(value, meta):
+def handle_flags(value: str, meta: Dict) -> str:
     """
     Handle DBMS server arguments with no associated value.
 
@@ -442,7 +484,7 @@ def handle_flags(value, meta):
 # -----------------------------------------------------------------------------
 # Utility
 
-def apply_all(functions, init_obj, meta):
+def apply_all(functions: List, init_obj, meta: Dict):
     """
     Apply all of the functions in `functions` to object `init_obj` sequentially,
     supplying metadata object `meta` to each function invocation.

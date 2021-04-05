@@ -20,6 +20,10 @@ TransactionContext *TransactionManager::BeginTransaction() {
   if (txn_metrics_enabled) common::thread_context.resource_tracker_.Start();
   start_time = timestamp_manager_->BeginTransaction();
   result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+  // If async commit is enabled, set the durability policy to be async accordingly.
+  if (wal_async_commit_enable_) {
+    result->SetDurabilityPolicy(DurabilityPolicy::ASYNC);
+  }
   // Ensure we do not return from this function if there are ongoing write commits
   txn_gate_.Traverse();
 
@@ -35,30 +39,41 @@ TransactionContext *TransactionManager::BeginTransaction() {
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
-  if (log_manager_ != DISABLED && !wal_async_commit_enable_) {
-    // At this point the commit has already happened for the rest of the system.
-    // Here we will manually add a commit record and flush the buffer to ensure the logger
-    // sees this record.
-    byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, commit_callback,
-                                      commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn,
-                                      timestamp_manager_.Get());
-  } else if (log_manager_ != DISABLED && wal_async_commit_enable_) {
-    // We still want to send this record to the LogManager, but we'll swap in the EmptyCallback to send with the
-    // LogRecord, and invoke the provided callback immediately. The WAL worker will still be responsible for removing it
-    // from the running transactions table once the record has been serialized. Otherwise the serializer might
-    // dereference bad memory if the GC prunes any varlens this transaction might be holding.
-    byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, TransactionUtil::EmptyCallback,
-                                      nullptr, oldest_active_txn, txn->IsReadOnly(), txn, timestamp_manager_.Get());
-    commit_callback(commit_callback_arg);
+  if (log_manager_ != DISABLED) {
+    if (txn->GetDurabilityPolicy() == DurabilityPolicy::SYNC) {
+      // At this point the commit has already happened for the rest of the system.
+      // Here we will manually add a commit record and flush the buffer to ensure the logger sees this record.
+      byte *const commit_record =
+          txn->redo_buffer_.NewEntry(storage::CommitRecord::Size(), txn->GetTransactionPolicy());
+      storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, commit_callback,
+                                        commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn,
+                                        timestamp_manager_.Get());
+    } else if (txn->GetDurabilityPolicy() == DurabilityPolicy::ASYNC) {
+      if (txn->IsReadOnly()) {
+        // Read-only txns have no external dependencies through the system, so remove it from running transactions table
+        // immediately
+        timestamp_manager_->RemoveTransaction(txn->StartTime());
+      } else {
+        // We still want to send this record to the LogManager, but we'll swap in the EmptyCallback to send with the
+        // LogRecord, and invoke the provided callback immediately. The WAL worker will still be responsible for
+        // removing it from the running transactions table once the record has been serialized. Otherwise the serializer
+        // might dereference bad memory if the GC prunes any varlens this transaction might be holding.
+        byte *const commit_record =
+            txn->redo_buffer_.NewEntry(storage::CommitRecord::Size(), txn->GetTransactionPolicy());
+        storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, TransactionUtil::EmptyCallback,
+                                          nullptr, oldest_active_txn, txn->IsReadOnly(), txn, timestamp_manager_.Get());
+      }
+      commit_callback(commit_callback_arg);
+    } else {
+      NOISEPAGE_ASSERT(txn->GetDurabilityPolicy() == DurabilityPolicy::DISABLE, "Durability should be disabled.");
+    }
   } else {
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
     // system proceeds correctly
     timestamp_manager_->RemoveTransaction(txn->StartTime());
     commit_callback(commit_callback_arg);
   }
-  txn->redo_buffer_.Finalize(true);
+  txn->redo_buffer_.Finalize(true, txn->GetTransactionPolicy());
 }
 
 timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn) {
@@ -148,15 +163,15 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
     // sees this record. Because the txn is aborted and will not be recovered, we can discard all the records that
     // currently exist. Only the abort record is needed.
     txn->redo_buffer_.Reset();
-    byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
+    byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size(), txn->GetTransactionPolicy());
     storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn, timestamp_manager_.Get());
     // Signal to the log manager that we are ready to be logged out
-    txn->redo_buffer_.Finalize(true);
+    txn->redo_buffer_.Finalize(true, txn->GetTransactionPolicy());
   } else {
     // Otherwise, logging is disabled or we never flushed, so we can just mark the txns log as processed. We should
     // pretend to have flushed the record so the rest of the system proceeds correctly Discard the redo buffer that is
     // not yet logged out
-    txn->redo_buffer_.Finalize(false);
+    txn->redo_buffer_.Finalize(false, txn->GetTransactionPolicy());
     // Since there is nothing to log, we can mark it as processed
     timestamp_manager_->RemoveTransaction(txn->StartTime());
   }

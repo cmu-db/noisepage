@@ -138,6 +138,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
@@ -164,7 +165,7 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
-                            label 'h0-only'
+                            label 'dgb'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -192,18 +193,12 @@ pipeline {
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh 'cd build && timeout 1h ninja unittest'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
-                        sh 'cd build && lcov --directory . --capture --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/test/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --list coverage.info'
-                        sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
-                        sh 'cd build && chmod a+x ./codecov.sh'
-                        sh 'cd build && /bin/bash ./codecov.sh -X gcov'
+
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.cppCoverage()
+                        }
+
                     }
                     post {
                         always {
@@ -240,6 +235,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=debug', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
@@ -280,6 +276,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
@@ -324,6 +321,7 @@ pipeline {
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+                        sh script: 'cd build/bin && PYTHONPATH=../.. timeout 20m python3 -m script.testing.replication.tests_simple --build-type=release', label: 'Replication (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=simple -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Simple, Compiled Execution)'
                         sh script: 'cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
@@ -520,8 +518,12 @@ pipeline {
                     agent {
                         docker {
                             image 'noisepage:focal'
+                            label 'dgb'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
+                    }
+                    environment {
+                        CODECOV_TOKEN=credentials('codecov-token')
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -529,8 +531,7 @@ pipeline {
 
                         script{
                             utils = utils ?: load(utilsFileName)
-                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingTests: true)
-                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false)
+                            utils.noisePageBuild(buildType:utils.RELEASE_BUILD, isBuildTests:false, isBuildSelfDrivingE2ETests: true)
                         }
 
                         // This scripts runs TPCC benchmark with query trace enabled. It also uses SET command to turn
@@ -565,6 +566,13 @@ pipeline {
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
+                        // Recompile the c++ binaries in Debug mode to generate code coverage. We had to compile in
+                        // Release mode first to efficiently generate the data required by the tests
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.noisePageBuild(isCodeCoverage:true, isBuildTests:false, isBuildSelfDrivingE2ETests: true)
+                        }
+
                         sh script: '''
                         cd build
                         export BUILD_ABS_PATH=`pwd`
@@ -572,8 +580,25 @@ pipeline {
                         ''', label: 'Running self-driving end-to-end test'
 
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
+
+                        // We need `coverage combine` because coverage files are generated separately for each test and
+                        // then moved into the build root by `run-test.sh`
+                        sh script :'''
+                        cd build
+                        coverage combine
+                        ''', label: 'Combine Python code coverage'
+
+                        script{
+                            utils = utils ?: load(utilsFileName)
+                            utils.cppCoverage()
+                        }
+
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }

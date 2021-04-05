@@ -223,6 +223,14 @@ if [ -n "$COREFILES" ]; then
   done
 fi
 
+# Capture Python coverage files and move to the build root
+PYTHON_COVERAGE_FILES=$(ls -a | grep ^.coverage)
+if [ -n "$PYTHON_COVERAGE_FILES" ]; then
+  for COVERAGE_FILE in $PYTHON_COVERAGE_FILES; do
+    mv $COVERAGE_FILE $OUTPUT_ROOT
+  done
+fi
+
 popd
 rm -Rf $TEST_WORKDIR
 

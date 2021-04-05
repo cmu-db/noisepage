@@ -34,8 +34,21 @@ class TestServerArgumentConstruction(unittest.TestCase):
         r = construct_server_argument("attribute", "value", {})
         self.assertEqual(r, "-attribute=value")
 
-    # TODO(Kyle): Add tests for relative path expansion once we
-    # settle on the convention for that.
+    def test_non_path_is_not_expanded_current(self):
+        r = construct_server_argument("some_argument", "./hello", {"bin_dir": "/some/binary/directory"})
+        self.assertEqual(r, "-some_argument=./hello")
+
+    def test_non_path_is_not_expanded_parent(self):
+        r = construct_server_argument("some_argument", "../hello", {"bin_dir": "/some/binary/directory"})
+        self.assertEqual(r, "-some_argument=../hello")
+
+    def test_path_is_expanded_current(self):
+        r = construct_server_argument("argument_path", "./hello", {"bin_dir": "/some/binary/directory"})
+        self.assertEqual(r, "-argument_path=/some/binary/directory/hello")
+
+    def test_path_is_expanded_parent(self):
+        r = construct_server_argument("argument_path", "../hello", {"bin_dir": "/some/binary/directory"})
+        self.assertEqual(r, "-argument_path=/some/binary/hello")
 
 class TestServerArgumentStringConstruction(unittest.TestCase):
     """

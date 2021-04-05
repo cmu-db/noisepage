@@ -14,6 +14,14 @@ SETTING_int(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_string(
+    network_identity,
+    "The identity of this NoisePage instance (default: primary)",
+    "primary",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Preallocated connection handler threads and maximum number of connected clients
 SETTING_int(
     connection_thread_count,
@@ -37,8 +45,8 @@ SETTING_string(
 // RecordBufferSegmentPool size limit
 SETTING_int(
     record_buffer_segment_size,
-    "The maximum number of record buffer segments in the system. (default: 100000)",
-    100000,
+    "The maximum number of record buffer segments in the system. (default: 1000000)",
+    1000000,
     1,
     1000000000,
     true,
@@ -59,8 +67,8 @@ SETTING_int(
 // BlockStore for catalog size limit
 SETTING_int(
     block_store_size,
-    "The maximum number of storage blocks for the catalog. (default: 100000)",
-    100000,
+    "The maximum number of storage blocks for the catalog. (default: 1000000)",
+    1000000,
     1,
     1000000000,
     true,
@@ -305,6 +313,16 @@ SETTING_int(
     noisepage::settings::Callbacks::MetricsPipelineSampleRate
 )
 
+SETTING_int(
+  logging_metrics_sample_rate,
+  "Sampling rate of metrics collection for logging.",
+  100,
+  0,
+  100,
+  true,
+  noisepage::settings::Callbacks::MetricsLoggingSampleRate
+)
+
 SETTING_bool(
     bind_command_metrics_enable,
     "Metrics collection for the bind command.",
@@ -375,6 +393,42 @@ SETTING_bool(
     messenger_enable,
     "Whether to enable the messenger (default: false)",
     false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    messenger_port,
+    "NoisePage messenger port (default: 9022)",
+    9022,
+    1024,
+    65535,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    replication_enable,
+    "Whether to enable replication (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    replication_port,
+    "NoisePage replication port (default: 15445)",
+    15445,
+    1024,
+    65535,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    replication_hosts_path,
+    "The path to the hosts.conf file for replication (default: ./replication.config)",
+    "./replication.config",
     false,
     noisepage::settings::Callbacks::NoOp
 )

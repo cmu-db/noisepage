@@ -6,6 +6,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cerrno>
 #include <cstring>
 #include <string>
@@ -18,6 +19,12 @@
 #include "loggers/storage_logger.h"
 #include "transaction/transaction_defs.h"
 
+namespace noisepage::replication {
+class ReplicationManager;
+class PrimaryReplicationManager;
+class ReplicaReplicationManager;
+}  // namespace noisepage::replication
+
 namespace noisepage::storage {
 
 // TODO(Tianyu):  we need control over when and what to flush as the log manager. Thus, we need to write our
@@ -27,7 +34,6 @@ namespace noisepage::storage {
  * Handles buffered writes to the write ahead log, and provides control over flushing.
  */
 class BufferedLogWriter {
-  // TODO(Tianyu): Checksum
  public:
   /**
    * Instantiates a new BufferedLogWriter to write to the specified log file.
@@ -35,8 +41,22 @@ class BufferedLogWriter {
    * @param log_file_path path to the the log file to write to. New entries are appended to the end of the file if the
    * file already exists; otherwise, a file is created.
    */
-  explicit BufferedLogWriter(const char *log_file_path)
+  explicit BufferedLogWriter(const char *const log_file_path)
       : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)) {}
+
+  /**
+   * Move constructor.
+   *
+   * This is necessary because of the atomic refcount field, which invalidates the default move ctor.
+   * To my knowledge, existing code always pre-allocates buffers in one shot, so these buffers will not actually get
+   * moved at runtime -- this exists solely so that std::vector's emplace_back requirement of being both MoveInsertable
+   * and EmplaceConstructible will be satisfied.
+   */
+  BufferedLogWriter(BufferedLogWriter &&other) noexcept : out_(other.out_) {
+    memcpy(buffer_, other.buffer_, common::Constants::LOG_BUFFER_SIZE);
+    buffer_size_ = other.buffer_size_;
+    serialize_refcount_.store(other.serialize_refcount_.load());
+  }
 
   /**
    * Must call before object is destructed
@@ -53,7 +73,7 @@ class BufferedLogWriter {
    * @return number of bytes written. This function only writes until the buffer gets full, so this can be used as the
    * offset when calling this function again after flushing.
    */
-  uint32_t BufferWrite(const void *data, uint32_t size) {
+  uint32_t BufferWrite(const void *const data, uint32_t size) {
     // If we still do not have buffer space after flush, the write is too large to be buffered. We partially write the
     // buffer and return the number of bytes written
     if (!CanBuffer(size)) {
@@ -83,7 +103,7 @@ class BufferedLogWriter {
    * @return amount of data flushed
    */
   uint64_t FlushBuffer() {
-    auto size = buffer_size_;
+    const auto size = buffer_size_;
     WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
     return size;
@@ -92,13 +112,61 @@ class BufferedLogWriter {
   /**
    * @return if the buffer is full
    */
-  bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
+  bool IsBufferFull() const { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
+
+  /**
+   * Mark that the BufferedLogWriter is now ready to be persisted and sent to different destinations.
+   * Note that the BufferedLogWriter represents a batch of different logs.
+   *
+   * For example, the BufferedLogWriter may then be sent to any of the following destinations:
+   * - Serialized to disk.
+   * - Sent to replicas over the network.
+   *
+   * This function exists to avoid copying the BufferedLogWriter's buffers needlessly.
+   * Instead, a refcount is maintained depending on the durability and replication policies.
+   *
+   * @param policy The transaction-wide policies for this batch of logs.
+   */
+  void PrepareForSerialization(const transaction::TransactionPolicy &policy) {
+    NOISEPAGE_ASSERT(serialize_refcount_.load() == 0, "This buffer is already being serialized.");
+    serialize_refcount_ = 0;
+    if (policy.durability_ != transaction::DurabilityPolicy::DISABLE) {
+      NOISEPAGE_ASSERT(policy.durability_ == transaction::DurabilityPolicy::SYNC ||
+                           policy.durability_ == transaction::DurabilityPolicy::ASYNC,
+                       "Unknown durability policy.");
+      serialize_refcount_ += 1;
+    }
+    if (policy.replication_ != transaction::ReplicationPolicy::DISABLE) {
+      NOISEPAGE_ASSERT(policy.replication_ == transaction::ReplicationPolicy::SYNC ||
+                           policy.replication_ == transaction::ReplicationPolicy::ASYNC,
+                       "Unknown replication policy.");
+      serialize_refcount_ += 1;
+    }
+  }
+
+  /**
+   * Mark one successful serialization of the buffered log.
+   *
+   * This should be called exactly once for each serializer of this log. See PrepareForSerialization() for more info.
+   * @return True if the current log has been completely serialized, meaning that no serializers are left and that
+   *         it is safe to now reuse this BufferedLogWriter.
+   */
+  bool MarkSerialized() {
+    const auto count_before_sub = serialize_refcount_.fetch_sub(1);
+    NOISEPAGE_ASSERT(serialize_refcount_.load() >= 0, "This buffer was serialized too many times?");
+    return count_before_sub == 1;
+  }
 
  private:
-  int out_;  // fd of the output files
+  friend class replication::ReplicationManager;
+  friend class replication::PrimaryReplicationManager;
+  friend class replication::ReplicaReplicationManager;
+
+  const int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   uint32_t buffer_size_ = 0;
+  std::atomic<int8_t> serialize_refcount_ = 0;  ///< The number of would-be serializers that haven't serialized yet.
 
   bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
 
@@ -109,7 +177,6 @@ class BufferedLogWriter {
  * Buffered reads from the write ahead log
  */
 class BufferedLogReader {
-  // TODO(Tianyu): Checksum
  public:
   /**
    * Instantiates a new BufferedLogReader to read from the specified log file.

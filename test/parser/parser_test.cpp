@@ -1297,7 +1297,7 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
 
   // Check attributes
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
-  EXPECT_EQ(create_stmt->GetIndexType(), IndexType::BWTREE);
+  EXPECT_EQ(create_stmt->GetIndexType(), IndexType::BPLUSTREE);
   EXPECT_EQ(create_stmt->GetIndexName(), "ii");
   EXPECT_EQ(create_stmt->GetTableName(), "t");
 

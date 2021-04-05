@@ -79,6 +79,7 @@ Practically speaking, you need to know about the following 9 parts of the CLion 
     - Use CLion's [built-in debugger](https://blog.jetbrains.com/clion/2015/05/debug-clion/) to set breakpoints and step through the code.
     - To debug NoisePage, select the `noisepage` build target and use the Debug button (Shift+F9).
     - To debug a specific unit test, select that unit test from the drop down menu at the top of the IDE and use the Debug button.
+    - To attach to an existing process, press (Shift+Shift) and type "Attach to Process", then provide the PID. You may need to set `ptrace_scope`, i.e., in a terminal first execute `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`.
 
 #### Useful shortcuts to know
 

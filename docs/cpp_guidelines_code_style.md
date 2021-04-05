@@ -191,3 +191,55 @@ adding more `#include`s to the header, which can lead to a painful blowup of com
 
 You may also be interested in the cppreference for [std::enable_if](https://en.cppreference.com/w/cpp/types/enable_if),
 which allows you to compile out functions entirely. However, this may lead to mystery linking errors in tests.
+
+### Defining enumerations
+
+1. C++ enums serialize as a number. This is annoying for debugging purposes.
+2. Writing a ToString and FromString for every member of an enum also sucks.
+3. We can't use the version provided by our JSON library (NLOHMANN_JSON_SERIALIZE_ENUM) because that requires including
+   a HUGE header, blowing up compile time.
+4. By using the macro in `enum_defs.h`, you will get an automatic ToString and FromString that is kept in sync.
+
+The macro is `ENUM_DEFINE(EnumName, EnumCppType, EnumValMacro)`:
+
+- `EnumName` is the name of your enum.
+- `EnumCppType` is the underlying C++ type of your enum, for example, `uint8_t`.
+- `EnumValMacro` is a macro that you must define, taking exactly one macro T as an argument, and applying T to the (
+  EnumName, EnumMemberName).
+
+The macro defines the enum with one additional field (NUM_ENUM_ENTRIES) and two corresponding EnumNameToString and
+EnumNameFromString functions.
+
+This is illustrated in the following truncated example:
+
+```
+// First, define a macro-taking-a-macro with all your enum members.
+#define EXPRESSION_TYPE_ENUM(T)                     \
+    T(ExpressionType, INVALID)                      \
+                                                    \
+    T(ExpressionType, OPERATOR_UNARY_MINUS)         \
+    T(ExpressionType, OPERATOR_PLUS)                \
+    T(ExpressionType, OPERATOR_MINUS)               \
+    T(ExpressionType, OPERATOR_MULTIPLY)            \
+    T(ExpressionType, OPERATOR_DIVIDE)              \
+    T(ExpressionType, OPERATOR_CONCAT)              \
+    T(ExpressionType, OPERATOR_MOD)                 \
+    ...
+
+// Next, define the enum itself.
+ENUM_DEFINE(ExpressionType, uint8_t, EXPRESSION_TYPE_ENUM);
+
+// This is equivalent to
+enum ExpressionType : uint8_t { INVALID, OPERATOR_UNARY_MINUS, ..., NUM_ENUM_ENTRIES }
+std::string ExpressionTypeToString(ExpressionType type);
+ExpressionType ExpressionTypeFromString(const std::string &str);
+
+// Finally, clean up your macro for macro hygiene.
+#undef EXPRESSION_TYPE_ENUM
+```
+
+Note that unfortunately `enum_defs.h` leaks the following unrelated macro definitions:
+
+- `ENUM_DEFINE_ITEM`
+- `ENUM_TO_STRING`
+- `ENUM_FROM_STRING`
