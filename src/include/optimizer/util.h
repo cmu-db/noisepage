@@ -83,7 +83,7 @@ class OptimizerUtil {
    * @return column value expression for the underlying column
    */
   static parser::AbstractExpression *GenerateColumnValueExpr(const catalog::Schema::Column &column,
-                                                             const std::string &alias, catalog::db_oid_t db_oid,
+                                                             const parser::AliasType &alias, catalog::db_oid_t db_oid,
                                                              catalog::table_oid_t tbl_oid);
 
   /**
@@ -99,7 +99,7 @@ class OptimizerUtil {
    */
   static parser::AbstractExpression *GenerateAggregateExpr(const catalog::Schema::Column &column,
                                                            parser::ExpressionType aggregate_type, bool distinct,
-                                                           const std::string &alias, catalog::db_oid_t db_oid,
+                                                           const parser::AliasType &alias, catalog::db_oid_t db_oid,
                                                            catalog::table_oid_t tbl_oid);
 
   /**
