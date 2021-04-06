@@ -346,7 +346,6 @@ class Messenger : public common::DedicatedThreadTask {
 
   std::map<message_id_t, PendingMessage> pending_messages_;
   std::mutex pending_messages_mutex_;
-  std::condition_variable pending_messages_cvar_;
 
   std::unordered_map<std::string, std::unordered_set<message_id_t>> seen_messages_complement_;
   std::unordered_map<std::string, message_id_t> seen_messages_max_;

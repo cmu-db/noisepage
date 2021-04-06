@@ -538,7 +538,6 @@ void Messenger::ServerLoopSendMessages() {
           fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), destination, msg.msg_.GetRawPayload()));
     }
   }
-  pending_messages_cvar_.notify_all();
 }
 
 void Messenger::ServerLoopRecvAndProcessMessages() {
@@ -572,8 +571,8 @@ void Messenger::ServerLoopRecvAndProcessMessages() {
       bool has_custom_serverloop = poll_items.server_callbacks_[i] != nullptr;
       MESSENGER_LOG_TRACE("[PID={}] Messenger RECV-FR {} (custom serverloop: {}): {}", ::getpid(), msg.GetRoutingId(),
                           has_custom_serverloop, msg.GetRawPayload());
-      // See the ProcessMessage docstring. It must always be invoked so that the callback that was passed in with
-      // SendMessage() is invoked.
+      // See the ProcessMessage() docstring.
+      // ProcessMessage() must always be invoked so that the callback that was passed in with SendMessage() is invoked.
       ProcessMessage(msg);
       if (msg.GetDestinationCallbackId().UnderlyingValue() != static_cast<uint8_t>(BuiltinCallback::ACK)) {
         std::string sender_id(msg.GetRoutingId());
