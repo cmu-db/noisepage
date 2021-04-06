@@ -20,11 +20,12 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 
   uint64_t num_bytes = 0, num_records = 0, num_txns = 0;
 
+  // Initialize whether to collect metrics outside of the spin loop so as not to count each loop iteration as a sample
+  // (by calling ComponentToRecord this increments the sample count)
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
   do {
-    const bool logging_metrics_enabled =
-        common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
-
     if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
       // start the operating unit resource tracker
       common::thread_context.resource_tracker_.Start();
@@ -48,13 +49,20 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     std::tie(num_bytes, num_records, num_txns) = Process();
     curr_sleep = std::min(num_records > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
 
-    if (logging_metrics_enabled && num_records > 0) {
-      // Stop the resource tracker for this operating unit
-      common::thread_context.resource_tracker_.Stop();
-      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, num_txns,
-                                                                  serialization_interval_.count(), resource_metrics);
+    if (num_records > 0) {
+      if (common::thread_context.resource_tracker_.IsRunning()) {
+        // Stop the resource tracker for this operating unit
+        common::thread_context.resource_tracker_.Stop();
+        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+        common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, num_txns,
+                                                                    serialization_interval_.count(), resource_metrics);
+      }
       num_bytes = num_records = num_txns = 0;
+      // Update whether to collect metrics only if we did work (starting a new event) so as not to count each loop
+      // iteration as a sample (by calling ComponentToRecord this increments the sample count)
+      logging_metrics_enabled =
+          common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
     }
   } while (run_task_);
   // To be extra sure we processed everything
