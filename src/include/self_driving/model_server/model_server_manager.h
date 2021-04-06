@@ -183,9 +183,8 @@ class ModelServerFuture {
  * @param messenger
  * @return The ID of the connection router that was created.
  */
-messenger::router_id_t ListenAndMakeConnection(
-    const common::ManagedPointer<messenger::Messenger> &messenger, const std::string &ipc_path,
-    messenger::CallbackFn model_server_logic);
+messenger::router_id_t ListenAndMakeConnection(const common::ManagedPointer<messenger::Messenger> &messenger,
+                                               const std::string &ipc_path, messenger::CallbackFn model_server_logic);
 
 /**
  * Interface for ModelServerManager related operations

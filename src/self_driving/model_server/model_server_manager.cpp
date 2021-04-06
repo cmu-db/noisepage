@@ -33,9 +33,8 @@ static constexpr const char *COVERAGE_INCLUDE_PATH = "*/script/self_driving/*";
  */
 static constexpr const unsigned char MODEL_SERVER_SUBPROCESS_ERROR = 128;
 
-messenger::router_id_t ListenAndMakeConnection(
-    const common::ManagedPointer<messenger::Messenger> &messenger, const std::string &ipc_path,
-    messenger::CallbackFn model_server_logic) {
+messenger::router_id_t ListenAndMakeConnection(const common::ManagedPointer<messenger::Messenger> &messenger,
+                                               const std::string &ipc_path, messenger::CallbackFn model_server_logic) {
   // Create an IPC connection that the Python process will talk to.
   auto destination = messenger::ConnectionDestination::MakeIPC(MODEL_TARGET_NAME, ipc_path);
 
