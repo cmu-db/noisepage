@@ -101,3 +101,14 @@ def is_first_time(current, max_seen, complement):
             first_time = True
     return first_time, max_seen, complement
 ```
+
+### On waiting until messages are sent
+
+I currently believe that you do not want to even expose "yes, this message has been sent" data to a user of the Messenger.  
+Consider the following example:
+
+1. Primary -> Replica: "here's a bunch of records".  
+2. At this point, the message has been sent. But it is not safe to assume that the replica didn't crash immediately afterwards.  
+3. Instead, the replica should explicitly acknowledge that the records have been received (after perhaps persisting them) and/or applied.  
+
+In general, explicitly communicate instead of relying on the sent/unsent status of a message.
