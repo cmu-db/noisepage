@@ -36,6 +36,8 @@ namespace noisepage::selfdriving {
 
 void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query,
                             catalog::db_oid_t db_oid) {
+  SELFDRIVING_LOG_INFO("Applying action: {}", sql_query);
+
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
   util::QueryExecUtil util(txn_manager, catalog, pilot->settings_manager_, pilot->stats_storage_,
@@ -152,6 +154,8 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
 
   auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   for (const auto &qid : qids) {
+    pipeline_qids->push_back(qid);
+
     catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
     auto query_text = forecast->GetQuerytextByQid(qid);
 
@@ -178,6 +182,8 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
     SELFDRIVING_LOG_DEBUG(fmt::format("qid: {}; pipeline_id: {}", static_cast<uint>(it->query_id_),
                                       static_cast<uint32_t>(it->pipeline_id_)));
+    //printf("%s\n", forecast->GetQuerytextByQid(it->query_id_).c_str());
+    //printf("Cardinality Features: %s\n", it->GetCardinalityVectorString().c_str());
   }
 
   return aggregated_data->pipeline_data_;

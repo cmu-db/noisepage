@@ -36,7 +36,7 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   // create root_
   auto later_cost = PilotUtil::ComputeCost(pilot, forecast, 0, end_segment_index);
   // root correspond to no action applied to any segment
-  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, later_cost);
+  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, later_cost, 0);
 }
 
 void MonteCarloTreeSearch::BestAction(uint64_t simulation_number,

@@ -29,6 +29,10 @@ namespace noisepage::tpch {
 class Workload;
 }  // namespace noisepage::tpch
 
+namespace noisepage::task {
+class TaskDML;
+}  // namespace noisepage::task
+
 namespace noisepage::execution::exec {
 /**
  * ExecutionSettings stores settings that are passed down from the upper layers.
@@ -94,5 +98,6 @@ class EXPORT ExecutionSettings {
   friend class noisepage::optimizer::IdxJoinTest_FooOnlyScan_Test;
   friend class noisepage::optimizer::IdxJoinTest_BarOnlyScan_Test;
   friend class noisepage::optimizer::IdxJoinTest_IndexToIndexJoin_Test;
+  friend class noisepage::task::TaskDML;
 };
 }  // namespace noisepage::execution::exec

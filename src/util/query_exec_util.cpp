@@ -152,11 +152,21 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
             common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
                 .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+
         if (status) {
+          // TODO(lin): Right now we have to manually do this because of the strange setup for our CREATE INDEX
+          //  queries, i.e., we have to execute the DDL statement after bind but before query compilation...
+          //  We probably want a cleaner solution for this
           execution::exec::ExecutionSettings settings{};
-          if (CompileQuery(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings)) {
-            ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
-          }
+          auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, settings, accessor.get(),
+                                                                             execution::compiler::CompilationMode::OneShot);
+
+          execution::exec::NoOpResultConsumer consumer;
+          execution::exec::OutputCallback callback = consumer;
+          auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+              db_oid_, txn, callback, out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor), settings,
+              nullptr, nullptr);
+          exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
         }
         break;
       default:
@@ -173,10 +183,10 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  common::ManagedPointer<std::vector<type::TypeId>> param_types,
                                  std::unique_ptr<optimizer::AbstractCostModel> cost,
                                  const execution::exec::ExecutionSettings &exec_settings) {
-  if (exec_queries_.find(statement) != exec_queries_.end()) {
+  //if (exec_queries_.find(statement) != exec_queries_.end()) {
     // We have already optimized and compiled this query before
-    return true;
-  }
+  //  return true;
+  //}
 
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);

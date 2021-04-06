@@ -347,6 +347,8 @@ void Pilot::PerformPlanning() {
   // Suspend the metrics thread while we are handling the data (snapshot).
   metrics_thread_->PauseMetrics();
 
+  //PerformForecasterTrain();
+
   // Populate the workload forecast
   LoadWorkloadForecast();
 

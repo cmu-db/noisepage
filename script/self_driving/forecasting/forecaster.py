@@ -187,6 +187,9 @@ class Forecaster:
             preds.append(pred)
             gts.append(label.item())
 
+        logging.info(f"Validation Ground Truth: {gts}")
+        logging.info(f"Validation Prediction: {preds}")
+
         # FIXME:
         # simple L2 norm for comparing the prediction and results
         l2norm = np.linalg.norm(np.array(preds) - np.array(gts))
@@ -202,6 +205,7 @@ class Forecaster:
         """
         test_seqs = self._cluster_seqs(cid, test_mode=True, with_label=False)
         preds = list([model.predict(seq) for seq in test_seqs])
+        logging.info(f"Inference preds: {preds}")
         query_preds = self._clusters[cid].segregate(preds)
 
         return query_preds
