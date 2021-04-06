@@ -25,6 +25,7 @@ class CallbackFns {
 
 STRONG_TYPEDEF_HEADER(callback_id_t, uint64_t);
 STRONG_TYPEDEF_HEADER(connection_id_t, uint64_t);
+STRONG_TYPEDEF_HEADER(message_id_t, uint64_t);
 STRONG_TYPEDEF_HEADER(router_id_t, uint64_t);
 
 }  // namespace noisepage::messenger

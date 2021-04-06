@@ -213,8 +213,9 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
         // necessary for the transaction's callback function to be invoked, but there is no need to serialize it, as
         // it corresponds to a transaction with nothing to redo.
         if (!commit_record->IsReadOnly()) num_bytes += SerializeRecord(record);
-        commits_in_buffer_.emplace_back(
-            CommitCallback{commit_record->CommitCallback(), commit_record->CommitCallbackArg(), record.TxnBegin()});
+        commits_in_buffer_.emplace_back(CommitCallback{commit_record->CommitCallback(),
+                                                       commit_record->CommitCallbackArg(), record.TxnBegin(),
+                                                       commit_record->IsReadOnly()});
         // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
         serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
         num_txns++;

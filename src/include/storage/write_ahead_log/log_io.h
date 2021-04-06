@@ -237,6 +237,7 @@ struct CommitCallback {
   transaction::callback_fn fn_;              ///< The commit callback to invoke.
   void *arg_;                                ///< The argument to invoke the commit callback with.
   transaction::timestamp_t txn_start_time_;  ///< (Metadata) The transaction ID that generated this commit callback.
+  bool is_from_read_only_;                   ///< True if the commit callback was from a read only commit record.
 };
 
 /**

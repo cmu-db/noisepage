@@ -517,7 +517,7 @@ class DBMain {
       // If replication is enabled, perform synchronous replication by default.
       if (use_replication_ && replication_manager->IsPrimary()) {
         txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
-            transaction::ReplicationPolicy::SYNC);
+            transaction::ReplicationPolicy::ASYNC);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);

@@ -120,13 +120,14 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     if (received_batch_queue_.empty()) {
       return false;
     }
-    // The next batch is ready for application if no batch has been applied yet or if the batch ID is consecutive.
-    bool no_batch_applied_yet = last_batch_popped_ == replication::INVALID_RECORD_BATCH_ID;
+    NOISEPAGE_ASSERT(received_batch_queue_.top().GetBatchId() > last_batch_popped_, "Duplicate batch added?");
+    // The next batch is ready for application if the batch ID is consecutive.
     bool top_batch_is_next =
-        !received_batch_queue_.empty() &&
         received_batch_queue_.top().GetBatchId() == replication::RecordsBatchMsg::NextBatchId(last_batch_popped_);
-    return no_batch_applied_yet || top_batch_is_next;
+    return top_batch_is_next;
   }
+
+  // bounded set of 100 elements
 
   /**
    * @return        If replication has ended, false.

@@ -55,6 +55,7 @@ template class StrongTypeAlias<noisepage::execution::tags::query_id_t_typedef_ta
 template class StrongTypeAlias<noisepage::execution::tags::translator_id_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<noisepage::messenger::tags::callback_id_t_typedef_tag, uint64_t>;
 template class StrongTypeAlias<noisepage::messenger::tags::connection_id_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::messenger::tags::message_id_t_typedef_tag, uint64_t>;
 template class StrongTypeAlias<noisepage::messenger::tags::router_id_t_typedef_tag, uint64_t>;
 template class StrongTypeAlias<noisepage::network::tags::connection_id_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::replication::tags::msg_id_t_typedef_tag, uint64_t>;

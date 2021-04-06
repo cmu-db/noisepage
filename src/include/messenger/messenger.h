@@ -3,12 +3,14 @@
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
+#include <map>
 #include <memory>
 #include <mutex>  // NOLINT
 #include <optional>
 #include <queue>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "common/dedicated_thread_owner.h"
@@ -35,6 +37,9 @@ class ZmqUtil;
 /** An abstraction around ZeroMQ messages which explicitly have the sender specified. */
 class ZmqMessage {
  public:
+  /** @return The ID of this message. */
+  message_id_t GetMessageId() const { return message_id_; }
+
   /** @return The callback to invoke on the source. */
   callback_id_t GetSourceCallbackId() const { return source_cb_id_; }
 
@@ -56,14 +61,15 @@ class ZmqMessage {
 
   /**
    * Build a new ZmqMessage from the supplied information.
+   * @param message_id      The ID of this message.
    * @param source_cb_id    The callback ID of the message on the source.
    * @param dest_cb_id      The callback ID of the message on the destination.
    * @param routing_id      The routing ID of the message sender. Roughly speaking, "who sent this message".
    * @param message         The contents of the message.
    * @return A ZmqMessage encapsulating the given message.
    */
-  static ZmqMessage Build(callback_id_t source_cb_id, callback_id_t dest_cb_id, const std::string &routing_id,
-                          std::string_view message);
+  static ZmqMessage Build(message_id_t message_id, callback_id_t source_cb_id, callback_id_t dest_cb_id,
+                          const std::string &routing_id, std::string_view message);
 
   /**
    * Parse the given payload into a ZmqMessage.
@@ -81,9 +87,11 @@ class ZmqMessage {
   /** The payload in the message, of form ID-MESSAGE.  */
   std::string payload_;
 
-  /** The cached id of the message (source). */
+  /** The cached id of the message. */
+  message_id_t message_id_;
+  /** The cached callback id of the message (source). */
   callback_id_t source_cb_id_;
-  /** The cached id of the message (destination). */
+  /** The cached callback id of the message (destination). */
   callback_id_t dest_cb_id_;
   /** The cached actual message. */
   std::string_view message_;
@@ -176,7 +184,7 @@ class Messenger : public common::DedicatedThreadTask {
 
  public:
   /** Builtin callbacks useful for testing. */
-  enum class BuiltinCallback : uint8_t { NOOP = 0, ECHO, NUM_BUILTIN_CALLBACKS };
+  enum class BuiltinCallback : uint8_t { NOOP = 0, ECHO, ACK, NUM_BUILTIN_CALLBACKS };
   /** @return The callback ID for the builtin callback. */
   static callback_id_t GetBuiltinCallback(BuiltinCallback cb) { return callback_id_t{static_cast<uint64_t>(cb)}; }
 
@@ -248,11 +256,9 @@ class Messenger : public common::DedicatedThreadTask {
    * @param remote_cb_id    The callback function to be invoked remotely on the destination to handle this message.
    *                        For example, used for invoking preregistered functions or messages sent in response.
    *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
-   *
-   * @return                The callback ID that was assigned to the sent message.
    */
-  callback_id_t SendMessage(connection_id_t connection_id, const std::string &message, CallbackFn callback,
-                            callback_id_t remote_cb_id);
+  void SendMessage(connection_id_t connection_id, const std::string &message, CallbackFn callback,
+                   callback_id_t remote_cb_id);
 
   /**
    * Send a message through the specified connection router.
@@ -266,11 +272,9 @@ class Messenger : public common::DedicatedThreadTask {
    * @param remote_cb_id    The callback function to be invoked remotely on the destination to handle this message.
    *                        For example, used for invoking preregistered functions or messages sent in response.
    *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
-   *
-   * @return                The callback ID that was assigned to the sent message.
    */
-  callback_id_t SendMessage(router_id_t router_id, const std::string &recv_id, const std::string &message,
-                            CallbackFn callback, callback_id_t remote_cb_id);
+  void SendMessage(router_id_t router_id, const std::string &recv_id, const std::string &message, CallbackFn callback,
+                   callback_id_t remote_cb_id);
 
  private:
   friend ConnectionId;
@@ -279,12 +283,13 @@ class Messenger : public common::DedicatedThreadTask {
   static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
   static constexpr const char *MESSENGER_DEFAULT_IPC = "./noisepage-ipc-{}";
   static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
+  static constexpr const std::chrono::milliseconds MESSENGER_RESEND_TIMER = std::chrono::milliseconds(6666);
   static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::milliseconds(250);
   /** The maximum timeout that a send or recv operation is allowed to block for. TODO(WAN): 30, really? */
   static constexpr const std::chrono::milliseconds MESSENGER_SNDRCV_TIMEOUT = std::chrono::seconds(30);
 
-  /** @return The next ID to be used when sending messages. */
-  callback_id_t GetNextSendMessageId();
+  /** @return The next callback ID to be used when sending messages. */
+  callback_id_t GetNextSendCallbackId();
 
   /** The main server loop. */
   void ServerLoop();
@@ -302,6 +307,7 @@ class Messenger : public common::DedicatedThreadTask {
     std::string destination_id_;
     ZmqMessage msg_;
     bool is_router_socket_;
+    std::time_t last_send_time_;
   };
 
   /**
@@ -336,13 +342,18 @@ class Messenger : public common::DedicatedThreadTask {
   std::condition_variable connections_add_cvar_;
   std::unordered_map<connection_id_t, std::unique_ptr<ConnectionId>> connections_;
 
-  std::queue<PendingMessage> pending_messages_;
+  std::map<message_id_t, PendingMessage> pending_messages_;
   std::mutex pending_messages_mutex_;
+  std::condition_variable pending_messages_cvar_;
+
+  std::unordered_map<std::string, std::unordered_set<message_id_t>> seen_messages_;
 
   std::mutex callbacks_mutex_;
   bool is_messenger_running_ = false;
   /** The message ID that gets automatically prefixed to messages. */
-  std::atomic<callback_id_t> message_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
+  std::atomic<message_id_t> next_message_id_{0};
+  /** The source callback ID that gets automatically prefixed to messages. */
+  std::atomic<callback_id_t> next_callback_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
   /** The ID of the next listening router to be made from ListenForConnection(). */
   std::atomic<router_id_t> next_router_id_{0};
   /** The ID of the next outgoing connection to be made from MakeConnection(). */

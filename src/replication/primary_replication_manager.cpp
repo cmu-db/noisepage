@@ -36,11 +36,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   REPLICATION_LOG_TRACE(fmt::format("[SEND] Preparing ReplicateBatchOfRecords."));
   NOISEPAGE_ASSERT(policy != transaction::ReplicationPolicy::DISABLE, "Replication is disabled, so why are we here?");
 
-  // Unfortunately, read-only transactions do not generate log records.
-  // Therefore there may be nothing to replicate, but the commit callbacks still have to be invoked.
-  bool has_records = records_batch != nullptr;
-
-  if (policy == transaction::ReplicationPolicy::ASYNC || !has_records) {
+  if (policy == transaction::ReplicationPolicy::ASYNC) {
     // In asynchronous replication, just invoke the commit callbacks immediately.
     for (const auto &cb : commit_callbacks) {
       cb.fn_(cb.arg_);
@@ -50,11 +46,16 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     // that the replicas have applied their corresponding transactions.
     {
       std::unique_lock lock(callbacks_mutex_);
-      txn_callbacks_.emplace(BatchOfCommitCallbacks{commit_callbacks, has_records});
+      // If there are currently no callbacks, execute everything that won't be sent over to the replica.
+      bool was_empty = txn_callbacks_.empty();
+      txn_callbacks_.emplace(commit_callbacks);
+      if (was_empty) {
+        ProcessTxnCallbacks();
+      }
     }
   }
 
-  if (has_records) {
+  if (records_batch != nullptr) {
     // Send the batch of records to all replicas.
     ReplicationMessageMetadata metadata(GetNextMessageId());
     RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
@@ -122,31 +123,25 @@ void PrimaryReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, con
 
 void PrimaryReplicationManager::ProcessTxnCallbacks() {
   while (!txn_callbacks_.empty()) {
-    BatchOfCommitCallbacks &item = txn_callbacks_.front();
-
-    if (!item.has_records_) {
-      // If there are no records, just execute all of the callbacks.
-      for (const auto &callback : item.callbacks_) {
-        callback.fn_(callback.arg_);
-      }
-    } else {
-      // Otherwise, check that each respective callback's transaction has been applied on all the replicas.
-      std::vector<storage::CommitCallback> &callbacks = item.callbacks_;
-      for (auto vec_it = callbacks.begin(); vec_it != callbacks.end();) {
-        storage::CommitCallback &callback = *vec_it;
-        // Check if all the replicas have applied the transaction.
+    // Check that each respective callback's transaction has been applied on all the replicas.
+    std::vector<storage::CommitCallback> &callbacks = txn_callbacks_.front();
+    for (auto vec_it = callbacks.begin(); vec_it != callbacks.end();) {
+      storage::CommitCallback &callback = *vec_it;
+      // Read-only commit records are not even replicated. Only check if not read-only.
+      if (!callback.is_from_read_only_) {
+        // Otherwise, the commit record was replicated, so check if all the replicas have applied the transaction.
         bool all_replicas_applied =
             (txns_applied_on_replicas_.find(callback.txn_start_time_) != txns_applied_on_replicas_.end()) &&
             (txns_applied_on_replicas_.at(callback.txn_start_time_).size() == replicas_.size());
         if (!all_replicas_applied) {
           return;
         }
-        // If all replicas have applied the transaction, then invoke the callback and erase the callback.
-        callback.fn_(callback.arg_);
-        txns_applied_on_replicas_.erase(callback.txn_start_time_);
-        REPLICATION_LOG_TRACE(fmt::format("Commit callback invoked for txn: {}", callback.txn_start_time_));
-        vec_it = callbacks.erase(vec_it);
       }
+      // If read-only commit record OR all replicas have applied the txn, then invoke and erase the callback.
+      callback.fn_(callback.arg_);
+      txns_applied_on_replicas_.erase(callback.txn_start_time_);
+      REPLICATION_LOG_TRACE(fmt::format("Commit callback invoked for txn: {}", callback.txn_start_time_));
+      vec_it = callbacks.erase(vec_it);
     }
     // If all the callbacks in one batch have been exhausted, erase the exhausted batch.
     txn_callbacks_.pop();

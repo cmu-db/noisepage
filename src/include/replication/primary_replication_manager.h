@@ -65,11 +65,6 @@ class PrimaryReplicationManager final : public ReplicationManager {
                  common::ManagedPointer<BaseReplicationMessage> msg) override;
 
  private:
-  /** Every batch of commit callbacks may or may not have corresponding commit records. */
-  struct BatchOfCommitCallbacks {
-    std::vector<storage::CommitCallback> callbacks_;  ///< The commit callbacks.
-    bool has_records_;  ///< True if the commit callbacks have commit records and false otherwise.
-  };
   /** Process every transaction callback where the associated transaction has been applied by all replicas. */
   void ProcessTxnCallbacks();
 
@@ -84,7 +79,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
    * Each commit callback should be executed in order of addition. The reason for the queue wrapper is so that
    * multiple calls to ReplicateBatchOfRecords() will not end up growing resizing a single vector repeatedly.
    * */
-  std::queue<BatchOfCommitCallbacks> txn_callbacks_;
+  std::queue<std::vector<storage::CommitCallback>> txn_callbacks_;
   /** Map from transaction start times (aka transaction ID) to list of replicas that have applied the transaction. */
   std::unordered_map<transaction::timestamp_t, std::unordered_set<std::string>> txns_applied_on_replicas_;
   std::mutex callbacks_mutex_;  ///< Protecting txn_callbacks_ and txns_applied_on_replicas_.
