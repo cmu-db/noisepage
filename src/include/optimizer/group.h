@@ -130,28 +130,9 @@ class Group {
   int GetNumRows() { return num_rows_; }
 
   /**
-   * Get stats for a column
-   * @param column_name Column to get stats for
+   * Checks if num rows is initialized
    */
-  common::ManagedPointer<ColumnStats> GetStats(const std::string &column_name) {
-    NOISEPAGE_ASSERT(stats_.count(column_name) != 0U, "Column Stats missing");
-    return common::ManagedPointer<ColumnStats>(stats_[column_name].get());
-  }
-
-  /**
-   * Checks if there are stats for a column
-   * @param column_name Column to check
-   */
-  bool HasColumnStats(const std::string &column_name) { return stats_.count(column_name) != 0U; }
-
-  /**
-   * Add stats for a column
-   * @param column_name Column to add stats
-   * @param stats Stats to add
-   */
-  void AddStats(const std::string &column_name, std::unique_ptr<ColumnStats> stats) {
-    stats_[column_name] = std::move(stats);
-  }
+  bool HasNumRows() { return num_rows_ != UNINITIALIZED_NUM_ROWS; }
 
   /**
    * Gets this Group's GroupID
@@ -213,18 +194,12 @@ class Group {
    */
   std::vector<GroupExpression *> enforced_exprs_;
 
-  /**
-   * Stats (added lazily)
-   * TODO(boweic):
-   * 1. Use table alias ID  + column offset to identify column
-   * 2. Support stats for arbitrary expressions
-   */
-  std::unordered_map<std::string, std::unique_ptr<ColumnStats>> stats_;
+  static constexpr int UNINITIALIZED_NUM_ROWS = -1;
 
   /**
    * Number of rows
    */
-  int num_rows_ = -1;
+  int num_rows_ = UNINITIALIZED_NUM_ROWS;
 
   /**
    * Cost Lower Bound
