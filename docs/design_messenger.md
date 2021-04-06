@@ -17,17 +17,29 @@ Additionally, the Messenger was designed so that different system components cou
 
 For example, replication is one server loop,  
 ```messenger->ListenForConnection(port 15445, [](...){ replication_logic });```,    
-and the model server manager used for ML stuff is another server loop,  
+and the model server manager used for machine learning stuff is another server loop,  
 ```messenger->ListenForConnection(port 15446, [](...){ model_server_manager_logic });```.
 
 You can think of a server-loop as a persistent callback, permanently attached to the new connection endpoint.  
 We refer to the custom server-loop functions as server-loop callbacks (SLCs).
 Be careful not to confuse server-loop callbacks with message-specific callbacks.
 
+### ZeroMQ quirks
+
+**Note that ZeroMQ has exactly one guarantee: all-or-nothing message delivery.**  
+ZeroMQ does **not** have guaranteed delivery, meaning that messages may randomly be dropped and it is up to the caller to retry.  
+To address this, all implementations of the Messenger protocol are expected to:
+
+1. Maintain a list of pending messages, until the message gets acknowledged.
+2. Periodically retry pending messages.
+3. Fake idempotence: if the same message is received more than once, don't forward it to the SLC.
+
+Faking idempotence requires tracking what messages have been seen so far. A reasonably efficient algorithm is presented below.
+
 ### Message format
 
 The message format is described in the slides, but essentially is equivalent to the following Python code:  
-```"{}-{}-{}".format(source_callback_id, dest_callback_id, message_contents)```
+```"{}-{}-{}-{}".format(message_id, source_callback_id, dest_callback_id, message_contents)```
 
 Because every sent message is associated with a callback ID, the message itself must contain **two** callback IDs:
 
@@ -37,19 +49,15 @@ Because every sent message is associated with a callback ID, the message itself 
 If you are **sending** a message for the **first time**, i.e., you are starting the conversation, then you probably will end up doing    
 ```SendMessage(..., static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP))```
 
+### Invoking callbacks
+
+The messenger runs its own `ProcessMessage()` that invokes the MSC before invoking the custom SLC.  
 This is a consequence of the current Messenger design, where the Messenger is the owner of all of the callbacks that are created with every `SendMessage`.  
-The messenger runs its own `ProcessMessage()` that invokes the MSC before invoking the custom SLC.
 
-### Tracking what messages have been seen efficiently
+### Tracking seen messages efficiently
 
-The only guarantee that ZeroMQ makes is all-or-nothing delivery.  
-Specifically, ZeroMQ does NOT guarantee delivery itself.  
-
-To bolt on guaranteed delivery to ZeroMQ, we attach a MessageID and a retry mechanism...
-lorem ipsum doggo TODO(WAN)
-
-As described above, ZeroMQ does not guarantee message delivery of any kind whatsoever.    
-The retry mechanism may send the same message more than once.  
+As described above, ZeroMQ does not guarantee message delivery of any kind whatsoever.  
+But if a message is already in-flight and the retry mechanism fires, the retry mechanism may send the same message more than once.    
 However, applying the same message more than once is clearly bad -- consider "UPDATE foo SET x = x + 1".  
 So before applying a message, it is important to check that the specific message ID has not been seen before.
 
@@ -66,7 +74,10 @@ However, the problem has the following characteristics that we can exploit:
 - On average, we expect most message deliveries to succeed.  
   - If you maintain `max_seen_message_id`, you expect a "small" number of messages to be unseen.  
 
-With much thanks to PK and FF, especially for PK's suggestion to consider the complement.
+With much thanks to PK and FF, especially for PK's suggestion to consider the complement,
+
+- Maintain the highest message ID seen so far, which is just an int.
+- Maintain the complement (unseen messages so far), which is expected to be a small set.
 
 ```python
 # Input:
