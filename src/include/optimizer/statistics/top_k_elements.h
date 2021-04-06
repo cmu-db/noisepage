@@ -34,22 +34,47 @@ class TopKElements {
    * The internal type that we use to keep track of the counts for keys.
    */
   using KeyCountPair = std::pair<KeyType, uint32_t>;
+  static constexpr size_t DEFAULT_K = 16;
+  static constexpr uint64_t DEFAULT_WIDTH = 64;
 
  public:
+  /**
+   * TopKElements Constructor using DEFAULT_K for number of keys and DEFAULT_WIDTH for the sketch width
+   */
+  TopKElements() : numk_{DEFAULT_K}, sketch_(DEFAULT_WIDTH) { entries_.reserve(numk_); }
+
   /**
    * TopKElements Constructor
    * @param k the number of keys to keep track of in the top-k list
    * @param width the size of the underlying sketch
    */
-  explicit TopKElements(size_t k, uint64_t width) : numk_{k} {
-    entries_.reserve(numk_);
-    sketch_ = new CountMinSketch<KeyType>(width);
-  }
+  explicit TopKElements(size_t k, uint64_t width) : numk_{k}, sketch_(width) { entries_.reserve(numk_); }
 
   /**
-   * Deconstructor
+   * Copy constructor
+   * @param other TopKElements to copy
    */
-  ~TopKElements() { delete sketch_; }
+  TopKElements(const TopKElements &other) = default;
+
+  /**
+   * Move constructor
+   * @param other TopKElements to move
+   */
+  TopKElements(TopKElements &&other) noexcept = default;
+
+  /**
+   * Copy assignment operator
+   * @param other TopKElements to copy
+   * @return
+   */
+  TopKElements &operator=(const TopKElements &other) = default;
+
+  /**
+   * Move assignment operator
+   * @param other TopKElements to move
+   * @return
+   */
+  TopKElements &operator=(TopKElements &&other) noexcept = default;
 
   /**
    * Increase the count for the given key by the specified delta.
@@ -60,7 +85,7 @@ class TopKElements {
     NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
 
     // Increment the count for this item in the sketch
-    sketch_->Increment(key, delta);
+    sketch_.Increment(key, delta);
 
     // If this key already exists in our top-k list, then
     // we need to update its entry
@@ -83,7 +108,7 @@ class TopKElements {
     // This means that we have to ask the sketch the current count
     // for it to determine whether it should be promoted into our
     // top-k list.
-    auto total_cnt = sketch_->EstimateItemCount(key);
+    auto total_cnt = sketch_.EstimateItemCount(key);
 
     // If the total estimated count for this key is greater than the
     // current min and our top-k is at its max capacity, then we know
@@ -134,7 +159,7 @@ class TopKElements {
     NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
 
     // Decrement the count for this item in the sketch
-    sketch_->Decrement(key, delta);
+    sketch_.Decrement(key, delta);
 
     // This is where things get dicey on us.
     // So if this mofo key is in our top-k vector and its count is
@@ -169,7 +194,7 @@ class TopKElements {
    */
   void Remove(const KeyType &key) {
     // Always remove the key from the sketch
-    sketch_->Remove(key);
+    sketch_.Remove(key);
 
     // Then check to see whether it exists in our top-k list
     auto entry = entries_.find(key);
@@ -200,7 +225,7 @@ class TopKElements {
     }
     // Otherwise give them whatever the sketch thinks is the
     // the count.
-    return sketch_->EstimateItemCount(key);
+    return sketch_.EstimateItemCount(key);
   }
 
   /**
@@ -246,7 +271,7 @@ class TopKElements {
    * @param top_k_elements Top K Elements to merge with this
    */
   void Merge(const TopKElements<KeyType> &top_k_elements) {
-    sketch_->Merge(*(top_k_elements.sketch_));
+    sketch_.Merge(top_k_elements.sketch_);
 
     for (auto &[key, count] : top_k_elements.entries_) {
       Increment(key, count);
@@ -258,7 +283,7 @@ class TopKElements {
    */
   void Clear() {
     entries_.clear();
-    sketch_->Clear();
+    sketch_.Clear();
     ComputeNewMinKey();
   }
 
@@ -272,7 +297,7 @@ class TopKElements {
     j["entries"] = nlohmann::json(entries_);
     j["min_key"] = min_key_;
     j["min_count"] = min_count_;
-    j["sketch"] = sketch_->ToJson();
+    j["sketch"] = sketch_.ToJson();
     return j;
   }
 
@@ -288,7 +313,7 @@ class TopKElements {
     top_k_elements.entries_ = j.at("entries").get<std::unordered_map<KeyType, int64_t>>();
     top_k_elements.min_key_ = j.at("min_key").get<KeyType>();
     top_k_elements.min_count_ = j.at("min_count").get<uint64_t>();
-    *(top_k_elements.sketch_) = CountMinSketch<KeyType>::FromJson(j.at("sketch"));
+    top_k_elements.sketch_ = CountMinSketch<KeyType>::FromJson(j.at("sketch"));
     return top_k_elements;
   }
 
@@ -359,7 +384,7 @@ class TopKElements {
   /**
    * Internal sketch to keep track of all keys in the tracker.
    */
-  CountMinSketch<KeyType> *sketch_;
+  CountMinSketch<KeyType> sketch_;
 
   /**
    * Internal helper method that figures out what the smallest

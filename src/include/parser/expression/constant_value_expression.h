@@ -131,6 +131,14 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
   /**
+   * @return copy of underlying Val
+   */
+  execution::sql::DecimalVal GetDecimalVal() const {
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::DecimalVal>(value_), "Invalid variant type for Get.");
+    return std::get<execution::sql::DecimalVal>(value_);
+  }
+
+  /**
    * @return copy of the underlying Val
    */
   execution::sql::DateVal GetDateVal() const {
@@ -292,9 +300,13 @@ extern template int32_t ConstantValueExpression::Peek() const;
 extern template int64_t ConstantValueExpression::Peek() const;
 extern template float ConstantValueExpression::Peek() const;
 extern template double ConstantValueExpression::Peek() const;
+extern template execution::sql::Decimal32 ConstantValueExpression::Peek() const;
+extern template execution::sql::Decimal64 ConstantValueExpression::Peek() const;
+extern template execution::sql::Decimal128 ConstantValueExpression::Peek() const;
 extern template execution::sql::Date ConstantValueExpression::Peek() const;
 extern template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 extern template std::string_view ConstantValueExpression::Peek() const;
+extern template storage::VarlenEntry ConstantValueExpression::Peek() const;
 /// @endcond
 
 }  // namespace noisepage::parser

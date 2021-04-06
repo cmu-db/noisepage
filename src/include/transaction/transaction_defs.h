@@ -45,13 +45,31 @@ using TransactionEndAction = std::function<void(DeferredActionManager *)>;
  */
 using DeferredAction = std::function<void(timestamp_t)>;
 
-/**
- * The retention policy of a transaction determines the retention policy for all of the buffers that are potentially
- * created by a transaction.
- */
-enum class RetentionPolicy : uint8_t {
-  DISABLE_RETENTION = 0,                     ///< Disable retention of buffers entirely.
-  RETENTION_LOCAL_DISK,                      ///< Serialize buffers to local disk only.
-  RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS  ///< Serialize buffers to disk, and also send buffers out to replicas.
+// The Replication and Durability policies are inspired by SingleStore,
+// see https://docs.singlestore.com/v7.3/key-concepts-and-features/cluster-management/replication-and-durability/
+
+/** DurabilityPolicy controls whether commits must wait for logs to be written to disk. */
+enum class DurabilityPolicy : uint8_t {
+  DISABLE = 0,  ///< Do not make any buffers durable.
+  SYNC,         ///< Synchronous: commits must wait for logs to be written to disk.
+  ASYNC         ///< Asynchronous: commits do not need to wait for logs to be written to disk.
+};
+
+/** ReplicationPolicy controls whether logs should be replicated over the network. */
+enum class ReplicationPolicy : uint8_t {
+  DISABLE = 0,  ///< Do not replicate any logs.
+  SYNC,         ///< Synchronous: commits must wait for logs to be replicated and applied.
+  ASYNC         ///< Asynchronous: logs will be replicated, but commits do not need to wait for replication to happen.
+};
+
+/** Transaction-wide policies. */
+struct TransactionPolicy {
+  DurabilityPolicy durability_;    ///< Durability policy for the entire transaction.
+  ReplicationPolicy replication_;  ///< Replication policy for the entire transaction.
+
+  /** @return True if the transaction policies are identical. False otherwise. */
+  bool operator==(const TransactionPolicy &other) const {
+    return durability_ == other.durability_ && replication_ == other.replication_;
+  }
 };
 }  // namespace noisepage::transaction

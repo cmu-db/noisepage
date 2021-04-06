@@ -87,13 +87,28 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         }
 
         temp_flush_queue_ = std::move(flush_queue_);
-        flush_queue_ = std::queue<RecordBufferSegment *>();
+        flush_queue_ = std::queue<std::pair<RecordBufferSegment *, transaction::TransactionPolicy>>();
         empty_ = true;
       }
 
       // Loop over all the new buffers we found
       while (!temp_flush_queue_.empty()) {
-        RecordBufferSegment *buffer = temp_flush_queue_.front();
+        auto &front = temp_flush_queue_.front();
+        RecordBufferSegment *const buffer = front.first;
+        const transaction::TransactionPolicy &policy = front.second;
+
+        // Check if the buffer's policy is compatible with the current filled buffer.
+        {
+          // If the buffer policy is incompatible, then hand off the current filled buffer.
+          const bool compatible = filled_buffer_policy_.has_value() && filled_buffer_policy_.value() == policy;
+          if (!compatible) {
+            HandFilledBufferToWriter();
+            filled_buffer_policy_.reset();
+          }
+          // At this point, either filled_buffer_ is back to nullptr or the policy is compatible.
+          filled_buffer_policy_ = policy;
+        }
+
         temp_flush_queue_.pop();
 
         // Serialize the Redo buffer and release it to the buffer pool
@@ -137,23 +152,22 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
-  // Mark the buffer as ready for serialization, if it exists. It may not exist for read-only transactions.
-
-  // TODO(WAN): Tianlei will be adding code that has different queues for different retention policies. When this
-  //  happens, the individual queues can deal with calling PrepareForSerialization with their respective retention
-  //  policies, so the below assert will become unnecessary.
-  auto retention_policy = primary_replication_manager_ == DISABLED
-                              ? transaction::RetentionPolicy::RETENTION_LOCAL_DISK
-                              : transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
-  NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED ||
-                       retention_policy != transaction::RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS,
-                   "If replication is disabled, then you can't send buffers to replicas.");
-
+  // If the buffer exists, mark the buffer as ready for serialization and replicate the buffer.
+  // The buffer may not exist for read-only transactions, however, the commit callback of the read-only transaction
+  // must still be invoked in order.
   if (filled_buffer_ != nullptr) {
-    filled_buffer_->PrepareForSerialization(retention_policy);
-    // Replicate the buffer if it exists.
-    // TODO(WAN): Note that this is effectively on the critical path to commit callbacks being invoked. Aka terrible.
-    if (primary_replication_manager_ != DISABLED) {
+    // Prepare the buffer for serialization. This initializes a reference count on the batch of logs within.
+    NOISEPAGE_ASSERT(filled_buffer_policy_.has_value(),
+                     "Make sure policies are being set whenever filled_buffer_ is being updated or "
+                     "HandFilledBufferToWriter() is being called.");
+    filled_buffer_->PrepareForSerialization(filled_buffer_policy_.value());
+
+    // Replicate the buffer if the buffer exists.
+    if (filled_buffer_policy_->replication_ != transaction::ReplicationPolicy::DISABLE) {
+      NOISEPAGE_ASSERT(primary_replication_manager_ != DISABLED,
+                       "Replication enabled but replication manager disabled?");
+      NOISEPAGE_ASSERT(filled_buffer_policy_->replication_ == transaction::ReplicationPolicy::SYNC,
+                       "No async support yet.");
       primary_replication_manager_->ReplicateBuffer(filled_buffer_);
     }
   }

@@ -133,7 +133,7 @@ class TransactionContext {
   storage::RedoRecord *StageWrite(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                                   const storage::ProjectedRowInitializer &initializer) {
     const uint32_t size = storage::RedoRecord::Size(initializer);
-    auto *const log_record = storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size, retention_policy_),
+    auto *const log_record = storage::RedoRecord::Initialize(redo_buffer_.NewEntry(size, GetTransactionPolicy()),
                                                              start_time_, db_oid, table_oid, initializer);
     return log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
@@ -149,8 +149,8 @@ class TransactionContext {
   void StageDelete(const catalog::db_oid_t db_oid, const catalog::table_oid_t table_oid,
                    const storage::TupleSlot slot) {
     const uint32_t size = storage::DeleteRecord::Size();
-    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size, retention_policy_), start_time_, db_oid, table_oid,
-                                      slot);
+    storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size, GetTransactionPolicy()), start_time_, db_oid,
+                                      table_oid, slot);
   }
 
   // TODO(Tianyu): We need to discuss what happens to the loose_ptrs field now that we have deferred actions.
@@ -204,11 +204,26 @@ class TransactionContext {
    */
   void SetMustAbort() { must_abort_ = true; }
 
-  /** Set the retention policy of the entire transaction. */
-  void SetRetentionPolicy(RetentionPolicy retention_policy) { retention_policy_ = retention_policy; }
+  /** Set the durability policy of the entire transaction. */
+  void SetDurabilityPolicy(DurabilityPolicy durability_policy) { durability_policy_ = durability_policy; }
 
-  /** @return The retention policy of the entire transaction. */
-  RetentionPolicy GetRetentionPolicy() { return retention_policy_; }
+  /** @return The durability policy of the entire transaction. */
+  DurabilityPolicy GetDurabilityPolicy() const { return durability_policy_; }
+
+  /** Set the replication policy of the entire transaction. */
+  void SetReplicationPolicy(ReplicationPolicy replication_policy) {
+    NOISEPAGE_ASSERT(durability_policy_ != DurabilityPolicy::DISABLE, "Replication needs durability enabled.");
+    NOISEPAGE_ASSERT(
+        replication_policy_ == ReplicationPolicy::DISABLE || replication_policy_ == ReplicationPolicy::SYNC,
+        "Only synchronous replication is currently supported.");
+    replication_policy_ = replication_policy;
+  }
+
+  /** @return The replication policy of the entire transaction. */
+  ReplicationPolicy GetReplicationPolicy() const { return replication_policy_; }
+
+  /** @return The transaction-wide policies for this transaction. */
+  TransactionPolicy GetTransactionPolicy() const { return {durability_policy_, replication_policy_}; }
 
  private:
   friend class storage::GarbageCollector;
@@ -240,11 +255,10 @@ class TransactionContext {
   // conflicts) and checked in Commit().
   bool must_abort_ = false;
 
-  /**
-   * The retention policy of a transaction controls the retention policy for all of the buffers that are created by
-   * the transaction.
-   */
-  RetentionPolicy retention_policy_ = RetentionPolicy::RETENTION_LOCAL_DISK_AND_NETWORK_REPLICAS;
+  /** The durability policy controls whether commits must wait for logs to be written to disk. */
+  DurabilityPolicy durability_policy_ = DurabilityPolicy::SYNC;
+  /** The replication policy controls whether logs must be applied on replicas before commits are invoked. */
+  ReplicationPolicy replication_policy_ = ReplicationPolicy::DISABLE;
 
   /**
    * @warning This method is ONLY for recovery
@@ -255,7 +269,7 @@ class TransactionContext {
    * that you didn't succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   storage::RedoRecord *StageRecoveryWrite(storage::LogRecord *record) {
-    auto record_location = redo_buffer_.NewEntry(record->Size(), retention_policy_);
+    auto record_location = redo_buffer_.NewEntry(record->Size(), GetTransactionPolicy());
     memcpy(record_location, record, record->Size());
     // Overwrite the txn_begin timestamp
     auto *new_record = reinterpret_cast<storage::LogRecord *>(record_location);
