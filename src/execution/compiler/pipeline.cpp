@@ -437,10 +437,10 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
       // SerialWork(queryState, pipelineState)
-//      if(!nested_) {
-        InjectStartResourceTracker(&builder, false);
-        started_tracker = true;
-//      }
+      //      if(!nested_) {
+      InjectStartResourceTracker(&builder, false);
+      started_tracker = true;
+      //      }
 
       std::vector<ast::Expr *> args = {builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)};
       if (nested_) {
