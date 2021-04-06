@@ -160,10 +160,11 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     std::vector<type::TypeId> param_types(*forecast->GetParamtypesByQid(qid));
     std::vector<std::vector<parser::ConstantValueExpression>> params(*forecast->GetQueryparamsByQid(qid));
 
+    // Forcefully reoptimize all the queries
     common::Future<bool> sync;
     pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
         db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types),
-        nullptr, metrics_manager, true, common::ManagedPointer(&sync)));
+        nullptr, metrics_manager, true, true, common::ManagedPointer(&sync)));
     sync.Wait();
   }
 

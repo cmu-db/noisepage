@@ -29,12 +29,12 @@ class TaskRunner : public common::DedicatedThreadTask {
   /**
    * Runs the task loop.
    */
-  void RunTask();
+  void RunTask() override;
 
   /**
    * Terminate running of the task loop
    */
-  void Terminate();
+  void Terminate() override;
 
  private:
   /** Kill flag for indicating that TaskRunner should be shut down */

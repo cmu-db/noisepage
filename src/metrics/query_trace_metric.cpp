@@ -8,14 +8,14 @@
 
 namespace noisepage::metrics {
 
-uint64_t QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = 5;
-uint64_t QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL = 0;
+uint64_t QueryTraceMetricRawData::query_param_sample = 5;
+uint64_t QueryTraceMetricRawData::query_segment_interval = 0;
 
 void QueryTraceMetadata::RecordQueryParamSample(uint64_t timestamp, execution::query_id_t qid,
                                                 std::string query_param) {
   if (qid_param_samples_.find(qid) == qid_param_samples_.end()) {
     qid_param_samples_.emplace(qid,
-                               common::ReservoirSampling<std::string>(QueryTraceMetricRawData::QUERY_PARAM_SAMPLE));
+                               common::ReservoirSampling<std::string>(QueryTraceMetricRawData::query_param_sample));
   }
 
   // Record the sample and time event
@@ -49,7 +49,7 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
   std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                            type::TypeId::REAL};
   task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                        std::make_unique<optimizer::TrivialCostModel>(),
+                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
                                                         std::move(params_vec), std::move(param_types)));
 }
 
@@ -82,7 +82,7 @@ void QueryTraceMetricRawData::WriteToDB(
   // gives us a monotonically increasing clock time. This alows the periodic metrics
   // thread to be able to commit segments.
   high_timestamp_ = std::max(high_timestamp_, write_timestamp);
-  if (high_timestamp_ - low_timestamp_ < QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
+  if (high_timestamp_ - low_timestamp_ < QueryTraceMetricRawData::query_segment_interval) {
     // Not ready to write data records out
     return;
   }
@@ -98,12 +98,12 @@ void QueryTraceMetricRawData::WriteToDB(
 
   std::unordered_map<execution::query_id_t, int> freqs;
   while (metadata_.iterator_ != metadata_.timeseries_.end()) {
-    if (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
+    if (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::query_segment_interval) {
       // We don't have enough data to compose a query segment
       break;
     }
 
-    if ((*metadata_.iterator_).timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
+    if ((*metadata_.iterator_).timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::query_segment_interval) {
       // In this case, the iterator has moved to a point such that we have a complete segment.
       // Submit the insert job based on the accumulated frequency information.
       if (!freqs.empty()) {
@@ -111,7 +111,7 @@ void QueryTraceMetricRawData::WriteToDB(
       }
 
       // Bump up the low_timestamp_
-      low_timestamp_ += QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL;
+      low_timestamp_ += QueryTraceMetricRawData::query_segment_interval;
 
       // The above line has bumped up the low_timestamp_ into a new segment.
       // The following check makes sure that we have a whole segment of data
@@ -124,7 +124,7 @@ void QueryTraceMetricRawData::WriteToDB(
       // as another segment. However, [20, 25] cannot be committed yet
       // since high_timestamp_ (29) - low_timestamp_ (20) < segment_interval (10)
       //
-      if (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL) {
+      if (high_timestamp_ < low_timestamp_ + QueryTraceMetricRawData::query_segment_interval) {
         break;
       }
     }
@@ -145,11 +145,11 @@ void QueryTraceMetricRawData::WriteToDB(
   //    data, then we should not be committing a segment here.
   //
   // 2. A segment interval has passed
-  if (high_timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL && !freqs.empty()) {
+  if (high_timestamp_ >= low_timestamp_ + QueryTraceMetricRawData::query_segment_interval && !freqs.empty()) {
     NOISEPAGE_ASSERT(metadata_.iterator_ == metadata_.timeseries_.end(), "Expect the timseries data to be exhausted");
 
     SubmitFrequencyRecordJob(low_timestamp_, std::move(freqs), task_manager);
-    low_timestamp_ += QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL;
+    low_timestamp_ += QueryTraceMetricRawData::query_segment_interval;
   }
 
   // This assert is inserted here to verify that we do not drop data from any segment.

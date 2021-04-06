@@ -38,7 +38,7 @@ void ForecastRecordingUtil::RecordQueryMetadata(
   if (!params_vec.empty()) {
     std::string query = ForecastRecordingUtil::QUERY_TEXT_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(params_vec), std::move(param_types)));
   }
 }
@@ -74,7 +74,7 @@ void ForecastRecordingUtil::RecordQueryParameters(
   if (!params_vec.empty()) {
     std::string query_text = ForecastRecordingUtil::QUERY_PARAMETERS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(params_vec), std::move(param_types)));
   }
 }
@@ -119,7 +119,7 @@ void ForecastRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_record,
                                              type::TypeId::INTEGER};
     std::string query_text = ForecastRecordingUtil::FORECAST_CLUSTERS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(clusters_params_vec), std::move(param_types)));
   }
 }
@@ -165,7 +165,7 @@ void ForecastRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp_to
                                              type::TypeId::REAL};
     std::string query_text = ForecastRecordingUtil::FORECAST_FREQUENCIES_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(forecast_params_vec), std::move(param_types)));
   }
 }

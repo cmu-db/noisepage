@@ -133,10 +133,10 @@ class QueryTraceMetadata {
 class QueryTraceMetricRawData : public AbstractRawData {
  public:
   /** Parameter of how many query params to keep in sample */
-  static uint64_t QUERY_PARAM_SAMPLE;
+  static uint64_t query_param_sample;
 
   /** Parameter controlling size of a query segment */
-  static uint64_t QUERY_SEGMENT_INTERVAL;
+  static uint64_t query_segment_interval;
 
   /** Query string for recording observed queries */
   static constexpr char QUERY_OBSERVED_INSERT_STMT[] = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3)";

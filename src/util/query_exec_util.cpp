@@ -7,6 +7,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/vm_defs.h"
+#include "loggers/common_logger.h"
 #include "metrics/metrics_manager.h"
 #include "network/network_defs.h"
 #include "network/network_util.h"
@@ -42,6 +43,11 @@ QueryExecUtil::QueryExecUtil(common::ManagedPointer<transaction::TransactionMana
 void QueryExecUtil::ClearPlans() {
   schemas_.clear();
   exec_queries_.clear();
+}
+
+void QueryExecUtil::ClearPlan(const std::string &query) {
+  schemas_.erase(query);
+  exec_queries_.erase(query);
 }
 
 void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) {
@@ -94,6 +100,7 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     statement = std::make_unique<network::Statement>(std::move(query_tmp), std::move(parse_tree));
   } catch (std::exception &e) {
     // Catched a parsing error
+    COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when parsing {}", e.what(), query);
     return {nullptr, nullptr};
   }
 
@@ -108,6 +115,7 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     binder.BindNameToNode(statement->ParseResult(), params, param_types);
   } catch (std::exception &e) {
     // Caught a binding exception
+    COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when binding {}", e.what(), query);
     return {nullptr, nullptr};
   }
 

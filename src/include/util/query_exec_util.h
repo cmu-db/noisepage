@@ -188,6 +188,12 @@ class QueryExecUtil {
       common::ManagedPointer<std::vector<type::TypeId>> param_types,
       std::unique_ptr<optimizer::AbstractCostModel> cost);
 
+  /**
+   * Remove a cached query plan
+   * @param query Query to invalidate
+   */
+  void ClearPlan(const std::string &query);
+
   /** Erases all cached plans */
   void ClearPlans();
 

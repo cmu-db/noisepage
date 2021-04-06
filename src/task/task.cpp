@@ -18,6 +18,12 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   bool result = true;
   query_exec_util->BeginTransaction(db_oid_);
 
+  if (skip_query_cache_) {
+    // Skipping the query cache is implemented by invalidating the plan
+    // and then invalidating the plan entry after execution.
+    query_exec_util->ClearPlan(query_text_);
+  }
+
   // TODO(wz2): https://github.com/cmu-db/noisepage/issues/1352
   // This works for now. Fixing the above issue will make it work beter.
   execution::exec::ExecutionSettings settings{};
@@ -30,7 +36,7 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
                                            common::ManagedPointer(&param_types_), std::move(cost_model_), settings);
 
     // Execute with specified parameters only if compilation succeeded
-    if (!result) {
+    if (result) {
       for (auto &param_vec : params_) {
         if (!result) break;
 
@@ -41,6 +47,11 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
 
     // TODO(wz2): Require disciplined plan for clearing the plans
     // query_exec_util->ClearPlans();
+  }
+
+  if (skip_query_cache_) {
+    // Don't save this query plan
+    query_exec_util->ClearPlan(query_text_);
   }
 
   query_exec_util->EndTransaction(result && !force_abort_);

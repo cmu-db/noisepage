@@ -171,7 +171,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     // already prepared during a prior interval).
     task_manager_->AddTask(std::make_unique<task::TaskDML>(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_texts",
-        std::make_unique<optimizer::TrivialCostModel>(), to_row_fn, common::ManagedPointer(&sync)));
+        std::make_unique<optimizer::TrivialCostModel>(), false, to_row_fn, common::ManagedPointer(&sync)));
 
     result &= sync.Wait().first;
   }
@@ -192,8 +192,8 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
     auto query = fmt::format("SELECT * FROM noisepage_forecast_parameters WHERE ts >= {} AND ts <= {}", bounds.first,
                              bounds.second);
     task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                           std::make_unique<optimizer::TrivialCostModel>(), to_row_fn,
-                                                           common::ManagedPointer(&sync)));
+                                                           std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                           to_row_fn, common::ManagedPointer(&sync)));
 
     result &= sync.Wait().first;
   }
@@ -231,8 +231,8 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(st
 
   common::Future<bool> sync;
   task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                         std::make_unique<optimizer::TrivialCostModel>(), to_row_fn,
-                                                         common::ManagedPointer(&sync)));
+                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                         to_row_fn, common::ManagedPointer(&sync)));
 
   *success = sync.Wait().first;
   for (auto &seg : segments) {

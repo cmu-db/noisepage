@@ -40,12 +40,11 @@ struct MetricsUtil {
    * @return MetricsOutput corresponding to it
    */
   static MetricsOutput FromMetricsOutputString(const std::string &metrics) {
-    if (metrics == "CSV")
-      return MetricsOutput::CSV;
-    else if (metrics == "DB")
-      return MetricsOutput::DB;
-    else if (metrics == "CSV_DB")
-      return MetricsOutput::CSV_DB;
+    if (metrics == "CSV") return MetricsOutput::CSV;
+
+    if (metrics == "DB") return MetricsOutput::DB;
+
+    if (metrics == "CSV_DB") return MetricsOutput::CSV_DB;
 
     NOISEPAGE_ASSERT(false, "Unknown metrics type specified");
     return MetricsOutput::CSV;

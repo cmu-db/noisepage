@@ -33,7 +33,7 @@ class TaskManager : public common::DedicatedThreadOwner {
               std::unique_ptr<util::QueryExecUtil> util, uint32_t num_workers);
 
   /** Destructor */
-  ~TaskManager();
+  ~TaskManager() override;
 
   /**
    * Flush waits for all tasks that have been submitted to the queue
@@ -57,8 +57,8 @@ class TaskManager : public common::DedicatedThreadOwner {
   /**
    * TODO(wz2): These need to be revisited when the thread registry can scale
    */
-  bool OnThreadOffered() { return false; }
-  bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) { return true; }
+  bool OnThreadOffered() override { return false; }
+  bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
 
  private:
   friend class TaskRunner;

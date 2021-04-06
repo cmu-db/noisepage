@@ -51,7 +51,7 @@ class TaskDDL : public Task {
    * @param db_oid Database to execute task within
    * @param query_text Query text of DDL/SET
    */
-  TaskDDL(catalog::db_oid_t db_oid, std::string query_text) : db_oid_(db_oid), query_text_(query_text) {}
+  TaskDDL(catalog::db_oid_t db_oid, std::string query_text) : db_oid_(db_oid), query_text_(std::move(query_text)) {}
 
   void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                common::ManagedPointer<task::TaskManager> task_manager) override;
@@ -74,23 +74,22 @@ class TaskDML : public Task {
    * @param db_oid Database to execute task within
    * @param query_text DML query to execute
    * @param cost_model Cost model to use for optimizing query
+   * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
    * @param params Relevant query parameters
    * @param param_types Types of the query parameters if any
-   * @param tuple_fn Function for processing rows
-   * @param metrics_manager Metrics Manager to be used
-   * @param force_abort Whether to forcefully abort the transaction
-   * @param sync Future for the caller to block on
    */
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
-          std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<type::TypeId> &&param_types)
+          bool skip_query_cache, std::vector<std::vector<parser::ConstantValueExpression>> &&params,
+          std::vector<type::TypeId> &&param_types)
       : db_oid_(db_oid),
-        query_text_(query_text),
+        query_text_(std::move(query_text)),
         cost_model_(std::move(cost_model)),
         params_(params),
         param_types_(param_types),
         tuple_fn_(nullptr),
         metrics_manager_(nullptr),
         force_abort_(false),
+        skip_query_cache_(skip_query_cache),
         sync_(nullptr) {}
 
   /**
@@ -103,20 +102,22 @@ class TaskDML : public Task {
    * @param tuple_fn Function for processing rows
    * @param metrics_manager Metrics Manager to be used
    * @param force_abort Whether to forcefully abort the transaction
+   * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
    * @param sync Future for the caller to block on
    */
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
           std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<type::TypeId> &&param_types,
           util::TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-          bool force_abort, common::ManagedPointer<common::Future<bool>> sync)
+          bool force_abort, bool skip_query_cache, common::ManagedPointer<common::Future<bool>> sync)
       : db_oid_(db_oid),
-        query_text_(query_text),
+        query_text_(std::move(query_text)),
         cost_model_(std::move(cost_model)),
         params_(params),
         param_types_(param_types),
         tuple_fn_(std::move(tuple_fn)),
         metrics_manager_(metrics_manager),
         force_abort_(force_abort),
+        skip_query_cache_(skip_query_cache),
         sync_(sync) {}
 
   /**
@@ -124,19 +125,21 @@ class TaskDML : public Task {
    * @param db_oid Database to execute task within
    * @param query_text DML query to execute
    * @param cost_model Cost model to use for optimizing query
+   * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
    * @param tuple_fn Function for processing rows
    * @param sync Future for the caller to block on
    */
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
-          util::TupleFunction tuple_fn, common::ManagedPointer<common::Future<bool>> sync)
+          bool skip_query_cache, util::TupleFunction tuple_fn, common::ManagedPointer<common::Future<bool>> sync)
       : db_oid_(db_oid),
-        query_text_(query_text),
+        query_text_(std::move(query_text)),
         cost_model_(std::move(cost_model)),
         params_({}),
         param_types_({}),
         tuple_fn_(std::move(tuple_fn)),
         metrics_manager_(nullptr),
         force_abort_(false),
+        skip_query_cache_(skip_query_cache),
         sync_(sync) {}
 
   void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
@@ -154,6 +157,7 @@ class TaskDML : public Task {
   util::TupleFunction tuple_fn_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   bool force_abort_;
+  bool skip_query_cache_;
   common::ManagedPointer<common::Future<bool>> sync_;
 };
 
