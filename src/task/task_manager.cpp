@@ -45,7 +45,7 @@ void TaskManager::Flush() {
 void TaskManager::SetTaskPoolSize(int num_workers) {
   NOISEPAGE_ASSERT(num_workers > 0, "TaskManager requires at least 1 worker");
   std::unique_lock<std::mutex> lock(runners_mutex_);
-  uint32_t unum_workers = static_cast<uint32_t>(num_workers);
+  auto unum_workers = static_cast<uint32_t>(num_workers);
   if (unum_workers > task_runners_.size()) {
     while (unum_workers != task_runners_.size()) {
       task_runners_.push_back(thread_registry_->RegisterDedicatedThread<TaskRunner>(
@@ -60,7 +60,7 @@ void TaskManager::SetTaskPoolSize(int num_workers) {
   }
 }
 
-std::unique_ptr<Task> TaskManager::GetTaskWithKillFlag(bool *kill) {
+std::unique_ptr<Task> TaskManager::GetTaskWithKillFlag(bool *const kill) {
   std::unique_ptr<Task> task = nullptr;
   {
     std::unique_lock<std::mutex> lock(queue_mutex_);

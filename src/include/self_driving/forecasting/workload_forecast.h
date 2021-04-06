@@ -55,11 +55,17 @@ class WorkloadForecast {
   explicit WorkloadForecast(uint64_t forecast_interval, uint64_t num_sample);
 
   /**
-   * Constructor for WorkloadForecast from inference results
+   * Constructor for WorkloadForecast from internal table inference results
    * @param inference Workload inference
    * @param metadata Workload metadata information
    */
   explicit WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &&metadata);
+
+  /**
+   * Constructor for WorkloadForecast from on-disk inference results
+   * @param inference Workload inference
+   */
+  explicit WorkloadForecast(const WorkloadForecastPrediction &inference);
 
   /**
    * Get number of forecasted segments

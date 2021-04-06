@@ -41,6 +41,14 @@ WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, 
   num_forecast_segment_ = forecast_segments_.size();
 }
 
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference) {
+  LoadQueryText();
+  LoadQueryTrace();
+
+  // Call the other constructor to re-use WorklaodForecastPrediction init logic
+  WorkloadForecast(inference, std::move(workload_metadata_));
+}
+
 /**
  * Queries in query_timestamp_to_id_ are sorted by their timestamp while allowing duplicate keys,
  * and then partitioned by timestamps and forecast_interval into segments.
