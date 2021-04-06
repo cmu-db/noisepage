@@ -25,11 +25,13 @@
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "parser/variable_show_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/analyze_plan_node.h"
 #include "settings/settings_manager.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
@@ -150,13 +152,14 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 
 std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<parser::ParseResult> query) const {
+    const common::ManagedPointer<parser::ParseResult> query,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
 
   return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
                                   connection_ctx->GetDatabaseOid(), stats_storage_,
-                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_, parameters);
 }
 
 TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -433,6 +436,20 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
           query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
       "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+
+  /*
+   * ANALYZE will update the statistics held in the pg_statistic catalog table. These statistics are also cached in
+   * StatsStorage. So once ANALYZE commits, we need to mark the columns updated as dirty in StatsStorage.
+   */
+  if (query_type == network::QueryType::QUERY_ANALYZE) {
+    const auto analyze_plan = physical_plan.CastManagedPointerTo<planner::AnalyzePlanNode>();
+    auto db_oid = analyze_plan->GetDatabaseOid();
+    auto table_oid = analyze_plan->GetTableOid();
+    std::vector<catalog::col_oid_t> col_oids = analyze_plan->GetColumnOids();
+    connection_ctx->Transaction()->RegisterCommitAction(
+        [=]() { stats_storage_->MarkStatsStale(db_oid, table_oid, col_oids); });
+  }
+
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   // A std::function<> requires the target to be CopyConstructible and CopyAssignable. In certain

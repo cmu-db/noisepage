@@ -21,13 +21,14 @@ namespace noisepage::optimizer {
 
 void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
-std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
-                                                         catalog::CatalogAccessor *accessor, StatsStorage *storage,
-                                                         QueryInfo query_info,
-                                                         std::unique_ptr<AbstractOptimizerNode> op_tree) {
+std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(
+    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, StatsStorage *storage,
+    QueryInfo query_info, std::unique_ptr<AbstractOptimizerNode> op_tree,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
+  context_->SetParams(parameters);
   auto optimize_result = std::make_unique<OptimizeResult>();
 
   // Generate initial operator tree from query tree
@@ -135,7 +136,7 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
   task_stack->Push(new OptimizeGroup(memo.GetGroupByID(root_group_id), root_context));
 
   // Derive stats for the only one logical expression before optimizing
-  task_stack->Push(new DeriveStats(memo.GetGroupByID(root_group_id)->GetLogicalExpression(), ExprSet{}, root_context));
+  task_stack->Push(new DeriveStats(memo.GetGroupByID(root_group_id)->GetLogicalExpression(), root_context));
 
   ExecuteTaskStack(task_stack, root_group_id, root_context);
 }
