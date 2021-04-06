@@ -110,8 +110,9 @@ class LogManager : public common::DedicatedThreadOwner {
    * write to the buffer. This method can be called safely from concurrent execution threads.
    *
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
+   * @param policy The transaction-wide policies for this batch of logs.
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment);
+  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment, const transaction::TransactionPolicy &policy);
 
   /**
    * For testing only
