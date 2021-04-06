@@ -64,7 +64,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     messenger::callback_id_t destination_cb =
         messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
     for (const auto &replica : replicas_) {
-      Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
+      Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb);
     }
 
     NOISEPAGE_ASSERT(newest_buffer_txn >= newest_txn_sent_,
@@ -86,7 +86,7 @@ void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t old
   messenger::callback_id_t destination_cb =
       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
   for (const auto &replica : replicas_) {
-    Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb, true);
+    Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb);
   }
 }
 
@@ -102,8 +102,6 @@ record_batch_id_t PrimaryReplicationManager::GetNextBatchId() {
 void PrimaryReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const TxnAppliedMsg &msg) {
   REPLICATION_LOG_TRACE(fmt::format("[RECV] TxnAppliedMsg from {}: ID {} TXN {}", zmq_msg.GetRoutingId(),
                                     msg.GetMessageId(), msg.GetAppliedTxnId()));
-  // Acknowledge receipt of the txn having been applied on the replica.
-  SendAckForMessage(zmq_msg, msg);
   // Mark the transaction as applied by the specific replica.
   transaction::timestamp_t txn_id = msg.GetAppliedTxnId();
   {

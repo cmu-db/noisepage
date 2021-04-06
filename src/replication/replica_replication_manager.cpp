@@ -16,8 +16,6 @@ ReplicaReplicationManager::~ReplicaReplicationManager() = default;
 void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const NotifyOATMsg &msg) {
   REPLICATION_LOG_TRACE(fmt::format("[RECV] NotifyOATMsg from {}: OAT {} BATCH {}", zmq_msg.GetRoutingId(),
                                     msg.GetOldestActiveTxn(), msg.GetBatchId()));
-  // Acknowledge receipt of the OAT message.
-  SendAckForMessage(zmq_msg, msg);
   // Notify the provider that the latest OAT has arrived, though the OAT itself may need to be batched.
   provider_.UpdateOAT(msg.GetOldestActiveTxn(), msg.GetBatchId());
 }
@@ -25,8 +23,6 @@ void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, con
 void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const RecordsBatchMsg &msg) {
   REPLICATION_LOG_TRACE(fmt::format("[RECV] RecordsBatchMsg from {}: ID {} BATCH {}", zmq_msg.GetRoutingId(),
                                     msg.GetMessageId(), msg.GetBatchId()));
-  // Acknowledge receipt of the batch of records.
-  SendAckForMessage(zmq_msg, msg);
   // Add the batch of log records directly to the provider, which handles out of order batches.
   provider_.AddBatchOfRecords(msg);
 }
@@ -56,8 +52,7 @@ void ReplicaReplicationManager::NotifyPrimaryTransactionApplied(transaction::tim
   REPLICATION_LOG_TRACE(fmt::format("[SEND] TxnAppliedMsg -> primary: ID {} START {}", msg_id, txn_start_time));
 
   TxnAppliedMsg msg(ReplicationMessageMetadata(msg_id), txn_start_time);
-  Send("primary", msg, nullptr, messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP),
-       true);
+  Send("primary", msg, nullptr, messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
 }
 
 }  // namespace noisepage::replication

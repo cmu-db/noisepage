@@ -10,7 +10,6 @@ namespace noisepage::replication {
 const char *ReplicationMessageMetadata::key_message_id = "message_id";
 const char *BaseReplicationMessage::key_message_type = "message_type";
 const char *BaseReplicationMessage::key_metadata = "metadata";
-const char *AckMsg::key_message_ack_id = "message_ack_id";
 const char *NotifyOATMsg::key_batch_id = "oat_batch";
 const char *NotifyOATMsg::key_oldest_active_txn = "oat_ts";
 const char *RecordsBatchMsg::key_batch_id = "batch_id";
@@ -44,20 +43,6 @@ BaseReplicationMessage::BaseReplicationMessage(const common::json &json)
 
 BaseReplicationMessage::BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata)
     : type_(type), metadata_(metadata) {}
-
-// AckMsg
-
-common::json AckMsg::ToJson() const {
-  common::json json = BaseReplicationMessage::ToJson();
-  json[key_message_ack_id] = message_ack_id_;
-  return json;
-}
-
-AckMsg::AckMsg(const common::json &json)
-    : BaseReplicationMessage(json), message_ack_id_(json[key_message_ack_id].get<msg_id_t>()) {}
-
-AckMsg::AckMsg(ReplicationMessageMetadata metadata, msg_id_t message_ack_id)
-    : BaseReplicationMessage(ReplicationMessageType::ACK, metadata), message_ack_id_(message_ack_id) {}
 
 // NotifyOATMsg
 
@@ -118,7 +103,6 @@ std::unique_ptr<BaseReplicationMessage> BaseReplicationMessage::ParseFromJson(co
   ReplicationMessageType msg_type = ReplicationMessageTypeFromString(json[key_message_type]);
   switch (msg_type) {
       // clang-format off
-    case ReplicationMessageType::ACK:                 { return std::make_unique<AckMsg>(json); }
     case ReplicationMessageType::NOTIFY_OAT:          { return std::make_unique<NotifyOATMsg>(json); }
     case ReplicationMessageType::RECORDS_BATCH:       { return std::make_unique<RecordsBatchMsg>(json); }
     case ReplicationMessageType::TXN_APPLIED:         { return std::make_unique<TxnAppliedMsg>(json); }

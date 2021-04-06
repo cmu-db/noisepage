@@ -77,20 +77,15 @@ class ReplicationManager {
    */
   msg_id_t GetNextMessageId();
 
-  /** Send an acknowledgement for the given message. */
-  void SendAckForMessage(const messenger::ZmqMessage &zmq_msg, const BaseReplicationMessage &msg);
-
   /**
    * Send the message to the given destination.
    * @param destination                 The destination to send the message to.
    * @param message                     The message to send.
    * @param source_callback             The callback to invoke on the response received, can be nullptr.
    * @param destination_callback        The callback that should be invoked on the destination.
-   * @param track_message               True if the message should be tracked in pending_msg_.
    */
   void Send(const std::string &destination, const BaseReplicationMessage &message,
-            const messenger::CallbackFn &source_callback, messenger::callback_id_t destination_callback,
-            bool track_message);
+            const messenger::CallbackFn &source_callback, messenger::callback_id_t destination_callback);
 
   /** The main event loop that all nodes run. This handles receiving messages. */
   virtual void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &zmq_msg,
@@ -102,8 +97,6 @@ class ReplicationManager {
   common::ManagedPointer<common::ConcurrentBlockingQueue<storage::BufferedLogWriter *>> empty_buffer_queue_;
 
  private:
-  void Handle(const messenger::ZmqMessage &zmq_msg, const AckMsg &msg);
-
   /**
    * Build the replication network topology as specified in replication.config.
    *
@@ -126,11 +119,6 @@ class ReplicationManager {
   common::ManagedPointer<messenger::Messenger> messenger_;  ///< The messenger used for all send/receive operations.
   std::string identity_;                                    ///< The identity of this replica.
   uint16_t port_;                                           ///< The port that replication runs on.
-
-  std::unordered_map<msg_id_t, BaseReplicationMessage> pending_msg_;  ///< Messages pending acknowledgment.
-  /** The list of destinations that pending messages were sent to, that have not yet acked. */
-  std::unordered_map<msg_id_t, std::unordered_set<std::string>> pending_msg_dests_;
-  std::mutex pending_msg_mutex_;  ///< Mutex to protect pending_msg_ and pending_msg_dests_.
 
   std::atomic<msg_id_t> next_msg_id_{1};  ///< ID of the next message being sent out.
 };

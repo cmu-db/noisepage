@@ -19,8 +19,6 @@ namespace noisepage::replication {
 #define REPLICATION_MESSAGE_TYPE_ENUM(T)                                                    \
   /** Invalid message type (for uninitialized or invalid state only!). */                   \
   T(ReplicationMessageType, INVALID)                                                        \
-  /** Acknowledgement of received messages between primary and replicas. */                 \
-  T(ReplicationMessageType, ACK)                                                            \
   /** Primary notifying the replica of the oldest active txn time. */                       \
   T(ReplicationMessageType, NOTIFY_OAT)                                                     \
   /** Primary sending the replica a batch of log records.*/                                 \
@@ -84,31 +82,6 @@ class BaseReplicationMessage {
 
   ReplicationMessageType type_;          ///< The type of this message.
   ReplicationMessageMetadata metadata_;  ///< The metadata for this message.
-};
-
-/**
- * An acknowledgement message is sent from primary -> replica and from replica -> primary.
- * The main purpose of sending an acknowledgement is to trigger the callback associated with the acked message.
- */
-class AckMsg : public BaseReplicationMessage {
- public:
-  /** Constructor (to send). */
-  AckMsg(ReplicationMessageMetadata metadata, msg_id_t message_ack_id);
-  /** Constructor (to receive). */
-  explicit AckMsg(const common::json &json);
-  /** Destructor. */
-  ~AckMsg() override = default;
-
-  ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::ACK; }
-  common::json ToJson() const override;
-
-  /** @return The ID of the message being acknowledged. */
-  msg_id_t GetMessageAckId() const { return message_ack_id_; }
-
- private:
-  static const char *key_message_ack_id;  ///< JSON key for the ID of the message being acknowledged.
-
-  msg_id_t message_ack_id_;  ///< The ID of the message being acknowledged.
 };
 
 /**

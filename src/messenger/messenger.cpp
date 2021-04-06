@@ -605,8 +605,6 @@ bool Messenger::UpdateMessagesSeen(const std::string &replica, const message_id_
   std::unordered_set<message_id_t> &complement = seen_messages_complement_.at(replica);
   message_id_t &max_seen = seen_messages_max_.at(replica);
 
-  std::cout << "max seen : " << max_seen.UnderlyingValue() << std::endl;
-  std::cout << "msg id : " << message_id.UnderlyingValue() << std::endl;
   bool first_time = false;
   if (message_id > max_seen) {
     for (message_id_t i = max_seen + 1; i < message_id; ++i) {
