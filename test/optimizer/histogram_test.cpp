@@ -96,7 +96,13 @@ TEST_F(HistogramTests, ValueTypeTest) {
   int_h.Increment(999);
   EXPECT_EQ(int_h.GetMaxBinSize(), num_bins);
   EXPECT_EQ(int_h.GetMinValue(), 777);
+  EXPECT_TRUE(int_h.IsLessThanMinValue(776));
+  EXPECT_FALSE(int_h.IsLessThanMinValue(777));
+  EXPECT_FALSE(int_h.IsLessThanMinValue(778));
   EXPECT_EQ(int_h.GetMaxValue(), 999);
+  EXPECT_TRUE(int_h.IsGreaterThanOrEqualToMaxValue(1000));
+  EXPECT_TRUE(int_h.IsGreaterThanOrEqualToMaxValue(999));
+  EXPECT_FALSE(int_h.IsGreaterThanOrEqualToMaxValue(998));
   EXPECT_EQ(int_h.GetTotalValueCount(), 2);
 
   Histogram<uint16_t> smallint_h{num_bins};
@@ -110,14 +116,26 @@ TEST_F(HistogramTests, ValueTypeTest) {
   float_h.Increment(777.77F);
   float_h.Increment(999.99F);
   EXPECT_EQ(float_h.GetMinValue(), 777.77F);
+  EXPECT_FALSE(float_h.IsLessThanMinValue(777.78F));
+  EXPECT_FALSE(float_h.IsLessThanMinValue(777.77F));
+  EXPECT_TRUE(float_h.IsLessThanMinValue(777.76F));
   EXPECT_EQ(float_h.GetMaxValue(), 999.99F);
+  EXPECT_FALSE(float_h.IsGreaterThanOrEqualToMaxValue(999.98F));
+  EXPECT_TRUE(float_h.IsGreaterThanOrEqualToMaxValue(999.99F));
+  EXPECT_TRUE(float_h.IsGreaterThanOrEqualToMaxValue(1000.00F));
   EXPECT_EQ(float_h.GetTotalValueCount(), 2);
 
   Histogram<double> double_h{num_bins};
   double_h.Increment(777.77);
   double_h.Increment(999.99);
   EXPECT_EQ(double_h.GetMinValue(), 777.77);
+  EXPECT_TRUE(double_h.IsLessThanMinValue(777.76));
+  EXPECT_FALSE(double_h.IsLessThanMinValue(777.77));
+  EXPECT_FALSE(double_h.IsLessThanMinValue(777.78));
   EXPECT_EQ(double_h.GetMaxValue(), 999.99);
+  EXPECT_FALSE(double_h.IsGreaterThanOrEqualToMaxValue(999.98));
+  EXPECT_TRUE(double_h.IsGreaterThanOrEqualToMaxValue(999.99));
+  EXPECT_TRUE(double_h.IsGreaterThanOrEqualToMaxValue(1000.00));
   EXPECT_EQ(double_h.GetTotalValueCount(), 2);
 }
 

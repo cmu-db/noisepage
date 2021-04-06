@@ -77,6 +77,12 @@ T ConstantValueExpression::Peek() const {
     return static_cast<T>(GetReal().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, execution::sql::Decimal32> || std::is_same_v<T, execution::sql::Decimal64> ||
+                std::is_same_v<T, execution::sql::Decimal128>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a
+                                                                  // false positive
+    return static_cast<T>(GetDecimalVal().val_);
+  }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Date>) {
     return GetDateVal().val_;
   }
@@ -87,6 +93,10 @@ T ConstantValueExpression::Peek() const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, std::string_view>) {
     return std::get<execution::sql::StringVal>(value_).StringView();
+  }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, storage::VarlenEntry>) {
+    return GetStringVal().val_;
   }
   UNREACHABLE("Invalid type for Peek.");
 }
@@ -409,8 +419,12 @@ template int32_t ConstantValueExpression::Peek() const;
 template int64_t ConstantValueExpression::Peek() const;
 template float ConstantValueExpression::Peek() const;
 template double ConstantValueExpression::Peek() const;
+template execution::sql::Decimal32 ConstantValueExpression::Peek() const;
+template execution::sql::Decimal64 ConstantValueExpression::Peek() const;
+template execution::sql::Decimal128 ConstantValueExpression::Peek() const;
 template execution::sql::Date ConstantValueExpression::Peek() const;
 template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 template std::string_view ConstantValueExpression::Peek() const;
+template storage::VarlenEntry ConstantValueExpression::Peek() const;
 
 }  // namespace noisepage::parser
