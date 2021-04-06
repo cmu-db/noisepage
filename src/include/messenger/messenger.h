@@ -322,6 +322,8 @@ class Messenger : public common::DedicatedThreadTask {
    */
   void ProcessMessage(const ZmqMessage &msg);
 
+  bool UpdateMessagesSeen(const std::string &replica, message_id_t message_id);
+
   /** The port that is used for all default endpoints. */
   const uint16_t port_;
   /** The identity that this instance of the Messenger is known by. */
@@ -346,7 +348,8 @@ class Messenger : public common::DedicatedThreadTask {
   std::mutex pending_messages_mutex_;
   std::condition_variable pending_messages_cvar_;
 
-  std::unordered_map<std::string, std::unordered_set<message_id_t>> seen_messages_;
+  std::unordered_map<std::string, std::unordered_set<message_id_t>> seen_messages_complement_;
+  std::unordered_map<std::string, message_id_t> seen_messages_max_;
 
   std::mutex callbacks_mutex_;
   bool is_messenger_running_ = false;

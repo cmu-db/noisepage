@@ -39,3 +39,54 @@ If you are **sending** a message for the **first time**, i.e., you are starting 
 
 This is a consequence of the current Messenger design, where the Messenger is the owner of all of the callbacks that are created with every `SendMessage`.  
 The messenger runs its own `ProcessMessage()` that invokes the MSC before invoking the custom SLC.
+
+### Tracking what messages have been seen efficiently
+
+The only guarantee that ZeroMQ makes is all-or-nothing delivery.  
+Specifically, ZeroMQ does NOT guarantee delivery itself.  
+
+To bolt on guaranteed delivery to ZeroMQ, we attach a MessageID and a retry mechanism...
+lorem ipsum doggo TODO(WAN)
+
+As described above, ZeroMQ does not guarantee message delivery of any kind whatsoever.    
+The retry mechanism may send the same message more than once.  
+However, applying the same message more than once is clearly bad -- consider "UPDATE foo SET x = x + 1".  
+So before applying a message, it is important to check that the specific message ID has not been seen before.
+
+Naively, it is possible to track what messages have been seen by doing the following:
+
+1. Maintain a `set<message_id_t> seen_` of all messages seen so far.  
+2. As each message is received, check against `seen_`.
+  - If the message is already in `seen_`, ignore it (at-most-once).
+  - If the message is not in `seen_`, process it (at-least-once).
+
+However, the problem has the following characteristics that we can exploit:
+
+- Message IDs are monotonically increasing.  
+- On average, we expect most message deliveries to succeed.  
+  - If you maintain `max_seen_message_id`, you expect a "small" number of messages to be unseen.  
+
+With much thanks to PK and FF, especially for PK's suggestion to consider the complement.
+
+```python
+# Input:
+#   current : int = The new ID that is currently being seen.
+#   max_seen : int = Maximum message ID seen so far.
+#   complement : set(int) = Unseen messages with IDs < max_seen.
+# Output:
+#   first_time : bool = True if message is seen for first time.
+#   max_seen : int = Maximum message ID seen so far.
+#   complement : set(int) = Unseen messages with IDs < max_seen.
+def is_first_time(current, max_seen, complement):
+    first_time = False
+    if current > max_seen:
+        for i in range(max_seen + 1, current):
+            complement.add(i)
+        max_seen = current
+        first_time = True
+    else:
+        if current in complement:
+            complement.remove(current)
+            first_time = True
+    return first_time, max_seen, complement
+```

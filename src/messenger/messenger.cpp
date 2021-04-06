@@ -577,13 +577,10 @@ void Messenger::ServerLoopRecvAndProcessMessages() {
       ProcessMessage(msg);
       if (msg.GetDestinationCallbackId().UnderlyingValue() != static_cast<uint8_t>(BuiltinCallback::ACK)) {
         std::string sender_id(msg.GetRoutingId());
-        if (seen_messages_.find(sender_id) == seen_messages_.end()) {
-          seen_messages_.emplace(sender_id, std::unordered_set<message_id_t>());
-        }
-        if (seen_messages_.at(sender_id).find(msg.GetMessageId()) != seen_messages_.at(sender_id).end()) {
+        bool first_time = UpdateMessagesSeen(sender_id, msg.GetMessageId());
+        if (!first_time) {
           continue;
         }
-        seen_messages_.at(sender_id).emplace(msg.GetMessageId());
         if (has_custom_serverloop) {
           auto &server_callback = poll_items.server_callbacks_[i];
           (*server_callback)(common::ManagedPointer(this), msg);
@@ -593,6 +590,37 @@ void Messenger::ServerLoopRecvAndProcessMessages() {
       --num_sockets_with_data;
     }
   }
+}
+
+bool Messenger::UpdateMessagesSeen(const std::string &replica, const message_id_t message_id) {
+  if (seen_messages_max_.find(replica) == seen_messages_max_.end()) {
+    seen_messages_max_.emplace(replica, message_id);
+    return true;
+  }
+
+  if (seen_messages_complement_.find(replica) == seen_messages_complement_.end()) {
+    seen_messages_complement_.emplace(replica, std::unordered_set<message_id_t>());
+  }
+
+  std::unordered_set<message_id_t> &complement = seen_messages_complement_.at(replica);
+  message_id_t &max_seen = seen_messages_max_.at(replica);
+
+  std::cout << "max seen : " << max_seen.UnderlyingValue() << std::endl;
+  std::cout << "msg id : " << message_id.UnderlyingValue() << std::endl;
+  bool first_time = false;
+  if (message_id > max_seen) {
+    for (message_id_t i = max_seen + 1; i < message_id; ++i) {
+      complement.emplace(i);
+    }
+    max_seen = message_id;
+    first_time = true;
+  } else {
+    if (complement.find(message_id) != complement.end()) {
+      complement.erase(message_id);
+      first_time = true;
+    }
+  }
+  return first_time;
 }
 
 void Messenger::ProcessMessage(const ZmqMessage &msg) {
