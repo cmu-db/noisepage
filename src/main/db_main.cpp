@@ -25,7 +25,7 @@ void DBMain::Run() {
 
 void DBMain::ForceShutdown() {
   if (replication_manager_ != DISABLED) {
-    GetLogManager()->HackStopNotifyOAT();
+    GetLogManager()->EndReplication();
     if (!replication_manager_->IsPrimary()) {
       replication_manager_->GetAsReplica()->GetReplicationLogProvider()->EndReplication();
     }

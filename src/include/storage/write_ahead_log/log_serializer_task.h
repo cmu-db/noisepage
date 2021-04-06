@@ -89,8 +89,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    */
   void SetSerializationInterval(int32_t interval) { serialization_interval_ = std::chrono::microseconds(interval); }
 
-  /** TODO(WAN): A hack around circular DBMain dependencies. Disable notifying OAT to replicas, used in teardown. */
-  void HackStopNotifyOAT() { notify_oat_ = false; }
+  /** Stop performing actions related to replication. Currently works around circular DBMain dependencies. */
+  void EndReplication() { notify_oat_ = false; }
 
  private:
   friend class LogManager;
