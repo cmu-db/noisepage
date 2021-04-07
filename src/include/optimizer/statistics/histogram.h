@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "common/json.h"
@@ -25,16 +26,52 @@ namespace noisepage::optimizer {
  *    A Streaming Parallel Decision Tree Algorithm
  *    http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf
  * Specifically Algorithm 1, 3, and 4.
+ *
+ * Histogram supports any key type that can be converted into a double. However in order to get meaningful results from
+ * the histogram the ordering of the keys should be preserved in this conversion. So for example if key1 > key2
+ * then ConvertToPoint(key1) > ConvertToPoint(key2) where ConvertToPoint(k) converts k to a double.
  */
 template <typename KeyType>
 class Histogram {
+  static constexpr uint8_t DEFAULT_MAX_BINS = 64;
+
  public:
+  /**
+   * Constructor defaults to DEFAULT_MAX_BINS for bin size
+   */
+  Histogram() : max_bins_(DEFAULT_MAX_BINS), bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
   /**
    * Constructor.
    * @param max_bins maximum number of bins in histogram.
    */
   explicit Histogram(const uint8_t max_bins)
       : max_bins_{max_bins}, bins_{}, total_{0}, minimum_{DBL_MAX}, maximum_{DBL_MIN} {}
+
+  /**
+   * Copy constructor
+   * @param other Histogram to copy
+   */
+  Histogram(const Histogram &other) = default;
+
+  /**
+   * Move constructor
+   * @param other Histogram to copy
+   */
+  Histogram(Histogram &&other) noexcept = default;
+
+  /**
+   * Copy assignment operator
+   * @param other Histogram to copy
+   * @return
+   */
+  Histogram &operator=(const Histogram &other) = default;
+
+  /**
+   * Move assignment operator
+   * @param other Histogram to copy
+   * @return
+   */
+  Histogram &operator=(Histogram &&other) noexcept = default;
 
   /**
    * Internal representation of a point/count pair in the histogram.
@@ -47,6 +84,32 @@ class Histogram {
      * @param count the count that this bin has recorded.
      */
     Bin(double point, double count) : point_{point}, count_{count} {}
+
+    /**
+     * Copy Constructor
+     * @param other Bin to copy
+     */
+    Bin(const Bin &other) = default;
+
+    /**
+     * Move Constructor
+     * @param other Bin to copy
+     */
+    Bin(Bin &&other) noexcept = default;
+
+    /**
+     * Copy assignment operator
+     * @param other Bin to copy
+     * @return this after copying
+     */
+    Bin &operator=(const Bin &other) = default;
+
+    /**
+     * Move assignment operator
+     * @param other Bin to copy
+     * @return this after copying
+     */
+    Bin &operator=(Bin &&other) noexcept = default;
 
     /**
      * Merge the count from the given bin into this bin.
@@ -190,7 +253,7 @@ class Histogram {
    * @param key the key to update
    */
   void Increment(const KeyType &key) {
-    auto point = ConvertToKey(key);
+    auto point = ConvertToPoint(key);
     Bin bin{point, 1};
     InsertBin(bin);
     if (bins_.size() > max_bins_) {
@@ -199,12 +262,14 @@ class Histogram {
   }
 
   /**
-   * For the given key point (where p1 < b < pB), return an estimate
+   * For the given key key (where p1 < b < pB), return an estimate
    * of the number of points in the interval [-Inf, b]
-   * @param point the value point to estimate
+   * @param key the value key to estimate
    * @return the estimate of the # of points
    */
-  double EstimateItemCount(double point) {
+  double EstimateItemCount(KeyType key) {
+    double point = ConvertToPoint(key);
+
     if (bins_.empty()) return 0.0;
 
     if (point >= bins_.back().GetPoint()) {
@@ -296,9 +361,23 @@ class Histogram {
   double GetMaxValue() const { return maximum_; }
 
   /**
+   * Compares a value to the max value in the histogram
+   * @param value value to compare to max
+   * @return true if value is greater than or equal to max, false otherwise
+   */
+  bool IsGreaterThanOrEqualToMaxValue(KeyType value) const { return ConvertToPoint(value) >= maximum_; }
+
+  /**
    * @return the smallest value that we have in this histogram
    */
   double GetMinValue() const { return minimum_; }
+
+  /**
+   * Compares a value to the min value in the histogram
+   * @param value value to compare to min
+   * @return true if value is less than min, false otherwise
+   */
+  bool IsLessThanMinValue(KeyType value) const { return ConvertToPoint(value) < minimum_; }
 
   /**
    * @return the total number of values that are recorded in this histogram
@@ -381,7 +460,7 @@ class Histogram {
     os << "Histogram: "
        << "total=[" << h.total_ << "] "
        << "num_bins=[" << h.bins_.size() << "]" << std::endl;
-    for (Bin b : h.bins_) {
+    for (const Bin &b : h.bins_) {
       os << "  " << b << std::endl;
     }
     return os;
@@ -506,25 +585,43 @@ class Histogram {
   /*
    * We need a way to convert the SQL types to doubles to work with the Histogram.
    */
-  static double ConvertToKey(const decltype(execution::sql::BoolVal::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const decltype(execution::sql::BoolVal::val_) &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const decltype(execution::sql::Integer::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const decltype(execution::sql::Integer::val_) &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const decltype(execution::sql::Real::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const int &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const decltype(execution::sql::DecimalVal::val_) &key) { return static_cast<double>(key); }
+  static double ConvertToPoint(const decltype(execution::sql::Real::val_) &key) { return static_cast<double>(key); }
 
-  static double ConvertToKey(const decltype(execution::sql::StringVal::val_) &key) { return key.Hash(); }
+  static double ConvertToPoint(const decltype(execution::sql::DecimalVal::val_) &key) {
+    return static_cast<double>(key);
+  }
 
-  static double ConvertToKey(const decltype(execution::sql::DateVal::val_) &key) {
+  /*
+   * Inspired by:
+   * https://stackoverflow.com/questions/1914977/map-strings-to-numbers-maintaining-the-lexicographic-ordering/1915258#1915258
+   * Which attempts to map the string to a number between 0 and 1 while maintaining lexicographical order.
+   * An extension was made from that SO post to support characters beyond a-z and one issue was corrected
+   */
+  static double ConvertToPoint(const decltype(execution::sql::StringVal::val_) &key) {
+    double result = 0;
+    double scale = 1;
+    auto s = key.StringView();
+    for (size_t i = 0; i < key.Size(); i++) {
+      scale /= 256;
+      int index = 1 + s.at(i);
+      result += index * scale;
+    }
+    return result;
+  }
+
+  static double ConvertToPoint(const decltype(execution::sql::DateVal::val_) &key) {
     return static_cast<double>(key.ToNative());
   }
 
-  static double ConvertToKey(const decltype(execution::sql::TimestampVal::val_) &key) {
+  static double ConvertToPoint(const decltype(execution::sql::TimestampVal::val_) &key) {
     return static_cast<double>(key.ToNative());
   }
-
-  static double ConvertToKey(const int &key) { return static_cast<double>(key); }
 };
 
 }  // namespace noisepage::optimizer

@@ -100,10 +100,9 @@ void ExecutionContext::StartPipelineTracker(pipeline_id_t pipeline_id) {
 
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(component)) {
-
-    if(common::thread_context.resource_tracker_.IsRunning()){
+    if (common::thread_context.resource_tracker_.IsRunning()) {
       common::thread_context.nesting_depth_++;
-    }else {
+    } else {
       // Start the resource tracker.
       NOISEPAGE_ASSERT(!common::thread_context.resource_tracker_.IsRunning(), "ResourceTrackers cannot be nested");
       common::thread_context.resource_tracker_.Start();
@@ -117,7 +116,7 @@ void ExecutionContext::StartPipelineTracker(pipeline_id_t pipeline_id) {
 void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id,
                                           selfdriving::ExecOUFeatureVector *ouvec) {
   if (common::thread_context.metrics_store_ != nullptr && common::thread_context.resource_tracker_.IsRunning()) {
-    if(common::thread_context.nesting_depth_ == 0) {
+    if (common::thread_context.nesting_depth_ == 0) {
       common::thread_context.resource_tracker_.Stop();
       auto mem_size = mem_tracker_->GetAllocatedSize();
       if (memory_use_override_) {
