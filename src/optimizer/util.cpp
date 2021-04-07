@@ -63,7 +63,8 @@ std::vector<parser::AbstractExpression *> OptimizerUtil::GenerateTableColumnValu
 }
 
 parser::AbstractExpression *OptimizerUtil::GenerateColumnValueExpr(const catalog::Schema::Column &column,
-                                                                   const parser::AliasType &alias, catalog::db_oid_t db_oid,
+                                                                   const parser::AliasType &alias,
+                                                                   catalog::db_oid_t db_oid,
                                                                    catalog::table_oid_t tbl_oid) {
   auto col_oid = column.Oid();
   auto *col_expr = new parser::ColumnValueExpression(alias, column.Name());
@@ -79,7 +80,8 @@ parser::AbstractExpression *OptimizerUtil::GenerateColumnValueExpr(const catalog
 
 parser::AbstractExpression *OptimizerUtil::GenerateAggregateExpr(const catalog::Schema::Column &column,
                                                                  parser::ExpressionType aggregate_type, bool distinct,
-                                                                 const parser::AliasType &alias, catalog::db_oid_t db_oid,
+                                                                 const parser::AliasType &alias,
+                                                                 catalog::db_oid_t db_oid,
                                                                  catalog::table_oid_t tbl_oid) {
   auto col_expr = std::unique_ptr<parser::AbstractExpression>(GenerateColumnValueExpr(column, alias, db_oid, tbl_oid));
   std::vector<std::unique_ptr<parser::AbstractExpression>> agg_child;

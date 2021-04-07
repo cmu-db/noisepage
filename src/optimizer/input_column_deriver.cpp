@@ -546,8 +546,9 @@ void InputColumnDeriver::Visit(const Analyze *op) {
   for (const auto &col_oid : op->GetColumns()) {
     auto col = accessor_->GetSchema(op->GetTableOid()).GetColumn(col_oid);
     for (const auto &col_info : catalog::postgres::PgStatisticImpl::ANALYZE_AGGREGATES) {
-      auto *agg_expr = OptimizerUtil::GenerateAggregateExpr(col, col_info.aggregate_type_, col_info.distinct_, parser::AliasType(),
-                                                            op->GetDatabaseOid(), op->GetTableOid());
+      auto *agg_expr =
+          OptimizerUtil::GenerateAggregateExpr(col, col_info.aggregate_type_, col_info.distinct_, parser::AliasType(),
+                                               op->GetDatabaseOid(), op->GetTableOid());
       aggregate_inputs.emplace_back(agg_expr);
       txn_->RegisterCommitAction([=]() { delete agg_expr; });
       txn_->RegisterAbortAction([=]() { delete agg_expr; });

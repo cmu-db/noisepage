@@ -58,15 +58,15 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
   test_txn_ = txn_manager_->BeginTransaction();
 
   // Constructing logical get with no predicates from "empty_nullable_table"
-  Operator logical_get =
-      LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
+  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {}, parser::AliasType(table_name_1_), false)
+                             .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
 
   // CVE for column 1
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
@@ -80,15 +80,15 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
 // NOLINTNEXTLINE
 TEST_F(StatsCalculatorTests, TestInvalidLogicalGet) {
   // Constructing logical get with no predicates from invalid table
-  Operator logical_get =
-      LogicalGet::Make(test_db_oid_, catalog::INVALID_TABLE_OID, {}, "", false).RegisterWithTxnContext(test_txn_);
+  Operator logical_get = LogicalGet::Make(test_db_oid_, catalog::INVALID_TABLE_OID, {}, parser::AliasType(""), false)
+                             .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
 
   // CVE for column 1
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
@@ -107,8 +107,8 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
   test_txn_ = txn_manager_->BeginTransaction();
 
   // Constructing Logical Get with NOT EQUALS predicate "NOT colA = 1" from "empty_nullable_table"
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
@@ -121,8 +121,9 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
   common::ManagedPointer<parser::AbstractExpression> not_expr(&not_op);
   AnnotatedExpression annotated_not(not_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_not}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_not}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -145,8 +146,8 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
   test_txn_ = txn_manager_->BeginTransaction();
 
   // Constructing Logical Get with IS NOT NULL predicate "colA IS NOT NULL" from "empty_nullable_table"
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   std::vector<std::unique_ptr<parser::AbstractExpression>> not_null_child_exprs;
   not_null_child_exprs.emplace_back(col_a.Copy());
   parser::OperatorExpression not_null_op(parser::ExpressionType::OPERATOR_IS_NOT_NULL, type::TypeId::BOOLEAN,
@@ -154,8 +155,9 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
   common::ManagedPointer<parser::AbstractExpression> not_null_expr(&not_null_op);
   AnnotatedExpression annotated_not_null(not_null_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_not_null}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_not_null}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -179,8 +181,8 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
 
   // Constructing Logical Get with predicate with column value on the left side of predicate "colA = 1" from
   // "empty_nullable_table"
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
@@ -189,8 +191,9 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
   common::ManagedPointer<parser::AbstractExpression> equal_expr(&equals);
   AnnotatedExpression annotated_equals(equal_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -214,8 +217,8 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
 
   // Constructing Logical Get with predicate with column value on the left side of predicate and param on the right side
   // of predicate "colA = param" from "empty_nullable_table". (param is 1)
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
@@ -224,8 +227,9 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   common::ManagedPointer<parser::AbstractExpression> equal_expr(&equals);
   AnnotatedExpression annotated_equals(equal_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -254,8 +258,8 @@ TEST_F(StatsCalculatorTests, TestRightSidePredicate) {
 
   // Constructing Logical Get with predicate with column value on the right side of predicate "3 = colA" from
   // "empty_nullable_table"
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(std::move(three));
@@ -264,8 +268,9 @@ TEST_F(StatsCalculatorTests, TestRightSidePredicate) {
   common::ManagedPointer<parser::AbstractExpression> equal_expr(&equals);
   AnnotatedExpression annotated_equals(equal_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -289,8 +294,8 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
 
   // Constructing Logical Get with predicate with column value on the right side of predicate and param on the left side
   // of predicate "param = colA" from "empty_nullable_table". (param is 3)
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(std::move(param));
@@ -299,8 +304,9 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   common::ManagedPointer<parser::AbstractExpression> equal_expr(&equals);
   AnnotatedExpression annotated_equals(equal_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_equals}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -329,9 +335,9 @@ TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
 
   // Constructing Logical Get with two param predicates "calA = param1 AND colB = param2" from "empty_table2".
   // (param1 is 1, param2 is true)
-  parser::ColumnValueExpression col_a(table_name_2_, table_2_col_1_name_, test_db_oid_, table_oid_2_,
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_2_), table_2_col_1_name_, test_db_oid_, table_oid_2_,
                                       table_2_col_1_oid_, type::TypeId::INTEGER);
-  parser::ColumnValueExpression col_b(table_name_2_, table_2_col_2_name_, test_db_oid_, table_oid_2_,
+  parser::ColumnValueExpression col_b(parser::AliasType(table_name_2_), table_2_col_2_name_, test_db_oid_, table_oid_2_,
                                       table_2_col_2_oid_, type::TypeId::INTEGER);
   auto param1 = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
   auto param2 = std::make_unique<parser::ParameterValueExpression>(1, type::TypeId::BOOLEAN);
@@ -350,9 +356,9 @@ TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
   common::ManagedPointer<parser::AbstractExpression> equal_expr2(&equals2);
   AnnotatedExpression annotated_equals2(equal_expr2, {});
 
-  Operator logical_get =
-      LogicalGet::Make(test_db_oid_, table_oid_2_, {annotated_equals1, annotated_equals2}, table_name_2_, false)
-          .RegisterWithTxnContext(test_txn_);
+  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_2_, {annotated_equals1, annotated_equals2},
+                                          parser::AliasType(table_name_2_), false)
+                             .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -385,8 +391,8 @@ TEST_F(StatsCalculatorTests, TestAndPredicate) {
 
   // Constructing Logical Get with AND predicate consisting of two EQUALS predicates "colA = 3 AND colA = 1"
   // from "empty_nullable_table".
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
 
   auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_three_child_exprs;
@@ -408,8 +414,9 @@ TEST_F(StatsCalculatorTests, TestAndPredicate) {
   common::ManagedPointer<parser::AbstractExpression> and_expr(&and_op);
   AnnotatedExpression annotated_and(and_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_and}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_and}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -433,8 +440,8 @@ TEST_F(StatsCalculatorTests, TestOrPredicate) {
 
   // Constructing Logical Get with OR predicate consisting of two EQUALS predicates "colA = 3 OR colA = 1"
   // from "empty_nullable_table"
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
 
   auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_three_child_exprs;
@@ -456,8 +463,9 @@ TEST_F(StatsCalculatorTests, TestOrPredicate) {
   common::ManagedPointer<parser::AbstractExpression> or_expr(&or_op);
   AnnotatedExpression annotated_or(or_expr, {});
 
-  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_or}, table_name_1_, false)
-                             .RegisterWithTxnContext(test_txn_);
+  Operator logical_get =
+      LogicalGet::Make(test_db_oid_, table_oid_1_, {annotated_or}, parser::AliasType(table_name_1_), false)
+          .RegisterWithTxnContext(test_txn_);
   GroupExpression *gexpr = new GroupExpression(logical_get, {}, test_txn_);
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
@@ -481,8 +489,8 @@ TEST_F(StatsCalculatorTests, TestLogicalLimit) {
   test_txn_ = txn_manager_->BeginTransaction();
 
   // Constructing Logical Limit with logical get with no predicate from "empty_nullable_table"
-  Operator logical_get =
-      LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
+  Operator logical_get = LogicalGet::Make(test_db_oid_, table_oid_1_, {}, parser::AliasType(table_name_1_), false)
+                             .RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr = new GroupExpression(logical_get, {}, test_txn_);
   get_gexpr->SetGroupID(group_id_t(0));
   context_.GetMemo().InsertExpression(get_gexpr, true);
@@ -492,8 +500,8 @@ TEST_F(StatsCalculatorTests, TestLogicalLimit) {
   limit_gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(limit_gexpr, false);
 
-  parser::ColumnValueExpression col_a(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                      type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
+                                      table_1_col_oid_, type::TypeId::INTEGER);
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
@@ -520,23 +528,23 @@ TEST_F(StatsCalculatorTests, TestLogicalSemiJoin) {
 
   // Constructing Logical Semi Join with join predicates "JOIN empty_nullable_table AND empty_table2
   // ON empty_nullable_table.colA = empty_table2.colA"
-  Operator logical_get1 =
-      LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
+  Operator logical_get1 = LogicalGet::Make(test_db_oid_, table_oid_1_, {}, parser::AliasType(table_name_1_), false)
+                              .RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr1 = new GroupExpression(logical_get1, {}, test_txn_);
   get_gexpr1->SetGroupID(group_id_t(0));
   context_.GetMemo().InsertExpression(get_gexpr1, true);
 
-  Operator logical_get2 =
-      LogicalGet::Make(test_db_oid_, table_oid_2_, {}, table_name_2_, false).RegisterWithTxnContext(test_txn_);
+  Operator logical_get2 = LogicalGet::Make(test_db_oid_, table_oid_2_, {}, parser::AliasType(table_name_2_), false)
+                              .RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr2 = new GroupExpression(logical_get2, {}, test_txn_);
   get_gexpr2->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(get_gexpr2, true);
 
-  parser::ColumnValueExpression col_a1(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                       type::TypeId::INTEGER);
-  parser::ColumnValueExpression col_a2(table_name_2_, table_2_col_1_name_, test_db_oid_, table_oid_2_,
-                                       table_2_col_1_oid_, type::TypeId::INTEGER);
-  parser::ColumnValueExpression col_b(table_name_2_, table_2_col_2_name_, test_db_oid_, table_oid_2_,
+  parser::ColumnValueExpression col_a1(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_,
+                                       table_oid_1_, table_1_col_oid_, type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a2(parser::AliasType(table_name_2_), table_2_col_1_name_, test_db_oid_,
+                                       table_oid_2_, table_2_col_1_oid_, type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_b(parser::AliasType(table_name_2_), table_2_col_2_name_, test_db_oid_, table_oid_2_,
                                       table_2_col_2_oid_, type::TypeId::INTEGER);
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
@@ -587,23 +595,23 @@ TEST_F(StatsCalculatorTests, TestLogicalInnerJoin) {
 
   // Constructing Logical Inner Join with join predicates "JOIN empty_nullable_table AND empty_table2
   //  ON empty_nullable_table.colA = empty_table2.colA"
-  Operator logical_get1 =
-      LogicalGet::Make(test_db_oid_, table_oid_1_, {}, table_name_1_, false).RegisterWithTxnContext(test_txn_);
+  Operator logical_get1 = LogicalGet::Make(test_db_oid_, table_oid_1_, {}, parser::AliasType(table_name_1_), false)
+                              .RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr1 = new GroupExpression(logical_get1, {}, test_txn_);
   get_gexpr1->SetGroupID(group_id_t(0));
   context_.GetMemo().InsertExpression(get_gexpr1, true);
 
-  Operator logical_get2 =
-      LogicalGet::Make(test_db_oid_, table_oid_2_, {}, table_name_2_, false).RegisterWithTxnContext(test_txn_);
+  Operator logical_get2 = LogicalGet::Make(test_db_oid_, table_oid_2_, {}, parser::AliasType(table_name_2_), false)
+                              .RegisterWithTxnContext(test_txn_);
   GroupExpression *get_gexpr2 = new GroupExpression(logical_get2, {}, test_txn_);
   get_gexpr2->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(get_gexpr2, true);
 
-  parser::ColumnValueExpression col_a1(table_name_1_, table_1_col_1_name_, test_db_oid_, table_oid_1_, table_1_col_oid_,
-                                       type::TypeId::INTEGER);
-  parser::ColumnValueExpression col_a2(table_name_2_, table_2_col_1_name_, test_db_oid_, table_oid_2_,
-                                       table_2_col_1_oid_, type::TypeId::INTEGER);
-  parser::ColumnValueExpression col_b(table_name_2_, table_2_col_2_name_, test_db_oid_, table_oid_2_,
+  parser::ColumnValueExpression col_a1(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_,
+                                       table_oid_1_, table_1_col_oid_, type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_a2(parser::AliasType(table_name_2_), table_2_col_1_name_, test_db_oid_,
+                                       table_oid_2_, table_2_col_1_oid_, type::TypeId::INTEGER);
+  parser::ColumnValueExpression col_b(parser::AliasType(table_name_2_), table_2_col_2_name_, test_db_oid_, table_oid_2_,
                                       table_2_col_2_oid_, type::TypeId::INTEGER);
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
