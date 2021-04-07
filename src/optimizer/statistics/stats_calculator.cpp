@@ -60,23 +60,29 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalCteScan *op) {
   // TODO(preetang): Implement stats calculation for logical cte scan
   auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
-  root_group->SetNumRows(0);
-  for (auto &col : required_cols_) {
-    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-    root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
+
+  auto num_rows = 0;
+  // TODO(tanujnay112): figure out how to get a rows estimate for inductive CTE's using a supplied limit or
+  // where condition within the CTE query
+  if (!op->GetIsInductive()) {
+    // not a reader node
+    if (gexpr_->GetChildrenGroupsSize() > 0) {
+      auto child = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+      num_rows = child->GetNumRows();
+    }
   }
+
+  root_group->SetNumRows(num_rows);
 }
 
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalUnion *op) {
   // TODO(tanujnay112): Implement stats calculation for logical union
   auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
-  root_group->SetNumRows(0);
-  for (auto &col : required_cols_) {
-    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
-    root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
-  }
+  auto left_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto right_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
+
+  // TODO(tanujnay112): Be less naive than adding left and right rows
+  root_group->SetNumRows(left_group->GetNumRows() + right_group->GetNumRows());
 }
 
 void StatsCalculator::Visit(const LogicalInnerJoin *op) {
