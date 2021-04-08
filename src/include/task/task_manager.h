@@ -71,7 +71,7 @@ class TaskManager : public common::DedicatedThreadOwner {
    *        been signaled.
    * @return task if a task should be executed or nullptr if none
    */
-  std::unique_ptr<Task> GetTaskWithKillFlag(bool *const kill);
+  std::unique_ptr<Task> GetTaskWithKillFlag(bool const* kill);
 
   /**
    * Marks a given kill flag that was previously passed into

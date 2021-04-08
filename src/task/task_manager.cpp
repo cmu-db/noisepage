@@ -60,7 +60,7 @@ void TaskManager::SetTaskPoolSize(int num_workers) {
   }
 }
 
-std::unique_ptr<Task> TaskManager::GetTaskWithKillFlag(bool *const kill) {
+std::unique_ptr<Task> TaskManager::GetTaskWithKillFlag(bool const* kill) {
   std::unique_ptr<Task> task = nullptr;
   {
     std::unique_lock<std::mutex> lock(queue_mutex_);

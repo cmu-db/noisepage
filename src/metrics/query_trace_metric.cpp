@@ -29,7 +29,7 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
   std::string query = QueryTraceMetricRawData::QUERY_OBSERVED_INSERT_STMT;
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (auto &info : freqs) {
-    std::vector<parser::ConstantValueExpression> param_vec(4);
+    std::vector<parser::ConstantValueExpression> param_vec(3);
 
     // Since the frequency information is per segment interval,
     // we record the timestamp (i.e., low_timestamp_) corresponding to it.
@@ -46,8 +46,7 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
   }
 
   // Submit the insert request if not empty
-  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                           type::TypeId::REAL};
+  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
   task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
                                                         std::move(params_vec), std::move(param_types)));
@@ -108,6 +107,7 @@ void QueryTraceMetricRawData::WriteToDB(
       // Submit the insert job based on the accumulated frequency information.
       if (!freqs.empty()) {
         SubmitFrequencyRecordJob(low_timestamp_, std::move(freqs), task_manager);
+        freqs.clear();
       }
 
       // Bump up the low_timestamp_
@@ -150,6 +150,7 @@ void QueryTraceMetricRawData::WriteToDB(
 
     SubmitFrequencyRecordJob(low_timestamp_, std::move(freqs), task_manager);
     low_timestamp_ += QueryTraceMetricRawData::query_segment_interval;
+    freqs.clear();
   }
 
   // This assert is inserted here to verify that we do not drop data from any segment.

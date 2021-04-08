@@ -103,7 +103,10 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   }
 
   metrics_manager_->Aggregate();
-  metrics_manager_->ToOutput(util, task_manager_);
+
+  auto raw = reinterpret_cast<metrics::QueryTraceMetricRawData *>(
+      metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::QUERY_TRACE)).get());
+  raw->WriteToDB(task_manager_, false, 29, nullptr, nullptr);
   task_manager_->Flush();
 
   auto select_count = [util](const std::string &query, size_t target) {
@@ -123,20 +126,21 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   select_count("SELECT * FROM noisepage_forecast_texts", 0);
   select_count("SELECT * FROM noisepage_forecast_parameters", 0);
 
-  auto check_freqs = [task_manager_, util, &qids, &totals, &timestamps](size_t num_interval) {
+  auto task_manager = task_manager_;
+  auto check_freqs = [task_manager, &qids, &totals, &timestamps](size_t num_interval) {
     size_t seen = 0;
     std::unordered_map<size_t, std::unordered_map<size_t, size_t>> qid_map;
     auto freq_check = [&seen, &qid_map](const std::vector<execution::sql::Val *> &values) {
-      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1 &&
-                  "Planning iteration should be 1");
+      auto ts = reinterpret_cast<execution::sql::Integer *>(values[0])->val_;
+      auto qid = reinterpret_cast<execution::sql::Integer *>(values[1])->val_;
+      auto qid_seen = reinterpret_cast<execution::sql::Real *>(values[2])->val_;
+      auto itv = ts / metrics::QueryTraceMetricRawData::query_segment_interval;
 
       // Record <qid, <interval, seen>>
-      qid_map[reinterpret_cast<execution::sql::Integer *>(values[1])->val_]
-             [reinterpret_cast<execution::sql::Integer *>(values[2])->val_] +=
-          reinterpret_cast<execution::sql::Real *>(values[3])->val_;
+      qid_map[qid][itv] += qid_seen;
 
       // Sum the number seen
-      seen += reinterpret_cast<execution::sql::Real *>(values[3])->val_;
+      seen += qid_seen;
     };
 
     size_t combined = 0;
@@ -148,10 +152,10 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     std::vector<type::TypeId> param_types;
 
     common::Future<bool> sync;
-    task_manager_->AddTask(
-        std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
-                                        std::make_unique<optimizer::TrivialCostModel>(), nullptr, std::move(params),
-                                        std::move(param_types), freq_check, common::ManagedPointer(&sync)));
+    task_manager->AddTask(std::make_unique<task::TaskDML>(
+        catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
+        std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
+        false, true, common::ManagedPointer(&sync)));
 
     auto sync_result = sync.Wait();
     bool result = sync_result.first;
@@ -161,9 +165,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
     for (auto &info : qid_map) {
       EXPECT_TRUE(info.first < qids.size() && "Incorrect qid recorded");
-      EXPECT_TRUE(info.second.size() == num_interval && "3rd interval should not be recorded");
+      EXPECT_TRUE(info.second.size() == num_interval && "Some interval should not be recorded");
       for (auto &data : info.second) {
-        EXPECT_TRUE(data.first < 10 && "Recorded occurrence incorrect");
+        EXPECT_TRUE(data.second < 10 && "Recorded occurrence incorrect");
         EXPECT_TRUE(data.second == static_cast<size_t>(timestamps[info.first][data.first]) &&
                     "Incorrect recorded for interval");
       }
@@ -171,10 +175,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   };
   check_freqs(2);
 
-  // Flush to the database
-  auto raw = reinterpret_cast<metrics::QueryTraceMetricRawData *>(
-      metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::QUERY_TRACE)).get());
-  raw->WriteToDB(util, task_manager_, true, true, nullptr, nullptr);
+  // Flush to the database. The [30] should also flush all data.
+  raw->WriteToDB(task_manager_, true, 30, nullptr, nullptr);
   task_manager_->Flush();
 
   {
@@ -217,7 +219,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     size_t row_count = 0;
     std::unordered_set<int64_t> seen;
     auto func = [&row_count, qids, &seen](const std::vector<execution::sql::Val *> &values) {
-      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1 && "Iteration invalid");
+      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 30 && "Flush timestamp is invalid");
       EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[1])->val_ < static_cast<int64_t>(qids.size()) &&
                   "Invalid query identifier");
       seen.insert(reinterpret_cast<execution::sql::Integer *>(values[1])->val_);

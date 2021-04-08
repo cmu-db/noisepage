@@ -163,7 +163,7 @@ void ForecastRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp_to
     // Forecasts
     std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                              type::TypeId::REAL};
-    std::string query_text = ForecastRecordingUtil::FORECAST_FREQUENCIES_INSERT_STMT;
+    std::string query_text = ForecastRecordingUtil::FORECAST_FORECASTS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
                                                           std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(forecast_params_vec), std::move(param_types)));
