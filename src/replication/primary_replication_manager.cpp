@@ -1,5 +1,6 @@
 #include "replication/primary_replication_manager.h"
 
+#include "common/json.h"
 #include "loggers/replication_logger.h"
 #include "replication/replication_messages.h"
 
@@ -63,8 +64,10 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
 
     messenger::callback_id_t destination_cb =
         messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
+    const msg_id_t msg_id = msg.GetMessageId();
+    const std::string msg_string = msg.ToJson().dump();
     for (const auto &replica : replicas_) {
-      Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb);
+      Send(replica.first, msg_id, msg_string, messenger::CallbackFns::Noop, destination_cb);
     }
 
     NOISEPAGE_ASSERT(newest_buffer_txn >= newest_txn_sent_,
@@ -85,8 +88,11 @@ void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t old
 
   messenger::callback_id_t destination_cb =
       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
+
+  const msg_id_t msg_id = msg.GetMessageId();
+  const std::string msg_string = msg.ToJson().dump();
   for (const auto &replica : replicas_) {
-    Send(replica.first, msg, messenger::CallbackFns::Noop, destination_cb);
+    Send(replica.first, msg_id, msg_string, messenger::CallbackFns::Noop, destination_cb);
   }
 }
 

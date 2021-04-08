@@ -80,11 +80,12 @@ class ReplicationManager {
   /**
    * Send the message to the given destination.
    * @param destination                 The destination to send the message to.
+   * @param msg_id                      The ID of the message.
    * @param message                     The message to send.
    * @param source_callback             The callback to invoke on the response received, can be nullptr.
    * @param destination_callback        The callback that should be invoked on the destination.
    */
-  void Send(const std::string &destination, const BaseReplicationMessage &message,
+  void Send(const std::string &destination, msg_id_t msg_id, const std::string &message,
             const messenger::CallbackFn &source_callback, messenger::callback_id_t destination_callback);
 
   /** The main event loop that all nodes run. This handles receiving messages. */

@@ -1,5 +1,6 @@
 #include "replication/replica_replication_manager.h"
 
+#include "common/json.h"
 #include "loggers/replication_logger.h"
 #include "replication/replication_messages.h"
 
@@ -52,7 +53,9 @@ void ReplicaReplicationManager::NotifyPrimaryTransactionApplied(transaction::tim
   REPLICATION_LOG_TRACE(fmt::format("[SEND] TxnAppliedMsg -> primary: ID {} START {}", msg_id, txn_start_time));
 
   TxnAppliedMsg msg(ReplicationMessageMetadata(msg_id), txn_start_time);
-  Send("primary", msg, nullptr, messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
+  const std::string msg_string = msg.ToJson().dump();
+  Send("primary", msg_id, msg_string, nullptr,
+       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
 }
 
 }  // namespace noisepage::replication
