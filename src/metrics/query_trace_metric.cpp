@@ -33,7 +33,7 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
 
     // Since the frequency information is per segment interval,
     // we record the timestamp (i.e., low_timestamp_) corresponding to it.
-    param_vec[0] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(timestamp));
+    param_vec[0] = parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp));
 
     // Record the query identifier.
     param_vec[1] =
@@ -46,7 +46,7 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
   }
 
   // Submit the insert request if not empty
-  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL};
+  std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::REAL};
   task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
                                                         std::move(params_vec), std::move(param_types)));

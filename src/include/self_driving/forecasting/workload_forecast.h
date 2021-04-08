@@ -105,6 +105,12 @@ class WorkloadForecast {
     return workload_metadata_.query_id_to_dboid_.at(qid);
   }
 
+  /**
+   * Initializes segments from inference results
+   * @param inference Inference results
+   */
+  void InitFromInference(const WorkloadForecastPrediction &inference);
+
   void LoadQueryTrace();
   void LoadQueryText();
   void CreateSegments();
