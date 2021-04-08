@@ -120,7 +120,7 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
   }
 
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(txn, common::ManagedPointer(accessor), statement->ParseResult(),
-                                                       db_oid_, stats_, std::move(cost), optimizer_timeout_)
+                                                       db_oid_, stats_, std::move(cost), optimizer_timeout_, params)
                       ->TakePlanNodeOwnership();
   return std::make_pair(std::move(statement), std::move(out_plan));
 }
