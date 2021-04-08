@@ -159,12 +159,13 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     // constructor to allow specifying pointer params or a custom planning task.
     std::vector<type::TypeId> param_types(*forecast->GetParamtypesByQid(qid));
     std::vector<std::vector<parser::ConstantValueExpression>> params(*forecast->GetQueryparamsByQid(qid));
+    pipeline_qids->push_back(qid);
 
-    // Forcefully reoptimize all the queries
+    // Forcefully reoptimize all the queries and set the query identifier to use
     common::Future<bool> sync;
     pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
         db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types),
-        nullptr, metrics_manager, true, true, common::ManagedPointer(&sync)));
+        nullptr, metrics_manager, true, true, true, qid, common::ManagedPointer(&sync)));
     sync.Wait();
   }
 

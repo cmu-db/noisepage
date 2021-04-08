@@ -64,6 +64,9 @@ std::pair<uint64_t, uint64_t> Pilot::ComputeTimestampDataRange(uint64_t now) {
   // Evaluation length is sequence length + 2 horizons
   uint64_t eval_length = sequence_length_ + 2 * horizon_length_;
 
+  // Pull a range of the order of 5x (assuming classic 80% train/20% test split)
+  eval_length *= 5;
+
   // Sequence length and horizon length are in workload_forecast_interval_ time units
   uint64_t eval_time = eval_length * workload_forecast_interval_;
 
@@ -235,6 +238,12 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(st
                                                          to_row_fn, common::ManagedPointer(&sync)));
 
   *success = sync.Wait().first;
+
+  NOISEPAGE_ASSERT(segment_number <= (((bounds.second - bounds.first) / interval) + 1),
+                   "Incorrect data retrieved from internal tables");
+
+  // Pad each segment to the number of segments needed for forecast model.
+  segment_number = ((bounds.second - bounds.first) / interval) + 1;
   for (auto &seg : segments) {
     seg.second.resize(segment_number);
   }

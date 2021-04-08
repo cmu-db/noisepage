@@ -33,7 +33,8 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   } else {
     std::vector<parser::ConstantValueExpression> &params_0 = params_[0];
     result = query_exec_util->CompileQuery(query_text_, common::ManagedPointer(&params_0),
-                                           common::ManagedPointer(&param_types_), std::move(cost_model_), settings);
+                                           common::ManagedPointer(&param_types_), std::move(cost_model_), adopt_qid_,
+                                           qid_target_, settings);
 
     // Execute with specified parameters only if compilation succeeded
     if (result) {
@@ -41,7 +42,7 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
         if (!result) break;
 
         result &= query_exec_util->ExecuteQuery(query_text_, tuple_fn_, common::ManagedPointer(&param_vec), nullptr,
-                                                settings);
+                                                adopt_qid_, qid_target_, settings);
       }
     }
 

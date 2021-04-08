@@ -191,10 +191,14 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
                                                              const exec::ExecutionSettings &exec_settings,
                                                              catalog::CatalogAccessor *accessor,
-                                                             const CompilationMode mode,
+                                                             const CompilationMode mode, bool override_qid,
+                                                             execution::query_id_t override_qid_target,
                                                              common::ManagedPointer<const std::string> query_text) {
   // The query we're generating code for.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
+  if (override_qid) {
+    query->SetQueryId(override_qid_target);
+  }
   // TODO(Lin): Hacking... remove this after getting the counters in
   query->SetQueryText(query_text);
 
