@@ -115,8 +115,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     auto to_row_fn = [&row_count](const std::vector<execution::sql::Val *> &values) { row_count++; };
 
     execution::exec::ExecutionSettings settings{};
-    bool result = util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
-                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
+    bool result =
+        util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr, std::make_unique<optimizer::TrivialCostModel>(),
+                         false, execution::query_id_t(0), settings);
     EXPECT_TRUE(result && "SELECT should have succeeded");
     EXPECT_TRUE(row_count == target && "Row count incorrect");
     util->EndTransaction(true);
@@ -207,8 +208,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     };
 
     execution::exec::ExecutionSettings settings{};
-    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr,
-                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
+    bool result =
+        util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr,
+                         std::make_unique<optimizer::TrivialCostModel>(), false, execution::query_id_t(0), settings);
     EXPECT_TRUE(result && "select should have succeeded");
     EXPECT_TRUE(val.size() == qids.size() && "Incorrect number recorded");
     util->EndTransaction(true);
@@ -227,8 +229,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     };
 
     execution::exec::ExecutionSettings settings{};
-    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr,
-                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
+    bool result =
+        util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr,
+                         std::make_unique<optimizer::TrivialCostModel>(), false, execution::query_id_t(0), settings);
     EXPECT_TRUE(result && "Select should have succeeded");
     EXPECT_TRUE(seen.size() == qids.size() && "Must sample at least 1 per qid");
     EXPECT_TRUE(row_count <= qids.size() * num_sample && "Sampling limit exceeded");
