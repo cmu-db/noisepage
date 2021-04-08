@@ -8,6 +8,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_settings.h"
+#include "execution/exec_defs.h"
 #include "type/type_id.h"
 
 namespace noisepage::transaction {

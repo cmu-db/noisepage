@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/future.h"
+#include "execution/exec_defs.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
 #include "util/query_exec_util.h"
@@ -112,7 +113,7 @@ class TaskDML : public Task {
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
           std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<type::TypeId> &&param_types,
           util::TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-          bool force_abort, bool skip_query_cache, bool adopt_qid, execution::query_id_t qid_taget,
+          bool force_abort, bool skip_query_cache, bool adopt_qid, execution::query_id_t qid_target,
           common::ManagedPointer<common::Future<bool>> sync)
       : db_oid_(db_oid),
         query_text_(std::move(query_text)),

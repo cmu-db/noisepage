@@ -256,7 +256,7 @@ bool QueryExecUtil::ExecuteDML(const std::string &query,
                                std::unique_ptr<optimizer::AbstractCostModel> cost, bool override_qid,
                                execution::query_id_t override_qid_target,
                                const execution::exec::ExecutionSettings &exec_settings) {
-  if (!CompileQuery(query, params, param_types, std::move(cost), exec_settings, override_qid, override_qid_target)) {
+  if (!CompileQuery(query, params, param_types, std::move(cost), override_qid, override_qid_target, exec_settings)) {
     return false;
   }
 

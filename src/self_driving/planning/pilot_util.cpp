@@ -56,7 +56,8 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     execution::exec::ExecutionSettings settings{};
-    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), settings)) {
+    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), false,
+                          execution::query_id_t(0), settings)) {
       util.ExecuteQuery(sql_query, nullptr, nullptr, nullptr, settings);
     }
   }
