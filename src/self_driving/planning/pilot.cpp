@@ -226,7 +226,7 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(st
   };
 
   // This will give us the history of seen frequencies.
-  auto query = fmt::format("SELECT * FROM noisepage_forecast_frequencies WHERE ts <= {} AND ts >= {} ORDER BY ts",
+  auto query = fmt::format("SELECT * FROM noisepage_forecast_frequencies WHERE ts >= {} AND ts <= {} ORDER BY ts",
                            bounds.first, bounds.second);
 
   common::Future<bool> sync;
