@@ -191,7 +191,7 @@ pipeline {
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja check-tpl'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja unittest'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         script{
