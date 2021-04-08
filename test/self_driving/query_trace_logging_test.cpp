@@ -155,7 +155,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     task_manager->AddTask(std::make_unique<task::TaskDML>(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
         std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
-        false, true, common::ManagedPointer(&sync)));
+        false, true, false, execution::query_id_t(0), common::ManagedPointer(&sync)));
 
     auto sync_result = sync.Wait();
     bool result = sync_result.first;
