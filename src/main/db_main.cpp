@@ -75,10 +75,10 @@ void DBMain::ForceShutdown() {
   }
 
   // Shutdown the following resources to safely release the task manager.
-  (void)pilot_thread_.release();
-  (void)pilot_.release();
-  (void)metrics_thread_.release();
-  (void)task_manager_.release();
+  (void)pilot_thread_.reset();
+  (void)pilot_.reset();
+  (void)metrics_thread_.reset();
+  (void)task_manager_.reset();
 
   if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
     network_layer_->GetServer()->StopServer();
