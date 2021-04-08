@@ -961,6 +961,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/self_driving/*.cpp"
         "test/settings/*.cpp"
         "test/storage/*.cpp"
+        "test/sql/*.cpp"
         "test/traffic_cop/*.cpp"
         "test/transaction/*.cpp"
         "test/type/*.cpp"

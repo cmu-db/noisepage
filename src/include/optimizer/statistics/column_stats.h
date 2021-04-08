@@ -1,19 +1,89 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "common/json_header.h"
 #include "common/macros.h"
+#include "execution/sql/value.h"
+#include "optimizer/statistics/histogram.h"
+#include "optimizer/statistics/top_k_elements.h"
 
 namespace noisepage::optimizer {
+
+/**
+ * Base class for Column Statistics
+ */
+class ColumnStatsBase {
+ public:
+  /**
+   * Destructor
+   */
+  virtual ~ColumnStatsBase() = default;
+  /**
+   * Gets the column oid of the column
+   * @return the column oid
+   */
+  virtual catalog::col_oid_t GetColumnID() const = 0;
+  /**
+   * Gets the number of rows in the column
+   * @return the number of rows
+   */
+  virtual size_t GetNumRows() = 0;
+  /**
+   * Sets the number of rows int he column
+   * @param num_rows number of rows
+   */
+  virtual void SetNumRows(size_t num_rows) = 0;
+  /**
+   * Gets the number of rows that are not null
+   * @return number of non null rows
+   */
+  virtual size_t GetNonNullRows() = 0;
+  /**
+   * Gets the number of rows that are null
+   * @return number of null rows
+   */
+  virtual size_t GetNullRows() = 0;
+  /**
+   * Gets the fraction of null values in the column.
+   * @return Fraction of nulls
+   */
+  virtual double GetFracNull() = 0;
+  /**
+   * Gets the number of distinct values in the column
+   * @return distinct values
+   */
+  virtual size_t GetDistinctValues() = 0;
+  /**
+   * Gets the type id of the column
+   * @return type id of the column
+   */
+  virtual type::TypeId GetTypeId() = 0;
+  /**
+   * Returns whether or not this stat is stale
+   * @return true if stale false otherwise
+   */
+  virtual bool IsStale() = 0;
+  /**
+   * Marks this column stat as stale
+   */
+  virtual void MarkStale() = 0;
+};
+
 /**
  * Represents the statistics of a given column. Stores relevant oids,
- * important trends (most common values/their frequencies in the column), and other
- * useful information.
+ * top K elements which uses the count min sketch algorithm to estimate the cardinality
+ * for filters, and other useful information. The template denotes the type of the column
+ * for which statistics are being stored.
  */
-class ColumnStats {
+template <typename T>
+class ColumnStats : public ColumnStatsBase {
+  // Type used to represent the SQL data type in C++.
+  using CppType = decltype(T::val_);
+
  public:
   /**
    * Constructor
@@ -21,26 +91,28 @@ class ColumnStats {
    * @param table_id - table oid of column
    * @param column_id - column oid of column
    * @param num_rows - number of rows in column
-   * @param cardinality - cardinality of column
-   * @param frac_null - fraction of null values out of total values in column
-   * @param most_common_vals - list of most common values in the column
-   * @param most_common_freqs - list of the frequencies of the most common values in the column
-   * @param histogram_bounds - the bounds of the histogram of the column e.g. (1.0 - 4.0)
-   * @param is_base_table - indicates whether the column is from a base table
+   * @param non_null_rows - number of non null rows in column
+   * @param distinct_values - number of distinct values in column
+   * @param top_k - TopKElements for this column
+   * @param histogram - Histogram for this column
+   * @param type_id - type of column
    */
   ColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
-              size_t num_rows, double cardinality, double frac_null, std::vector<double> most_common_vals,
-              std::vector<double> most_common_freqs, std::vector<double> histogram_bounds, bool is_base_table)
+              size_t num_rows, size_t non_null_rows, size_t distinct_values,
+              std::unique_ptr<TopKElements<CppType>> top_k, std::unique_ptr<Histogram<CppType>> histogram,
+              type::TypeId type_id)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
         num_rows_(num_rows),
-        cardinality_(cardinality),
-        frac_null_(frac_null),
-        most_common_vals_(std::move(most_common_vals)),
-        most_common_freqs_(std::move(most_common_freqs)),
-        histogram_bounds_(std::move(histogram_bounds)),
-        is_base_table_{is_base_table} {}
+        non_null_rows_(non_null_rows),
+        distinct_values_(distinct_values),
+        top_k_(std::move(top_k)),
+        histogram_(std::move(histogram)),
+        type_id_(type_id),
+        stale_(false) {
+    frac_null_ = num_rows == 0 ? 0 : static_cast<double>(num_rows - non_null_rows) / static_cast<double>(num_rows);
+  }
 
   /**
    * Default constructor for deserialization
@@ -48,58 +120,131 @@ class ColumnStats {
   ColumnStats() = default;
 
   /**
+   * Copy constructor
+   * @param other ColumnStats to copy
+   */
+  ColumnStats(const ColumnStats &other)
+      : database_id_(other.database_id_),
+        table_id_(other.table_id_),
+        column_id_(other.column_id_),
+        num_rows_(other.num_rows_),
+        non_null_rows_(other.non_null_rows_),
+        frac_null_(other.frac_null_),
+        distinct_values_(other.distinct_values_),
+        type_id_(other.type_id_),
+        stale_(other.stale_) {
+    top_k_ = std::make_unique<TopKElements<CppType>>(*other.top_k_);
+    histogram_ = std::make_unique<Histogram<CppType>>(*other.histogram_);
+  }
+
+  /**
+   * Move constructor
+   * @param other ColumnStats to move
+   */
+  ColumnStats(ColumnStats &&other) noexcept = default;
+
+  /**
+   * Default destructor
+   */
+  ~ColumnStats() override = default;
+
+  /**
+   * Copy assignment operator
+   * @param other ColumnStats to copy
+   * @return this after copying
+   */
+  ColumnStats &operator=(const ColumnStats &other) {
+    database_id_ = other.database_id_;
+    table_id_ = other.table_id_;
+    column_id_ = other.column_id_;
+    num_rows_ = other.num_rows_;
+    non_null_rows_ = other.non_null_rows_;
+    frac_null_ = other.frac_null_;
+    distinct_values_ = other.distinct_values_;
+    top_k_ = std::make_unique<TopKElements<CppType>>(*other.top_k_);
+    histogram_ = std::make_unique<Histogram<CppType>>(*other.histogram_);
+    type_id_ = other.type_id_;
+    stale_ = other.stale_;
+    return *this;
+  }
+
+  /**
+   * Move assignment operator
+   * @param other ColumnStats to copy
+   * @return this after moving
+   */
+  ColumnStats &operator=(ColumnStats &&other) noexcept = default;
+
+  /**
    * Gets the column oid of the column
    * @return the column oid
    */
-  catalog::col_oid_t GetColumnID() const { return column_id_; }
-
-  /**
-   * Gets the number of rows in the column
-   * @return the number of rows
-   */
-  size_t &GetNumRows() { return this->num_rows_; }
+  catalog::col_oid_t GetColumnID() const override { return column_id_; }
 
   /**
    * Sets the number of rows int he column
    * @param num_rows number of rows
    */
-  void SetNumRows(size_t num_rows) { num_rows_ = num_rows; }
+  void SetNumRows(size_t num_rows) override { num_rows_ = num_rows; }
 
   /**
-   * Gets the cardinality of the column
-   * @return the cardinality
+   * Gets the number of rows in the column
+   * @return the number of rows
    */
-  double &GetCardinality() { return this->cardinality_; }
+  size_t GetNumRows() override { return num_rows_; }
 
   /**
-   * Gets the histogram bounds
-   * @return histogram bounds
+   * Gets the number of rows that are not null
+   * @return number of non null rows
    */
-  const std::vector<double> &GetHistogramBounds() const { return histogram_bounds_; }
+  size_t GetNonNullRows() override { return non_null_rows_; }
 
   /**
-   * Gets the Common Vals
-   * @return column vals
+   * Gets the number of rows that are null
+   * @return number of null rows
    */
-  const std::vector<double> &GetCommonVals() const { return most_common_vals_; }
+  size_t GetNullRows() override { return num_rows_ - non_null_rows_; }
 
   /**
-   * Gets the Common Freqs
-   * @return common freqs
+   * Gets the fraction of null values in the column.
+   * @return Fraction of nulls
    */
-  const std::vector<double> &GetCommonFreqs() const { return most_common_freqs_; }
+  double GetFracNull() override { return frac_null_; }
 
   /**
-   * Serializes a column stats object
-   * @return column stats object serialized to json
+   * Gets the number of distinct values in the column
+   * @return distinct values
    */
-  nlohmann::json ToJson() const;
+  size_t GetDistinctValues() override { return distinct_values_; }
 
   /**
-   * Deserializes a column stats object
-   * @param j - serialized column stats object
+   * Gets the pointer to the histogram for the column.
+   * @return Pointer to histogram.
    */
-  void FromJson(const nlohmann::json &j);
+  common::ManagedPointer<Histogram<CppType>> GetHistogram() const { return common::ManagedPointer(histogram_); }
+
+  /**
+   * Gets the Top-K pointer with information on top k values and their frequencies.
+   * @return pointer to top k object
+   */
+  common::ManagedPointer<TopKElements<CppType>> GetTopK() { return common::ManagedPointer(top_k_); }
+
+  /**
+   * Gets the type id of the column
+   * @return type id of the column
+   */
+  type::TypeId GetTypeId() override { return type_id_; }
+
+  /**
+   * Returns whether or not this stat is stale
+   * @return true if stale false otherwise
+   */
+  bool IsStale() override { return stale_; }
+
+  /**
+   * Marks this column stat as stale
+   */
+  void MarkStale() override { stale_ = true; }
 
  private:
   /**
@@ -123,9 +268,9 @@ class ColumnStats {
   size_t num_rows_;
 
   /**
-   * cardinality of column
+   * number of non null rows
    */
-  double cardinality_;
+  size_t non_null_rows_;
 
   /**
    * fraction of null values/total values in column
@@ -133,24 +278,28 @@ class ColumnStats {
   double frac_null_;
 
   /**
-   * list of most common values in column
+   * number of distinct values in column
    */
-  std::vector<double> most_common_vals_;
+  size_t distinct_values_;
 
   /**
-   * list of frequencies for most common values in column
+   * Top-K elements based on frequency.
    */
-  std::vector<double> most_common_freqs_;
+  std::unique_ptr<TopKElements<CppType>> top_k_;
 
   /**
-   * bounds for the histogram of the column
+   * Histogram for the column values.
    */
-  std::vector<double> histogram_bounds_;
+  std::unique_ptr<Histogram<CppType>> histogram_;
 
   /**
-   * tells whether column is from a base table
+   * Type Id of underlying column.
    */
-  bool is_base_table_;
+  type::TypeId type_id_;
+
+  /**
+   * Whether these statistics are stale, i.e. pg_statistic has been updated for this column with newer statistics
+   */
+  bool stale_;
 };
-DEFINE_JSON_HEADER_DECLARATIONS(ColumnStats);
 }  // namespace noisepage::optimizer

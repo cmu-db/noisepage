@@ -1,0 +1,47 @@
+CREATE TABLE foo (a int, b int);
+-- These SELECTS are designed to target different selectivity calculations before and after analyzing a table
+SELECT a FROM foo WHERE a < 666;
+SELECT a FROM foo WHERE a <= 42;
+SELECT a FROM foo WHERE a > 999;
+SELECT a FROM foo WHERE a >= 24;
+SELECT a FROM foo WHERE a = 42;
+SELECT a FROM foo WHERE NOT a = 666;
+SELECT a FROM foo WHERE NOT a <> 666;
+SELECT a FROM foo WHERE b IS NULL;
+SELECT a FROM foo WHERE b IS NOT NULL;
+
+INSERT INTO foo VALUES (666, 1), (1000, 2), (42, 3), (55, 4), (13, NULL), (2, 5);
+
+SELECT a FROM foo WHERE a < 666;
+SELECT a FROM foo WHERE a <= 42;
+SELECT a FROM foo WHERE a > 999;
+SELECT a FROM foo WHERE a >= 24;
+SELECT a FROM foo WHERE a = 42;
+SELECT a FROM foo WHERE NOT a = 666;
+SELECT a FROM foo WHERE NOT a <> 666;
+SELECT a FROM foo WHERE b IS NULL;
+SELECT a FROM foo WHERE b IS NOT NULL;
+
+ANALYZE foo;
+
+SELECT a FROM foo WHERE a < 666;
+SELECT a FROM foo WHERE a <= 42;
+SELECT a FROM foo WHERE a > 999;
+SELECT a FROM foo WHERE a >= 24;
+SELECT a FROM foo WHERE a = 42;
+SELECT a FROM foo WHERE NOT a = 666;
+SELECT a FROM foo WHERE NOT a <> 666;
+SELECT a FROM foo WHERE b IS NULL;
+SELECT a FROM foo WHERE b IS NOT NULL;
+
+INSERT INTO foo VALUES (1, 6);
+ANALYZE foo;
+SELECT a FROM foo WHERE a < 666;
+SELECT a FROM foo WHERE a <= 42;
+SELECT a FROM foo WHERE a > 999;
+SELECT a FROM foo WHERE a >= 24;
+SELECT a FROM foo WHERE a = 42;
+SELECT a FROM foo WHERE NOT a = 666;
+SELECT a FROM foo WHERE NOT a <> 666;
+SELECT a FROM foo WHERE b IS NULL;
+SELECT a FROM foo WHERE b IS NOT NULL;
