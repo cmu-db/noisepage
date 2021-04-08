@@ -1,4 +1,5 @@
 #include "common/json.h"
+#include "execution/sql/value_util.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "metrics/query_trace_metric.h"
@@ -8,9 +9,22 @@
 namespace noisepage::selfdriving::pilot::test {
 
 class QueryTraceLogging : public TerrierTest {
+  static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
+
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
+
+    // Adjust the startup DDL path if specified
+    const char *env = ::getenv(BUILD_ABS_PATH);
+    if (env != nullptr) {
+      std::string file = std::string(env) + "/bin/startup.sql";
+      const auto string = std::string_view(file);
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      param_map.find(settings::Param::startup_ddl_path)->second.value_ =
+          parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+    }
+
     db_main_ = noisepage::DBMain::Builder()
                    .SetSettingsParameterMap(std::move(param_map))
                    .SetUseSettingsManager(true)
@@ -44,7 +58,7 @@ class QueryTraceLogging : public TerrierTest {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<task::TaskManager> task_manager_;
-};
+};  // namespace noisepage::selfdriving::pilot::test
 
 // NOLINTNEXTLINE
 TEST_F(QueryTraceLogging, BasicLogging) {
