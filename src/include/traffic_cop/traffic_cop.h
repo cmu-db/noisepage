@@ -126,11 +126,13 @@ class TrafficCop {
   /**
    * @param connection_ctx context containg txn and catalog accessor to be used
    * @param query bound ParseResult
+   * @param parameters parameters for the query, can be nullptr if there are no parameters
    * @return optimize result containing physical plan that can be executed and the plan meta data
    */
   std::unique_ptr<optimizer::OptimizeResult> OptimizeBoundQuery(
       common::ManagedPointer<network::ConnectionContext> connection_ctx,
-      common::ManagedPointer<parser::ParseResult> query) const;
+      common::ManagedPointer<parser::ParseResult> query,
+      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const;
 
   /**
    * Calls to txn manager to begin txn, and updates ConnectionContext state
