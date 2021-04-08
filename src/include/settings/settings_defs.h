@@ -521,7 +521,7 @@ SETTING_int(
 SETTING_string(
     startup_ddl_path,
     "Path to startup DDL (default: startup.sql)",
-    "startup.sql",
+    "bin/startup.sql",
     false,
     noisepage::settings::Callbacks::NoOp
 )
