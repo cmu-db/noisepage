@@ -94,6 +94,10 @@ class TransactionManager {
 
   /** Set the default transaction replication policy. */
   void SetDefaultTransactionReplicationPolicy(const ReplicationPolicy &policy) {
+    NOISEPAGE_ASSERT(default_txn_policy_.durability_ != DurabilityPolicy::DISABLE, "Replication relies on logs!");
+    NOISEPAGE_ASSERT(default_txn_policy_.durability_ != DurabilityPolicy::ASYNC && policy == ReplicationPolicy::SYNC,
+                     "Weird configuration that we don't support; this would require a new approach that isn't "
+                     "swap-the-commit-callback.");
     default_txn_policy_.replication_ = policy;
   }
 
