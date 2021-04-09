@@ -92,7 +92,9 @@ class ReplicationLogProvider final : public AbstractLogProvider {
   /** @return The latest OAT to be applied, popped off the replication log. */
   transaction::timestamp_t PopOAT() {
     std::unique_lock lock(replication_latch_);
-    NOISEPAGE_ASSERT(!oats_.empty(), "Who's telling you to pop the OAT?");
+    NOISEPAGE_ASSERT(!oats_.empty(),
+                     "PopOAT() should only be invoked in response to WaitForEvent() telling the caller that there is "
+                     "an OAT available. If there is no OAT available, then why is this function being invoked?");
     transaction::timestamp_t oat = oats_.top().oat_;
     oats_.pop();
     replication_cv_.notify_all();
