@@ -1,4 +1,5 @@
 import os
+import time
 
 import pandas as pd
 
@@ -10,7 +11,7 @@ from ...oltpbench.test_oltpbench import TestOLTPBench
 from ...util.db_server import NoisePageServer
 
 
-def primary_log_throughput(build_type: str, replication_enabled: bool, oltp_benchmark: str):
+def primary_log_throughput(build_type: str, replication_enabled: bool, oltp_benchmark: str, output_file: str):
     """
     Measures the log throughput of the primary server.
 
@@ -19,10 +20,14 @@ def primary_log_throughput(build_type: str, replication_enabled: bool, oltp_benc
     we calculate the average log throughput from the logging metrics.
 
     :param build_type The type of build for the server
-    :param  replication_enabled Whether or not replication is enabled
+    :param replication_enabled Whether or not replication is enabled
     :param oltp_benchmark Which OLTP benchmark to run
+    :param output_file Where to save the metrics to
 
     """
+    if output_file is None:
+        output_file = f"primary-log-throughput-{int(time.time())}.csv"
+
     primary_server_args = DEFAULT_PRIMARY_SERVER_ARGS
     primary_server_args[BUILD_TYPE_KEY] = build_type
 
@@ -60,10 +65,10 @@ def primary_log_throughput(build_type: str, replication_enabled: bool, oltp_benc
     create_results_dir()
 
     delete_metrics_file(DISK_LOG_CONSUMER_CSV)
-    # delete_metrics_file(RECOVERY_MANAGER_CSV)
-    move_metrics_file_to_results_dir(LOG_SERIALIZER_CSV)
+    delete_metrics_file(RECOVERY_MANAGER_CSV)
+    move_metrics_file_to_results_dir(LOG_SERIALIZER_CSV, output_file)
 
-    aggregate_log_throughput(LOG_SERIALIZER_CSV)
+    aggregate_log_throughput(output_file)
 
 
 def start_replica(build_type: str) -> NoisePageServer:
@@ -92,8 +97,15 @@ def aggregate_log_throughput(file_name: str):
     # remove first row because elapsed time isn't accurate since the DB has been idle for a bit
     df = df.iloc[1:]
     df = df.rename(columns=lambda col: col.strip())
-    throughput_col = "throughput"
-    # In microseconds
-    df[throughput_col] = df[METRICS_NUM_RECORDS_COL] / df[METRICS_ELAPSED_TIME_COL]
-    avg_throughput = df[throughput_col].mean()
-    print(f"Average log throughput is {avg_throughput * 1000} per millisecond")
+
+    # Microseconds
+    end_time = df.iloc[-1][METRICS_START_TIME_COL] + df.iloc[-1][METRICS_ELAPSED_TIME_COL]
+    start_time = df.iloc[0][METRICS_START_TIME_COL]
+    total_time = end_time - start_time
+
+    total_records = df[METRICS_NUM_RECORDS_COL].sum()
+
+    # Convert to milliseconds
+    avg_throughput = (total_records / total_time) * 1000
+
+    print(f"Average log throughput is {avg_throughput} per millisecond")

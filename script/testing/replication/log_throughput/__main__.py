@@ -9,23 +9,21 @@ def main():
                          default="debug",
                          choices=["debug", "release", "relwithdebinfo"],
                          help="Build type (default: %(default)s)")
-    # TODO this isn't parsing right
     aparser.add_argument("--replication-enabled",
                          default=False,
-                         choices=[True, False],
+                         action="store_true",
                          help="Whether or not replication is enabled (default: %(default)s)")
     aparser.add_argument("--oltp-benchmark",
                          default="tpcc",
                          choices=["tpcc", "tatp"],
                          help="Which OLTP benchmark to use")
+    aparser.add_argument("--output-file",
+                         help="File to output the metrics results to")
 
     args = vars(aparser.parse_args())
 
-    primary_log_throughput(args["build_type"], bool(args["replication_enabled"]), args["oltp_benchmark"])
+    primary_log_throughput(args["build_type"], args["replication_enabled"], args["oltp_benchmark"], args["output_file"])
 
 
 if __name__ == '__main__':
     main()
-
-# Replication: Average log throughput is 5.808376530551583 per millisecond
-# No Replication:
