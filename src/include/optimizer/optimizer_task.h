@@ -337,20 +337,17 @@ class OptimizeExpressionCostWithEnforcedProperty : public OptimizerTask {
 
 /**
  * DeriveStats derives any stats needed for costing a GroupExpression. This will
- * recursively derive stats and lazily collect stats for column needed.
+ * recursively derive stats.
  */
 class DeriveStats : public OptimizerTask {
  public:
   /**
    * Constructor for DeriveStats
    * @param gexpr GroupExpression to derive stats for
-   * @param required_cols Required expressions
    * @param context Current OptimizationContext
    */
-  DeriveStats(GroupExpression *gexpr, ExprSet required_cols, OptimizationContext *context)
-      : OptimizerTask(context, OptimizerTaskType::DERIVE_STATS),
-        gexpr_(gexpr),
-        required_cols_(std::move(required_cols)) {}
+  DeriveStats(GroupExpression *gexpr, OptimizationContext *context)
+      : OptimizerTask(context, OptimizerTaskType::DERIVE_STATS), gexpr_(gexpr), children_derived_(false) {}
 
   /**
    * Constructor for DeriveStats
@@ -359,7 +356,7 @@ class DeriveStats : public OptimizerTask {
   explicit DeriveStats(DeriveStats *task)
       : OptimizerTask(task->context_, OptimizerTaskType::DERIVE_STATS),
         gexpr_(task->gexpr_),
-        required_cols_(task->required_cols_) {}
+        children_derived_(task->children_derived_) {}
 
   /**
    * Function to execute the task
@@ -371,11 +368,7 @@ class DeriveStats : public OptimizerTask {
    * GroupExpression to derive stats for
    */
   GroupExpression *gexpr_;
-
-  /**
-   * Required columns
-   */
-  ExprSet required_cols_;
+  bool children_derived_;
 };
 
 /**

@@ -374,6 +374,16 @@ common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::G
   return proc_ctx;
 }
 
+std::unique_ptr<optimizer::ColumnStatsBase> DatabaseCatalog::GetColumnStatistics(
+    common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, col_oid_t col_oid) {
+  return pg_stat_.GetColumnStatistics(txn, common::ManagedPointer(this), table_oid, col_oid);
+}
+
+optimizer::TableStats DatabaseCatalog::GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                          table_oid_t table_oid) {
+  return pg_stat_.GetTableStatistics(txn, common::ManagedPointer(this), table_oid);
+}
+
 bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto current_val = write_lock_.load();
 

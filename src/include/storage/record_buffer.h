@@ -337,18 +337,18 @@ class RedoBuffer {
    * Reserve a redo record with the given size, in bytes. The returned pointer is guaranteed to be valid until NewEntry
    * is called again, or when the buffer is explicitly flushed by the call Finish().
    * @param size the size of the redo record to allocate
-   * @param retention_policy retention policy of the record
+   * @param policy The transaction-wide policies for this log.
    * @return a new redo record with at least the given size reserved
    */
-  byte *NewEntry(uint32_t size, transaction::RetentionPolicy retention_policy);
+  byte *NewEntry(uint32_t size, const transaction::TransactionPolicy &policy);
 
   /**
    * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
    * can be written to this redo buffer after the function returns.
    * @param flush_buffer whether the transaction holding this RedoBuffer should flush the its redo buffer
-   * @param retention_policy retention policy of the record
+   * @param policy The transaction-wide policies for this log.
    */
-  void Finalize(bool flush_buffer, transaction::RetentionPolicy retention_policy);
+  void Finalize(bool flush_buffer, const transaction::TransactionPolicy &policy);
 
   /**
    * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
