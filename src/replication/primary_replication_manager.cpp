@@ -98,7 +98,7 @@ void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t old
 
 record_batch_id_t PrimaryReplicationManager::GetNextBatchId() {
   record_batch_id_t next_batch_id = next_batch_id_++;
-  if (next_batch_id_.load() == INVALID_RECORD_BATCH_ID) {
+  if (next_batch_id_ == INVALID_RECORD_BATCH_ID) {
     next_batch_id_++;
   }
   last_sent_batch_id_ = next_batch_id;
