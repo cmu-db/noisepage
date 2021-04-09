@@ -85,7 +85,7 @@ class PrimaryReplicationManager final : public ReplicationManager {
   std::mutex callbacks_mutex_;  ///< Protecting txn_callbacks_ and txns_applied_on_replicas_.
 
   /** ID of the next batch of log records to be sent out to all replicas. */
-  std::atomic<record_batch_id_t> next_batch_id_{1};
+  record_batch_id_t next_batch_id_{1};
   /** ID of the last batch of log records that was sent out to all replicas. */
   record_batch_id_t last_sent_batch_id_ = INVALID_RECORD_BATCH_ID;
   /** ID of the newest transaction that was sent out to all replicas. */
