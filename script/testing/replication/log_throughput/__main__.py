@@ -1,49 +1,27 @@
+import argparse
+
 from .log_throughput import primary_log_throughput
 
 
-def start_primary():
-    pass
-
-
-# -wal_enable=true -wal_file_path=wal.log
-
-def start_replica():
-    pass
-
-
 def main():
-    # TODO
-    primary_log_throughput()
+    aparser = argparse.ArgumentParser(description="Benchmark for log record throughput")
+    aparser.add_argument("--build-type",
+                         default="debug",
+                         choices=["debug", "release", "relwithdebinfo"],
+                         help="Build type (default: %(default)s)")
+    aparser.add_argument("--replication-enabled",
+                         default=False,
+                         choices=["True", "False"],
+                         help="Whether or not replication is enabled (default: %(default)s)")
+    aparser.add_argument("--oltp-benchmark",
+                         default="tpcc",
+                         choices=["tpcc", "tatp"],
+                         help="Which OLTP benchmark to use")
+
+    args = vars(aparser.parse_args())
+
+    primary_log_throughput(args["build_type"], bool(args["replication_enabled"]), args["oltp_benchmark"])
 
 
 if __name__ == '__main__':
     main()
-
-"""
-Look at self_driving stuff
-
-
-Primary Log Throughput Test(TestOLTPBench):
-    run_pre_suit:
-        #  start server
-        super().run_pre_suite()
-
-Replica Log Throughput Test(TestServer):
-    run_pre_suit:
-        # start replica
-        super().run_pre_suite()
-        
-Log Throughput Test Case
-    __init__:
-        super
-    
-    run_pre_test:
-        super
-        get current log record id
-        
-    
-        
-    run_post_test:
-        super
-        calculate log throughput
-"""
