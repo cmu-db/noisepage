@@ -31,6 +31,8 @@ ReplicationManager::~ReplicationManager() = default;
 
 msg_id_t ReplicationManager::GetNextMessageId() {
   msg_id_t next_msg_id = next_msg_id_++;
+  // TODO(WAN): This is not robust to multiple threads attempting to get a new message ID, and may result in message IDs
+  //            getting skipped over. For now, I think this is fine, but find a cheap way of doing this properly?
   if (next_msg_id_.load() == INVALID_MSG_ID) {
     next_msg_id_++;
   }

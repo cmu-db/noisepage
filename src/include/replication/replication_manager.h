@@ -74,6 +74,7 @@ class ReplicationManager {
   /**
    * @return    The ID of the next message which should be used.
    * @warning   All ReplicationManager methods, including derived classes, must use this for message IDs.
+   *            Note that message IDs may not be contiguous if wraparound is observed.
    */
   msg_id_t GetNextMessageId();
 
