@@ -1,7 +1,7 @@
 import argparse
 
-from replication.log_throughput.test_type import TestType
 from .log_throughput import primary_log_throughput
+from .test_type import TestType
 
 
 def main():
