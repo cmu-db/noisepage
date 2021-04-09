@@ -5,6 +5,7 @@
 #undef __SETTING_GFLAGS_DEFINE__     // NOLINT
 
 #include "execution/execution_util.h"
+#include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/replication_log_provider.h"
 
 namespace noisepage {
@@ -28,6 +29,31 @@ void DBMain::Run() {
     std::unique_lock<std::mutex> lock(server->RunningMutex());
     server->RunningCV().wait(lock, [=] { return !(server->Running()); });
   }
+}
+
+void DBMain::RecoverSystem() {
+  NOISEPAGE_ASSERT(settings_manager_ != DISABLED, "Trying to recover system without SettingsManager.");
+
+  // Skip if logging is disabled
+  if (settings_manager_->GetBool(settings::Param::wal_enable) == false) {
+    return;
+  }
+
+  // Skip if the file does not exist
+  auto wal_file_path = settings_manager_->GetString(settings::Param::wal_file_path);
+  if (std::filesystem::exists(wal_file_path) == false) {
+    return;
+  }
+
+  // Instantiate recovery manager and recover the tables
+  storage::DiskLogProvider log_provider(wal_file_path);
+  storage::RecoveryManager recovery_manager(common::ManagedPointer<storage::AbstractLogProvider>(&log_provider),
+                                            catalog_layer_->GetCatalog(), txn_layer_->GetTransactionManager(),
+                                            txn_layer_->GetDeferredActionManager(), GetReplicationManager(),
+                                            GetThreadRegistry(), storage_layer_->GetBlockStore());
+
+  recovery_manager.StartRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
 }
 
 void DBMain::ForceShutdown() {

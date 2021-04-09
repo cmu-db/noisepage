@@ -84,6 +84,7 @@ int main(int argc, char *argv[]) {
 
   db_main_handler_ptr = db_main.get();
 
+  db_main->RecoverSystem();
   db_main->Run();
 
   noisepage::LoggersUtil::ShutDown();

@@ -62,6 +62,11 @@ class DBMain {
   void Run();
 
   /**
+   * Attempt to recover the system from the WAL.
+   */
+  void RecoverSystem();
+
+  /**
    * Shuts down the server.
    * It is worth noting that in normal cases, noisepage will shut down and return from Run().
    * So, use this function only when you want to shutdown the server from code.
