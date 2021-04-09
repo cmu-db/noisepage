@@ -611,12 +611,11 @@ bool Messenger::UpdateMessagesSeen(const std::string &replica, const message_id_
     }
     max_seen = message_id;
     first_time = true;
-  } else {
-    if (complement.find(message_id) != complement.end()) {
-      complement.erase(message_id);
-      first_time = true;
-    }
+  } else if (complement.find(message_id) != complement.end()) {
+    complement.erase(message_id);
+    first_time = true;
   }
+
   return first_time;
 }
 
