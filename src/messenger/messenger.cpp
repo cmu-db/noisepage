@@ -483,6 +483,7 @@ callback_id_t Messenger::GetNextSendCallbackId() {
 }
 
 void Messenger::ServerLoopAddRouters() {
+  // Note that the stale read of empty() is probably undefined behavior. If wonky behavior is observed, watch out here.
   if (!routers_to_be_added_.empty()) {
     std::lock_guard lock(routers_add_mutex_);
     for (auto &item : routers_to_be_added_) {
@@ -496,6 +497,7 @@ void Messenger::ServerLoopAddRouters() {
 }
 
 void Messenger::ServerLoopMakeConnections() {
+  // Note that the stale read of empty() is probably undefined behavior. If wonky behavior is observed, watch out here.
   if (!connections_to_be_added_.empty()) {
     std::lock_guard lock(connections_add_mutex_);
     for (auto &item : connections_to_be_added_) {
@@ -508,6 +510,7 @@ void Messenger::ServerLoopMakeConnections() {
 }
 
 void Messenger::ServerLoopSendMessages() {
+  // Note that the stale read of empty() is probably undefined behavior. If wonky behavior is observed, watch out here.
   if (!pending_messages_.empty()) {
     std::time_t now = std::time(nullptr);
 
