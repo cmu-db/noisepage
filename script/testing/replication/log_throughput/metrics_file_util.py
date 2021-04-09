@@ -3,6 +3,10 @@ import time
 
 from .constants import RESULTS_DIR
 
+"""
+This file exposes a bunch of helper methods for interacting with metric csv files
+"""
+
 
 def get_csv_file_path(file_name: str) -> str:
     """
@@ -13,7 +17,6 @@ def get_csv_file_path(file_name: str) -> str:
     return os.path.join(os.getcwd(), file_name)
 
 
-# TODO add timeout
 def delete_metrics_file(file_name: str):
     """
     Deletes a metrics file

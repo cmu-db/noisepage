@@ -10,6 +10,11 @@ from ...oltpbench.test_case_oltp import TestCaseOLTPBench
 from ...oltpbench.test_oltpbench import TestOLTPBench
 from ...util.db_server import NoisePageServer
 
+"""
+This file helps generate load for the a primary NoisePage server. Then using the metrics collection framework will 
+calculate the log throughput for the primary server. 
+"""
+
 
 def primary_log_throughput(build_type: str, replication_enabled: bool, oltp_benchmark: str, output_file: str):
     """
