@@ -92,8 +92,9 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
 
   ModelServerFuture<std::string> future;
   const char *env = ::getenv(BUILD_ABS_PATH);
-  std::string project_build_path = std::string(env != nullptr ? env : ".") + "/bin";
-  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, &project_build_path, ou_model_save_path, nullptr,
+  std::string project_build_path = std::string(env != nullptr ? env : ".");
+  std::string model_path = project_build_path + "/bin";
+  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, &model_path, ou_model_save_path, nullptr,
                          common::ManagedPointer<ModelServerFuture<std::string>>(&future));
   auto res = future.Wait();
   ASSERT_EQ(res.second, true);  // Training succeeds
