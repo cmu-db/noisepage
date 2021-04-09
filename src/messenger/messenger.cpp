@@ -508,34 +508,36 @@ void Messenger::ServerLoopMakeConnections() {
 }
 
 void Messenger::ServerLoopSendMessages() {
-  std::time_t now = std::time(nullptr);
+  if (!pending_messages_.empty()) {
+    std::time_t now = std::time(nullptr);
 
-  std::unique_lock lock(pending_messages_mutex_);
-  for (auto &item : pending_messages_) {
-    PendingMessage &msg = item.second;
-    const common::ManagedPointer<zmq::socket_t> socket = msg.zmq_socket_;
-    const std::string &destination = msg.destination_id_;
+    std::unique_lock lock(pending_messages_mutex_);
+    for (auto &item : pending_messages_) {
+      PendingMessage &msg = item.second;
+      const common::ManagedPointer<zmq::socket_t> socket = msg.zmq_socket_;
+      const std::string &destination = msg.destination_id_;
 
-    if (now - msg.last_send_time_ <= MESSENGER_RESEND_TIMER.count()) {
-      continue;
-    }
-    msg.last_send_time_ = now;
-
-    if (msg.is_router_socket_) {
-      zmq::message_t router_data(destination.data(), destination.size());
-      if (!socket->send(router_data, zmq::send_flags::sndmore).has_value()) {
-        throw MESSENGER_EXCEPTION("Could not send message!");
+      if (now - msg.last_send_time_ <= MESSENGER_RESEND_TIMER.count()) {
+        continue;
       }
-      ZmqUtil::SendMsgIdentity(socket, msg.msg_.routing_id_);
-    }
-    ZmqUtil::SendMsgPayload(socket, msg.msg_);
+      msg.last_send_time_ = now;
 
-    if (msg.is_router_socket_) {
-      MESSENGER_LOG_TRACE(fmt::format("[PID={}] Messenger ({}) SENT-TO {}: {} ", ::getpid(), msg.msg_.routing_id_,
-                                      destination, msg.msg_.GetRawPayload()));
-    } else {
-      MESSENGER_LOG_TRACE(
-          fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), destination, msg.msg_.GetRawPayload()));
+      if (msg.is_router_socket_) {
+        zmq::message_t router_data(destination.data(), destination.size());
+        if (!socket->send(router_data, zmq::send_flags::sndmore).has_value()) {
+          throw MESSENGER_EXCEPTION("Could not send message!");
+        }
+        ZmqUtil::SendMsgIdentity(socket, msg.msg_.routing_id_);
+      }
+      ZmqUtil::SendMsgPayload(socket, msg.msg_);
+
+      if (msg.is_router_socket_) {
+        MESSENGER_LOG_TRACE(fmt::format("[PID={}] Messenger ({}) SENT-TO {}: {} ", ::getpid(), msg.msg_.routing_id_,
+                                        destination, msg.msg_.GetRawPayload()));
+      } else {
+        MESSENGER_LOG_TRACE(
+            fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), destination, msg.msg_.GetRawPayload()));
+      }
     }
   }
 }
