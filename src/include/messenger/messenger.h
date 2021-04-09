@@ -322,6 +322,15 @@ class Messenger : public common::DedicatedThreadTask {
    */
   void ProcessMessage(const ZmqMessage &msg);
 
+  /**
+   * Track the messages that have been seen so far by a given replica, additionally returning whether a message is
+   * being seen for the first time. Note that this is necessary to simulate idempotence in the Messenger, which tries
+   * to periodically resend messages that have not been acknowledged as part of bolting guaranteed delivery onto ZeroMQ.
+   *
+   * @param replica         The replica sending the message.
+   * @param message_id      The ID of the message.
+   * @return                True if the message is being seen for the first time. False if seen before.
+   */
   bool UpdateMessagesSeen(const std::string &replica, message_id_t message_id);
 
   /** The port that is used for all default endpoints. */
