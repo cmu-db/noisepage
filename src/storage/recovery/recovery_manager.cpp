@@ -18,7 +18,7 @@
 #include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/json.h"
-#include "replication/replication_manager.h"
+#include "replication/replica_replication_manager.h"
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/index/index_metadata.h"
@@ -48,10 +48,21 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    if (replication_manager_ != DISABLED &&
-        log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
-      auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
-      if (!rep_log_provider->NonBlockingHasMoreRecords()) break;
+    if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
+      auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
+      auto event = rlp->WaitUntilEvent();
+
+      if (event == ReplicationLogProvider::ReplicationEvent::END) {
+        break;
+      }
+
+      if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
+        auto oat = rlp->PopOAT();
+        recovered_txns_ += ProcessDeferredTransactions(oat);
+        continue;
+      }
+      NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
+                       "What other replication events have been added?");
     }
 
     const bool logging_metrics_enabled =
@@ -84,7 +95,6 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 
         // We defer all transactions initially
         deferred_txns_.insert(log_record->TxnBegin());
-
         // Process any deferred transactions that are safe to execute
         auto [recovered_txns, log_records_processed] = ProcessDeferredTransactions(commit_record->OldestActiveTxn());
         recovered_txns_ += recovered_txns;
@@ -124,25 +134,15 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
     }
     buffered_changes_map_.clear();
   }
-
-  if (replication_manager_ != DISABLED &&
-      log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
-    auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
-    rep_log_provider->LatchPrimaryAckables();
-    std::vector<uint64_t> &ackables = rep_log_provider->GetPrimaryAckables();
-    std::vector<uint64_t> ackables_copy = ackables;
-    ackables.clear();
-    rep_log_provider->UnlatchPrimaryAckables();
-    for (const uint64_t primary_cb_id : ackables_copy) {
-      replication_manager_->ReplicaAck("primary", primary_cb_id, false);
-    }
-  }
 }
 
 uint32_t RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
   auto records_processed = 0;
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
+  if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
+    txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
+  }
 
   // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
   for (uint32_t idx = 0; idx < buffered_changes_map_[txn_id].size(); idx++) {
@@ -169,6 +169,14 @@ uint32_t RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::ti
 
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  last_applied_txn_id_ = std::max(last_applied_txn_id_, txn_id);
+  if (replication_manager_ != DISABLED) {
+    // Replicas have to send back their list of deferred transactions that were processed, periodically.
+    if (replication_manager_->IsReplica()) {
+      replication_manager_->GetAsReplica()->NotifyPrimaryTransactionApplied(txn_id);
+    }
+  }
 
   return records_processed;
 }

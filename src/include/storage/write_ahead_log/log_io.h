@@ -20,9 +20,7 @@
 #include "transaction/transaction_defs.h"
 
 namespace noisepage::replication {
-class ReplicationManager;
-class PrimaryReplicationManager;
-class ReplicaReplicationManager;
+class RecordsBatchMsg;
 }  // namespace noisepage::replication
 
 namespace noisepage::storage {
@@ -158,9 +156,7 @@ class BufferedLogWriter {
   }
 
  private:
-  friend class replication::ReplicationManager;
-  friend class replication::PrimaryReplicationManager;
-  friend class replication::ReplicaReplicationManager;
+  friend class replication::RecordsBatchMsg;
 
   const int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
@@ -236,10 +232,13 @@ class BufferedLogReader {
   void RefillBuffer();
 };
 
-/**
- * Callback function and arguments to be called when record is persisted
- */
-using CommitCallback = std::pair<transaction::callback_fn, void *>;
+/** A commit callback is of the form fn_(arg_), and is invoked when the corresponding commit record is persisted. */
+struct CommitCallback {
+  transaction::callback_fn fn_;              ///< The commit callback to invoke.
+  void *arg_;                                ///< The argument to invoke the commit callback with.
+  transaction::timestamp_t txn_start_time_;  ///< (Metadata) The transaction ID that generated this commit callback.
+  bool is_from_read_only_;                   ///< True if the commit callback was from a read only commit record.
+};
 
 /**
  * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are

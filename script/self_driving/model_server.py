@@ -19,28 +19,29 @@ TODO(Ricky):
 """
 
 from __future__ import annotations
-import enum
-import sys
+
 import atexit
-from abc import ABC, abstractmethod
-from enum import Enum, auto, IntEnum
-from typing import Dict, Optional, Tuple, List, Any
+import datetime
+import enum
 import json
 import logging
 import os
-import pprint
 import pickle
+import pprint
+import sys
+from abc import ABC, abstractmethod
+from enum import Enum, IntEnum, auto
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import zmq
-
-from modeling.ou_model_trainer import OUModelTrainer
-from modeling.interference_model_trainer import InterferenceModelTrainer
-from modeling.util import logging_util
-from modeling.type import OpUnit
-from modeling.info import data_info
 from forecasting.forecaster import Forecaster, parse_model_config
+from modeling.info import data_info
+from modeling.interference_model_trainer import InterferenceModelTrainer
+from modeling.ou_model_trainer import OUModelTrainer
+from modeling.type import OpUnit
+from modeling.util import logging_util
 
 logging_util.init_logging('info')
 
@@ -51,6 +52,16 @@ class ModelType(enum.IntEnum):
     FORECAST = 0,
     OPERATING_UNIT = 1
     INTERFERENCE = 2
+
+
+class MessengerCallback(IntEnum):
+    """
+    Messenger callback IDs.
+    Keep this in sync with Messenger::BuiltinCallback, especially ACK.
+    """
+    NOOP = 0
+    ECHO = 1
+    ACK = 2
 
 
 class Callback(IntEnum):
@@ -92,11 +103,11 @@ class Command(Enum):
 class Message:
     """
     Message struct for communication with the ModelServer.
-    The message format has to be ketp consistent with the C++ Messenger.
+    The message format has to be kept consistent with the C++ Messenger.
     A valid message is :
-        "send_id-recv_id-payload"
+        "msg_id-send_id-recv_id-payload"
 
-    Refer to Messenger's documention for the message format
+    Refer to Messenger's documentation for the message format.
     """
 
     def __init__(self, cmd: Optional[Command] = None,
@@ -540,6 +551,9 @@ class ModelServer:
     ModelServer(MS) class that runs in a loop to handle commands from the ModelServerManager from C++
     """
 
+    POLL_TIMEOUT = 250  # milliseconds
+    RETRY_TIMEOUT = 10  # seconds
+
     def __init__(self, end_point: str):
         """
         Initialize the ModelServer by connecting to the ZMQ IPC endpoint
@@ -560,17 +574,26 @@ class ModelServer:
         # Register the exit callback
         atexit.register(self.cleanup_zmq)
 
-        # Gobal model map cache
+        # Global model map cache
         self.cache = dict()
 
+        # Used to automatically resend messages until the messages are ack'd.
+        self.next_msg_id = 0
+        self.pending_msgs = {}
+
         # Notify the ModelServerManager that I am connected
-        self._send_msg(0, 0, ModelServer._make_response(
+        self._send_msg(self._next_msg_id(), 0, 0, ModelServer._make_response(
             Callback.CONNECTED, "", True, ""))
 
         # Model trainers/inferers
         self.model_managers = {ModelType.FORECAST: ForecastModel(),
                                ModelType.OPERATING_UNIT: OUModel(),
                                ModelType.INTERFERENCE: InterferenceModel()}
+
+    def _next_msg_id(self):
+        msg_id = self.next_msg_id
+        self.next_msg_id += 1
+        return msg_id
 
     def cleanup_zmq(self):
         """
@@ -580,16 +603,19 @@ class ModelServer:
         self.socket.close()
         self.context.destroy()
 
-    def _send_msg(self, send_id: int, recv_id: int, data: Dict) -> None:
+    def _send_msg(self, msg_id: int, send_id: int, recv_id: int, data: Dict) -> None:
         """
         Send a message to the socket.
-        :param send_id: id on this end, 0 for now
+        :param msg_id: id of this message
+        :param send_id: callback id on this end, 0 for now
         :param recv_id: callback id to invoke on the other end
         :param data: payload of the message in JSON
         :return:
         """
         json_result = json.dumps(data)
-        msg = f"{send_id}-{recv_id}-{json_result}"
+        msg = f"{msg_id}-{send_id}-{recv_id}-{json_result}"
+        if msg_id not in self.pending_msgs:
+            self.pending_msgs[msg_id] = (send_id, recv_id, data), datetime.datetime.now()
         self.socket.send_multipart([''.encode('utf-8'), msg.encode('utf-8')])
 
     @staticmethod
@@ -610,21 +636,23 @@ class ModelServer:
         }
 
     @staticmethod
-    def _parse_msg(payload: str) -> Tuple[int, int, Optional[Message]]:
+    def _parse_msg(payload: str) -> Tuple[int, int, int, Optional[Message]]:
+        print(payload)
         logging.debug("PY RECV: " + payload)
-        tokens = payload.split('-', 2)
+        tokens = payload.split('-', 3)
 
         # Invalid message format
         try:
             msg_id = int(tokens[0])
-            recv_id = int(tokens[1])
+            send_cb_id = int(tokens[1])
+            recv_cb_id = int(tokens[2])
         except ValueError as e:
             logging.error(
                 f"Invalid message payload format: {payload}, ids not int.")
-            return -1, -1, None
+            return -1, -1, -1, None
 
-        msg = Message.from_json(tokens[2])
-        return msg_id, recv_id, msg
+        msg = Message() if tokens[3] == "" else Message.from_json(tokens[3])
+        return msg_id, send_cb_id, recv_cb_id, msg
 
     def _infer(self, data: Dict) -> Tuple[List, bool, str]:
         """
@@ -643,7 +671,7 @@ class ModelServer:
         """
         Receive from the ZMQ socket. This is a blocking call.
 
-        :return: Message paylod
+        :return: Message payload
         """
         identity = self.socket.recv()
         _delim = self.socket.recv()
@@ -705,6 +733,16 @@ class ModelServer:
 
         while (1):
             try:
+                data_available = False
+                while not data_available:
+                    now = datetime.datetime.now()
+                    # Try sending any pending messages that haven't been acknowledged yet.
+                    for msg_id in self.pending_msgs:
+                        (send_id, recv_id, data), last_sent = self.pending_msgs[msg_id]
+                        if (last_sent - now).seconds > ModelServer.RETRY_TIMEOUT:
+                            self._send_msg(msg_id, send_id, recv_id, data)
+                    # Poll for up to 250 milliseconds to see if there are any incoming events.
+                    data_available = 0 != self.socket.poll(ModelServer.POLL_TIMEOUT)
                 payload = self._recv()
             except UnicodeError as e:
                 logging.warning(f"Failed to decode : {e.reason}")
@@ -718,7 +756,12 @@ class ModelServer:
                     self._closing = True
                     continue
 
-            send_id, recv_id, msg = self._parse_msg(payload)
+            msg_id, send_id, recv_id, msg = self._parse_msg(payload)
+
+            # If this is an acknowledgment, clear the corresponding pending message.
+            if recv_id == MessengerCallback.ACK:
+                self.pending_msgs.pop(msg_id, None)
+                continue
             if msg is None:
                 continue
             else:
@@ -729,7 +772,7 @@ class ModelServer:
 
                 # Currently not expecting to invoke any callback on ModelServer
                 # side, so second parameter 0
-                self._send_msg(0, send_id, result)
+                self._send_msg(self._next_msg_id(), 0, send_id, result)
 
 
 if __name__ == "__main__":
