@@ -474,11 +474,17 @@ void Messenger::SendMessage(const router_id_t router_id, const std::string &recv
 
 callback_id_t Messenger::GetNextSendCallbackId() {
   callback_id_t send_cb_id = next_callback_id_++;
+
   // Check for wraparound.
-  if (0 == next_callback_id_.load().UnderlyingValue()) {
-    next_callback_id_.store(callback_id_t{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1});
-    MESSENGER_LOG_INFO("[PID={}] Messenger: Message ID wrapped around!");
+  {
+    callback_id_t zero{0};
+    bool wraparound = next_callback_id_.compare_exchange_strong(
+        zero, callback_id_t{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1});
+    if (wraparound) {
+      MESSENGER_LOG_INFO("[PID={}] Messenger: Message ID wrapped around!");
+    }
   }
+
   return send_cb_id;
 }
 
