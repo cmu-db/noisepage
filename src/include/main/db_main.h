@@ -1023,7 +1023,7 @@ class DBMain {
         default:
           break;
       }
-      execution_mode_ = execution::vm::ExecutionMode::Compiled;
+
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
       pipeline_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::pipeline_metrics_sample_rate);

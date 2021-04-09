@@ -371,6 +371,11 @@ pipeline {
 
                         sh script: '''
                         cd build
+                        PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug -a bytecode_handlers_path=bytecode_handlers_ir.bc -a execution_mode=1
+                        ''', label:'OLTPBench (TATP)'
+
+                        sh script: '''
+                        cd build
                         PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
                         ''', label: 'OLTPBench (No WAL)'
 

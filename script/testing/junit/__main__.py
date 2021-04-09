@@ -66,7 +66,7 @@ def run_tests_tracefiles(test_server):
 
 if __name__ == "__main__":
     args = parse_command_line_args()
-
+    print(args)
     # TODO(WAN): Using env vars is dumb and buggy when we control the entire stack.
     original_env = {}
     special_vars = ["NOISEPAGE_QUERY_MODE", "NOISEPAGE_PREPARE_THRESHOLD"]

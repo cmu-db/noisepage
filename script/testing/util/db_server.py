@@ -44,7 +44,7 @@ class NoisePageServer:
             The output file that the DB should output its logs to.
         """
         default_server_args = {
-            'wal_file_path': DEFAULT_DB_WAL_FILE
+            'wal_file_path': DEFAULT_DB_WAL_FILE,
         }
         self.db_host = host
         self.db_port = port
@@ -75,7 +75,9 @@ class NoisePageServer:
         """
         # Construct the server arguments string from the map of arguments
         server_args_str = construct_server_args_string(self.server_args, self.binary_dir)
-
+        LOG.info(f'args: {self.server_args}')
+        LOG.info(f'server arguments above')
+        LOG.info(f'args: {server_args_str}')
         # Construct the complete command to launch the DBMS server
         db_run_command = f"{os.path.join(self.binary_dir, DEFAULT_DB_BIN)} {server_args_str}"
 

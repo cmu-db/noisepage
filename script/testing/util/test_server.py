@@ -53,7 +53,10 @@ class TestServer:
         db_port = args.get("db_port", constants.DEFAULT_DB_PORT)
         build_type = args.get("build_type", "")
         server_args = args.get("server_args", {})
+        append_args = args.get("server_arg", {})
+        server_args.update(append_args)
         db_output_file = args.get("db_output_file", constants.DEFAULT_DB_OUTPUT_FILE)
+        LOG.info(f'test server args: {args}')
         self.db_instance = NoisePageServer(db_host, db_port, build_type, server_args, db_output_file)
 
     def run_pre_suite(self):
