@@ -1503,4 +1503,46 @@ TEST_F(BPlusTreeTests, MultiThreadedDeleteTest) {
   delete tree;
 }
 
+TEST_F(BPlusTreeTests, IteratorTest) {
+  const auto key_num = 130;
+  auto predicate = [](const int64_t slot) -> bool { return false; };
+  auto *const tree = new BPlusTree<int64_t, int64_t>;
+
+  std::vector<int64_t> keys;
+  keys.reserve(key_num);
+
+  for (int64_t i = 0; i < key_num; i++) {
+    keys.emplace_back(i);
+  }
+
+  for (int i = 0; i < key_num; i++) {
+    BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+    p1.first = keys[i];
+    p1.second = keys[i];
+    tree->Insert(p1, predicate);
+  }
+
+  // Forward Iteration
+  int i = 0;
+  auto it = tree->Begin();
+  for (; !(it == tree->End()); ++it, ++i) {
+    EXPECT_EQ(it.first, i);
+    EXPECT_EQ(it.second, i);
+  }
+  it.Done();
+  EXPECT_EQ(i, key_num);
+
+  // Reverse Iteration
+  i = key_num - 1;
+  auto rit = tree->RBegin(key_num - 1);
+  for (; !(rit == tree->REnd()); ++rit, --i) {
+    EXPECT_EQ(rit.first, i);
+    EXPECT_EQ(rit.second, i);
+  }
+  rit.Done();
+  EXPECT_EQ(i, -1);
+
+  delete tree;
+}
+
 }  // namespace noisepage::storage::index
