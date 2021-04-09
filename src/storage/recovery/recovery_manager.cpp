@@ -48,6 +48,16 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
+
+    const bool logging_metrics_enabled =
+        common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
+
     if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
       auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
       auto event = rlp->WaitUntilEvent();
@@ -58,20 +68,22 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 
       if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
         auto oat = rlp->PopOAT();
-        recovered_txns_ += ProcessDeferredTransactions(oat);
+        auto [recovered_txns, log_records_processed] = ProcessDeferredTransactions(oat);
+        recovered_txns_ += recovered_txns;
+
+        if (logging_metrics_enabled && log_records_processed > 0) {
+          // Stop the resource tracker for this operating unit
+          common::thread_context.resource_tracker_.Stop();
+          auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+          common::thread_context.metrics_store_->RecordRecoveryData(recovered_txns, log_records_processed,
+                                                                    resource_metrics);
+          recovered_txns = log_records_processed = 0;
+        }
+
         continue;
       }
       NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
                        "What other replication events have been added?");
-    }
-
-    const bool logging_metrics_enabled =
-        common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
-
-    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
-      // start the operating unit resource tracker
-      common::thread_context.resource_tracker_.Start();
     }
 
     auto pair = log_provider->GetNextRecord();

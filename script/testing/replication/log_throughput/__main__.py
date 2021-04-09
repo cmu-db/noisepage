@@ -6,7 +6,7 @@ from .log_throughput import primary_log_throughput
 def main():
     aparser = argparse.ArgumentParser(description="Benchmark for log record throughput")
     aparser.add_argument("--build-type",
-                         default="debug",
+                         default="release",
                          choices=["debug", "release", "relwithdebinfo"],
                          help="Build type (default: %(default)s)")
     aparser.add_argument("--replication-enabled",
