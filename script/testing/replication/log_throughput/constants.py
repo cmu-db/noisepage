@@ -3,6 +3,9 @@ SERVER_ARGS_KEY = "server_args"
 PORT_KEY = "port"
 MESSENGER_ENABLED_KEY = "messenger_enable"
 REPLICATION_ENABLED_KEY = "replication_enable"
+METRICS_KEY = "metrics"
+USE_METRICS_THREAD = "use_metrics_thread"
+LOGGING_METRICS_ENABLED_KEY = "logging_metrics_enable"
 
 REPLICATION_HOSTS_PATH = "../../script/testing/replication/log_throughput/replication.config"
 
@@ -18,9 +21,9 @@ DEFAULT_PRIMARY_SERVER_ARGS = {
         "replication_hosts_path": REPLICATION_HOSTS_PATH,
         "wal_enable": True,
         "wal_file_path": "wal-primary.log",
-        "metrics": True,
-        "use_metrics_thread": True,
-        "logging_metrics_enable": True,
+        METRICS_KEY: True,
+        USE_METRICS_THREAD: True,
+        LOGGING_METRICS_ENABLED_KEY: True,
         "connection_thread_count": 32,
         "record_buffer_segment_size": 10000000
     }
@@ -38,9 +41,9 @@ DEFAULT_REPLICA_SERVER_ARGS = {
         "replication_hosts_path": REPLICATION_HOSTS_PATH,
         "wal_enable": True,
         "wal_file_path": "wal-replica.log",
-        "metrics": False,
-        "use_metrics_thread": False,
-        "logging_metrics_enable": False,
+        METRICS_KEY: False,
+        USE_METRICS_THREAD: False,
+        LOGGING_METRICS_ENABLED_KEY: False,
         "connection_thread_count": 32,
         "record_buffer_segment_size": 10000000
     }
@@ -61,6 +64,7 @@ DEFAULT_OLTP_TEST_CASE = {
 LOG_SERIALIZER_CSV = "log_serializer_task.csv"
 DISK_LOG_CONSUMER_CSV = "disk_log_consumer_task.csv"
 RECOVERY_MANAGER_CSV = "recovery_manager.csv"
+METRICS_FILES = {LOG_SERIALIZER_CSV, DISK_LOG_CONSUMER_CSV, RECOVERY_MANAGER_CSV}
 
 RESULTS_DIR = "script/testing/replication/log_throughput/results"
 

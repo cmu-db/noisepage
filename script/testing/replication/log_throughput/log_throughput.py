@@ -1,14 +1,14 @@
 import os
 import time
+from typing import List
 
 import pandas as pd
 
 from .constants import *
 from .metrics_file_util import get_results_dir, delete_metrics_file, create_results_dir, \
-    move_metrics_file_to_results_dir
-from ...oltpbench.test_case_oltp import TestCaseOLTPBench
-from ...oltpbench.test_oltpbench import TestOLTPBench
-from ...util.db_server import NoisePageServer
+    move_metrics_file_to_results_dir, delete_metrics_files
+from .node_server import NodeServer, PrimaryNode, ReplicaNode
+from .test_type import TestType
 
 """
 This file helps generate load for the a primary NoisePage server. Then using the metrics collection framework will 
@@ -16,7 +16,8 @@ calculate the log throughput for the primary server.
 """
 
 
-def primary_log_throughput(build_type: str, replication_enabled: bool, oltp_benchmark: str, output_file: str):
+def primary_log_throughput(test_type: TestType, build_type: str, replication_enabled: bool, oltp_benchmark: str,
+                           output_file: str):
     """
     Measures the log throughput of the primary server.
 
@@ -24,71 +25,62 @@ def primary_log_throughput(build_type: str, replication_enabled: bool, oltp_benc
     with logging metrics turned on so that we can analyze metrics related to logging. Once OLTP is done loading data,
     we calculate the average log throughput from the logging metrics.
 
+    :param test_type Indicates whether to measure throughput on primary/replica. Valid values are {'primary', 'replica'}
     :param build_type The type of build for the server
     :param replication_enabled Whether or not replication is enabled
     :param oltp_benchmark Which OLTP benchmark to run
     :param output_file Where to save the metrics to
-
     """
+
     if output_file is None:
-        output_file = f"primary-log-throughput-{int(time.time())}.csv"
+        output_file = f"{test_type.value}-log-throughput-{int(time.time())}.csv"
 
-    primary_server_args = DEFAULT_PRIMARY_SERVER_ARGS
-    primary_server_args[BUILD_TYPE_KEY] = build_type
+    metrics_file = LOG_SERIALIZER_CSV if test_type.value == TestType.PRIMARY.value else RECOVERY_MANAGER_CSV
+    other_metrics_files = METRICS_FILES
+    other_metrics_files.remove(metrics_file)
 
-    replica = None
-    if replication_enabled:
-        replica = start_replica(build_type)
-        primary_server_args[SERVER_ARGS_KEY][MESSENGER_ENABLED_KEY] = True
-        primary_server_args[SERVER_ARGS_KEY][REPLICATION_ENABLED_KEY] = True
+    servers = get_servers(test_type, build_type, replication_enabled, oltp_benchmark)
 
-    # Start DB
-    oltp_server = TestOLTPBench(primary_server_args)
-    db_server = oltp_server.db_instance
-    db_server.run_db()
-
-    # Download and prepare OLTP Bench
-    oltp_server.run_pre_suite()
+    for server in servers:
+        server.setup()
 
     # We don't care about log records generated at startup
-    delete_metrics_file(LOG_SERIALIZER_CSV)
+    delete_metrics_file(metrics_file)
 
-    # Load DB
-    oltp_test_case = DEFAULT_OLTP_TEST_CASE
-    oltp_test_case[BENCHMARK_KEY] = oltp_benchmark
-    test_case = TestCaseOLTPBench(oltp_test_case)
-    test_case.run_pre_test()
+    for server in servers:
+        server.run()
 
-    # Clean up, disconnect the DB
-    db_server.stop_db()
-    db_server.delete_wal()
-
-    if replication_enabled:
-        replica.stop_db()
-        replica.delete_wal()
+    for server in servers:
+        server.teardown()
 
     create_results_dir()
 
-    delete_metrics_file(DISK_LOG_CONSUMER_CSV)
-    delete_metrics_file(RECOVERY_MANAGER_CSV)
-    move_metrics_file_to_results_dir(LOG_SERIALIZER_CSV, output_file)
+    delete_metrics_files(other_metrics_files)
+    move_metrics_file_to_results_dir(metrics_file, output_file)
 
     aggregate_log_throughput(output_file)
 
 
-def start_replica(build_type: str) -> NoisePageServer:
+def get_servers(test_type: TestType, build_type: str, replication_enabled: bool, oltp_benchmark: str) -> \
+        List[NodeServer]:
     """
-    Starts a replica server and returns instance
+    Creates server instances for the log throughput test
 
+    :param test_type Indicates whether to measure throughput on primary/replica. Valid values are {'primary', 'replica'}
     :param build_type The type of build for the server
+    :param replication_enabled Whether or not replication is enabled
+    :param oltp_benchmark Which OLTP benchmark to run
+
+    :return list of server instances
     """
-    replica_server_args = DEFAULT_REPLICA_SERVER_ARGS
-    replica_server_args[BUILD_TYPE_KEY] = build_type
-    replica = NoisePageServer(build_type=build_type,
-                              port=replica_server_args[SERVER_ARGS_KEY][PORT_KEY],
-                              server_args=replica_server_args[SERVER_ARGS_KEY])
-    replica.run_db()
-    return replica
+    servers = []
+    if test_type.value == TestType.PRIMARY.value:
+        servers.append(PrimaryNode(build_type, replication_enabled, oltp_benchmark))
+        if replication_enabled:
+            servers.append(ReplicaNode(test_type, build_type))
+    elif test_type.value == TestType.REPLICA.value:
+        servers.append(ReplicaNode(test_type, build_type))
+    return servers
 
 
 def aggregate_log_throughput(file_name: str):

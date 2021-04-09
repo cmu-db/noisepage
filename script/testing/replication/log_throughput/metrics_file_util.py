@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Set
 
 from .constants import RESULTS_DIR
 
@@ -15,6 +16,16 @@ def get_csv_file_path(file_name: str) -> str:
     :param file_name Name of metrics file
     """
     return os.path.join(os.getcwd(), file_name)
+
+
+def delete_metrics_files(file_names: Set[str]):
+    """
+    Deletes metrics files
+
+    :param file_names Name of all metrics files to delete
+    """
+    for file_name in file_names:
+        delete_metrics_file(file_name)
 
 
 def delete_metrics_file(file_name: str):
