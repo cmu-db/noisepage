@@ -15,17 +15,17 @@ class ProtocolInterpreterProvider;
 // The name is based on https://www.postgresql.org/docs/9.3/runtime-config-connection.html
 constexpr std::string_view UNIX_DOMAIN_SOCKET_FORMAT_STRING = "{0}/.s.PGSQL.{1}";
 
-/** TerrierServer is the entry point to the network layer. */
-class TerrierServer : public common::DedicatedThreadOwner {
+/** NoisePageServer is the entry point to the network layer. */
+class NoisePageServer : public common::DedicatedThreadOwner {
  public:
-  /** @brief Construct a new TerrierServer instance. */
-  TerrierServer(common::ManagedPointer<ProtocolInterpreterProvider> protocol_provider,
-                common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
-                uint16_t connection_thread_count, std::string socket_directory);
+  /** @brief Construct a new NoisePageServer instance. */
+  NoisePageServer(common::ManagedPointer<ProtocolInterpreterProvider> protocol_provider,
+                  common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
+                  common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
+                  uint16_t connection_thread_count, std::string socket_directory);
 
   /** @brief Destructor. */
-  ~TerrierServer() override = default;
+  ~NoisePageServer() override = default;
 
   /** @brief Spin up all of the server threads and start listening on the configured port. */
   void RunServer();

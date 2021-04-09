@@ -48,7 +48,7 @@ class NetworkTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
 
   storage::GarbageCollector *gc_;
-  std::unique_ptr<TerrierServer> server_;
+  std::unique_ptr<NoisePageServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = 15721;
@@ -85,7 +85,7 @@ class NetworkTests : public TerrierTest {
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
-      server_ = std::make_unique<TerrierServer>(
+      server_ = std::make_unique<NoisePageServer>(
           common::ManagedPointer<ProtocolInterpreterProvider>(&protocol_provider_),
           common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_,
           connection_thread_count_, socket_directory_);

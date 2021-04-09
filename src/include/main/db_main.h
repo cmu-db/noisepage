@@ -282,11 +282,11 @@ class DBMain {
   class NetworkLayer {
    public:
     /**
-     * @param thread_registry argument to the TerrierServer
+     * @param thread_registry argument to the NoisePageServer
      * @param traffic_cop argument to the ConnectionHandleFactor
-     * @param port argument to TerrierServer
-     * @param connection_thread_count argument to TerrierServer
-     * @param socket_directory argument to TerrierServer
+     * @param port argument to NoisePageServer
+     * @param connection_thread_count argument to NoisePageServer
+     * @param socket_directory argument to NoisePageServer
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,
@@ -295,7 +295,7 @@ class DBMain {
       command_factory_ = std::make_unique<network::PostgresCommandFactory>();
       provider_ =
           std::make_unique<network::PostgresProtocolInterpreter::Provider>(common::ManagedPointer(command_factory_));
-      server_ = std::make_unique<network::TerrierServer>(
+      server_ = std::make_unique<network::NoisePageServer>(
           common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_), thread_registry, port,
           connection_thread_count, socket_directory);
     }
@@ -303,14 +303,14 @@ class DBMain {
     /**
      * @return ManagedPointer to the component
      */
-    common::ManagedPointer<network::TerrierServer> GetServer() const { return common::ManagedPointer(server_); }
+    common::ManagedPointer<network::NoisePageServer> GetServer() const { return common::ManagedPointer(server_); }
 
    private:
     // Order matters here for destruction order
     std::unique_ptr<network::ConnectionHandleFactory> connection_handle_factory_;
     std::unique_ptr<network::PostgresCommandFactory> command_factory_;
     std::unique_ptr<network::ProtocolInterpreterProvider> provider_;
-    std::unique_ptr<network::TerrierServer> server_;
+    std::unique_ptr<network::NoisePageServer> server_;
   };
 
   /**

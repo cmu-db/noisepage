@@ -14,10 +14,11 @@
 
 namespace noisepage::network {
 
-TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreterProvider> protocol_provider,
-                             common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                             common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                             const uint16_t port, const uint16_t connection_thread_count, std::string socket_directory)
+NoisePageServer::NoisePageServer(common::ManagedPointer<ProtocolInterpreterProvider> protocol_provider,
+                                 common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
+                                 common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                                 const uint16_t port, const uint16_t connection_thread_count,
+                                 std::string socket_directory)
     : DedicatedThreadOwner(thread_registry),
       running_(false),
       port_(port),
@@ -35,8 +36,8 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreterProvider>
   signal(SIGPIPE, SIG_IGN);
 }
 
-template <TerrierServer::SocketType type>
-void TerrierServer::RegisterSocket() {
+template <NoisePageServer::SocketType type>
+void NoisePageServer::RegisterSocket() {
   static_assert(type == NETWORKED_SOCKET || type == UNIX_DOMAIN_SOCKET, "There should only be two socket types.");
 
   constexpr auto conn_backlog = common::Settings::CONNECTION_BACKLOG;
@@ -132,7 +133,7 @@ void TerrierServer::RegisterSocket() {
   NETWORK_LOG_INFO("Listening on {} socket with port {} [PID={}]", socket_description, port_, ::getpid());
 }
 
-void TerrierServer::RunServer() {
+void NoisePageServer::RunServer() {
   // Initialize thread support for libevent as libevent will be invoked from multiple ConnectionHandlerTask threads.
   evthread_use_pthreads();
 
@@ -154,7 +155,7 @@ void TerrierServer::RunServer() {
   }
 }
 
-void TerrierServer::StopServer() {
+void NoisePageServer::StopServer() {
   // Stop the dispatcher task and close the socket's file descriptor.
   const bool is_task_stopped UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
