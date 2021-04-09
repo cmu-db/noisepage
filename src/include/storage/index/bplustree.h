@@ -747,6 +747,96 @@ class BPlusTree : public BPlusTreeBase {
   std::atomic_uint64_t num_values_;
 
  public:
+
+  /**
+   * This function returns the pointer to the leaf node containing a particular key.
+   *
+   * NOTE: Upon return, shared latch will be held on the corresponding leaf node.
+   *
+   * @param key Key to be searched for.
+   * @return Pointer to LeafNode if tree is not empty, nullptr otherwise
+   */
+  BaseNode* FindLeafNode(KeyType key) {
+    root_latch_.LockShared();
+
+    if (root_ == nullptr) {
+      root_latch_.UnlockShared();
+      return nullptr;
+    }
+
+    BaseNode *current_node = root_;
+    BaseNode *parent = nullptr;
+
+    // Get the shared latch of next node, release the root_latch
+    current_node->GetNodeSharedLatch();
+    root_latch_.UnlockShared();
+
+    // Traversing Down to the right leaf node
+    while (current_node->GetType() != NodeType::LeafType) {
+      auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
+      // Note that Find Location returns the location of first element
+      // that compare greater than
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
+      // Thus we have to go in the left side of location which will be the
+      // pointer of the previous location.
+      parent = current_node;
+      if (index_pointer != node->Begin()) {
+        index_pointer -= 1;
+        current_node = index_pointer->second;
+      } else {
+        current_node = node->GetLowKeyPair().second;
+      }
+
+      // Get the shared latch for next node and release the parent
+      current_node->GetNodeSharedLatch();
+      parent->ReleaseNodeSharedLatch();
+    }
+
+    return current_node;
+  }
+
+  class BPlusTreeIterator {
+    ElasticNode<KeyValuePair> *current_;
+    size_t key_offset_;
+    size_t value_offset_;
+
+   public:
+    KeyType first;
+    ValueType second;
+
+    BPlusTreeIterator() {
+
+    }
+
+    BPlusTreeIterator(const BPlusTreeIterator &itr) {
+      current_ = itr.current_;
+      key_offset_ = itr.key_offset_;
+      value_offset_ = itr.value_offset_;
+      first = itr.first;
+      second = itr.second;
+    }
+
+    void operator++() {
+
+    }
+
+    void operator--() {
+
+    }
+
+    bool operator==(const BPlusTreeIterator &itr) {
+      return (current_ == itr.current_ && key_offset_ == itr.key_offset_ && value_offset_ == itr.value_offset_);
+    }
+  };
+
+  BPlusTreeIterator Begin() {
+
+  }
+
+  BPlusTreeIterator Begin(KeyType key) {
+
+  }
+
   /**
    * Get Root - Returns the current root
    */
@@ -806,39 +896,11 @@ class BPlusTree : public BPlusTreeBase {
    * Returns null if not found
    */
   void FindValueOfKey(KeyType key, std::vector<ValueType> *result) {
-    root_latch_.LockShared();
-
-    if (root_ == nullptr) {
-      root_latch_.UnlockShared();
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLeafNode(key);
+    if (current_node == nullptr) {
+      // Empty tree
       return;
-    }
-
-    BaseNode *current_node = root_;
-    BaseNode *parent = nullptr;
-
-    // Get the shared latch of next node, release the root_latch
-    current_node->GetNodeSharedLatch();
-    root_latch_.UnlockShared();
-
-    // Traversing Down to the right leaf node
-    while (current_node->GetType() != NodeType::LeafType) {
-      auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
-      // Note that Find Location returns the location of first element
-      // that compare greater than
-      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
-      // Thus we have to go in the left side of location which will be the
-      // pointer of the previous location.
-      parent = current_node;
-      if (index_pointer != node->Begin()) {
-        index_pointer -= 1;
-        current_node = index_pointer->second;
-      } else {
-        current_node = node->GetLowKeyPair().second;
-      }
-
-      // Get the shared latch for next node and release the parent
-      current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeSharedLatch();
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
