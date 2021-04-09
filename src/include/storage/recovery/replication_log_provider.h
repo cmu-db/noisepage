@@ -129,8 +129,6 @@ class ReplicationLogProvider final : public AbstractLogProvider {
     return top_batch_is_next;
   }
 
-  // bounded set of 100 elements
-
   /**
    * @return        If replication has ended, false.
    *                If there are more log records that can be immediately applied, true.
