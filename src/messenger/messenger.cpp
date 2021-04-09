@@ -603,6 +603,7 @@ void Messenger::ServerLoopRecvAndProcessMessages() {
 }
 
 bool Messenger::UpdateMessagesSeen(const std::string &replica, const message_id_t message_id) {
+  // See the algorithm description in docs/design_messenger.md.
   if (seen_messages_max_.find(replica) == seen_messages_max_.end()) {
     seen_messages_max_.emplace(replica, message_id);
     return true;
