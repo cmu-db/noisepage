@@ -31,8 +31,8 @@ ReplicationManager::~ReplicationManager() = default;
 
 msg_id_t ReplicationManager::GetNextMessageId() {
   msg_id_t next_msg_id = next_msg_id_++;
-  if (next_msg_id_.load() == INVALID_MSG_ID) {
-    next_msg_id_++;
+  if (next_msg_id == INVALID_MSG_ID) {
+    next_msg_id = next_msg_id_++;
   }
   return next_msg_id;
 }

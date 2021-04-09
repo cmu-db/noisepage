@@ -474,15 +474,22 @@ void Messenger::SendMessage(const router_id_t router_id, const std::string &recv
 
 callback_id_t Messenger::GetNextSendCallbackId() {
   callback_id_t send_cb_id = next_callback_id_++;
+
   // Check for wraparound.
-  if (0 == next_callback_id_.load().UnderlyingValue()) {
-    next_callback_id_.store(callback_id_t{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1});
-    MESSENGER_LOG_INFO("[PID={}] Messenger: Message ID wrapped around!");
+  {
+    callback_id_t zero{0};
+    bool wraparound = next_callback_id_.compare_exchange_strong(
+        zero, callback_id_t{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1});
+    if (wraparound) {
+      MESSENGER_LOG_INFO("[PID={}] Messenger: Message ID wrapped around!");
+    }
   }
+
   return send_cb_id;
 }
 
 void Messenger::ServerLoopAddRouters() {
+  // Note that the stale read of empty() is probably undefined behavior. If wonky behavior is observed, watch out here.
   if (!routers_to_be_added_.empty()) {
     std::lock_guard lock(routers_add_mutex_);
     for (auto &item : routers_to_be_added_) {
@@ -496,6 +503,7 @@ void Messenger::ServerLoopAddRouters() {
 }
 
 void Messenger::ServerLoopMakeConnections() {
+  // Note that the stale read of empty() is probably undefined behavior. If wonky behavior is observed, watch out here.
   if (!connections_to_be_added_.empty()) {
     std::lock_guard lock(connections_add_mutex_);
     for (auto &item : connections_to_be_added_) {
@@ -508,34 +516,37 @@ void Messenger::ServerLoopMakeConnections() {
 }
 
 void Messenger::ServerLoopSendMessages() {
-  std::time_t now = std::time(nullptr);
+  // Note that the stale read of empty() is probably undefined behavior. If wonky behavior is observed, watch out here.
+  if (!pending_messages_.empty()) {
+    std::time_t now = std::time(nullptr);
 
-  std::unique_lock lock(pending_messages_mutex_);
-  for (auto &item : pending_messages_) {
-    PendingMessage &msg = item.second;
-    const common::ManagedPointer<zmq::socket_t> socket = msg.zmq_socket_;
-    const std::string &destination = msg.destination_id_;
+    std::unique_lock lock(pending_messages_mutex_);
+    for (auto &item : pending_messages_) {
+      PendingMessage &msg = item.second;
+      const common::ManagedPointer<zmq::socket_t> socket = msg.zmq_socket_;
+      const std::string &destination = msg.destination_id_;
 
-    if (now - msg.last_send_time_ <= MESSENGER_RESEND_TIMER.count()) {
-      continue;
-    }
-    msg.last_send_time_ = now;
-
-    if (msg.is_router_socket_) {
-      zmq::message_t router_data(destination.data(), destination.size());
-      if (!socket->send(router_data, zmq::send_flags::sndmore).has_value()) {
-        throw MESSENGER_EXCEPTION("Could not send message!");
+      if (now - msg.last_send_time_ <= MESSENGER_RESEND_TIMER.count()) {
+        continue;
       }
-      ZmqUtil::SendMsgIdentity(socket, msg.msg_.routing_id_);
-    }
-    ZmqUtil::SendMsgPayload(socket, msg.msg_);
+      msg.last_send_time_ = now;
 
-    if (msg.is_router_socket_) {
-      MESSENGER_LOG_TRACE(fmt::format("[PID={}] Messenger ({}) SENT-TO {}: {} ", ::getpid(), msg.msg_.routing_id_,
-                                      destination, msg.msg_.GetRawPayload()));
-    } else {
-      MESSENGER_LOG_TRACE(
-          fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), destination, msg.msg_.GetRawPayload()));
+      if (msg.is_router_socket_) {
+        zmq::message_t router_data(destination.data(), destination.size());
+        if (!socket->send(router_data, zmq::send_flags::sndmore).has_value()) {
+          throw MESSENGER_EXCEPTION("Could not send message!");
+        }
+        ZmqUtil::SendMsgIdentity(socket, msg.msg_.routing_id_);
+      }
+      ZmqUtil::SendMsgPayload(socket, msg.msg_);
+
+      if (msg.is_router_socket_) {
+        MESSENGER_LOG_TRACE(fmt::format("[PID={}] Messenger ({}) SENT-TO {}: {} ", ::getpid(), msg.msg_.routing_id_,
+                                        destination, msg.msg_.GetRawPayload()));
+      } else {
+        MESSENGER_LOG_TRACE(
+            fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), destination, msg.msg_.GetRawPayload()));
+      }
     }
   }
 }
@@ -592,6 +603,7 @@ void Messenger::ServerLoopRecvAndProcessMessages() {
 }
 
 bool Messenger::UpdateMessagesSeen(const std::string &replica, const message_id_t message_id) {
+  // See the algorithm description in docs/design_messenger.md.
   if (seen_messages_max_.find(replica) == seen_messages_max_.end()) {
     seen_messages_max_.emplace(replica, message_id);
     return true;
@@ -611,12 +623,11 @@ bool Messenger::UpdateMessagesSeen(const std::string &replica, const message_id_
     }
     max_seen = message_id;
     first_time = true;
-  } else {
-    if (complement.find(message_id) != complement.end()) {
-      complement.erase(message_id);
-      first_time = true;
-    }
+  } else if (complement.find(message_id) != complement.end()) {
+    complement.erase(message_id);
+    first_time = true;
   }
+
   return first_time;
 }
 

@@ -58,7 +58,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
       common::thread_context.resource_tracker_.Start();
     }
 
-    if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
+    if (replication_manager_ != DISABLED && replication_manager_->IsReplica()  &&
+                                            log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
       auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
       auto event = rlp->WaitUntilEvent();
 
@@ -152,9 +153,6 @@ uint32_t RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::ti
   auto records_processed = 0;
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
-  if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
-    txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
-  }
 
   // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
   for (uint32_t idx = 0; idx < buffered_changes_map_[txn_id].size(); idx++) {
@@ -185,6 +183,9 @@ uint32_t RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::ti
   last_applied_txn_id_ = std::max(last_applied_txn_id_, txn_id);
   if (replication_manager_ != DISABLED) {
     // Replicas have to send back their list of deferred transactions that were processed, periodically.
+    // TODO(WAN): Per Joe's comment, it may be worth sending back transaction IDs to the primary in batches.
+    //            This will need to trade-off between the immediacy of responses (latency for sync replication)
+    //            and cost of serializing/sending messages.
     if (replication_manager_->IsReplica()) {
       replication_manager_->GetAsReplica()->NotifyPrimaryTransactionApplied(txn_id);
     }

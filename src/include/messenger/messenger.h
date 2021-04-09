@@ -322,6 +322,15 @@ class Messenger : public common::DedicatedThreadTask {
    */
   void ProcessMessage(const ZmqMessage &msg);
 
+  /**
+   * Track the messages that have been seen so far by a given replica, additionally returning whether a message is
+   * being seen for the first time. Note that this is necessary to simulate idempotence in the Messenger, which tries
+   * to periodically resend messages that have not been acknowledged as part of bolting guaranteed delivery onto ZeroMQ.
+   *
+   * @param replica         The replica sending the message.
+   * @param message_id      The ID of the message.
+   * @return                True if the message is being seen for the first time. False if seen before.
+   */
   bool UpdateMessagesSeen(const std::string &replica, message_id_t message_id);
 
   /** The port that is used for all default endpoints. */
@@ -356,10 +365,16 @@ class Messenger : public common::DedicatedThreadTask {
   std::atomic<message_id_t> next_message_id_{0};
   /** The source callback ID that gets automatically prefixed to messages. */
   std::atomic<callback_id_t> next_callback_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
-  /** The ID of the next listening router to be made from ListenForConnection(). */
+  /**
+   * The ID of the next listening router to be made from ListenForConnection().
+   * Note that this is always accessed while holding routers_add_mutex_.
+   */
   std::atomic<router_id_t> next_router_id_{0};
-  /** The ID of the next outgoing connection to be made from MakeConnection(). */
-  std::atomic<connection_id_t> next_connection_id_{0};
+  /**
+   * The ID of the next outgoing connection to be made from MakeConnection().
+   * Note that this is always accessed while holding connections_add_mutex_.
+   */
+  connection_id_t next_connection_id_{0};
 };
 
 /**

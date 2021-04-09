@@ -514,13 +514,20 @@ class DBMain {
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
       }
 
-      // If replication is enabled, perform synchronous replication by default.
-      if (use_replication_ && replication_manager->IsPrimary()) {
-        txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
-            transaction::ReplicationPolicy::SYNC);
+      // If replication is enabled, configure the replication policy for all transactions.
+      if (use_replication_) {
+        if (replication_manager->IsPrimary()) {
+          // On the primary, perform synchronous replication by default.
+          txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
+              transaction::ReplicationPolicy::SYNC);
+        } else {
+          // On a replica, do not replicate any buffers by default.
+          txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
+              transaction::ReplicationPolicy::DISABLE);
+        }
       }
       {
-        auto &default_txn_policy = txn_layer->GetTransactionManager()->GetDefaultTransactionPolicy();
+        UNUSED_ATTRIBUTE auto &default_txn_policy = txn_layer->GetTransactionManager()->GetDefaultTransactionPolicy();
         STORAGE_LOG_INFO(fmt::format("Default transaction policy: DURABILITY {} REPLICATION {}",
                                      transaction::DurabilityPolicyToString(default_txn_policy.durability_),
                                      transaction::ReplicationPolicyToString(default_txn_policy.replication_)));

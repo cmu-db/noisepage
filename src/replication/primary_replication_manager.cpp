@@ -51,6 +51,8 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
       bool was_empty = txn_callbacks_.empty();
       txn_callbacks_.emplace(commit_callbacks);
       if (was_empty) {
+        // TODO(WAN): The log serializer task is then sometimes processing transaction callbacks, where normally
+        //            this would be done by the Messenger's dedicated thread as part of the server-loop callback.
         ProcessTxnCallbacks();
       }
     }
@@ -98,7 +100,7 @@ void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t old
 
 record_batch_id_t PrimaryReplicationManager::GetNextBatchId() {
   record_batch_id_t next_batch_id = next_batch_id_++;
-  if (next_batch_id_.load() == INVALID_RECORD_BATCH_ID) {
+  if (next_batch_id_ == INVALID_RECORD_BATCH_ID) {
     next_batch_id_++;
   }
   last_sent_batch_id_ = next_batch_id;
