@@ -118,9 +118,6 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
-  if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
-    txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
-  }
 
   // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
   for (uint32_t idx = 0; idx < buffered_changes_map_[txn_id].size(); idx++) {
