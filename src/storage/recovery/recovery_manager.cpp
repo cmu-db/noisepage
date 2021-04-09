@@ -148,6 +148,9 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
   last_applied_txn_id_ = std::max(last_applied_txn_id_, txn_id);
   if (replication_manager_ != DISABLED) {
     // Replicas have to send back their list of deferred transactions that were processed, periodically.
+    // TODO(WAN): Per Joe's comment, it may be worth sending back transaction IDs to the primary in batches.
+    //            This will need to trade-off between the immediacy of responses (latency for sync replication)
+    //            and cost of serializing/sending messages.
     if (replication_manager_->IsReplica()) {
       replication_manager_->GetAsReplica()->NotifyPrimaryTransactionApplied(txn_id);
     }
