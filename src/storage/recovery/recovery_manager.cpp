@@ -48,7 +48,8 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    if (replication_manager_ != DISABLED && replication_manager_->IsReplica()) {
+    if (replication_manager_ != DISABLED && replication_manager_->IsReplica() &&
+        log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
       auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
       auto event = rlp->WaitUntilEvent();
 
