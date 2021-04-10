@@ -145,8 +145,3 @@ class LogShipper:
         self.replica_dealer_socket.close()
         self.default_socket.close()
         self.context.destroy()
-
-
-if __name__ == '__main__':
-    shipper = LogShipper("resources/log-messages.txt", "primary", 9022, 15445, "replica1", 15446)
-    shipper.ship()
