@@ -11,24 +11,31 @@ from .node_server import NodeServer, PrimaryNode, ReplicaNode
 from .test_type import TestType
 
 """
-This file helps generate load for the a primary NoisePage server. Then using the metrics collection framework will 
-calculate the log throughput for the primary server. 
+This file helps to generate load for the a NoisePage server. Then using the metrics collection framework will calculate 
+the log throughput for that server. 
 """
 
 
-def primary_log_throughput(test_type: TestType, build_type: str, replication_enabled: bool, oltp_benchmark: str,
-                           output_file: str):
+def log_throughput(test_type: TestType, build_type: str, replication_enabled: bool, oltp_benchmark: str,
+                   log_messages_file: str, output_file: str):
     """
-    Measures the log throughput of the primary server.
+    Measures the log throughput of a NoisePage server. Can measure either a primary or replica node. For primary nodes
+    we can test with replication on or off.
 
-    We accomplish this by generates a write heavy workload using the load phase of an OLTP Benchmark. The server is run
-    with logging metrics turned on so that we can analyze metrics related to logging. Once OLTP is done loading data,
-    we calculate the average log throughput from the logging metrics.
+    For both primary and replica nodes we utilize logging metrics to keep track of how many log records were created or
+    applied. At the end of the test we aggregate these metrics to calculate average log throughput.
 
-    :param test_type Indicates whether to measure throughput on primary/replica. Valid values are {'primary', 'replica'}
+    For primary nodes we generate a write heavy workload using the load phase of an OLTP Benchmark.
+    For replica nodes we manually send log records to a replica node using the LogShipper. The LogScraper can help with
+    collecting log records for shipping.
+    # TODO automate the process of generating logs
+
+    :param test_type Indicates whether to measure throughput on primary or replica nodes
     :param build_type The type of build for the server
-    :param replication_enabled Whether or not replication is enabled
-    :param oltp_benchmark Which OLTP benchmark to run
+    :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
+    :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type
+           is REPLICA)
     :param output_file Where to save the metrics to
     """
 
@@ -39,7 +46,7 @@ def primary_log_throughput(test_type: TestType, build_type: str, replication_ena
     other_metrics_files = METRICS_FILES
     other_metrics_files.remove(metrics_file)
 
-    servers = get_servers(test_type, build_type, replication_enabled, oltp_benchmark)
+    servers = get_servers(test_type, build_type, replication_enabled, oltp_benchmark, log_messages_file)
 
     for server in servers:
         server.setup()
@@ -61,15 +68,17 @@ def primary_log_throughput(test_type: TestType, build_type: str, replication_ena
     aggregate_log_throughput(output_file)
 
 
-def get_servers(test_type: TestType, build_type: str, replication_enabled: bool, oltp_benchmark: str) -> \
-        List[NodeServer]:
+def get_servers(test_type: TestType, build_type: str, replication_enabled: bool, oltp_benchmark: str,
+                log_messages_file: str) -> List[NodeServer]:
     """
     Creates server instances for the log throughput test
 
-    :param test_type Indicates whether to measure throughput on primary/replica. Valid values are {'primary', 'replica'}
+    :param test_type Indicates whether to measure throughput on primary or replica nodes
     :param build_type The type of build for the server
-    :param replication_enabled Whether or not replication is enabled
-    :param oltp_benchmark Which OLTP benchmark to run
+    :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
+    :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type
+           is REPLICA)
 
     :return list of server instances
     """
@@ -77,9 +86,9 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
     if test_type.value == TestType.PRIMARY.value:
         servers.append(PrimaryNode(build_type, replication_enabled, oltp_benchmark))
         if replication_enabled:
-            servers.append(ReplicaNode(test_type, build_type))
+            servers.append(ReplicaNode(test_type, build_type, log_messages_file))
     elif test_type.value == TestType.REPLICA.value:
-        servers.append(ReplicaNode(test_type, build_type))
+        servers.append(ReplicaNode(test_type, build_type, log_messages_file))
     return servers
 
 
