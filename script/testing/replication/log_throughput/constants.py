@@ -74,7 +74,7 @@ DEFAULT_OLTP_TEST_CASE = {
 }
 
 # Log record messages
-# Scraped from the logs of the load phase of TPCC
+# Scraped from the first couple of logs of the load phase of TPCC
 DEFAULT_LOG_RECORD_MESSAGES_FILE = "script/testing/replication/log_throughput/resources/log-messages-small.txt"
 
 # Metrics files info
