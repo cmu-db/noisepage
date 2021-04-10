@@ -1001,7 +1001,7 @@ class DBMain {
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
       use_query_cache_ = settings_manager->GetBool(settings::Param::use_query_cache);
 
-      //TODO(Wuwen): It's redundant
+      // TODO(Wuwen): It's redundant
       execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
@@ -1010,15 +1010,12 @@ class DBMain {
       switch (static_cast<execution::vm::ExecutionMode>(settings_manager->GetInt(settings::Param::execution_mode))) {
         case execution::vm::ExecutionMode::Interpret:
           execution_mode_ = execution::vm::ExecutionMode::Interpret;
-          std::cout << 0;
           break;
         case execution::vm::ExecutionMode::Adaptive:
           execution_mode_ = execution::vm::ExecutionMode::Adaptive;
-          std::cout << 1;
           break;
         case execution::vm::ExecutionMode::Compiled:
           execution_mode_ = execution::vm::ExecutionMode::Compiled;
-          std::cout << 2;
           break;
         default:
           break;

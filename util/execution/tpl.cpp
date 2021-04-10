@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 
+#include "common/sanctioned_shared_pointer.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/exec/execution_context.h"
@@ -41,7 +42,6 @@
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
-#include "common/sanctioned_shared_pointer.h"
 
 // ---------------------------------------------------------
 // CLI options
@@ -115,7 +115,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Let's parse the source
   util::Region err_region{"tmp-error-region"};
-  common::SanctionedSharedPtr<util::Region>::Ptr context_region = std::make_shared<util::Region>("tmp-context-region");
+  common::SanctionedSharedPtr<util::Region>::Ptr context_region =
+      std::make_shared<util::Region>("tmp-context-region");  // NOLINT
 
   sema::ErrorReporter error_reporter{&err_region};
   ast::Context context(context_region.get(), &error_reporter);
@@ -185,7 +186,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     bytecode_module->Dump(std::cout);  // NOLINT
   }
 
-  common::SanctionedSharedPtr<vm::Module>::Ptr module = std::make_shared<vm::Module>(std::move(bytecode_module));
+  common::SanctionedSharedPtr<vm::Module>::Ptr module =
+      std::make_shared<vm::Module>(std::move(bytecode_module));  // NOLINT
 
   //
   // Interpret
