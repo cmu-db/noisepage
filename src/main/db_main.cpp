@@ -17,6 +17,10 @@ void DBMain::Run() {
   } catch (NetworkProcessException &e) {
     return;
   }
+  // NOLINTNEXTLINE (startup message)
+  std::cout << fmt::format("NoisePage - Self-Driving Database Management System [port={}] [PID={}]",
+                           network_layer_->GetServer()->GetPort(), ::getpid())
+            << std::endl;
   {
     std::unique_lock<std::mutex> lock(server->RunningMutex());
     server->RunningCV().wait(lock, [=] { return !(server->Running()); });
