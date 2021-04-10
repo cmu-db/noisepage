@@ -477,9 +477,12 @@ callback_id_t Messenger::GetNextSendCallbackId() {
 
   // Check for wraparound.
   {
-    callback_id_t zero{0};
-    bool wraparound = next_callback_id_.compare_exchange_strong(
-        zero, callback_id_t{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1});
+    callback_id_t builtin{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS)};
+    bool wraparound = false;
+    while (send_cb_id <= builtin) {
+      send_cb_id = next_callback_id_++;
+      wraparound = true;
+    }
     if (wraparound) {
       MESSENGER_LOG_INFO("[PID={}] Messenger: Message ID wrapped around!");
     }

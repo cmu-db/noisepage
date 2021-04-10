@@ -369,7 +369,7 @@ class Messenger : public common::DedicatedThreadTask {
    * The ID of the next listening router to be made from ListenForConnection().
    * Note that this is always accessed while holding routers_add_mutex_.
    */
-  std::atomic<router_id_t> next_router_id_{0};
+  router_id_t next_router_id_{0};
   /**
    * The ID of the next outgoing connection to be made from MakeConnection().
    * Note that this is always accessed while holding connections_add_mutex_.
