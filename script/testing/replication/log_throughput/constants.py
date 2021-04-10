@@ -75,7 +75,7 @@ DEFAULT_OLTP_TEST_CASE = {
 
 # Log record messages
 # Scraped from the logs of the load phase of TPCC
-DEFAULT_LOG_RECORD_MESSAGES_FILE = "script/testing/replication/log_throughput/resources/log-messages.txt"
+DEFAULT_LOG_RECORD_MESSAGES_FILE = "script/testing/replication/log_throughput/resources/log-messages-small.txt"
 
 # Metrics files info
 LOG_SERIALIZER_CSV = "log_serializer_task.csv"

@@ -104,6 +104,10 @@ def aggregate_log_throughput(file_name: str):
     df = df.iloc[1:]
     df = df.rename(columns=lambda col: col.strip())
 
+    if df.shape[0] <= 1:
+        print("Not enough data to calculate log throughput")
+        return
+
     # Microseconds
     end_time = df.iloc[-1][METRICS_START_TIME_COL] + df.iloc[-1][METRICS_ELAPSED_TIME_COL]
     start_time = df.iloc[0][METRICS_START_TIME_COL]
