@@ -40,6 +40,7 @@ cscope.out
 autoconf/aclocal.m4
 autoconf/autom4te.cache
 /compile_commands.json
+script/testing/replication/log_throughput/resources/log-messages.txt
 
 
 #==============================================================================#
