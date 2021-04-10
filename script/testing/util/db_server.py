@@ -75,6 +75,7 @@ class NoisePageServer:
         """
         # Construct the server arguments string from the map of arguments
         server_args_str = construct_server_args_string(self.server_args, self.binary_dir)
+
         # Construct the complete command to launch the DBMS server
         db_run_command = f"{os.path.join(self.binary_dir, DEFAULT_DB_BIN)} {server_args_str}"
 
