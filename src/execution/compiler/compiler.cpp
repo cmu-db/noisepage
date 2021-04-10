@@ -1,7 +1,5 @@
 #include "execution/compiler/compiler.h"
 
-#include <c++/v1/iostream>
-
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
 #include "execution/parsing/parser.h"

@@ -65,8 +65,6 @@ def generate_tests(args):
 
     # MUTATE args["server_args"].
     server_args = test_json.get("server_args", {})
-    print(type(args["server_args"]))
-    print("==========")
     if server_args:
         args["server_args"].update(server_args)
 
@@ -98,11 +96,11 @@ def generate_tests(args):
 
 if __name__ == "__main__":
     args = parse_command_line_args()
+
     exit_code = ErrorCode.ERROR
     try:
         tests = generate_tests(args)
         # Because generate_tests MUTATES args, has to come first.
-        print(args)
         oltpbench = TestOLTPBench(args)
         exit_code = oltpbench.run(tests)
     except:
