@@ -76,7 +76,7 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
           // Stop the resource tracker for this operating unit
           common::thread_context.resource_tracker_.Stop();
           auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-          common::thread_context.metrics_store_->RecordRecoveryData(recovered_txns, log_records_processed,
+          common::thread_context.metrics_store_->RecordRecoveryData(log_records_processed, recovered_txns,
                                                                     resource_metrics);
           recovered_txns = log_records_processed = 0;
         }
@@ -117,7 +117,7 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
           // Stop the resource tracker for this operating unit
           common::thread_context.resource_tracker_.Stop();
           auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-          common::thread_context.metrics_store_->RecordRecoveryData(recovered_txns, log_records_processed,
+          common::thread_context.metrics_store_->RecordRecoveryData(log_records_processed, recovered_txns,
                                                                     resource_metrics);
           recovered_txns = log_records_processed = 0;
         }
