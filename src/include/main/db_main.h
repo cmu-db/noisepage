@@ -322,7 +322,6 @@ class DBMain {
      */
     explicit ExecutionLayer(const std::string &bytecode_handlers_path);
     ~ExecutionLayer();
-
   };
 
   /** Create a Messenger. */
