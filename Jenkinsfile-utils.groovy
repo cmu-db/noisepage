@@ -294,27 +294,27 @@ void buildNoisePage(Map args = [:]) {
         shouldRecordTime: false,
         buildCommand: 'ninja',
         cmake: [
-            '-DCMAKE_BUILD_TYPE': 'Debug',
+            'CMAKE_BUILD_TYPE': 'Debug',
             // On by default: most tests will want these.
-            '-DNOISEPAGE_UNITY_BUILD': 'ON',
-            '-DNOISEPAGE_USE_LOGGING': 'ON',
-            '-DNOISEPAGE_TEST_PARALLELISM': '\$(nproc)',
+            'NOISEPAGE_UNITY_BUILD': 'ON',
+            'NOISEPAGE_USE_LOGGING': 'ON',
+            'NOISEPAGE_TEST_PARALLELISM': '\$(nproc)',
             // Off by default: tests should opt-in explicitly.
-            '-DNOISEPAGE_BUILD_BENCHMARKS': 'OFF',
-            '-DNOISEPAGE_BUILD_TESTS': 'OFF',
-            '-DNOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS': 'OFF',
-            '-DNOISEPAGE_GENERATE_COVERAGE': 'OFF',
-            '-DNOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE': 'OFF',
-            '-DNOISEPAGE_USE_ASAN': 'OFF',
-            '-DNOISEPAGE_USE_JEMALLOC': 'OFF',
-            '-DNOISEPAGE_USE_JUMBOTESTS': 'OFF',
+            'NOISEPAGE_BUILD_BENCHMARKS': 'OFF',
+            'NOISEPAGE_BUILD_TESTS': 'OFF',
+            'NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS': 'OFF',
+            'NOISEPAGE_GENERATE_COVERAGE': 'OFF',
+            'NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE': 'OFF',
+            'NOISEPAGE_USE_ASAN': 'OFF',
+            'NOISEPAGE_USE_JEMALLOC': 'OFF',
+            'NOISEPAGE_USE_JUMBOTESTS': 'OFF',
         ],
     ]
 
     config << args
 
     if (config.useCache) {
-        config.cmake['-DCMAKE_CXX_COMPILER_LAUNCHER'] = 'ccache'
+        config.cmake['CMAKE_CXX_COMPILER_LAUNCHER'] = 'ccache'
     }
 
     String cmakeCmd = 'cmake -GNinja'
