@@ -298,7 +298,7 @@ void buildNoisePage(Map args = [:]) {
             // On by default: most tests will want these.
             '-DNOISEPAGE_UNITY_BUILD': 'ON',
             '-DNOISEPAGE_USE_LOGGING': 'ON',
-            '-DNOISEPAGE_TEST_PARALLELISM': '\$(nproc)'
+            '-DNOISEPAGE_TEST_PARALLELISM': '\$(nproc)',
             // Off by default: tests should opt-in explicitly.
             '-DNOISEPAGE_BUILD_BENCHMARKS': 'OFF',
             '-DNOISEPAGE_BUILD_TESTS': 'OFF',
