@@ -275,7 +275,7 @@ void stageArchive() {
 
 /** Install the packages. installType = {build, all}. */
 void installPackages(String installType='all') {
-    sh script:"echo y | sudo ./script/installation/packages.sh $installType", label: 'Installing all packages.'
+    sh script:"echo y | sudo ./script/installation/packages.sh $installType", label: 'Installing packages.'
 }
 
 /** Create a build folder, set up CMake flags, and build NoisePage. */
