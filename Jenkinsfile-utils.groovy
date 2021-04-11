@@ -4,6 +4,16 @@ DISABLED = 'OFF'
 UBUNTU = 'ubuntu'
 DEBUG_BUILD = 'Debug'
 RELEASE_BUILD = 'Release'
+
+
+void checkGithubLabels() {
+   ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
+   if (0 != ready_for_build) {
+        currentBuild.result = 'ABORTED'
+        error('Not ready for CI. Please add ready-for-ci tag in Github when you are ready to build your PR.')
+   }
+}
+
 /**
  * noisePageBuild will create a build directory and compile and build the
  * noisepage binary in that directory. The options passed into the method

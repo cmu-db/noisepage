@@ -10,31 +10,15 @@ pipeline {
     }
     stages {
         stage('Ready For CI') {
-            agent {
-                docker {
-                    image 'noisepage:focal'
-                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
-                }
-            }
-            when {
-                not {
-                    branch 'master'
-                }
-            }
-            steps {
+            agent   { docker { image 'noisepage:focal' } }
+            when    { not { branch 'master' } }
+            steps   {
                 script {
-                   ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
-                   if(ready_for_build != 0) {
-                        currentBuild.result = 'ABORTED'
-                        error('Not ready for CI. Please add ready-for-ci tag in Github when you are ready to build your PR.')
-                   }
+                    utils = utils ?: load(utilsFileName)
+                    utils.checkGithubLabels()
                 }
             }
-            post {
-                cleanup {
-                    deleteDir()
-                }
-            }
+            post    { cleanup { deleteDir() } }
         }
         stage('Check') {
             parallel {
