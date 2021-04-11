@@ -7,7 +7,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "execution/vm/compilation_manager.h"
 #include "execution/vm/vm_defs.h"
 #include "network/network_defs.h"
 #include "traffic_cop/traffic_cop_defs.h"
@@ -252,7 +251,6 @@ class TrafficCop {
   common::ManagedPointer<replication::ReplicationManager> replication_manager_;
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
-  common::ManagedPointer<execution::vm::CompilationManager> compilation_manager_;
   uint64_t optimizer_timeout_;
   const bool use_query_cache_;
   const execution::vm::ExecutionMode execution_mode_;

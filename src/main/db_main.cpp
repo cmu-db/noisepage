@@ -41,8 +41,6 @@ DBMain::~DBMain() { ForceShutdown(); }
 
 DBMain::ExecutionLayer::ExecutionLayer(const std::string &bytecode_handlers_path) {
   execution::ExecutionUtil::InitTPL(bytecode_handlers_path);
-  // Construct an compilation manager that is owned by the execution layer
-  compilation_manager_ = std::make_unique<execution::vm::CompilationManager>();
 }
 
 DBMain::ExecutionLayer::~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }

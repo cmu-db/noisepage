@@ -76,6 +76,8 @@ class Module {
    * @param name The name of the function the caller wants.
    * @param exec_mode The mode of the function that the caller wants.
    * @param[out] func The function wrapper we use to wrap the TPL function.
+   * @param module a sanctionedSharedPtr of module
+   * @param context_region a sanctionedSharedPtr of context_region
    * @return True if the function was found and the output parameter was set.
    */
   template <typename Ret, typename... ArgTypes>

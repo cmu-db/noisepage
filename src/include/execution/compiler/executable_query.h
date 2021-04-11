@@ -10,7 +10,6 @@
 #include "common/sanctioned_shared_pointer.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/exec_defs.h"
-#include "execution/vm/compilation_manager.h"
 #include "execution/vm/vm_defs.h"
 
 namespace noisepage {
@@ -164,10 +163,6 @@ class ExecutableQuery {
   /** @return The SQL query string */
   common::ManagedPointer<const std::string> GetQueryText() { return query_text_; }
 
-  void SetCompilationManager(common::ManagedPointer<vm::CompilationManager> compilation_manager) {
-    compilation_manager_ = compilation_manager;
-  }
-
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
@@ -202,7 +197,6 @@ class ExecutableQuery {
   query_id_t query_id_;
   static std::atomic<query_id_t> query_identifier;
   common::ManagedPointer<const std::string> query_text_;
-  common::ManagedPointer<vm::CompilationManager> compilation_manager_;
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;

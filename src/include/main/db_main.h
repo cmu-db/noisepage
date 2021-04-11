@@ -9,7 +9,6 @@
 #include "common/action_context.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
-#include "execution/vm/compilation_manager.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "network/connection_handle_factory.h"
@@ -324,12 +323,6 @@ class DBMain {
     explicit ExecutionLayer(const std::string &bytecode_handlers_path);
     ~ExecutionLayer();
 
-    common::ManagedPointer<execution::vm::CompilationManager> GetCompilationManager() {
-      return common::ManagedPointer<execution::vm::CompilationManager>(compilation_manager_);
-    }
-
-   private:
-    std::unique_ptr<execution::vm::CompilationManager> compilation_manager_;
   };
 
   /** Create a Messenger. */
