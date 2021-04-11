@@ -80,6 +80,7 @@ class ExecutableQuery {
      * Run this fragment using the provided opaque query state object.
      * @param query_state The query state.
      * @param mode The execution mode to run the query with.
+     * @param context_region The sanctionedSharedPtr of context region
      */
     void Run(std::byte query_state[], vm::ExecutionMode mode,
              const common::SanctionedSharedPtr<util::Region>::Ptr &context_region) const;
