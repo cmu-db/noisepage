@@ -139,7 +139,9 @@ class ReplicaNode(NodeServer):
 
     def teardown(self):
         """
-        Stop the replica node and delete it's WAL
+        Shut down the log shipper if needed and stop the replica node and delete it's WAL
         """
+        if self.ship_logs:
+            self.log_shipper.cleanup_zmq()
         self.replica.stop_db()
         self.replica.delete_wal()

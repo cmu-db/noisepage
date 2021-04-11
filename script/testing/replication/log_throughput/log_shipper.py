@@ -1,4 +1,3 @@
-import atexit
 from threading import Thread
 from typing import List
 
@@ -36,8 +35,6 @@ class LogShipper:
         self.primary_router_socket = None
         self.recv_thread = Thread(target=self.recv_thread_action, args=(primary_replication_port,))
         self.recv_thread.start()
-
-        atexit.register(self.cleanup_zmq)
 
     def ship(self):
         """
