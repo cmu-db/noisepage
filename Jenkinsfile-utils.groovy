@@ -2,17 +2,111 @@
 
 // General structure of this file:
 //
+// SECTION: Utility functions.
+// Random helper functions.
+//
 // SECTION: Stage functions.
 // - stagePre()     : Function that should be invoked at the start of every stageFoo() function.
 // - stagePost()    : Function that should be invoked at the end of every stageFoo() function.
 // - stageFoo()     : A Jenkins stage.
 //
-// SECTION: Utility functions.
-// Random helper functions.
-//
 // You should probably know about Groovy's elvis operator ?:,
 // where a ?: b means
 //      if (a) { return a; } else { return b; }
+
+// SECTION: Utility functions.
+
+/** Install the packages. installType = {build, all}. */
+void installPackages(String installType='all') {
+    sh script:'echo y | sudo ./script/installation/packages.sh $installType', label: 'Installing all packages.'
+}
+
+/** Create a build folder, set up CMake flags, and build NoisePage. */
+void buildNoisePage(Map args = [:]) {
+    // The only settings that should be automagically set are settings which
+    // are known to be a "must-set".
+
+    // Unity builds mess with coverage.
+    if (args.cmake['-DNOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
+        args.cmake['-DNOISEPAGE_UNITY_BUILD'] = 'OFF'
+    }
+
+    // Disable most options by default. Callers should be explicit.
+    Map config = [
+        useCache: true,
+        shouldRecordTime: false,
+        buildCommand: 'ninja',
+        cmake: [
+            '-DCMAKE_BUILD_TYPE': 'Debug',
+            // On by default: most tests will want these.
+            '-DNOISEPAGE_UNITY_BUILD': 'ON',
+            '-DNOISEPAGE_USE_LOGGING': 'ON',
+            '-DNOISEPAGE_TEST_PARALLELISM': '\$(nproc)',
+            // Off by default: tests should opt-in explicitly.
+            '-DNOISEPAGE_BUILD_BENCHMARKS': 'OFF',
+            '-DNOISEPAGE_BUILD_TESTS': 'OFF',
+            '-DNOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS': 'OFF',
+            '-DNOISEPAGE_GENERATE_COVERAGE': 'OFF',
+            '-DNOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE': 'OFF',
+            '-DNOISEPAGE_USE_ASAN': 'OFF',
+            '-DNOISEPAGE_USE_JEMALLOC': 'OFF',
+            '-DNOISEPAGE_USE_JUMBOTESTS': 'OFF',
+        ],
+    ]
+
+    config << args
+
+    if (config.useCache) {
+        config.cmake['-DCMAKE_CXX_COMPILER_LAUNCHER'] = 'ccache'
+    }
+
+    String cmakeCmd = 'cmake -GNinja'
+    config.cmake = config.cmake.sort { -it.value } // Sort for pretty-printing order.
+    config.cmake.each { arg, value -> compileCmd += " -D$arg=$value" }
+    cmakeCmd += ' ..'
+
+    String buildCmd = config.buildCommand
+
+    buildScript = '''
+        mkdir -p build
+        cd build
+    '''
+    buildScript += "$cmakeCmd"
+    if (config.shouldRecordTime) {
+        buildScript += """
+        /usr/bin/time -o /tmp/noisepage-compiletime.txt -f %e sh -c \"$buildCmd\"
+        """
+    } else {
+        buildScript += "$buildCmd"
+    }
+
+    sh script:buildScript, label: 'Build NoisePage.'
+}
+
+/** Build the specified target. buildNoisePage() MUST have been called! */
+void buildNoisePageTarget(String target) {
+    sh script:"""
+    cd build
+    ninja $target
+    """
+}
+
+/** Collect and process coverage information from the build directory; upload coverage to Codecov. */
+void uploadCoverage() {
+    sh script :'''
+    cd build
+    lcov --directory . --capture --output-file coverage.info
+    lcov --remove coverage.info \'/usr/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/build/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/test/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info
+    lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info
+    lcov --list coverage.info
+    curl -s https://codecov.io/bash | bash -s -- -X gcov
+    ''', label: 'Process code coverage and upload to Codecov.'
+}
 
 // SECTION: Stage functions.
 
@@ -269,96 +363,6 @@ void stageModeling() {
 void stageArchive() {
     archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
     xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
-}
-
-// SECTION: Utility functions.
-
-/** Install the packages. installType = {build, all}. */
-void installPackages(String installType='all') {
-    sh script:'echo y | sudo ./script/installation/packages.sh $installType', label: 'Installing all packages.'
-}
-
-/** Create a build folder, set up CMake flags, and build NoisePage. */
-void buildNoisePage(Map args = [:]) {
-    // The only settings that should be automagically set are settings which
-    // are known to be a "must-set".
-
-//     // Unity builds mess with coverage.
-//     if (args.cmake['-DNOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
-//         args.cmake['-DNOISEPAGE_UNITY_BUILD'] = 'OFF'
-//     }
-
-    // Disable most options by default. Callers should be explicit.
-    Map config = [
-        useCache: true,
-        shouldRecordTime: false,
-        buildCommand: 'ninja',
-        cmake: [
-            '-DCMAKE_BUILD_TYPE': 'Debug',
-            // On by default: most tests will want these.
-            '-DNOISEPAGE_UNITY_BUILD': 'ON',
-            '-DNOISEPAGE_USE_LOGGING': 'ON',
-            '-DNOISEPAGE_TEST_PARALLELISM': '\$(nproc)',
-            // Off by default: tests should opt-in explicitly.
-            '-DNOISEPAGE_BUILD_BENCHMARKS': 'OFF',
-            '-DNOISEPAGE_BUILD_TESTS': 'OFF',
-            '-DNOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS': 'OFF',
-            '-DNOISEPAGE_GENERATE_COVERAGE': 'OFF',
-            '-DNOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE': 'OFF',
-            '-DNOISEPAGE_USE_ASAN': 'OFF',
-            '-DNOISEPAGE_USE_JEMALLOC': 'OFF',
-            '-DNOISEPAGE_USE_JUMBOTESTS': 'OFF',
-        ],
-    ]
-
-//     config << args
-
-    String cmakeCmd = 'cmake -GNinja'
-    config.cmake = config.cmake.sort { -it.value } // Sort for pretty-printing order.
-    config.cmake.each { arg, value -> compileCmd += " -D$arg=$value" }
-    cmakeCmd += ' ..'
-
-    String buildCmd = config.buildCommand
-
-    buildScript = '''
-        mkdir -p build
-        cd build
-    '''
-    buildScript += "$cmakeCmd"
-    if (config.shouldRecordTime) {
-        buildScript += """
-        /usr/bin/time -o /tmp/noisepage-compiletime.txt -f %e sh -c \"$buildCmd\"
-        """
-    } else {
-        buildScript += "$buildCmd"
-    }
-
-    sh script:buildScript, label: 'Build NoisePage.'
-}
-
-/** Build the specified target. buildNoisePage() MUST have been called! */
-void buildNoisePageTarget(String target) {
-    sh script:"""
-    cd build
-    ninja $target
-    """
-}
-
-/** Collect and process coverage information from the build directory; upload coverage to Codecov. */
-void uploadCoverage() {
-    sh script :'''
-    cd build
-    lcov --directory . --capture --output-file coverage.info
-    lcov --remove coverage.info \'/usr/*\' --output-file coverage.info
-    lcov --remove coverage.info \'*/build/*\' --output-file coverage.info
-    lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info
-    lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info
-    lcov --remove coverage.info \'*/test/*\' --output-file coverage.info
-    lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info
-    lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info
-    lcov --list coverage.info
-    curl -s https://codecov.io/bash | bash -s -- -X gcov
-    ''', label: 'Process code coverage and upload to Codecov.'
 }
 
 return this
