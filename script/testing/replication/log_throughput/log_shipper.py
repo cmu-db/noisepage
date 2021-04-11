@@ -34,7 +34,7 @@ class LogShipper:
         # Create thread to receive and ack messages so the replica doesn't get backed up
         self.recv_context = None
         self.primary_router_socket = None
-        self.recv_thread = Thread(target=self.recv_thread_action, args=(primary_identity, primary_replication_port))
+        self.recv_thread = Thread(target=self.recv_thread_action, args=(primary_replication_port,))
         self.recv_thread.start()
 
         atexit.register(self.cleanup_zmq)
@@ -48,7 +48,6 @@ class LogShipper:
             # Check and dispose of ACKs
             if self.has_pending_messages(self.replica_dealer_socket, 1):
                 self.recv_ack(self.replica_dealer_socket)
-        self.running = False
 
     def send_log_record(self, log_record_message: str):
         """
@@ -77,18 +76,17 @@ class LogShipper:
         """
         socket.send_multipart([message.encode('utf-8') for message in message_parts])
 
-    def recv_thread_action(self, primary_identity: str, primary_replication_port: int):
+    def recv_thread_action(self, primary_replication_port: int):
         """
         Set up context for receiving messages and then continuously receive messages until the log shipper is done.
         This is just so messages from the replica don't build up in the queue and the test can be more realistic
 
-        :param primary_identity Network identity of primary that we're imitating
         :param primary_replication_port Replication port of primary that we're imitating
         """
         self.recv_context = zmq.Context()
         # Primary replication socket that listens for messages from the replica
         self.primary_router_socket = self.context.socket(zmq.ROUTER)
-        self.primary_router_socket.set_string(zmq.IDENTITY, primary_identity)
+        self.primary_router_socket.set_string(zmq.IDENTITY, self.identity)
         self.primary_router_socket.bind(f"tcp://127.0.0.1:{primary_replication_port}")
         while self.running:
             if self.has_pending_messages(self.primary_router_socket, 100):
@@ -141,6 +139,7 @@ class LogShipper:
         """
         Close the socket and context when the script exits
         """
+        self.running = False
         self.recv_thread.join()
         self.replica_dealer_socket.close()
         self.default_socket.close()

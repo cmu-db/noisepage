@@ -52,9 +52,9 @@ def extract_msg(log: str, replica_name: str) -> str:
 
 def main():
     """
-    This file helps scrape logs produced by the Messenger component of NoisePage. It will go through the logs and extract
-    all the messages that were sent to the primary and save them in a separate file. This is useful for being able to resend
-    messages to replica nodes without having an actual primary node.
+    This file helps scrape logs produced by the Messenger component of NoisePage. It will go through the logs and
+    extract all the messages that were sent by the primary and save them in a separate file. This is useful for being
+    able to resend messages to replica nodes without having an actual primary node.
 
     To generate messenger logs just add the following line to Messenger::RunTask()
         messenger_logger->set_level(spdlog::level::trace);
