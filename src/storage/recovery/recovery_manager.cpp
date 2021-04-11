@@ -58,8 +58,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
       common::thread_context.resource_tracker_.Start();
     }
 
-    if (replication_manager_ != DISABLED && replication_manager_->IsReplica()  &&
-                                            log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
+    if (replication_manager_ != DISABLED && replication_manager_->IsReplica() &&
+        log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
       auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
       auto event = rlp->WaitUntilEvent();
 
@@ -80,7 +80,6 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
                                                                     resource_metrics);
           recovered_txns = log_records_processed = 0;
         }
-
         continue;
       }
       NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
