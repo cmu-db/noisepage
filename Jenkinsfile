@@ -44,7 +44,10 @@ pipeline {
                     steps       { script { utils.stageTest(true, cmake:
                         [NOISEPAGE_BUILD_TYPE:'Debug', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_ASAN:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']
                     ) } }
-                    post        { always { script { utils.stageArchive() } } cleanup { deleteDir() } }
+                    post        {
+                        always  { script { utils.stageArchive() } }
+                        cleanup { deleteDir() }
+                    }
                 }
 
                 stage('ubuntu-20.04/gcc-9.3 (Debug/Coverage/unittest)') {
@@ -53,7 +56,10 @@ pipeline {
                     steps       { script { utils.stageTest(false, cmake:
                         [NOISEPAGE_BUILD_TYPE:'Debug', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_GENERATE_COVERAGE:'ON']
                     ) } }
-                    post        { always { script { utils.stageArchive() } } cleanup { deleteDir() } }
+                    post        {
+                        always  { script { utils.stageArchive() } }
+                        cleanup { deleteDir() }
+                    }
                 }
 
                 stage('ubuntu-20.04/clang-8.0 (Debug/ASAN/jumbotests)') {
@@ -62,7 +68,10 @@ pipeline {
                     steps       { script { utils.stageTest(false, cmake:
                         [NOISEPAGE_BUILD_TYPE:'Debug', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_ASAN:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']
                     ) } }
-                    post        { always { script { utils.stageArchive() } } cleanup { deleteDir() } }
+                    post        {
+                        always  { script { utils.stageArchive() } }
+                        cleanup { deleteDir() }
+                    }
                 }
 
                 stage('ubuntu-20.04/gcc-9.3 (Release/jumbotests)') {
@@ -70,7 +79,10 @@ pipeline {
                     steps       { script { utils.stageTest(false, cmake:
                         [NOISEPAGE_BUILD_TYPE:'Release', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JEMALLOC:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']
                     ) } }
-                    post        { always { script { utils.stageArchive() } } cleanup { deleteDir() } }
+                    post        {
+                        always  { script { utils.stageArchive() } }
+                        cleanup { deleteDir() }
+                    }
                 }
 
                 stage('ubuntu-20.04/clang-8.0 (Release/jumbotests)') {
@@ -79,7 +91,10 @@ pipeline {
                     steps       { script { utils.stageTest(false, cmake:
                         [NOISEPAGE_BUILD_TYPE:"Release", NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JEMALLOC:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']
                     ) } }
-                    post        { always { script { utils.stageArchive() } } cleanup { deleteDir() } }
+                    post        {
+                        always  { script { utils.stageArchive() } }
+                        cleanup { deleteDir() }
+                    }
                 }
             }
         }
@@ -111,7 +126,10 @@ pipeline {
                     agent       { docker { image 'noisepage:focal' label 'dgb' args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     environment { CODECOV_TOKEN=credentials('codecov-token') }
                     steps       { script { utils.stageModeling() } }
-                    post        { always { script { utils.stageArchive() } } cleanup { deleteDir() } }
+                    post        {
+                        always  { script { utils.stageArchive() } }
+                        cleanup { deleteDir() }
+                    }
                 }
             }
         }
