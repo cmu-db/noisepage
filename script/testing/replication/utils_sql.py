@@ -50,7 +50,7 @@ def sql_get_last_record_id(node):
     last_record_id : int
         The last record ID of the node.
     """
-    result = sql_query(node, "SELECT replication_get_last_record_id();")
+    result = sql_query(node, "SELECT replication_get_last_txn_id();")
     # The result comes back as a list of tuples.
     assert len(result) == 1
     assert len(result[0]) == 1
