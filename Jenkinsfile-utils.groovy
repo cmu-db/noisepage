@@ -101,7 +101,7 @@ void stageTest(Boolean runPipelineMetrics, Map args = [:]) {
 void stageOltpbenchDebug() {
     stagePre()
     installPackages()
-    buildNoisePage([cmake:[buildCommand:'ninja noisepage', NOISEPAGE_BUILD_TYPE:'Debug',NOISEPAGE_USE_ASAN:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:[NOISEPAGE_BUILD_TYPE:'Debug',NOISEPAGE_USE_ASAN:'ON']])
 
     sh script: '''
     cd build
@@ -145,7 +145,7 @@ void stageOltpbenchDebug() {
 void stageOltpbenchRelease() {
     stagePre()
     installPackages()
-    buildNoisePage([cmake:[buildCommand:'ninja noisepage', NOISEPAGE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:[NOISEPAGE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
 
     sh script:'''
     cd build
@@ -183,7 +183,7 @@ void stageOltpbenchRelease() {
 void stageForecasting() {
     stagePre()
     installPackages()
-    buildNoisePage([cmake:[buildCommand:'ninja noisepage', NOISEPAGE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:[NOISEPAGE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
 
     // The forecaster_standalone script runs TPC-C with query trace enabled.
     // The forecaster_standalone script uses SET to enable query trace.
@@ -212,7 +212,7 @@ void stageModeling() {
     installPackages()
 
     // Build the noisepage DBMS and the execution_runners binary in release mode for efficient data generation.
-    buildNoisePage([cmake:[buildCommand:'ninja noisepage', NOISEPAGE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:[NOISEPAGE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
     buildNoisePageTarget("execution_runners")
 
     // The forecaster_standalone script runs TPC-C with query trace enabled.
@@ -245,7 +245,7 @@ void stageModeling() {
     ''', label: 'OU model training data generation'
 
     // Recompile the noisepage DBMS in Debug mode with code coverage.
-    buildNoisePage([cmake:[buildCommand:'ninja noisepage', NOISEPAGE_BUILD_TYPE:'Debug', NOISEPAGE_GENERATE_COVERAGE:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:[NOISEPAGE_BUILD_TYPE:'Debug', NOISEPAGE_GENERATE_COVERAGE:'ON']])
 
     // Run the self_driving_e2e_test.
     sh script: '''
