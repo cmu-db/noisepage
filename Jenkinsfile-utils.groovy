@@ -67,7 +67,7 @@ void buildNoisePage(Map args = [:]) {
 
     String buildCmd = config.buildCommand
 
-    buildScript = '''
+    String buildScript = '''
         mkdir -p build
         cd build
     '''
