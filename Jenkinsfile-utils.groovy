@@ -23,64 +23,7 @@ void installPackages(String installType='all') {
 
 /** Create a build folder, set up CMake flags, and build NoisePage. */
 void buildNoisePage(Map args = [:]) {
-    // The only settings that should be automagically set are settings which
-    // are known to be a "must-set".
 
-    // Unity builds mess with coverage.
-    if (args.cmake['-DNOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
-        args.cmake['-DNOISEPAGE_UNITY_BUILD'] = 'OFF'
-    }
-
-    // Disable most options by default. Callers should be explicit.
-    Map config = [
-        useCache: true,
-        shouldRecordTime: false,
-        buildCommand: 'ninja',
-        cmake: [
-            '-DCMAKE_BUILD_TYPE': 'Debug',
-            // On by default: most tests will want these.
-            '-DNOISEPAGE_UNITY_BUILD': 'ON',
-            '-DNOISEPAGE_USE_LOGGING': 'ON',
-            '-DNOISEPAGE_TEST_PARALLELISM': '\$(nproc)',
-            // Off by default: tests should opt-in explicitly.
-            '-DNOISEPAGE_BUILD_BENCHMARKS': 'OFF',
-            '-DNOISEPAGE_BUILD_TESTS': 'OFF',
-            '-DNOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS': 'OFF',
-            '-DNOISEPAGE_GENERATE_COVERAGE': 'OFF',
-            '-DNOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE': 'OFF',
-            '-DNOISEPAGE_USE_ASAN': 'OFF',
-            '-DNOISEPAGE_USE_JEMALLOC': 'OFF',
-            '-DNOISEPAGE_USE_JUMBOTESTS': 'OFF',
-        ],
-    ]
-
-    config << args
-
-    if (config.useCache) {
-        config.cmake['-DCMAKE_CXX_COMPILER_LAUNCHER'] = 'ccache'
-    }
-
-    String cmakeCmd = 'cmake -GNinja'
-    config.cmake = config.cmake.sort { -it.value } // Sort for pretty-printing order.
-    config.cmake.each { arg, value -> compileCmd += " -D$arg=$value" }
-    cmakeCmd += ' ..'
-
-    String buildCmd = config.buildCommand
-
-    String buildScript = '''
-        mkdir -p build
-        cd build
-    '''
-    buildScript += "$cmakeCmd"
-    if (config.shouldRecordTime) {
-        buildScript += """
-        /usr/bin/time -o /tmp/noisepage-compiletime.txt -f %e sh -c \"$buildCmd\"
-        """
-    } else {
-        buildScript += "$buildCmd"
-    }
-
-    sh script:buildScript, label: 'Build NoisePage.'
 }
 
 /** Build the specified target. buildNoisePage() MUST have been called! */
