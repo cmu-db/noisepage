@@ -284,8 +284,8 @@ void buildNoisePage(Map args = [:]) {
     // are known to be a "must-set".
 
     // Unity builds mess with coverage.
-    if (args.cmake['-DNOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
-        args.cmake['-DNOISEPAGE_UNITY_BUILD'] = 'OFF'
+    if (args.cmake['NOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
+        args.cmake['NOISEPAGE_UNITY_BUILD'] = 'OFF'
     }
 
     // Disable most options by default. Callers should be explicit.
