@@ -153,14 +153,16 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 # CMake options, specify with -DNOISEPAGE_{option}=On.
 #   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default ON.
 #   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL (but the Self-Driving test) target. Default ON.
-#   NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS  : Enable building self-driving end-to-end tests. Default OFF
+#   NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS  : Enable building self-driving end-to-end tests as part of the ALL target. Default OFF.
 #   NOISEPAGE_GENERATE_COVERAGE             : Enable C++ code coverage. Default OFF.
+#   NOISEPAGE_TEST_PARALLELISM              : The number of tests that should run in parallel. Default 1.
 #   NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE    : Enable verbose unittest failures. Default OFF. Can be very verbose.
 #   NOISEPAGE_UNITY_BUILD                   : Enable unity (aka jumbo) builds. Default OFF.
 #   NOISEPAGE_USE_ASAN                      : Enable ASAN, a fast memory error detector. Default OFF.
 #   NOISEPAGE_USE_JEMALLOC                  : Link with jemalloc instead of system malloc. Default OFF.
 #   NOISEPAGE_USE_JUMBOTESTS                : Enable jumbotests instead of unittests as part of ALL target. Default OFF.
 #   NOISEPAGE_USE_LOGGING                   : Enable logging. Default ON.
+
 #
 # CMake global variables. These are NOT CMake options, i.e., these variables are internal. Usually OS-specific hacks.
 #   BUILD_SUPPORT_DIR             : Helper scripts for building belongs here.
@@ -170,7 +172,6 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 #   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
 #   NOISEPAGE_LINK_LIBRARIES      : Link libraries to be added to NoisePage.
 #   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
-#   NOISEPAGE_TEST_PARALLELISM    : The number of tests that should run in parallel.
 #######################################################################################################################
 
 # Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
