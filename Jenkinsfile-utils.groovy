@@ -24,7 +24,7 @@ void stagePre() {
 
 /** This should be invoked after every stage. */
 void stagePost() {
-    // No-op.
+    sh 'echo "Stage complete."'
 }
 
 /** Test if the GitHub "ready-for-ci" label is present. Otherwise, abort the build. */
