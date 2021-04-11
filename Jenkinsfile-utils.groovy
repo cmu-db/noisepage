@@ -318,8 +318,7 @@ void buildNoisePage(Map args = [:]) {
     }
 
     String cmakeCmd = 'cmake -GNinja'
-    config.cmake = config.cmake.sort { -it.value } // Sort for pretty-printing order.
-    config.cmake.each { arg, value -> compileCmd += " -D$arg=$value" }
+    config.cmake.each { arg, value -> cmakeCmd += " -D$arg=$value" }
     cmakeCmd += ' ..'
 
     String buildCmd = config.buildCommand
