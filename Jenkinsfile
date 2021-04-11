@@ -1,5 +1,6 @@
-def utils // common build functions are loaded from Jenkinsfile-utils into this object
-String utilsFileName  = 'Jenkinsfile-utils'
+// Common build functions will be loaded into the "utils" object in each pipeline stage.
+def utils
+String utilsFileName  = 'Jenkinsfile-utils.groovy'
 
 pipeline {
     agent none
