@@ -5,13 +5,24 @@ UBUNTU = 'ubuntu'
 DEBUG_BUILD = 'Debug'
 RELEASE_BUILD = 'Release'
 
+void stagePre() {
+    sh 'echo $NODE_NAME'
+    sh script: './build-support/print_docker_info.sh', label: 'Print image information.'
+}
 
-void checkGithubLabels() {
-   ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
-   if (0 != ready_for_build) {
+void stagePost() {
+    // NOOP
+}
+
+
+void stageGithub() {
+    stagePre()
+    ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
+    if (0 != ready_for_build) {
         currentBuild.result = 'ABORTED'
         error('Not ready for CI. Please add ready-for-ci tag in Github when you are ready to build your PR.')
-   }
+    }
+    stagePost()
 }
 
 /**

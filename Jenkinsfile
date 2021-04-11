@@ -12,12 +12,7 @@ pipeline {
         stage('Ready For CI') {
             agent   { docker { image 'noisepage:focal' } }
             when    { not { branch 'master' } }
-            steps   {
-                script {
-                    utils = utils ?: load(utilsFileName)
-                    utils.checkGithubLabels()
-                }
-            }
+            steps   { script { utils = utils ?: load(utilsFileName) ; utils.stageGithub() } }
             post    { cleanup { deleteDir() } }
         }
         stage('Check') {
