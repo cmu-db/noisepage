@@ -283,10 +283,10 @@ void buildNoisePage(Map args = [:]) {
     // The only settings that should be automagically set are settings which
     // are known to be a "must-set".
 
-    // Unity builds mess with coverage.
-    if (args.cmake['-DNOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
-        args.cmake['-DNOISEPAGE_UNITY_BUILD'] = 'OFF'
-    }
+//     // Unity builds mess with coverage.
+//     if (args.cmake['-DNOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
+//         args.cmake['-DNOISEPAGE_UNITY_BUILD'] = 'OFF'
+//     }
 
     // Disable most options by default. Callers should be explicit.
     Map config = [
@@ -311,7 +311,7 @@ void buildNoisePage(Map args = [:]) {
         ],
     ]
 
-    config << args
+//     config << args
 
     String cmakeCmd = 'cmake -GNinja'
     config.cmake = config.cmake.sort { -it.value } // Sort for pretty-printing order.
