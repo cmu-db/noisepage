@@ -15,6 +15,5 @@ pipeline {
             steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageGithub() } }
             post        { cleanup { deleteDir() } }
         }
-
     }
 }
