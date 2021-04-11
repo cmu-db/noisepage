@@ -333,7 +333,9 @@ void buildNoisePage(Map args = [:]) {
         /usr/bin/time -o /tmp/noisepage-compiletime.txt -f %e sh -c \"$buildCmd\"
         """
     } else {
-        buildScript += "$buildCmd"
+        buildScript += """
+        $buildCmd
+        """
     }
 
     sh script:buildScript, label: 'Build NoisePage.'
