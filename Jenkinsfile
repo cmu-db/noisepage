@@ -32,7 +32,7 @@ pipeline {
         }
 
         stage('Microbenchmark (Build only)') {
-            agent       { docker { image 'noisepage:focal' args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
+            agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
             steps       { script { utils.stageMicrobenchmark() } }
             post        { cleanup { deleteDir() } }
         }
