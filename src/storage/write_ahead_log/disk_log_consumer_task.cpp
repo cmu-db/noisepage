@@ -49,7 +49,7 @@ uint64_t DiskLogConsumerTask::PersistLogFile() {
   }
   const auto num_buffers = commit_callbacks_.size();
   // Execute the callbacks for the transactions that have been persisted
-  for (auto &callback : commit_callbacks_) callback.first(callback.second);
+  for (auto &callback : commit_callbacks_) callback.fn_(callback.arg_);
   commit_callbacks_.clear();
   return num_buffers;
 }
