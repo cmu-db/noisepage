@@ -46,12 +46,31 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 }
 
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
+  uint64_t num_records = 0, num_txns = 0;
+
+  // Initialize whether to collect metrics outside of the spin loop so as not to count each loop iteration as a sample
+  // (by calling ComponentToRecord this increments the sample count)
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-
-    const bool logging_metrics_enabled =
-        common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+    // Record metrics from previous iteration
+    if (num_records > 0) {
+      if (common::thread_context.resource_tracker_.IsRunning()) {
+        // Stop the resource tracker for this operating unit
+        common::thread_context.resource_tracker_.Stop();
+        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+        common::thread_context.metrics_store_->RecordRecoveryData(num_records, num_txns, resource_metrics);
+      }
+      num_records = num_txns = 0;
+      // Update whether to collect metrics only if we did work (starting a new event) so as not to count each loop
+      // iteration as a sample (by calling ComponentToRecord this increments the sample count)
+      logging_metrics_enabled =
+          common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+    }
 
     if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
       // start the operating unit resource tracker
@@ -69,17 +88,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 
       if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
         auto oat = rlp->PopOAT();
-        auto [recovered_txns, log_records_processed] = ProcessDeferredTransactions(oat);
-        recovered_txns_ += recovered_txns;
-
-        if (logging_metrics_enabled && log_records_processed > 0) {
-          // Stop the resource tracker for this operating unit
-          common::thread_context.resource_tracker_.Stop();
-          auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-          common::thread_context.metrics_store_->RecordRecoveryData(log_records_processed, recovered_txns,
-                                                                    resource_metrics);
-          recovered_txns = log_records_processed = 0;
-        }
+        std::tie(num_txns, num_records) = ProcessDeferredTransactions(oat);
+        recovered_txns_ += num_txns;
         continue;
       }
       NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
@@ -98,6 +108,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
+        // Record the current abort txn
+        num_records++;
         break;
       }
 
@@ -108,18 +120,10 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
         // We defer all transactions initially
         deferred_txns_.insert(log_record->TxnBegin());
         // Process any deferred transactions that are safe to execute
-        auto [recovered_txns, log_records_processed] = ProcessDeferredTransactions(commit_record->OldestActiveTxn());
-        recovered_txns_ += recovered_txns;
-        log_records_processed++;
-
-        if (logging_metrics_enabled && log_records_processed > 0) {
-          // Stop the resource tracker for this operating unit
-          common::thread_context.resource_tracker_.Stop();
-          auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-          common::thread_context.metrics_store_->RecordRecoveryData(log_records_processed, recovered_txns,
-                                                                    resource_metrics);
-          recovered_txns = log_records_processed = 0;
-        }
+        std::tie(num_txns, num_records) = ProcessDeferredTransactions(commit_record->OldestActiveTxn());
+        recovered_txns_ += num_txns;
+        // Record the current commit txn
+        num_records++;
 
         // Clean up the log record
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
