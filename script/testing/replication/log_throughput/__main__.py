@@ -18,6 +18,11 @@ def main():
                          default=False,
                          action="store_true",
                          help="Whether or not replication is enabled, only relevant when test_type is primary")
+    aparser.add_argument("--replication-policy",
+                         default="sync",
+                         choices=["sync", "async"],
+                         help="WARNING: This is not currently implemented. You have to manually change the policy in "
+                              "db_main.h right now")
     aparser.add_argument("--oltp-benchmark",
                          default="tpcc",
                          choices=["tpcc", "tatp"],
