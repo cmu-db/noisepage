@@ -1,8 +1,15 @@
+from enum import Enum
 from threading import Thread
 from typing import List
 
 import zmq
 from zmq import Socket
+
+
+class BuiltinCallback(Enum):
+    NOOP = 0,
+    ECHO = 1,
+    ACK = 2
 
 
 class LogShipper:
@@ -61,7 +68,8 @@ class LogShipper:
         :param message_id ID of message that we are ACKing
         :param socket Socket to send ACK over
         """
-        self.send_msg([self.identity, "", f"{message_id}-0-2-"], socket)
+        self.send_msg([self.identity, "", f"{message_id}-{BuiltinCallback.NOOP.value}-{BuiltinCallback.ACK.value}-"],
+                      socket)
 
     @staticmethod
     def send_msg(message_parts: List[str], socket: Socket):
