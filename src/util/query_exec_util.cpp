@@ -161,11 +161,16 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
                 .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
         if (status) {
+          // This is unfortunate but this is because we can't re-parse the query once the CreateIndexExecutor
+          // has run. We can't compile the query before the CreateIndexExecutor because codegen would have
+          // no idea which index to insert into.
           execution::exec::ExecutionSettings settings{};
-          if (CompileQuery(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), std::nullopt,
-                           settings)) {
-            ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
-          }
+          common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
+          auto exec_query = execution::compiler::CompilationContext::Compile(
+              *out_plan, settings, accessor.get(), execution::compiler::CompilationMode::OneShot, std::nullopt);
+          schemas_[query] = schema->Copy();
+          exec_queries_[query] = std::move(exec_query);
+          ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
         }
         break;
       default:
