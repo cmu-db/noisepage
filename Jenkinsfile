@@ -55,6 +55,9 @@ pipeline {
 
         stage('Test') {
             parallel {
+                // The first argument to utils.stageTest() indicates whether pipeline metrics should be gathered.
+                // Pipeline metrics take a while to run and don't need to be run in every stage. The pipeline metrics are only run in one arbitrary stage to check for breakage.
+
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(true, [cmake:
