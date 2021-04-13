@@ -5,6 +5,8 @@ from typing import List
 import zmq
 from zmq import Socket
 
+from .constants import UTF_8
+
 
 class BuiltinCallback(Enum):
     NOOP = 0,
@@ -35,6 +37,7 @@ class LogShipper:
         # Replica connection used to send messages to replica
         self.replica_dealer_socket = self.context.socket(zmq.DEALER)
         self.replica_dealer_socket.set_string(zmq.IDENTITY, replica_identity)
+        self.replica_dealer_socket.setsockopt(zmq.LINGER, 0)
         self.replica_dealer_socket.connect(f"tcp://127.0.0.1:{replica_replication_port}")
 
         # Create thread to receive and ack messages so the replica doesn't get backed up
@@ -95,7 +98,7 @@ class LogShipper:
         :param message_parts messages to send
         :param socket socket to send over
         """
-        socket.send_multipart([message.encode('utf-8') for message in message_parts])
+        socket.send_multipart([message.encode(UTF_8) for message in message_parts])
 
     def recv_thread_action(self, primary_replication_port: int):
         """
@@ -108,9 +111,10 @@ class LogShipper:
         # Primary replication socket that listens for messages from the replica
         self.primary_router_socket = self.context.socket(zmq.ROUTER)
         self.primary_router_socket.set_string(zmq.IDENTITY, self.identity)
+        self.primary_router_socket.setsockopt(zmq.LINGER, 0)
         self.primary_router_socket.bind(f"tcp://127.0.0.1:{primary_replication_port}")
         while self.running:
-            if self.has_pending_messages(self.primary_router_socket, 100):
+            if self.has_pending_messages(self.primary_router_socket, 1):
                 self.recv_txn_applied_msg()
         self.primary_router_socket.close()
         self.recv_context.destroy()
@@ -122,7 +126,7 @@ class LogShipper:
         identity = self.recv_msg(self.primary_router_socket)
         empty_msg = self.recv_msg(self.primary_router_socket)
         msg = self.recv_msg(self.primary_router_socket)
-        msg_id = str(msg).split("-")[0]
+        msg_id = msg.decode(UTF_8).split("-")[0]
         self.send_ack_msg(msg_id, self.primary_router_socket)
 
     def recv_ack(self, socket: Socket):

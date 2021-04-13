@@ -88,3 +88,6 @@ RESULTS_DIR = "script/testing/replication/log_throughput/results"
 METRICS_NUM_RECORDS_COL = "num_records"
 METRICS_START_TIME_COL = "start_time"
 METRICS_ELAPSED_TIME_COL = "elapsed_us"
+
+# Misc
+UTF_8 = "utf-8"
