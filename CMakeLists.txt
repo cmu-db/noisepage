@@ -162,7 +162,6 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 #   NOISEPAGE_USE_JEMALLOC                  : Link with jemalloc instead of system malloc. Default OFF.
 #   NOISEPAGE_USE_JUMBOTESTS                : Enable jumbotests instead of unittests as part of ALL target. Default OFF.
 #   NOISEPAGE_USE_LOGGING                   : Enable logging. Default ON.
-
 #
 # CMake global variables. These are NOT CMake options, i.e., these variables are internal. Usually OS-specific hacks.
 #   BUILD_SUPPORT_DIR             : Helper scripts for building belongs here.
