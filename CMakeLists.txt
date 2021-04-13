@@ -151,8 +151,8 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 #   In practice people only use Debug or Release.
 #
 # CMake options, specify with -DNOISEPAGE_{option}=On.
-#   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default ON.
-#   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL (but the Self-Driving test) target. Default ON.
+#   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default OFF.
+#   NOISEPAGE_BUILD_TESTS                   : Enable building (non-self-driving-e2e) tests as part of the ALL target. Default OFF.
 #   NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS  : Enable building self-driving end-to-end tests as part of the ALL target. Default OFF.
 #   NOISEPAGE_GENERATE_COVERAGE             : Enable C++ code coverage. Default OFF.
 #   NOISEPAGE_TEST_PARALLELISM              : The number of tests that should run in parallel. Default 1.
@@ -181,11 +181,11 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 option(NOISEPAGE_BUILD_BENCHMARKS
         "Enable building benchmarks as part of the ALL target."
-        ON)
+        OFF)
 
 option(NOISEPAGE_BUILD_TESTS
-        "Enable building tests as part of the ALL target."
-        ON)
+        "Enable building (non-self-driving-e2e) tests as part of the ALL target."
+        OFF)
 
 option(NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS
         "Enable building self-driving end-to-end tests as part of the ALL target."
@@ -849,7 +849,7 @@ add_custom_target(self_driving_e2e_test         # For now, this target is specif
         --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
         ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails.
         -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
-        -L self_driving_e2e_test                # Run all tests that have a label like this. See footgun warning above.
+        -L self_driving_e2e_test            # Run all tests that have a label like this. See footgun warning above.
         --no-compress-output                # Output verbosely so that it can be logged.
         -T Test                             # Run tests and log it to Testing/*/Test.xml.
         --timeout 3000                      # 3000 second timeout per test.

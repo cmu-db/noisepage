@@ -52,11 +52,11 @@ void stageCheck() {
     stagePost()
 }
 
-/** Build the microbenchmarks. Currently, does NOT run the microbenchmarks. */
-void stageMicrobenchmark() {
+/** Build and run the default "ninja" target.  */
+void stageBuildDefault(Map args = [:]) {
     stagePre()
     installPackages()
-    buildNoisePage([cmake:[NOISEPAGE_BUILD_BENCHMARKS:'ON']])
+    buildNoisePage(args)
     stagePost()
 }
 
@@ -70,7 +70,7 @@ void stageTest(Boolean runPipelineMetrics, Map args = [:]) {
     sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill port (15722)'
     sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill port (15723)'
 
-    buildType = (args.cmake.CMAKE_BUILD_TYPE == "Release") ? "release" : "debug"
+    buildType = (args.cmake.toUpperCase().contains("CMAKE_BUILD_TYPE=RELEASE")) ? "release" : "debug"
 
     sh script: "cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=$buildType --query-mode=simple", label: 'UnitTest (Simple)'
     sh script: "cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=$buildType --query-mode=simple -a 'compiled_query_execution=True' -a 'bytecode_handlers_path=./bytecode_handlers_ir.bc'", label: 'UnitTest (Simple, Compiled Execution)'
@@ -84,13 +84,13 @@ void stageTest(Boolean runPipelineMetrics, Map args = [:]) {
 
     sh 'cd build && timeout 1h ninja check-tpl'
 
-    if (args.cmake.NOISEPAGE_USE_JUMBOTESTS) {
+    if (args.cmake.toUpperCase().contains("NOISEPAGE_USE_JUMBOTESTS=ON")) {
         sh 'cd build && timeout 1h ninja jumbotests'
     } else {
         sh 'cd build && timeout 1h ninja unittest'
     }
 
-    if (args.cmake.NOISEPAGE_GENERATE_COVERAGE == "ON") {
+    if (args.cmake.toUpperCase().contains("NOISEPAGE_GENERATE_COVERAGE=ON")) {
         uploadCoverage()
     }
 
@@ -101,7 +101,9 @@ void stageTest(Boolean runPipelineMetrics, Map args = [:]) {
 void stageOltpbenchDebug() {
     stagePre()
     installPackages()
-    buildNoisePage([buildCommand:'ninja noisepage', cmake:[CMAKE_BUILD_TYPE:'Debug',NOISEPAGE_USE_ASAN:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_ASAN=ON'
+    ])
 
     sh script: '''
     cd build
@@ -145,7 +147,9 @@ void stageOltpbenchDebug() {
 void stageOltpbenchRelease() {
     stagePre()
     installPackages()
-    buildNoisePage([buildCommand:'ninja noisepage', cmake:[CMAKE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
+    ])
 
     sh script:'''
     cd build
@@ -183,7 +187,9 @@ void stageOltpbenchRelease() {
 void stageForecasting() {
     stagePre()
     installPackages()
-    buildNoisePage([buildCommand:'ninja noisepage', cmake:[CMAKE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
+    ])
 
     // The forecaster_standalone script runs TPC-C with query trace enabled.
     // The forecaster_standalone script uses SET to enable query trace.
@@ -212,7 +218,9 @@ void stageModeling() {
     installPackages()
 
     // Build the noisepage DBMS and the execution_runners binary in release mode for efficient data generation.
-    buildNoisePage([buildCommand:'ninja noisepage', cmake:[CMAKE_BUILD_TYPE:'Release', NOISEPAGE_USE_JEMALLOC:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
+    ])
     buildNoisePageTarget("execution_runners")
 
     // The forecaster_standalone script runs TPC-C with query trace enabled.
@@ -245,7 +253,9 @@ void stageModeling() {
     ''', label: 'OU model training data generation'
 
     // Recompile the noisepage DBMS in Debug mode with code coverage.
-    buildNoisePage([buildCommand:'ninja noisepage', cmake:[CMAKE_BUILD_TYPE:'Debug', NOISEPAGE_GENERATE_COVERAGE:'ON']])
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON'
+    ])
 
     // Run the self_driving_e2e_test.
     sh script: '''
@@ -280,45 +290,21 @@ void installPackages(String installType='all') {
 
 /** Create a build folder, set up CMake flags, and build NoisePage. */
 void buildNoisePage(Map args = [:]) {
-    // The only settings that should be automagically set are settings which
-    // are known to be a "must-set".
-
-    // Unity builds mess with coverage.
-    if (args.cmake['NOISEPAGE_GENERATE_COVERAGE'] == 'ON') {
-        args.cmake['NOISEPAGE_UNITY_BUILD'] = 'OFF'
-    }
-
     // Disable most options by default. Callers should be explicit.
     Map config = [
         useCache: true,
         shouldRecordTime: false,
         buildCommand: 'ninja',
-        cmake: [
-            'CMAKE_BUILD_TYPE': 'Debug',
-            // On by default: most tests will want these.
-            'NOISEPAGE_UNITY_BUILD': 'ON',
-            'NOISEPAGE_USE_LOGGING': 'ON',
-            'NOISEPAGE_TEST_PARALLELISM': '\$(nproc)',
-            // Off by default: tests should opt-in explicitly.
-            'NOISEPAGE_BUILD_BENCHMARKS': 'OFF',
-            'NOISEPAGE_BUILD_TESTS': 'OFF',
-            'NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS': 'OFF',
-            'NOISEPAGE_GENERATE_COVERAGE': 'OFF',
-            'NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE': 'OFF',
-            'NOISEPAGE_USE_ASAN': 'OFF',
-            'NOISEPAGE_USE_JEMALLOC': 'OFF',
-            'NOISEPAGE_USE_JUMBOTESTS': 'OFF',
-        ],
+        cmake: '',
     ]
 
     config << args
 
-    if (config.useCache) {
-        config.cmake['CMAKE_CXX_COMPILER_LAUNCHER'] = 'ccache'
-    }
-
     String cmakeCmd = 'cmake -GNinja'
-    config.cmake.each { arg, value -> cmakeCmd += " -D$arg=$value" }
+    if (config.useCache) {
+        cmakeCmd += ' -DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
+    }
+    cmakeCmd += config.cmake
     cmakeCmd += ' ..'
 
     String buildCmd = config.buildCommand

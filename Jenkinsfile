@@ -31,10 +31,25 @@ pipeline {
             }
         }
 
-        stage('Microbenchmark (Build only)') {
-            agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
-            steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageMicrobenchmark() } }
-            post        { cleanup { deleteDir() } }
+        stage('Build-only checks') {
+            parallel {
+                stage('Benchmarks (debug build only)') {
+                    agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
+                    steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageBuildDefault([
+                        buildCommand: 'ninja',
+                        cmake: '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_BUILD_BENCHMARKS=ON',
+                    ] ) } }
+                    post        { cleanup { deleteDir() } }
+                }
+                stage('Logging disabled (release build only)') {
+                    agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
+                    steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageBuildDefault([
+                        buildCommand: 'ninja',
+                        cmake: '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_LOGGING=OFF'
+                    ] ) } }
+                    post        { cleanup { deleteDir() } }
+                }
+            }
         }
 
         stage('Test') {
@@ -42,8 +57,8 @@ pipeline {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(true, [cmake:
-                        [CMAKE_BUILD_TYPE:'Debug', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_ASAN:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
-                    ) } }
+                        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_BUILD_TESTS=ON -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_USE_JUMBOTESTS=ON'
+                    ] ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
 
@@ -51,8 +66,9 @@ pipeline {
                     agent       { docker { image 'noisepage:focal' ; label 'dgb' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     environment { CODECOV_TOKEN=credentials('codecov-token') }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(false, [cmake:
-                        [CMAKE_BUILD_TYPE:'Debug', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_GENERATE_COVERAGE:'ON']]
-                    ) } }
+                        // Note that unity builds mess with coverage.
+                        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_BUILD_TESTS=ON -DNOISEPAGE_GENERATE_COVERAGE=ON'
+                    ] ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
 
@@ -60,16 +76,16 @@ pipeline {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     environment { CC="/usr/bin/clang-8" ; CXX="/usr/bin/clang++-8" }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(false, [cmake:
-                        [CMAKE_BUILD_TYPE:'Debug', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_ASAN:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
-                    ) } }
+                        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_BUILD_TESTS=ON -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_USE_JUMBOTESTS=ON'
+                    ] ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
 
                 stage('ubuntu-20.04/gcc-9.3 (Release/jumbotests)') {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(false, [cmake:
-                        [CMAKE_BUILD_TYPE:'Release', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
-                    ) } }
+                        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_BUILD_TESTS=ON -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JUMBOTESTS=ON'
+                    ] ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
 
@@ -77,8 +93,8 @@ pipeline {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     environment { CC="/usr/bin/clang-8" ; CXX="/usr/bin/clang++-8" }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(false, [cmake:
-                        [CMAKE_BUILD_TYPE:"Release", NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
-                    ) } }
+                        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_BUILD_TESTS=ON -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JUMBOTESTS=ON'
+                    ] ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
             }
