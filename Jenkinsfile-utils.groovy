@@ -304,6 +304,7 @@ void buildNoisePage(Map args = [:]) {
     if (config.useCache) {
         cmakeCmd += ' -DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
     }
+    cmakeCmd += ' '
     cmakeCmd += config.cmake
     cmakeCmd += ' ..'
 
