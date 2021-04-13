@@ -36,7 +36,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, TPCCish)(benchmark::State &
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread =
-        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), nullptr, metrics_period_);
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 1);
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -69,7 +69,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, HighAbortRate)(benchmark::S
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread =
-        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), nullptr, metrics_period_);
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 1);
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -103,7 +103,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementInsert)(benc
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread =
-        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), nullptr, metrics_period_);
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 1);
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -137,7 +137,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementUpdate)(benc
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread =
-        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), nullptr, metrics_period_);
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 1);
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -170,7 +170,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementSelect)(benc
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread =
-        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), nullptr, metrics_period_);
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 1);
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
