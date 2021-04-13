@@ -25,7 +25,7 @@
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
-#include <nlohmann/json.hpp>
+#include "nlohmann/json.hpp"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"

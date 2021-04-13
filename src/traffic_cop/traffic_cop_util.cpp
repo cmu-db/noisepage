@@ -30,14 +30,14 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
-  common::ManagedPointer<parser::SQLStatement> query_statement = query->GetStatement(0);
+  auto query_statement = query->GetStatement(0);
 
   // If the statement type is EXPLAIN, the statement we should be operating on is not the EXPLAIN
   // statement; it should be the statement you're "explaining". In order to code this logic, we
   // have to extract the inside statement from the ExplainStatement interface.
   if (query_statement->GetType() == parser::StatementType::EXPLAIN) {
-    const auto exp_st = query_statement.CastManagedPointerTo<parser::ExplainStatement>();
-    query_statement = exp_st->GetSQLStatement();
+    const auto explain_stmt = query_statement.CastManagedPointerTo<parser::ExplainStatement>();
+    query_statement = explain_stmt->GetSQLStatement();
   }
   auto logical_exprs = transformer.ConvertToOpExpression(query_statement, query);
 
