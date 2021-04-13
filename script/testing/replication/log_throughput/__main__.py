@@ -6,7 +6,8 @@ from .test_type import TestType
 
 
 def main():
-    aparser = argparse.ArgumentParser(description="Benchmark for log record throughput")
+    aparser = argparse.ArgumentParser(description="Benchmark for log record throughput",
+                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     aparser.add_argument("test-type",
                          choices=[TestType.PRIMARY.value, TestType.REPLICA.value],
                          help="Indicates whether to measure log throughput on primary or replica nodes")

@@ -47,11 +47,25 @@ class LogShipper:
         """
         Send log records to replica
         """
-        for message in self.messages:
+        print("Shipping logs to replica")
+        for idx, message in enumerate(self.messages):
             self.send_log_record(message)
             # Check and dispose of ACKs
             if self.has_pending_messages(self.replica_dealer_socket, 1):
                 self.recv_ack(self.replica_dealer_socket)
+            self.print_status(idx)
+        print("Log shipping has completed")
+
+    @staticmethod
+    def print_status(idx):
+        """
+        Prints the status of log shipping. Helps to make sure that script is making progress and not stuck at a deadlock
+
+        :param idx number log message we are shipping
+        """
+        # Print every 1000 logs
+        if idx % 1000 == 0 and idx != 0:
+            print(f"Shipping log number {idx}")
 
     def send_log_record(self, log_record_message: str):
         """
