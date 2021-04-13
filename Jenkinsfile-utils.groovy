@@ -281,6 +281,72 @@ void stageArchive() {
     xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
 }
 
+void stageNightlyArtifact() {
+    stagePre()
+    installPackages()
+    buildNoisePage([useCache: false, shouldRecordTime:true, buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON'
+    ])
+
+    sh script: '''
+    cd build
+    PYTHONPATH=.. python3 -m script.testing.artifact_stats --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+    ''', label: 'Artifact Stats'
+
+    stagePost()
+}
+
+void stageNightlyPerformance() {
+    stagePre()
+    installPackages()
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON'
+    ])
+
+    // catchError: set the overall stage to fail, but continue to execute subsequent steps.
+    catchError(stageResult: 'Failure'){
+        sh script:'''
+        cd build
+        PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+        ''', label: 'OLTPBench (HDD WAL)'
+    }
+    catchError(stageResult: 'Failure'){
+        sh script:'''
+        cd build
+        PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+        ''', label: 'OLTPBench (RamDisk WAL)'
+    }
+    catchError(stageResult: 'Failure'){
+        sh script:'''
+        cd build
+        PYTHONPATH=.. timeout 3h python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+        ''', label: 'OLTPBench (No WAL)'
+    }
+
+    archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
+    stagePost()
+}
+
+void stageNightlyMicrobenchmark() {
+    stagePre()
+    installPackages()
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_BUILD_BENCHMARKS=ON -DNOISEPAGE_UNITY_BUILD=ON'
+    ])
+
+    // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
+    //  # of Threads: 4
+    //  WAL Path: Ramdisk
+    sh script:'''
+    cd script/testing
+    PYTHONPATH=../.. python3 -m script.testing.microbench --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+    ''', label:'Microbenchmark'
+
+    archiveArtifacts 'script/testing/*.json'
+    junit 'script/testing/*.xml'
+    stagePost()
+}
+
 // SECTION: Utility functions.
 
 /** Install the packages. installType = {build, all}. */
