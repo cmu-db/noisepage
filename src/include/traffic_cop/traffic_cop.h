@@ -43,6 +43,10 @@ namespace noisepage::replication {
 class ReplicationManager;
 }  // namespace noisepage::replication
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::settings {
 class SettingsManager;
 }  // namespace noisepage::settings
@@ -69,6 +73,7 @@ class TrafficCop {
    * @param txn_manager the transaction manager of the system
    * @param catalog the catalog of the system
    * @param replication_manager The replication manager.
+   * @param recovery_manager The recovery manager.
    * @param settings_manager the settings manager
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
@@ -78,12 +83,14 @@ class TrafficCop {
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<replication::ReplicationManager> replication_manager,
+             common::ManagedPointer<storage::RecoveryManager> recovery_manager,
              common::ManagedPointer<settings::SettingsManager> settings_manager,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
              bool use_query_cache, const execution::vm::ExecutionMode execution_mode)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_manager_(replication_manager),
+        recovery_manager_(recovery_manager),
         settings_manager_(settings_manager),
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
@@ -251,6 +258,7 @@ class TrafficCop {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<replication::ReplicationManager> replication_manager_;
+  common::ManagedPointer<storage::RecoveryManager> recovery_manager_;
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
