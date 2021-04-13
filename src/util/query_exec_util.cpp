@@ -237,11 +237,11 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
     }
   };
 
-  // Create ExecutionContext with no metrics to prevent recording
+  // TODO(wz2): May want to thread the replication manager or recovery manager through
   execution::exec::OutputCallback callback = consumer;
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, nullptr);
+      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, DISABLED, DISABLED);
 
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
 

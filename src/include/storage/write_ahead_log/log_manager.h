@@ -18,7 +18,7 @@
 #include "storage/write_ahead_log/log_record.h"
 
 namespace noisepage::replication {
-class ReplicationManager;
+class PrimaryReplicationManager;
 }  // namespace noisepage::replication
 
 namespace noisepage::storage {
@@ -148,6 +148,9 @@ class LogManager : public common::DedicatedThreadOwner {
 
   /** @return the log serialization interval */
   int32_t GetSerializationInterval() { return serialization_interval_.count(); }
+
+  /** Stop performing actions related to replication. Currently works around circular DBMain dependencies. */
+  void EndReplication();
 
  private:
   // Flag to tell us when the log manager is running or during termination

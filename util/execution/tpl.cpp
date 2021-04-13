@@ -95,7 +95,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::OutputCallback callback = printer;
   exec::ExecutionContext exec_ctx{
       db_oid,        common::ManagedPointer(txn),  callback, output_schema, common::ManagedPointer(accessor),
-      exec_settings, db_main->GetMetricsManager(), DISABLED};
+      exec_settings, db_main->GetMetricsManager(), DISABLED, DISABLED};
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));

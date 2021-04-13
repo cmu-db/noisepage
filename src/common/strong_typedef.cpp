@@ -4,8 +4,10 @@
 #include "common/action_context.h"
 #include "common/json.h"
 #include "execution/exec_defs.h"
+#include "messenger/messenger_defs.h"
 #include "network/network_defs.h"
 #include "optimizer/optimizer_defs.h"
+#include "replication/replication_defs.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
@@ -51,7 +53,13 @@ template class StrongTypeAlias<noisepage::execution::tags::feature_id_t_typedef_
 template class StrongTypeAlias<noisepage::execution::tags::pipeline_id_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<noisepage::execution::tags::query_id_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<noisepage::execution::tags::translator_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<noisepage::messenger::tags::callback_id_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::messenger::tags::connection_id_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::messenger::tags::message_id_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::messenger::tags::router_id_t_typedef_tag, uint64_t>;
 template class StrongTypeAlias<noisepage::network::tags::connection_id_t_typedef_tag, uint16_t>;
+template class StrongTypeAlias<noisepage::replication::tags::msg_id_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::replication::tags::record_batch_id_t_typedef_tag, uint64_t>;
 template class StrongTypeAlias<noisepage::storage::tags::col_id_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::storage::tags::layout_version_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::transaction::tags::timestamp_t_typedef_tag, uint64_t>;

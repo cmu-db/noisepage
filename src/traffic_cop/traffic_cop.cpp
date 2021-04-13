@@ -49,11 +49,31 @@ struct CommitCallbackArg {
     // The value for the persist_countdown_ field.
     // Note that the field will be decremented exactly once every time a commit callback is invoked.
     persist_countdown_ = 0;
-    if (policy.durability_ != transaction::DurabilityPolicy::DISABLE) {
+
+    // Cases: Durability, Replication
+    // - ASYNC, SYNC => This is too weird. Not supporting this.
+    // - ASYNC, ASYNC => 1. The callback is invoked immediately in TransactionManager.
+    // - SYNC, ASYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
+    // - SYNC, SYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
+
+    NOISEPAGE_ASSERT(!(policy.durability_ == transaction::DurabilityPolicy::ASYNC &&
+                       policy.replication_ == transaction::ReplicationPolicy::SYNC),
+                     "Haven't reasoned about this case.");
+
+    const transaction::DurabilityPolicy &dur = policy.durability_;
+    const transaction::ReplicationPolicy &rep = policy.replication_;
+
+    if (dur != transaction::DurabilityPolicy::DISABLE) {
       persist_countdown_ += 1;
     }
-    if (policy.replication_ != transaction::ReplicationPolicy::DISABLE) {
-      persist_countdown_ += 1;
+    if (rep != transaction::ReplicationPolicy::DISABLE) {
+      if (dur == transaction::DurabilityPolicy::ASYNC && rep == transaction::ReplicationPolicy::ASYNC) {
+        // Callback will get invoked by TransactionManager, fake EmptyCallback is passed down.
+      } else {
+        NOISEPAGE_ASSERT(dur != transaction::DurabilityPolicy::DISABLE, "Nothing to replicate?");
+        NOISEPAGE_ASSERT(dur == transaction::DurabilityPolicy::SYNC, "What other policies are there?");
+        persist_countdown_ += 1;
+      }
     }
   }
 };
@@ -474,7 +494,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_);
+      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_, recovery_manager_);
 
   exec_ctx->SetParams(portal->Parameters());
 
