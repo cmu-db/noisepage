@@ -79,7 +79,8 @@ void Pilot::PerformForecasterTrain() {
   modelserver::ModelServerFuture<std::string> future;
 
   auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
-  bool metrics_in_db = metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB;
+  bool metrics_in_db =
+      metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
   {
     bool success = false;
     std::unordered_map<int64_t, std::vector<double>> segment_information;
@@ -367,7 +368,8 @@ void Pilot::PerformPlanning() {
 
   // Populate the workload forecast
   auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
-  bool metrics_in_db = metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_DB;
+  bool metrics_in_db =
+      metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
   LoadWorkloadForecast(metrics_in_db ? WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
                                      : WorkloadForecastInitMode::DISK_WITH_INFERENCE);
   if (forecast_ == nullptr) {

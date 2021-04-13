@@ -28,14 +28,13 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   // This works for now. Fixing the above issue will make it work beter.
   execution::exec::ExecutionSettings settings{};
   if (params_.empty()) {
-    result =
-        query_exec_util->ExecuteDML(query_text_, nullptr, nullptr, tuple_fn_, nullptr,
-                                    std::make_unique<optimizer::TrivialCostModel>(), adopt_qid_, qid_target_, settings);
+    result = query_exec_util->ExecuteDML(query_text_, nullptr, nullptr, tuple_fn_, nullptr,
+                                         std::make_unique<optimizer::TrivialCostModel>(), override_qid_, settings);
   } else {
     std::vector<parser::ConstantValueExpression> &params_0 = params_[0];
     result = query_exec_util->CompileQuery(query_text_, common::ManagedPointer(&params_0),
-                                           common::ManagedPointer(&param_types_), std::move(cost_model_), adopt_qid_,
-                                           qid_target_, settings);
+                                           common::ManagedPointer(&param_types_), std::move(cost_model_), override_qid_,
+                                           settings);
 
     // Execute with specified parameters only if compilation succeeded
     if (result) {

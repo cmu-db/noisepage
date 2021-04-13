@@ -94,7 +94,7 @@ class ReservoirSampling {
    *
    * @return samples
    */
-  std::vector<Value> GetSamples() {
+  std::vector<Value> TakeSamples() {
     std::vector<Value> samples;
     samples.reserve(limit_);
     while (!queue_.empty()) {

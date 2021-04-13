@@ -18,7 +18,7 @@ TaskManager::TaskManager(common::ManagedPointer<common::DedicatedThreadRegistry>
 
 TaskManager::~TaskManager() {
   // Ensures that all tasks have been taken
-  Flush();
+  WaitForFlush();
 
   // Shutdown all the task runners
   for (auto task : task_runners_) {
@@ -32,7 +32,7 @@ void TaskManager::AddTask(std::unique_ptr<Task> task) {
   queue_cv_.notify_one();
 }
 
-void TaskManager::Flush() {
+void TaskManager::WaitForFlush() {
   std::unique_lock<std::mutex> lock(queue_mutex_);
   if (queue_.empty() && busy_workers_ == 0) {
     // Queue is empty and no workers processing

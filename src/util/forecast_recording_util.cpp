@@ -51,7 +51,7 @@ void ForecastRecordingUtil::RecordQueryParameters(
   std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::VARCHAR};
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (auto &data : (*params)) {
-    std::vector<std::string> samples = data.second.GetSamples();
+    std::vector<std::string> samples = data.second.TakeSamples();
     for (auto &sample : samples) {
       std::vector<parser::ConstantValueExpression> param_vec(3);
       param_vec[0] =

@@ -42,7 +42,7 @@ void DBMain::TryLoadStartupDDL() {
       task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::INVALID_DATABASE_OID, ddl));
     }
 
-    task_manager_->Flush();
+    task_manager_->WaitForFlush();
   } else if (task_manager_ == nullptr) {
     COMMON_LOG_WARN("TryLoadStartupDDL() invoked without TaskManager");
   }

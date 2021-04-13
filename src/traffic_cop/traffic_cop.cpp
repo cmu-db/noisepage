@@ -425,7 +425,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *physical_plan, exec_settings, connection_ctx->Accessor().Get(),
-      execution::compiler::CompilationMode::Interleaved, false, execution::query_id_t(0),
+      execution::compiler::CompilationMode::Interleaved, std::nullopt,
       common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
 
   // TODO(Matt): handle code generation failing

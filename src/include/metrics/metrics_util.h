@@ -44,7 +44,7 @@ struct MetricsUtil {
 
     if (metrics == "DB") return MetricsOutput::DB;
 
-    if (metrics == "CSV_DB") return MetricsOutput::CSV_DB;
+    if (metrics == "CSV_AND_DB") return MetricsOutput::CSV_AND_DB;
 
     NOISEPAGE_ASSERT(false, "Unknown metrics type specified");
     return MetricsOutput::CSV;

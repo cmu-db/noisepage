@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -47,16 +48,14 @@ class CompilationContext {
    * @param exec_settings The execution settings to be used for compilation.
    * @param accessor The catalog accessor to use for compilation.
    * @param mode The compilation mode.
-   * @param override_qid Whether to override the plan's query id
-   * @param override_qid_target QID to override the plan with
+   * @param override_qid Optional indicating how to override the plan's query id
    * @param query_text The SQL query string (temporary)
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
                                                   const exec::ExecutionSettings &exec_settings,
                                                   catalog::CatalogAccessor *accessor,
                                                   CompilationMode mode = CompilationMode::Interleaved,
-                                                  bool override_qid = false,
-                                                  execution::query_id_t override_qid_target = execution::query_id_t(0),
+                                                  std::optional<execution::query_id_t> override_qid = std::nullopt,
                                                   common::ManagedPointer<const std::string> query_text = nullptr);
 
   /**

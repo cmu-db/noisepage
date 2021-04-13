@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -26,7 +27,7 @@ class Task {
   /**
    * Executes the task
    * @param query_exec_util Query execution utility
-   * @param task_manager TaskManager that task was submitted to
+   * @param task_manager TaskManager that the task was submitted to (i.e., TaskManager running the current task)
    */
   virtual void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                        common::ManagedPointer<task::TaskManager> task_manager) = 0;
@@ -91,8 +92,7 @@ class TaskDML : public Task {
         metrics_manager_(nullptr),
         force_abort_(false),
         skip_query_cache_(skip_query_cache),
-        adopt_qid_(false),
-        qid_target_(execution::query_id_t(0)),
+        override_qid_(std::nullopt),
         sync_(nullptr) {}
 
   /**
@@ -106,14 +106,13 @@ class TaskDML : public Task {
    * @param metrics_manager Metrics Manager to be used
    * @param force_abort Whether to forcefully abort the transaction
    * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
-   * @param adopt_qid Whether executing query should use qid_target
-   * @param qid_target Target QID to use if adopt_qid is true
+   * @param overide_qid Describes whether to override the qid with a value
    * @param sync Future for the caller to block on
    */
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
           std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<type::TypeId> &&param_types,
           util::TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-          bool force_abort, bool skip_query_cache, bool adopt_qid, execution::query_id_t qid_target,
+          bool force_abort, bool skip_query_cache, std::optional<execution::query_id_t> override_qid,
           common::ManagedPointer<common::Future<bool>> sync)
       : db_oid_(db_oid),
         query_text_(std::move(query_text)),
@@ -124,10 +123,9 @@ class TaskDML : public Task {
         metrics_manager_(metrics_manager),
         force_abort_(force_abort),
         skip_query_cache_(skip_query_cache),
-        adopt_qid_(adopt_qid),
-        qid_target_(qid_target),
+        override_qid_(std::move(override_qid)),
         sync_(sync) {
-    NOISEPAGE_ASSERT(!adopt_qid || skip_query_cache, "adopt_qid requires skip_query_cache");
+    NOISEPAGE_ASSERT(!override_qid.has_value() || skip_query_cache, "override_qid requires skip_query_cache");
   }
 
   /**
@@ -150,8 +148,7 @@ class TaskDML : public Task {
         metrics_manager_(nullptr),
         force_abort_(false),
         skip_query_cache_(skip_query_cache),
-        adopt_qid_(false),
-        qid_target_(execution::query_id_t(0)),
+        override_qid_(std::nullopt),
         sync_(sync) {}
 
   void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
@@ -170,8 +167,7 @@ class TaskDML : public Task {
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   bool force_abort_;
   bool skip_query_cache_;
-  bool adopt_qid_;
-  execution::query_id_t qid_target_;
+  std::optional<execution::query_id_t> override_qid_;
   common::ManagedPointer<common::Future<bool>> sync_;
 };
 

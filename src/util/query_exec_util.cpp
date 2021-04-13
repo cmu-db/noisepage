@@ -162,8 +162,8 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
         if (status) {
           execution::exec::ExecutionSettings settings{};
-          if (CompileQuery(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), false,
-                           execution::query_id_t(0), settings)) {
+          if (CompileQuery(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), std::nullopt,
+                           settings)) {
             ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
           }
         }
@@ -180,8 +180,8 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
 bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                  common::ManagedPointer<std::vector<type::TypeId>> param_types,
-                                 std::unique_ptr<optimizer::AbstractCostModel> cost, bool override_qid,
-                                 execution::query_id_t override_qid_target,
+                                 std::unique_ptr<optimizer::AbstractCostModel> cost,
+                                 std::optional<execution::query_id_t> override_qid,
                                  const execution::exec::ExecutionSettings &exec_settings) {
   if (exec_queries_.find(statement) != exec_queries_.end()) {
     // We have already optimized and compiled this query before
@@ -200,9 +200,8 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
   NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result.first->GetQueryType()), "ExecuteDML expects DML");
   common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
 
-  auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                     execution::compiler::CompilationMode::OneShot,
-                                                                     override_qid, override_qid_target);
+  auto exec_query = execution::compiler::CompilationContext::Compile(
+      *out_plan, exec_settings, accessor.get(), execution::compiler::CompilationMode::OneShot, override_qid);
   schemas_[statement] = schema->Copy();
   exec_queries_[statement] = std::move(exec_query);
   return true;
@@ -253,10 +252,10 @@ bool QueryExecUtil::ExecuteDML(const std::string &query,
                                common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
                                common::ManagedPointer<metrics::MetricsManager> metrics,
-                               std::unique_ptr<optimizer::AbstractCostModel> cost, bool override_qid,
-                               execution::query_id_t override_qid_target,
+                               std::unique_ptr<optimizer::AbstractCostModel> cost,
+                               std::optional<execution::query_id_t> override_qid,
                                const execution::exec::ExecutionSettings &exec_settings) {
-  if (!CompileQuery(query, params, param_types, std::move(cost), override_qid, override_qid_target, exec_settings)) {
+  if (!CompileQuery(query, params, param_types, std::move(cost), override_qid, exec_settings)) {
     return false;
   }
 

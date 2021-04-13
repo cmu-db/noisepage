@@ -62,9 +62,8 @@ class QueryTraceMetadata {
    */
   void RecordQueryText(execution::query_id_t qid, catalog::db_oid_t db_oid, std::string text, std::string param_type) {
     // Assume qid is unique, don't re-record if already recorded
-    if (qmetadata_.find(qid) == qmetadata_.end()) {
-      qmetadata_[qid] = QueryMetadata{db_oid, std::move(text), std::move(param_type)};
-    }
+    NOISEPAGE_ASSERT(qmetadata_.find(qid) == qmetadata_.end(), "Expected query_text recording to be unique for qid");
+    qmetadata_[qid] = QueryMetadata{db_oid, std::move(text), std::move(param_type)};
   }
 
   /**

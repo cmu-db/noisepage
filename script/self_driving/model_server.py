@@ -470,6 +470,9 @@ class ForecastModel(AbstractModel):
         if input_path is None and input_sequence is None:
             return False, "NO_INPUT_PROVIDED"
 
+        if input_path is not None and input_sequence is not NOne:
+            return [], False, "BOTH_INPUT_PATH_AND_SEQUENCE_SPECIFIED"
+
         forecaster = Forecaster(
             trace_file=input_path,
             trace_sequence=input_sequence,
@@ -520,6 +523,9 @@ class ForecastModel(AbstractModel):
 
         if input_path is None and input_sequence is None:
             return [], False, "NO_INPUT_PROVIDED"
+
+        if input_path is not None and input_sequence is not NOne:
+            return [], False, "BOTH_INPUT_PATH_AND_SEQUENCE_SPECIFIED"
 
         forecaster = Forecaster(
             trace_file=input_path,

@@ -1,9 +1,6 @@
 #include "common/container/chunked_array.h"
 
-#include <cstring>
 #include <random>
-#include <thread>  // NOLINT
-#include <unordered_set>
 #include <vector>
 
 #include "gtest/gtest.h"

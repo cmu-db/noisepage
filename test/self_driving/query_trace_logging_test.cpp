@@ -41,7 +41,7 @@ class QueryTraceLogging : public TerrierTest {
     settings_manager_ = db_main_->GetSettingsManager();
     metrics_manager_ = db_main_->GetMetricsManager();
     metrics_manager_->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
-    metrics_manager_->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, metrics::MetricsOutput::CSV_DB);
+    metrics_manager_->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, metrics::MetricsOutput::CSV_AND_DB);
     db_main_->GetMetricsThread()->PauseMetrics();  // We want to aggregate them manually, so pause the thread.
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -121,7 +121,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   auto raw = reinterpret_cast<metrics::QueryTraceMetricRawData *>(
       metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::QUERY_TRACE)).get());
   raw->WriteToDB(task_manager_, false, 29, nullptr, nullptr);
-  task_manager_->Flush();
+  task_manager_->WaitForFlush();
 
   auto select_count = [util](const std::string &query, size_t target) {
     util->BeginTransaction(catalog::INVALID_DATABASE_OID);
@@ -129,9 +129,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     auto to_row_fn = [&row_count](const std::vector<execution::sql::Val *> &values) { row_count++; };
 
     execution::exec::ExecutionSettings settings{};
-    bool result =
-        util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr, std::make_unique<optimizer::TrivialCostModel>(),
-                         false, execution::query_id_t(0), settings);
+    bool result = util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
+                                   std::make_unique<optimizer::TrivialCostModel>(), std::nullopt, settings);
     EXPECT_TRUE(result && "SELECT should have succeeded");
     EXPECT_TRUE(row_count == target && "Row count incorrect");
     util->EndTransaction(true);
@@ -170,7 +169,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     task_manager->AddTask(std::make_unique<task::TaskDML>(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
         std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
-        false, true, false, execution::query_id_t(0), common::ManagedPointer(&sync)));
+        false, true, std::nullopt, common::ManagedPointer(&sync)));
 
     auto sync_result = sync.Wait();
     bool result = sync_result.first;
@@ -192,7 +191,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
   // Flush to the database. The [30] should also flush all data.
   raw->WriteToDB(task_manager_, true, 30, nullptr, nullptr);
-  task_manager_->Flush();
+  task_manager_->WaitForFlush();
 
   {
     util->BeginTransaction(catalog::INVALID_DATABASE_OID);
@@ -222,9 +221,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     };
 
     execution::exec::ExecutionSettings settings{};
-    bool result =
-        util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr,
-                         std::make_unique<optimizer::TrivialCostModel>(), false, execution::query_id_t(0), settings);
+    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr,
+                                   std::make_unique<optimizer::TrivialCostModel>(), std::nullopt, settings);
     EXPECT_TRUE(result && "select should have succeeded");
     EXPECT_TRUE(val.size() == qids.size() && "Incorrect number recorded");
     util->EndTransaction(true);
@@ -243,9 +241,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     };
 
     execution::exec::ExecutionSettings settings{};
-    bool result =
-        util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr,
-                         std::make_unique<optimizer::TrivialCostModel>(), false, execution::query_id_t(0), settings);
+    bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr,
+                                   std::make_unique<optimizer::TrivialCostModel>(), std::nullopt, settings);
     EXPECT_TRUE(result && "Select should have succeeded");
     EXPECT_TRUE(seen.size() == qids.size() && "Must sample at least 1 per qid");
     EXPECT_TRUE(row_count <= qids.size() * num_sample && "Sampling limit exceeded");

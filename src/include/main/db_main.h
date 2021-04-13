@@ -931,7 +931,7 @@ class DBMain {
     uint64_t block_store_size_ = 1e5;
     uint64_t block_store_reuse_ = 1e3;
     uint64_t optimizer_timeout_ = 5000;
-    uint32_t task_pool_size_ = 1;
+    uint64_t forecast_sample_limit_ = 5;
 
     std::string wal_file_path_ = "wal.log";
     std::string model_save_path_;
@@ -962,10 +962,10 @@ class DBMain {
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
-    uint64_t forecast_sample_limit_ = 5;
     int32_t wal_serialization_interval_ = 100;
     int32_t wal_persist_interval_ = 100;
     int32_t gc_interval_ = 1000;
+    uint32_t task_pool_size_ = 1;
 
     uint16_t connection_thread_count_ = 4;
     uint16_t network_port_ = 15721;

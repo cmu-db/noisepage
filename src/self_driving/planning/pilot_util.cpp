@@ -56,8 +56,8 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     execution::exec::ExecutionSettings settings{};
-    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), false,
-                          execution::query_id_t(0), settings)) {
+    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), std::nullopt,
+                          settings)) {
       util.ExecuteQuery(sql_query, nullptr, nullptr, nullptr, settings);
     }
   }
@@ -164,9 +164,10 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
 
     // Forcefully reoptimize all the queries and set the query identifier to use
     common::Future<bool> sync;
-    pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
-        db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types),
-        nullptr, metrics_manager, true, true, true, qid, common::ManagedPointer(&sync)));
+    pilot->task_manager_->AddTask(
+        std::make_unique<task::TaskDML>(db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
+                                        std::move(params), std::move(param_types), nullptr, metrics_manager, true, true,
+                                        std::make_optional<execution::query_id_t>(qid), common::ManagedPointer(&sync)));
     sync.Wait();
   }
 
