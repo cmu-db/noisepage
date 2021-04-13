@@ -36,6 +36,7 @@ enum class TypeId : uint8_t {
   PARAMETER_OFFSET,
   VARIADIC,
   VAR_ARRAY,  ///< pg_type requires a distinct type for var_array.
+  TEXT
 };
 
 }  // namespace noisepage::type

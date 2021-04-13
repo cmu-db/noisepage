@@ -313,7 +313,8 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
                    "Not in a valid txn. This should have been caught before calling this function.");
   // Need a single column to write back to the client
   std::vector<planner::OutputSchema::Column> output_columns;
-  output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
+  // Set text flag here?
+  output_columns.emplace_back("QUERY PLAN", type::TypeId::TEXT, nullptr);
   out->WriteRowDescription(output_columns, {network::FieldFormat::text});
 
   // Dump to JSON string, wrap in StringVal, write the data row to the client

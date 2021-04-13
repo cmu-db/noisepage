@@ -377,7 +377,8 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         break;
       }
       case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
+      case type::TypeId::VARBINARY:
+      case type::TypeId::TEXT: {
         // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
         // continue
         const auto *const string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
