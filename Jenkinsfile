@@ -45,7 +45,7 @@ pipeline {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageBuildDefault([
                         buildCommand: 'ninja',
-                        cmake: '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_LOGGING=OFF'
+                        cmake: '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_BUILD_BENCHMARKS=ON -DNOISEPAGE_BUILD_TESTS=ON -NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS=ON -DNOISEPAGE_USE_LOGGING=OFF'
                     ] ) } }
                     post        { cleanup { deleteDir() } }
                 }
