@@ -68,7 +68,7 @@ pipeline {
                 stage('ubuntu-20.04/gcc-9.3 (Release/jumbotests)') {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(false, [cmake:
-                        [CMAKE_BUILD_TYPE:'Release', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JEMALLOC:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
+                        [CMAKE_BUILD_TYPE:'Release', NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
                     ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
@@ -77,7 +77,7 @@ pipeline {
                     agent       { docker { image 'noisepage:focal' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
                     environment { CC="/usr/bin/clang-8" ; CXX="/usr/bin/clang++-8" }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(false, [cmake:
-                        [CMAKE_BUILD_TYPE:"Release", NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JEMALLOC:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
+                        [CMAKE_BUILD_TYPE:"Release", NOISEPAGE_BUILD_TESTS:'ON', NOISEPAGE_USE_JUMBOTESTS:'ON']]
                     ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
