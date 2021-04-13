@@ -24,7 +24,6 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(input_oids_)),
       index_schema_(GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(plan.GetIndexOid())),
       index_pm_(GetCodeGen()->GetCatalogAccessor()->GetIndex(plan.GetIndexOid())->GetKeyOidToOffsetMap()),
-      index_iter_(GetCodeGen()->MakeFreshIdentifier("index_iter")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       index_pr_(GetCodeGen()->MakeFreshIdentifier("index_pr")),
       lo_index_pr_(GetCodeGen()->MakeFreshIdentifier("lo_index_pr")),
@@ -48,21 +47,27 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
     }
   }
 
+  ast::Expr *index_iter_type = GetCodeGen()->BuiltinType(ast::BuiltinType::IndexIterator);
+  index_iter_ = pipeline->DeclarePipelineStateEntry("indexIterator", index_iter_type);
   num_scans_index_ = CounterDeclare("num_scans_index", pipeline);
 }
 
 void IndexScanTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   CounterSet(function, num_scans_index_, 0);
+  // var col_oids: [num_cols]uint32
+  // col_oids[i] = ...
+  SetOids(function);
+  // @indexIteratorInit(&pipelineState.indexIterator, queryState.execCtx, num_attrs, table_oid, index_oid, col_oids)
+  DeclareIterator(function);
+}
+
+void IndexScanTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  // @indexIteratorFree(&pipelineState.indexIterator)
+  FreeIterator(function);
 }
 
 void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   const auto &op = GetPlanAs<planner::IndexScanPlanNode>();
-  // var col_oids: [num_cols]uint32
-  // col_oids[i] = ...
-  SetOids(function);
-  // var index_iter : IndexIterator
-  // @indexIteratorInit(&index_iter, queryState.execCtx, num_attrs, table_oid, index_oid, col_oids)
-  DeclareIterator(function);
   // Either:
   // (A) var index_pr = @indexIteratorGetPR(&index_iter)
   // (B) var lo_index_pr = @indexIteratorGetLoPR(&index_iter)
@@ -76,19 +81,20 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
     FillKey(context, function, hi_index_pr_, op.GetHiIndexColumns());
   }
 
-  // @indexIteratorScanKey(&index_iter)
-  ast::Expr *scan_call = GetCodeGen()->IndexIteratorScan(index_iter_, op.GetScanType(), op.GetScanLimit());
+  // @indexIteratorScanKey(&pipelineState.indexIterator)
+  ast::Expr *scan_call =
+      GetCodeGen()->IndexIteratorScan(index_iter_.GetPtr(GetCodeGen()), op.GetScanType(), op.GetScanLimit());
   ast::Stmt *loop_init = GetCodeGen()->MakeStmt(scan_call);
-  // @indexIteratorAdvance(&index_iter)
+  // @indexIteratorAdvance(&pipelineState.indexIterator)
   ast::Expr *advance_call =
-      GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorAdvance, {GetCodeGen()->AddressOf(index_iter_)});
+      GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorAdvance, {index_iter_.GetPtr(GetCodeGen())});
 
   // for (@indexIteratorScanKey(&index_iter); @indexIteratorAdvance(&index_iter);)
   Loop loop(function, loop_init, advance_call, nullptr);
   {
-    // var table_pr = @indexIteratorGetTablePR(&index_iter)
+    // var table_pr = @indexIteratorGetTablePR(&pipelineState.indexIterator)
     DeclareTablePR(function);
-    // var slot = @indexIteratorGetSlot(&index_iter)
+    // var slot = @indexIteratorGetSlot(&pipelineState.indexIterator)
     DeclareSlot(function);
 
     bool has_predicate = op.GetScanPredicate() != nullptr;
@@ -107,12 +113,9 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   }
   loop.EndLoop();
 
-  // @indexIteratorFree(&index_iter_)
-  FreeIterator(function);
-
   FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
                 selfdriving::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
-                GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)}));
+                GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {index_iter_.GetPtr(GetCodeGen())}));
   FeatureRecord(function, selfdriving::ExecutionOperatingUnitType::IDX_SCAN,
                 selfdriving::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_scans_index_));
@@ -141,10 +144,7 @@ void IndexScanTranslator::SetOids(FunctionBuilder *builder) const {
 }
 
 void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) const {
-  // var index_iter : IndexIterator
-  ast::Expr *iter_type = GetCodeGen()->BuiltinType(ast::BuiltinType::IndexIterator);
-  builder->Append(GetCodeGen()->DeclareVar(index_iter_, iter_type, nullptr));
-  // @indexIteratorInit(&index_iter, queryState.execCtx, num_attrs, table_oid, index_oid, col_oids)
+  // @indexIteratorInit(&pipelineState.indexIterator, queryState.execCtx, num_attrs, table_oid, index_oid, col_oids)
   uint32_t num_attrs = 0;
   const auto &op = GetPlanAs<planner::IndexScanPlanNode>();
   if (op.GetScanType() == planner::IndexScanType::Exact) {
@@ -154,7 +154,7 @@ void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) const {
   }
 
   ast::Expr *init_call = GetCodeGen()->IndexIteratorInit(
-      index_iter_, GetCompilationContext()->GetExecutionContextPtrFromQueryState(), num_attrs,
+      index_iter_.GetPtr(GetCodeGen()), GetCompilationContext()->GetExecutionContextPtrFromQueryState(), num_attrs,
       op.GetTableOid().UnderlyingValue(), op.GetIndexOid().UnderlyingValue(), col_oids_);
   builder->Append(GetCodeGen()->MakeStmt(init_call));
 }
@@ -162,33 +162,33 @@ void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) const {
 void IndexScanTranslator::DeclareIndexPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   const auto &op = GetPlanAs<planner::IndexScanPlanNode>();
   if (op.GetScanType() == planner::IndexScanType::Exact) {
-    // var index_pr = @indexIteratorGetPR(&index_iter)
+    // var index_pr = @indexIteratorGetPR(&pipelineState.indexIterator)
     ast::Expr *get_pr_call =
-        GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetPR, {GetCodeGen()->AddressOf(index_iter_)});
+        GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetPR, {index_iter_.GetPtr(GetCodeGen())});
     builder->Append(GetCodeGen()->DeclareVar(index_pr_, nullptr, get_pr_call));
   } else {
-    // var lo_index_pr = @indexIteratorGetLoPR(&index_iter)
-    // var hi_index_pr = @indexIteratorGetHiPR(&index_iter)
+    // var lo_index_pr = @indexIteratorGetLoPR(&pipelineState.indexIterator)
+    // var hi_index_pr = @indexIteratorGetHiPR(&pipelineState.indexIterator)
     ast::Expr *lo_pr_call =
-        GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetLoPR, {GetCodeGen()->AddressOf(index_iter_)});
+        GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetLoPR, {index_iter_.GetPtr(GetCodeGen())});
     ast::Expr *hi_pr_call =
-        GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetHiPR, {GetCodeGen()->AddressOf(index_iter_)});
+        GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetHiPR, {index_iter_.GetPtr(GetCodeGen())});
     builder->Append(GetCodeGen()->DeclareVar(lo_index_pr_, nullptr, lo_pr_call));
     builder->Append(GetCodeGen()->DeclareVar(hi_index_pr_, nullptr, hi_pr_call));
   }
 }
 
 void IndexScanTranslator::DeclareTablePR(noisepage::execution::compiler::FunctionBuilder *builder) const {
-  // var table_pr = @indexIteratorGetTablePR(&index_iter)
+  // var table_pr = @indexIteratorGetTablePR(&pipelineState.indexIterator)
   ast::Expr *get_pr_call =
-      GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetTablePR, {GetCodeGen()->AddressOf(index_iter_)});
+      GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetTablePR, {index_iter_.GetPtr(GetCodeGen())});
   builder->Append(GetCodeGen()->DeclareVar(table_pr_, nullptr, get_pr_call));
 }
 
 void IndexScanTranslator::DeclareSlot(noisepage::execution::compiler::FunctionBuilder *builder) const {
-  // var slot = @indexIteratorGetSlot(&index_iter)
+  // var slot = @indexIteratorGetSlot(&pipelineState.indexIterator)
   ast::Expr *get_slot_call =
-      GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSlot, {GetCodeGen()->AddressOf(index_iter_)});
+      GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSlot, {index_iter_.GetPtr(GetCodeGen())});
   builder->Append(GetCodeGen()->DeclareVar(slot_, nullptr, get_slot_call));
 }
 
@@ -213,9 +213,8 @@ ast::Expr *IndexScanTranslator::GetSlotAddress() const {
 }
 
 void IndexScanTranslator::FreeIterator(FunctionBuilder *builder) const {
-  // @indexIteratorFree(&index_iter_)
-  ast::Expr *free_call =
-      GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorFree, {GetCodeGen()->AddressOf(index_iter_)});
+  // @indexIteratorFree(&pipelineState.indexIterator)
+  ast::Expr *free_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorFree, {index_iter_.GetPtr(GetCodeGen())});
   builder->Append(GetCodeGen()->MakeStmt(free_call));
 }
 

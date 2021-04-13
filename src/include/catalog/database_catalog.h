@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -10,8 +11,11 @@
 #include "catalog/postgres/pg_core_impl.h"
 #include "catalog/postgres/pg_language_impl.h"
 #include "catalog/postgres/pg_proc_impl.h"
+#include "catalog/postgres/pg_statistic_impl.h"
 #include "catalog/postgres/pg_type_impl.h"
 #include "common/managed_pointer.h"
+#include "optimizer/statistics/column_stats.h"
+#include "optimizer/statistics/table_stats.h"
 
 namespace noisepage::transaction {
 class TransactionContext;
@@ -175,6 +179,14 @@ class DatabaseCatalog {
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
+  /** @brief Get the statistics for the specified column. @see PgStatisticImpl::GetColumnStatistics */
+  std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(
+      common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, col_oid_t col_oid);
+
+  /** @brief Get the statistics for the specified table. @see PgStatisticImpl::GetTableStatistics */
+  optimizer::TableStats GetTableStatistics(common::ManagedPointer<transaction::TransactionContext> txn,
+                                           table_oid_t table_oid);
+
  private:
   /**
    * The maximum number of tuples to be read out at a time when scanning tables during teardown.
@@ -192,6 +204,7 @@ class DatabaseCatalog {
   friend class postgres::PgLanguageImpl;
   friend class postgres::PgProcImpl;
   friend class postgres::PgTypeImpl;
+  friend class postgres::PgStatisticImpl;
   ///@}
   friend class Catalog;                   ///< Accesses write_lock_ (creating accessor) and TearDown (cleanup).
   friend class postgres::Builder;         ///< Initializes DatabaseCatalog's tables.
@@ -209,6 +222,7 @@ class DatabaseCatalog {
   postgres::PgConstraintImpl pg_constraint_;  ///< Constraints: pg_constraint.
   postgres::PgLanguageImpl pg_language_;      ///< Languages: pg_language.
   postgres::PgProcImpl pg_proc_;              ///< Procedures: pg_proc.
+  postgres::PgStatisticImpl pg_stat_;         ///< Statistics: pg_statistic.
 
   /** @brief Create a new DatabaseCatalog. Does not create any tables until Bootstrap is called. */
   DatabaseCatalog(db_oid_t oid, common::ManagedPointer<storage::GarbageCollector> garbage_collector);

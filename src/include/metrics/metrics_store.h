@@ -197,15 +197,16 @@ class MetricsStore {
 
   /**
    * Record query execution history
+   * @param db_oid Database OID
    * @param query_id id of the query
    * @param timestamp time of the query execution
    * @param param parameter associated with this query
    */
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
+  void RecordQueryTrace(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     NOISEPAGE_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
-    query_trace_metric_->RecordQueryTrace(query_id, timestamp, param);
+    query_trace_metric_->RecordQueryTrace(db_oid, query_id, timestamp, param);
   }
 
   /**
@@ -222,13 +223,15 @@ class MetricsStore {
    * interval, false otherwise
    */
   bool ComponentToRecord(const MetricsComponent component) {
-    auto component_index = static_cast<uint8_t>(component);
+    const auto component_index = static_cast<uint8_t>(component);
     if (!enabled_metrics_.test(component_index)) return false;
 
-    sample_count_[component_index] =
-        sample_count_[component_index] >= sample_interval_[component_index] ? 0 : sample_count_[component_index] + 1;
+    // increment the sample count to use as our index into the bitset
+    sample_count_[component_index] = sample_count_[component_index] >= 99 ? 0 : sample_count_[component_index] + 1;
 
-    return sample_count_[component_index] == 0;
+    const auto sample_count = sample_count_[component_index];
+
+    return samples_mask_[component_index][sample_count];
   }
 
   /**
@@ -243,7 +246,7 @@ class MetricsStore {
 
   explicit MetricsStore(common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                         const std::bitset<NUM_COMPONENTS> &enabled_metrics,
-                        const std::array<uint32_t, NUM_COMPONENTS> &sampling_masks);
+                        const std::array<std::vector<bool>, NUM_COMPONENTS> &samples_mask_);
 
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
 
@@ -257,8 +260,8 @@ class MetricsStore {
   std::unique_ptr<ExecuteCommandMetric> execute_command_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
-  const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;
-  std::array<uint32_t, NUM_COMPONENTS> sample_count_{0};
+  const std::array<std::vector<bool>, NUM_COMPONENTS> &samples_mask_;
+  std::array<uint8_t, NUM_COMPONENTS> sample_count_{0};
 };
 
 }  // namespace noisepage::metrics

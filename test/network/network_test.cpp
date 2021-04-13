@@ -63,7 +63,7 @@ class NetworkTests : public TerrierTest {
     deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
     txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
                                                        common::ManagedPointer(deferred_action_manager_),
-                                                       common::ManagedPointer(&buffer_pool_), true, DISABLED);
+                                                       common::ManagedPointer(&buffer_pool_), true, false, DISABLED);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
                                         common::ManagedPointer(deferred_action_manager_),
                                         common::ManagedPointer(txn_manager_), DISABLED);
@@ -72,7 +72,7 @@ class NetworkTests : public TerrierTest {
                                     common::ManagedPointer(gc_));
 
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_), DISABLED,
-                                       DISABLED, DISABLED, 0, false, execution::vm::ExecutionMode::Interpret);
+                                       DISABLED, DISABLED, DISABLED, 0, false, execution::vm::ExecutionMode::Interpret);
 
     auto txn = txn_manager_->BeginTransaction();
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);

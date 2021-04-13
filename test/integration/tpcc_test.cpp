@@ -59,8 +59,8 @@ class TPCCTests : public TerrierTest {
     if (metrics_enabled) {
       db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
       db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
-      db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
-      db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 100);
+      db_main->GetMetricsManager()->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, 100);
+      db_main->GetMetricsManager()->SetMetricSampleRate(metrics::MetricsComponent::TRANSACTION, 1);
     }
 
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
@@ -104,7 +104,7 @@ class TPCCTests : public TerrierTest {
 TEST_F(TPCCTests, WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
+TEST_F(TPCCTests, WithoutLoggingBPlusTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BPLUSTREE); }
 
 // NOLINTNEXTLINE
 TEST_F(TPCCTests, WithLogging) { RunTPCC(true, false, storage::index::IndexType::HASHMAP); }

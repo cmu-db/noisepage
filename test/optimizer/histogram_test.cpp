@@ -96,7 +96,13 @@ TEST_F(HistogramTests, ValueTypeTest) {
   int_h.Increment(999);
   EXPECT_EQ(int_h.GetMaxBinSize(), num_bins);
   EXPECT_EQ(int_h.GetMinValue(), 777);
+  EXPECT_TRUE(int_h.IsLessThanMinValue(776));
+  EXPECT_FALSE(int_h.IsLessThanMinValue(777));
+  EXPECT_FALSE(int_h.IsLessThanMinValue(778));
   EXPECT_EQ(int_h.GetMaxValue(), 999);
+  EXPECT_TRUE(int_h.IsGreaterThanOrEqualToMaxValue(1000));
+  EXPECT_TRUE(int_h.IsGreaterThanOrEqualToMaxValue(999));
+  EXPECT_FALSE(int_h.IsGreaterThanOrEqualToMaxValue(998));
   EXPECT_EQ(int_h.GetTotalValueCount(), 2);
 
   Histogram<uint16_t> smallint_h{num_bins};
@@ -110,14 +116,26 @@ TEST_F(HistogramTests, ValueTypeTest) {
   float_h.Increment(777.77F);
   float_h.Increment(999.99F);
   EXPECT_EQ(float_h.GetMinValue(), 777.77F);
+  EXPECT_FALSE(float_h.IsLessThanMinValue(777.78F));
+  EXPECT_FALSE(float_h.IsLessThanMinValue(777.77F));
+  EXPECT_TRUE(float_h.IsLessThanMinValue(777.76F));
   EXPECT_EQ(float_h.GetMaxValue(), 999.99F);
+  EXPECT_FALSE(float_h.IsGreaterThanOrEqualToMaxValue(999.98F));
+  EXPECT_TRUE(float_h.IsGreaterThanOrEqualToMaxValue(999.99F));
+  EXPECT_TRUE(float_h.IsGreaterThanOrEqualToMaxValue(1000.00F));
   EXPECT_EQ(float_h.GetTotalValueCount(), 2);
 
   Histogram<double> double_h{num_bins};
   double_h.Increment(777.77);
   double_h.Increment(999.99);
   EXPECT_EQ(double_h.GetMinValue(), 777.77);
+  EXPECT_TRUE(double_h.IsLessThanMinValue(777.76));
+  EXPECT_FALSE(double_h.IsLessThanMinValue(777.77));
+  EXPECT_FALSE(double_h.IsLessThanMinValue(777.78));
   EXPECT_EQ(double_h.GetMaxValue(), 999.99);
+  EXPECT_FALSE(double_h.IsGreaterThanOrEqualToMaxValue(999.98));
+  EXPECT_TRUE(double_h.IsGreaterThanOrEqualToMaxValue(999.99));
+  EXPECT_TRUE(double_h.IsGreaterThanOrEqualToMaxValue(1000.00));
   EXPECT_EQ(double_h.GetTotalValueCount(), 2);
 }
 
@@ -145,6 +163,77 @@ TEST_F(HistogramTests, OutputTest) {
   std::ostringstream os;
   os << h;
   EXPECT_FALSE(os.str().empty());
+}
+
+// NOLINTNEXTLINE
+TEST_F(HistogramTests, MergeTest) {
+  Histogram<int> h1{100};
+  EXPECT_EQ(h1.EstimateItemCount(0), 0);
+  h1.Increment(5);
+  EXPECT_EQ(h1.GetMinValue(), 5);
+  EXPECT_EQ(h1.GetMaxValue(), 5);
+
+  Histogram<int> h2{100};
+  EXPECT_EQ(h2.EstimateItemCount(0), 0);
+  h2.Increment(3);
+  EXPECT_EQ(h2.GetMinValue(), 3);
+  EXPECT_EQ(h2.GetMaxValue(), 3);
+
+  h1.Merge(h2);
+  EXPECT_EQ(h1.GetMinValue(), 3);
+  EXPECT_EQ(h1.GetMaxValue(), 5);
+}
+
+// NOLINTNEXTLINE
+TEST_F(HistogramTests, ClearTest) {
+  Histogram<int> h{100};
+  auto boundaries = h.Uniform();
+  EXPECT_EQ(boundaries.size(), 0);
+
+  EXPECT_EQ(h.EstimateItemCount(0), 0);
+  h.Increment(5);
+  EXPECT_EQ(h.EstimateItemCount(3), 0);
+  EXPECT_EQ(h.EstimateItemCount(4), 0);
+  EXPECT_EQ(h.EstimateItemCount(5), 1);
+  // EstimateItemCount returns the number of elements less than or equal to the input which is why this returns 1
+  EXPECT_EQ(h.EstimateItemCount(6), 1);
+
+  h.Clear();
+  boundaries = h.Uniform();
+  EXPECT_EQ(boundaries.size(), 0);
+
+  EXPECT_EQ(h.EstimateItemCount(0), 0);
+  EXPECT_EQ(h.EstimateItemCount(3), 0);
+  EXPECT_EQ(h.EstimateItemCount(4), 0);
+  EXPECT_EQ(h.EstimateItemCount(5), 0);
+  EXPECT_EQ(h.EstimateItemCount(6), 0);
+}
+
+// NOLINTNEXTLINE
+TEST_F(HistogramTests, SerializationTest) {
+  Histogram<int> h{100};
+  auto boundaries = h.Uniform();
+  EXPECT_EQ(boundaries.size(), 0);
+
+  EXPECT_EQ(h.EstimateItemCount(0), 0);
+  h.Increment(5);
+  EXPECT_EQ(h.EstimateItemCount(3), 0);
+  EXPECT_EQ(h.EstimateItemCount(4), 0);
+  EXPECT_EQ(h.EstimateItemCount(5), 1);
+  EXPECT_EQ(h.EstimateItemCount(6), 1);
+  EXPECT_EQ(h.GetMinValue(), 5);
+  EXPECT_EQ(h.GetMaxValue(), 5);
+
+  size_t size;
+  auto serialized_h = h.Serialize(&size);
+  auto deserialized_h = Histogram<int>::Deserialize(serialized_h.get(), size);
+
+  EXPECT_EQ(deserialized_h.EstimateItemCount(3), 0);
+  EXPECT_EQ(deserialized_h.EstimateItemCount(4), 0);
+  EXPECT_EQ(deserialized_h.EstimateItemCount(5), 1);
+  EXPECT_EQ(deserialized_h.EstimateItemCount(6), 1);
+  EXPECT_EQ(deserialized_h.GetMinValue(), 5);
+  EXPECT_EQ(deserialized_h.GetMaxValue(), 5);
 }
 
 }  // namespace noisepage::optimizer

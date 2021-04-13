@@ -162,6 +162,7 @@ namespace noisepage::execution::ast {
   F(AggMerge, aggMerge)                                                 \
   F(AggReset, aggReset)                                                 \
   F(AggResult, aggResult)                                               \
+  F(AggFree, aggFree)                                                   \
                                                                         \
   /* Joins */                                                           \
   F(JoinHashTableInit, joinHTInit)                                      \
@@ -360,6 +361,9 @@ namespace noisepage::execution::ast {
   F(Mod, mod)                                                           \
   F(Pow, pow)                                                           \
   F(Abs, abs)                                                           \
+                                                                        \
+  /* Replication. */                                                    \
+  F(ReplicationGetLastTransactionId, replicationGetLastTransactionId)   \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \

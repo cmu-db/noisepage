@@ -33,6 +33,10 @@ class IndexBuilder {
 
   Index *BuildBwTreeGenericKey(IndexMetadata metadata) const;
 
+  Index *BuildBPlusTreeIntsKey(IndexMetadata &&metadata) const;
+
+  Index *BuildBPlusTreeGenericKey(IndexMetadata metadata) const;
+
   Index *BuildHashIntsKey(IndexMetadata metadata) const;
 
   Index *BuildHashGenericKey(IndexMetadata metadata) const;

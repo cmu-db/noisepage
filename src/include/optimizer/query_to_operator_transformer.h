@@ -99,6 +99,16 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   bool GenerateSubqueryTree(common::ManagedPointer<parser::AbstractExpression> expr, int child_id, bool single_join);
 
   /**
+   * Validate the values to be inserted into a table
+   * @param insert_op InsertStatement to validate
+   * @param values values that are being inserted
+   * @param target_table_id table oid of table being inserted into
+   */
+  void ValidateInsertValues(common::ManagedPointer<parser::InsertStatement> insert_op,
+                            const std::vector<common::ManagedPointer<parser::AbstractExpression>> &values,
+                            catalog::table_oid_t target_table_id);
+
+  /**
    * Decide if a conjunctive predicate is supported. We need to extract conjunction predicate first
    * then call this function to decide if the predicate is supported by our system
    * @param expr The conjunctive predicate provided

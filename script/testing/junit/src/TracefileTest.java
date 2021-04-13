@@ -68,6 +68,10 @@ public class TracefileTest {
                 dTest.add(cur);
             }
             mog.queryResults.clear();
+            if (conn.isClosed()) {
+                System.err.println("Connection closed (DBMS segfault?), skipping the rest of the tests.");
+                break;
+            }
         }
         conn.close();
         return dTest;

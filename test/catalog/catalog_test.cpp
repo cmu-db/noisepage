@@ -324,7 +324,7 @@ TEST_F(CatalogTests, UserIndexTest) {
   // Create the index
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
                                        "test_table_index_mabobberwithareallylongnamethatstillneedsmore", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
@@ -379,7 +379,7 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
   EXPECT_NE(accessor, nullptr);
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_index", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
@@ -443,7 +443,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
   EXPECT_NE(accessor, nullptr);
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(ns_oid, table_oid, "test_index", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
@@ -508,7 +508,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
   EXPECT_NE(accessor, nullptr);
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(ns_oid, table_oid, "test_index", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
@@ -689,7 +689,7 @@ TEST_F(CatalogTests, GetIndexesTest) {
   // Create the index
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
@@ -736,7 +736,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
     std::vector<catalog::IndexSchema::Column> key_cols{
         catalog::IndexSchema::Column{"id", type::TypeId::INTEGER, false,
                                      parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-    auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+    auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
     auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
                                          "test_table_idx" + std::to_string(i), index_schema);
     EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
@@ -839,6 +839,36 @@ TEST_F(CatalogTests, DDLLockTest) {
   ns_oid = accessor5->GetNamespaceOid("txn2_ns");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
   txn_manager_->Commit(txn5, transaction::TransactionUtil::EmptyCallback, nullptr);  // txn5 releases the lock
+}
+
+TEST_F(CatalogTests, StatisticTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+
+  // Create test table
+  const auto *table_name = "stat_test";
+  const auto *column_name = "a";
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back(column_name, type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  auto tmp_schema = catalog::Schema(cols);
+
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), table_name, tmp_schema);
+  auto schema = accessor->GetSchema(table_oid);
+  auto *table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
+  auto col_oid = accessor->GetSchema(table_oid).GetColumn(column_name).Oid();
+
+  auto table_stats = accessor->GetTableStatistics(table_oid);
+  EXPECT_TRUE(table_stats.HasColumnStats(col_oid));
+  EXPECT_EQ(table_stats.GetNumRows(), 0);
+  EXPECT_EQ(table_stats.GetColumnCount(), 1);
+
+  auto col_stats = accessor->GetColumnStatistics(table_oid, col_oid);
+  EXPECT_NE(col_stats, nullptr);
+  EXPECT_EQ(col_stats->GetNumRows(), 0);
+  EXPECT_EQ(col_stats->GetColumnID(), col_oid);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 }  // namespace noisepage

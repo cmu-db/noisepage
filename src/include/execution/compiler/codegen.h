@@ -129,6 +129,11 @@ class CodeGen {
   [[nodiscard]] ast::Expr *Const64(int64_t val) const;
 
   /**
+   * @return A literal whose value is the provided 32-bit unsigned integer.
+   */
+  [[nodiscard]] ast::Expr *ConstU32(uint32_t val) const;
+
+  /**
    * @return A literal whose value is the provided 64-bit floating point.
    */
   [[nodiscard]] ast::Expr *ConstDouble(double val) const;
@@ -174,6 +179,11 @@ class CodeGen {
    * @return The type representation for an 64-bit signed integer (i.e., int64)
    */
   [[nodiscard]] ast::Expr *Int64Type() const;
+
+  /**
+   * @return The type representation for an 32-bit unsigned integer (i.e., uint32)
+   */
+  [[nodiscard]] ast::Expr *Uint32Type() const;
 
   /**
    * @return The type representation for an 32-bit floating point number (i.e., float32)
@@ -229,9 +239,11 @@ class CodeGen {
    * Return the appropriate aggregate type for the given input aggregation expression.
    * @param agg_type The aggregate expression type.
    * @param ret_type The return type of the aggregate.
+   * @param child_type The type of the child of the aggregate.
    * @return The corresponding TPL aggregate type.
    */
-  [[nodiscard]] ast::Expr *AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type) const;
+  [[nodiscard]] ast::Expr *AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type,
+                                         sql::TypeId child_type) const;
 
   /**
    * @return An expression that represents the address of the provided object.
@@ -609,6 +621,19 @@ class CodeGen {
                                              uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
 
   /**
+   * Call \@indexIteratorInit(iter_ptr, execCtx, table_oid, index_oid, col_oids)
+   * @param iter_ptr Pointer to the index iterator.
+   * @param exec_ctx_var The execution context variable.
+   * @param num_attrs Number of attributes
+   * @param table_oid The oid of the index's table.
+   * @param index_oid The oid the index.
+   * @param col_oids The identifier of the array of column oids to read.
+   * @return The expression corresponding to the builtin call.
+   */
+  [[nodiscard]] ast::Expr *IndexIteratorInit(ast::Expr *iter_ptr, ast::Expr *exec_ctx_var, uint32_t num_attrs,
+                                             uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
+
+  /**
    * Call \@indexIteratorScanType(&iter[, limit])
    * @param iter The identifier of the index iterator.
    * @param scan_type The type of scan to perform.
@@ -616,6 +641,15 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   [[nodiscard]] ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
+
+  /**
+   * Call \@indexIteratorScanType(&iter_ptr[, limit])
+   * @param iter_ptr Pointer to the index iterator.
+   * @param scan_type The type of scan to perform.
+   * @param limit The limit of the scan in case of limited scans.
+   * @return The expression corresponding to the builtin call.
+   */
+  [[nodiscard]] ast::Expr *IndexIteratorScan(ast::Expr *iter_ptr, planner::IndexScanType scan_type, uint32_t limit);
 
   // -------------------------------------------------------
   //
@@ -1165,10 +1199,20 @@ class CodeGen {
 
   /**
    * Call \@aggResult(). Finalizes and returns the result of the aggregation.
+   * @param exec_ctx The execution context that we are running in.
+   * @param agg A pointer to the aggregator.
+   * @param expression_type Type of aggregate expression
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *AggregatorResult(ast::Expr *exec_ctx, ast::Expr *agg,
+                                            const parser::ExpressionType &expression_type);
+
+  /**
+   * Call \@aggFree(). Frees all resources associated with the aggregator.
    * @param agg A pointer to the aggregator.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *AggregatorResult(ast::Expr *agg);
+  [[nodiscard]] ast::Expr *AggregatorFree(ast::Expr *agg);
 
   // -------------------------------------------------------
   //
@@ -1351,16 +1395,16 @@ class CodeGen {
   [[nodiscard]] ast::Expr *CSVReaderClose(ast::Expr *reader);
 
   /**
-   * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
-   * @param si The storage interface to initialize
+   * Call \@storageInterfaceInit(si_ptr, execCtx, table_oid, col_oids, need_indexes)
+   * @param storage_interface_ptr A pointer to the storage interface to initialize.
    * @param exec_ctx The execution context that we are running in.
    * @param table_oid The oid of the table being accessed.
    * @param col_oids The identifier of the array of column oids to access.
    * @param need_indexes Whether the storage interface will need to use indexes
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids,
-                                  bool need_indexes);
+  ast::Expr *StorageInterfaceInit(ast::Expr *storage_interface_ptr, ast::Expr *exec_ctx, uint32_t table_oid,
+                                  ast::Identifier col_oids, bool need_indexes);
 
   // ---------------------------------------------------------------------------
   //

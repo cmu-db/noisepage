@@ -74,12 +74,13 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
       std::unique_ptr<planner::AbstractPlanNode> plan_node =
           trafficcop::TrafficCopUtil::Optimize(
               common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(parse_result),
-              db_oid_, db_main_->GetStatsStorage(), std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout)
+              db_oid_, db_main_->GetStatsStorage(), std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout,
+              nullptr)
               ->TakePlanNodeOwnership();
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid_, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings_,
-          db_main_->GetMetricsManager());
+          db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
       // generate executable query and emplace it into the vector; break down here
       auto exec_query =
@@ -119,7 +120,9 @@ void WorkloadCached::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per
                                                  nullptr,  // FIXME: Get the correct output later
                                                  common::ManagedPointer<catalog::CatalogAccessor>(accessor),
                                                  exec_settings_,
-                                                 db_main_->GetMetricsManager()};
+                                                 db_main_->GetMetricsManager(),
+                                                 DISABLED,
+                                                 DISABLED};
       query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     }
     counter = counter == num_queries - 1 ? 0 : counter + 1;

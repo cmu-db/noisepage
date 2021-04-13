@@ -182,7 +182,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
     if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
       // Binding succeeded, optimize to generate a physical plan and then execute
-      auto optimize_result = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+      auto optimize_result = t_cop->OptimizeBoundQuery(connection, statement->ParseResult(), nullptr);
 
       statement->SetOptimizeResult(std::move(optimize_result));
 
@@ -401,7 +401,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // Binding succeeded, optimize to generate a physical plan
     if (statement->OptimizeResult() == nullptr || !t_cop->UseQueryCache()) {
       // it's not cached, optimize it
-      auto optimize_result = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+      auto optimize_result =
+          t_cop->OptimizeBoundQuery(connection, statement->ParseResult(), common::ManagedPointer(&params));
 
       statement->SetOptimizeResult(std::move(optimize_result));
     }

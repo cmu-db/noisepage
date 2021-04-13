@@ -32,18 +32,26 @@ class TransactionManager {
    * @param deferred_action_manager deferred action manager to use for transactions
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
+   * @param wal_async_commit_enable true if commit callbacks should be invoked by TransactionManager at commit time
+   * rather than waiting until durable on disk and being invoked by the WAL worker. Doesn't make sense to set to true if
+   * WAL is not enabled.
    * @param log_manager the log manager in the system, or DISABLED(nulllptr) if logging is turned off.
    */
   TransactionManager(const common::ManagedPointer<TimestampManager> timestamp_manager,
                      const common::ManagedPointer<DeferredActionManager> deferred_action_manager,
-                     const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool, bool gc_enabled,
-                     const common::ManagedPointer<storage::LogManager> log_manager)
+                     const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool, const bool gc_enabled,
+                     const bool wal_async_commit_enable, const common::ManagedPointer<storage::LogManager> log_manager)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         buffer_pool_(buffer_pool),
         gc_enabled_(gc_enabled),
         log_manager_(log_manager) {
     NOISEPAGE_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
+    NOISEPAGE_ASSERT(!wal_async_commit_enable || (wal_async_commit_enable && log_manager_ != DISABLED),
+                     "Doesn't make sense to enable async commit without enabling logging.");
+    if (wal_async_commit_enable) {
+      SetDefaultTransactionDurabilityPolicy(transaction::DurabilityPolicy::ASYNC);
+    }
   }
 
   /**
@@ -79,16 +87,36 @@ class TransactionManager {
    */
   TransactionQueue CompletedTransactionsForGC();
 
+  /** Set the default transaction durability policy. */
+  void SetDefaultTransactionDurabilityPolicy(const DurabilityPolicy &policy) {
+    default_txn_policy_.durability_ = policy;
+  }
+
+  /** Set the default transaction replication policy. */
+  void SetDefaultTransactionReplicationPolicy(const ReplicationPolicy &policy) {
+    NOISEPAGE_ASSERT(default_txn_policy_.durability_ != DurabilityPolicy::DISABLE, "Replication relies on logs!");
+    NOISEPAGE_ASSERT(!(default_txn_policy_.durability_ == DurabilityPolicy::ASYNC && policy == ReplicationPolicy::SYNC),
+                     "Weird configuration that we don't support; this would require a new approach that isn't "
+                     "swap-the-commit-callback.");
+    default_txn_policy_.replication_ = policy;
+  }
+
+  /** @return The default transaction policy. */
+  const TransactionPolicy &GetDefaultTransactionPolicy() const { return default_txn_policy_; }
+
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   const common::ManagedPointer<DeferredActionManager> deferred_action_manager_;
   const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool_;
+  const bool gc_enabled_ = false;
 
   common::Gate txn_gate_;
 
-  bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
   const common::ManagedPointer<storage::LogManager> log_manager_;
+
+  /** The default policy for every transaction. */
+  TransactionPolicy default_txn_policy_{DurabilityPolicy::SYNC, ReplicationPolicy::DISABLE};
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 

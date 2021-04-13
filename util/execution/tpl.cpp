@@ -36,7 +36,7 @@
 #include "main/db_main.h"
 #include "metrics/metrics_thread.h"
 #include "parser/expression/constant_value_expression.h"
-#include "runner/mini_runners_data_config.h"
+#include "runner/execution_runners_data_config.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
@@ -56,6 +56,7 @@ llvm::cl::opt<bool> TPCH("tpch", llvm::cl::desc("Should the TPCH database be loa
 llvm::cl::opt<std::string> DATA_DIR("data", llvm::cl::desc("Where to find data files of tables to load"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<std::string> INPUT_FILE(llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<std::string> OUTPUT_NAME("output-name", llvm::cl::desc("Print the output name"), llvm::cl::init("schema10"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
+llvm::cl::opt<std::string> HANDLERS_PATH("handlers-path", llvm::cl::desc("Path to the bytecode handlers bitcode file"), llvm::cl::init("./bytecode_handlers_ir.bc"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 // clang-format on
 
 tbb::task_scheduler_init scheduler;
@@ -93,8 +94,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::OutputPrinter printer(output_schema);
   exec::OutputCallback callback = printer;
   exec::ExecutionContext exec_ctx{
-      db_oid,        common::ManagedPointer(txn), callback, output_schema, common::ManagedPointer(accessor),
-      exec_settings, db_main->GetMetricsManager()};
+      db_oid,        common::ManagedPointer(txn),  callback, output_schema, common::ManagedPointer(accessor),
+      exec_settings, db_main->GetMetricsManager(), DISABLED, DISABLED};
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
@@ -325,10 +326,11 @@ static void RunRepl() {
 /**
  * Initialize all TPL subsystems in preparation for execution.
  */
-void InitTPL() {
+void InitTPL(std::string_view bytecode_handlers_path) {
   execution::CpuInfo::Instance();
 
-  execution::vm::LLVMEngine::Initialize();
+  auto settings = std::make_unique<execution::vm::LLVMEngine::Settings>(bytecode_handlers_path);
+  execution::vm::LLVMEngine::Initialize(std::move(settings));
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
 
@@ -375,7 +377,7 @@ int main(int argc, char **argv) {
   }
 
   // Init TPL
-  noisepage::execution::InitTPL();
+  noisepage::execution::InitTPL(HANDLERS_PATH);
 
   EXECUTION_LOG_INFO("\n{}", noisepage::execution::CpuInfo::Instance()->PrettyPrintInfo());
 

@@ -1,12 +1,15 @@
 #include "execution/exec/execution_context.h"
 
+#include "common/error/error_code.h"
 #include "common/thread_context.h"
 #include "execution/sql/value.h"
 #include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
+#include "replication/primary_replication_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
+#include "storage/recovery/recovery_manager.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::exec {
@@ -33,6 +36,23 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
     tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
   }
   return tuple_size;
+}
+
+uint64_t ExecutionContext::ReplicationGetLastTransactionId() const {
+  // Both ReplicationManager and RecoveryManager participate in replication, which defines the last transaction ID
+  // sent from the primary and applied on the replicas respectively.
+  if (replication_manager_ == DISABLED || recovery_manager_ == DISABLED) {
+    throw EXECUTION_EXCEPTION("Replication is disabled. There is no record ID to get.",
+                              common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+
+  // On the primary, this builtin returns the last transaction that was sent by the ReplicationManager.
+  if (replication_manager_->IsPrimary()) {
+    return replication_manager_->GetAsPrimary()->GetLastSentTransactionId().UnderlyingValue();
+  }
+  // On a replica, this builtin returns the last transaction was was applied on the RecoveryManager.
+  NOISEPAGE_ASSERT(replication_manager_->IsReplica(), "Neither primary nor replica?");
+  return recovery_manager_->GetLastAppliedTransactionId().UnderlyingValue();
 }
 
 void ExecutionContext::RegisterThreadWithMetricsManager() {
