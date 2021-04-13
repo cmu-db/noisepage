@@ -24,7 +24,7 @@ namespace noisepage::common {
  * If the use-case is merely to coordinate a value (i.e., result of some
  * computation guaranted to complete) between an asynchronous
  * task and a caller (with exceptions being supported for error cases),
- * a regular std::promise/std::future setup should be used instead.
+ * a regular C++ promise/future setup should be used instead.
  *
  * It is used to build synchronous API over asynchronous function calls:
  * ```c++

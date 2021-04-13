@@ -106,7 +106,7 @@ class TaskDML : public Task {
    * @param metrics_manager Metrics Manager to be used
    * @param force_abort Whether to forcefully abort the transaction
    * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
-   * @param overide_qid Describes whether to override the qid with a value
+   * @param override_qid Describes whether to override the qid with a value
    * @param sync Future for the caller to block on
    */
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
