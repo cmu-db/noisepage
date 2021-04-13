@@ -123,7 +123,7 @@ class TaskDML : public Task {
         metrics_manager_(metrics_manager),
         force_abort_(force_abort),
         skip_query_cache_(skip_query_cache),
-        override_qid_(std::move(override_qid)),
+        override_qid_(override_qid),
         sync_(sync) {
     NOISEPAGE_ASSERT(!override_qid.has_value() || skip_query_cache, "override_qid requires skip_query_cache");
   }
