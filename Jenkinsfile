@@ -1,4 +1,5 @@
-// Common build functions will be loaded into the "utils" object in the Ready For CI stage.
+// Common build functions will be loaded into the "utils" object in every stage.
+// This has to be done in every stage to support the Jenkins "restart from stage" feature.
 def utils
 String utilsFileName  = 'Jenkinsfile-utils.groovy'
 
