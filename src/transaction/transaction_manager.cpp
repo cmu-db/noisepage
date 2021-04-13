@@ -20,10 +20,9 @@ TransactionContext *TransactionManager::BeginTransaction() {
   if (txn_metrics_enabled) common::thread_context.resource_tracker_.Start();
   start_time = timestamp_manager_->BeginTransaction();
   result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
-  // If async commit is enabled, set the durability policy to be async accordingly.
-  if (wal_async_commit_enable_) {
-    result->SetDurabilityPolicy(DurabilityPolicy::ASYNC);
-  }
+  // Set the current default policies for durability and replication.
+  result->SetDurabilityPolicy(default_txn_policy_.durability_);
+  result->SetReplicationPolicy(default_txn_policy_.replication_);
   // Ensure we do not return from this function if there are ongoing write commits
   txn_gate_.Traverse();
 
@@ -49,15 +48,22 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
                                         commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn,
                                         timestamp_manager_.Get());
     } else if (txn->GetDurabilityPolicy() == DurabilityPolicy::ASYNC) {
+      NOISEPAGE_ASSERT(
+          txn->GetReplicationPolicy() != ReplicationPolicy::SYNC,
+          "SYNC replication with ASYNC durability is a rather weird setup."
+          "More importantly, it does not fit in nicely with the swap-in-callback model that we have going.");
+      NOISEPAGE_ASSERT(txn->GetReplicationPolicy() == ReplicationPolicy::ASYNC ||
+                           txn->GetReplicationPolicy() == ReplicationPolicy::DISABLE,
+                       "The below code has only been reasoned about for these cases. See TrafficCop::CommitCallback.");
       if (txn->IsReadOnly()) {
-        // Read-only txns have no external dependencies through the system, so remove it from running transactions table
-        // immediately
+        // Read-only txns have no external dependencies through the system, so remove it from running transactions
+        // table immediately
         timestamp_manager_->RemoveTransaction(txn->StartTime());
       } else {
         // We still want to send this record to the LogManager, but we'll swap in the EmptyCallback to send with the
         // LogRecord, and invoke the provided callback immediately. The WAL worker will still be responsible for
-        // removing it from the running transactions table once the record has been serialized. Otherwise the serializer
-        // might dereference bad memory if the GC prunes any varlens this transaction might be holding.
+        // removing it from the running transactions table once the record has been serialized. Otherwise the
+        // serializer might dereference bad memory if the GC prunes any varlens this transaction might be holding.
         byte *const commit_record =
             txn->redo_buffer_.NewEntry(storage::CommitRecord::Size(), txn->GetTransactionPolicy());
         storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, TransactionUtil::EmptyCallback,
@@ -127,9 +133,28 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // committed. This will allow us to correctly order and execute transactions during recovery.
   timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
   if (log_manager_ != DISABLED && !txn->IsReadOnly()) {
-    // TODO(Gus): Getting the cached timestamp may cause replication delays, as the cached timestamp is a stale value,
-    // so transactions may wait for longer than they need to. We should analyze the impact of this when replication is
-    // added.
+    // Because the semantics of being an active txn has changed, where:
+    //    - Previously, a txn is active until the txn commits (LogCommit),
+    //    - At the time of writing, a txn is active until the txn is serialized (LogSerializerTask),
+    // The original design of recovery-based replication doesn't work anyway for synchronous replication.
+    //
+    // Because:
+    //    1. Logging guarantees that the records within a transaction are ordered,
+    //    2. But logging does NOT guarantee that the records across transactions are ordered,
+    // Recovery-based replication has to defer application of all records received.
+    //
+    // The OldestActiveTransaction (OAT) was included with a commit record so that the replica would know when it was
+    // safe to apply the deferred records. However, this leads to a deadlock with the new "active txn" semantics, where:
+    //    1. primary -> replica: send COMMIT[txn_id = 3, OAT = 3]
+    //    2. primary -> replica: send COMMIT[txn_id = 4, OAT = 3]
+    //    3. replica -> primary: send APPLIED[txn_up_to = 3] (3 coming from the OAT)
+    //    4. primary waits forever for txn 4 to get applied.
+    //
+    // So it is insufficient to rely solely on the OAT inside a commit record.
+    // Therefore the staleness of the commit record OAT does not matter that much;
+    // the commit record OAT is still desirable to kick off deferred records, but that is as a performance optimization,
+    // the commit record OAT is strictly speaking is no longer related to the overall correctness of replication.
+    // See docs/design_replication.md for more details.
     oldest_active_txn = timestamp_manager_->CachedOldestTransactionStartTime();
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
