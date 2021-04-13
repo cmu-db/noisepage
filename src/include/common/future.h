@@ -10,6 +10,21 @@ namespace noisepage::common {
 
 /**
  * Future is a wrapper over a condition_variable, and the condition.
+ * The primary benefits to using this Future over a std::future<>:
+ *   - No need to rely on the presence of a std::promise<> object
+ *
+ *   - Wait() interface allows returning both an indicator of whether
+ *     the operation succeeded or not and the result value. This Future
+ *     also encapsulates a proper error message.
+ *
+ *   - Does not depend on an std::exception_ptr to indicate an operational
+ *     failure. Does not rely on an encapsulated object that captures
+ *     result, success indicator, and error message.
+ *
+ * If the use-case is merely to coordinate a value (i.e., result of some
+ * computation guaranted to complete) between an asynchronous
+ * task and a caller (with exceptions being supported for error cases),
+ * a regular std::promise/std::future setup should be used instead.
  *
  * It is used to build synchronous API over asynchronous function calls:
  * ```c++
