@@ -89,7 +89,7 @@ PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(con
       return PostgresValueType::VARBINARY;
 
     case type::TypeId::TEXT:
-        return PostgresValueType::TEXT;
+      return PostgresValueType::TEXT;
 
     default: {
       std::ostringstream os;
