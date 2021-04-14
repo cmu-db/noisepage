@@ -58,6 +58,21 @@ void PostgresPacketWriter::WriteParameterDescription(const std::vector<type::Typ
   EndPacket();
 }
 
+void PostgresPacketWriter::WriteExplainRowDescription() {
+  BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(1));
+  AppendString("QUERY PLAN", true);
+  AppendValue<int32_t>(0)
+      .AppendValue<int16_t>(0)
+      .AppendValue(
+          static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(type::TypeId::TEXT)));
+  AppendValue<int16_t>(-1);
+
+  AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
+      .AppendValue<int16_t>(
+          static_cast<int16_t>(network::FieldFormat::text));  // format code for the field, 0 for text, 1 for binary
+  EndPacket();
+}
+
 void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns,
                                                const std::vector<FieldFormat> &field_formats) {
   BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
@@ -380,8 +395,7 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         break;
       }
       case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY:
-      case type::TypeId::TEXT: {
+      case type::TypeId::VARBINARY: {
         // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
         // continue
         const auto *const string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);

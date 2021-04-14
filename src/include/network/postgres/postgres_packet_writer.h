@@ -78,6 +78,11 @@ class PostgresPacketWriter : public PacketWriter {
                            const std::vector<FieldFormat> &field_formats);
 
   /**
+ * Writes row description + data row for SQL EXPLAIN
+ */
+  void WriteExplainRowDescription();
+
+  /**
    * Tells the client that the query command is complete.
    * @param tag records the which kind of query it is
    */

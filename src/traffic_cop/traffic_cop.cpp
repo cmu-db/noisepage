@@ -352,13 +352,13 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
-  // Need a single column to write back to the client
-  std::vector<planner::OutputSchema::Column> output_columns;
-  // Set text flag here?
-  output_columns.emplace_back("QUERY PLAN", type::TypeId::TEXT, nullptr);
-  out->WriteRowDescription(output_columns, {network::FieldFormat::text});
+  out->WriteExplainRowDescription();
 
   // Dump to JSON string, wrap in StringVal, write the data row to the client
+  // Create dummy column output scheme for writing data row
+  std::vector<planner::OutputSchema::Column> output_columns;
+  output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
+
   const std::string plan_string = physical_plan->ToJson().dump(4);
   const execution::sql::StringVal plan_string_val =
       execution::sql::StringVal(plan_string.c_str(), plan_string.length());

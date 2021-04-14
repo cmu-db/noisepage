@@ -376,7 +376,6 @@ struct ValUtil {
         return static_cast<uint32_t>(alignof(DecimalVal));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
-      case type::TypeId::TEXT:
         return static_cast<uint32_t>(alignof(StringVal));
       default:
         return 0;
