@@ -78,8 +78,8 @@ class PostgresPacketWriter : public PacketWriter {
                            const std::vector<FieldFormat> &field_formats);
 
   /**
- * Writes row description + data row for SQL EXPLAIN
- */
+   * Writes row description + data row for SQL EXPLAIN
+   */
   void WriteExplainRowDescription();
 
   /**

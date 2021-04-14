@@ -61,10 +61,8 @@ void PostgresPacketWriter::WriteParameterDescription(const std::vector<type::Typ
 void PostgresPacketWriter::WriteExplainRowDescription() {
   BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(1));
   AppendString("QUERY PLAN", true);
-  AppendValue<int32_t>(0)
-      .AppendValue<int16_t>(0)
-      .AppendValue(
-          static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(type::TypeId::TEXT)));
+  AppendValue<int32_t>(0).AppendValue<int16_t>(0).AppendValue(
+      static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(type::TypeId::TEXT)));
   AppendValue<int16_t>(-1);
 
   AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
