@@ -40,7 +40,7 @@ class PrimaryNode(NodeServer):
     Primary node NoisePage server. Generates log records by running the loading phase of an OLTP benchmark
     """
 
-    def __init__(self, build_type: str, replication_enabled: bool, oltp_benchmark: str):
+    def __init__(self, build_type: str, replication_enabled: bool, async_commit: bool, oltp_benchmark: str):
         """
         Creates the NoisePage primary server and an OLTP test case
 
@@ -51,6 +51,7 @@ class PrimaryNode(NodeServer):
         # Create DB instance
         primary_server_args = DEFAULT_PRIMARY_SERVER_ARGS
         primary_server_args[BUILD_TYPE_KEY] = build_type
+        primary_server_args[SERVER_ARGS_KEY][WAL_ASYNC_COMMIT_KEY] = async_commit
         if replication_enabled:
             primary_server_args[SERVER_ARGS_KEY][MESSENGER_ENABLED_KEY] = True
             primary_server_args[SERVER_ARGS_KEY][REPLICATION_ENABLED_KEY] = True
@@ -90,7 +91,7 @@ class ReplicaNode(NodeServer):
     Replica node NoisePage server. Generates log records by manually sending pre-collected messages
     """
 
-    def __init__(self, test_type: TestType, build_type: str, log_messages_file: str):
+    def __init__(self, test_type: TestType, build_type: str, async_commit: bool, log_messages_file: str):
         """
         Creates the NoisePage replica server. If we are testing throughput on the replica node then we also create a
         log shipper instance to send logs to the replica
@@ -100,6 +101,7 @@ class ReplicaNode(NodeServer):
         :param log_messages_file File containing log record messages to send to the replica
         """
         replica_server_args = DEFAULT_REPLICA_SERVER_ARGS
+        replica_server_args[SERVER_ARGS_KEY][WAL_ASYNC_COMMIT_KEY] = async_commit
 
         self.ship_logs = False
         if test_type == TestType.REPLICA:

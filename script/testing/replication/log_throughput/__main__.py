@@ -24,6 +24,10 @@ def main():
                          choices=["sync", "async"],
                          help="WARNING: This is not currently implemented. You have to manually change the policy in "
                               "db_main.h right now")
+    aparser.add_argument("--async-commit",
+                         default=False,
+                         action="store_true",
+                         help="Whether or not async commit is enabled")
     aparser.add_argument("--oltp-benchmark",
                          default="tpcc",
                          choices=["tpcc", "tatp"],
@@ -38,8 +42,8 @@ def main():
 
     args = vars(aparser.parse_args())
 
-    log_throughput(TestType(args["test-type"]), args["build_type"], args["replication_enabled"], args["oltp_benchmark"],
-                   args["log_file"], args["output_file"])
+    log_throughput(TestType(args["test-type"]), args["build_type"], args["replication_enabled"], args["async_commit"],
+                   args["oltp_benchmark"], args["log_file"], args["output_file"])
 
 
 if __name__ == '__main__':

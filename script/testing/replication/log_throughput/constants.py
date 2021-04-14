@@ -7,6 +7,7 @@ REPLICATION_PORT_KEY = "replication_port"
 MESSENGER_ENABLED_KEY = "messenger_enable"
 REPLICATION_ENABLED_KEY = "replication_enable"
 NETWORK_IDENTITY_KEY = "network_identity"
+WAL_ASYNC_COMMIT_KEY = "wal_async_commit_enable"
 METRICS_KEY = "metrics"
 USE_METRICS_THREAD_KEY = "use_metrics_thread"
 LOGGING_METRICS_ENABLED_KEY = "logging_metrics_enable"
@@ -31,6 +32,7 @@ DEFAULT_PRIMARY_SERVER_ARGS = {
         "replication_hosts_path": REPLICATION_HOSTS_PATH,
         "wal_enable": True,
         "wal_file_path": "wal-primary.log",
+        WAL_ASYNC_COMMIT_KEY: False,
         METRICS_KEY: True,
         USE_METRICS_THREAD_KEY: True,
         LOGGING_METRICS_ENABLED_KEY: True,
@@ -51,6 +53,7 @@ DEFAULT_REPLICA_SERVER_ARGS = {
         "replication_hosts_path": REPLICATION_HOSTS_PATH,
         "wal_enable": True,
         "wal_file_path": "wal-replica.log",
+        WAL_ASYNC_COMMIT_KEY: False,
         METRICS_KEY: False,
         USE_METRICS_THREAD_KEY: False,
         LOGGING_METRICS_ENABLED_KEY: False,
