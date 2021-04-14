@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -8,6 +9,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_settings.h"
+#include "execution/exec_defs.h"
 #include "type/type_id.h"
 
 namespace noisepage::transaction {
@@ -137,13 +139,14 @@ class QueryExecUtil {
    * @param tuple_fn A function to be called per row
    * @param metrics Metrics manager to use for recording
    * @param cost Cost model to use
+   * @param override_qid Optional describing how to override query's id
    * @param exec_settings ExecutionSettings to utilize
    * @return true if success
    */
   bool ExecuteDML(const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                   common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
                   common::ManagedPointer<metrics::MetricsManager> metrics,
-                  std::unique_ptr<optimizer::AbstractCostModel> cost,
+                  std::unique_ptr<optimizer::AbstractCostModel> cost, std::optional<execution::query_id_t> override_qid,
                   const execution::exec::ExecutionSettings &exec_settings);
 
   /**
@@ -152,6 +155,7 @@ class QueryExecUtil {
    * @param params placeholder parameters for query
    * @param param_types Types of the query parameters
    * @param cost cost model to use for compilation
+   * @param override_qid Optional describing how to override query's id
    * @param exec_settings ExecutionSettings to use for compiling
    * @return whether compilation succeeded or not
    */
@@ -159,6 +163,7 @@ class QueryExecUtil {
                     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                     common::ManagedPointer<std::vector<type::TypeId>> param_types,
                     std::unique_ptr<optimizer::AbstractCostModel> cost,
+                    std::optional<execution::query_id_t> override_qid,
                     const execution::exec::ExecutionSettings &exec_settings);
 
   /**
@@ -187,6 +192,12 @@ class QueryExecUtil {
       const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
       common::ManagedPointer<std::vector<type::TypeId>> param_types,
       std::unique_ptr<optimizer::AbstractCostModel> cost);
+
+  /**
+   * Remove a cached query plan
+   * @param query Query to invalidate
+   */
+  void ClearPlan(const std::string &query);
 
   /** Erases all cached plans */
   void ClearPlans();

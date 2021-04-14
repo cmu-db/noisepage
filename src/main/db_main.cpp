@@ -42,7 +42,7 @@ void DBMain::TryLoadStartupDDL() {
       task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::INVALID_DATABASE_OID, ddl));
     }
 
-    task_manager_->Flush();
+    task_manager_->WaitForFlush();
   } else if (task_manager_ == nullptr) {
     COMMON_LOG_WARN("TryLoadStartupDDL() invoked without TaskManager");
   }
@@ -66,6 +66,7 @@ void DBMain::Run() {
 
 void DBMain::ForceShutdown() {
   if (replication_manager_ != DISABLED) {
+    GetLogManager()->EndReplication();
     if (!replication_manager_->IsPrimary()) {
       replication_manager_->GetAsReplica()->GetReplicationLogProvider()->EndReplication();
     }
@@ -75,10 +76,10 @@ void DBMain::ForceShutdown() {
   }
 
   // Shutdown the following resources to safely release the task manager.
-  (void)pilot_thread_.release();
-  (void)pilot_.release();
-  (void)metrics_thread_.release();
-  (void)task_manager_.release();
+  (void)pilot_thread_.reset();
+  (void)pilot_.reset();
+  (void)metrics_thread_.reset();
+  (void)task_manager_.reset();
 
   if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
     network_layer_->GetServer()->StopServer();

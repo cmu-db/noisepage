@@ -17,7 +17,8 @@ template <class T>
 class ChangeKnobAction;
 namespace test {
 class GenerateChangeKnobAction_GenerateAction_Test;
-}
+class QueryTraceLogging;
+}  // namespace test
 }  // namespace noisepage::selfdriving::pilot
 
 namespace noisepage::runner {
@@ -81,6 +82,7 @@ class ParamInfo {
   friend class selfdriving::pilot::ChangeKnobAction<int32_t>;
   friend class selfdriving::pilot::ChangeKnobAction<int64_t>;
   friend class selfdriving::pilot::test::GenerateChangeKnobAction_GenerateAction_Test;
+  friend class selfdriving::pilot::test::QueryTraceLogging;
   std::string name_;
   parser::ConstantValueExpression value_;
   std::string desc_;

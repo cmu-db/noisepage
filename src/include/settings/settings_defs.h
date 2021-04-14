@@ -312,7 +312,7 @@ SETTING_bool(
 
 SETTING_string(
     query_trace_metrics_output,
-    "Output type for Query Traces Metrics (default: CSV, values: NONE, CSV, DB, CSV_DB)",
+    "Output type for Query Traces Metrics (default: CSV, values: NONE, CSV, DB, CSV_AND_DB)",
     "CSV",
     true,
     noisepage::settings::Callbacks::MetricsQueryTraceOutput
@@ -520,8 +520,8 @@ SETTING_int(
 
 SETTING_string(
     startup_ddl_path,
-    "Path to startup DDL (default: startup.sql)",
-    "startup.sql",
+    "Path to startup DDL (default: bin/startup.sql)",
+    "bin/startup.sql",
     false,
     noisepage::settings::Callbacks::NoOp
 )

@@ -62,9 +62,8 @@ class QueryTraceMetadata {
    */
   void RecordQueryText(execution::query_id_t qid, catalog::db_oid_t db_oid, std::string text, std::string param_type) {
     // Assume qid is unique, don't re-record if already recorded
-    if (qmetadata_.find(qid) == qmetadata_.end()) {
-      qmetadata_[qid] = QueryMetadata{db_oid, std::move(text), std::move(param_type)};
-    }
+    NOISEPAGE_ASSERT(qmetadata_.find(qid) == qmetadata_.end(), "Expected query_text recording to be unique for qid");
+    qmetadata_[qid] = QueryMetadata{db_oid, std::move(text), std::move(param_type)};
   }
 
   /**
@@ -133,10 +132,10 @@ class QueryTraceMetadata {
 class QueryTraceMetricRawData : public AbstractRawData {
  public:
   /** Parameter of how many query params to keep in sample */
-  static uint64_t QUERY_PARAM_SAMPLE;
+  static uint64_t query_param_sample;
 
   /** Parameter controlling size of a query segment */
-  static uint64_t QUERY_SEGMENT_INTERVAL;
+  static uint64_t query_segment_interval;
 
   /** Query string for recording observed queries */
   static constexpr char QUERY_OBSERVED_INSERT_STMT[] = "INSERT INTO noisepage_forecast_frequencies VALUES ($1, $2, $3)";

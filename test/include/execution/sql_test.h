@@ -63,7 +63,7 @@ class SqlBasedTest : public TplTest {
     const auto &callback_ref = (callback == nullptr) ? empty : *callback;
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback_ref,
                                                     schema, common::ManagedPointer(accessor_), *exec_settings_,
-                                                    metrics_manager_, DISABLED);
+                                                    metrics_manager_, DISABLED, DISABLED);
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
@@ -80,13 +80,13 @@ class SqlBasedTest : public TplTest {
   catalog::db_oid_t test_db_oid_{0};
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   transaction::TransactionContext *test_txn_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 
  private:
   std::unique_ptr<DBMain> db_main_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
-  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   catalog::namespace_oid_t test_ns_oid_;
   std::unique_ptr<exec::ExecutionSettings> exec_settings_;
 };

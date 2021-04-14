@@ -33,15 +33,13 @@ static constexpr const char *COVERAGE_INCLUDE_PATH = "*/script/self_driving/*";
  */
 static constexpr const unsigned char MODEL_SERVER_SUBPROCESS_ERROR = 128;
 
-common::ManagedPointer<messenger::ConnectionRouter> ListenAndMakeConnection(
-    const common::ManagedPointer<messenger::Messenger> &messenger, const std::string &ipc_path,
-    messenger::CallbackFn model_server_logic) {
+messenger::router_id_t ListenAndMakeConnection(const common::ManagedPointer<messenger::Messenger> &messenger,
+                                               const std::string &ipc_path, messenger::CallbackFn model_server_logic) {
   // Create an IPC connection that the Python process will talk to.
   auto destination = messenger::ConnectionDestination::MakeIPC(MODEL_TARGET_NAME, ipc_path);
 
   // Listen for the connection
-  messenger->ListenForConnection(destination, MODEL_CONN_ID_NAME, std::move(model_server_logic));
-  return messenger->GetConnectionRouter(MODEL_CONN_ID_NAME);
+  return messenger->ListenForConnection(destination, MODEL_CONN_ID_NAME, std::move(model_server_logic));
 }
 
 }  // namespace noisepage::modelserver
@@ -58,8 +56,8 @@ ModelServerManager::ModelServerManager(const std::string &model_bin,
       })) {
   // Model Initialization handling logic
   auto msm_handler = [&](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-    uint64_t sender_id UNUSED_ATTRIBUTE = msg.GetSourceCallbackId();
-    uint64_t recv_cb_id UNUSED_ATTRIBUTE = msg.GetDestinationCallbackId();
+    messenger::callback_id_t sender_id UNUSED_ATTRIBUTE = msg.GetSourceCallbackId();
+    messenger::callback_id_t recv_cb_id UNUSED_ATTRIBUTE = msg.GetDestinationCallbackId();
     std::string_view message = msg.GetMessage();
 
     // ModelServer connected
@@ -183,7 +181,7 @@ void ModelServerManager::StartModelServer(const std::string &model_path, bool en
 bool ModelServerManager::SendMessage(const std::string &payload, messenger::CallbackFn cb) {
   try {
     messenger_->SendMessage(router_, MODEL_TARGET_NAME, payload, std::move(cb),
-                            static_cast<uint64_t>(messenger::Messenger::BuiltinCallback::NOOP));
+                            messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
     return true;
   } catch (std::exception &e) {
     MODEL_SERVER_LOG_WARN("[PID={}] ModelServerManager failed to send message: {}. Error: {}", ::getpid(), payload,

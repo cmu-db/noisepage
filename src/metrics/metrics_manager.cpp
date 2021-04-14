@@ -11,8 +11,6 @@
 #include <vector>
 
 #include "common/macros.h"
-#include "execution/compiler/executable_query.h"
-#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::metrics {
 
@@ -157,11 +155,11 @@ void MetricsManager::ToOutput(common::ManagedPointer<task::TaskManager> task_man
   for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
     if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
       auto output = metrics_output_[component];
-      if (output == MetricsOutput::CSV || output == MetricsOutput::CSV_DB) {
+      if (output == MetricsOutput::CSV || output == MetricsOutput::CSV_AND_DB) {
         ToCSV(component);
       }
 
-      if (output == MetricsOutput::DB || output == MetricsOutput::CSV_DB) {
+      if (task_manager && (output == MetricsOutput::DB || output == MetricsOutput::CSV_AND_DB)) {
         ToDB(component, task_manager);
       }
     }
@@ -169,9 +167,8 @@ void MetricsManager::ToOutput(common::ManagedPointer<task::TaskManager> task_man
 }
 
 void MetricsManager::ToDB(uint8_t component, common::ManagedPointer<task::TaskManager> task_manager) const {
-  if (task_manager != nullptr) {
-    aggregated_metrics_[component]->ToDB(task_manager);
-  }
+  NOISEPAGE_ASSERT(task_manager != nullptr, "MetricsManager::ToDB invoked with null task_manager");
+  aggregated_metrics_[component]->ToDB(task_manager);
 }
 
 void MetricsManager::ToCSV(uint8_t component) const {

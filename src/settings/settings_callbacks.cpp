@@ -186,7 +186,7 @@ void Callbacks::ForecastSampleLimit(void *old_value, void *new_value, DBMain *db
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int forecast_sample_limit = *static_cast<int *>(new_value);
-  metrics::QueryTraceMetricRawData::QUERY_PARAM_SAMPLE = static_cast<uint64_t>(forecast_sample_limit);
+  metrics::QueryTraceMetricRawData::query_param_sample = static_cast<uint64_t>(forecast_sample_limit);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

@@ -1,4 +1,5 @@
 #include "common/json.h"
+#include "execution/sql/value_util.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "metrics/query_trace_metric.h"
@@ -8,9 +9,22 @@
 namespace noisepage::selfdriving::pilot::test {
 
 class QueryTraceLogging : public TerrierTest {
+  static constexpr const char *BUILD_ABS_PATH = "BUILD_ABS_PATH";
+
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
+
+    // Adjust the startup DDL path if specified
+    const char *env = ::getenv(BUILD_ABS_PATH);
+    if (env != nullptr) {
+      std::string file = std::string(env) + "/bin/startup.sql";
+      const auto string = std::string_view(file);
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      param_map.find(settings::Param::startup_ddl_path)->second.value_ =
+          parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+    }
+
     db_main_ = noisepage::DBMain::Builder()
                    .SetSettingsParameterMap(std::move(param_map))
                    .SetUseSettingsManager(true)
@@ -27,7 +41,7 @@ class QueryTraceLogging : public TerrierTest {
     settings_manager_ = db_main_->GetSettingsManager();
     metrics_manager_ = db_main_->GetMetricsManager();
     metrics_manager_->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
-    metrics_manager_->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, metrics::MetricsOutput::CSV_DB);
+    metrics_manager_->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, metrics::MetricsOutput::CSV_AND_DB);
     db_main_->GetMetricsThread()->PauseMetrics();  // We want to aggregate them manually, so pause the thread.
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -44,7 +58,7 @@ class QueryTraceLogging : public TerrierTest {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<task::TaskManager> task_manager_;
-};
+};  // namespace noisepage::selfdriving::pilot::test
 
 // NOLINTNEXTLINE
 TEST_F(QueryTraceLogging, BasicLogging) {
@@ -103,8 +117,11 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   }
 
   metrics_manager_->Aggregate();
-  metrics_manager_->ToOutput(util, task_manager_);
-  task_manager_->Flush();
+
+  auto raw = reinterpret_cast<metrics::QueryTraceMetricRawData *>(
+      metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::QUERY_TRACE)).get());
+  raw->WriteToDB(task_manager_, false, 29, nullptr, nullptr);
+  task_manager_->WaitForFlush();
 
   auto select_count = [util](const std::string &query, size_t target) {
     util->BeginTransaction(catalog::INVALID_DATABASE_OID);
@@ -113,7 +130,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
     execution::exec::ExecutionSettings settings{};
     bool result = util->ExecuteDML(query, nullptr, nullptr, to_row_fn, nullptr,
-                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
+                                   std::make_unique<optimizer::TrivialCostModel>(), std::nullopt, settings);
     EXPECT_TRUE(result && "SELECT should have succeeded");
     EXPECT_TRUE(row_count == target && "Row count incorrect");
     util->EndTransaction(true);
@@ -123,20 +140,21 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   select_count("SELECT * FROM noisepage_forecast_texts", 0);
   select_count("SELECT * FROM noisepage_forecast_parameters", 0);
 
-  auto check_freqs = [task_manager_, util, &qids, &totals, &timestamps](size_t num_interval) {
+  auto task_manager = task_manager_;
+  auto check_freqs = [task_manager, &qids, &totals, &timestamps](size_t num_interval) {
     size_t seen = 0;
     std::unordered_map<size_t, std::unordered_map<size_t, size_t>> qid_map;
     auto freq_check = [&seen, &qid_map](const std::vector<execution::sql::Val *> &values) {
-      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1 &&
-                  "Planning iteration should be 1");
+      auto ts = reinterpret_cast<execution::sql::Integer *>(values[0])->val_;
+      auto qid = reinterpret_cast<execution::sql::Integer *>(values[1])->val_;
+      auto qid_seen = reinterpret_cast<execution::sql::Real *>(values[2])->val_;
+      auto itv = ts / metrics::QueryTraceMetricRawData::query_segment_interval;
 
       // Record <qid, <interval, seen>>
-      qid_map[reinterpret_cast<execution::sql::Integer *>(values[1])->val_]
-             [reinterpret_cast<execution::sql::Integer *>(values[2])->val_] +=
-          reinterpret_cast<execution::sql::Real *>(values[3])->val_;
+      qid_map[qid][itv] += qid_seen;
 
       // Sum the number seen
-      seen += reinterpret_cast<execution::sql::Real *>(values[3])->val_;
+      seen += qid_seen;
     };
 
     size_t combined = 0;
@@ -148,10 +166,10 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     std::vector<type::TypeId> param_types;
 
     common::Future<bool> sync;
-    task_manager_->AddTask(
-        std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
-                                        std::make_unique<optimizer::TrivialCostModel>(), nullptr, std::move(params),
-                                        std::move(param_types), freq_check, common::ManagedPointer(&sync)));
+    task_manager->AddTask(std::make_unique<task::TaskDML>(
+        catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
+        std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
+        false, true, std::nullopt, common::ManagedPointer(&sync)));
 
     auto sync_result = sync.Wait();
     bool result = sync_result.first;
@@ -161,9 +179,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
     for (auto &info : qid_map) {
       EXPECT_TRUE(info.first < qids.size() && "Incorrect qid recorded");
-      EXPECT_TRUE(info.second.size() == num_interval && "3rd interval should not be recorded");
+      EXPECT_TRUE(info.second.size() == num_interval && "Some interval should not be recorded");
       for (auto &data : info.second) {
-        EXPECT_TRUE(data.first < 10 && "Recorded occurrence incorrect");
+        EXPECT_TRUE(data.second < 10 && "Recorded occurrence incorrect");
         EXPECT_TRUE(data.second == static_cast<size_t>(timestamps[info.first][data.first]) &&
                     "Incorrect recorded for interval");
       }
@@ -171,11 +189,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   };
   check_freqs(2);
 
-  // Flush to the database
-  auto raw = reinterpret_cast<metrics::QueryTraceMetricRawData *>(
-      metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::QUERY_TRACE)).get());
-  raw->WriteToDB(util, task_manager_, true, true, nullptr, nullptr);
-  task_manager_->Flush();
+  // Flush to the database. The [30] should also flush all data.
+  raw->WriteToDB(task_manager_, true, 30, nullptr, nullptr);
+  task_manager_->WaitForFlush();
 
   {
     util->BeginTransaction(catalog::INVALID_DATABASE_OID);
@@ -206,7 +222,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
     execution::exec::ExecutionSettings settings{};
     bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_texts", nullptr, nullptr, func, nullptr,
-                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
+                                   std::make_unique<optimizer::TrivialCostModel>(), std::nullopt, settings);
     EXPECT_TRUE(result && "select should have succeeded");
     EXPECT_TRUE(val.size() == qids.size() && "Incorrect number recorded");
     util->EndTransaction(true);
@@ -217,7 +233,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     size_t row_count = 0;
     std::unordered_set<int64_t> seen;
     auto func = [&row_count, qids, &seen](const std::vector<execution::sql::Val *> &values) {
-      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 1 && "Iteration invalid");
+      EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[0])->val_ == 30 && "Flush timestamp is invalid");
       EXPECT_TRUE(reinterpret_cast<execution::sql::Integer *>(values[1])->val_ < static_cast<int64_t>(qids.size()) &&
                   "Invalid query identifier");
       seen.insert(reinterpret_cast<execution::sql::Integer *>(values[1])->val_);
@@ -226,7 +242,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
     execution::exec::ExecutionSettings settings{};
     bool result = util->ExecuteDML("SELECT * FROM noisepage_forecast_parameters", nullptr, nullptr, func, nullptr,
-                                   std::make_unique<optimizer::TrivialCostModel>(), settings);
+                                   std::make_unique<optimizer::TrivialCostModel>(), std::nullopt, settings);
     EXPECT_TRUE(result && "Select should have succeeded");
     EXPECT_TRUE(seen.size() == qids.size() && "Must sample at least 1 per qid");
     EXPECT_TRUE(row_count <= qids.size() * num_sample && "Sampling limit exceeded");

@@ -71,6 +71,27 @@ class PilotUtil;
  */
 class Pilot {
  public:
+  /** Describes how the workload forecast should be initialized */
+  enum class WorkloadForecastInitMode : uint8_t {
+    /**
+     * Construct the workload forecast solely from data stored in internal tables.
+     * Passes data read from internal tables to perform inference
+     */
+    INTERNAL_TABLES_WITH_INFERENCE,
+
+    /**
+     * Construct the workload forecast by inferencing data located on disk.
+     * The inference result is not stored to internal tables in this mode.
+     */
+    DISK_WITH_INFERENCE,
+
+    /**
+     * Construct the workload forecast directly from data on disk.
+     * No inference is performed in this case.
+     */
+    DISK_ONLY
+  };
+
   /**
    * Constructor for Pilot
    * @param model_save_path model save path
@@ -142,8 +163,9 @@ class Pilot {
 
   /**
    * Loads workload forecast information
+   * @param mode Mode to initialize forecast information
    */
-  void LoadWorkloadForecast();
+  void LoadWorkloadForecast(WorkloadForecastInitMode mode);
 
   /**
    * Performs Pilot Logic, load and execute the predicted queries while extracting pipeline features

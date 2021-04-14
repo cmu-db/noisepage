@@ -18,6 +18,12 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   bool result = true;
   query_exec_util->BeginTransaction(db_oid_);
 
+  if (skip_query_cache_) {
+    // Skipping the query cache is implemented by invalidating the plan
+    // and then invalidating the plan entry after execution.
+    query_exec_util->ClearPlan(query_text_);
+  }
+
   // TODO(wz2): https://github.com/cmu-db/noisepage/issues/1352
   // This works for now. Fixing the above issue will make it work beter.
   execution::exec::ExecutionSettings settings{};
@@ -25,11 +31,12 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   settings.is_pipeline_metrics_enabled_ = true;
   if (params_.empty()) {
     result = query_exec_util->ExecuteDML(query_text_, nullptr, nullptr, tuple_fn_, nullptr,
-                                         std::make_unique<optimizer::TrivialCostModel>(), settings);
+                                         std::make_unique<optimizer::TrivialCostModel>(), override_qid_, settings);
   } else {
     std::vector<parser::ConstantValueExpression> &params_0 = params_[0];
     result = query_exec_util->CompileQuery(query_text_, common::ManagedPointer(&params_0),
-                                           common::ManagedPointer(&param_types_), std::move(cost_model_), settings);
+                                           common::ManagedPointer(&param_types_), std::move(cost_model_), override_qid_,
+                                           settings);
 
     // Execute with specified parameters only if compilation succeeded
     if (result) {
@@ -43,6 +50,11 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
 
     // TODO(wz2): Require disciplined plan for clearing the plans
     // query_exec_util->ClearPlans();
+  }
+
+  if (skip_query_cache_) {
+    // Don't save this query plan
+    query_exec_util->ClearPlan(query_text_);
   }
 
   query_exec_util->EndTransaction(result && !force_abort_);

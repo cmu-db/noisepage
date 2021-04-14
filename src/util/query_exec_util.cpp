@@ -7,6 +7,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/vm_defs.h"
+#include "loggers/common_logger.h"
 #include "metrics/metrics_manager.h"
 #include "network/network_defs.h"
 #include "network/network_util.h"
@@ -42,6 +43,11 @@ QueryExecUtil::QueryExecUtil(common::ManagedPointer<transaction::TransactionMana
 void QueryExecUtil::ClearPlans() {
   schemas_.clear();
   exec_queries_.clear();
+}
+
+void QueryExecUtil::ClearPlan(const std::string &query) {
+  schemas_.erase(query);
+  exec_queries_.erase(query);
 }
 
 void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) {
@@ -94,6 +100,7 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     statement = std::make_unique<network::Statement>(std::move(query_tmp), std::move(parse_tree));
   } catch (std::exception &e) {
     // Catched a parsing error
+    COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when parsing {}", e.what(), query);
     return {nullptr, nullptr};
   }
 
@@ -108,11 +115,12 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     binder.BindNameToNode(statement->ParseResult(), params, param_types);
   } catch (std::exception &e) {
     // Caught a binding exception
+    COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when binding {}", e.what(), query);
     return {nullptr, nullptr};
   }
 
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(txn, common::ManagedPointer(accessor), statement->ParseResult(),
-                                                       db_oid_, stats_, std::move(cost), optimizer_timeout_)
+                                                       db_oid_, stats_, std::move(cost), optimizer_timeout_, params)
                       ->TakePlanNodeOwnership();
   return std::make_pair(std::move(statement), std::move(out_plan));
 }
@@ -154,19 +162,16 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
 
         if (status) {
-          // TODO(lin): Right now we have to manually do this because of the strange setup for our CREATE INDEX
-          //  queries, i.e., we have to execute the DDL statement after bind but before query compilation...
-          //  We probably want a cleaner solution for this
+          // This is unfortunate but this is because we can't re-parse the query once the CreateIndexExecutor
+          // has run. We can't compile the query before the CreateIndexExecutor because codegen would have
+          // no idea which index to insert into.
           execution::exec::ExecutionSettings settings{};
-          auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, settings, accessor.get(),
-                                                                             execution::compiler::CompilationMode::OneShot);
-
-          execution::exec::NoOpResultConsumer consumer;
-          execution::exec::OutputCallback callback = consumer;
-          auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-              db_oid_, txn, callback, out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor), settings,
-              nullptr, nullptr);
-          exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+          common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
+          auto exec_query = execution::compiler::CompilationContext::Compile(
+              *out_plan, settings, accessor.get(), execution::compiler::CompilationMode::OneShot, std::nullopt);
+          schemas_[query] = schema->Copy();
+          exec_queries_[query] = std::move(exec_query);
+          ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
         }
         break;
       default:
@@ -182,6 +187,7 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                                  common::ManagedPointer<std::vector<type::TypeId>> param_types,
                                  std::unique_ptr<optimizer::AbstractCostModel> cost,
+                                 std::optional<execution::query_id_t> override_qid,
                                  const execution::exec::ExecutionSettings &exec_settings) {
   //if (exec_queries_.find(statement) != exec_queries_.end()) {
     // We have already optimized and compiled this query before
@@ -200,8 +206,8 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
   NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result.first->GetQueryType()), "ExecuteDML expects DML");
   common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
 
-  auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                     execution::compiler::CompilationMode::OneShot);
+  auto exec_query = execution::compiler::CompilationContext::Compile(
+      *out_plan, exec_settings, accessor.get(), execution::compiler::CompilationMode::OneShot, override_qid);
   schemas_[statement] = schema->Copy();
   exec_queries_[statement] = std::move(exec_query);
   return true;
@@ -236,11 +242,11 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
     }
   };
 
-  // Create ExecutionContext with no metrics to prevent recording
+  // TODO(wz2): May want to thread the replication manager or recovery manager through
   execution::exec::OutputCallback callback = consumer;
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, nullptr);
+      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, DISABLED, DISABLED);
 
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
 
@@ -253,8 +259,9 @@ bool QueryExecUtil::ExecuteDML(const std::string &query,
                                common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
                                common::ManagedPointer<metrics::MetricsManager> metrics,
                                std::unique_ptr<optimizer::AbstractCostModel> cost,
+                               std::optional<execution::query_id_t> override_qid,
                                const execution::exec::ExecutionSettings &exec_settings) {
-  if (!CompileQuery(query, params, param_types, std::move(cost), exec_settings)) {
+  if (!CompileQuery(query, params, param_types, std::move(cost), override_qid, exec_settings)) {
     return false;
   }
 

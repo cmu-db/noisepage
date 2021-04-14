@@ -21,9 +21,7 @@ WorkloadForecast::WorkloadForecast(uint64_t forecast_interval, uint64_t num_samp
   CreateSegments();
 }
 
-WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &&metadata) {
-  workload_metadata_ = std::move(metadata);
-
+void WorkloadForecast::InitFromInference(const WorkloadForecastPrediction &inference) {
   bool init = false;
   for (auto &cluster : inference) {
     for (auto &query_info : cluster.second) {
@@ -39,6 +37,17 @@ WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, 
     }
   }
   num_forecast_segment_ = forecast_segments_.size();
+}
+
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &&metadata) {
+  workload_metadata_ = std::move(metadata);
+  InitFromInference(inference);
+}
+
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference) {
+  LoadQueryText();
+  LoadQueryTrace();
+  InitFromInference(inference);
 }
 
 /**

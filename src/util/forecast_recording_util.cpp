@@ -38,7 +38,7 @@ void ForecastRecordingUtil::RecordQueryMetadata(
   if (!params_vec.empty()) {
     std::string query = ForecastRecordingUtil::QUERY_TEXT_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(params_vec), std::move(param_types)));
   }
 }
@@ -48,14 +48,14 @@ void ForecastRecordingUtil::RecordQueryParameters(
     std::unordered_map<execution::query_id_t, common::ReservoirSampling<std::string>> *params,
     common::ManagedPointer<task::TaskManager> task_manager,
     std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params) {
-  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR};
+  std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::VARCHAR};
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (auto &data : (*params)) {
-    std::vector<std::string> samples = data.second.GetSamples();
+    std::vector<std::string> samples = data.second.TakeSamples();
     for (auto &sample : samples) {
       std::vector<parser::ConstantValueExpression> param_vec(3);
       param_vec[0] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(timestamp_to_record));
+          parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
       param_vec[1] =
           parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(data.first.UnderlyingValue()));
 
@@ -74,7 +74,7 @@ void ForecastRecordingUtil::RecordQueryParameters(
   if (!params_vec.empty()) {
     std::string query_text = ForecastRecordingUtil::QUERY_PARAMETERS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(params_vec), std::move(param_types)));
   }
 }
@@ -96,7 +96,7 @@ void ForecastRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_record,
 
       // Timestamp of forecast
       clusters_params[0] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(timestamp_to_record));
+          parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
 
       // Cluster ID
       clusters_params[1] =
@@ -115,11 +115,11 @@ void ForecastRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_record,
 
   if (!clusters_params_vec.empty()) {
     // Clusters
-    std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
+    std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                              type::TypeId::INTEGER};
     std::string query_text = ForecastRecordingUtil::FORECAST_CLUSTERS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(clusters_params_vec), std::move(param_types)));
   }
 }
@@ -141,7 +141,7 @@ void ForecastRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp_to
 
         // Timestamp of the forecast
         forecasts_params[0] =
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(timestamp_to_record));
+            parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
 
         // Query ID
         forecasts_params[1] =
@@ -161,11 +161,11 @@ void ForecastRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp_to
 
   if (!forecast_params_vec.empty()) {
     // Forecasts
-    std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
+    std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                              type::TypeId::REAL};
-    std::string query_text = ForecastRecordingUtil::FORECAST_FREQUENCIES_INSERT_STMT;
+    std::string query_text = ForecastRecordingUtil::FORECAST_FORECASTS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(),
+                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                           std::move(forecast_params_vec), std::move(param_types)));
   }
 }

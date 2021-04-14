@@ -74,7 +74,7 @@ class ForecastRecordingUtil {
    * For parameters, see src/main/startup.sql
    */
   static constexpr char QUERY_PARAMETERS_INSERT_STMT[] =
-      "INSERT INTO noisepage_forecast_parameters VALUES ($$1, $2, $3)";
+      "INSERT INTO noisepage_forecast_parameters VALUES ($1, $2, $3)";
 
   /**
    * Query string for inserting into noisepage_forecast_clusters.
@@ -89,7 +89,7 @@ class ForecastRecordingUtil {
    * Query string used to record forecast query frequencies
    * For parameters, see src/main/startup.sql
    */
-  static constexpr char FORECAST_FREQUENCIES_INSERT_STMT[] =
+  static constexpr char FORECAST_FORECASTS_INSERT_STMT[] =
       "INSERT INTO noisepage_forecast_forecasts VALUES ($1, $2, $3, $4)";
 };
 

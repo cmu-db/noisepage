@@ -33,14 +33,14 @@ class TaskManager : public common::DedicatedThreadOwner {
               std::unique_ptr<util::QueryExecUtil> util, uint32_t num_workers);
 
   /** Destructor */
-  ~TaskManager();
+  ~TaskManager() override;
 
   /**
    * Flush waits for all tasks that have been submitted to the queue
    * to be executed. When this function returns, the queue is known
    * to be empty at some point.
    */
-  void Flush();
+  void WaitForFlush();
 
   /**
    * Adjusts the size of the TaskManager
@@ -55,10 +55,13 @@ class TaskManager : public common::DedicatedThreadOwner {
   void AddTask(std::unique_ptr<Task> task);
 
   /**
-   * TODO(wz2): These need to be revisited when the thread registry can scale
+   * TODO(wz2): As far as I am currently aware, the thread registry doesn't
+   * actually add or remove or re-balance threads on-demand across the system
+   * or in response to tuning. The following two functions will need to be
+   * revisited when the thread registry is able to rebalance/adjust threads.
    */
-  bool OnThreadOffered() { return false; }
-  bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) { return true; }
+  bool OnThreadOffered() override { return false; }
+  bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
 
  private:
   friend class TaskRunner;
@@ -71,7 +74,7 @@ class TaskManager : public common::DedicatedThreadOwner {
    *        been signaled.
    * @return task if a task should be executed or nullptr if none
    */
-  std::unique_ptr<Task> GetTaskWithKillFlag(bool *kill);
+  std::unique_ptr<Task> GetTaskWithKillFlag(bool const *kill);
 
   /**
    * Marks a given kill flag that was previously passed into

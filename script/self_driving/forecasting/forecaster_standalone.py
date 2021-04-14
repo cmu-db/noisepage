@@ -132,6 +132,7 @@ if __name__ == "__main__":
 
         forecaster = Forecaster(
             trace_file=args.trace_file,
+            trace_sequence=None,
             test_mode=False,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,
@@ -151,6 +152,7 @@ if __name__ == "__main__":
 
         forecaster = Forecaster(
             trace_file=args.test_file,
+            trace_sequence=None,
             test_mode=True,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,

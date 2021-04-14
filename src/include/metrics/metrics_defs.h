@@ -25,7 +25,7 @@ enum class MetricsOutput : uint8_t {
   NONE = 0,
   CSV,
   DB,
-  CSV_DB,
+  CSV_AND_DB,
 };
 
 constexpr uint8_t NUM_COMPONENTS = 8;
