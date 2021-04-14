@@ -1,4 +1,7 @@
 // Common build functions will be loaded into the "utils" object in every stage.
+// The build functions are loaded with Groovy's elvis operator ?:, where
+//      a ?: b means if (a) { return a; } else { return b; }
+// and in this case, utils = utils ?: load(utilsFileName) means "if utils is truthy, return utils, else, load utils".
 // This has to be done in every stage to support the Jenkins "restart from stage" feature.
 def utils
 String utilsFileName  = 'Jenkinsfile-utils.groovy'
