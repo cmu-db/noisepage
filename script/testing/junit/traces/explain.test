@@ -44,9 +44,6 @@ statement ok
 EXPLAIN TABLE temp ORDER BY num;
 
 statement ok
-EXPLAIN DELETE from temp where true;
-
-statement ok
 EXPLAIN DELETE from temp where num > 2;
 
 statement ok
@@ -63,9 +60,6 @@ EXPLAIN DELETE from temp where name LIKE 'Andy';
 
 statement ok
 EXPLAIN DELETE from temp where name like 'a%';
-
-statement ok
-EXPLAIN UPDATE temp SET name='yeet' where true;
 
 statement ok
 EXPLAIN UPDATE temp SET name='yeet' where num > 2;
@@ -225,9 +219,6 @@ EXPLAIN SELECT * FROM temp3 WHERE c2=22;
 
 statement ok
 EXPLAIN SELECT c2 FROM temp3 WHERE c1=23;
-
-statement ok
-EXPLAIN DELETE FROM temp3 where true;
 
 statement ok
 EXPLAIN DELETE FROM temp3 WHERE c2=22;
