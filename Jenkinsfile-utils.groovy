@@ -285,7 +285,7 @@ void stageNightlyArtifact() {
     stagePre()
     installPackages()
     buildNoisePage([useCache: false, shouldRecordTime:true, buildCommand:'ninja noisepage', cmake:
-        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON'
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
     ])
 
     sh script: '''
