@@ -300,7 +300,7 @@ void stageNightlyPerformance() {
     stagePre()
     installPackages()
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
-        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON'
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
     ])
 
     // catchError: set the overall stage to fail, but continue to execute subsequent steps.
