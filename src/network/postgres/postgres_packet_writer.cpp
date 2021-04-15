@@ -59,15 +59,18 @@ void PostgresPacketWriter::WriteParameterDescription(const std::vector<type::Typ
 }
 
 void PostgresPacketWriter::WriteExplainRowDescription() {
-  BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(1));
-  AppendString("QUERY PLAN", true);
-  AppendValue<int32_t>(0).AppendValue<int16_t>(0).AppendValue(
-      static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(type::TypeId::TEXT)));
-  AppendValue<int16_t>(-1);
+  BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION);
+  AppendValue<int16_t>(static_cast<int16_t>(1));  // number of columns
+  AppendString("QUERY PLAN", true);               // column name
+  AppendValue<int32_t>(0);                        // table oid
+  AppendValue<int16_t>(0);                        // column oid
+  AppendValue(static_cast<int32_t>(
+      PostgresValueType::TEXT));  // postgres expects this return type, which is why we're special-casing this function
+  AppendValue<int16_t>(-1);       // variable length
 
-  AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
-      .AppendValue<int16_t>(
-          static_cast<int16_t>(network::FieldFormat::text));  // format code for the field, 0 for text, 1 for binary
+  AppendValue<int32_t>(-1);  // type modifier, generally -1 (see pg_attribute.atttypmod)
+  AppendValue<int16_t>(
+      static_cast<int16_t>(network::FieldFormat::text));  // format code for the field
   EndPacket();
 }
 
@@ -84,11 +87,8 @@ void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::Output
     const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
     // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
-    // Because SQL EXPLAIN passes in a dummy output schema, this function handles when a column's
-    // expression is nullptr
-    const auto &name = columns[i].GetExpr() == nullptr || columns[i].GetExpr()->GetAlias().empty()
-                           ? columns[i].GetName()
-                           : columns[i].GetExpr()->GetAlias();
+    const auto &name =
+        columns[i].GetExpr()->GetAlias().empty() ? columns[i].GetName() : columns[i].GetExpr()->GetAlias();
     // If a column has no name, then Postgres will return "?column?" as a column name.
 
     if (name.empty())
