@@ -1,6 +1,6 @@
 from enum import Enum
 from threading import Thread
-from typing import List
+from typing import List, Union
 
 import zmq
 from zmq import Socket
@@ -40,6 +40,8 @@ class LogShipper:
         self.replica_dealer_socket.setsockopt(zmq.LINGER, 0)
         self.replica_dealer_socket.connect(f"tcp://127.0.0.1:{replica_replication_port}")
 
+        self.pending_log_msgs = {}
+
         # Create thread to receive and ack messages so the replica doesn't get backed up
         self.recv_context = None
         self.primary_router_socket = None
@@ -54,23 +56,25 @@ class LogShipper:
         print("Shipping logs to replica")
         for idx, message in enumerate(self.messages):
             self.send_log_record(message)
+            msg_id = self.extract_msg_id(message)
+            self.pending_log_msgs[msg_id] = message
+
             # Check and dispose of ACKs
-            if self.has_pending_messages(self.replica_dealer_socket, 1):
-                self.recv_ack(self.replica_dealer_socket)
-            self.print_status(idx, msgs_len)
+            if self.has_pending_messages(self.replica_dealer_socket, 0):
+                self.recv_log_record_ack()
+
+            # Every thousand messages print status and retry any pending messages
+            # This is a bit naive, but we want to ship logs as fast as possible and not spend too long every iteration
+            # checking for dropped messages
+            if idx % 1000 == 0 and idx != 0:
+                print(f"Shipping log number {idx} out of {msgs_len}")
+                # Drain ACKs
+                while self.has_pending_messages(self.replica_dealer_socket, 0):
+                    self.recv_log_record_ack()
+                for pending_message in self.pending_log_msgs.values():
+                    self.send_log_record(pending_message)
+
         print("Log shipping has completed")
-
-    @staticmethod
-    def print_status(idx, size):
-        """
-        Prints the status of log shipping. Helps to make sure that script is making progress and not stuck at a deadlock
-
-        :param idx number log message we are shipping
-        :param size total number of log messages
-        """
-        # Print every 1000 logs
-        if idx % 1000 == 0 and idx != 0:
-            print(f"Shipping log number {idx} out of {size}")
 
     def send_log_record(self, log_record_message: str):
         """
@@ -126,18 +130,29 @@ class LogShipper:
         identity = self.recv_msg(self.primary_router_socket)
         empty_msg = self.recv_msg(self.primary_router_socket)
         msg = self.recv_msg(self.primary_router_socket)
-        msg_id = msg.decode(UTF_8).split("-")[0]
+        msg_id = self.extract_msg_id(msg)
         self.send_ack_msg(msg_id, self.primary_router_socket)
 
-    def recv_ack(self, socket: Socket):
+    def recv_log_record_ack(self):
         """
-        Receives an ack. We don't care about the contents so we just throw it away
+        Receives an ACK for a log record and update pending log records
+        """
+        acked_msg_id = self.recv_ack(self.replica_dealer_socket)
+        if acked_msg_id in self.pending_log_msgs:
+            self.pending_log_msgs.pop(acked_msg_id)
+
+    def recv_ack(self, socket: Socket) -> str:
+        """
+        Receives an ACK.
 
         :param socket Socket to receive ACK on
+
+        :return Message Id of ACK
         """
         receiver_identity = self.recv_msg(socket)
         empty_message = self.recv_msg(socket)
         ack_message = self.recv_msg(socket)
+        return self.extract_msg_id(ack_message)
 
     @staticmethod
     def recv_msg(socket: Socket) -> str:
@@ -147,6 +162,11 @@ class LogShipper:
         :param socket Socket to receive message from
         """
         return socket.recv()
+
+    @staticmethod
+    def extract_msg_id(msg: Union[str, bytes]) -> str:
+        msg_str = msg.decode(UTF_8) if isinstance(msg, bytes) else msg
+        return msg_str.split("-")[0]
 
     @staticmethod
     def has_pending_messages(socket: Socket, timeout: int) -> bool:
