@@ -331,7 +331,7 @@ void stageNightlyMicrobenchmark() {
     stagePre()
     installPackages()
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
-        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_BUILD_BENCHMARKS=ON -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_LOGGING=OFF'
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_BUILD_BENCHMARKS=ON -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_USE_LOGGING=OFF'
     ])
 
     // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
