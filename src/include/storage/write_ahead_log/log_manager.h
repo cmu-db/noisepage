@@ -18,7 +18,7 @@
 #include "storage/write_ahead_log/log_record.h"
 
 namespace noisepage::replication {
-class ReplicationManager;
+class PrimaryReplicationManager;
 }  // namespace noisepage::replication
 
 namespace noisepage::storage {
@@ -110,8 +110,9 @@ class LogManager : public common::DedicatedThreadOwner {
    * write to the buffer. This method can be called safely from concurrent execution threads.
    *
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
+   * @param policy The transaction-wide policies for this batch of logs.
    */
-  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment);
+  void AddBufferToFlushQueue(RecordBufferSegment *buffer_segment, const transaction::TransactionPolicy &policy);
 
   /**
    * For testing only
@@ -147,6 +148,9 @@ class LogManager : public common::DedicatedThreadOwner {
 
   /** @return the log serialization interval */
   int32_t GetSerializationInterval() { return serialization_interval_.count(); }
+
+  /** Stop performing actions related to replication. Currently works around circular DBMain dependencies. */
+  void EndReplication();
 
  private:
   // Flag to tell us when the log manager is running or during termination

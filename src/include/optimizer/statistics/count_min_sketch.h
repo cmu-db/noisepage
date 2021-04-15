@@ -51,20 +51,38 @@ class CountMinSketch {
   }
 
   /**
+   * Copy Constructor that copies the contents of another CountMinSketch
+   * @param other CountMinSketch to copy
+   */
+  CountMinSketch(const CountMinSketch &other) : total_count_(other.total_count_) { sketch_.copy(other.sketch_); }
+
+  /**
    * Move constructor
-   * @param other sketch to move into this
+   * @param other CountMinSketch to move into this
    */
   CountMinSketch(CountMinSketch &&other) noexcept : total_count_(std::move(other.total_count_)) {
     sketch_.copy(other.sketch_);
   }
 
   /**
+   * Copy assignment operator
+   * @param other CountMinSketch to copy
+   * @return this after copying
+   */
+  CountMinSketch &operator=(const CountMinSketch &other) {
+    total_count_ = other.total_count_;
+    sketch_.copy(other.sketch_);
+    return *this;
+  }
+
+  /**
    * Move assignment operator
-   * @param other sketch to move into this
+   * @param other CountMinSketch to move into this
    * @return this after moving
    */
   CountMinSketch &operator=(CountMinSketch &&other) noexcept {
     total_count_ = std::move(other.total_count_);
+    // No good way to move the sketch so we just copy it
     sketch_.copy(other.sketch_);
     return *this;
   }
@@ -105,7 +123,7 @@ class CountMinSketch {
    * @param key the key to get the count for.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const KeyType &key) {
+  uint64_t EstimateItemCount(const KeyType &key) const {
     auto normalized_key = NormalizeKey(key);
     return EstimateItemCount(normalized_key, sizeof(normalized_key));
   }
@@ -256,7 +274,7 @@ class CountMinSketch {
    * @param key_size the length of the key's data.
    * @return the approximate count number for the key.
    */
-  uint64_t EstimateItemCount(const NormalizedKeyType &key, const size_t key_size) {
+  uint64_t EstimateItemCount(const NormalizedKeyType &key, const size_t key_size) const {
     return sketch_.get(reinterpret_cast<const void *>(&key), key_size);
   }
 

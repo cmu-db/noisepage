@@ -41,7 +41,7 @@ class TimestampManager {
    * it is guaranteed that the return timestamp is older than any transactions live.
    * @warning If logging is enabled, txns are not removed from the txn set until they are serialized. Thus, the active
    * txn set can grow greatly in size, making this call expensive. Consider using CachedOldestTransactionStartTime for
-   * better peformance at the cost of a more stale timestamp.
+   * better performance at the cost of a more stale timestamp.
    * @return timestamp that is older than any transactions alive
    */
   timestamp_t OldestTransactionStartTime();
@@ -93,8 +93,9 @@ class TimestampManager {
    * Bulk remove a set of timestamps from the active txn set. Only grabs the curr_running_txns_latch_ once for all the
    * timestamps.
    * @param timestamps vector of timestamps to remove
+   * @return True if there are no more running transactions after removal. False otherwise.
    */
-  void RemoveTransactions(const std::vector<timestamp_t> &timestamps);
+  bool RemoveTransactions(const std::vector<timestamp_t> &timestamps);
 
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue any time soon.

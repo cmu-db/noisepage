@@ -1,0 +1,256 @@
+statement ok
+CREATE TABLE foo (a int, b int);
+
+statement ok
+
+
+query I rowsort
+SELECT a FROM foo WHERE a < 666;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE a <= 42;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE a > 999;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE a >= 24;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE a = 42;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a = 666;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a <> 666;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NULL;
+----
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NOT NULL;
+----
+
+statement ok
+
+
+statement ok
+INSERT INTO foo VALUES (666, 1), (1000, 2), (42, 3), (55, 4), (13, NULL), (2, 5);
+
+statement ok
+
+
+query I rowsort
+SELECT a FROM foo WHERE a < 666;
+----
+13
+2
+42
+55
+
+query I rowsort
+SELECT a FROM foo WHERE a <= 42;
+----
+13
+2
+42
+
+query I rowsort
+SELECT a FROM foo WHERE a > 999;
+----
+1000
+
+query I rowsort
+SELECT a FROM foo WHERE a >= 24;
+----
+1000
+42
+55
+666
+
+query I rowsort
+SELECT a FROM foo WHERE a = 42;
+----
+42
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a = 666;
+----
+1000
+13
+2
+42
+55
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a <> 666;
+----
+666
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NULL;
+----
+13
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NOT NULL;
+----
+1000
+2
+42
+55
+666
+
+statement ok
+
+
+statement ok
+ANALYZE foo;
+
+statement ok
+
+
+query I rowsort
+SELECT a FROM foo WHERE a < 666;
+----
+13
+2
+42
+55
+
+query I rowsort
+SELECT a FROM foo WHERE a <= 42;
+----
+13
+2
+42
+
+query I rowsort
+SELECT a FROM foo WHERE a > 999;
+----
+1000
+
+query I rowsort
+SELECT a FROM foo WHERE a >= 24;
+----
+1000
+42
+55
+666
+
+query I rowsort
+SELECT a FROM foo WHERE a = 42;
+----
+42
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a = 666;
+----
+1000
+13
+2
+42
+55
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a <> 666;
+----
+666
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NULL;
+----
+13
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NOT NULL;
+----
+1000
+2
+42
+55
+666
+
+statement ok
+
+
+statement ok
+INSERT INTO foo VALUES (1, 6);
+
+statement ok
+ANALYZE foo;
+
+query I rowsort
+SELECT a FROM foo WHERE a < 666;
+----
+1
+13
+2
+42
+55
+
+query I rowsort
+SELECT a FROM foo WHERE a <= 42;
+----
+1
+13
+2
+42
+
+query I rowsort
+SELECT a FROM foo WHERE a > 999;
+----
+1000
+
+query I rowsort
+SELECT a FROM foo WHERE a >= 24;
+----
+1000
+42
+55
+666
+
+query I rowsort
+SELECT a FROM foo WHERE a = 42;
+----
+42
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a = 666;
+----
+1
+1000
+13
+2
+42
+55
+
+query I rowsort
+SELECT a FROM foo WHERE NOT a <> 666;
+----
+666
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NULL;
+----
+13
+
+query I rowsort
+SELECT a FROM foo WHERE b IS NOT NULL;
+----
+1
+1000
+2
+42
+55
+666
+

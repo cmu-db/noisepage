@@ -10,6 +10,7 @@
 #include "optimizer/property_set.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "parser/analyze_statement.h"
 #include "parser/drop_statement.h"
 #include "parser/insert_statement.h"
 #include "parser/parser_defs.h"
@@ -24,7 +25,8 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     const common::ManagedPointer<catalog::CatalogAccessor> accessor,
     const common::ManagedPointer<parser::ParseResult> query, const catalog::db_oid_t db_oid,
     common::ManagedPointer<optimizer::StatsStorage> stats_storage,
-    std::unique_ptr<optimizer::AbstractCostModel> cost_model, const uint64_t optimizer_timeout) {
+    std::unique_ptr<optimizer::AbstractCostModel> cost_model, const uint64_t optimizer_timeout,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
   auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
@@ -37,6 +39,7 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
   // Build the QueryInfo object. For SELECTs this may require a bunch of other stuff from the original statement.
   // If any more logic like this is needed in the future, we should break this into its own function somewhere since
   // this is Optimizer-specific stuff.
+
   const auto type = query->GetStatement(0)->GetType();
   if (type == parser::StatementType::SELECT) {
     const auto sel_stmt = query->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
@@ -61,7 +64,8 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
   // TODO(Matt): QueryInfo holding a raw pointer to PropertySet obfuscates the required life cycle of PropertySet
 
   // Optimize, consuming the logical expressions in the process
-  return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs));
+  return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs),
+                                 parameters);
   // TODO(Matt): I see a lot of copying going on in the Optimizer that maybe shouldn't be happening. BuildPlanTree's
   // signature is copying QueryInfo object (contains a vector of output columns), which then immediately makes a local
   // copy of that vector anyway. Presumably those are immutable expressions, in which case they should be const & to the

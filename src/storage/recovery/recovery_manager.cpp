@@ -18,7 +18,7 @@
 #include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/json.h"
-#include "replication/replication_manager.h"
+#include "replication/replica_replication_manager.h"
 #include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/index/index_metadata.h"
@@ -48,10 +48,22 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
-    if (replication_manager_ != DISABLED &&
+    if (replication_manager_ != DISABLED && replication_manager_->IsReplica() &&
         log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
-      auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
-      if (!rep_log_provider->NonBlockingHasMoreRecords()) break;
+      auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
+      auto event = rlp->WaitUntilEvent();
+
+      if (event == ReplicationLogProvider::ReplicationEvent::END) {
+        break;
+      }
+
+      if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
+        auto oat = rlp->PopOAT();
+        recovered_txns_ += ProcessDeferredTransactions(oat);
+        continue;
+      }
+      NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
+                       "What other replication events have been added?");
     }
 
     auto pair = log_provider->GetNextRecord();
@@ -75,10 +87,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 
         // We defer all transactions initially
         deferred_txns_.insert(log_record->TxnBegin());
-
         // Process any deferred transactions that are safe to execute
         recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
-
         // Clean up the log record
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
@@ -103,19 +113,6 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
       DeferRecordDeletes(txn.first, true);
     }
     buffered_changes_map_.clear();
-  }
-
-  if (replication_manager_ != DISABLED &&
-      log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
-    auto rep_log_provider = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
-    rep_log_provider->LatchPrimaryAckables();
-    std::vector<uint64_t> &ackables = rep_log_provider->GetPrimaryAckables();
-    std::vector<uint64_t> ackables_copy = ackables;
-    ackables.clear();
-    rep_log_provider->UnlatchPrimaryAckables();
-    for (const uint64_t primary_cb_id : ackables_copy) {
-      replication_manager_->ReplicaAck("primary", primary_cb_id, false);
-    }
   }
 }
 
@@ -145,6 +142,17 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
 
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  last_applied_txn_id_ = std::max(last_applied_txn_id_, txn_id);
+  if (replication_manager_ != DISABLED) {
+    // Replicas have to send back their list of deferred transactions that were processed, periodically.
+    // TODO(WAN): Per Joe's comment, it may be worth sending back transaction IDs to the primary in batches.
+    //            This will need to trade-off between the immediacy of responses (latency for sync replication)
+    //            and cost of serializing/sending messages.
+    if (replication_manager_->IsReplica()) {
+      replication_manager_->GetAsReplica()->NotifyPrimaryTransactionApplied(txn_id);
+    }
+  }
 }
 
 void RecoveryManager::DeferRecordDeletes(noisepage::transaction::timestamp_t txn_id, bool delete_varlens) {

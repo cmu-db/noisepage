@@ -951,7 +951,6 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/common/*.cpp"
         "test/execution/*.cpp"
         "test/integration/*.cpp"
-        "test/messenger/*.cpp"
         "test/metrics/*.cpp"
         "test/network/*.cpp"
         "test/optimizer/*.cpp"
@@ -960,6 +959,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/self_driving/*.cpp"
         "test/settings/*.cpp"
         "test/storage/*.cpp"
+        "test/sql/*.cpp"
         "test/traffic_cop/*.cpp"
         "test/transaction/*.cpp"
         "test/type/*.cpp"
@@ -1079,7 +1079,6 @@ add_jumbotest("test/catalog" "catalog_sql_test;")
 add_jumbotest("test/common" "bitmap_test;concurrent_bitmap_test;rusage_monitor_test;")
 add_jumbotest("test/execution" "ast;compiler_test;index_create_test;index_iterator_test;sql;storage_interface_test;util;vm;")
 add_jumbotest("test/integration" "")
-add_jumbotest("test/messenger" "messenger_test;")
 add_jumbotest("test/metrics" "metrics_test;")
 add_jumbotest("test/network" "network_test;")
 add_jumbotest("test/optimizer" "hyperloglog_test;")
@@ -1100,9 +1099,6 @@ set_tests_properties(
         network_test jumbotest_network_network_test
         traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
         PROPERTIES RESOURCE_GROUPS "port15721:1")
-set_tests_properties(
-        messenger_test jumbotest_messenger_messenger_test
-        PROPERTIES RESOURCE_GROUPS "port15721:1;port15722:1;port15723:1;port9022:1;port9023:1;port9024:1")
 set_tests_properties(
         model_server_test
         PROPERTIES RESOURCE_GROUPS "port15721:1;port9022:1")

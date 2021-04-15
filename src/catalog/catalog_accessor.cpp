@@ -205,6 +205,15 @@ common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::G
   return dbc_->GetFunctionContext(txn_, proc_oid);
 }
 
+std::unique_ptr<optimizer::ColumnStatsBase> CatalogAccessor::GetColumnStatistics(table_oid_t table_oid,
+                                                                                 col_oid_t col_oid) {
+  return dbc_->GetColumnStatistics(txn_, table_oid, col_oid);
+}
+
+optimizer::TableStats CatalogAccessor::GetTableStatistics(table_oid_t table_oid) {
+  return dbc_->GetTableStatistics(txn_, table_oid);
+}
+
 type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {

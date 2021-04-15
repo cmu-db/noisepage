@@ -841,4 +841,34 @@ TEST_F(CatalogTests, DDLLockTest) {
   txn_manager_->Commit(txn5, transaction::TransactionUtil::EmptyCallback, nullptr);  // txn5 releases the lock
 }
 
+TEST_F(CatalogTests, StatisticTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+
+  // Create test table
+  const auto *table_name = "stat_test";
+  const auto *column_name = "a";
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back(column_name, type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  auto tmp_schema = catalog::Schema(cols);
+
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), table_name, tmp_schema);
+  auto schema = accessor->GetSchema(table_oid);
+  auto *table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
+  auto col_oid = accessor->GetSchema(table_oid).GetColumn(column_name).Oid();
+
+  auto table_stats = accessor->GetTableStatistics(table_oid);
+  EXPECT_TRUE(table_stats.HasColumnStats(col_oid));
+  EXPECT_EQ(table_stats.GetNumRows(), 0);
+  EXPECT_EQ(table_stats.GetColumnCount(), 1);
+
+  auto col_stats = accessor->GetColumnStatistics(table_oid, col_oid);
+  EXPECT_NE(col_stats, nullptr);
+  EXPECT_EQ(col_stats->GetNumRows(), 0);
+  EXPECT_EQ(col_stats->GetColumnID(), col_oid);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
 }  // namespace noisepage

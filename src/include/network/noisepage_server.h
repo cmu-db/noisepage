@@ -42,6 +42,9 @@ class TerrierServer : public common::DedicatedThreadOwner {
   /** @return Condvar for a thread to wait on while the server is running. Currently only useful in DBMain. */
   std::condition_variable &RunningCV() { return running_cv_; }
 
+  /** @return The network port that the server is listening on. */
+  uint16_t GetPort() const { return port_; }
+
  private:
   // TODO(Matt): somewhere there's probably a stronger assertion to be made about the state of the server and if
   // threads can be safely taken away, but I don't understand the networking stuff well enough to say for sure what
