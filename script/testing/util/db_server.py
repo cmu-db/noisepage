@@ -92,7 +92,7 @@ class NoisePageServer:
 
         logs = []
 
-        check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
+        check_line = f'NoisePage - Self-Driving Database Management System [port={self.db_port}] [PID={db_process.pid}]'
         LOG.info(f'Waiting until DBMS stdout contains: {check_line}')
 
         while True:
