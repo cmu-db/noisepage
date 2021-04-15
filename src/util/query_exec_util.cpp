@@ -86,7 +86,7 @@ void QueryExecUtil::EndTransaction(bool commit) {
   own_txn_ = false;
 }
 
-std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> QueryExecUtil::PlanStatement(
+std::unique_ptr<network::Statement> QueryExecUtil::PlanStatement(
     const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
     common::ManagedPointer<std::vector<type::TypeId>> param_types, std::unique_ptr<optimizer::AbstractCostModel> cost) {
   NOISEPAGE_ASSERT(txn_ != nullptr, "Transaction must have been started");
@@ -101,13 +101,13 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
   } catch (std::exception &e) {
     // Catched a parsing error
     COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when parsing {}", e.what(), query);
-    return {nullptr, nullptr};
+    return {nullptr};
   }
 
   // If QUERY_SET can be run through the optimizer and/or a executor,
   // then we don't need to do this special case here.
   if (statement->GetQueryType() == network::QueryType::QUERY_SET) {
-    return std::make_pair(std::move(statement), nullptr);
+    return statement;
   }
 
   try {
@@ -116,22 +116,21 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
   } catch (std::exception &e) {
     // Caught a binding exception
     COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when binding {}", e.what(), query);
-    return {nullptr, nullptr};
+    return nullptr;
   }
 
-  auto out_plan = trafficcop::TrafficCopUtil::Optimize(txn, common::ManagedPointer(accessor), statement->ParseResult(),
-                                                       db_oid_, stats_, std::move(cost), optimizer_timeout_, params)
-                      ->TakePlanNodeOwnership();
-  return std::make_pair(std::move(statement), std::move(out_plan));
+  statement->SetOptimizeResult(trafficcop::TrafficCopUtil::Optimize(txn, common::ManagedPointer(accessor),
+                                                                    statement->ParseResult(), db_oid_, stats_,
+                                                                    std::move(cost), optimizer_timeout_, params));
+  return statement;
 }
 
 bool QueryExecUtil::ExecuteDDL(const std::string &query) {
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
-  auto result = PlanStatement(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>());
-  const std::unique_ptr<network::Statement> &statement = result.first;
-  const std::unique_ptr<planner::AbstractPlanNode> &out_plan = result.second;
+  auto statement = PlanStatement(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>());
+  auto out_plan = statement->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(!network::NetworkUtil::DMLQueryType(statement->GetQueryType()), "ExecuteDDL expects DDL statement");
 
   // Handle SET queries
@@ -145,20 +144,18 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
       case network::QueryType::QUERY_CREATE_TABLE:
         status = execution::sql::DDLExecutors::CreateTableExecutor(
             common::ManagedPointer<planner::CreateTablePlanNode>(
-                reinterpret_cast<planner::CreateTablePlanNode *>(out_plan.get())),
+                reinterpret_cast<planner::CreateTablePlanNode *>(out_plan.Get())),
             common::ManagedPointer(accessor), db_oid_);
         break;
       case network::QueryType::QUERY_DROP_INDEX:
         // Drop index does not need execution of compiled query
         status =
-            execution::sql::DDLExecutors::DropIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-                                                                .CastManagedPointerTo<planner::DropIndexPlanNode>(),
+            execution::sql::DDLExecutors::DropIndexExecutor(out_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(),
                                                             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
         break;
       case network::QueryType::QUERY_CREATE_INDEX:
         status = execution::sql::DDLExecutors::CreateIndexExecutor(
-            common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-                .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
+            out_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(),
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
 
         if (status) {
@@ -168,7 +165,8 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
           execution::exec::ExecutionSettings settings{};
           common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
           auto exec_query = execution::compiler::CompilationContext::Compile(
-              *out_plan, settings, accessor.get(), execution::compiler::CompilationMode::OneShot, std::nullopt);
+              *out_plan, settings, accessor.get(), execution::compiler::CompilationMode::OneShot, std::nullopt,
+              statement->OptimizeResult()->GetPlanMetaData());
           schemas_[query] = schema->Copy();
           exec_queries_[query] = std::move(exec_query);
           ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
@@ -189,8 +187,8 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  std::unique_ptr<optimizer::AbstractCostModel> cost,
                                  std::optional<execution::query_id_t> override_qid,
                                  const execution::exec::ExecutionSettings &exec_settings) {
-  //if (exec_queries_.find(statement) != exec_queries_.end()) {
-    // We have already optimized and compiled this query before
+  // if (exec_queries_.find(statement) != exec_queries_.end()) {
+  // We have already optimized and compiled this query before
   //  return true;
   //}
 
@@ -198,16 +196,17 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto result = PlanStatement(statement, params, param_types, std::move(cost));
-  if (!result.first || !result.second) {
+  if (!result || !result->OptimizeResult()) {
     return false;
   }
 
-  const std::unique_ptr<planner::AbstractPlanNode> &out_plan = result.second;
-  NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result.first->GetQueryType()), "ExecuteDML expects DML");
+  const common::ManagedPointer<planner::AbstractPlanNode> out_plan = result->OptimizeResult()->GetPlanNode();
+  NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result->GetQueryType()), "ExecuteDML expects DML");
   common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
 
   auto exec_query = execution::compiler::CompilationContext::Compile(
-      *out_plan, exec_settings, accessor.get(), execution::compiler::CompilationMode::OneShot, override_qid);
+      *out_plan, exec_settings, accessor.get(), execution::compiler::CompilationMode::OneShot, override_qid,
+      result->OptimizeResult()->GetPlanMetaData());
   schemas_[statement] = schema->Copy();
   exec_queries_[statement] = std::move(exec_query);
   return true;

@@ -16,6 +16,7 @@ class AbstractExpression;
 
 namespace noisepage::planner {
 class AbstractPlanNode;
+class PlanMetaData;
 }  // namespace noisepage::planner
 
 namespace noisepage::execution::compiler {
@@ -49,14 +50,13 @@ class CompilationContext {
    * @param accessor The catalog accessor to use for compilation.
    * @param mode The compilation mode.
    * @param override_qid Optional indicating how to override the plan's query id
-   * @param query_text The SQL query string (temporary)
+   * @param plan_meta_data Query plan meta data (stores cardinality information)
    */
-  static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
-                                                  const exec::ExecutionSettings &exec_settings,
-                                                  catalog::CatalogAccessor *accessor,
-                                                  CompilationMode mode = CompilationMode::Interleaved,
-                                                  std::optional<execution::query_id_t> override_qid = std::nullopt,
-                                                  common::ManagedPointer<const std::string> query_text = nullptr);
+  static std::unique_ptr<ExecutableQuery> Compile(
+      const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
+      catalog::CatalogAccessor *accessor, CompilationMode mode = CompilationMode::Interleaved,
+      std::optional<execution::query_id_t> override_qid = std::nullopt,
+      common::ManagedPointer<planner::PlanMetaData> plan_meta_data = nullptr);
 
   /**
    * Register a pipeline in this context.
@@ -135,7 +135,8 @@ class CompilationContext {
                               const exec::ExecutionSettings &exec_settings);
 
   // Given a plan node, compile it into a compiled query object.
-  void GeneratePlan(const planner::AbstractPlanNode &plan);
+  void GeneratePlan(const planner::AbstractPlanNode &plan,
+                    common::ManagedPointer<planner::PlanMetaData> plan_meta_data);
 
   // Generate the query initialization function.
   ast::FunctionDecl *GenerateInitFunction();

@@ -186,9 +186,9 @@ class QueryExecUtil {
    * @param params Placeholder parameters for query plan
    * @param param_types Types of query parameters
    * @param cost Cost model to use
-   * @return pair of resultant statement and plan node
+   * @return the result Statement including the optimized plan
    */
-  std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> PlanStatement(
+  std::unique_ptr<network::Statement> PlanStatement(
       const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
       common::ManagedPointer<std::vector<type::TypeId>> param_types,
       std::unique_ptr<optimizer::AbstractCostModel> cost);

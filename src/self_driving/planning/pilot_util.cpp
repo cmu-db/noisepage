@@ -90,7 +90,7 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
     auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
     auto result = query_exec_util->PlanStatement(query_text, params, param_types,
                                                  std::make_unique<optimizer::TrivialCostModel>());
-    plan_vecs->emplace_back(std::move(result.second));
+    plan_vecs->emplace_back(std::move(result->OptimizeResult()->TakePlanNodeOwnership()));
     query_exec_util->UseTransaction(db_oid, nullptr);
   }
 }
@@ -186,8 +186,8 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
     SELFDRIVING_LOG_DEBUG(fmt::format("qid: {}; pipeline_id: {}", static_cast<uint>(it->query_id_),
                                       static_cast<uint32_t>(it->pipeline_id_)));
-    //printf("%s\n", forecast->GetQuerytextByQid(it->query_id_).c_str());
-    //printf("Cardinality Features: %s\n", it->GetCardinalityVectorString().c_str());
+    // printf("%s\n", forecast->GetQuerytextByQid(it->query_id_).c_str());
+    // printf("Cardinality Features: %s\n", it->GetCardinalityVectorString().c_str());
   }
 
   return aggregated_data->pipeline_data_;
