@@ -11,6 +11,7 @@ WAL_ASYNC_COMMIT_KEY = "wal_async_commit_enable"
 METRICS_KEY = "metrics"
 USE_METRICS_THREAD_KEY = "use_metrics_thread"
 LOGGING_METRICS_ENABLED_KEY = "logging_metrics_enable"
+CONNECTION_THREAD_COUNT_KEY = "connection_thread_count"
 
 # Server Arg Default Values
 DEFAULT_BUILD_TYPE = "release"
@@ -36,7 +37,7 @@ DEFAULT_PRIMARY_SERVER_ARGS = {
         METRICS_KEY: True,
         USE_METRICS_THREAD_KEY: True,
         LOGGING_METRICS_ENABLED_KEY: True,
-        "connection_thread_count": DEFAULT_CONNECTION_THREADS,
+        CONNECTION_THREAD_COUNT_KEY: DEFAULT_CONNECTION_THREADS,
         "record_buffer_segment_size": DEFAULT_RECORD_BUFFER_SEGMENT_SIZE
     }
 }
@@ -57,23 +58,26 @@ DEFAULT_REPLICA_SERVER_ARGS = {
         METRICS_KEY: False,
         USE_METRICS_THREAD_KEY: False,
         LOGGING_METRICS_ENABLED_KEY: False,
-        "connection_thread_count": DEFAULT_CONNECTION_THREADS,
+        CONNECTION_THREAD_COUNT_KEY: DEFAULT_CONNECTION_THREADS,
         "record_buffer_segment_size": DEFAULT_RECORD_BUFFER_SEGMENT_SIZE
     }
 }
 
-# OLTP Keys
+# OLTP Keys and Values
 BENCHMARK_KEY = "benchmark"
+DEFAULT_BENCHMARK = "ycsb"
+TERMINALS_KEY = "terminals"
+LOADER_THREADS_KEY = "loader_threads"
 
 # OLTP config
 DEFAULT_OLTP_TEST_CASE = {
-    BENCHMARK_KEY: "ycsb",
+    BENCHMARK_KEY: DEFAULT_BENCHMARK,
     "query_mode": "extended",
-    "terminals": DEFAULT_CONNECTION_THREADS,
-    "scale_factor": 100000,
+    TERMINALS_KEY: DEFAULT_CONNECTION_THREADS,
+    "scale_factor": 10000,
     "weights": "50,5,15,10,10,10",
     "client_time": 60,
-    "loader_threads": DEFAULT_CONNECTION_THREADS
+    LOADER_THREADS_KEY: DEFAULT_CONNECTION_THREADS
 }
 
 # Log record messages

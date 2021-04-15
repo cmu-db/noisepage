@@ -43,18 +43,21 @@ class PrimaryNode(NodeServer):
     Primary node NoisePage server. Generates log records by running the loading phase of an OLTP benchmark
     """
 
-    def __init__(self, build_type: str, replication_enabled: bool, async_commit: bool, oltp_benchmark: str):
+    def __init__(self, build_type: str, replication_enabled: bool, async_commit: bool, oltp_benchmark: str,
+                 connection_threads: int):
         """
         Creates the NoisePage primary server and an OLTP test case
 
         :param build_type build type of NoisePage binary
         :param replication_enabled Whether or not to enable replication
         :param oltp_benchmark Which OLTP benchmark to run
+        :param connection_threads How many database connection threads to use
         """
         # Create DB instance
         primary_server_args = DEFAULT_PRIMARY_SERVER_ARGS
         primary_server_args[BUILD_TYPE_KEY] = build_type
         primary_server_args[SERVER_ARGS_KEY][WAL_ASYNC_COMMIT_KEY] = async_commit
+        primary_server_args[SERVER_ARGS_KEY][CONNECTION_THREAD_COUNT_KEY] = connection_threads
         if replication_enabled:
             primary_server_args[SERVER_ARGS_KEY][MESSENGER_ENABLED_KEY] = True
             primary_server_args[SERVER_ARGS_KEY][REPLICATION_ENABLED_KEY] = True
@@ -63,6 +66,8 @@ class PrimaryNode(NodeServer):
         # Create OLTP test case
         oltp_test_case = DEFAULT_OLTP_TEST_CASE
         oltp_test_case[BENCHMARK_KEY] = oltp_benchmark
+        oltp_test_case[TERMINALS_KEY] = connection_threads
+        oltp_test_case[LOADER_THREADS_KEY] = connection_threads
         self.test_case = TestCaseOLTPBench(oltp_test_case)
 
     def setup(self):
@@ -113,7 +118,8 @@ class ReplicaNode(NodeServer):
     Replica node NoisePage server. Generates log records by manually sending pre-collected messages
     """
 
-    def __init__(self, test_type: TestType, build_type: str, async_commit: bool, log_messages_file: str):
+    def __init__(self, test_type: TestType, build_type: str, async_commit: bool, log_messages_file: str,
+                 connection_threads: int):
         """
         Creates the NoisePage replica server. If we are testing throughput on the replica node then we also create a
         log shipper instance to send logs to the replica
@@ -121,9 +127,11 @@ class ReplicaNode(NodeServer):
         :param test_type Indicates whether we are testing throughput on the primary or replica node
         :param build_type Build type of NoisePage binary
         :param log_messages_file File containing log record messages to send to the replica
+        :param connection_threads How many database connection threads to use
         """
         replica_server_args = DEFAULT_REPLICA_SERVER_ARGS
         replica_server_args[SERVER_ARGS_KEY][WAL_ASYNC_COMMIT_KEY] = async_commit
+        replica_server_args[SERVER_ARGS_KEY][CONNECTION_THREAD_COUNT_KEY] = connection_threads
 
         self.ship_logs = False
         if test_type == TestType.REPLICA:
