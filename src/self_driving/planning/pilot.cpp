@@ -352,7 +352,8 @@ void Pilot::LoadWorkloadForecast(WorkloadForecastInitMode mode) {
     }
 
     // Construct the WorkloadForecast froM a mix of on-disk and inference information
-    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first);
+    auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
+    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, sample);
   } else {
     NOISEPAGE_ASSERT(mode == WorkloadForecastInitMode::DISK_ONLY, "Expected the mode to be directly from disk");
 

@@ -64,8 +64,9 @@ class WorkloadForecast {
   /**
    * Constructor for WorkloadForecast from on-disk inference results
    * @param inference Workload inference
+   * @param num_sample Number of samples for query parameters
    */
-  explicit WorkloadForecast(const WorkloadForecastPrediction &inference);
+  explicit WorkloadForecast(const WorkloadForecastPrediction &inference, uint64_t num_sample);
 
   /**
    * Get number of forecasted segments
