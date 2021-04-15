@@ -69,8 +69,7 @@ void PostgresPacketWriter::WriteExplainRowDescription() {
   AppendValue<int16_t>(-1);       // variable length
 
   AppendValue<int32_t>(-1);  // type modifier, generally -1 (see pg_attribute.atttypmod)
-  AppendValue<int16_t>(
-      static_cast<int16_t>(network::FieldFormat::text));  // format code for the field
+  AppendValue<int16_t>(static_cast<int16_t>(network::FieldFormat::text));  // format code for the field
   EndPacket();
 }
 
