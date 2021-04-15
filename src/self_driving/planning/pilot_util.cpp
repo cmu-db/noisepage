@@ -185,15 +185,15 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
 
     // separately get the cost of each query, averaged over diff set of params, for this segment
     // iterate through the sorted list of qids for this segment
-    for (auto id_num_exec : forecast->GetSegmentByIndex(seg_idx).GetIdToNumexec()) {
+    for (auto id_to_num_exec : forecast->GetSegmentByIndex(seg_idx).GetIdToNumexec()) {
       double curr_query_cost = 0.0;
-      for (auto ou_idx = query_ou_offset; ou_idx < query_ou_offset + query_info[id_num_exec.first].second; ou_idx ++) {
+      for (auto ou_idx = query_ou_offset; ou_idx < query_ou_offset + query_info[id_to_num_exec.first].second; ou_idx++) {
         curr_query_cost +=
-            interference_result_matrix.at(ou_idx).back() / static_cast<double>(query_info[id_num_exec.first].first);
+            interference_result_matrix.at(ou_idx).back() / static_cast<double>(query_info[id_to_num_exec.first].first);
 
       }
-      total_cost += (double) id_num_exec.second * curr_query_cost;
-      query_ou_offset += query_info[id_num_exec.first].second;
+      total_cost += (double) id_to_num_exec.second * curr_query_cost;
+      query_ou_offset += query_info[id_to_num_exec.first].second;
 
     }
   }
@@ -359,7 +359,7 @@ void PilotUtil::InterferenceInference(
   }
 
   // Populate interference_features matrix:
-  //  Compute sum of all ous in a segment, normalized by its interval
+  // Compute sum of all ous in a segment, normalized by its interval
   std::vector<std::vector<double>> interference_features;
 
   for (auto i = start_segment_index; i <= end_segment_index; i++) {
@@ -376,7 +376,7 @@ void PilotUtil::InterferenceInference(
                           forecast->forecast_interval_ / id_to_num_exec[id_to_query_sum.first]);
       }
     }
-    // curr_feat_sum now holds the sum of ous for queries in this segment (averaged over diff set of param)
+    // curr_feat_sum now holds the sum of ous for queries contained in this segment (averaged over diff set of param)
     // multiplied by number of execution of the query containing it and normalized by its interval
     for (auto const &pipeline_to_pred : pipeline_to_prediction) {
       if (id_to_num_exec.find(pipeline_to_pred.first.first) == id_to_num_exec.end()) {
