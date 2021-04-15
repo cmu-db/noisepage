@@ -1,8 +1,8 @@
 #pragma once
 
-#include <map>
 #include <queue>
 #include <tuple>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -19,15 +19,15 @@ class WorkloadForecastSegment {
    * Constructor for WorkloadForecastSegment
    * @param id_to_num_exec Map from qids to number of execution of this query in this interval
    */
-  explicit WorkloadForecastSegment(std::map<execution::query_id_t, uint64_t> id_to_num_exec);
+  explicit WorkloadForecastSegment(std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec);
 
   /**
    * Return const reference to id_to_num_exec_
    */
-  const std::map<execution::query_id_t, uint64_t> &GetIdToNumexec() const { return id_to_num_exec_; }
+  const std::unordered_map<execution::query_id_t, uint64_t> &GetIdToNumexec() const { return id_to_num_exec_; }
 
  private:
-  std::map<execution::query_id_t, uint64_t> id_to_num_exec_;
+  std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec_;
 };
 
 }  // namespace noisepage::selfdriving
