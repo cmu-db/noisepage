@@ -163,7 +163,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
     NOISEPAGE_ASSERT(
         cve->GetReturnValueType() == type::TypeId::BOOLEAN,
         "Single child ConstantValueExpression should be a boolean since WHERE clauses must resolve to boolean.");
-    if (cve->IsNull() || cve->GetBoolVal().val_ == false) {
+    if (cve->IsNull() || !cve->GetBoolVal().val_) {
       selectivity = 0;
     }
   } else if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST) {
