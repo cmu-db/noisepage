@@ -27,7 +27,7 @@ class PlanMetaData {
     /**
      * @return the output cardinality
      */
-    int GetCardinality() { return cardinality_; }
+    int GetCardinality() const { return cardinality_; }
 
    private:
     int cardinality_ = -1;

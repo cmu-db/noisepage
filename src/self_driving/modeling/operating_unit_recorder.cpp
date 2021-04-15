@@ -42,6 +42,7 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/plan_meta_data.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
@@ -202,9 +203,11 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
 void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size,
                                               size_t num_keys, const planner::AbstractPlanNode *plan,
                                               size_t scaling_factor, double mem_factor) {
-  // TODO(wz2): Populate actual num_rows/cardinality after #759
-  size_t num_rows = 1;
-  size_t cardinality = 1;
+  // This is the default case, but this value may change based on the specific plans (see below)
+  size_t num_rows = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId()).GetCardinality();
+  // TODO(lin): Some times cardinality represents the number of distinct values for some OUs (e.g., SORT_BUILD),
+  //  but we don't have a good way to estimate that right now. So in those cases we just copy num_rows
+  size_t cardinality = num_rows;
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
   if (type == ExecutionOperatingUnitType::OUTPUT) {
@@ -239,13 +242,17 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
     cardinality = num_rows;
   } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
     NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
-    UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(1);
-    num_rows = 1;     // extract from c_plan num_rows (# row to probe)
-    cardinality = 1;  // extract from plan num_rows (# matched rows)
+    cardinality = num_rows;  // extract from plan num_rows (# matched rows)
+
+    auto *c_plan = plan->GetChild(1);
+    // extract from c_plan num_rows (# row to probe)
+    num_rows = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
   } else if (type == ExecutionOperatingUnitType::IDX_SCAN) {
     // For IDX_SCAN, the feature is as follows:
     // - num_rows is the size of the index
     // - cardinality is the scan size
+    cardinality = num_rows;  // extract from plan num_rows (this is the scan size)
+
     if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
       num_rows = reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetIndexSize();
     } else {
@@ -253,10 +260,10 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
 
       UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
-      num_loops = 0;  // extract from c_plan num_rows
+      // extract from c_plan num_row
+      num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
     }
 
-    cardinality = 1;  // extract from plan num_rows (this is the scan size)
   } else if (type == ExecutionOperatingUnitType::CREATE_INDEX) {
     // We extract the num_rows and cardinality from the table name if possible
     // This is a special case for mini-runners
