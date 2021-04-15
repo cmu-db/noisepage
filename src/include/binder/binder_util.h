@@ -40,6 +40,11 @@ class BinderUtil {
   static void CheckAndTryPromoteType(common::ManagedPointer<parser::ConstantValueExpression> value,
                                      type::TypeId desired_type);
 
+  /**
+   * Predicate for evaluating expressions that serve as WHERE clauses. This is mostly defined by postgres and what we
+   * support, and should evolve as stuff gets fixed (mostly related to literals, at the moment).
+   * @param value expression that serves as the condition in a WHERE clause (SELECT, UPDATE, INSERT)
+   */
   static void ValidateWhereClause(common::ManagedPointer<parser::AbstractExpression> value);
 
   /**
