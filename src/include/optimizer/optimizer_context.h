@@ -76,6 +76,12 @@ class OptimizerContext {
   StatsStorage *GetStatsStorage() { return stats_storage_; }
 
   /**
+   * Gets the param list
+   * @return list of param values
+   */
+  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> GetParams() { return params_; }
+
+  /**
    * Adds a OptimizationContext to the tracking list
    * @param ctx OptimizationContext to add to tracking
    */
@@ -126,6 +132,12 @@ class OptimizerContext {
     delete this->task_pool_;
     this->task_pool_ = task_pool;
   }
+
+  /**
+   * Set the param list
+   * @param params list of param values
+   */
+  void SetParams(common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params) { params_ = params; }
 
   /**
    * Converts an AbstractOptimizerNode into a GroupExpression.
@@ -207,6 +219,7 @@ class OptimizerContext {
   StatsStorage *stats_storage_{};
   transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
+  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params_;
 };
 
 }  // namespace optimizer

@@ -48,8 +48,6 @@ TEST_F(TopKElementsTests, SimpleIncrementTest) {
   // Add another value
   top_k.Increment(5, 15);
   EXPECT_EQ(top_k.GetSize(), 5);
-
-  OPTIMIZER_LOG_TRACE(top_k);
 }
 
 // Check that if incrementally increase the count of a key that

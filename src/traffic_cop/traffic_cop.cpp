@@ -14,7 +14,6 @@
 #include "common/error/exception.h"
 #include "common/thread_context.h"
 #include "execution/compiler/compilation_context.h"
-#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
@@ -26,11 +25,13 @@
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "parser/variable_show_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/analyze_plan_node.h"
 #include "settings/settings_manager.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
@@ -39,9 +40,54 @@
 
 namespace noisepage::trafficcop {
 
+/** The commit callback argument. */
+struct CommitCallbackArg {
+  std::atomic<uint8_t> persist_countdown_;  ///< A countdown latch for what else needs to persist.
+  std::promise<bool> ready_to_commit_;      ///< Set this promise to true to wake up the thread for commit.
+
+  explicit CommitCallbackArg(const transaction::TransactionPolicy &policy) {
+    // The value for the persist_countdown_ field.
+    // Note that the field will be decremented exactly once every time a commit callback is invoked.
+    persist_countdown_ = 0;
+
+    // Cases: Durability, Replication
+    // - ASYNC, SYNC => This is too weird. Not supporting this.
+    // - ASYNC, ASYNC => 1. The callback is invoked immediately in TransactionManager.
+    // - SYNC, ASYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
+    // - SYNC, SYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
+
+    NOISEPAGE_ASSERT(!(policy.durability_ == transaction::DurabilityPolicy::ASYNC &&
+                       policy.replication_ == transaction::ReplicationPolicy::SYNC),
+                     "Haven't reasoned about this case.");
+
+    const transaction::DurabilityPolicy &dur = policy.durability_;
+    const transaction::ReplicationPolicy &rep = policy.replication_;
+
+    if (dur != transaction::DurabilityPolicy::DISABLE) {
+      persist_countdown_ += 1;
+    }
+    if (rep != transaction::ReplicationPolicy::DISABLE) {
+      if (dur == transaction::DurabilityPolicy::ASYNC && rep == transaction::ReplicationPolicy::ASYNC) {
+        // Callback will get invoked by TransactionManager, fake EmptyCallback is passed down.
+      } else {
+        NOISEPAGE_ASSERT(dur != transaction::DurabilityPolicy::DISABLE, "Nothing to replicate?");
+        NOISEPAGE_ASSERT(dur == transaction::DurabilityPolicy::SYNC, "What other policies are there?");
+        persist_countdown_ += 1;
+      }
+    }
+  }
+};
+
 static void CommitCallback(void *const callback_arg) {
-  auto *const promise = reinterpret_cast<std::promise<bool> *const>(callback_arg);
-  promise->set_value(true);
+  auto *const cb_arg = reinterpret_cast<CommitCallbackArg *const>(callback_arg);
+  const uint8_t count_before_sub = cb_arg->persist_countdown_.fetch_sub(1);
+  NOISEPAGE_ASSERT(
+      count_before_sub != 0,
+      "Every component should have invoked the callback already. The policy may not have been correctly initialized?");
+  const bool was_last_callback = count_before_sub == 1;
+  if (was_last_callback) {
+    cb_arg->ready_to_commit_.set_value(true);
+  }
 }
 
 void TrafficCop::BeginTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
@@ -62,10 +108,10 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
     NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                      "Invalid ConnectionContext state, not in a transaction that can be committed.");
     // Set up a blocking callback. Will be invoked when we can tell the client that commit is complete.
-    std::promise<bool> promise;
-    auto future = promise.get_future();
+    CommitCallbackArg cb_arg(txn->GetTransactionPolicy());
+    auto future = cb_arg.ready_to_commit_.get_future();
     NOISEPAGE_ASSERT(future.valid(), "future must be valid for synchronization to work.");
-    txn_manager_->Commit(txn.Get(), CommitCallback, &promise);
+    txn_manager_->Commit(txn.Get(), CommitCallback, &cb_arg);
     future.wait();
     NOISEPAGE_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
   } else {
@@ -126,13 +172,14 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 
 std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<parser::ParseResult> query) const {
+    const common::ManagedPointer<parser::ParseResult> query,
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
 
   return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
                                   connection_ctx->GetDatabaseOid(), stats_storage_,
-                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_, parameters);
 }
 
 TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -409,6 +456,20 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
           query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
       "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+
+  /*
+   * ANALYZE will update the statistics held in the pg_statistic catalog table. These statistics are also cached in
+   * StatsStorage. So once ANALYZE commits, we need to mark the columns updated as dirty in StatsStorage.
+   */
+  if (query_type == network::QueryType::QUERY_ANALYZE) {
+    const auto analyze_plan = physical_plan.CastManagedPointerTo<planner::AnalyzePlanNode>();
+    auto db_oid = analyze_plan->GetDatabaseOid();
+    auto table_oid = analyze_plan->GetTableOid();
+    std::vector<catalog::col_oid_t> col_oids = analyze_plan->GetColumnOids();
+    connection_ctx->Transaction()->RegisterCommitAction(
+        [=]() { stats_storage_->MarkStatsStale(db_oid, table_oid, col_oids); });
+  }
+
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   // A std::function<> requires the target to be CopyConstructible and CopyAssignable. In certain
@@ -433,7 +494,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_);
+      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_, recovery_manager_);
 
   exec_ctx->SetParams(portal->Parameters());
 
@@ -484,7 +545,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     const network::connection_id_t connection_id, const std::string &database_name) {
   auto *const txn = txn_manager_->BeginTransaction();
-  txn->SetRetentionPolicy(transaction::RetentionPolicy::DISABLE_RETENTION);
+  txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
 
   const auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
@@ -513,7 +574,7 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   NOISEPAGE_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID,
                    "Called DropTempNamespace() with an invalid namespace oid.");
   auto *const txn = txn_manager_->BeginTransaction();
-  txn->SetRetentionPolicy(transaction::RetentionPolicy::DISABLE_RETENTION);
+  txn->SetReplicationPolicy(transaction::ReplicationPolicy::DISABLE);
 
   const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   NOISEPAGE_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");

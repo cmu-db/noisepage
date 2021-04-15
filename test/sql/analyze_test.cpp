@@ -1,5 +1,6 @@
 
 #include "execution/compiler/output_checker.h"
+#include "gtest/gtest.h"
 #include "optimizer/statistics/histogram.h"
 #include "optimizer/statistics/top_k_elements.h"
 #include "spdlog/fmt/fmt.h"

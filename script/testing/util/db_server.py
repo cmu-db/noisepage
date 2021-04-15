@@ -92,7 +92,7 @@ class NoisePageServer:
 
         logs = []
 
-        check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
+        check_line = f'NoisePage - Self-Driving Database Management System [port={self.db_port}] [PID={db_process.pid}]'
         LOG.info(f'Waiting until DBMS stdout contains: {check_line}')
 
         while True:
@@ -220,7 +220,8 @@ class NoisePageServer:
         Exception if any errors happened while executing the SQL.
         """
         try:
-            with psql.connect(port=self.db_port, host=self.db_host, user=user) as conn:
+            conn = psql.connect(port=self.db_port, host=self.db_host, user=user)
+            try:
                 conn.set_session(autocommit=autocommit)
                 with conn.cursor() as cursor:
                     if not quiet:
@@ -230,6 +231,10 @@ class NoisePageServer:
                         rows = cursor.fetchall()
                         return rows
                     return None
+            finally:
+                # psycopg2 connection's context manager does NOT close
+                # the connection by default, only the txn.
+                conn.close()
         except Exception as e:
             LOG.error(f"Executing SQL failed: {sql}")
             raise e
