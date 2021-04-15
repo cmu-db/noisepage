@@ -1,8 +1,11 @@
+import os.path
+import re
 from abc import abstractmethod, ABC
 
 from .constants import *
 from .log_shipper import LogShipper
 from .test_type import TestType
+from ...oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
 from ...oltpbench.test_case_oltp import TestCaseOLTPBench
 from ...oltpbench.test_oltpbench import TestOLTPBench
 from ...util.db_server import NoisePageServer
@@ -69,7 +72,26 @@ class PrimaryNode(NodeServer):
         # Start DB
         self.oltp_server.db_instance.run_db()
         # Download and prepare OLTP Bench
-        self.oltp_server.run_pre_suite()
+        self.oltp_server._clean_oltpbench()
+        self.oltp_server._download_oltpbench()
+        self.overwrite_ycsb_field_size()
+        self.oltp_server._build_oltpbench()
+
+    @staticmethod
+    def overwrite_ycsb_field_size():
+        """
+        Overwrites the YCSB constants file to replace FIELD_SIZE with 1
+        """
+        ycsb_constants_file_path = os.path.join(
+            *[OLTPBENCH_GIT_LOCAL_PATH, "src", "com", "oltpbenchmark", "benchmarks", "ycsb", "YCSBConstants.java"])
+        new_constants_file = ""
+        with open(ycsb_constants_file_path, 'r') as f:
+            for line in f.readlines():
+                if "FIELD_SIZE" in line:
+                    line = re.sub(r"\d+", "1", line)
+                new_constants_file += line
+        with open(ycsb_constants_file_path, 'w') as f:
+            f.write(new_constants_file)
 
     def run(self):
         """

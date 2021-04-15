@@ -29,8 +29,8 @@ def main():
                          action="store_true",
                          help="Whether or not async commit is enabled")
     aparser.add_argument("--oltp-benchmark",
-                         default="tpcc",
-                         choices=["tpcc", "tatp"],
+                         default="ycsb",
+                         choices=["ycsb", "tpcc", "tatp"],
                          help="Which OLTP benchmark to use, only relevant when test_type is primary")
     aparser.add_argument("--log-file",
                          default=DEFAULT_LOG_RECORD_MESSAGES_FILE,

@@ -67,13 +67,13 @@ BENCHMARK_KEY = "benchmark"
 
 # OLTP config
 DEFAULT_OLTP_TEST_CASE = {
-    BENCHMARK_KEY: "tpcc",
+    BENCHMARK_KEY: "ycsb",
     "query_mode": "extended",
-    "terminals": 32,
-    "scale_factor": 1,
-    "weights": "45,43,4,4,4",
+    "terminals": DEFAULT_CONNECTION_THREADS,
+    "scale_factor": 100000,
+    "weights": "50,5,15,10,10,10",
     "client_time": 60,
-    "loader_threads": 32
+    "loader_threads": DEFAULT_CONNECTION_THREADS
 }
 
 # Log record messages
