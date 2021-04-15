@@ -15,17 +15,26 @@ pipeline {
         stage('Artifact Stats') {
             agent       { docker { image 'noisepage:focal' } }
             steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageNightlyArtifact() } }
-            post        { cleanup { deleteDir() } }
+            post        {
+                unsuccessful    { slackSend(color: "danger", message: "Nightly artifact stats failed!", channel: "#general") }
+                cleanup         { deleteDir() }
+            }
         }
         stage('Performance') {
             agent       { label 'benchmark' }
             steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageNightlyPerformance() } }
-            post        { cleanup { deleteDir() } }
+            post        {
+                unsuccessful    { slackSend(color: "danger", message: "Nightly performance failed!", channel: "#general") }
+                cleanup         { deleteDir() }
+            }
         }
         stage('Microbenchmark') {
             agent       { label 'benchmark' }
             steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageNightlyMicrobenchmark() } }
-            post        { cleanup { deleteDir() } }
+            post        {
+                unsuccessful    { slackSend(color: "danger", message: "Nightly microbenchmark failed!", channel: "#general") }
+                cleanup         { deleteDir() }
+            }
         }
     }
 }
