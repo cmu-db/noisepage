@@ -147,7 +147,6 @@ void WorkloadForecast::LoadQueryTrace() {
   std::getline(trace_file, line);
 
   bool parse_succ;
-  uint64_t db_oid;
   execution::query_id_t query_id;
   size_t pos, colnum;
   std::vector<std::string> val_vec(num_cols, "");
@@ -173,7 +172,8 @@ void WorkloadForecast::LoadQueryTrace() {
 
     if (!parse_succ) continue;
 
-    db_oid = static_cast<uint64_t>(std::stoi(val_vec[0]));
+    // Database id is recorded here for consistency with LoadQueryText but no use for now.
+    // db_oid = static_cast<uint64_t>(std::stoi(val_vec[0]));
     query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[1]));
     param_string = val_vec[3];
 

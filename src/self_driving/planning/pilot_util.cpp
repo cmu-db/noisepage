@@ -152,12 +152,14 @@ std::vector<double> PilotUtil::GetInterferenceFeature(std::vector<double> featur
                                                       std::vector<double> normalized_feat_sum) {
   std::vector<double> interference_feat;
   for (auto i = 0; i < feature.size(); i++) {
+    // normalize the output of ou_model by the elapsed time
     interference_feat.emplace_back(feature[i] / feature[feature.size() - 1]);
   }
 
+  // append with the normalized feature for this segment
   interference_feat.insert(interference_feat.end(), normalized_feat_sum.begin(), normalized_feat_sum.end());
   NOISEPAGE_ASSERT(interference_feat.size() == 18, "expect 18 nonzero elements in interference feature");
-  interference_feat.resize(interference_dimension - interference_feat.size(), 0.0);
+  interference_feat.resize(interference_dimension, 0.0);
   return interference_feat;
 }
 
@@ -165,7 +167,7 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
                               uint64_t start_segment_index, uint64_t end_segment_index) {
   // Compute cost as total latency of queries based on their num of exec
 
-  // query id, num_param of this query executed, total number of collected ous for this query
+  // query id, <num_param of this query executed, total number of collected ous for this query>
   std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> query_info;
   // This is to record the start index of ou records belonging to a segment in input to the interference model
   std::map<uint32_t, uint64_t> segment_to_offset;
@@ -374,7 +376,8 @@ void PilotUtil::InterferenceInference(
                           forecast->forecast_interval_ / id_to_num_exec[id_to_query_sum.first]);
       }
     }
-    // curr_feat_sum now holds the sum of all ous in this segment normalized by its interval
+    // curr_feat_sum now holds the sum of ous for queries in this segment (averaged over diff set of param)
+    // multiplied by number of execution of the query containing it and normalized by its interval
     for (auto const &pipeline_to_pred : pipeline_to_prediction) {
       if (id_to_num_exec.find(pipeline_to_pred.first.first) == id_to_num_exec.end()) {
         continue;
