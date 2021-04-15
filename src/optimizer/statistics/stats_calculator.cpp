@@ -157,6 +157,18 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
 
   if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_NOT) {
     selectivity = 1 - CalculateSelectivityForPredicate(predicate_table_stats, expr->GetChild(0));
+  } else if (expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+    NOISEPAGE_ASSERT(expr->GetChildrenSize() == 0, "CVE should have no child.");
+    auto cve = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
+    NOISEPAGE_ASSERT(
+        cve->GetReturnValueType() == type::TypeId::BOOLEAN,
+        "Single child ConstantValueExpression should be a boolean since WHERE clauses must resolve to boolean.");
+    if (cve->IsNull() || cve->GetBoolVal().val_ == false) {
+      selectivity = 0;
+    }
+  } else if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST) {
+    NOISEPAGE_ASSERT(expr->GetChildrenSize() == 1, "Cast should have a single child.");
+    selectivity = CalculateSelectivityForPredicate(predicate_table_stats, expr->GetChild(0));
   } else if (expr->GetChildrenSize() == 1 &&
              expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
     auto child_expr = expr->GetChild(0);

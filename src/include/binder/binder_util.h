@@ -9,7 +9,8 @@
 
 namespace noisepage::parser {
 class ConstantValueExpression;
-}
+class AbstractExpression;
+}  // namespace noisepage::parser
 
 namespace noisepage::binder {
 
@@ -38,6 +39,8 @@ class BinderUtil {
    */
   static void CheckAndTryPromoteType(common::ManagedPointer<parser::ConstantValueExpression> value,
                                      type::TypeId desired_type);
+
+  static void ValidateWhereClause(common::ManagedPointer<parser::AbstractExpression> value);
 
   /**
    * @return True if the value of @p int_val fits in the Output type, false otherwise.
