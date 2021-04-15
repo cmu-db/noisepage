@@ -147,7 +147,6 @@ void WorkloadForecast::LoadQueryTrace() {
   std::getline(trace_file, line);
 
   bool parse_succ;
-  uint64_t db_oid;
   execution::query_id_t query_id;
   size_t pos, colnum;
   std::vector<std::string> val_vec(num_cols, "");
