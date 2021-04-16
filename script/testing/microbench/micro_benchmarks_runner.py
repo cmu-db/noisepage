@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import subprocess
+import re
 
 from ..util.constants import LOG
 from .constants import LOCAL_REPO_DIR
@@ -41,7 +42,7 @@ class MicroBenchmarksRunner(object):
 
         # iterate over all benchmarks and run them
         for benchmark_count, bench_name in enumerate(self.config.benchmarks):
-            LOG.info(f"Running '{bench_name}' with {self.config.num_threads} threads [{benchmark_count}/{len(self.config.benchmarks)}]")
+            LOG.info(f"Running '{bench_name}' with {self.config.num_threads} threads [{benchmark_count+1}/{len(self.config.benchmarks)}]")
             benchmark_ret_val = self.run_single_benchmark(bench_name, enable_perf)
             if benchmark_ret_val:
                 ret_val = benchmark_ret_val
@@ -72,8 +73,8 @@ class MicroBenchmarksRunner(object):
         cmd = self._build_benchmark_cmd(bench_name, output_file, enable_perf)
 
         # Environment Variables
-        os.environ["TERRIER_BENCHMARK_THREADS"] = str(self.config.num_threads)  # has to be a str
-        os.environ["TERRIER_BENCHMARK_LOGFILE_PATH"] = self.config.logfile_path
+        os.environ["NOISEPAGE_BENCHMARK_THREADS"] = str(self.config.num_threads)  # has to be a str
+        os.environ["NOISEPAGE_BENCHMARK_LOGFILE_PATH"] = self.config.logfile_path
 
         ret_val, err = self._execute_benchmark(cmd)
 
@@ -142,7 +143,11 @@ class MicroBenchmarksRunner(object):
         LOG.debug(f'Executing command [num_threads={self.config.num_threads}]: {cmd}')
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-            pretty_format_json = json.dumps(json.loads(output.decode('utf8').replace("'", '"')), indent=4)
+            
+            # Strip DBMS debug messages
+            output = re.sub(r"\[.*?\] \[.*?\] \[[\w]+\] .*\n", "", output.decode('utf8'))
+            
+            pretty_format_json = json.dumps(json.loads(output.replace("'", '"')), indent=4)
             LOG.debug(f'OUTPUT: {pretty_format_json}')
             return 0, None
         except subprocess.CalledProcessError as err:
@@ -260,4 +265,4 @@ def copy_benchmark_result(bench_name, build_dir):
     """
     result_file = f'{bench_name}.json'
     shutil.copy(result_file, build_dir)
-    LOG.debug(f'Copything result file {result_file} into {build_dir}')
+    LOG.debug(f'Copying result file {result_file} into {build_dir}')
