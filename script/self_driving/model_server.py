@@ -637,7 +637,6 @@ class ModelServer:
 
     @staticmethod
     def _parse_msg(payload: str) -> Tuple[int, int, int, Optional[Message]]:
-        print(payload)
         logging.debug("PY RECV: " + payload)
         tokens = payload.split('-', 3)
 

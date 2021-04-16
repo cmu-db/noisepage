@@ -92,7 +92,7 @@ class NoisePageServer:
 
         logs = []
 
-        check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={db_process.pid}]'
+        check_line = f'NoisePage - Self-Driving Database Management System [port={self.db_port}] [PID={db_process.pid}]'
         LOG.info(f'Waiting until DBMS stdout contains: {check_line}')
 
         while True:
@@ -176,9 +176,17 @@ class NoisePageServer:
         """
         if not self.server_args.get('wal_enable', True):
             return
+
+        # WAL location can be specified as absolute path
         wal = self.server_args.get('wal_file_path', DEFAULT_DB_WAL_FILE)
         if os.path.exists(wal):
             os.remove(wal)
+            return
+
+        # If WAL isn't absolute path then it is relative to the binary path
+        wal_path = os.path.join(self.binary_dir, wal)
+        if os.path.exists(wal_path):
+            os.remove(wal_path)
 
     def print_db_logs(self):
         """
