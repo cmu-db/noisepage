@@ -16,7 +16,7 @@ CONNECTION_THREAD_COUNT_KEY = "connection_thread_count"
 # Server Arg Default Values
 DEFAULT_BUILD_TYPE = "release"
 REPLICATION_HOSTS_PATH = "../../script/testing/replication/log_throughput/resources/replication.config"
-DEFAULT_CONNECTION_THREADS = 32
+DEFAULT_CONNECTION_THREADS = 140
 DEFAULT_RECORD_BUFFER_SEGMENT_SIZE = 10000000
 
 # Server Args
@@ -74,7 +74,7 @@ DEFAULT_OLTP_TEST_CASE = {
     BENCHMARK_KEY: DEFAULT_BENCHMARK,
     "query_mode": "extended",
     TERMINALS_KEY: DEFAULT_CONNECTION_THREADS,
-    "scale_factor": 10000,
+    "scale_factor": 3000,
     "weights": "50,5,15,10,10,10",
     "client_time": 60,
     LOADER_THREADS_KEY: DEFAULT_CONNECTION_THREADS
