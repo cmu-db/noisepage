@@ -75,7 +75,8 @@ class PrimaryNode(NodeServer):
         Start the primary NoisePage node and download and compile OLTP Bench
         """
         # Start DB
-        self.oltp_server.db_instance.run_db(timeout=60)
+        if not self.oltp_server.db_instance.run_db(timeout=30):
+            raise RuntimeError("Unable to start database")
         # Download and prepare OLTP Bench
         self.oltp_server._clean_oltpbench()
         self.oltp_server._download_oltpbench()
@@ -159,7 +160,9 @@ class ReplicaNode(NodeServer):
         Start the replica node
         """
         # Start DB
-        self.replica.run_db(timeout=60)
+        if not self.replica.run_db(timeout=30):
+            raise RuntimeError("Unable to start database")
+
 
     def run(self):
         """

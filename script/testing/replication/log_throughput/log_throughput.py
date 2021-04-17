@@ -50,8 +50,14 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     servers = get_servers(test_type, build_type, replication_enabled, async_commit, oltp_benchmark, log_messages_file,
                           connection_threads)
 
-    for server in servers:
-        server.setup()
+    try:
+        for server in servers:
+            server.setup()
+    except RuntimeError as e:
+        print(e)
+        for server in servers:
+            server.teardown()
+        return
 
     # We don't care about log records generated at startup
     delete_metrics_file(metrics_file)
