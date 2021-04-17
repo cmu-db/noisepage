@@ -76,6 +76,7 @@ class PrimaryNode(NodeServer):
         # Create OLTP test case
         oltp_test_case = DEFAULT_OLTP_TEST_CASE
         oltp_test_case[BENCHMARK_KEY] = oltp_benchmark
+        oltp_test_case[WEIGHTS_KEY] = WEIGHTS_MAP[oltp_benchmark]
         oltp_test_case[TERMINALS_KEY] = connection_threads
         oltp_test_case[LOADER_THREADS_KEY] = connection_threads
         oltp_test_case[SCALE_FACTOR_KEY] = scale_factor

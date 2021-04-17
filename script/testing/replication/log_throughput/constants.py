@@ -64,12 +64,27 @@ DEFAULT_REPLICA_SERVER_ARGS = {
 }
 
 # OLTP Keys and Values
+YCSB = "ycsb"
+TPCC = "tpcc"
+TATP = "tatp"
+
 BENCHMARK_KEY = "benchmark"
-DEFAULT_BENCHMARK = "ycsb"
+DEFAULT_BENCHMARK = YCSB
 TERMINALS_KEY = "terminals"
 LOADER_THREADS_KEY = "loader_threads"
 SCALE_FACTOR_KEY = "scale_factor"
 DEFAULT_SCALE_FACTOR = 3000
+WEIGHTS_KEY = "weights"
+
+# Weights for different benchmarks. not needed for the load phase, but it is validated so we need some valid values
+YCSB_WEIGHTS = "50,5,15,10,10,10"
+TPCC_WEIGHTS = "45,43,4,4,4"
+TATP_WEIGHTS = "2,35,10,35,2,14,2"
+WEIGHTS_MAP = {
+    YCSB: YCSB_WEIGHTS,
+    TPCC: TPCC_WEIGHTS,
+    TATP: TATP_WEIGHTS
+}
 
 # OLTP config
 DEFAULT_OLTP_TEST_CASE = {
@@ -77,7 +92,7 @@ DEFAULT_OLTP_TEST_CASE = {
     "query_mode": "extended",
     TERMINALS_KEY: DEFAULT_CONNECTION_THREADS,
     SCALE_FACTOR_KEY: DEFAULT_SCALE_FACTOR,
-    "weights": "50,5,15,10,10,10",
+    WEIGHTS_KEY: WEIGHTS_MAP[DEFAULT_BENCHMARK],
     "client_time": 60,
     LOADER_THREADS_KEY: DEFAULT_CONNECTION_THREADS
 }

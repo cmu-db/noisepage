@@ -58,6 +58,8 @@ def main():
 
     To generate messenger logs just add the following line to Messenger::RunTask()
         messenger_logger->set_level(spdlog::level::trace);
+    Then run a workload using the primary node. Either copy the logs generated to a file or start the database with
+    logs redirected to a file.
     """
     aparser = argparse.ArgumentParser(description="Messenger log scraper")
     aparser.add_argument("--input-log-file",
