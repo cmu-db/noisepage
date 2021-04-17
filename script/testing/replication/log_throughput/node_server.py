@@ -37,6 +37,15 @@ class NodeServer(ABC):
         """
         pass
 
+    @abstractmethod
+    def is_running(self) -> bool:
+        """
+        Indicates whether or not the server is running
+
+        :return True if the server is running False otherwise
+        """
+        pass
+
 
 class PrimaryNode(NodeServer):
     """
@@ -72,6 +81,8 @@ class PrimaryNode(NodeServer):
         oltp_test_case[SCALE_FACTOR_KEY] = scale_factor
         self.test_case = TestCaseOLTPBench(oltp_test_case)
 
+        self.running = False
+
     def setup(self):
         """
         Start the primary NoisePage node and download and compile OLTP Bench
@@ -79,6 +90,7 @@ class PrimaryNode(NodeServer):
         # Start DB
         if not self.oltp_server.db_instance.run_db(timeout=30):
             raise RuntimeError("Unable to start database")
+        self.running = True
         # Download and prepare OLTP Bench
         self.oltp_server._clean_oltpbench()
         self.oltp_server._download_oltpbench()
@@ -113,7 +125,11 @@ class PrimaryNode(NodeServer):
         Stop the primary node and delete it's WAL
         """
         self.oltp_server.db_instance.stop_db()
+        self.running = False
         self.oltp_server.db_instance.delete_wal()
+
+    def is_running(self) -> bool:
+        return self.running
 
 
 class ReplicaNode(NodeServer):
@@ -157,6 +173,8 @@ class ReplicaNode(NodeServer):
                                        port=replica_server_args[SERVER_ARGS_KEY][PORT_KEY],
                                        server_args=replica_server_args[SERVER_ARGS_KEY])
 
+        self.running = False
+
     def setup(self):
         """
         Start the replica node
@@ -164,6 +182,7 @@ class ReplicaNode(NodeServer):
         # Start DB
         if not self.replica.run_db(timeout=30):
             raise RuntimeError("Unable to start database")
+        self.running = True
 
     def run(self):
         """
@@ -180,4 +199,8 @@ class ReplicaNode(NodeServer):
         if self.ship_logs:
             self.log_shipper.cleanup_zmq()
         self.replica.stop_db()
+        self.running = False
         self.replica.delete_wal()
+
+    def is_running(self) -> bool:
+        return self.running

@@ -9,6 +9,7 @@ from .metrics_file_util import get_results_dir, delete_metrics_file, create_resu
     move_metrics_file_to_results_dir, delete_metrics_files
 from .node_server import NodeServer, PrimaryNode, ReplicaNode
 from .test_type import TestType
+from ..utils_sql import replica_sync
 
 """
 This file helps to generate load for the a NoisePage server. Then using the metrics collection framework will calculate 
@@ -55,15 +56,21 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     try:
         for server in servers:
             server.setup()
+
+        # We don't care about log records generated at startup
+        delete_metrics_file(metrics_file)
+
+        for server in servers:
+            server.run()
+
+        sync_servers(servers)
+
     except RuntimeError as e:
         print(e)
+        for server in servers:
+            if server.is_running():
+                server.teardown()
         return
-
-    # We don't care about log records generated at startup
-    delete_metrics_file(metrics_file)
-
-    for server in servers:
-        server.run()
 
     for server in servers:
         server.teardown()
@@ -103,6 +110,29 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
     elif test_type.value == TestType.REPLICA.value:
         servers.append(ReplicaNode(test_type, build_type, async_commit, log_messages_file, connection_threads))
     return servers
+
+
+def sync_servers(servers: List[NodeServer]):
+    """
+    Sync primary with all replicas
+
+    :param servers list of running servers
+    """
+    if len(servers) < 2:
+        return
+
+    primary = [server.oltp_server.db_instance for server in servers if isinstance(server, PrimaryNode)]
+    # We should only ever have a single primary
+    if len(primary) > 1:
+        raise RuntimeError("Should never have multiple primaries running at once")
+    elif len(primary) == 0:
+        return
+
+    primary = primary[0]
+
+    replicas = [server.replica for server in servers if isinstance(server, ReplicaNode)]
+
+    replica_sync(primary, replicas)
 
 
 def aggregate_log_throughput(file_name: str):
