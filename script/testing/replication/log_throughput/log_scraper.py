@@ -1,6 +1,6 @@
 import argparse
 import re
-from typing import List
+from typing import Union
 
 from ...util.constants import LOG
 
@@ -13,29 +13,15 @@ def scrape_logs(input_file: str, replica_name: str, output_file: str):
     :param replica_name identity name of replica that messages should be scraped for
     :param output_file where to save the scraped messages
     """
-    msgs = extract_msgs(input_file, replica_name)
-    with open(output_file, 'w') as f:
-        f.writelines(msgs)
+    with open(input_file, 'r') as in_file, open(output_file, 'w') as out_file:
+        for log in in_file:
+            if f"SENT-TO {replica_name}" in log:
+                msg = extract_msg(log, replica_name)
+                if msg:
+                    out_file.write(f"{msg}\n")
 
 
-def extract_msgs(input_file: str, replica_name: str) -> List[str]:
-    """
-    Uses database logs to extract messages from primary NoisePage server to a replica NoisePage server
-
-    :param input_file file containing the database logs
-    :param replica_name identity name of replica that messages should be scraped for
-
-    :return list of messages
-    """
-    with open(input_file, 'r') as f:
-        logs = f.readlines()
-        message_logs = [log for log in logs if f"SENT-TO {replica_name}" in log]
-        msgs = [f"{extract_msg(log, replica_name)}\n" for log in message_logs]
-        # Filters out empty strings
-        return list(filter(None, msgs))
-
-
-def extract_msg(log: str, replica_name: str) -> str:
+def extract_msg(log: str, replica_name: str) -> Union[str, None]:
     """
     Extracts a message from a single log
 
@@ -48,7 +34,7 @@ def extract_msg(log: str, replica_name: str) -> str:
     matches = re.findall(pattern, log)
     if len(matches) != 1:
         LOG.warn(f"Unknown log format: {log}")
-        return ""
+        return None
     return matches[0]
 
 
@@ -68,7 +54,7 @@ def main():
                          required=True,
                          help="Location of log file")
     aparser.add_argument("--output-file",
-                         default="log-messages.txt",
+                         default="script/testing/replication/log_throughput/resources/log-messages.txt",
                          help="Location to save log messages")
     aparser.add_argument("--replica-name",
                          default="replica1",
