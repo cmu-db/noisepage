@@ -44,13 +44,14 @@ class PrimaryNode(NodeServer):
     """
 
     def __init__(self, build_type: str, replication_enabled: bool, async_commit: bool, oltp_benchmark: str,
-                 connection_threads: int):
+                 scale_factor: int, connection_threads: int):
         """
         Creates the NoisePage primary server and an OLTP test case
 
         :param build_type build type of NoisePage binary
         :param replication_enabled Whether or not to enable replication
         :param oltp_benchmark Which OLTP benchmark to run
+        :param scale_factor OLTP benchmark scale factor
         :param connection_threads How many database connection threads to use
         """
         # Create DB instance
@@ -68,6 +69,7 @@ class PrimaryNode(NodeServer):
         oltp_test_case[BENCHMARK_KEY] = oltp_benchmark
         oltp_test_case[TERMINALS_KEY] = connection_threads
         oltp_test_case[LOADER_THREADS_KEY] = connection_threads
+        oltp_test_case[SCALE_FACTOR_KEY] = scale_factor
         self.test_case = TestCaseOLTPBench(oltp_test_case)
 
     def setup(self):

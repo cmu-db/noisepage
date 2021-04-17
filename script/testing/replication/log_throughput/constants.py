@@ -68,13 +68,15 @@ BENCHMARK_KEY = "benchmark"
 DEFAULT_BENCHMARK = "ycsb"
 TERMINALS_KEY = "terminals"
 LOADER_THREADS_KEY = "loader_threads"
+SCALE_FACTOR_KEY = "scale_factor"
+DEFAULT_SCALE_FACTOR = 3000
 
 # OLTP config
 DEFAULT_OLTP_TEST_CASE = {
     BENCHMARK_KEY: DEFAULT_BENCHMARK,
     "query_mode": "extended",
     TERMINALS_KEY: DEFAULT_CONNECTION_THREADS,
-    "scale_factor": 3000,
+    SCALE_FACTOR_KEY: DEFAULT_SCALE_FACTOR,
     "weights": "50,5,15,10,10,10",
     "client_time": 60,
     LOADER_THREADS_KEY: DEFAULT_CONNECTION_THREADS

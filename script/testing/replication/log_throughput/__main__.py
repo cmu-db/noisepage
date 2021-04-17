@@ -1,6 +1,7 @@
 import argparse
 
-from .constants import DEFAULT_LOG_RECORD_MESSAGES_FILE, DEFAULT_CONNECTION_THREADS, DEFAULT_BENCHMARK
+from .constants import DEFAULT_LOG_RECORD_MESSAGES_FILE, DEFAULT_CONNECTION_THREADS, DEFAULT_BENCHMARK, \
+    DEFAULT_SCALE_FACTOR
 from .log_throughput import log_throughput
 from .test_type import TestType
 
@@ -29,10 +30,16 @@ def main():
                          default=False,
                          action="store_true",
                          help="Whether or not async commit is enabled")
+    # TODO This actual doesn't work with anything other than ycsb. To support other benchmarks we need to modify the
+    #  the OLTP test weights per benchmark. They're not used in the loading phase but they are validated
     aparser.add_argument("--oltp-benchmark",
                          default=DEFAULT_BENCHMARK,
                          choices=["ycsb", "tpcc", "tatp"],
                          help=f"Which OLTP benchmark to use, only relevant when test_type is {TestType.PRIMARY.value}")
+    aparser.add_argument("--oltp-scale-factor",
+                         default=DEFAULT_SCALE_FACTOR,
+                         help=f"Scale factor for OLTP benchmark, only relevant when test_type is "
+                              f"{TestType.PRIMARY.value}")
     aparser.add_argument("--log-file",
                          default=DEFAULT_LOG_RECORD_MESSAGES_FILE,
                          help=f"File containing log record messages to send to replica node, only relevant when "
@@ -46,7 +53,8 @@ def main():
     args = vars(aparser.parse_args())
 
     log_throughput(TestType(args["test-type"]), args["build_type"], args["replication_enabled"], args["async_commit"],
-                   args["oltp_benchmark"], args["log_file"], int(args["connection_threads"]), args["output_file"])
+                   args["oltp_benchmark"], int(args["oltp_scale_factor"]), args["log_file"],
+                   int(args["connection_threads"]), args["output_file"])
 
 
 if __name__ == '__main__':

@@ -17,7 +17,8 @@ the log throughput for that server.
 
 
 def log_throughput(test_type: TestType, build_type: str, replication_enabled: bool, async_commit: bool,
-                   oltp_benchmark: str, log_messages_file: str, connection_threads: int, output_file: str):
+                   oltp_benchmark: str, scale_factor: int, log_messages_file: str, connection_threads: int,
+                   output_file: str):
     """
     Measures the log throughput of a NoisePage server. Can measure either a primary or replica node. For primary nodes
     we can test with replication on or off.
@@ -35,6 +36,7 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
     :param async_commit Whether or not async commit is enabled
     :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
     :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type
            is REPLICA)
     :param output_file Where to save the metrics to
@@ -47,8 +49,8 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     other_metrics_files = METRICS_FILES
     other_metrics_files.remove(metrics_file)
 
-    servers = get_servers(test_type, build_type, replication_enabled, async_commit, oltp_benchmark, log_messages_file,
-                          connection_threads)
+    servers = get_servers(test_type, build_type, replication_enabled, async_commit, oltp_benchmark, scale_factor,
+                          log_messages_file, connection_threads)
 
     try:
         for server in servers:
@@ -75,7 +77,8 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
 
 
 def get_servers(test_type: TestType, build_type: str, replication_enabled: bool, async_commit: bool,
-                oltp_benchmark: str, log_messages_file: str, connection_threads: int) -> List[NodeServer]:
+                oltp_benchmark: str, scale_factor: int, log_messages_file: str, connection_threads: int) -> \
+        List[NodeServer]:
     """
     Creates server instances for the log throughput test
 
@@ -84,6 +87,7 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
     :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
     :param async_commit Whether or not async commit is enabled
     :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
     :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type
            is REPLICA)
     :param connection_threads How many database connection threads to use
@@ -92,7 +96,8 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
     """
     servers = []
     if test_type.value == TestType.PRIMARY.value:
-        servers.append(PrimaryNode(build_type, replication_enabled, async_commit, oltp_benchmark, connection_threads))
+        servers.append(PrimaryNode(build_type, replication_enabled, async_commit, oltp_benchmark, scale_factor,
+                                   connection_threads))
         if replication_enabled:
             servers.append(ReplicaNode(test_type, build_type, async_commit, log_messages_file, connection_threads))
     elif test_type.value == TestType.REPLICA.value:
