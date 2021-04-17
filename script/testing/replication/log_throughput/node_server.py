@@ -163,7 +163,6 @@ class ReplicaNode(NodeServer):
         if not self.replica.run_db(timeout=30):
             raise RuntimeError("Unable to start database")
 
-
     def run(self):
         """
         If we are testing throughput on the replica node then we start shipping logs to the replica. Otherwise we do

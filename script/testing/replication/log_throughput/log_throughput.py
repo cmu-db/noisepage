@@ -55,8 +55,6 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
             server.setup()
     except RuntimeError as e:
         print(e)
-        for server in servers:
-            server.teardown()
         return
 
     # We don't care about log records generated at startup
