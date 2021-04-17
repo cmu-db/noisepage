@@ -3,6 +3,7 @@ import time
 from typing import Set
 
 from .constants import RESULTS_DIR
+from ...util.constants import LOG
 
 """
 This file exposes a bunch of helper methods for interacting with metric csv files
@@ -40,7 +41,7 @@ def delete_metrics_file(file_name: str):
     start = time.time()
     while not os.path.exists(path):
         if time.time() - start > timeout:
-            print(f"File {file_name} not found")
+            LOG.warn(f"File {file_name} not found")
             return
     os.remove(path)
 

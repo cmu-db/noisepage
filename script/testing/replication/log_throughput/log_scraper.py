@@ -2,6 +2,8 @@ import argparse
 import re
 from typing import List
 
+from ...util.constants import LOG
+
 
 def scrape_logs(input_file: str, replica_name: str, output_file: str):
     """
@@ -45,7 +47,7 @@ def extract_msg(log: str, replica_name: str) -> str:
     pattern = rf".*SENT-TO {replica_name}: (\d+-\d+-\d+-.*)"
     matches = re.findall(pattern, log)
     if len(matches) != 1:
-        print(f"Unknown log format: {log}")
+        LOG.warn(f"Unknown log format: {log}")
         return ""
     return matches[0]
 

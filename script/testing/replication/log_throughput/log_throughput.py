@@ -10,6 +10,7 @@ from .metrics_file_util import get_results_dir, delete_metrics_file, create_resu
 from .node_server import NodeServer, PrimaryNode, ReplicaNode
 from .test_type import TestType
 from ..utils_sql import replica_sync
+from ...util.constants import LOG
 
 """
 This file helps to generate load for the a NoisePage server. Then using the metrics collection framework will calculate 
@@ -63,14 +64,17 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
         for server in servers:
             server.run()
 
-        sync_servers(servers)
-
     except RuntimeError as e:
-        print(e)
+        LOG.error(e)
         for server in servers:
             if server.is_running():
                 server.teardown()
         return
+
+    try:
+        sync_servers(servers)
+    except Exception as e:
+        LOG.warn(f"Syncing databases failed: {e}")
 
     for server in servers:
         server.teardown()
@@ -137,7 +141,7 @@ def sync_servers(servers: List[NodeServer]):
 
 def aggregate_log_throughput(file_name: str):
     """
-    Computes the average log throughput for a metrics file and prints the results
+    Computes the average log throughput for a metrics file and logs the results
 
     :param file_name Name of metrics file
     """
@@ -148,7 +152,7 @@ def aggregate_log_throughput(file_name: str):
     df = df.rename(columns=lambda col: col.strip())
 
     if df.shape[0] <= 1:
-        print("Not enough data to calculate log throughput")
+        LOG.error("Not enough data to calculate log throughput")
         return
 
     # Microseconds
@@ -161,4 +165,4 @@ def aggregate_log_throughput(file_name: str):
     # Convert to milliseconds
     avg_throughput = (total_records / total_time) * 1000
 
-    print(f"Average log throughput is {avg_throughput} per millisecond")
+    LOG.info(f"Average log throughput is {avg_throughput} per millisecond")

@@ -4,6 +4,7 @@ from .constants import DEFAULT_LOG_RECORD_MESSAGES_FILE, DEFAULT_CONNECTION_THRE
     DEFAULT_SCALE_FACTOR, TATP, TPCC, YCSB
 from .log_throughput import log_throughput
 from .test_type import TestType
+from ...util.constants import LOG
 
 
 def main():
@@ -54,9 +55,9 @@ def main():
     log_file = args["log_file"]
 
     if test_type.value == TestType.REPLICA.value and log_file == DEFAULT_LOG_RECORD_MESSAGES_FILE:
-        print(f"\n\nWARNING: the default log file {DEFAULT_LOG_RECORD_MESSAGES_FILE} likely doesn't have enough "
-              f"messages to provide accurate results. If you want more accurate results please generate a larger log "
-              f"file using the log scraper script.\n\n")
+        LOG.warn(f"\n\nWARNING: the default log file {DEFAULT_LOG_RECORD_MESSAGES_FILE} likely doesn't have enough "
+                 f"messages to provide accurate results. If you want more accurate results please generate a larger log "
+                 f"file using the log scraper script.\n\n")
 
     log_throughput(test_type, args["build_type"], args["replication_enabled"], args["async_commit"],
                    args["oltp_benchmark"], int(args["oltp_scale_factor"]), log_file, int(args["connection_threads"]),

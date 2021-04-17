@@ -6,6 +6,7 @@ import zmq
 from zmq import Socket
 
 from .constants import UTF_8
+from ...util.constants import LOG
 
 
 class BuiltinCallback(Enum):
@@ -53,7 +54,7 @@ class LogShipper:
         Send log records to replica
         """
         msgs_len = len(self.messages)
-        print("Shipping logs to replica")
+        LOG.info("Shipping logs to replica")
         for idx, message in enumerate(self.messages):
             self.send_log_record(message)
             msg_id = self.extract_msg_id(message)
@@ -63,18 +64,18 @@ class LogShipper:
             if self.has_pending_messages(self.replica_dealer_socket, 0):
                 self.recv_log_record_ack()
 
-            # Every thousand messages print status and retry any pending messages
+            # Every thousand messages log status and retry any pending messages
             # This is a bit naive, but we want to ship logs as fast as possible and not spend too long every iteration
             # checking for dropped messages
             if idx % 1000 == 0 and idx != 0:
-                print(f"Shipping log number {idx} out of {msgs_len}")
+                LOG.info(f"Shipping log number {idx} out of {msgs_len}")
                 # Drain ACKs
                 while self.has_pending_messages(self.replica_dealer_socket, 0):
                     self.recv_log_record_ack()
                 for pending_message in self.pending_log_msgs.values():
                     self.send_log_record(pending_message)
 
-        print("Log shipping has completed")
+        LOG.info("Log shipping has completed")
 
     def send_log_record(self, log_record_message: str):
         """
