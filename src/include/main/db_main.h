@@ -62,11 +62,6 @@ class DBMain {
   void Run();
 
   /**
-   * Attempt to recover the system from the WAL.
-   */
-  void RecoverSystem();
-
-  /**
    * Shuts down the server.
    * It is worth noting that in normal cases, noisepage will shut down and return from Run().
    * So, use this function only when you want to shutdown the server from code.
@@ -415,6 +410,22 @@ class DBMain {
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
+        // WAL Recovery Setup
+        // If a previous logfile exists, then we don't want to load the default catalog.
+        // Otherwise we will violate pkey constraints when we load the WAL because the catalog
+        // will already have the default entries.
+        if (wal_recovery_) {
+          // Check whether we even have a WAL file and it is not empty
+          auto wal_file_path = settings_manager->GetString(settings::Param::wal_file_path);
+          if (std::filesystem::exists(wal_file_path) && std::filesystem::file_size(wal_file_path) != 0) {
+            // IMPORTANT: This logic will need to change once we support checkpoints because
+            // then we cannot guarantee that the WAL will have the bootstrap catalog code.
+            create_default_database_ =  false;
+          } else {
+            wal_recovery_ = false;
+          }
+        }
+
         auto rep_manager_ptr = network_identity_ == "primary"
                                    ? common::ManagedPointer(replication_manager)
                                          .CastManagedPointerTo<replication::PrimaryReplicationManager>()
@@ -538,6 +549,7 @@ class DBMain {
                                      transaction::ReplicationPolicyToString(default_txn_policy.replication_)));
       }
 
+      db_main->wal_recovery_ = wal_recovery_;
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -667,6 +679,15 @@ class DBMain {
      */
     Builder &SetWalPersistThreshold(const uint64_t value) {
       wal_persist_threshold_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value whether to recover the database from the WAL
+     * @return self reference for chaining
+     */
+    Builder &SetWalRecovery(const bool value) {
+      wal_recovery_ = value;
       return *this;
     }
 
@@ -940,6 +961,7 @@ class DBMain {
 
     bool use_logging_ = false;
     bool wal_async_commit_enable_ = false;
+    bool wal_recovery_ = true;
     bool use_gc_ = false;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
@@ -1166,6 +1188,10 @@ class DBMain {
   }
 
  private:
+
+  // This flag tells us whether we need to recover the database before starting
+  bool wal_recovery_;
+
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
