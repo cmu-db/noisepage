@@ -111,6 +111,7 @@ class PrimaryNode(NodeServer):
         """
         self.oltp_server.db_instance.stop_db()
         self.oltp_server.db_instance.delete_wal()
+        self.oltp_server.db_instance.print_db_logs()
 
 
 class ReplicaNode(NodeServer):
@@ -177,3 +178,4 @@ class ReplicaNode(NodeServer):
             self.log_shipper.cleanup_zmq()
         self.replica.stop_db()
         self.replica.delete_wal()
+        self.replica.print_db_logs()
