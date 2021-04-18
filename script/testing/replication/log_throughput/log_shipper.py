@@ -21,9 +21,11 @@ class LogShipper:
         self.running = True
         self.identity = primary_identity
 
+        self.log_file = log_file
+        self.log_file_len = 0
         with open(log_file, 'r') as f:
-            self.messages = f.readlines()
-            self.messages = [message.strip() for message in self.messages]
+            for _ in f:
+                self.log_file_len += 1
 
         self.context = zmq.Context()
 
@@ -53,37 +55,37 @@ class LogShipper:
         """
         Send log records to replica
         """
-        msgs_len = len(self.messages)
-        LOG.info("Shipping logs to replica")
-        for idx, message in enumerate(self.messages):
-            self.send_log_record(message)
-            msg_id = self.extract_msg_id(message)
-            self.pending_log_msgs[msg_id] = message
+        with open(self.log_file, 'r') as f:
+            LOG.info("Shipping logs to replica")
+            for idx, message in enumerate(f):
+                self.send_log_record(message, idx)
+            LOG.info("Log shipping has completed")
 
-            # Check and dispose of ACKs
-            if self.has_pending_messages(self.replica_dealer_socket, 0):
-                self.recv_log_record_ack()
-
-            # Every thousand messages log status and retry any pending messages
-            # This is a bit naive, but we want to ship logs as fast as possible and not spend too long every iteration
-            # checking for dropped messages
-            if idx % 1000 == 0 and idx != 0:
-                LOG.info(f"Shipping log number {idx} out of {msgs_len}")
-                # Drain ACKs
-                while self.has_pending_messages(self.replica_dealer_socket, 0):
-                    self.recv_log_record_ack()
-                for pending_message in self.pending_log_msgs.values():
-                    self.send_log_record(pending_message)
-
-        LOG.info("Log shipping has completed")
-
-    def send_log_record(self, log_record_message: str):
+    def send_log_record(self, log_record_message: str, idx: int):
         """
         Send log record message to replica
 
-        :param log_record_message Log record to send
+        :param log_record_message Log record to send (can also be a Notify OAT message)
+        :param idx Number of log record message out of all messages
         """
         self.send_msg(["", log_record_message], self.replica_dealer_socket)
+        msg_id = self.extract_msg_id(log_record_message)
+        self.pending_log_msgs[msg_id] = log_record_message
+
+        # Check and dispose of ACKs
+        if self.has_pending_messages(self.replica_dealer_socket, 0):
+            self.recv_log_record_ack()
+
+        # Every thousand messages log status and retry any pending messages
+        # This is a bit naive, but we want to ship logs as fast as possible and not spend too long every iteration
+        # checking for dropped messages
+        if idx % 1000 == 0 and idx != 0:
+            LOG.info(f"Shipping log number {idx} out of {self.log_file_len}")
+            # Drain ACKs
+            while self.has_pending_messages(self.replica_dealer_socket, 0):
+                self.recv_log_record_ack()
+            for pending_message in self.pending_log_msgs.values():
+                self.send_msg(["", pending_message], self.replica_dealer_socket)
 
     def send_ack_msg(self, message_id: str, socket: Socket):
         """
