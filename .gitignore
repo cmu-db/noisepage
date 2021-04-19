@@ -40,7 +40,6 @@ cscope.out
 autoconf/aclocal.m4
 autoconf/autom4te.cache
 /compile_commands.json
-script/testing/replication/log_throughput/resources/log-messages.txt
 
 
 #==============================================================================#
@@ -278,12 +277,13 @@ wal.log
 **/oltp_output_*
 **/oltp_result
 
+# Log Throuput output
+**/log_throughput/results
+**/log_throughput/resources/log-messages.txt
+
 # JUnit intermediate out directory
 **/junit/out/
 out/
 
 # debug scripts, artifacts
 debug
-
-
-script/testing/replication/log_throughput/results/
