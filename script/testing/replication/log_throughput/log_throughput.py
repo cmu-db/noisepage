@@ -77,7 +77,11 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
         LOG.warn(f"Syncing databases failed: {e}")
 
     for server in servers:
-        server.teardown()
+        if server.is_running():
+            try:
+                server.teardown()
+            except Exception as e:
+                LOG.warn(f"Failed to teardown server: {e}")
 
     create_results_dir()
 
