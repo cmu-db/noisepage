@@ -35,7 +35,7 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
 
 void IndCteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {
   ast::Expr *cte_free_call =
-      GetCodeGen()->CallBuiltin(ast::Builtin::CteScanFree, {cte_scan_ptr_entry_.Get(GetCodeGen())});
+      GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanFree, {cte_scan_ptr_entry_.Get(GetCodeGen())});
   function->Append(GetCodeGen()->MakeStmt(cte_free_call));
 }
 
