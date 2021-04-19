@@ -42,7 +42,7 @@ def main():
     aparser.add_argument("--log-file",
                          default=DEFAULT_LOG_RECORD_MESSAGES_FILE,
                          help=f"File containing log record messages to send to replica node, only relevant when "
-                              f"test_type is {TestType.PRIMARY.value}")
+                              f"test_type is {TestType.REPLICA.value}")
     aparser.add_argument("--connection-threads",
                          default=DEFAULT_CONNECTION_THREADS,
                          help=f"Number of database connection threads to use, OLTP threads will scale accordingly")
@@ -57,7 +57,7 @@ def main():
     if test_type.value == TestType.REPLICA.value and log_file == DEFAULT_LOG_RECORD_MESSAGES_FILE:
         LOG.warn(f"\n\nWARNING: the default log file {DEFAULT_LOG_RECORD_MESSAGES_FILE} likely doesn't have enough "
                  f"messages to provide accurate results. If you want more accurate results please generate a larger "
-                 f"log  file using the log scraper script.\n\n")
+                 f"log file using the log scraper script.\n\n")
 
     log_throughput(test_type, args["build_type"], args["replication_enabled"], args["async_commit"],
                    args["oltp_benchmark"], int(args["oltp_scale_factor"]), log_file, int(args["connection_threads"]),

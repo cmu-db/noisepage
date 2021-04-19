@@ -73,6 +73,12 @@ class MetricsStore {
     logging_metric_->RecordConsumerData(num_bytes, num_records, interval, resource_metrics);
   }
 
+  /**
+   * Record metrics for the RecoveryManager
+   * @param num_records first entry of metrics datapoint
+   * @param num_txns second entry of metrics datapoint
+   * @param resource_metrics third entry of metrics datapoint
+   */
   void RecordRecoveryData(const uint64_t num_records, const uint64_t num_txns,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     if (!ComponentEnabled(MetricsComponent::LOGGING))
