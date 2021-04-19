@@ -2635,10 +2635,10 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
 
 void BytecodeGenerator::VisitBuiltinReplicationCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
-    case ast::Builtin::ReplicationGetLastRecordId: {
+    case ast::Builtin::ReplicationGetLastTransactionId: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar record_id = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      GetEmitter()->Emit(Bytecode::ReplicationGetLastRecordId, record_id, exec_ctx);
+      GetEmitter()->Emit(Bytecode::ReplicationGetLastTransactionId, record_id, exec_ctx);
       GetExecutionResult()->SetDestination(record_id.ValueOf());
       break;
     }
@@ -3124,7 +3124,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinStringCall(call, builtin);
       break;
     }
-    case ast::Builtin::ReplicationGetLastRecordId: {
+    case ast::Builtin::ReplicationGetLastTransactionId: {
       VisitBuiltinReplicationCall(call, builtin);
       break;
     }

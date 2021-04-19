@@ -1,0 +1,4 @@
+# Benchmark script output
+*.json
+*.xml
+*.csv

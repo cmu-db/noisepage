@@ -2198,9 +2198,9 @@ GEN_SCALAR_PARAM_GET(String, StringVal)
 // Replication functions
 // ---------------------------------
 
-VM_OP_WARM void OpReplicationGetLastRecordId(noisepage::execution::sql::Integer *result,
-                                             noisepage::execution::exec::ExecutionContext *exec_ctx) {
-  *result = noisepage::execution::sql::Integer(exec_ctx->ReplicationGetLastRecordId());
+VM_OP_WARM void OpReplicationGetLastTransactionId(noisepage::execution::sql::Integer *result,
+                                                  noisepage::execution::exec::ExecutionContext *exec_ctx) {
+  *result = noisepage::execution::sql::Integer(exec_ctx->ReplicationGetLastTransactionId());
 }
 
 // ---------------------------------
