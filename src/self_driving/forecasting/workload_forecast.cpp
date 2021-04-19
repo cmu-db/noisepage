@@ -202,6 +202,8 @@ void WorkloadForecast::LoadQueryTrace() {
 
     if (!parse_succ) continue;
 
+    // Database id is recorded here for consistency with LoadQueryText but no use for now.
+    // db_oid = static_cast<uint64_t>(std::stoi(val_vec[0]));
     query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[1]));
     param_string = val_vec[3];
 
