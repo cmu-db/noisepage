@@ -207,7 +207,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED);
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -330,7 +330,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED);
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -413,7 +413,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED);
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -482,7 +482,7 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED);
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -551,7 +551,7 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED);
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -633,7 +633,7 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED);
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),

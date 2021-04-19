@@ -277,6 +277,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DeleteStatement> node
 
   if (node->GetDeleteCondition() != nullptr) {
     node->GetDeleteCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    BinderUtil::ValidateWhereClause(node->GetDeleteCondition());
   }
 
   context_ = nullptr;
@@ -479,6 +480,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
   if (node->GetSelectCondition() != nullptr) {
     node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    BinderUtil::ValidateWhereClause(node->GetSelectCondition());
     node->GetSelectCondition()->DeriveDepth();
     node->GetSelectCondition()->DeriveSubqueryFlag();
   }
@@ -565,8 +567,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node
 
   auto table_ref = node->GetUpdateTable();
   table_ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-  if (node->GetUpdateCondition() != nullptr)
+  if (node->GetUpdateCondition() != nullptr) {
     node->GetUpdateCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    BinderUtil::ValidateWhereClause(node->GetUpdateCondition());
+  }
 
   auto binder_table_data = context_->GetTableMapping(table_ref->GetTableName());
   const auto &table_schema = std::get<2>(*binder_table_data);
