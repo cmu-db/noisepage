@@ -953,8 +953,7 @@ void LLVMEngine::CompiledModuleBuilder::Simplify() {
 void LLVMEngine::CompiledModuleBuilder::Optimize() {
   llvm::legacy::FunctionPassManager function_passes(llvm_module_.get());
 
-  // Add the appropriate TargetLibraryInfo and TargetTransformInfo.
-  auto tli = std::make_unique<llvm::TargetLibraryInfoImpl>(target_machine_->getTargetTriple());
+  // Add the appropriate TargetTransformInfo.
   function_passes.add(llvm::createTargetTransformInfoWrapperPass(target_machine_->getTargetIRAnalysis()));
 
   // Build up optimization pipeline.
