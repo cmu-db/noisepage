@@ -56,8 +56,8 @@ def main():
 
     if test_type.value == TestType.REPLICA.value and log_file == DEFAULT_LOG_RECORD_MESSAGES_FILE:
         LOG.warn(f"\n\nWARNING: the default log file {DEFAULT_LOG_RECORD_MESSAGES_FILE} likely doesn't have enough "
-                 f"messages to provide accurate results. If you want more accurate results please generate a larger log "
-                 f"file using the log scraper script.\n\n")
+                 f"messages to provide accurate results. If you want more accurate results please generate a larger "
+                 f"log  file using the log scraper script.\n\n")
 
     log_throughput(test_type, args["build_type"], args["replication_enabled"], args["async_commit"],
                    args["oltp_benchmark"], int(args["oltp_scale_factor"]), log_file, int(args["connection_threads"]),
