@@ -54,7 +54,8 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const metrics_manager = new metrics::MetricsManager();
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    auto *const metrics_thread =
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
 
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
@@ -116,7 +117,8 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const metrics_manager = new metrics::MetricsManager();
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    auto *const metrics_thread =
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
 
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 

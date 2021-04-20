@@ -147,7 +147,7 @@ pipeline {
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "pipeline_metrics_enable=True" -a "pipeline_metrics_sample_rate=100" -a "counters_enable=True" -a "query_trace_metrics_enable=True" -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution with pipeline metrics, counters, and query trace metrics)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja check-tpl'
-                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -191,7 +191,7 @@ pipeline {
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja check-tpl'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja unittest'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
 
                         script{
@@ -242,7 +242,7 @@ pipeline {
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=debug --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja check-tpl'
-                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -283,7 +283,7 @@ pipeline {
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja check-tpl'
-                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
@@ -328,7 +328,7 @@ pipeline {
                         sh script: 'cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=release --query-mode=extended -a "compiled_query_execution=True" -a "bytecode_handlers_path=./bytecode_handlers_ir.bc"', label: 'UnitTest (Extended, Compiled Execution)'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                         sh 'cd build && timeout 1h ninja check-tpl'
-                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja jumbotests'
                         sh script: 'sudo lsof -i -P -n | grep LISTEN || true', label: 'Check ports.'
                     }
                     post {
