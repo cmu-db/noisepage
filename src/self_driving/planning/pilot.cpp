@@ -60,12 +60,14 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
   }
 }
 
-std::pair<uint64_t, uint64_t> Pilot::ComputeTimestampDataRange(uint64_t now) {
+std::pair<uint64_t, uint64_t> Pilot::ComputeTimestampDataRange(uint64_t now, bool train) {
   // Evaluation length is sequence length + 2 horizons
   uint64_t eval_length = sequence_length_ + 2 * horizon_length_;
 
-  // Pull a range of the order of 5x (assuming classic 80% train/20% test split)
-  eval_length *= 5;
+  if (train) {
+    // Pull a range of the order of 5x (assuming classic 80% train/20% test split)
+    eval_length *= 5;
+  }
 
   // Sequence length and horizon length are in workload_forecast_interval_ time units
   uint64_t eval_time = eval_length * workload_forecast_interval_;
@@ -87,7 +89,7 @@ void Pilot::PerformForecasterTrain() {
     if (metrics_in_db && task_manager_) {
       // Only get the data corresponding to the closest horizon range
       // TODO(wz2): Do we want to get all the information from the beginning
-      segment_information = GetSegmentInformation(ComputeTimestampDataRange(timestamp), &success);
+      segment_information = GetSegmentInformation(ComputeTimestampDataRange(timestamp, true), &success);
     }
 
     if (segment_information.empty() || !success) {
@@ -304,7 +306,7 @@ void Pilot::LoadWorkloadForecast(WorkloadForecastInitMode mode) {
     std::pair<selfdriving::WorkloadForecastPrediction, bool> result;
     if (task_manager_) {
       // Only pull the segment information if inference from internal tables
-      segment_information = GetSegmentInformation(ComputeTimestampDataRange(timestamp), &success);
+      segment_information = GetSegmentInformation(ComputeTimestampDataRange(timestamp, false), &success);
     }
 
     if (!success || segment_information.empty()) {
@@ -320,7 +322,8 @@ void Pilot::LoadWorkloadForecast(WorkloadForecastInitMode mode) {
     }
 
     // Retrieve query information from internal tables
-    auto metadata_result = RetrieveWorkloadMetadata(ComputeTimestampDataRange(timestamp), out_metadata, out_params);
+    auto metadata_result =
+        RetrieveWorkloadMetadata(ComputeTimestampDataRange(timestamp, false), out_metadata, out_params);
     if (!metadata_result.second) {
       SELFDRIVING_LOG_ERROR("Failed to read from internal trace metadata tables");
       metrics_thread_->ResumeMetrics();
@@ -352,7 +355,8 @@ void Pilot::LoadWorkloadForecast(WorkloadForecastInitMode mode) {
     }
 
     // Construct the WorkloadForecast froM a mix of on-disk and inference information
-    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first);
+    auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
+    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, sample);
   } else {
     NOISEPAGE_ASSERT(mode == WorkloadForecastInitMode::DISK_ONLY, "Expected the mode to be directly from disk");
 

@@ -21,6 +21,10 @@ class QueryTraceLogging;
 }  // namespace test
 }  // namespace noisepage::selfdriving::pilot
 
+namespace noisepage::task::test {
+class TaskManagerTests;
+}  // namespace noisepage::task::test
+
 namespace noisepage::runner {
 void InitializeRunnersState();
 }
@@ -83,6 +87,7 @@ class ParamInfo {
   friend class selfdriving::pilot::ChangeKnobAction<int64_t>;
   friend class selfdriving::pilot::test::GenerateChangeKnobAction_GenerateAction_Test;
   friend class selfdriving::pilot::test::QueryTraceLogging;
+  friend class task::test::TaskManagerTests;
   std::string name_;
   parser::ConstantValueExpression value_;
   std::string desc_;

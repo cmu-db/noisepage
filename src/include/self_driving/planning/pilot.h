@@ -209,9 +209,10 @@ class Pilot {
   /**
    * Computes the valid range of data to be pulling from the internal tables.
    * @param now Current timestamp of the planning/training
+   * @param train Whether data is for training or inference
    * @return inclusive start and end bounds of data to query
    */
-  std::pair<uint64_t, uint64_t> ComputeTimestampDataRange(uint64_t now);
+  std::pair<uint64_t, uint64_t> ComputeTimestampDataRange(uint64_t now, bool train);
 
   std::string model_save_path_;
   std::string forecast_model_save_path_;

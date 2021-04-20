@@ -57,6 +57,7 @@ void DBMain::Run() {
   } catch (NetworkProcessException &e) {
     return;
   }
+
   // Testing code needs to wait until the DBMS has successfully started up before sending queries to it.
   // Currently, DBMS startup is detected by scraping the DBMS's stdout for a startup message.
   // This startup message cannot be printed with the logging subsystem because logging can be disabled.

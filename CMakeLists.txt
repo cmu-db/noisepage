@@ -961,6 +961,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/settings/*.cpp"
         "test/storage/*.cpp"
         "test/sql/*.cpp"
+        "test/task/*.cpp"
         "test/traffic_cop/*.cpp"
         "test/transaction/*.cpp"
         "test/type/*.cpp"
@@ -1088,6 +1089,7 @@ add_jumbotest("test/planner" "")
 add_jumbotest("test/self_driving" "")
 add_jumbotest("test/settings" "")
 add_jumbotest("test/storage" "block_access_controller_test;block_compactor_test;bwtree_test;bwtree_index_test;data_table_test;data_table_concurrent_test;hash_index_test;large_garbage_collector_test;log_test;tuple_access_strategy_test;")
+add_jumbotest("test/task" "")
 add_jumbotest("test/traffic_cop" "traffic_cop_test;")
 add_jumbotest("test/transaction" "large_transaction_test;")
 add_jumbotest("test/type" "")
