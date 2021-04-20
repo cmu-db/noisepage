@@ -1,8 +1,10 @@
 #pragma once
 
 #include <chrono>  // NOLINT
+#include <string>
 
 #include "execution/util/cpu_info.h"
+#include "metrics/metrics_defs.h"
 
 namespace noisepage::metrics {
 
@@ -29,6 +31,23 @@ struct MetricsUtil {
     return std::chrono::duration_cast<std::chrono::microseconds>(
                std::chrono::high_resolution_clock::now().time_since_epoch())
         .count();
+  }
+
+  /**
+   * Converts a metrics output string to the enum.
+   * Mainly used to convert a settings flag (string) to internal enum.
+   * @param metrics output string
+   * @return MetricsOutput corresponding to it
+   */
+  static MetricsOutput FromMetricsOutputString(const std::string &metrics) {
+    if (metrics == "CSV") return MetricsOutput::CSV;
+
+    if (metrics == "DB") return MetricsOutput::DB;
+
+    if (metrics == "CSV_AND_DB") return MetricsOutput::CSV_AND_DB;
+
+    NOISEPAGE_ASSERT(false, "Unknown metrics type specified");
+    return MetricsOutput::CSV;
   }
 
   /**
