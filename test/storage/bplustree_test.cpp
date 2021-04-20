@@ -1526,8 +1526,8 @@ TEST_F(BPlusTreeTests, IteratorTest) {
   int i = 0;
   auto it = tree->Begin();
   for (; !(it == tree->End()); ++it, ++i) {
-    EXPECT_EQ(it.first, i);
-    EXPECT_EQ(it.second, i);
+    EXPECT_EQ(it.first_, i);
+    EXPECT_EQ(it.second_, i);
   }
   it.Done();
   EXPECT_EQ(i, key_num);
@@ -1536,8 +1536,8 @@ TEST_F(BPlusTreeTests, IteratorTest) {
   i = key_num - 1;
   auto rit = tree->Begin(key_num - 1);
   for (; !(rit == tree->REnd()); --rit, --i) {
-    EXPECT_EQ(rit.first, i);
-    EXPECT_EQ(rit.second, i);
+    EXPECT_EQ(rit.first_, i);
+    EXPECT_EQ(rit.second_, i);
   }
   rit.Done();
   EXPECT_EQ(i, -1);
@@ -1569,8 +1569,8 @@ TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
     int i = 0;
     auto it = tree->Begin();
     for (; !(it == tree->End()); ++it, ++i) {
-      EXPECT_EQ(it.first, i);
-      EXPECT_EQ(it.second, i);
+      EXPECT_EQ(it.first_, i);
+      EXPECT_EQ(it.second_, i);
     }
     it.Done();
     EXPECT_EQ(i, key_num);
@@ -1579,8 +1579,8 @@ TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
     i = key_num - 1;
     auto rit = tree->Begin(key_num - 1);
     for (; !(rit == tree->REnd()); --rit, --i) {
-      EXPECT_EQ(rit.first, i);
-      EXPECT_EQ(rit.second, i);
+      EXPECT_EQ(rit.first_, i);
+      EXPECT_EQ(rit.second_, i);
     }
     rit.Done();
     EXPECT_EQ(i, -1);
