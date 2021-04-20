@@ -192,9 +192,13 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
                                                              const exec::ExecutionSettings &exec_settings,
                                                              catalog::CatalogAccessor *accessor,
                                                              const CompilationMode mode,
+                                                             std::optional<execution::query_id_t> override_qid,
                                                              common::ManagedPointer<const std::string> query_text) {
   // The query we're generating code for.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
+  if (override_qid.has_value()) {
+    query->SetQueryId(override_qid.value());
+  }
   // TODO(Lin): Hacking... remove this after getting the counters in
   query->SetQueryText(query_text);
 
