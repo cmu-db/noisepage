@@ -5,10 +5,18 @@
 
 #include "common/error/error_code.h"
 #include "network/postgres/postgres_defs.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace noisepage::binder {
+
+void BinderUtil::ValidateWhereClause(const common::ManagedPointer<parser::AbstractExpression> value) {
+  if (value->GetReturnValueType() != type::TypeId::BOOLEAN) {
+    // TODO(Matt): NULL literal (type::TypeId::INVALID and cve->IsNull()) should be allowed but breaks stuff downstream
+    throw BINDER_EXCEPTION("argument of WHERE must be type boolean", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
+  }
+}
 
 void BinderUtil::PromoteParameters(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression> > parameters,

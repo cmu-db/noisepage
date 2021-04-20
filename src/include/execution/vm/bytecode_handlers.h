@@ -2175,9 +2175,9 @@ VM_OP_HOT void OpFinishParams(noisepage::execution::exec::ExecutionContext *exec
 // Replication functions
 // ---------------------------------
 
-VM_OP_WARM void OpReplicationGetLastRecordId(noisepage::execution::sql::Integer *result,
-                                             noisepage::execution::exec::ExecutionContext *exec_ctx) {
-  *result = noisepage::execution::sql::Integer(exec_ctx->ReplicationGetLastRecordId());
+VM_OP_WARM void OpReplicationGetLastTransactionId(noisepage::execution::sql::Integer *result,
+                                                  noisepage::execution::exec::ExecutionContext *exec_ctx) {
+  *result = noisepage::execution::sql::Integer(exec_ctx->ReplicationGetLastTransactionId());
 }
 
 // ---------------------------------

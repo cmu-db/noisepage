@@ -38,6 +38,10 @@ namespace noisepage::selfdriving {
 class PipelineOperatingUnits;
 }  // namespace noisepage::selfdriving
 
+namespace noisepage::storage {
+class RecoveryManager;
+}  // namespace noisepage::storage
+
 namespace noisepage::execution::exec {
 class ExecutionSettings;
 /**
@@ -82,13 +86,15 @@ class EXPORT ExecutionContext {
    * @param exec_settings The execution settings to run with.
    * @param metrics_manager The metrics manager for recording metrics
    * @param replication_manager The replication manager to handle communication between primary and replicas.
+   * @param recovery_manager The recovery manager that handles both recovery and application of replication records.
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                    const exec::ExecutionSettings &exec_settings,
                    common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-                   common::ManagedPointer<replication::ReplicationManager> replication_manager)
+                   common::ManagedPointer<replication::ReplicationManager> replication_manager,
+                   common::ManagedPointer<storage::RecoveryManager> recovery_manager)
       : exec_settings_(exec_settings),
         db_oid_(db_oid),
         txn_(txn),
@@ -99,7 +105,8 @@ class EXPORT ExecutionContext {
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
         accessor_(accessor),
         metrics_manager_(metrics_manager),
-        replication_manager_(replication_manager) {}
+        replication_manager_(replication_manager),
+        recovery_manager_(recovery_manager) {}
 
   /**
    * @return the transaction used by this query
@@ -248,10 +255,10 @@ class EXPORT ExecutionContext {
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
   /**
-   * @return    On the primary, returns the last record ID that was successfully transmitted to all replicas.
-   *            On a replica, returns the last record ID that was successfully applied.
+   * @return    On the primary, returns the ID of the last txn sent.
+   *            On a replica, returns the ID of the last txn applied.
    */
-  uint64_t ReplicationGetLastRecordId() const;
+  uint64_t ReplicationGetLastTransactionId() const;
 
   /**
    * If the calling thread is not registered with any metrics manager, this function
@@ -365,6 +372,7 @@ class EXPORT ExecutionContext {
   uint32_t rows_affected_ = 0;
 
   common::ManagedPointer<replication::ReplicationManager> replication_manager_;
+  common::ManagedPointer<storage::RecoveryManager> recovery_manager_;
 
   std::vector<std::vector<common::ManagedPointer<const sql::Val>>> udf_param_stack_;
 

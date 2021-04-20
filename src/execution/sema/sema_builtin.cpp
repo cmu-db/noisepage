@@ -3244,7 +3244,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
 void Sema::CheckBuiltinReplicationCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
-    case ast::Builtin::ReplicationGetLastRecordId: {
+    case ast::Builtin::ReplicationGetLastTransactionId: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
@@ -3792,7 +3792,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
-    case ast::Builtin::ReplicationGetLastRecordId: {
+    case ast::Builtin::ReplicationGetLastTransactionId: {
       CheckBuiltinReplicationCall(call, builtin);
       break;
     }

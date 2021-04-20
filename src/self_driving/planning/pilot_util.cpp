@@ -85,7 +85,8 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager(), DISABLED);
+          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager(), DISABLED,
+          DISABLED);
 
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
     }
