@@ -958,8 +958,11 @@ void LLVMEngine::CompiledModuleBuilder::Optimize() {
 
   // Build up optimization pipeline.
   llvm::PassManagerBuilder pm_builder;
-  pm_builder.OptLevel = 3;
-  pm_builder.Inliner = llvm::createFunctionInliningPass(3, 0, false);
+  uint32_t opt_level = 3;
+  uint32_t size_opt_level = 0;
+  bool disable_inline_hot_call_site = false;
+  pm_builder.OptLevel = opt_level;
+  pm_builder.Inliner = llvm::createFunctionInliningPass(opt_level, size_opt_level, disable_inline_hot_call_site);
   pm_builder.populateFunctionPassManager(function_passes);
 
   // Add custom passes. Hand-selected based on empirical evaluation.
