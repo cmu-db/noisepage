@@ -1,9 +1,12 @@
 import os.path
 import re
 from abc import abstractmethod, ABC
+from enum import Enum
+from typing import List
+
+import zmq
 
 from .constants import *
-from .log_shipper import LogShipper
 from .test_type import TestType
 from ...oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
 from ...oltpbench.test_case_oltp import TestCaseOLTPBench
@@ -160,14 +163,6 @@ class ReplicaNode(NodeServer):
             replica_server_args[SERVER_ARGS_KEY][LOGGING_METRICS_ENABLED_KEY] = True
             self.ship_logs = True
 
-            primary_identity = DEFAULT_PRIMARY_SERVER_ARGS[SERVER_ARGS_KEY][NETWORK_IDENTITY_KEY]
-            primary_messenger_port = DEFAULT_PRIMARY_SERVER_ARGS[SERVER_ARGS_KEY][MESSENGER_PORT_KEY]
-            primary_replication_port = DEFAULT_PRIMARY_SERVER_ARGS[SERVER_ARGS_KEY][REPLICATION_PORT_KEY]
-            replica_identity = replica_server_args[SERVER_ARGS_KEY][NETWORK_IDENTITY_KEY]
-            replica_replication_port = replica_server_args[SERVER_ARGS_KEY][REPLICATION_PORT_KEY]
-            self.log_shipper = LogShipper(log_messages_file, primary_identity, primary_messenger_port,
-                                          primary_replication_port, replica_identity, replica_replication_port)
-
         # Create DB instance
         replica_server_args[BUILD_TYPE_KEY] = build_type
         self.replica = NoisePageServer(build_type=build_type,
@@ -186,12 +181,7 @@ class ReplicaNode(NodeServer):
         self.running = True
 
     def run(self):
-        """
-        If we are testing throughput on the replica node then we start shipping logs to the replica. Otherwise we do
-        nothing
-        """
-        if self.ship_logs:
-            self.log_shipper.ship()
+        pass
 
     def teardown(self):
         """
@@ -205,3 +195,117 @@ class ReplicaNode(NodeServer):
 
     def is_running(self) -> bool:
         return self.running
+
+
+class ImposterNode(NodeServer):
+    """
+    Python process that imitates a NoisePage server. This ii useful for mocking one side of replication
+    """
+
+    def __init__(self, identity: str, messenger_port: int, replication_port: int):
+        self.running = True
+        self.identity = identity
+        self.replication_port = replication_port
+
+        self.context = zmq.Context()
+        # Default socket bound to the messenger port
+        self.default_socket = self.context.socket(zmq.ROUTER)
+        self.default_socket.set_string(zmq.IDENTITY, identity)
+        self.default_socket.bind(f"tcp://*:{messenger_port}")
+        self.default_socket.bind(f"ipc://./noisepage-ipc-{messenger_port}")
+        self.default_socket.bind(f"inproc://noisepage-inproc-{messenger_port}")
+
+        # Router socket used to receive messages
+        self.router_socket = None
+
+    def _create_receiving_router_socket(self, context: zmq.Context):
+        """
+        Creates the socket responsible for receiving messages. This method allows the flexibility of creating this
+        socket in the main thread or a different thread.
+
+        WARNING:
+        You must only call this method once and you must call this from the same thread that context was created in.
+        You must also make sure to destroy the socket properly, from the same thread that created it
+
+        :param context ZMQ context to use to create the socket
+        """
+        self.router_socket = context.socket(zmq.ROUTER)
+        self.router_socket.set_string(zmq.IDENTITY, self.identity)
+        self.router_socket.setsockopt(zmq.LINGER, 0)
+        self.router_socket.bind(f"tcp://127.0.0.1:{self.replication_port}")
+
+    @staticmethod
+    def _create_sending_dealer_socket(context: zmq.Context, connection_identity: str,
+                                      connection_replication_port) -> zmq.Socket:
+        """
+        Creates a socket for sending messages to another node.
+
+        WARNING:
+        You must call this from the same thread the context was created in.
+
+        :param context ZMQ context to use to create the socket
+        """
+        dealer_socket = context.socket(zmq.DEALER)
+        dealer_socket.set_string(zmq.IDENTITY, connection_identity)
+        dealer_socket.setsockopt(zmq.LINGER, 0)
+        dealer_socket.connect(f"tcp://127.0.0.1:{connection_replication_port}")
+        return dealer_socket
+
+    @abstractmethod
+    def setup(self):
+        pass
+
+    @abstractmethod
+    def run(self):
+        pass
+
+    @staticmethod
+    def send_msg(message_parts: List[str], socket: zmq.Socket):
+        """
+        Send multipart message over socket
+
+        :param message_parts messages to send
+        :param socket socket to send over
+        """
+        socket.send_multipart([message.encode(UTF_8) for message in message_parts])
+
+    @staticmethod
+    def recv_msg(socket: zmq.Socket) -> str:
+        """
+        Receive message from socket
+
+        :param socket Socket to receive message from
+        """
+        return socket.recv()
+
+    @staticmethod
+    def has_pending_messages(socket: zmq.Socket, timeout: int) -> bool:
+        """
+        Checks if a socket has any pending messages
+
+        :param socket Socket to check for messages
+        :param timeout How long to check for messages
+
+        :return True if there are pending messages, false otherwise
+        """
+        return socket.poll(timeout) == zmq.POLLIN
+
+    def teardown_router_socket(self):
+        """
+        Closes router socket. Must be called from the same thread that created it
+        """
+        self.router_socket.close()
+
+    def teardown(self):
+        self.running = False
+        self.default_socket.close()
+        self.context.destroy()
+
+    def is_running(self) -> bool:
+        return self.running
+
+
+class BuiltinCallback(Enum):
+    NOOP = 0,
+    ECHO = 1,
+    ACK = 2
