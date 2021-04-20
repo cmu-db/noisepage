@@ -77,12 +77,6 @@ struct ListCell
  * if supported by the compiler, or as regular functions otherwise.
  * See STATIC_IF_INLINE in c.h.
  */
-//#ifndef PG_USE_INLINE
-//extern ListCell *list_head(const List *l);
-//extern ListCell *list_tail(List *l);
-//extern int	list_length(const List *l);
-//#endif   /* PG_USE_INLINE */
-//#if defined(PG_USE_INLINE) || defined(PG_LIST_INCLUDE_DEFINITIONS)
 static inline ListCell *
 list_head(const List *l)
 {
@@ -100,7 +94,6 @@ list_length(const List *l)
 {
 	return l ? l->length : 0;
 }
-//#endif   /*-- PG_USE_INLINE || PG_LIST_INCLUDE_DEFINITIONS */
 
 /*
  * NB: There is an unfortunate legacy from a previous incarnation of
