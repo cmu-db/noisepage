@@ -14,6 +14,7 @@
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "metrics/metrics_util.h"
+#include "network/network_util.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/constant_value_expression.h"
@@ -25,8 +26,11 @@
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/planning/pilot.h"
 #include "settings/settings_manager.h"
+#include "task/task.h"
+#include "task/task_manager.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
+#include "util/query_exec_util.h"
 
 namespace noisepage::selfdriving {
 
@@ -34,105 +38,58 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
                             catalog::db_oid_t db_oid) {
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
+  util::QueryExecUtil util(txn_manager, catalog, pilot->settings_manager_, pilot->stats_storage_,
+                           pilot->settings_manager_->GetInt(settings::Param::task_execution_timeout));
+  util.BeginTransaction(db_oid);
 
-  // Initialize transaction context, and necessary arguments for query plan generation
-  transaction::TransactionContext *txn;
-
-  execution::exec::ExecutionSettings exec_settings{};
-  exec_settings.UpdateFromSettingsManager(pilot->settings_manager_);
-  execution::exec::NoOpResultConsumer consumer;
-  execution::exec::OutputCallback callback = consumer;
-
-  std::string query = sql_query;
-  SELFDRIVING_LOG_INFO("Applying action: {}", sql_query);
-  auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
-  auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
-
-  auto query_type = statement->GetQueryType();
-
-  if (query_type == network::QueryType::QUERY_SET) {
-    // The set statements are executed differently (through settings_manager_)
-    const auto &set_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableSetStatement>();
-    pilot->settings_manager_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
-  } else {
-    // For all other actions, we apply the action by running it as query in a committed transaction
-    txn = txn_manager->BeginTransaction();
-
-    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-
-    // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
-    auto out_plan =
-        PilotUtil::GenerateQueryPlan(txn, common::ManagedPointer(accessor), nullptr, nullptr, statement->ParseResult(),
-                                     db_oid, pilot->stats_storage_, pilot->forecast_->GetOptimizerTimeout());
-
-    if (query_type == network::QueryType::QUERY_DROP_INDEX) {
-      // Drop index does not need execution of compiled query
-      execution::sql::DDLExecutors::DropIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-                                                          .CastManagedPointerTo<planner::DropIndexPlanNode>(),
-                                                      common::ManagedPointer<catalog::CatalogAccessor>(accessor));
-    } else {
-      if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
-        // TODO(lin): We actually don't need to populate the index tuples after creating the index placeholder for the
-        //  "what-if" API. But since we need to execute the query to get the features, we need to compile and execute
-        //  the query for now.
-        execution::sql::DDLExecutors::CreateIndexExecutor(common::ManagedPointer<planner::AbstractPlanNode>(out_plan)
-                                                              .CastManagedPointerTo<planner::CreateIndexPlanNode>(),
-                                                          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
-      }
-
-      auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                         execution::compiler::CompilationMode::OneShot);
-
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager(), DISABLED,
-          DISABLED);
-
-      exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-    }
-    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  bool is_query_ddl = false;
+  {
+    std::string query = sql_query;
+    auto parse_tree = parser::PostgresParser::BuildParseTree(sql_query);
+    auto statement = std::make_unique<network::Statement>(std::move(query), std::move(parse_tree));
+    is_query_ddl = network::NetworkUtil::DDLQueryType(statement->GetQueryType()) ||
+                   statement->GetQueryType() == network::QueryType::QUERY_SET;
   }
-}
 
-std::unique_ptr<planner::AbstractPlanNode> PilotUtil::GenerateQueryPlan(
-    transaction::TransactionContext *txn, common::ManagedPointer<catalog::CatalogAccessor> accessor,
-    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-    common::ManagedPointer<std::vector<type::TypeId>> param_types,
-    common::ManagedPointer<parser::ParseResult> stmt_list, catalog::db_oid_t db_oid,
-    common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout) {
-  auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
-  binder.BindNameToNode(stmt_list, params, param_types);
-  // Creating exec_ctx
-  std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
+  if (is_query_ddl) {
+    util.ExecuteDDL(sql_query);
+  } else {
+    // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
+    execution::exec::ExecutionSettings settings{};
+    if (util.CompileQuery(sql_query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), std::nullopt,
+                          settings)) {
+      util.ExecuteQuery(sql_query, nullptr, nullptr, nullptr, settings);
+    }
+  }
 
-  auto out_plan = trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
-                                                       common::ManagedPointer(stmt_list), db_oid, stats_storage,
-                                                       std::move(cost_model), optimizer_timeout, params)
-                      ->TakePlanNodeOwnership();
-  return out_plan;
+  // Commit
+  util.EndTransaction(true);
 }
 
 void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                               uint64_t end_segment_index, transaction::TransactionContext *txn,
                               std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs) {
   std::unordered_set<execution::query_id_t> qids;
-  auto catalog = pilot->catalog_;
   for (uint64_t idx = 0; idx <= end_segment_index; idx++) {
     for (auto &it : forecast->GetSegmentByIndex(idx).GetIdToNumexec()) {
       qids.insert(it.first);
     }
   }
+
+  // Use QueryExecUtil since we want the abstract plan nodes.
+  // We don't care about compilation right now.
+  auto query_exec_util = util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(pilot->query_exec_util_));
   for (auto qid : qids) {
-    auto stmt_list = parser::PostgresParser::BuildParseTree(forecast->GetQuerytextByQid(qid));
+    auto query_text = forecast->GetQuerytextByQid(qid);
     auto db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
-    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+    query_exec_util->UseTransaction(db_oid, common::ManagedPointer(txn));
 
-    auto out_plan = PilotUtil::GenerateQueryPlan(
-        txn, common::ManagedPointer(accessor), common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0))),
-        common::ManagedPointer(forecast->GetParamtypesByQid(qid)), common::ManagedPointer(stmt_list), db_oid,
-        pilot->stats_storage_, forecast->GetOptimizerTimeout());
-
-    plan_vecs->emplace_back(std::move(out_plan));
+    auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
+    auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
+    auto result = query_exec_util->PlanStatement(query_text, params, param_types,
+                                                 std::make_unique<optimizer::TrivialCostModel>());
+    plan_vecs->emplace_back(std::move(result.second));
+    query_exec_util->UseTransaction(db_oid, nullptr);
   }
 }
 
@@ -167,11 +124,17 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
       prev_qid = pipeline_to_pred.first.first;
     }
   }
-  double total_cost = 0, num_queries = 0;
+  double total_cost = 0;
+  double num_queries = 0;
   for (auto qcost : query_cost) {
     for (auto i = start_segment_index; i <= end_segment_index; i++) {
-      total_cost += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first) * qcost.second;
-      num_queries += forecast->GetSegmentByIndex(i).GetIdToNumexec().at(qcost.first);
+      // It is possible that within the forecast, we don't actually have the qid.
+      // (i.e., query executed count is 0 within this particular segment).
+      const auto &seg_map = forecast->GetSegmentByIndex(i).GetIdToNumexec();
+      if (seg_map.find(qcost.first) != seg_map.end()) {
+        total_cost += seg_map.at(qcost.first) * qcost.second;
+        num_queries += seg_map.at(qcost.first);
+      }
     }
   }
   NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");
@@ -181,19 +144,6 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
 const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
     common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
     uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids) {
-  auto txn_manager = pilot->txn_manager_;
-  auto catalog = pilot->catalog_;
-  transaction::TransactionContext *txn;
-  auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
-
-  execution::exec::ExecutionSettings exec_settings{};
-  exec_settings.UpdateFromSettingsManager(pilot->settings_manager_);
-
-  execution::exec::NoOpResultConsumer consumer;
-  execution::exec::OutputCallback callback = consumer;
-
-  catalog::db_oid_t db_oid;
-
   std::unordered_set<execution::query_id_t> qids;
   for (auto i = start_segment_index; i <= end_segment_index; i++) {
     for (auto &it : forecast->GetSegmentByIndex(i).GetIdToNumexec()) {
@@ -201,40 +151,24 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     }
   }
 
+  auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   for (const auto &qid : qids) {
-    // Begin transaction to get the executable query
-    txn = txn_manager->BeginTransaction();
-    auto stmt_list = parser::PostgresParser::BuildParseTree(forecast->GetQuerytextByQid(qid));
-    db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
-    std::unique_ptr<catalog::CatalogAccessor> accessor =
-        catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+    catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
+    auto query_text = forecast->GetQuerytextByQid(qid);
 
-    auto out_plan = PilotUtil::GenerateQueryPlan(
-        txn, common::ManagedPointer(accessor), common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0))),
-        common::ManagedPointer(forecast->GetParamtypesByQid(qid)), common::ManagedPointer(stmt_list), db_oid,
-        pilot->stats_storage_, forecast->GetOptimizerTimeout());
-
-    execution::compiler::ExecutableQuery::query_identifier.store(qid);
-    auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                       execution::compiler::CompilationMode::OneShot);
-    txn_manager->Abort(txn);
-
+    // If this copying gets expensive, we might have to tweak the Task::TaskDML
+    // constructor to allow specifying pointer params or a custom planning task.
+    std::vector<type::TypeId> param_types(*forecast->GetParamtypesByQid(qid));
+    std::vector<std::vector<parser::ConstantValueExpression>> params(*forecast->GetQueryparamsByQid(qid));
     pipeline_qids->push_back(qid);
 
-    for (auto &params : *(forecast->GetQueryparamsByQid(qid))) {
-      txn = txn_manager->BeginTransaction();
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, metrics_manager, DISABLED);
-      // TODO(Kyle): It sucks to call this in a loop... better way?
-      std::vector<common::ManagedPointer<const execution::sql::Val>> param_values{};
-      param_values.reserve(params.size());
-      std::transform(params.cbegin(), params.cend(), std::back_inserter(param_values),
-                     [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.PeekPtr()}; });
-      exec_ctx->SetParams(common::ManagedPointer(&param_values));
-      exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-      txn_manager->Abort(txn);
-    }
+    // Forcefully reoptimize all the queries and set the query identifier to use
+    common::Future<bool> sync;
+    pilot->task_manager_->AddTask(
+        std::make_unique<task::TaskDML>(db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
+                                        std::move(params), std::move(param_types), nullptr, metrics_manager, true, true,
+                                        std::make_optional<execution::query_id_t>(qid), common::ManagedPointer(&sync)));
+    sync.Wait();
   }
 
   // retrieve the features

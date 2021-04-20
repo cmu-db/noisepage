@@ -61,6 +61,7 @@
 #   HEADER Tests.
 #   HEADER Benchmarks.
 #   HEADER Generated file destinations.
+#   HEADER startup.sql post-copy command
 #   HEADER Miscellaneous.
 
 #######################################################################################################################
@@ -960,6 +961,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/settings/*.cpp"
         "test/storage/*.cpp"
         "test/sql/*.cpp"
+        "test/task/*.cpp"
         "test/traffic_cop/*.cpp"
         "test/transaction/*.cpp"
         "test/type/*.cpp"
@@ -1087,6 +1089,7 @@ add_jumbotest("test/planner" "")
 add_jumbotest("test/self_driving" "")
 add_jumbotest("test/settings" "")
 add_jumbotest("test/storage" "block_access_controller_test;block_compactor_test;bwtree_test;bwtree_index_test;data_table_test;data_table_concurrent_test;hash_index_test;large_garbage_collector_test;log_test;tuple_access_strategy_test;")
+add_jumbotest("test/task" "")
 add_jumbotest("test/traffic_cop" "traffic_cop_test;")
 add_jumbotest("test/transaction" "large_transaction_test;")
 add_jumbotest("test/type" "")
@@ -1190,6 +1193,22 @@ if (${NOISEPAGE_ENABLE_SHARED})
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 endif ()
+
+#######################################################################################################################
+# HEADER startup.sql post-copy command.
+# startup.sql           :   Post-copy command for startup.sql into the bin directory
+#######################################################################################################################
+
+add_custom_command(
+        OUTPUT "${CMAKE_BINARY_DIR}/bin/startup.sql"
+        DEPENDS "${PROJECT_SOURCE_DIR}/src/main/startup.sql"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND cp ${PROJECT_SOURCE_DIR}/src/main/startup.sql ${CMAKE_BINARY_DIR}/bin/startup.sql
+        USES_TERMINAL
+)
+
+add_custom_target(startup_sql_generator DEPENDS "${CMAKE_BINARY_DIR}/bin/startup.sql")
+add_dependencies(noisepage startup_sql_generator)
 
 #######################################################################################################################
 # HEADER Miscellaneous.

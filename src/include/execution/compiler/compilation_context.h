@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -47,16 +48,19 @@ class CompilationContext {
    * @param exec_settings The execution settings to be used for compilation.
    * @param accessor The catalog accessor to use for compilation.
    * @param mode The compilation mode.
+   * @param override_qid Optional indicating how to override the plan's query id
    * @param query_text The SQL query string (temporary)
+   * @param output_callback TODO(Kyle)
+   * @param context TODO(Kyle)
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
                                                   const exec::ExecutionSettings &exec_settings,
                                                   catalog::CatalogAccessor *accessor,
                                                   CompilationMode mode = CompilationMode::Interleaved,
+                                                  std::optional<execution::query_id_t> override_qid = std::nullopt,
                                                   common::ManagedPointer<const std::string> query_text = nullptr,
                                                   ast::LambdaExpr *output_callback = nullptr,
                                                   common::ManagedPointer<ast::Context> context = nullptr);
-
   /**
    * Register a pipeline in this context.
    * @param pipeline The pipeline.

@@ -5,6 +5,14 @@
 #include "common/macros.h"
 #include "metrics/metrics_defs.h"
 
+namespace noisepage::util {
+class QueryExecUtil;
+}  // namespace noisepage::util
+
+namespace noisepage::task {
+class TaskManager;
+}
+
 namespace noisepage::metrics {
 /**
  * @brief An always-consistent storage unit for intermediate stats results.
@@ -34,6 +42,12 @@ class AbstractRawData {
    * @return the type of the metric this object is holding the data for
    */
   virtual MetricsComponent GetMetricType() const = 0;
+
+  /**
+   * Writes the data to internal tables
+   * @param task_manager Task manager to submit tasks to
+   */
+  virtual void ToDB(common::ManagedPointer<task::TaskManager> task_manager) {}
 
   /**
    * Writes the data to files, and then clears the data

@@ -50,6 +50,8 @@ class ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 
 namespace noisepage::execution::compiler {
 
+class CompilationContext;
+
 /**
  * An compiled and executable query object.
  */
@@ -241,6 +243,12 @@ class ExecutableQuery {
    */
   void SetPipelineOperatingUnits(std::unique_ptr<selfdriving::PipelineOperatingUnits> &&units);
 
+  /**
+   * Sets the executable query's query identifier
+   * @param query_id Query ID to set it to
+   */
+  void SetQueryId(query_id_t query_id) { query_id_ = query_id; }
+
   std::string query_name_;
   query_id_t query_id_;
   static std::atomic<query_id_t> query_identifier;
@@ -250,6 +258,7 @@ class ExecutableQuery {
   friend class noisepage::runner::ExecutionRunners;
   friend class noisepage::runner::ExecutionRunners_SEQ0_OutputRunners_Benchmark;
   friend class noisepage::selfdriving::PilotUtil;
+  friend class noisepage::execution::compiler::CompilationContext;  // SetQueryId
   friend class noisepage::runner::ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 };
 
