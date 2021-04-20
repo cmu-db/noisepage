@@ -203,76 +203,87 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
 void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size,
                                               size_t num_keys, const planner::AbstractPlanNode *plan,
                                               size_t scaling_factor, double mem_factor) {
-  // This is the default case, but this value may change based on the specific plans (see below)
-  size_t num_rows = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId()).GetCardinality();
+  size_t num_rows = 0;
   // TODO(lin): Some times cardinality represents the number of distinct values for some OUs (e.g., SORT_BUILD),
   //  but we don't have a good way to estimate that right now. So in those cases we just copy num_rows
-  size_t cardinality = num_rows;
+  size_t cardinality = 0;
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
-  if (type == ExecutionOperatingUnitType::OUTPUT) {
-    if (accessor_->GetDatabaseOid("tpch_runner_db") != catalog::INVALID_DATABASE_OID) {
-      // Unfortunately we don't know what kind of output callback that we're going to call at runtime, so we just
-      // special case this when we execute the plans directly from the TPCH runner and use the NoOpResultConsumer
-      cardinality = 0;
-    } else {
-      // Uses the network result consumer
-      cardinality = 1;
-    }
-    auto child_translator = current_translator_->GetChildTranslator();
-    if (child_translator != nullptr) {
-      if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
-        auto output = child_translator->Op()->GetOutputSchema()->GetColumn(0).GetExpr();
-        if (output && output->GetExpressionType() == parser::ExpressionType::FUNCTION) {
-          auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
-          if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
-            auto child = f_expr->GetChild(0);
-            NOISEPAGE_ASSERT(child, "NpRunnersEmit should have children");
-            NOISEPAGE_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
-                             "Child should be constants");
 
-            auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
-            num_rows = cve->GetInteger().val_;
+  size_t current_plan_cardinality = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId()).GetCardinality();
+  size_t table_num_rows = 0;
+
+  switch (type) {
+    case ExecutionOperatingUnitType::OUTPUT: {
+      num_rows = current_plan_cardinality;
+      if (accessor_->GetDatabaseOid("tpch_runner_db") != catalog::INVALID_DATABASE_OID) {
+        // Unfortunately we don't know what kind of output callback that we're going to call at runtime, so we just
+        // special case this when we execute the plans directly from the TPCH runner and use the NoOpResultConsumer
+        cardinality = 0;
+      } else {
+        // Uses the network result consumer
+        cardinality = 1;
+      }
+      auto child_translator = current_translator_->GetChildTranslator();
+      if (child_translator != nullptr) {
+        if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
+          auto output = child_translator->Op()->GetOutputSchema()->GetColumn(0).GetExpr();
+          if (output && output->GetExpressionType() == parser::ExpressionType::FUNCTION) {
+            auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
+            if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
+              auto child = f_expr->GetChild(0);
+              NOISEPAGE_ASSERT(child, "NpRunnersEmit should have children");
+              NOISEPAGE_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
+                               "Child should be constants");
+
+              auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
+              num_rows = cve->GetInteger().val_;
+            }
           }
         }
       }
-    }
-  } else if (type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
-    // If feature is OUTPUT or computation, then cardinality = num_rows
-    cardinality = num_rows;
-  } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
-    NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
-    cardinality = num_rows;  // extract from plan num_rows (# matched rows)
+    } break;
+    case ExecutionOperatingUnitType::HASHJOIN_PROBE: {
+      NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
+      cardinality = current_plan_cardinality;  // extract from plan num_rows (# matched rows)
 
-    auto *c_plan = plan->GetChild(1);
-    // extract from c_plan num_rows (# row to probe)
-    num_rows = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
-  } else if (type == ExecutionOperatingUnitType::IDX_SCAN) {
-    // For IDX_SCAN, the feature is as follows:
-    // - num_rows is the size of the index
-    // - cardinality is the scan size
-    cardinality = num_rows;  // extract from plan num_rows (this is the scan size)
+      auto *c_plan = plan->GetChild(1);
+      // extract from c_plan num_rows (# row to probe)
+      num_rows = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+    } break;
+    case ExecutionOperatingUnitType::IDX_SCAN: {
+      // For IDX_SCAN, the feature is as follows:
+      // - num_rows is the size of the index
+      // - cardinality is the scan size
+      cardinality = current_plan_cardinality;  // extract from plan num_rows (this is the scan size)
 
-    if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
-      num_rows = reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetIndexSize();
-    } else {
-      NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
-      num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
+      if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
+        num_rows = reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetIndexSize();
+      } else {
+        NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
+        num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
 
-      UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
-      // extract from c_plan num_row
-      num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
-    }
+        UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
+        // extract from c_plan num_row
+        num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+      }
 
-  } else if (type == ExecutionOperatingUnitType::CREATE_INDEX) {
-    // We extract the num_rows and cardinality from the table name if possible
-    // This is a special case for mini-runners
-    std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();
-    auto mrpos = idx_name.find("minirunners__");
-    if (mrpos != std::string::npos) {
-      num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
-      cardinality = num_rows;
-    }
+    } break;
+    case ExecutionOperatingUnitType::CREATE_INDEX: {
+      num_rows = current_plan_cardinality;
+      cardinality = current_plan_cardinality;
+      // We extract the num_rows and cardinality from the table name if possible
+      // This is a special case for mini-runners
+      std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();
+      auto mrpos = idx_name.find("minirunners__");
+      if (mrpos != std::string::npos) {
+        num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
+        cardinality = num_rows;
+      }
+    } break;
+    default:
+      num_rows = current_plan_cardinality;
+      cardinality = current_plan_cardinality;
   }
 
   num_rows *= scaling_factor;
