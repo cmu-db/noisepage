@@ -853,8 +853,8 @@ class BPlusTree : public BPlusTreeBase {
     return current_node;
   }
 
-  class BPlusTreeFwdIterator {
-    enum IteratorState { VALID, END, RETRY, INVALID };
+  class BPlusTreeIterator {
+    enum IteratorState { VALID, END, REND, RETRY, INVALID };
 
     ElasticNode<KeyValuePair> *curr_node_;
     KeyValuePair *curr_key_;
@@ -871,6 +871,11 @@ class BPlusTree : public BPlusTreeBase {
       state_ = END;
     }
 
+    void setREndIterator() {
+      resetIterator();
+      state_ = REND;
+    }
+
     void setRetryIterator() {
       resetIterator();
       state_ = RETRY;
@@ -880,7 +885,7 @@ class BPlusTree : public BPlusTreeBase {
     KeyType first;
     ValueType second;
 
-    BPlusTreeFwdIterator(BaseNode *node, KeyValuePair *element, typename ValueList::iterator value) {
+    BPlusTreeIterator(BaseNode *node, KeyValuePair *element, typename ValueList::iterator value) {
       curr_node_ = reinterpret_cast<ElasticNode<KeyValuePair> *>(node);
       curr_key_ = element;
       curr_val_ = value;
@@ -889,13 +894,13 @@ class BPlusTree : public BPlusTreeBase {
       state_ = VALID;
     }
 
-    BPlusTreeFwdIterator() {
+    BPlusTreeIterator() {
       curr_node_ = nullptr;
       curr_key_ = nullptr;
       state_ = INVALID;
     }
 
-    BPlusTreeFwdIterator(const BPlusTreeFwdIterator &itr) {
+    BPlusTreeIterator(const BPlusTreeIterator &itr) {
       curr_node_ = itr.curr_node_;
       curr_key_ = itr.curr_key_;
       curr_val_ = itr.curr_val_;
@@ -941,94 +946,14 @@ class BPlusTree : public BPlusTreeBase {
       second = *curr_val_;
     }
 
-    bool operator==(const BPlusTreeFwdIterator &itr) {
-      bool result = (curr_node_ == itr.curr_node_ && curr_key_ == itr.curr_key_ && state_ == itr.state_);
-      if (state_ == VALID) {
-        result = result && (curr_val_ == itr.curr_val_);
-      }
-      return result;
-    }
-
-    void Done() {
-      if (curr_node_ != nullptr) {
-        curr_node_->ReleaseNodeSharedLatch();
-      }
-
-      state_ = INVALID;
-    }
-
-    static BPlusTreeFwdIterator GetEndIterator() {
-      auto iterator = BPlusTreeFwdIterator();
-      iterator.setEndIterator();
-      return iterator;
-    }
-
-    static BPlusTreeFwdIterator GetRetryIterator() {
-      auto iterator = BPlusTreeFwdIterator();
-      iterator.setRetryIterator();
-      return iterator;
-    }
-  };
-
-  class BPlusTreeRevIterator {
-    enum IteratorState { VALID, END, RETRY, INVALID };
-
-    ElasticNode<KeyValuePair> *curr_node_;
-    KeyValuePair *curr_key_;
-    typename ValueList::reverse_iterator curr_val_;
-    IteratorState state_;
-
-    void resetIterator() {
-      curr_node_ = nullptr;
-      curr_key_ = nullptr;
-    }
-
-    void setREndIterator() {
-      resetIterator();
-      state_ = END;
-    }
-
-    void setRetryIterator() {
-      resetIterator();
-      state_ = RETRY;
-    }
-
-   public:
-    KeyType first;
-    ValueType second;
-
-    BPlusTreeRevIterator(BaseNode *node, KeyValuePair *element, typename ValueList::reverse_iterator value) {
-      curr_node_ = reinterpret_cast<ElasticNode<KeyValuePair> *>(node);
-      curr_key_ = element;
-      curr_val_ = value;
-      first = element->first;
-      second = *curr_val_;
-      state_ = VALID;
-    }
-
-    BPlusTreeRevIterator() {
-      curr_node_ = nullptr;
-      curr_key_ = nullptr;
-      state_ = INVALID;
-    }
-
-    BPlusTreeRevIterator(const BPlusTreeRevIterator &itr) {
-      curr_node_ = itr.curr_node_;
-      curr_key_ = itr.curr_key_;
-      curr_val_ = itr.curr_val_;
-      first = itr.first;
-      second = itr.second;
-      state_ = itr.state_;
-    }
-
-    void operator++() {
+    void operator--() {
       NOISEPAGE_ASSERT(state_ == VALID, "Iterator in Invalid State.");
 
       curr_val_++;
-      if (curr_val_ == curr_key_->second->rend()) {
+      if (curr_val_ == curr_key_->second->end()) {
         curr_key_--;
         if (curr_key_ != curr_node_->REnd()) {
-          curr_val_ = curr_key_->second->rbegin();
+          curr_val_ = curr_key_->second->begin();
         }
       }
 
@@ -1051,14 +976,14 @@ class BPlusTree : public BPlusTreeBase {
         prev_node->ReleaseNodeSharedLatch();
 
         curr_key_ = curr_node_->RBegin();
-        curr_val_ = curr_key_->second->rbegin();
+        curr_val_ = curr_key_->second->begin();
       }
 
       first = curr_key_->first;
       second = *curr_val_;
     }
 
-    bool operator==(const BPlusTreeRevIterator &itr) {
+    bool operator==(const BPlusTreeIterator &itr) {
       bool result = (curr_node_ == itr.curr_node_ && curr_key_ == itr.curr_key_ && state_ == itr.state_);
       if (state_ == VALID) {
         result = result && (curr_val_ == itr.curr_val_);
@@ -1074,28 +999,32 @@ class BPlusTree : public BPlusTreeBase {
       state_ = INVALID;
     }
 
-    static BPlusTreeRevIterator GetREndIterator() {
-      auto iterator = BPlusTreeRevIterator();
+    static BPlusTreeIterator GetEndIterator() {
+      auto iterator = BPlusTreeIterator();
+      iterator.setEndIterator();
+      return iterator;
+    }
+
+    static BPlusTreeIterator GetREndIterator() {
+      auto iterator = BPlusTreeIterator();
       iterator.setREndIterator();
       return iterator;
     }
 
-    static BPlusTreeRevIterator GetRetryIterator() {
-      auto iterator = BPlusTreeRevIterator();
+    static BPlusTreeIterator GetRetryIterator() {
+      auto iterator = BPlusTreeIterator();
       iterator.setRetryIterator();
       return iterator;
     }
   };
 
-  BPlusTreeFwdIterator End() { return BPlusTreeFwdIterator::GetEndIterator(); }
+  BPlusTreeIterator End() { return BPlusTreeIterator::GetEndIterator(); }
 
-  BPlusTreeFwdIterator FwdRetry() { return BPlusTreeFwdIterator::GetRetryIterator(); }
+  BPlusTreeIterator REnd() { return BPlusTreeIterator::GetREndIterator(); }
 
-  BPlusTreeRevIterator REnd() { return BPlusTreeRevIterator::GetREndIterator(); }
+  BPlusTreeIterator Retry() { return BPlusTreeIterator::GetRetryIterator(); }
 
-  BPlusTreeRevIterator RevRetry() { return BPlusTreeRevIterator::GetRetryIterator(); }
-
-  BPlusTreeFwdIterator Begin() {
+  BPlusTreeIterator Begin() {
     // Fetch Leaf Node containing the key
     auto current_node = FindLeafNode();
     if (current_node == nullptr) {
@@ -1104,10 +1033,10 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    return BPlusTreeFwdIterator(current_node, node->Begin(), node->Begin()->second->begin());
+    return BPlusTreeIterator(current_node, node->Begin(), node->Begin()->second->begin());
   }
 
-  BPlusTreeFwdIterator Begin(KeyType key) {
+  BPlusTreeIterator Begin(KeyType key) {
     // Fetch Leaf Node containing the key
     auto current_node = FindLeafNode(key);
     if (current_node == nullptr) {
@@ -1134,7 +1063,7 @@ class BPlusTree : public BPlusTreeBase {
         // node while iterating at the leaf level).
         if (!(current_node->TrySharedLock())) {
           parent->ReleaseNodeSharedLatch();
-          return FwdRetry();
+          return Retry();
         }
         parent->ReleaseNodeSharedLatch();
 
@@ -1142,54 +1071,7 @@ class BPlusTree : public BPlusTreeBase {
       }
     }
 
-    return BPlusTreeFwdIterator(current_node, element_p, element_p->second->begin());
-  }
-
-  BPlusTreeRevIterator RBegin() {
-    // Fetch Leaf Node containing the key
-    auto current_node = FindLastLeafNode();
-    if (current_node == nullptr) {
-      // Empty tree
-      return REnd();
-    }
-
-    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    return BPlusTreeRevIterator(current_node, node->RBegin(), node->Begin()->second->rbegin());
-  }
-
-  BPlusTreeRevIterator RBegin(KeyType key) {
-    // Fetch Leaf Node containing the key
-    auto current_node = FindLeafNode(key);
-    if (current_node == nullptr) {
-      // Empty tree
-      return REnd();
-    }
-
-    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    KeyValuePair *element_p = static_cast<LeafNode *>(node)->FindLocation(key, this);
-
-    if (element_p != node->Begin()) {
-      element_p--;
-    } else {
-      if (node->GetLowKeyPair().second == nullptr) {
-        current_node->ReleaseNodeSharedLatch();
-        return REnd();
-      } else {
-        auto parent = node;
-        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
-        current_node = node;
-        if (!(current_node->TrySharedLock())) {
-          // If the shared latch on the current node is node available, abort operation to prevent
-          // deadlock scenarios.
-          parent->ReleaseNodeSharedLatch();
-          return RevRetry();
-        }
-        parent->ReleaseNodeSharedLatch();
-        element_p = node->End() - 1;
-      }
-    }
-
-    return BPlusTreeRevIterator(current_node, element_p, element_p->second->rbegin());
+    return BPlusTreeIterator(current_node, element_p, element_p->second->begin());
   }
 
   /**
@@ -1608,7 +1490,7 @@ class BPlusTree : public BPlusTreeBase {
   bool ScanAscending(KeyType index_low_key, KeyType index_high_key, bool low_key_exists, uint32_t num_attrs,
                      bool high_key_exists, uint32_t limit, std::vector<TupleSlot> *value_list,
                      const IndexMetadata *metadata, std::function<bool(const ValueType)> predicate) {
-    BPlusTreeFwdIterator iterator;
+    BPlusTreeIterator iterator;
     if (low_key_exists) {
       iterator = Begin(index_low_key);
     } else {
@@ -1618,7 +1500,7 @@ class BPlusTree : public BPlusTreeBase {
     while ((limit == 0 || value_list->size() < limit) &&
            (!high_key_exists || iterator.first.PartialLessThan(index_high_key, metadata, num_attrs)) &&
            !(iterator == End())) {
-      if (iterator == FwdRetry()) {
+      if (iterator == Retry()) {
         return false;
       }
       if (!predicate(iterator.second)) {
@@ -1647,15 +1529,15 @@ class BPlusTree : public BPlusTreeBase {
    * @return true on success, false on failure
    */
   bool ScanDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list) {
-    BPlusTreeRevIterator iterator = RBegin(index_high_key);
+    BPlusTreeIterator iterator = Begin(index_high_key);
 
     while (KeyCmpGreaterEqual(iterator.first, index_low_key) && !(iterator == REnd())) {
-      if (iterator == RevRetry()) {
+      if (iterator == Retry()) {
         return false;
       }
 
       value_list->push_back(iterator.second);
-      ++iterator;
+      --iterator;
     }
 
     iterator.Done();
@@ -1678,19 +1560,19 @@ class BPlusTree : public BPlusTreeBase {
    */
   bool ScanLimitDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list,
                            uint32_t limit, std::function<bool(const ValueType)> predicate) {
-    BPlusTreeRevIterator iterator = RBegin(index_high_key);
+    BPlusTreeIterator iterator = Begin(index_high_key);
 
     while ((value_list->size() < limit) && KeyCmpGreaterEqual(iterator.first, index_low_key) && !(iterator == REnd())) {
-      if (iterator == RevRetry()) {
+      if (iterator == Retry()) {
         return false;
       }
       if (!predicate(iterator.second)) {
-        ++iterator;
+        --iterator;
         continue;
       }
       value_list->push_back(iterator.second);
       if (value_list->size() >= limit) break;
-      ++iterator;
+      --iterator;
     }
 
     iterator.Done();

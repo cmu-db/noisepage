@@ -1534,8 +1534,8 @@ TEST_F(BPlusTreeTests, IteratorTest) {
 
   // Reverse Iteration
   i = key_num - 1;
-  auto rit = tree->RBegin(key_num - 1);
-  for (; !(rit == tree->REnd()); ++rit, --i) {
+  auto rit = tree->Begin(key_num - 1);
+  for (; !(rit == tree->REnd()); --rit, --i) {
     EXPECT_EQ(rit.first, i);
     EXPECT_EQ(rit.second, i);
   }
@@ -1577,8 +1577,8 @@ TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
 
     // Reverse Iteration
     i = key_num - 1;
-    auto rit = tree->RBegin(key_num - 1);
-    for (; !(rit == tree->REnd()); ++rit, --i) {
+    auto rit = tree->Begin(key_num - 1);
+    for (; !(rit == tree->REnd()); --rit, --i) {
       EXPECT_EQ(rit.first, i);
       EXPECT_EQ(rit.second, i);
     }
