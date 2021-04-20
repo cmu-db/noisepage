@@ -132,6 +132,10 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
   auto result = PlanStatement(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>());
   const std::unique_ptr<network::Statement> &statement = result.first;
   const std::unique_ptr<planner::AbstractPlanNode> &out_plan = result.second;
+  if (statement == nullptr || out_plan == nullptr) {
+    return false;
+  }
+
   NOISEPAGE_ASSERT(!network::NetworkUtil::DMLQueryType(statement->GetQueryType()), "ExecuteDDL expects DDL statement");
 
   // Handle SET queries
