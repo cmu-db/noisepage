@@ -85,7 +85,8 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager(), DISABLED);
+          common::ManagedPointer(accessor), exec_settings, pilot->metrics_thread_->GetMetricsManager(), DISABLED,
+          DISABLED);
 
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
     }
@@ -106,7 +107,7 @@ std::unique_ptr<planner::AbstractPlanNode> PilotUtil::GenerateQueryPlan(
 
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
                                                        common::ManagedPointer(stmt_list), db_oid, stats_storage,
-                                                       std::move(cost_model), optimizer_timeout)
+                                                       std::move(cost_model), optimizer_timeout, params)
                       ->TakePlanNodeOwnership();
   return out_plan;
 }
@@ -224,7 +225,7 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
       txn = txn_manager->BeginTransaction();
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-          common::ManagedPointer(accessor), exec_settings, metrics_manager, DISABLED);
+          common::ManagedPointer(accessor), exec_settings, metrics_manager, DISABLED, DISABLED);
 
       exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);

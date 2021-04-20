@@ -44,7 +44,7 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
   auto exec_ctx =
       execution::exec::ExecutionContext(db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), nullptr,
                                         nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor),
-                                        exec_settings_, db_main->GetMetricsManager(), DISABLED);
+                                        exec_settings_, db_main->GetMetricsManager(), DISABLED, DISABLED);
 
   // create the TPCH database and compile the queries
   GenerateTables(&exec_ctx, table_root, type);
@@ -150,7 +150,7 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     auto exec_ctx = execution::exec::ExecutionContext(
         db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), printer, output_schema,
         common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_, db_main_->GetMetricsManager(),
-        DISABLED);
+        DISABLED, DISABLED);
 
     std::get<0>(query_and_plan_[index[counter]])
         ->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);

@@ -51,7 +51,8 @@ if __name__ == "__main__":
         "replication_port": 15445 + i,
         "messenger_enable": True,
         "replication_enable": True,
-        "network_identity": identity
+        "network_identity": identity,
+        "wal_file_path": "noisepage-wal-{}.log".format(15721 + i)
     }) for (i, identity) in enumerate(["primary", "replica1", "replica2"])]
 
     try:
