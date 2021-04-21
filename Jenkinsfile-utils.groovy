@@ -85,9 +85,9 @@ void stageTest(Boolean runPipelineMetrics, Map args = [:]) {
     sh 'cd build && timeout 1h ninja check-tpl'
 
     if (args.cmake.toUpperCase().contains("NOISEPAGE_USE_JUMBOTESTS=ON")) {
-        sh 'cd build && timeout 1h ninja jumbotests'
+        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja jumbotests'
     } else {
-        sh 'cd build && timeout 1h ninja unittest'
+        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja unittest'
     }
 
     if (args.cmake.toUpperCase().contains("NOISEPAGE_GENERATE_COVERAGE=ON")) {
