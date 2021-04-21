@@ -54,7 +54,7 @@ class LogSink(ImposterNode):
                     self.send_ack_msg(msg_id, self.router_socket)
 
             # Drain any additional messages
-            while self.has_pending_messages(self.router_socket, 100):
+            while self.has_pending_messages(self.router_socket, 2000):
                 log_record_msg = self.recv_log_record()
                 f.write(f"{log_record_msg}\n")
                 msg_id = self.extract_msg_id(log_record_msg)
