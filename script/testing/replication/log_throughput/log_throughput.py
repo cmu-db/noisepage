@@ -170,8 +170,9 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
     """
     servers = []
     if test_type.value == TestType.PRIMARY.value:
-        servers.append(PrimaryNode(build_type, replication_enabled, async_commit, oltp_benchmark, scale_factor,
-                                   connection_threads))
+        servers.append(
+            PrimaryNode(build_type, replication_enabled, async_replication, async_commit, oltp_benchmark, scale_factor,
+                        connection_threads))
         if replication_enabled:
             servers.append(ReplicaNode(test_type, build_type, async_commit, log_messages_file, connection_threads))
     elif test_type.value == TestType.REPLICA.value:
