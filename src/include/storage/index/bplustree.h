@@ -834,6 +834,35 @@ class BPlusTree : public BPlusTreeBase {
   }
 
   /**
+   * This function returns the last leaf node in the B+ Tree (node that contains
+   * the highest key in the tree)
+   * @return Pointer to the last leaf node
+   */
+  BaseNode *FindLastLeafNode() {
+    root_latch_.LockShared();
+
+    if (root_ == nullptr) {
+      root_latch_.UnlockShared();
+      return nullptr;
+    }
+    BaseNode *current_node = root_;
+    BaseNode *parent = nullptr;
+    // Acquire latch on the root, release root_latch
+    current_node->GetNodeSharedLatch();
+    root_latch_.UnlockShared();
+    // Traversing Down to the correct leaf node
+    while (current_node->GetType() != NodeType::LeafType) {
+      // Set parent for releasing the lock
+      parent = current_node;
+      current_node = current_node->GetHighKeyPair().second;
+      // Get shared latch on current node, and release the parent.
+      current_node->GetNodeSharedLatch();
+      parent->ReleaseNodeSharedLatch();
+    }
+    return current_node;
+  }
+
+  /**
    * This class implements a bi-directional iterator for the B+ Tree. In order to
    * fetch an element to start iteration, Begin() function can be used. Then, ++ or --
    * operators can be used to iterate till End() or REnd() is reached respectively.
@@ -1142,6 +1171,63 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     // Return new iterator
+    return BPlusTreeIterator(current_node, element_p, element_p->second->begin());
+  }
+
+  /**
+   * Returns iterator starting at the largest key in the B+ Tree
+   */
+  BPlusTreeIterator RBegin() {
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLastLeafNode();
+    if (current_node == nullptr) {
+      // Empty tree
+      return REnd();
+    }
+    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
+    return BPlusTreeIterator(current_node, node->RBegin(), node->RBegin()->second->begin());
+  }
+
+  /**
+   * Returns iterator corresponding to the key passed to the B+ Tree. Iterator to the key
+   * less than or equal to the provided key is returned.
+   * @param key Key to be looked up in the B+ Tree
+   * @return Iterator corresponding to the key
+   */
+  BPlusTreeIterator RBegin(KeyType key) {
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLeafNode(key);
+    if (current_node == nullptr) {
+      // Empty tree
+      return REnd();
+    }
+
+    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
+    KeyValuePair *element_p = static_cast<LeafNode *>(node)->FindLocation(key, this);
+
+    // Find location returns the element greater than the key being searched for. Hence,
+    // move back to get the key less than or equal to the provided key.
+    if (element_p != node->Begin()) {
+      element_p--;
+    } else {
+      if (node->GetLowKeyPair().second == nullptr) {
+        current_node->ReleaseNodeSharedLatch();
+        return REnd();
+      } else {
+        auto parent = node;
+        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
+        current_node = node;
+        if (!(current_node->TrySharedLock())) {
+          // If the shared latch on the current node is node available, abort operation to prevent
+          // deadlock scenarios.
+          parent->ReleaseNodeSharedLatch();
+          return Retry();
+        }
+        parent->ReleaseNodeSharedLatch();
+        element_p = node->End() - 1;
+      }
+    }
+
     return BPlusTreeIterator(current_node, element_p, element_p->second->begin());
   }
 
@@ -1600,7 +1686,7 @@ class BPlusTree : public BPlusTreeBase {
    * @return true on success, false on failure
    */
   bool ScanDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list) {
-    BPlusTreeIterator iterator = Begin(index_high_key);
+    BPlusTreeIterator iterator = RBegin(index_high_key);
 
     while (KeyCmpGreaterEqual(iterator.first_, index_low_key) && !(iterator == REnd())) {
       if (iterator == Retry()) {
@@ -1631,7 +1717,7 @@ class BPlusTree : public BPlusTreeBase {
    */
   bool ScanLimitDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list,
                            uint32_t limit, std::function<bool(const ValueType)> predicate) {
-    BPlusTreeIterator iterator = Begin(index_high_key);
+    BPlusTreeIterator iterator = RBegin(index_high_key);
 
     while ((value_list->size() < limit) && KeyCmpGreaterEqual(iterator.first_, index_low_key) &&
            !(iterator == REnd())) {
