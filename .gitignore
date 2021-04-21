@@ -279,7 +279,6 @@ wal.log
 
 # Log Throuput output
 **/log_throughput/results
-**/log_throughput/resources/log-messages.txt
 
 # JUnit intermediate out directory
 **/junit/out/
