@@ -41,7 +41,7 @@ class PlanMetaData {
     /**
      * @return the number of rows in the table to scan
      */
-    size_t GetFilterColumnSelectivity(catalog::col_oid_t col_oid) const {
+    double GetFilterColumnSelectivity(catalog::col_oid_t col_oid) const {
       if (filter_column_selectivities_.find(col_oid) == filter_column_selectivities_.end())
         // Does not filter on this column
         return 1;

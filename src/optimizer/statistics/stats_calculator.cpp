@@ -130,6 +130,38 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   group->SetNumRows(std::min(static_cast<size_t>(op->GetLimit()), child_group->GetNumRows()));
 }
 
+void StatsCalculator::Visit(const Insert *op) {
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 0, "Insert should not have children");
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Get the number of rows to insert from the operator
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    root_group->SetNumRows(op->GetValues().size());
+  }
+}
+
+void StatsCalculator::Visit(const Update *op) {
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Update must have one child");
+  auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Pass in num rows from the child
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    root_group->SetNumRows(child_group->GetNumRows());
+  }
+}
+
+void StatsCalculator::Visit(const Delete *op) {
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Delete must have one children");
+  auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Pass in num rows from the child
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    root_group->SetNumRows(child_group->GetNumRows());
+  }
+}
+
 size_t StatsCalculator::EstimateCardinalityForFilter(Group *group, size_t num_rows, const TableStats &predicate_stats,
                                                      const std::vector<AnnotatedExpression> &predicates) {
   double selectivity = 1.F;

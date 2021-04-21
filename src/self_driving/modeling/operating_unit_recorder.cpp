@@ -13,6 +13,7 @@
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
 #include "optimizer/index_util.h"
+#include "optimizer/group.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression_defs.h"
@@ -262,15 +263,23 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       catalog::index_oid_t index_oid;
       if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
         auto index_scan_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plan);
-        num_rows = index_scan_plan->GetIndexSize();
-        table_oid = index_scan_plan->GetTableOid();
         index_oid = index_scan_plan->GetIndexOid();
+        table_oid = index_scan_plan->GetTableOid();
+        if (table_num_rows == 0)
+          // When we didn't run Analyze
+          num_rows = index_scan_plan->GetIndexSize();
+        else
+          num_rows = table_num_rows;
       } else {
         NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
         auto index_join_plan = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan);
-        num_rows = index_join_plan->GetIndexSize();
         table_oid = index_join_plan->GetTableOid();
         index_oid = index_join_plan->GetIndexOid();
+        if (table_num_rows == 0)
+          // When we didn't run Analyze
+          num_rows = index_join_plan->GetIndexSize();
+        else
+          num_rows = table_num_rows;
 
         UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
         // extract from c_plan num_row
@@ -284,8 +293,11 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
           accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
       NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
 
+      printf("\nAdjusting cardinality: %ld\n", cardinality);
       for (auto col_id : mapped_cols) {
         cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
+        printf("%u %f %lu\n", col_id.UnderlyingValue(), plan_node_meta_data.GetFilterColumnSelectivity(col_id),
+               cardinality);
       }
 
     } break;

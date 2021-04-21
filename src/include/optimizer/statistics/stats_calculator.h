@@ -62,6 +62,25 @@ class StatsCalculator : public OperatorVisitor {
    */
   void Visit(const LogicalLimit *op) override;
 
+  /**
+  * Visit a Insert
+  * @param op Operator being visited
+  */
+  void Visit(const Insert *op) override;
+
+  /**
+   * Visit a Update
+   * @param op Operator being visited
+   */
+  void Visit(const Update *op) override;
+
+  /**
+   * Visit a Delete
+   * @param op Operator being visited
+   */
+  void Visit(const Delete *op) override;
+
+
  private:
   /**
    * Return estimated cardinality for a filter
