@@ -1,25 +1,30 @@
-from enum import Enum
 from threading import Thread
 from time import sleep
-from typing import Union
 
 import zmq
 from zmq import Socket
 
-from .constants import UTF_8
 from .node_server import ImposterNode
 from ...util.constants import LOG
 
 
-class BuiltinCallback(Enum):
-    NOOP = 0,
-    ECHO = 1,
-    ACK = 2
-
-
 class LogShipper(ImposterNode):
+    """
+    Helper class to send log record messages to replica nodes
+    """
+
     def __init__(self, log_file: str, primary_identity: str, primary_messenger_port: int, primary_replication_port: int,
                  replica_identity: str, replica_replication_port: int):
+        """
+        Initializes LogShipper
+
+        :param log_file file contain log record messages
+        :param primary_identity network identity of primary node
+        :param primary_messenger_port port that the primary messenger runs on
+        :param primary_replication_port port that the primary replication runs on
+        :param replica_identity network identity of replica node
+        :param replica_replication_port port that the replica replication runs on
+        """
         ImposterNode.__init__(self, primary_identity, primary_messenger_port, primary_replication_port)
 
         self.log_file = log_file
@@ -33,7 +38,7 @@ class LogShipper(ImposterNode):
 
         # Create thread to receive and ack messages so the replica doesn't get backed up
         self.recv_context = None
-        self.recv_thread = Thread(target=self.recv_thread_action, args=(primary_replication_port,))
+        self.recv_thread = Thread(target=self.recv_thread_action)
         self.recv_thread.start()
 
     def setup(self):
@@ -94,25 +99,13 @@ class LogShipper(ImposterNode):
         msg_id = self.extract_msg_id(log_record_message)
         self.pending_log_msgs[msg_id] = log_record_message
 
-    def send_ack_msg(self, message_id: str, socket: Socket):
-        """
-        Sends ack message
-
-        :param message_id ID of message that we are ACKing
-        :param socket Socket to send ACK over
-        """
-        self.send_msg([self.identity, "", f"{message_id}-{BuiltinCallback.NOOP.value}-{BuiltinCallback.ACK.value}-"],
-                      socket)
-
-    def recv_thread_action(self, primary_replication_port: int):
+    def recv_thread_action(self):
         """
         Set up context for receiving messages and then continuously receive messages until the log shipper is done.
         This is just so messages from the replica don't build up in the queue and the test can be more realistic
-
-        :param primary_replication_port Replication port of primary that we're imitating
         """
         self.recv_context = zmq.Context()
-        # Primary replication socket that listens for messages from the replica
+        # Create primary replication socket that listens for messages from the replica
         self._create_receiving_router_socket(self.recv_context)
         while self.running:
             if self.has_pending_messages(self.router_socket, 1):
@@ -151,15 +144,10 @@ class LogShipper(ImposterNode):
         ack_message = self.recv_msg(socket)
         return self.extract_msg_id(ack_message)
 
-    @staticmethod
-    def extract_msg_id(msg: Union[str, bytes]) -> str:
-        msg_str = msg.decode(UTF_8) if isinstance(msg, bytes) else msg
-        return msg_str.split("-")[0]
-
-    def cleanup_zmq(self):
+    def teardown(self):
         """
         Close the socket and context when the script exits
         """
         self.replica_dealer_socket.close()
-        self.teardown()
+        ImposterNode.teardown(self)
         self.recv_thread.join()

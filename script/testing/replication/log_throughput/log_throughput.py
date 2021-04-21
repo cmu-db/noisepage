@@ -1,4 +1,5 @@
 import os
+import tempfile
 import time
 from typing import List
 
@@ -6,9 +7,10 @@ import pandas as pd
 
 from .constants import *
 from .log_shipper import LogShipper
+from .log_sink import LogSink
 from .metrics_file_util import get_results_dir, delete_metrics_file, create_results_dir, \
     move_metrics_file_to_results_dir, delete_metrics_files
-from .node_server import NodeServer, PrimaryNode, ReplicaNode
+from .node_server import PrimaryNode, ReplicaNode, NodeServer
 from .test_type import TestType
 from ..utils_sql import replica_sync
 from ...util.constants import LOG
@@ -19,9 +21,9 @@ the log throughput for that server.
 """
 
 
-def log_throughput(test_type: TestType, build_type: str, replication_enabled: bool, async_commit: bool,
-                   oltp_benchmark: str, scale_factor: int, log_messages_file: str, connection_threads: int,
-                   output_file: str):
+def log_throughput(test_type: TestType, build_type: str, replication_enabled: bool, async_replication: bool,
+                   async_commit: bool, oltp_benchmark: str, scale_factor: int, log_messages_file: str,
+                   connection_threads: int, output_file: str):
     """
     Measures the log throughput of a NoisePage server. Can measure either a primary or replica node. For primary nodes
     we can test with replication on or off.
@@ -30,18 +32,20 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     applied. At the end of the test we aggregate these metrics to calculate average log throughput.
 
     For primary nodes we generate a write heavy workload using the load phase of an OLTP Benchmark.
-    For replica nodes we manually send log records to a replica node using the LogShipper. The LogScraper can help with
-    collecting log records for shipping.
-    # TODO automate the process of generating logs
+    For replica nodes we manually send log records to a replica node using the LogShipper. Log records are automatically
+    generated using the LogSink. Alternatively you can specify a file containing log record messages.
 
     :param test_type Indicates whether to measure throughput on primary or replica nodes
     :param build_type The type of build for the server
     :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
+    :param async_replication Whether or not async replication is enabled (only relevant when test_type is PRIMARY and
+           replication is enabled)
     :param async_commit Whether or not async commit is enabled
     :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
     :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
     :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type
            is REPLICA)
+    :param connection_threads How many database connection threads to use
     :param output_file Where to save the metrics to
     """
 
@@ -52,8 +56,13 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     other_metrics_files = METRICS_FILES
     other_metrics_files.remove(metrics_file)
 
-    servers = get_servers(test_type, build_type, replication_enabled, async_commit, oltp_benchmark, scale_factor,
-                          log_messages_file, connection_threads)
+    log_cleanup_required = False
+    if test_type.value == TestType.REPLICA.value and log_messages_file is None:
+        log_cleanup_required = True
+        log_messages_file = generate_log_messages(build_type, oltp_benchmark, scale_factor, connection_threads)
+
+    servers = get_servers(test_type, build_type, replication_enabled, async_replication, async_commit, oltp_benchmark,
+                          scale_factor, log_messages_file, connection_threads)
 
     try:
         for server in servers:
@@ -84,6 +93,9 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
             except Exception as e:
                 LOG.warn(f"Failed to teardown server: {e}")
 
+    if log_cleanup_required:
+        os.remove(log_messages_file)
+
     create_results_dir()
 
     delete_metrics_files(other_metrics_files)
@@ -92,9 +104,53 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     aggregate_log_throughput(output_file)
 
 
+def generate_log_messages(build_type: str, oltp_benchmark: str, scale_factor: int, connection_threads: int) -> str:
+    """
+    Generates log record messages by running the load phase of an OLTP Benchmark and capturing the messages produced by
+    the primary node
+
+    :param build_type The type of build for the server
+    :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
+    :param connection_threads How many database connection threads to use
+    """
+    LOG.info("Generating log record messages")
+
+    primary = PrimaryNode(build_type, replication_enabled=True, async_replication=True, async_commit=True,
+                          oltp_benchmark=oltp_benchmark, scale_factor=scale_factor,
+                          connection_threads=connection_threads)
+
+    log_messages_file = os.path.join(tempfile.gettempdir(), "noisepage-log-messages")
+
+    replica_identity = DEFAULT_REPLICA_SERVER_ARGS[SERVER_ARGS_KEY][NETWORK_IDENTITY_KEY]
+    replica_messenger_port = DEFAULT_REPLICA_SERVER_ARGS[SERVER_ARGS_KEY][MESSENGER_PORT_KEY]
+    replica_replication_port = DEFAULT_REPLICA_SERVER_ARGS[SERVER_ARGS_KEY][REPLICATION_PORT_KEY]
+    primary_identity = primary.oltp_server.db_instance.server_args[NETWORK_IDENTITY_KEY]
+    primary_replication_port = primary.oltp_server.db_instance.server_args[REPLICATION_PORT_KEY]
+    log_sink = LogSink(log_messages_file, replica_identity, replica_messenger_port, replica_replication_port,
+                       primary_identity, primary_replication_port)
+
+    try:
+        log_sink.setup()
+        primary.setup()
+        log_sink.run()
+        primary.run()
+    except Exception as e:
+        if log_sink.is_running():
+            log_sink.teardown()
+        if primary.is_running():
+            primary.teardown()
+        raise e
+
+    log_sink.teardown()
+    primary.teardown()
+
+    return log_messages_file
+
+
 def get_servers(test_type: TestType, build_type: str, replication_enabled: bool, async_commit: bool,
-                oltp_benchmark: str, scale_factor: int, log_messages_file: str, connection_threads: int) -> \
-        List[NodeServer]:
+                async_replication: bool, oltp_benchmark: str, scale_factor: int, log_messages_file: str,
+                connection_threads: int) -> List[NodeServer]:
     """
     Creates server instances for the log throughput test
 
@@ -102,6 +158,8 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
     :param build_type The type of build for the server
     :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
     :param async_commit Whether or not async commit is enabled
+    :param async_replication Whether or not async replication is enabled (only relevant when test_type is PRIMARY and
+           replication is enabled)
     :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
     :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
     :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type

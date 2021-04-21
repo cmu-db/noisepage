@@ -2,7 +2,7 @@ import os.path
 import re
 from abc import abstractmethod, ABC
 from enum import Enum
-from typing import List
+from typing import List, Union
 
 import zmq
 
@@ -55,13 +55,15 @@ class PrimaryNode(NodeServer):
     Primary node NoisePage server. Generates log records by running the loading phase of an OLTP benchmark
     """
 
-    def __init__(self, build_type: str, replication_enabled: bool, async_commit: bool, oltp_benchmark: str,
-                 scale_factor: int, connection_threads: int):
+    def __init__(self, build_type: str, replication_enabled: bool, async_replication: bool,
+                 async_commit: bool, oltp_benchmark: str, scale_factor: int, connection_threads: int):
         """
         Creates the NoisePage primary server and an OLTP test case
 
         :param build_type build type of NoisePage binary
         :param replication_enabled Whether or not to enable replication
+        :param async_replication Whether or not async replication is enabled (only relevant when replication is enabled)
+        :param async_commit
         :param oltp_benchmark Which OLTP benchmark to run
         :param scale_factor OLTP benchmark scale factor
         :param connection_threads How many database connection threads to use
@@ -74,6 +76,7 @@ class PrimaryNode(NodeServer):
         if replication_enabled:
             primary_server_args[SERVER_ARGS_KEY][MESSENGER_ENABLED_KEY] = True
             primary_server_args[SERVER_ARGS_KEY][REPLICATION_ENABLED_KEY] = True
+            primary_server_args[SERVER_ARGS_KEY][ASYNC_REPLICATION_KEY] = async_replication
         self.oltp_server = TestOLTPBench(primary_server_args)
 
         # Create OLTP test case
@@ -187,8 +190,6 @@ class ReplicaNode(NodeServer):
         """
         Shut down the log shipper if needed and stop the replica node and delete it's WAL
         """
-        if self.ship_logs:
-            self.log_shipper.cleanup_zmq()
         self.replica.stop_db()
         self.running = False
         self.replica.delete_wal()
@@ -203,6 +204,13 @@ class ImposterNode(NodeServer):
     """
 
     def __init__(self, identity: str, messenger_port: int, replication_port: int):
+        """
+        Initializes ImposterNode
+
+        :param identity network identity of node
+        :param messenger_port port that messenger is running on
+        :param replication_port port that replication is running on
+        """
         self.running = True
         self.identity = identity
         self.replication_port = replication_port
@@ -269,6 +277,16 @@ class ImposterNode(NodeServer):
         """
         socket.send_multipart([message.encode(UTF_8) for message in message_parts])
 
+    def send_ack_msg(self, message_id: str, socket: zmq.Socket):
+        """
+        Sends ack message
+
+        :param message_id ID of message that we are ACKing
+        :param socket Socket to send ACK over
+        """
+        self.send_msg([self.identity, "", f"{message_id}-{BuiltinCallback.NOOP.value}-{BuiltinCallback.ACK.value}-"],
+                      socket)
+
     @staticmethod
     def recv_msg(socket: zmq.Socket) -> str:
         """
@@ -276,7 +294,7 @@ class ImposterNode(NodeServer):
 
         :param socket Socket to receive message from
         """
-        return socket.recv()
+        return socket.recv().decode(UTF_8)
 
     @staticmethod
     def has_pending_messages(socket: zmq.Socket, timeout: int) -> bool:
@@ -290,6 +308,11 @@ class ImposterNode(NodeServer):
         """
         return socket.poll(timeout) == zmq.POLLIN
 
+    @staticmethod
+    def extract_msg_id(msg: Union[str, bytes]) -> str:
+        msg_str = msg.decode(UTF_8) if isinstance(msg, bytes) else msg
+        return msg_str.split("-")[0]
+
     def teardown_router_socket(self):
         """
         Closes router socket. Must be called from the same thread that created it
@@ -297,6 +320,9 @@ class ImposterNode(NodeServer):
         self.router_socket.close()
 
     def teardown(self):
+        """
+        Destroy default ZMQ context and close messenger ZMQ socket
+        """
         self.running = False
         self.default_socket.close()
         self.context.destroy()
