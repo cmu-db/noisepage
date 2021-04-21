@@ -5,7 +5,6 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/context.h"
-#include "execution/ast/type.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
@@ -13,6 +12,7 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
+#include "optimizer/index_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression_defs.h"
@@ -210,8 +210,9 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
 
-  size_t current_plan_cardinality = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId()).GetCardinality();
-  size_t table_num_rows = 0;
+  auto &plan_node_meta_data = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId());
+  size_t current_plan_cardinality = plan_node_meta_data.GetCardinality();
+  size_t table_num_rows = plan_node_meta_data.GetTableNumRows();
 
   switch (type) {
     case ExecutionOperatingUnitType::OUTPUT: {
@@ -255,23 +256,46 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       // For IDX_SCAN, the feature is as follows:
       // - num_rows is the size of the index
       // - cardinality is the scan size
-      cardinality = current_plan_cardinality;  // extract from plan num_rows (this is the scan size)
+      cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
 
+      catalog::table_oid_t table_oid;
+      catalog::index_oid_t index_oid;
       if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
-        num_rows = reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetIndexSize();
+        auto index_scan_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plan);
+        num_rows = index_scan_plan->GetIndexSize();
+        table_oid = index_scan_plan->GetTableOid();
+        index_oid = index_scan_plan->GetIndexOid();
       } else {
         NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
-        num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
+        auto index_join_plan = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan);
+        num_rows = index_join_plan->GetIndexSize();
+        table_oid = index_join_plan->GetTableOid();
+        index_oid = index_join_plan->GetIndexOid();
 
         UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
         // extract from c_plan num_row
         num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
       }
 
+      std::vector<catalog::col_oid_t> mapped_cols;
+      std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> lookup;
+
+      UNUSED_ATTRIBUTE bool status = optimizer::IndexUtil::ConvertIndexKeyOidToColOid(
+          accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
+      NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
+
+      for (auto col_id : mapped_cols) {
+        cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
+      }
+
+    } break;
+    case ExecutionOperatingUnitType::SEQ_SCAN: {
+      num_rows = table_num_rows;
+      cardinality = table_num_rows;
     } break;
     case ExecutionOperatingUnitType::CREATE_INDEX: {
-      num_rows = current_plan_cardinality;
-      cardinality = current_plan_cardinality;
+      num_rows = table_num_rows;
+      cardinality = table_num_rows;
       // We extract the num_rows and cardinality from the table name if possible
       // This is a special case for mini-runners
       std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();

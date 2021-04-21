@@ -129,7 +129,7 @@ class Group {
    * Gets the estimated cardinality in # rows
    * @returns # rows estimated
    */
-  size_t GetNumRows() { return num_rows_; }
+  size_t GetNumRows() const { return num_rows_; }
 
   /**
    * Set the number of rows in the base table to scan
@@ -141,7 +141,7 @@ class Group {
    * Gets the number of rows in the base table to scan
    * @returns number of rows in table
    */
-  size_t GetTableNumRows() { return table_num_rows_; }
+  size_t GetTableNumRows() const { return table_num_rows_; }
 
   /**
    * Add the selectivity of a filter column (multiply selectivities for the same column, assuming conjunction AND)
@@ -156,10 +156,12 @@ class Group {
   }
 
   /**
-   * Get the selectivity for a filter column  (selectivities multiplied for the same column, assuming conjunction AND)
-   * @returns estimated selectivity
+   * Get the selectivities for filter columns  (selectivities multiplied for the same column, assuming conjunction AND)
+   * @returns estimated selectivities
    */
-  double GetFilterColumnSelectivity(catalog::col_oid_t column_id) { return filter_column_selectivities_[column_id]; }
+  const std::unordered_map<catalog::col_oid_t, double> &GetFilterColumnSelectivities() const {
+    return filter_column_selectivities_;
+  }
 
   /**
    * Checks if num rows is initialized
@@ -232,8 +234,8 @@ class Group {
   size_t num_rows_ = UNINITIALIZED_NUM_ROWS;
 
   /**
-    * Number of rows in the base table (for LogicalGet)
-    */
+   * Number of rows in the base table (for LogicalGet)
+   */
   size_t table_num_rows_ = UNINITIALIZED_NUM_ROWS;
 
   /**
