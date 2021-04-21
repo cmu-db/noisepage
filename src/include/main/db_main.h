@@ -550,12 +550,17 @@ class DBMain {
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
       }
 
+      NOISEPAGE_ASSERT(!(async_replication_enable_ && !use_replication_),
+                       "async_replication_enable only controls whether replication is sync or async, you also need "
+                       "use_replication.");
+
       // If replication is enabled, configure the replication policy for all transactions.
       if (use_replication_) {
         if (replication_manager->IsPrimary()) {
-          // On the primary, perform synchronous replication by default.
-          txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
-              transaction::ReplicationPolicy::SYNC);
+          // On the primary, replicate buffers synchronously by default, but can be made async via command line.
+          transaction::ReplicationPolicy policy =
+              async_replication_enable_ ? transaction::ReplicationPolicy::ASYNC : transaction::ReplicationPolicy::SYNC;
+          txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(policy);
         } else {
           // On a replica, do not replicate any buffers by default.
           txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
@@ -987,6 +992,7 @@ class DBMain {
     bool use_network_ = false;
     bool use_messenger_ = false;
     bool use_replication_ = false;
+    bool async_replication_enable_ = false;
     bool use_model_server_ = false;
     bool model_server_enable_python_coverage_ = false;
     bool use_pilot_thread_ = false;
@@ -1066,6 +1072,7 @@ class DBMain {
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
       messenger_port_ = settings_manager->GetInt(settings::Param::messenger_port);
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
+      async_replication_enable_ = settings_manager->GetBool(settings::Param::async_replication_enable);
       replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
       use_model_server_ = settings_manager->GetBool(settings::Param::model_server_enable);

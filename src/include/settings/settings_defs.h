@@ -124,6 +124,15 @@ SETTING_bool(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Asynchronous replication instead of synchronous replication, if replication is enabled.
+SETTING_bool(
+    async_replication_enable,
+    "Asynchronous replication instead of synchronous replication, if replication is enabled. (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     wal_num_buffers,
