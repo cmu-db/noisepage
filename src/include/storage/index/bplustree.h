@@ -1213,19 +1213,19 @@ class BPlusTree : public BPlusTreeBase {
       if (node->GetLowKeyPair().second == nullptr) {
         current_node->ReleaseNodeSharedLatch();
         return REnd();
-      } else {
-        auto parent = node;
-        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
-        current_node = node;
-        if (!(current_node->TrySharedLock())) {
-          // If the shared latch on the current node is node available, abort operation to prevent
-          // deadlock scenarios.
-          parent->ReleaseNodeSharedLatch();
-          return Retry();
-        }
-        parent->ReleaseNodeSharedLatch();
-        element_p = node->End() - 1;
       }
+
+      auto parent = node;
+      node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
+      current_node = node;
+      if (!(current_node->TrySharedLock())) {
+        // If the shared latch on the current node is node available, abort operation to prevent
+        // deadlock scenarios.
+        parent->ReleaseNodeSharedLatch();
+        return Retry();
+      }
+      parent->ReleaseNodeSharedLatch();
+      element_p = node->End() - 1;
     }
 
     return BPlusTreeIterator(current_node, element_p, element_p->second->begin());
