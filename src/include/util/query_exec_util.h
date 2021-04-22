@@ -202,6 +202,12 @@ class QueryExecUtil {
   /** Erases all cached plans */
   void ClearPlans();
 
+  /**
+   * Returns the most recent error message.
+   * Should only be invoked if PlanStatement or Execute has failed.
+   */
+  std::string GetError() { return error_msg_; }
+
  private:
   void SetDatabase(catalog::db_oid_t db_oid);
 
@@ -222,6 +228,11 @@ class QueryExecUtil {
    */
   std::unordered_map<std::string, std::unique_ptr<planner::OutputSchema>> schemas_;
   std::unordered_map<std::string, std::unique_ptr<execution::compiler::ExecutableQuery>> exec_queries_;
+
+  /**
+   * Stores the most recently encountered error.
+   */
+  std::string error_msg_;
 };
 
 }  // namespace noisepage::util

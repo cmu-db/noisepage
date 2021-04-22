@@ -150,7 +150,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
 
   bool result = true;
   {
-    common::Future<bool> sync;
+    common::Future<task::DummyResult> sync;
 
     // Metadata query
     auto to_row_fn = [&metadata, types_conv](const std::vector<execution::sql::Val *> &values) {
@@ -179,11 +179,11 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_texts",
         std::make_unique<optimizer::TrivialCostModel>(), false, to_row_fn, common::ManagedPointer(&sync)));
 
-    result &= sync.Wait().first;
+    result &= sync.Wait().second;
   }
 
   {
-    common::Future<bool> sync;
+    common::Future<task::DummyResult> sync;
     auto to_row_fn = [&metadata, cves_conv](const std::vector<execution::sql::Val *> &values) {
       auto qid = execution::query_id_t(static_cast<execution::sql::Integer *>(values[1])->val_);
       auto *param_val = static_cast<execution::sql::StringVal *>(values[2]);
@@ -201,7 +201,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
                                                            std::make_unique<optimizer::TrivialCostModel>(), false,
                                                            to_row_fn, common::ManagedPointer(&sync)));
 
-    result &= sync.Wait().first;
+    result &= sync.Wait().second;
   }
 
   return std::make_pair(std::move(metadata), result);
@@ -235,12 +235,12 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(st
   auto query = fmt::format("SELECT * FROM noisepage_forecast_frequencies WHERE ts >= {} AND ts <= {} ORDER BY ts",
                            bounds.first, bounds.second);
 
-  common::Future<bool> sync;
+  common::Future<task::DummyResult> sync;
   task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                          to_row_fn, common::ManagedPointer(&sync)));
 
-  *success = sync.Wait().first;
+  *success = sync.Wait().second;
 
   NOISEPAGE_ASSERT(segment_number <= (((bounds.second - bounds.first) / interval) + 1),
                    "Incorrect data retrieved from internal tables");

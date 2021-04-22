@@ -163,7 +163,7 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     pipeline_qids->push_back(qid);
 
     // Forcefully reoptimize all the queries and set the query identifier to use
-    common::Future<bool> sync;
+    common::Future<task::DummyResult> sync;
     pilot->task_manager_->AddTask(
         std::make_unique<task::TaskDML>(db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
                                         std::move(params), std::move(param_types), nullptr, metrics_manager, true, true,

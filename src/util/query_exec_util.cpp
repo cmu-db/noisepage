@@ -1,4 +1,5 @@
-#include "util/query_exec_util.h"
+#include <sstream>
+
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
@@ -21,6 +22,7 @@
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "util/query_exec_util.h"
 
 namespace noisepage::util {
 
@@ -99,8 +101,13 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     auto parse_tree = parser::PostgresParser::BuildParseTree(query_tmp);
     statement = std::make_unique<network::Statement>(std::move(query_tmp), std::move(parse_tree));
   } catch (std::exception &e) {
+    std::ostringstream ss;
+    ss << "QueryExecUtil::PlanStatement caught error ";
+    ss << e.what() << " when parsing " << query << "\n";
+    error_msg_ = ss.str();
+
     // Catched a parsing error
-    COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when parsing {}", e.what(), query);
+    COMMON_LOG_ERROR(error_msg_);
     return {nullptr, nullptr};
   }
 
@@ -114,8 +121,13 @@ std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::Abstract
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
     binder.BindNameToNode(statement->ParseResult(), params, param_types);
   } catch (std::exception &e) {
+    std::ostringstream ss;
+    ss << "QueryExecUtil::PlanStatement caught error ";
+    ss << e.what() << " when binding " << query << "\n";
+    error_msg_ = ss.str();
+
     // Caught a binding exception
-    COMMON_LOG_ERROR("QueryExecUtil::PlanStatement caught error {} when binding {}", e.what(), query);
+    COMMON_LOG_ERROR(error_msg_);
     return {nullptr, nullptr};
   }
 
@@ -181,6 +193,11 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
         NOISEPAGE_ASSERT(false, "Unsupported QueryExecUtil::ExecuteStatement");
         break;
     }
+  }
+
+  if (!status) {
+    // Construct an error message indicating the query has failed.
+    error_msg_ = query + " failed to execute.";
   }
 
   return status;
@@ -253,7 +270,14 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
 
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
 
+  NOISEPAGE_ASSERT(!txn->MustAbort(), "Transaction should not be in must-abort state prior to executing");
   exec_queries_[statement]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  if (txn->MustAbort()) {
+    // Return false to indicate that the query encountered a runtime error.
+    error_msg_ = statement + " encountered runtime exception.";
+    return false;
+  }
+
   return true;
 }
 

@@ -35,7 +35,7 @@ class TaskManagerTests : public TerrierTest {
                    .Build();
 
     task_manager_ = db_main_->GetTaskManager();
-    task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE TABLE t (a INT)"));
+    task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE TABLE t (a INT)", nullptr));
     task_manager_->WaitForFlush();
   }
 
@@ -54,7 +54,7 @@ class TaskManagerTests : public TerrierTest {
   }
 
   void CheckTable() {
-    common::Future<bool> sync;
+    common::Future<task::DummyResult> sync;
     std::unordered_set<int64_t> results;
     auto to_row_fn = [&results](const std::vector<execution::sql::Val *> &values) {
       results.insert(static_cast<execution::sql::Integer *>(values[0])->val_);
@@ -64,7 +64,7 @@ class TaskManagerTests : public TerrierTest {
                                                            std::make_unique<optimizer::TrivialCostModel>(), false,
                                                            to_row_fn, common::ManagedPointer(&sync)));
 
-    EXPECT_TRUE(sync.Wait().first);
+    EXPECT_TRUE(sync.Wait().second);
     EXPECT_EQ(results.size(), NUM_VALUE);
     for (size_t i = 0; i < NUM_VALUE; i++) {
       EXPECT_TRUE(results.find(i) != results.end());
@@ -127,7 +127,7 @@ TEST_F(TaskManagerTests, BulkInsert) {
 
 // NOLINTNEXTLINE
 TEST_F(TaskManagerTests, Index) {
-  task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE INDEX idx ON t (a)"));
+  task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE INDEX idx ON t (a)", nullptr));
   task_manager_->WaitForFlush();
 
   auto query_exec_util = db_main_->GetQueryExecUtil();
@@ -144,17 +144,51 @@ TEST_F(TaskManagerTests, Index) {
 // NOLINTNEXTLINE
 TEST_F(TaskManagerTests, InvalidStatements) {
   // Parse error
-  task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE INDEX"));
+  common::Future<task::DummyResult> sync;
+  task_manager_->AddTask(
+      std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE INDEX", common::ManagedPointer(&sync)));
   task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::db_oid_t(0), "INSERT INTO t VALUES (#1)",
                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                          nullptr, nullptr));
 
   // Binding error
-  task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE INDEX idxx on tt (a)"));
+  task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE INDEX idxx on tt (a)", nullptr));
   task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::db_oid_t(0), "INSERT INTO tt VALUES (1)",
                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                          nullptr, nullptr));
   task_manager_->WaitForFlush();
+
+  auto result = sync.Wait();
+  EXPECT_TRUE(!result.second);
+  EXPECT_TRUE(!sync.FailMessage().empty());
+}
+
+// NOLINTNEXTLINE
+TEST_F(TaskManagerTests, AbortingTest) {
+  task_manager_->AddTask(
+      std::make_unique<task::TaskDDL>(catalog::db_oid_t(0), "CREATE TABLE ttt (a INT, PRIMARY KEY (a))", nullptr));
+  task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::db_oid_t(0), "INSERT INTO ttt VALUES (1)",
+                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                         nullptr, nullptr));
+  task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::db_oid_t(0), "INSERT INTO ttt VALUES (1)",
+                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                         nullptr, nullptr));
+  task_manager_->WaitForFlush();
+
+  common::Future<task::DummyResult> sync;
+  std::vector<int64_t> results;
+  auto to_row_fn = [&results](const std::vector<execution::sql::Val *> &values) {
+    results.push_back(static_cast<execution::sql::Integer *>(values[0])->val_);
+  };
+
+  task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, "SELECT * FROM ttt",
+                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                         to_row_fn, common::ManagedPointer(&sync)));
+
+  auto result = sync.Wait();
+  EXPECT_TRUE(result.second);
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(results[0], 1);
 }
 
 }  // namespace noisepage::task::test
