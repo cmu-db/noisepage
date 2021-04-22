@@ -99,6 +99,11 @@ class Module {
    */
   const BytecodeModule *GetBytecodeModule() const { return bytecode_module_.get(); }
 
+  /**
+   * @return The TPL compiled module.
+   */
+  const LLVMEngine::CompiledModule *GetCompiledModule() const { return jit_module_.get(); }
+
  private:
   friend class VM;                            // For the VM to access raw bytecode.
   friend class test::BytecodeTrampolineTest;  // For the tests to check private methods.

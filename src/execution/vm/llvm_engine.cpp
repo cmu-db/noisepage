@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/scoped_timer.h"
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecode_traits.h"
@@ -395,6 +396,16 @@ class LLVMEngine::CompiledModuleBuilder {
   // Print the contents of the module's assembly to a string and return it
   std::string DumpModuleAsm();
 
+  /** Collect the ASM representation of the module being built into the metadata object. */
+  void CollectMetadataASM();
+  /** Collect LLVM-related metadata of the module being built into the metadata object. */
+  void CollectMetadataLLVM();
+  /** Collect metadata about what functions were explicitly declared in TPL. */
+  void CollectMetadataFunctionInfo();
+
+  /** @return The metadata collected for the module being built. */
+  CompiledModuleMetadata &&TakeCollectedMetadata() { return std::move(metadata_); }
+
  private:
   // Given a TPL function, build a simple CFG using 'blocks' as an output param
   void BuildSimpleCFG(const FunctionInfo &func_info, std::map<std::size_t, llvm::BasicBlock *> *blocks);
@@ -420,6 +431,7 @@ class LLVMEngine::CompiledModuleBuilder {
   std::unique_ptr<llvm::Module> llvm_module_;
   std::unique_ptr<TypeMap> type_map_;
   llvm::DenseMap<std::size_t, llvm::Constant *> static_locals_;
+  CompiledModuleMetadata metadata_;  ///< Metadata for the module being built.
 };
 
 // ---------------------------------------------------------
@@ -973,12 +985,26 @@ void LLVMEngine::CompiledModuleBuilder::Optimize() {
   function_passes.add(llvm::createAggressiveDCEPass());
   function_passes.add(llvm::createCFGSimplificationPass());
 
-  // Run optimization passes on all functions.
-  function_passes.doInitialization();
-  for (llvm::Function &func : *llvm_module_) {
-    function_passes.run(func);
+  if (engine_settings->ShouldCompiledQueriesStoreLLVM()) {  // Run with timing information.
+    // Run optimization passes on all functions.
+    function_passes.doInitialization();
+    uint64_t elapsed_ns;
+    for (llvm::Function &func : *llvm_module_) {
+      {
+        common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_ns);
+        function_passes.run(func);
+      }
+      metadata_.repr_llvm_[std::string(func.getName())].optimize_ns_ = elapsed_ns;
+    }
+    function_passes.doFinalization();
+  } else {  // Run without timing.
+    // Run optimization passes on all functions.
+    function_passes.doInitialization();
+    for (llvm::Function &func : *llvm_module_) {
+      function_passes.run(func);
+    }
+    function_passes.doFinalization();
   }
-  function_passes.doFinalization();
 }
 
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::CompiledModuleBuilder::Finalize() {
@@ -1049,6 +1075,22 @@ std::string LLVMEngine::CompiledModuleBuilder::DumpModuleAsm() {
   target_machine_->Options.MCOptions.AsmVerbose = false;
 
   return asm_str.str().str();
+}
+
+void LLVMEngine::CompiledModuleBuilder::CollectMetadataASM() { metadata_.repr_asm_ = DumpModuleAsm(); }
+
+void LLVMEngine::CompiledModuleBuilder::CollectMetadataLLVM() {
+  for (auto &func_info : tpl_module_.GetFunctionsInfo()) {
+    const std::string &func_name = func_info.GetName();
+    llvm::Function *llvm_func = llvm_module_->getFunction(func_name);
+    llvm::raw_string_ostream ostream(metadata_.repr_llvm_[func_name].ir_);           // Collect IR setup.
+    llvm_func->print(ostream, nullptr);                                              // Collect IR.
+    metadata_.repr_llvm_[func_name].inst_count_ = llvm_func->getInstructionCount();  // Collect instruction count.
+  }
+}
+
+void LLVMEngine::CompiledModuleBuilder::CollectMetadataFunctionInfo() {
+  metadata_.function_info_ = tpl_module_.GetFunctionsInfo();
 }
 
 // ---------------------------------------------------------
@@ -1143,6 +1185,8 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   loaded_ = true;
 }
 
+void LLVMEngine::CompiledModule::SetMetadata(CompiledModuleMetadata &&metadata) { metadata_ = std::move(metadata); }
+
 // ---------------------------------------------------------
 // LLVM Engine
 // ---------------------------------------------------------
@@ -1182,6 +1226,17 @@ std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeMo
 
   auto compiled_module = builder.Finalize();
 
+  if (engine_settings->ShouldCompiledQueriesStoreASM()) {
+    builder.CollectMetadataASM();
+  }
+  if (engine_settings->ShouldCompiledQueriesStoreLLVM()) {
+    builder.CollectMetadataLLVM();
+  }
+  if (engine_settings->ShouldCompiledQueriesStoreFunctionInfo()) {
+    builder.CollectMetadataFunctionInfo();
+  }
+
+  compiled_module->SetMetadata(builder.TakeCollectedMetadata());
   compiled_module->Load(module);
 
   return compiled_module;

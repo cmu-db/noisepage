@@ -132,6 +132,36 @@ class LLVMEngine {
   };
 
   // -------------------------------------------------------
+  // Compiled Module Metadata
+  // -------------------------------------------------------
+
+  /** Metadata for a compiled module that is gathered at compile time. */
+  class CompiledModuleMetadata {
+   public:
+    /** Metadata for each function. */
+    struct FunctionMetadata {
+      std::string ir_;        ///< The IR of the function.
+      uint64_t inst_count_;   ///< The instruction count of the function.
+      uint64_t optimize_ns_;  ///< Time taken to optimize the function.
+    };
+    /** Constructor. */
+    explicit CompiledModuleMetadata() = default;
+    /** @return The ASM representation for this compiled module. */
+    const std::string &GetReprASM() const { return repr_asm_; }
+    /** @return LLVM-related metadata for ALL functions. This includes functions not explicitly declared in TPL. */
+    const std::unordered_map<std::string, FunctionMetadata> &GetReprLLVM() const { return repr_llvm_; }
+    /** @return All the functions that were explicitly declared in TPL. */
+    const std::vector<FunctionInfo> &GetFunctionInfo() const { return function_info_; }
+
+   private:
+    friend CompiledModuleBuilder;
+
+    std::vector<FunctionInfo> function_info_;
+    std::unordered_map<std::string, FunctionMetadata> repr_llvm_;
+    std::string repr_asm_;
+  };
+
+  // -------------------------------------------------------
   // Compiled Module
   // -------------------------------------------------------
 
@@ -187,11 +217,17 @@ class LLVMEngine {
      */
     bool IsLoaded() const { return loaded_; }
 
+    /** Set the metadata for this compiled module. */
+    void SetMetadata(CompiledModuleMetadata &&metadata);
+    /** @return The metadata for this compiled module. */
+    const CompiledModuleMetadata &GetMetadata() const { return metadata_; }
+
    private:
     bool loaded_;
     std::unique_ptr<llvm::MemoryBuffer> object_code_;
     std::unique_ptr<TPLMemoryManager> memory_manager_;
     std::unordered_map<std::string, void *> functions_;
+    CompiledModuleMetadata metadata_;
   };
 
   // -------------------------------------------------------
@@ -213,6 +249,15 @@ class LLVMEngine {
      * @return The path to the bytecode handlers bitcode file.
      */
     const std::string &GetBytecodeHandlersBcPath() const noexcept { return bytecode_handlers_path_; }
+
+    /** @return True if compiled queries should cache their ASM representation. */
+    bool ShouldCompiledQueriesStoreASM() const noexcept { return false; }
+
+    /** @return True if compiled queries should cache their LLVM metadata. */
+    bool ShouldCompiledQueriesStoreLLVM() const noexcept { return false; }
+
+    /** @return True if compiled queries should cache their function information. */
+    bool ShouldCompiledQueriesStoreFunctionInfo() const noexcept { return false; }
 
    private:
     const std::string bytecode_handlers_path_;

@@ -48,7 +48,9 @@
 
 // clang-format off
 llvm::cl::OptionCategory TPL_OPTIONS_CATEGORY("TPL Compiler Options", "Options for controlling the TPL compilation process.");  // NOLINT
+llvm::cl::opt<bool> PRINT_ASM("print-asm", llvm::cl::desc("Print the compiled ASM"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<bool> PRINT_AST("print-ast", llvm::cl::desc("Print the programs AST"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
+llvm::cl::opt<bool> PRINT_LLVM("print-llvm", llvm::cl::desc("Print the compiled LLVM IR"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<bool> PRINT_TBC("print-tbc", llvm::cl::desc("Print the generated TPL Bytecode"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<bool> PRETTY_PRINT("pretty-print", llvm::cl::desc("Pretty-print the source from the parsed AST"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<bool> IS_SQL("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
@@ -259,6 +261,29 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("JIT main() returned: {}", main());
     }
+  }
+
+  if (PRINT_LLVM) {
+    // By default, only print information about functions that were explicitly created in TPL.
+    // TODO(WAN): This is inaccurate because other bytecode handler functions are quite expensive to optimize as well.
+    const auto &functions_info = module->GetCompiledModule()->GetMetadata().GetFunctionInfo();
+    const auto &functions_map = module->GetCompiledModule()->GetMetadata().GetReprLLVM();
+    for (const auto &func : functions_map) {
+      const auto &metadata = func.second;
+      // TODO(WAN): n^2 lookup sucks, consider a set?
+      const auto it =
+          std::find_if(functions_info.cbegin(), functions_info.cend(),
+                       [&](const vm::FunctionInfo &func_info) -> bool { return func_info.GetName() == func.first; });
+      if (it != functions_info.cend()) {
+        EXECUTION_LOG_INFO("LLVM dump for {} ({} instructions, {} ns optimize):\n{}\n", func.first,
+                           metadata.inst_count_, metadata.optimize_ns_, metadata.ir_);
+      }
+    }
+  }
+
+  if (PRINT_ASM) {
+    const auto &repr_asm = module->GetCompiledModule()->GetMetadata().GetReprASM();
+    EXECUTION_LOG_INFO("Assembly dump:\n{}\n", repr_asm);
   }
 
   // Dump stats
