@@ -1,4 +1,5 @@
-#include "util/query_exec_util.h"
+#include <mutex>  // NOLINT
+
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
@@ -21,6 +22,7 @@
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "util/query_exec_util.h"
 
 namespace noisepage::util {
 
@@ -224,8 +226,11 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   planner::OutputSchema *schema = schemas_[statement].get();
-  auto consumer = [&tuple_fn, schema](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+
+  std::mutex sync_mutex;
+  auto consumer = [&tuple_fn, &sync_mutex, schema](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
     if (tuple_fn != nullptr) {
+      std::unique_lock<std::mutex> unique_lock(sync_mutex);
       for (uint32_t row = 0; row < num_tuples; row++) {
         uint32_t curr_offset = 0;
         std::vector<execution::sql::Val *> vals;
