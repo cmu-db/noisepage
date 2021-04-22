@@ -257,8 +257,6 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       // For IDX_SCAN, the feature is as follows:
       // - num_rows is the size of the index
       // - cardinality is the scan size
-      cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
-
       catalog::table_oid_t table_oid;
       catalog::index_oid_t index_oid;
       if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
@@ -293,6 +291,7 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
           accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
       NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
 
+      cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
       printf("\nAdjusting cardinality: %ld\n", cardinality);
       for (auto col_id : mapped_cols) {
         cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);

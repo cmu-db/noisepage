@@ -130,17 +130,17 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   group->SetNumRows(std::min(static_cast<size_t>(op->GetLimit()), child_group->GetNumRows()));
 }
 
-void StatsCalculator::Visit(const Insert *op) {
+void StatsCalculator::Visit(const LogicalInsert *op) {
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 0, "Insert should not have children");
   auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
 
   // Get the number of rows to insert from the operator
   if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
-    root_group->SetNumRows(op->GetValues().size());
+    root_group->SetNumRows(op->GetValues()->size());
   }
 }
 
-void StatsCalculator::Visit(const Update *op) {
+void StatsCalculator::Visit(const LogicalUpdate *op) {
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Update must have one child");
   auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
@@ -151,7 +151,7 @@ void StatsCalculator::Visit(const Update *op) {
   }
 }
 
-void StatsCalculator::Visit(const Delete *op) {
+void StatsCalculator::Visit(const LogicalDelete *op) {
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Delete must have one children");
   auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());

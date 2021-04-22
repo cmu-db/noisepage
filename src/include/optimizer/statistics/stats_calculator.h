@@ -63,22 +63,22 @@ class StatsCalculator : public OperatorVisitor {
   void Visit(const LogicalLimit *op) override;
 
   /**
-   * Visit a Insert
+   * Visit a LogicalInsert
    * @param op Operator being visited
    */
-  void Visit(const Insert *op) override;
+  void Visit(const LogicalInsert *op) override;
 
   /**
-   * Visit a Update
+   * Visit a LogicalUpdate
    * @param op Operator being visited
    */
-  void Visit(const Update *op) override;
+  void Visit(const LogicalUpdate *op) override;
 
   /**
-   * Visit a Delete
+   * Visit a LogicalDelete
    * @param op Operator being visited
    */
-  void Visit(const Delete *op) override;
+  void Visit(const LogicalDelete *op) override;
 
  private:
   /**
