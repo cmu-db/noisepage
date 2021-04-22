@@ -51,11 +51,13 @@ class PilotUtil {
    * @param end_segment_index end index of segments of interest (inclusive)
    * @param pipeline_qids vector of real pipeline qids to be populated (necessary to restore the qids to the original
    * forecasted qids due to the auto-incremental nature of the qids in pipeline metrics)
-   * @returns const pointer to the collected pipeline data
+   * @param execute_query whether to execute the queries to get the correct features
+   * @returns unique pointer to the collected pipeline data
    */
-  static const std::list<metrics::PipelineMetricRawData::PipelineData> &CollectPipelineFeatures(
+  static std::unique_ptr<metrics::PipelineMetricRawData> CollectPipelineFeatures(
       common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-      uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids);
+      uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids,
+      bool execute_query);
 
   /**
    * Perform inference through model server manager with collected pipeline metrics

@@ -292,11 +292,8 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
 
       cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
-      printf("\nAdjusting cardinality: %ld\n", cardinality);
       for (auto col_id : mapped_cols) {
         cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
-        printf("%u %f %lu\n", col_id.UnderlyingValue(), plan_node_meta_data.GetFilterColumnSelectivity(col_id),
-               cardinality);
       }
 
     } break;

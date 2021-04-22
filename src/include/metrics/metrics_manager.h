@@ -51,7 +51,7 @@ class MetricsManager {
   /**
    * @return the MetricsManager's aggregated metrics. Currently used in tests
    */
-  const std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> &AggregatedMetrics() const {
+  std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> &AggregatedMetrics() {
     return aggregated_metrics_;
   }
 

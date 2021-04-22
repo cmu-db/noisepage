@@ -143,9 +143,10 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
   return total_cost;
 }
 
-const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
+std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatures(
     common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-    uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids) {
+    uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids, bool
+    execute_query) {
   std::unordered_set<execution::query_id_t> qids;
   for (auto i = start_segment_index; i <= end_segment_index; i++) {
     for (auto &it : forecast->GetSegmentByIndex(i).GetIdToNumexec()) {
@@ -153,10 +154,13 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     }
   }
 
+  std::unique_ptr<metrics::PipelineMetricRawData> aggregated_data = nullptr;
+  if (!execute_query) {
+    aggregated_data = std::make_unique<metrics::PipelineMetricRawData>();
+  }
+
   auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   for (const auto &qid : qids) {
-    pipeline_qids->push_back(qid);
-
     catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
     auto query_text = forecast->GetQuerytextByQid(qid);
 
@@ -175,14 +179,17 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     sync.Wait();
   }
 
-  // retrieve the features
-  metrics_manager->Aggregate();
+  if (execute_query) {
+    // retrieve the features
+    metrics_manager->Aggregate();
 
-  auto aggregated_data = reinterpret_cast<metrics::PipelineMetricRawData *>(
-      metrics_manager->AggregatedMetrics()
-          .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
-          .get());
+    aggregated_data.reset(
+        reinterpret_cast<metrics::PipelineMetricRawData*>(
+            metrics_manager->AggregatedMetrics()
+            .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE)).release()));
+  }
   SELFDRIVING_LOG_DEBUG("Printing qid and pipeline id to sanity check pipeline metrics recorded");
+  printf("%lu\n", aggregated_data->pipeline_data_.size());
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
     SELFDRIVING_LOG_DEBUG(fmt::format("qid: {}; pipeline_id: {}", static_cast<uint>(it->query_id_),
                                       static_cast<uint32_t>(it->pipeline_id_)));
@@ -190,7 +197,7 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
     // printf("Cardinality Features: %s\n", it->GetCardinalityVectorString().c_str());
   }
 
-  return aggregated_data->pipeline_data_;
+  return aggregated_data;
 }
 
 void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,

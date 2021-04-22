@@ -442,9 +442,10 @@ void Pilot::ExecuteForecast(std::map<std::pair<execution::query_id_t, execution:
   // Collect pipeline metrics of forecasted queries within the interval of segments
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
                                                           common::ManagedPointer(forecast_), start_segment_index,
-                                                          end_segment_index, &pipeline_qids);
+                                                          end_segment_index, &pipeline_qids, true);
   // Then we perform inference through model server to get ou prediction results for all pipelines
-  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_qids, pipeline_data,
+  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_qids,
+                                   pipeline_data->pipeline_data_,
                                    pipeline_to_prediction);
 
   // restore the old parameters
