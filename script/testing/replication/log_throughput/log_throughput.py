@@ -23,7 +23,7 @@ the log throughput for that server.
 
 def log_throughput(test_type: TestType, build_type: str, replication_enabled: bool, async_replication: bool,
                    async_commit: bool, oltp_benchmark: str, scale_factor: int, log_messages_file: str,
-                   connection_threads: int, output_file: str):
+                   connection_threads: int, output_file: str, save_generated_log_file: bool):
     """
     Measures the log throughput of a NoisePage server. Can measure either a primary or replica node. For primary nodes
     we can test with replication on or off.
@@ -47,6 +47,7 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
            is REPLICA)
     :param connection_threads How many database connection threads to use
     :param output_file Where to save the metrics to
+    :param save_generated_log_file Whether or not to save generated log record messages to a file
     """
 
     if output_file is None:
@@ -94,7 +95,10 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
                 LOG.warn(f"Failed to teardown server: {e}")
 
     if log_cleanup_required:
-        os.remove(log_messages_file)
+        if not save_generated_log_file:
+            os.remove(log_messages_file)
+        else:
+            LOG.info(f"Log record messages saved at {log_messages_file}")
 
     create_results_dir()
 

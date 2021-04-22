@@ -41,6 +41,12 @@ def main():
                          help=f"File containing log record messages to send to replica node. If no file is specified "
                               f"then logs will be generated using OLTP. only relevant when test_type is "
                               f"{TestType.REPLICA.value}")
+    aparser.add_argument("--save-generated-log-file",
+                         default=False,
+                         action="store_true",
+                         help=f"If log record messages are generated then this flag causes those messages to be saved "
+                              f"to a file, only relevant when test_type is {TestType.REPLICA.value} and --log-file "
+                              f"param is not specified")
     aparser.add_argument("--connection-threads",
                          default=DEFAULT_CONNECTION_THREADS,
                          help=f"Number of database connection threads to use, OLTP threads will scale accordingly")
@@ -52,7 +58,7 @@ def main():
     log_throughput(TestType(args["test-type"]), args["build_type"], args["replication_enabled"],
                    args["async_replication"], args["async_commit"], args["oltp_benchmark"],
                    int(args["oltp_scale_factor"]), args["log_file"], int(args["connection_threads"]),
-                   args["output_file"])
+                   args["output_file"], args["save_generated_log_file"])
 
 
 if __name__ == '__main__':
