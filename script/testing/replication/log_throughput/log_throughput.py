@@ -152,8 +152,8 @@ def generate_log_messages(build_type: str, oltp_benchmark: str, scale_factor: in
     return log_messages_file
 
 
-def get_servers(test_type: TestType, build_type: str, replication_enabled: bool, async_commit: bool,
-                async_replication: bool, oltp_benchmark: str, scale_factor: int, log_messages_file: str,
+def get_servers(test_type: TestType, build_type: str, replication_enabled: bool, async_replication: bool,
+                async_commit: bool, oltp_benchmark: str, scale_factor: int, log_messages_file: str,
                 connection_threads: int) -> List[NodeServer]:
     """
     Creates server instances for the log throughput test
