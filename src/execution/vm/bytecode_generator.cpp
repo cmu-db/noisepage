@@ -226,7 +226,6 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
 }
 
 void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
-  // TODO(Kyle): Implement.
   // The function's TPL type
   auto *func_type = node->GetFunctionLitExpr()->GetType()->As<ast::FunctionType>();
 
@@ -272,8 +271,6 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
     }
   });
 }
-
-// TODO(Kyle): Do we need a VisitLambdaDecl()?
 
 void BytecodeGenerator::VisitLambdaTypeRepr(ast::LambdaTypeRepr *node) {
   UNREACHABLE("Should not visit type-representation nodes!");
@@ -3463,7 +3460,7 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
   // Emit call
   const auto func_id = LookupFuncIdByName(call->GetFuncName().GetData());
   if (func_id == FunctionInfo::K_INVALID_FUNC_ID) {
-    auto action = GetEmitter()->DeferedEmitCall(params);
+    auto action = GetEmitter()->DeferredEmitCall(params);
     deferred_function_create_actions_[call->GetFuncName().GetString()].push_back(action);
     return;
   }

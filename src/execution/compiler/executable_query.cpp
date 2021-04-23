@@ -189,10 +189,10 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
 }
 
 std::vector<ast::Decl *> ExecutableQuery::GetDecls() const {
-  std::vector<ast::Decl *> decls;
-  for (auto &f : fragments_) {
-    auto frag_decls = f->GetFile()->Declarations();
-    decls.insert(decls.end(), frag_decls.begin(), frag_decls.end());
+  std::vector<ast::Decl *> decls{};
+  for (const auto &f : fragments_) {
+    const auto &frag_decls = f->GetFile()->Declarations();
+    decls.insert(decls.end(), frag_decls.cbegin(), frag_decls.cend());
   }
   return decls;
 }

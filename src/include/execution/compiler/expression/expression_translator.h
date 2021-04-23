@@ -49,12 +49,22 @@ class ExpressionTranslator {
   virtual ast::Expr *DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const = 0;
 
   /**
-   * TODO(Kyle): this
+   * Define all of the helper functions for this expression translator.
+   *
+   * The default implementation simply invokes the DefineHelperFunctions()
+   * method for each child of the current expression translator.
+   *
+   * @param decls The collection of function declarations.
    */
   virtual void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls);
 
   /**
-   * TODO(Kyle): this
+   * Define all of the helper structs for this expression translator.
+   *
+   * The default implementation simply invokes the DefineHelperStructs()
+   * method for each child of the current expression translator.
+   *
+   * @param decls The collection of struct declarations.
    */
   virtual void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls);
 

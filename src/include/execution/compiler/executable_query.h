@@ -186,20 +186,7 @@ class ExecutableQuery {
   common::ManagedPointer<const std::string> GetQueryText() { return query_text_; }
 
   /**
-   * @return The functions.
-   */
-  const std::vector<std::string> GetFunctions() const {
-    // TODO(Kyle): string copying, figure out something better
-    std::vector<std::string> ret{};
-    for (auto &f : fragments_) {
-      auto fns = f->GetFunctions();
-      ret.insert(ret.end(), fns.begin(), fns.end());
-    }
-    return ret;
-  }
-
-  /**
-   * @return TODO(Kyle): this.
+   * @return All of the declarations in the executable query.
    */
   std::vector<ast::Decl *> GetDecls() const;
 

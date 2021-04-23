@@ -14,9 +14,6 @@
 
 namespace noisepage::execution::ast {
 
-/**
- * TODO(Kyle): Document.
- */
 class AstCloneImpl : public AstVisitor<AstCloneImpl, AstNode *> {
  public:
   explicit AstCloneImpl(AstNode *root, AstNodeFactory *factory, Context *old_context, Context *new_context,

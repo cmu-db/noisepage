@@ -1080,32 +1080,59 @@ class BinaryOpExpr : public Expr {
 
 /**
  * A lambda expression.
- * TODO(Kyle): Document.
  */
 class LambdaExpr : public Expr {
  public:
+  /**
+   * Construct
+   * @param pos source position
+   * @param func the associated function literal expression
+   * @param captures a collection of lambda captures
+   */
   LambdaExpr(const SourcePosition &pos, FunctionLitExpr *func, util::RegionVector<ast::Expr *> &&captures)
-      : Expr(Kind::LambdaExpr, pos), captures_{nullptr}, func_lit_(func), capture_idents_{std::move(captures)} {}
+      : Expr{Kind::LambdaExpr, pos}, func_lit_{func}, capture_idents_{std::move(captures)} {}
 
-  FunctionLitExpr *GetFunctionLitExpr() const { return func_lit_; }
-
-  ast::StructTypeRepr *GetCaptureStruct() const { return captures_; }
-
-  ast::Type *GetCaptureStructType() const { return capture_type_; }
-
+  /**
+   * @return The identifier for this lambda expression.
+   */
   const Identifier &GetName() const { return name_; }
 
-  const util::RegionVector<ast::Expr *> &GetCaptureIdents() const { return capture_idents_; }
-
+  /**
+   * Set the name of this lambda expression.
+   * @param name The desired name.
+   */
   void SetName(Identifier name) { name_ = name; }
+
+  /**
+   * @return Get the capture struct type for this lambda expression.
+   */
+  ast::Type *GetCaptureStructType() const { return capture_type_; }
+
+  /**
+   * Set the capture struct type for this lambda expression.
+   * @param capture_type The desired type.
+   */
+  void SetCaptureStructType(ast::Type *capture_type) { capture_type_ = capture_type; }
+
+  /**
+   * @return The function literal expression associated with this lambda.
+   */
+  FunctionLitExpr *GetFunctionLitExpr() const { return func_lit_; }
+
+  /**
+   * @return The identifiers for the captures of this lambda expression.
+   */
+  const util::RegionVector<ast::Expr *> &GetCaptureIdents() const { return capture_idents_; }
 
  private:
   friend class sema::Sema;
-
+  // The identifier for the lambda expression.
   Identifier name_;
-  ast::StructTypeRepr *captures_;
+  // The type of the lambda captures struct.
   ast::Type *capture_type_;
+  // The associated function literal expression.
   FunctionLitExpr *func_lit_;
+  // The collection of identifers for lambda captures.
   util::RegionVector<ast::Expr *> capture_idents_;
 };
 

@@ -66,7 +66,7 @@ void BytecodeEmitter::EmitCall(FunctionId func_id, const std::vector<LocalVar> &
   }
 }
 
-std::function<void(FunctionId)> BytecodeEmitter::DeferedEmitCall(const std::vector<LocalVar> &params) {
+std::function<void(FunctionId)> BytecodeEmitter::DeferredEmitCall(const std::vector<LocalVar> &params) {
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandSize(Bytecode::Call, 1) == OperandSize::Short,
                    "Expected argument count to be 2-byte short");
   NOISEPAGE_ASSERT(params.size() < std::numeric_limits<uint16_t>::max(), "Too many parameters!");

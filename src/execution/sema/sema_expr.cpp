@@ -249,7 +249,7 @@ void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
       SourcePosition(), GetContext()->GetIdentifier("lambda" + std::to_string(node->Position().line_)),
       struct_type_repr);
   VisitStructDecl(struct_decl);
-  node->capture_type_ = Resolve(struct_type_repr);
+  node->SetCaptureStructType(Resolve(struct_type_repr));
   node->SetType(ast::LambdaType::Get(Resolve(node->GetFunctionLitExpr()->TypeRepr())->As<ast::FunctionType>()));
   //  GetCurrentScope()->Declare(struct_decl->Name(), node->capture_type_);
 
