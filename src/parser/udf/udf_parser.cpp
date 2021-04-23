@@ -239,7 +239,6 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseFor(const nlohmann::json &loop) {
   return std::unique_ptr<ForStmtAST>(new ForStmtAST(std::move(var_vec), std::move(parse_result), std::move(body_stmt)));
 }
 
-// TODO(Kyle): Implement
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt) {
   auto sql_query = sql_stmt[kSqlstmt][kPLpgSQL_expr][kQuery].get<std::string>();
   auto var_name = sql_stmt[kRow][kPLpgSQL_row][kFields][0][kName].get<std::string>();
@@ -271,7 +270,7 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt)
     const auto &select_columns =
         parse_result->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>()->GetSelectColumns();
     elems.reserve(select_columns.size());
-    for (const auto& col : select_columns) {
+    for (const auto &col : select_columns) {
       elems.emplace_back(col->GetAlias(), col->GetReturnValueType());
     }
     udf_ast_context_->SetRecordType(var_name, std::move(elems));

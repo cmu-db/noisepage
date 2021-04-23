@@ -15,7 +15,7 @@
 namespace noisepage::execution::functions {
 
 /**
- * @brief Stores execution and type information about a stored procedure
+ * @brief Stores execution and type information about a stored procedure.
  */
 class FunctionContext {
  public:
@@ -31,6 +31,7 @@ class FunctionContext {
         args_type_(std::move(args_type)),
         is_builtin_{false},
         is_exec_ctx_required_{false} {}
+
   /**
    * Creates a FunctionContext object for a builtin function
    * @param func_name Name of function
@@ -48,6 +49,17 @@ class FunctionContext {
         builtin_{builtin},
         is_exec_ctx_required_{is_exec_ctx_required} {}
 
+  /**
+   * Creates a FunctionContext object for a non-builtin function.
+   * @param func_name Name of function=
+   * @param func_ret_type Return type of function
+   * @param arg_types Vector of argument types
+   * @param ast_region The region associated with the AST context
+   * @param ast_context The AST context for the function
+   * @param file The AST file
+   * @param is_exec_ctx_required Flag indicating whether an
+   * execution context is required for this function
+   */
   FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
                   std::unique_ptr<util::Region> ast_region, std::unique_ptr<ast::Context> ast_context, ast::File *file,
                   bool is_exec_ctx_required = true)
@@ -61,28 +73,28 @@ class FunctionContext {
         file_{file} {}
 
   /**
-   * @return The name of the function represented by this context object
+   * @return The name of the function represented by this context object.
    */
   const std::string &GetFunctionName() const { return func_name_; }
 
   /**
-   * @return The vector of type arguments of the function represented by this context object
+   * @return The vector of type arguments of the function represented by this context object.
    */
   const std::vector<type::TypeId> &GetFunctionArgsType() const { return args_type_; }
 
   /**
-   * Gets the return type of the function represented by this object
-   * @return return type of this function
+   * Gets the return type of the function represented by this object.
+   * @return The return type of this function.
    */
   type::TypeId GetFunctionReturnType() const { return func_ret_type_; }
 
   /**
-   * @return true iff this represents a builtin function
+   * @return `true` if this represents a builtin function, `false` otherwise.
    */
   bool IsBuiltin() const { return is_builtin_; }
 
   /**
-   * @return returns what builtin function this represents
+   * @return The builtin function this procedure represents.
    */
   ast::Builtin GetBuiltin() const {
     NOISEPAGE_ASSERT(IsBuiltin(), "Getting a builtin from a non-builtin function");
@@ -90,7 +102,7 @@ class FunctionContext {
   }
 
   /**
-   * @return returns if this function requires an execution context
+   * @return `true` if this function requires an execution context, `false` otherwise.
    */
   bool IsExecCtxRequired() const {
     NOISEPAGE_ASSERT(IsBuiltin(), "IsExecCtxRequired is only valid or a builtin function");
@@ -98,7 +110,7 @@ class FunctionContext {
   }
 
   /**
-   * @return returns the main functiondecl of this udf (to be used only if not builtin)
+   * @return The main functiondecl of this UDF.
    */
   common::ManagedPointer<ast::FunctionDecl> GetMainFunctionDecl() const {
     NOISEPAGE_ASSERT(!IsBuiltin(), "Getting a non-builtin from a builtin function");
@@ -107,7 +119,7 @@ class FunctionContext {
   }
 
   /**
-   * @return returns the file with the functiondecl and supporting decls (to be used only if not builtin)
+   * @return The file with the functiondecl and supporting decls.
    */
   ast::File *GetFile() const {
     NOISEPAGE_ASSERT(!IsBuiltin(), "Getting a non-builtin from a builtin function");
@@ -115,10 +127,10 @@ class FunctionContext {
   }
 
   /**
-   * TODO(Kyle): Document.
+   * @return The AST context for this procedure.
    */
   ast::Context *GetASTContext() const {
-    NOISEPAGE_ASSERT(!IsBuiltin(), "Getting a non-builtin from a builtin function");
+    NOISEPAGE_ASSERT(!IsBuiltin(), "No AST Context associated with builtin function");
     return ast_context_.get();
   }
 
