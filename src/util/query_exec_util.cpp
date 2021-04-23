@@ -251,7 +251,7 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, DISABLED, DISABLED);
 
-  // TODO(Kyle): Should probably write a helper for this functionality
+  // Must translate the ConstantValueExpressions to opaque sql::Val
   std::vector<common::ManagedPointer<const execution::sql::Val>> value_params{};
   value_params.reserve(params->size());
   std::transform(params->cbegin(), params->cend(), std::back_inserter(value_params),

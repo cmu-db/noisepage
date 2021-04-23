@@ -280,7 +280,7 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
     }
     case network::QueryType::QUERY_CREATE_FUNCTION: {
       if (execution::sql::DDLExecutors::CreateFunctionExecutor(
-          physical_plan.CastManagedPointerTo<planner::CreateFunctionPlanNode>(), connection_ctx->Accessor())) {
+              physical_plan.CastManagedPointerTo<planner::CreateFunctionPlanNode>(), connection_ctx->Accessor())) {
         return {ResultType::COMPLETE, 0};
       }
       break;
