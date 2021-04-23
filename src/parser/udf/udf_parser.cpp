@@ -2,15 +2,11 @@
 
 #include "binder/bind_node_visitor.h"
 #include "execution/ast/udf/udf_ast_nodes.h"
-#include "loggers/parser_logger.h"
 #include "parser/udf/udf_parser.h"
 
 #include "libpg_query/pg_query.h"
 #include "nlohmann/json.hpp"
 
-// TODO(Kyle): This whole file needs documentation...
-
-// TODO(Kyle): Do we want to put UDF parsing in its own namespace?
 namespace noisepage {
 namespace parser {
 namespace udf {
@@ -18,39 +14,40 @@ namespace udf {
 using namespace nlohmann;
 using namespace execution::ast::udf;
 
-// TODO(Kyle): constexpr
-// TODO(Kyle): Define elsewhere?
-const std::string kFunctionList = "FunctionList";
-const std::string kDatums = "datums";
-const std::string kPLpgSQL_var = "PLpgSQL_var";
-const std::string kRefname = "refname";
-const std::string kDatatype = "datatype";
-const std::string kDefaultVal = "default_val";
-const std::string kPLpgSQL_type = "PLpgSQL_type";
-const std::string kTypname = "typname";
-const std::string kAction = "action";
-const std::string kPLpgSQL_function = "PLpgSQL_function";
-const std::string kBody = "body";
-const std::string kPLpgSQL_stmt_block = "PLpgSQL_stmt_block";
-const std::string kPLpgSQL_stmt_return = "PLpgSQL_stmt_return";
-const std::string kPLpgSQL_stmt_if = "PLpgSQL_stmt_if";
-const std::string kPLpgSQL_stmt_while = "PLpgSQL_stmt_while";
-const std::string kPLpgSQL_stmt_fors = "PLpgSQL_stmt_fors";
-const std::string kCond = "cond";
-const std::string kThenBody = "then_body";
-const std::string kElseBody = "else_body";
-const std::string kExpr = "expr";
-const std::string kQuery = "query";
-const std::string kPLpgSQL_expr = "PLpgSQL_expr";
-const std::string kPLpgSQL_stmt_assign = "PLpgSQL_stmt_assign";
-const std::string kVarno = "varno";
-const std::string kPLpgSQL_stmt_execsql = "PLpgSQL_stmt_execsql";
-const std::string kSqlstmt = "sqlstmt";
-const std::string kRow = "row";
-const std::string kFields = "fields";
-const std::string kName = "name";
-const std::string kPLpgSQL_row = "PLpgSQL_row";
-const std::string kPLpgSQL_stmt_dynexecute = "PLpgSQL_stmt_dynexecute";
+/**
+ * @brief The identifiers used as keys in the parse tree.
+ */
+static const std::string kFunctionList = "FunctionList";
+static const std::string kDatums = "datums";
+static const std::string kPLpgSQL_var = "PLpgSQL_var";
+static const std::string kRefname = "refname";
+static const std::string kDatatype = "datatype";
+static const std::string kDefaultVal = "default_val";
+static const std::string kPLpgSQL_type = "PLpgSQL_type";
+static const std::string kTypname = "typname";
+static const std::string kAction = "action";
+static const std::string kPLpgSQL_function = "PLpgSQL_function";
+static const std::string kBody = "body";
+static const std::string kPLpgSQL_stmt_block = "PLpgSQL_stmt_block";
+static const std::string kPLpgSQL_stmt_return = "PLpgSQL_stmt_return";
+static const std::string kPLpgSQL_stmt_if = "PLpgSQL_stmt_if";
+static const std::string kPLpgSQL_stmt_while = "PLpgSQL_stmt_while";
+static const std::string kPLpgSQL_stmt_fors = "PLpgSQL_stmt_fors";
+static const std::string kCond = "cond";
+static const std::string kThenBody = "then_body";
+static const std::string kElseBody = "else_body";
+static const std::string kExpr = "expr";
+static const std::string kQuery = "query";
+static const std::string kPLpgSQL_expr = "PLpgSQL_expr";
+static const std::string kPLpgSQL_stmt_assign = "PLpgSQL_stmt_assign";
+static const std::string kVarno = "varno";
+static const std::string kPLpgSQL_stmt_execsql = "PLpgSQL_stmt_execsql";
+static const std::string kSqlstmt = "sqlstmt";
+static const std::string kRow = "row";
+static const std::string kFields = "fields";
+static const std::string kName = "name";
+static const std::string kPLpgSQL_row = "PLpgSQL_row";
+static const std::string kPLpgSQL_stmt_dynexecute = "PLpgSQL_stmt_dynexecute";
 
 std::unique_ptr<FunctionAST> PLpgSQLParser::ParsePLpgSQL(std::vector<std::string> &&param_names,
                                                          std::vector<type::TypeId> &&param_types,
@@ -58,28 +55,25 @@ std::unique_ptr<FunctionAST> PLpgSQLParser::ParsePLpgSQL(std::vector<std::string
                                                          common::ManagedPointer<UDFASTContext> ast_context) {
   auto result = pg_query_parse_plpgsql(func_body.c_str());
   if (result.error) {
-    PARSER_LOG_INFO("PL/pgSQL parse error : {}", result.error->message);
     pg_query_free_plpgsql_parse_result(result);
     throw PARSER_EXCEPTION("PL/pgSQL parsing error");
   }
   // The result is a list, we need to wrap it
-  std::string ast_json_str = "{ \"" + kFunctionList + "\" : " + std::string(result.plpgsql_funcs) + " }";
+  const auto ast_json_str = "{ \"" + kFunctionList + "\" : " + std::string{result.plpgsql_funcs} + " }";
 
   pg_query_free_plpgsql_parse_result(result);
 
-  std::istringstream ss(ast_json_str);
-  json ast_json;
+  std::istringstream ss{ast_json_str};
+  json ast_json{};
   ss >> ast_json;
   const auto function_list = ast_json[kFunctionList];
   NOISEPAGE_ASSERT(function_list.is_array(), "Function list is not an array");
   if (function_list.size() != 1) {
-    PARSER_LOG_DEBUG("PL/pgSQL error : Function list size %u", function_list.size());
     throw PARSER_EXCEPTION("Function list has size other than 1");
   }
 
-  size_t i = 0;
-  for (auto udf_name : param_names) {
-    //    udf_ast_context_->AddVariable(udf_name);
+  std::size_t i{0};
+  for (const auto &udf_name : param_names) {
     udf_ast_context_->SetVariableType(udf_name, param_types[i++]);
   }
   const auto function = function_list[0][kPLpgSQL_function];
@@ -94,7 +88,6 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseFunction(const nlohmann::json &bloc
 
   std::vector<std::unique_ptr<StmtAST>> stmts;
 
-  PARSER_LOG_DEBUG("Parsing Declarations");
   NOISEPAGE_ASSERT(decl_list.is_array(), "Declaration list is not an array");
   for (uint32_t i = 1; i < decl_list.size(); i++) {
     stmts.push_back(ParseDecl(decl_list[i]));
@@ -118,8 +111,6 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseBlock(const nlohmann::json &block) 
   for (uint32_t i = 0; i < block.size(); i++) {
     const auto stmt = block[i];
     const auto stmt_names = stmt.items().begin();
-    //    NOISEPAGE_ASSERT(stmt_names->size() == 1, "Bad statement size");
-    PARSER_LOG_DEBUG("Statement : {}", stmt_names.key());
 
     if (stmt_names.key() == kPLpgSQL_stmt_return) {
       auto expr = ParseExprSQL(stmt[kPLpgSQL_stmt_return][kExpr][kPLpgSQL_expr][kQuery].get<std::string>());
@@ -147,16 +138,13 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseBlock(const nlohmann::json &block) 
     } else {
       throw PARSER_EXCEPTION("Statement type not supported");
     }
-    NOISEPAGE_ASSERT(stmts.back() != nullptr, "It broke");
   }
 
-  std::unique_ptr<SeqStmtAST> seq_stmt_ast(new SeqStmtAST(std::move(stmts)));
-  return std::move(seq_stmt_ast);
+  return std::make_unique<SeqStmtAST>(std::move(stmts));
 }
 
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseDecl(const nlohmann::json &decl) {
   const auto &decl_names = decl.items().begin();
-  PARSER_LOG_DEBUG("Declaration : {}", decl_names.key());
 
   if (decl_names.key() == kPLpgSQL_var) {
     auto var_name = decl[kPLpgSQL_var][kRefname].get<std::string>();
@@ -167,9 +155,7 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseDecl(const nlohmann::json &decl) {
       initial = ParseExprSQL(decl[kPLpgSQL_var][kDefaultVal][kPLpgSQL_expr][kQuery].get<std::string>());
     }
 
-    PARSER_LOG_INFO("Registering type {0}: {1}", var_name.c_str(), type.c_str());
-
-    type::TypeId temp_type;
+    type::TypeId temp_type{};
     if (udf_ast_context_->GetVariableType(var_name, &temp_type)) {
       return std::unique_ptr<DeclStmtAST>(new DeclStmtAST(var_name, temp_type, std::move(initial)));
     }
@@ -204,7 +190,6 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseDecl(const nlohmann::json &decl) {
 }
 
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseIf(const nlohmann::json &branch) {
-  PARSER_LOG_DEBUG("ParseIf");
   auto cond_expr = ParseExprSQL(branch[kCond][kPLpgSQL_expr][kQuery].get<std::string>());
   auto then_stmt = ParseBlock(branch[kThenBody]);
   std::unique_ptr<StmtAST> else_stmt = nullptr;
@@ -215,19 +200,15 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseIf(const nlohmann::json &branch) {
 }
 
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseWhile(const nlohmann::json &loop) {
-  PARSER_LOG_DEBUG("ParseWhile");
   auto cond_expr = ParseExprSQL(loop[kCond][kPLpgSQL_expr][kQuery].get<std::string>());
   auto body_stmt = ParseBlock(loop[kBody]);
   return std::unique_ptr<WhileStmtAST>(new WhileStmtAST(std::move(cond_expr), std::move(body_stmt)));
 }
 
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseFor(const nlohmann::json &loop) {
-  PARSER_LOG_DEBUG("ParseFor");
   auto sql_query = loop[kQuery][kPLpgSQL_expr][kQuery].get<std::string>();
-  ;
   auto parse_result = PostgresParser::BuildParseTree(sql_query.c_str());
   if (parse_result == nullptr) {
-    PARSER_LOG_DEBUG("Bad SQL statement");
     return nullptr;
   }
   auto body_stmt = ParseBlock(loop[kBody]);
@@ -243,9 +224,10 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt)
   auto sql_query = sql_stmt[kSqlstmt][kPLpgSQL_expr][kQuery].get<std::string>();
   auto var_name = sql_stmt[kRow][kPLpgSQL_row][kFields][0][kName].get<std::string>();
 
-  // TODO(Kyle): Should probably do something else on malformed SQL
   auto parse_result = PostgresParser::BuildParseTree(sql_query.c_str());
-  NOISEPAGE_ASSERT(parse_result != nullptr, "Malformed SQL Statement");
+  if (parse_result == nullptr) {
+    return nullptr;
+  }
 
   binder::BindNodeVisitor visitor{accessor_, db_oid_};
   std::unordered_map<std::string, std::pair<std::string, size_t>> query_params{};
@@ -254,8 +236,7 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt)
     // It's already bound in the ConnectionContext binder::BindNodeVisitor visitor(accessor_, db_oid_);
     query_params = visitor.BindAndGetUDFParams(common::ManagedPointer{parse_result}, udf_ast_context_);
   } catch (BinderException &b) {
-    // TODO(Kyle): Same here
-    NOISEPAGE_ASSERT(false, "Malformed SQL Statement");
+    return nullptr;
   }
 
   // Check to see if a record type can be bound to this
@@ -280,14 +261,12 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt)
 }
 
 std::unique_ptr<StmtAST> PLpgSQLParser::ParseDynamicSQL(const nlohmann::json &sql_stmt) {
-  PARSER_LOG_DEBUG("ParseDynamicSQL");
   auto sql_expr = ParseExprSQL(sql_stmt[kQuery][kPLpgSQL_expr][kQuery].get<std::string>());
   auto var_name = sql_stmt[kRow][kPLpgSQL_row][kFields][0][kName].get<std::string>();
   return std::unique_ptr<DynamicSQLStmtAST>(new DynamicSQLStmtAST(std::move(sql_expr), std::move(var_name)));
 }
 
 std::unique_ptr<ExprAST> PLpgSQLParser::ParseExprSQL(const std::string expr_sql_str) {
-  PARSER_LOG_DEBUG("Parsing Expr SQL : {}", expr_sql_str.c_str());
   auto stmt_list = PostgresParser::BuildParseTree(expr_sql_str.c_str());
   if (stmt_list == nullptr) {
     return nullptr;

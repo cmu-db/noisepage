@@ -13,7 +13,7 @@ class UDFASTContext {
  public:
   UDFASTContext() {}
 
-  void SetVariableType(std::string &var, type::TypeId type) { symbol_table_[var] = type; }
+  void SetVariableType(const std::string &var, type::TypeId type) { symbol_table_[var] = type; }
 
   bool GetVariableType(const std::string &var, type::TypeId *type) {
     auto it = symbol_table_.find(var);
