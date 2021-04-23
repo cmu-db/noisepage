@@ -1525,7 +1525,7 @@ TEST_F(BPlusTreeTests, IteratorTest) {
   // Forward Iteration
   int i = 0;
   auto it = tree->Begin();
-  for (; !(it == tree->End()); ++it, ++i) {
+  for (; it != tree->End(); ++it, ++i) {
     EXPECT_EQ(it.first_, i);
     EXPECT_EQ(it.second_, i);
   }
@@ -1535,7 +1535,7 @@ TEST_F(BPlusTreeTests, IteratorTest) {
   // Reverse Iteration
   i = key_num - 1;
   auto rit = tree->Begin(key_num - 1);
-  for (; !(rit == tree->REnd()); --rit, --i) {
+  for (; rit != tree->REnd(); --rit, --i) {
     EXPECT_EQ(rit.first_, i);
     EXPECT_EQ(rit.second_, i);
   }
@@ -1568,7 +1568,7 @@ TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
     // Forward Iteration
     int i = 0;
     auto it = tree->Begin();
-    for (; !(it == tree->End()); ++it, ++i) {
+    for (; (it != tree->End()) && (it != tree->Retry()); ++it, ++i) {
       EXPECT_EQ(it.first_, i);
       EXPECT_EQ(it.second_, i);
     }
@@ -1578,7 +1578,7 @@ TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
     // Reverse Iteration
     i = key_num - 1;
     auto rit = tree->Begin(key_num - 1);
-    for (; !(rit == tree->REnd()); --rit, --i) {
+    for (; (rit != tree->REnd()) && (rit != tree->Retry()); --rit, --i) {
       EXPECT_EQ(rit.first_, i);
       EXPECT_EQ(rit.second_, i);
     }

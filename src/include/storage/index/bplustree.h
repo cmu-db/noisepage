@@ -1056,6 +1056,19 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     /**
+     * Inequality operator to check if two iterators are inequal
+     * @param itr Iterator to be compared with this iterator
+     * @return true if iterators are inequal, false otherwise
+     */
+    bool operator!=(const BPlusTreeIterator &itr) {
+      bool result = (curr_node_ == itr.curr_node_ && curr_key_ == itr.curr_key_ && state_ == itr.state_);
+      if (state_ == VALID) {
+        result = result && (curr_val_ == itr.curr_val_);
+      }
+      return !result;
+    }
+
+    /**
      * Function to notify that iteration is complete. This is used to release any pending
      * locks that is being held
      */
@@ -1654,12 +1667,8 @@ class BPlusTree : public BPlusTreeBase {
       iterator = Begin();
     }
 
-    while ((limit == 0 || value_list->size() < limit) &&
-           (!high_key_exists || iterator.first_.PartialLessThan(index_high_key, metadata, num_attrs)) &&
-           !(iterator == End())) {
-      if (iterator == Retry()) {
-        return false;
-      }
+    while ((limit == 0 || value_list->size() < limit) && (iterator != End()) && (iterator != Retry()) &&
+           (!high_key_exists || iterator.first_.PartialLessThan(index_high_key, metadata, num_attrs))) {
       if (!predicate(iterator.second_)) {
         ++iterator;
         continue;
@@ -1669,6 +1678,9 @@ class BPlusTree : public BPlusTreeBase {
       ++iterator;
     }
 
+    if (iterator == Retry()) {
+      return false;
+    }
     iterator.Done();
     return true;
   }
@@ -1688,15 +1700,14 @@ class BPlusTree : public BPlusTreeBase {
   bool ScanDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list) {
     BPlusTreeIterator iterator = RBegin(index_high_key);
 
-    while (KeyCmpGreaterEqual(iterator.first_, index_low_key) && !(iterator == REnd())) {
-      if (iterator == Retry()) {
-        return false;
-      }
-
+    while (KeyCmpGreaterEqual(iterator.first_, index_low_key) && (iterator != REnd()) && (iterator != Retry())) {
       value_list->push_back(iterator.second_);
       --iterator;
     }
 
+    if (iterator == Retry()) {
+      return false;
+    }
     iterator.Done();
     return true;
   }
@@ -1719,11 +1730,8 @@ class BPlusTree : public BPlusTreeBase {
                            uint32_t limit, std::function<bool(const ValueType)> predicate) {
     BPlusTreeIterator iterator = RBegin(index_high_key);
 
-    while ((value_list->size() < limit) && KeyCmpGreaterEqual(iterator.first_, index_low_key) &&
-           !(iterator == REnd())) {
-      if (iterator == Retry()) {
-        return false;
-      }
+    while ((value_list->size() < limit) && KeyCmpGreaterEqual(iterator.first_, index_low_key) && (iterator != REnd()) &&
+           (iterator != Retry())) {
       if (!predicate(iterator.second_)) {
         --iterator;
         continue;
@@ -1733,6 +1741,9 @@ class BPlusTree : public BPlusTreeBase {
       --iterator;
     }
 
+    if (iterator == Retry()) {
+      return false;
+    }
     iterator.Done();
     return true;
   }
