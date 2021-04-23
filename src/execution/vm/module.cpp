@@ -279,10 +279,7 @@ void Module::CompileToMachineCode() {
     // previous implementation.
     for (const auto &func_info : bytecode_module_->GetFunctionsInfo()) {
       auto *jit_function = jit_module_->GetFunctionPointer(func_info.GetName());
-      // TODO(Kyle): Why is this OK now?
-      if (jit_function == nullptr) {
-        continue;
-      }
+      NOISEPAGE_ASSERT(jit_function != nullptr, "Function not found!");
       functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
     }
   });

@@ -51,7 +51,11 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   ~BindNodeVisitor() final;
 
   /**
-   * TODO(Kyle): Document.
+   * Perform binding for a UDF.
+   * @param parse_result The result of parsing the UDF.
+   * @param udf_ast_context The AST context for the UDF.
+   * @return The map of UDF parameters:
+   *    Column Name -> (Parameter Name, Parameter Index)
    */
   std::unordered_map<std::string, std::pair<std::string, std::size_t>> BindAndGetUDFParams(
       common::ManagedPointer<parser::ParseResult> parse_result,

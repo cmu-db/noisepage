@@ -83,7 +83,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
     return;
   }
 
-  // TODO(Kyle): This seems weird
+  // Type checking already performed
   if (node->GetType() != nullptr) {
     return;
   }
@@ -101,7 +101,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
   if (func_type == nullptr) {
     if (struct_type != nullptr) {
       func_type = struct_type->GetFunctionType();
-      // TODO(Kyle): find a better way to see if sema has processed this already
+      // TODO(Kyle): Find a better way to see if sema has processed this already
       ast::IdentifierExpr *last_arg = nullptr;
       if (!node->Arguments().empty()) {
         last_arg = node->Arguments().back()->SafeAs<ast::IdentifierExpr>();
@@ -117,9 +117,9 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
   }
 
   // Check argument count matches
-  // TODO(Kyle): Refactor this, gross.
-  if (!CheckArgCount(
-          node, struct_type != nullptr ? func_type->GetNumParams() - lambda_adjustment : func_type->GetNumParams())) {
+  const auto arg_count =
+      (struct_type != nullptr) ? func_type->GetNumParams() - lambda_adjustment : func_type->GetNumParams();
+  if (!CheckArgCount(node, arg_count)) {
     return;
   }
 

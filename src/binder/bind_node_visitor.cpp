@@ -566,7 +566,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
     std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
     // Table name not specified in the expression. Loop through all the table in the binder context.
-    // TODO(Kyle): Revisit this; this logic is crazy.
     type::TypeId the_type{};
     if (table_name.empty()) {
       if (udf_ast_context_ != nullptr && udf_ast_context_->GetVariableType(expr->GetColumnName(), &the_type)) {
