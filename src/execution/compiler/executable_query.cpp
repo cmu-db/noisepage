@@ -188,6 +188,15 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   }
 }
 
+std::vector<std::string> ExecutableQuery::GetFunctionNames() const {
+  std::vector<std::string> function_names{};
+  for (const auto &f : fragments_) {
+    const auto &frag_functions = f->GetFunctions();
+    function_names.insert(function_names.end(), frag_functions.cbegin(), frag_functions.cend());
+  }
+  return function_names;
+}
+
 std::vector<ast::Decl *> ExecutableQuery::GetDecls() const {
   std::vector<ast::Decl *> decls{};
   for (const auto &f : fragments_) {

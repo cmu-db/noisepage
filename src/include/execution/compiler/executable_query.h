@@ -118,7 +118,7 @@ class ExecutableQuery {
    * Create a query object.
    * @param plan The physical plan.
    * @param exec_settings The execution settings used for this query.
-   * @param context TODO(Kyle): this
+   * @param context The AST context for the executable query; may be nullptr
    */
   ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
                   ast::Context *context = nullptr);
@@ -184,6 +184,11 @@ class ExecutableQuery {
 
   /** @return The SQL query string */
   common::ManagedPointer<const std::string> GetQueryText() { return query_text_; }
+
+  /**
+   * @return All of the function names in the executable query.
+   */
+  std::vector<std::string> GetFunctionNames() const;
 
   /**
    * @return All of the declarations in the executable query.
