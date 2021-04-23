@@ -67,9 +67,8 @@ class Pipeline {
    * Create a pipeline with the given operator as the root.
    * @param op The root operator of the pipeline.
    * @param parallelism The operator's requested parallelism.
-   * @param consumer TODO(Kyle)
    */
-  Pipeline(OperatorTranslator *op, Parallelism parallelism, bool consumer = false);
+  Pipeline(OperatorTranslator *op, Parallelism parallelism);
 
   /**
    * Register an operator in this pipeline with a customized parallelism configuration.
@@ -132,6 +131,14 @@ class Pipeline {
   void CollectDependencies(std::vector<Pipeline *> *deps);
 
   /**
+   * Store in the provided output vector the set of all dependencies for this pipeline. In other
+   * words, store in the output vector all pipelines that must execute (in order) before this
+   * pipeline can begin.
+   * @param[out] deps The sorted list of pipelines to execute before this pipeline can begin.
+   */
+  void CollectDependencies(std::vector<const Pipeline *> *deps) const;
+
+  /**
    * Perform initialization logic before code generation.
    * @param exec_settings The execution settings used for query compilation.
    */
@@ -140,8 +147,9 @@ class Pipeline {
   /**
    * Generate all functions to execute this pipeline in the provided container.
    * @param builder The builder for the executable query container.
-   * @param query_id TODO(Kyle)
-   * @param output_callback TODO(Kyle)
+   * @param query_id The ID of the query for which this pipeline is generated.
+   * @param output_callback The lambda expression that represents the
+   * output callback for the pipeline.
    */
   void GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id,
                         ast::LambdaExpr *output_callback = nullptr) const;
@@ -221,17 +229,17 @@ class Pipeline {
   void InjectEndResourceTracker(FunctionBuilder *builder, bool is_hook) const;
 
   /**
-   * @return query identifier of the query that we are codegen-ing
+   * @return Query identifier of the query that we are codegen-ing
    */
   query_id_t GetQueryId() const;
 
   /**
-   * @return a pointer to the OUFeatureVector in the pipeline state
+   * @return A pointer to the OUFeatureVector in the pipeline state
    */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
 
-  /** @return TODO(Kyle) */
-  ast::Expr *GetNestedInputArg(uint32_t index) const;
+  /** @return The nested input argument at `index` */
+  ast::Expr *GetNestedInputArg(std::size_t index) const;
 
   /** @return `true` if this pipeline is prepared, `false` otherwise */
   bool IsPrepared() const { return prepared_; }
@@ -244,7 +252,7 @@ class Pipeline {
   ast::Identifier GetTearDownPipelineStateFunctionName() const;
   ast::Identifier GetWorkFunctionName() const;
 
-  // TODO(Kyle) this
+  // Generate a wrapper function for the current pipeline.
   ast::FunctionDecl *GeneratePipelineWrapperFunction(ast::LambdaExpr *output_callback) const;
 
   // Generate the pipeline state initialization logic.
@@ -265,7 +273,7 @@ class Pipeline {
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction(ast::LambdaExpr *output_callback) const;
 
-  /** @brief TODO(Kyle) */
+  /** @brief Indicate that this pipeline is nested. */
   void MarkNested() { nested_ = true; }
 
  private:
@@ -276,28 +284,19 @@ class Pipeline {
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
 
-  /** @brief TODO(Kyle) */
-  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
-
-  /** @brief TODO(Kyle) */
-  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
-
-  /** @brief TODO(Kyle) */
-  ast::Identifier GetRunPipelineFunctionName() const;
-
-  /** @brief TODO(Kyle) */
-  void CollectDependencies(std::vector<const Pipeline *> *deps) const;
-
-  /** @brief TODO(Kyle) */
-  ast::Identifier GetTeardownPipelineFunctionName() const;
-
-  /** @brief TODO(Kyle) */
+  /** @return An identifier for the pipeline `Init` function */
   ast::Identifier GetInitPipelineFunctionName() const;
 
-  /** @brief TODO(Kyle) */
+  /** @return An identifier for the pipeline `Run` function */
+  ast::Identifier GetRunPipelineFunctionName() const;
+
+  /** @return An identifier for the pipeline `Teardown` function */
+  ast::Identifier GetTeardownPipelineFunctionName() const;
+
+  /** @return An immutable reference to the pipeline state descriptor */
   const StateDescriptor &GetPipelineStateDescriptor() const { return state_; }
 
-  /** @brief TODO(Kyle) */
+  /** @return A mutable reference to the pipeline state descriptor */
   StateDescriptor &GetPipelineStateDescriptor() { return state_; }
 
  private:

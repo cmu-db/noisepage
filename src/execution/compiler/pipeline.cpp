@@ -34,8 +34,7 @@ Pipeline::Pipeline(CompilationContext *ctx)
       check_parallelism_(true),
       nested_(false) {}
 
-Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism, bool consumer)
-    : Pipeline(op->GetCompilationContext()) {
+Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : Pipeline(op->GetCompilationContext()) {
   UpdateParallelism(parallelism);
   RegisterStep(op);
 }
@@ -434,10 +433,9 @@ ast::Identifier Pipeline::GetRunPipelineFunctionName() const {
   return codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
 }
 
-ast::Expr *Pipeline::GetNestedInputArg(uint32_t index) const {
-  NOISEPAGE_ASSERT(nested_, "Asking for input arg on non-nested pipeline");
-  NOISEPAGE_ASSERT(index < extra_pipeline_params_.size(),
-                   "Asking for input arg on non-nested pipeline that doesn't exist");
+ast::Expr *Pipeline::GetNestedInputArg(const std::size_t index) const {
+  NOISEPAGE_ASSERT(nested_, "Requested nested input argument on non-nested pipeline");
+  NOISEPAGE_ASSERT(index < extra_pipeline_params_.size(), "Requested nested index argument out of range");
   return codegen_->UnaryOp(parsing::Token::Type::STAR, codegen_->MakeExpr(extra_pipeline_params_[index]->Name()));
 }
 

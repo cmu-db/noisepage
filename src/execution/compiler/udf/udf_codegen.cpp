@@ -335,7 +335,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // const auto query = common::ManagedPointer(ast->query_);
   // auto exec_ctx = fb_->GetParameterByPosition(0);
 
-  // // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
+  // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
   // binder::BindNodeVisitor visitor(common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_oid_);
 
   // auto query_params = visitor.BindAndGetUDFParams(query, common::ManagedPointer(udf_ast_context_));
@@ -345,7 +345,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // std::unique_ptr<planner::AbstractPlanNode> plan = trafficcop::TrafficCopUtil::Optimize(
   //     accessor_->GetTxn(), common::ManagedPointer(accessor_), query, db_oid_, common::ManagedPointer(&stats),
   //     std::make_unique<optimizer::TrivialCostModel>(), 1000000);
-  // // make lambda that just writes into this
+  // make lambda that just writes into this
   // std::vector<execution::ast::Identifier> var_idents;
   // auto lam_var = codegen_->MakeFreshIdentifier("looplamb");
   // execution::util::RegionVector<execution::ast::FieldDecl *> params(codegen_->GetAstContext()->GetRegion());
@@ -356,7 +356,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // for (auto var : ast->vars_) {
   //   var_idents.push_back(str_to_ident_.find(var)->second);
   //   auto var_ident = var_idents.back();
-  //   //  NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
+  //    NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
   //   auto type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
 
   //   fb_->Append(codegen_->Assign(codegen_->MakeExpr(var_ident),
@@ -390,8 +390,8 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // lambda_expr = fn.FinishLambda(std::move(captures));
   // lambda_expr->SetName(lam_var);
 
-  // // want to pass something down that will materialize the lambda function for me into lambda_expr and will
-  // // also feed in a lambda_expr to the compiler
+  // want to pass something down that will materialize the lambda function for me into lambda_expr and will
+  // also feed in a lambda_expr to the compiler
   // execution::exec::ExecutionSettings exec_settings{};
   // const std::string dummy_query = "";
   // auto exec_query = execution::compiler::CompilationContext::Compile(
@@ -406,10 +406,10 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   //     codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLitExpr()->TypeRepr()),
   //     lambda_expr));
 
-  // // make query state
+  // make query state
   // auto query_state = codegen_->MakeFreshIdentifier("query_state");
   // fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
-  // // set its execution context to whatever exec context was passed in here
+  // set its execution context to whatever exec context was passed in here
   // fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
   // std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec;
   // for (auto it = query_params.begin(); it != query_params.end(); it++) {
@@ -418,10 +418,10 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
 
   // std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second < y->second; });
   // for (auto entry : sorted_vec) {
-  //   // TODO(order these dudes)
+  //   TODO(order these dudes)
   //   type::TypeId type = type::TypeId::INVALID;
   //   udf_ast_context_->GetVariableType(entry->first, &type);
-  //   //    NOISEPAGE_ASSERT(ret, "didn't find param in udf ast context");
+  //      NOISEPAGE_ASSERT(ret, "didn't find param in udf ast context");
 
   //   execution::ast::Builtin builtin;
   //   switch (type) {
@@ -457,15 +457,15 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   //   }
   //   fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(str_to_ident_[entry->first])}));
   // }
-  // // set param 1
-  // // set param 2
-  // // etc etc
+  // set param 1
+  // set param 2
+  // etc etc
   // fb_->Append(codegen_->Assign(
   //     codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
-  // // set its execution context to whatever exec context was passed in here
+  // set its execution context to whatever exec context was passed in here
 
   // for (auto &sub_fn : fns) {
-  //   //    aux_decls_.push_back(c)
+  //      aux_decls_.push_back(c)
   //   if (sub_fn.find("Run") != std::string::npos) {
   //     fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(sub_fn),
   //                                {codegen_->AddressOf(query_state), codegen_->MakeExpr(lam_var)}));
