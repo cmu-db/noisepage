@@ -330,7 +330,7 @@ void stageNightlyPerformance() {
 void stageNightlyMicrobenchmark() {
     stagePre()
     installPackages()
-    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+    buildNoisePage([buildCommand:'ninja', cmake:
         '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_BUILD_BENCHMARKS=ON -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_USE_LOGGING=OFF'
     ])
 
