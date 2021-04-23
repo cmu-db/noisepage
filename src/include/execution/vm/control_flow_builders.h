@@ -81,11 +81,9 @@ class LoopBuilder : public BreakableBlockBuilder {
 
   /**
    * Construct a loop builder.
-   *
-   * TODO(Kyle): Why was this construtor removed?
-   *
    * @param generator The generator the loop writes.
-   * @param prev
+   * @param prev The previous (outer) loop in the current
+   * code generation context
    */
   explicit LoopBuilder(BytecodeGenerator *generator, LoopBuilder *prev = nullptr)
       : BreakableBlockBuilder(generator), prev_loop_(prev) {}
@@ -114,6 +112,11 @@ class LoopBuilder : public BreakableBlockBuilder {
    * Binds the continue label. This defines the point to which to jump when "continue" is used.
    */
   void BindContinueTarget();
+
+  /**
+   * Get the previous (outer) loop.
+   */
+  LoopBuilder *GetPrevLoop() const;
 
  private:
   /** @return The label associated with the header of the loop. */

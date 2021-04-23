@@ -191,11 +191,9 @@ void BytecodeGenerator::VisitForStmt(ast::ForStmt *node) {
 }
 
 void BytecodeGenerator::VisitBreakStmt(ast::BreakStmt *node) {
-  // TODO(Kyle): Implement.
-  throw NOT_IMPLEMENTED_EXCEPTION("VisitBreakStmt Not Implemented");
-  // if(current_loop_ != nullptr && current_loop_->GetPrev() != nullptr) {
-  //   current_loop_->GetPrev()->Break();
-  // }
+  if (current_loop_ != nullptr && current_loop_->GetPrevLoop() != nullptr) {
+    current_loop_->GetPrevLoop()->Break();
+  }
 }
 
 void BytecodeGenerator::VisitForInStmt(UNUSED_ATTRIBUTE ast::ForInStmt *node) {
