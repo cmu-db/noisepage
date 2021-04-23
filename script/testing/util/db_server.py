@@ -493,8 +493,9 @@ def handle_flags(value: str, meta: Dict) -> str:
     `-attribute=value` and instead want to format it as `-attribute` alone.
     This preprocessor encapsulates the logic for this transformation.
 
-    TODO(Kyle): Do we actually support any arguments like this? 
-    I can't seem to come up with any actual examples...
+    NOTE(Kyle): At this time it doesn't appear we actually support
+    any arguments like this, but keeping it in anyway so I don't
+    inadvertently break something.
 
     Arguments
     ---------
@@ -517,11 +518,6 @@ def apply_all(functions: List, init_obj, meta: Dict):
     """
     Apply all of the functions in `functions` to object `init_obj` sequentially,
     supplying metadata object `meta` to each function invocation.
-
-    TODO(Kyle): Initially I wanted to implement this with function composition
-    in terms of functools.reduce() which makes it really beautiful, but there
-    we run into issues with multi-argument callbacks, and the real solution is
-    to use partial application, but this seemed like overkill... maybe revisit.
 
     Arguments
     ---------
