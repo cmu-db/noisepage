@@ -279,12 +279,10 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       break;
     }
     case network::QueryType::QUERY_CREATE_FUNCTION: {
-      // TODO(Kyle): Port executor
-      // if (execution::sql::DDLExecutors::CreateFunctionExecutor(
-      //     physical_plan.CastManagedPointerTo<planner::CreateFunctionPlanNode>(), connection_ctx->Accessor())) {
-      //   return {ResultType::COMPLETE, 0};
-      // }
-      throw NOT_IMPLEMENTED_EXCEPTION("CREATE FUNCTION not implemented");
+      if (execution::sql::DDLExecutors::CreateFunctionExecutor(
+          physical_plan.CastManagedPointerTo<planner::CreateFunctionPlanNode>(), connection_ctx->Accessor())) {
+        return {ResultType::COMPLETE, 0};
+      }
       break;
     }
     default: {
