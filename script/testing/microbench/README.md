@@ -28,14 +28,14 @@ in the Jenkins repository. It assumes that the microbenchmark binaries can be fo
 benchmark path.
 
 ```
-$ ./run_micro_bench.py
+$ python3 -m script.testing.microbench
 ```
 
 If you only want to run a subset microbenchmark, you can pass in the **name** of the microbenchmark 
 binary (e.g., `data_table_benchmark`) and not the suite name (e.g., `DataTableBenchmark`):
 
 ```
-$ ./run_micro_bench.py data_table_benchmark recovery_benchmark
+$ python3 -m script.testing.microbench data_table_benchmark recovery_benchmark
 ```
 
 ## Local Execution
@@ -47,7 +47,7 @@ flag. That will write the results to a directory in the same path as the script.
 compute the average results for the microbenchmarks for all the local runs:
 
 ```
-$ ./run_micro_bench.py --local
+$ python3 -m script.testing.microbench --local
 ```
 
 This will write the results of each invocation to a directory called "local". See note in the requirements section about `numactl`.
@@ -59,7 +59,7 @@ This makes it easier to do profiling from the script without needing to track do
 variables.
 
 ```
-$ ./run_micro_bench.py --perf data_table_benchmark
+$ python3 -m script.testing.microbench --perf data_table_benchmark
 ```
 
 The script will configure perf to write its trace file to `data_table_benchmark.perf`.
