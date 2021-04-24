@@ -1,6 +1,5 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/scoped_timer.h"
 #include "replication/replication_messages.h"
@@ -130,5 +129,17 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, TxnAppliedMsgDeserialization)(b
   }
   state.SetItemsProcessed(state.iterations());
 }
+
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(ReplicationMessagesBenchmark, NotifyOATMsgSerialization)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ReplicationMessagesBenchmark, RecordsBatchMsgSerialization)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ReplicationMessagesBenchmark, TxnAppliedMsgSerialization)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ReplicationMessagesBenchmark, NotifyOATMsgDeserialization)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ReplicationMessagesBenchmark, RecordsBatchMsgDeserialization)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ReplicationMessagesBenchmark, TxnAppliedMsgDeserialization)->Unit(benchmark::kNanosecond);
+// clang-format on
 
 }  // namespace noisepage
