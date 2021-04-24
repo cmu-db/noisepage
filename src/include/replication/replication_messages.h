@@ -75,15 +75,20 @@ class MessageFacade {
   }
 
   /**
-   * Deserializes a given input to a message value using the CBOR (Concise Binary Object Representation) serialization
+   * Deserializes a given input to a string using the CBOR (Concise Binary Object Representation) serialization
    * format.
    *
    * @param cbor cbor input
-   * @returm parsed MessageFacade
+   * @returm parsed string
    *
    */
   static std::string FromCbor(const std::vector<uint8_t> &cbor) { return common::json::from_cbor(cbor); }
 
+  /**
+   * Serializes a given input string to CBOR format
+   * @param str string to serialize
+   * @return CBOR format of string
+   */
   static std::vector<uint8_t> ToCbor(std::string_view str) { return common::json::to_cbor(str); }
 
   /**
@@ -100,8 +105,16 @@ class MessageFacade {
    */
   MessageFormat ToUnderlyingMessageFormat() const { return underlying_message_; }
 
+  /**
+   * Converts MessageFacade to JSON
+   * @return JSON version of MessageFacade
+   */
   common::json ToJson() const { return ToUnderlyingMessageFormat(); }
 
+  /**
+   * Converts JSON to MessageFacade
+   * @param j JSON to convert
+   */
   void FromJson(const common::json &j) { this->underlying_message_ = j; }
 
  private:
