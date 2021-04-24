@@ -416,8 +416,6 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *AccessStructMember(ast::Expr *object, ast::Identifier member);
 
-  // TODO(Kyle): These should be in a different section?
-
   /**
    * Create a break statement.
    * @return The statement.

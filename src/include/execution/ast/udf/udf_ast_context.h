@@ -2,8 +2,6 @@
 
 #include "type/type_id.h"
 
-// TODO(Kyle): Documentation.
-
 namespace noisepage {
 namespace execution {
 namespace ast {
@@ -29,7 +27,7 @@ class UDFASTContext {
   void AddVariable(const std::string &name) { local_variables_.push_back(name); }
 
   const std::string &GetVariableAtIndex(const std::size_t index) {
-    NOISEPAGE_ASSERT(local_variables_.size() >= index, "Bad var");
+    NOISEPAGE_ASSERT(local_variables_.size() >= index, "Bad variable");
     // TODO(Kyle): Why did this originally have index - 1?
     return local_variables_.at(index);
   }
@@ -43,8 +41,11 @@ class UDFASTContext {
   }
 
  private:
+  // The symbol table for the UDF.
   std::unordered_map<std::string, type::TypeId> symbol_table_;
+  // Collection of local variable names for the UDF.
   std::vector<std::string> local_variables_;
+  // Collection of record types for the UDF.
   std::unordered_map<std::string, std::vector<std::pair<std::string, type::TypeId>>> record_types_;
 };
 

@@ -1,7 +1,5 @@
 #pragma once
 
-// TODO(Kyle): This whole file needs documentation.
-
 namespace noisepage {
 namespace execution {
 namespace ast {

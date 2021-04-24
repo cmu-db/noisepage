@@ -50,8 +50,8 @@ class CompilationContext {
    * @param mode The compilation mode.
    * @param override_qid Optional indicating how to override the plan's query id
    * @param query_text The SQL query string (temporary)
-   * @param output_callback TODO(Kyle)
-   * @param context TODO(Kyle)
+   * @param output_callback The lambda utilized as the output callback for the query
+   * @param context The AST context for the query
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
                                                   const exec::ExecutionSettings &exec_settings,

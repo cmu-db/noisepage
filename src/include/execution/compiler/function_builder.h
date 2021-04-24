@@ -2,6 +2,7 @@
 
 #include <string>
 #include <utility>
+#include <variant>
 
 #include "execution/ast/identifier.h"
 #include "execution/compiler/ast_fwd.h"
@@ -82,16 +83,16 @@ class FunctionBuilder {
                                                       ast::Expr *ret = nullptr);
 
   /**
-   * @return The final constructed function; null if the builder hasn't been constructed through
-   *         FunctionBuilder::Finish().
+   * @return The final constructed function, or nullptr if the builder
+   * hasn't been constructed through FunctionBuilder::Finish().
    */
-  ast::FunctionDecl *GetConstructedFunction() const { return decl_.fn_decl_; }
+  ast::FunctionDecl *GetConstructedFunction() const { return std::get<ast::FunctionDecl *>(decl_); }
 
   /**
-   * @return The final constructed lambda; null if the builder hasn't been constructed through
-   *         FunctionBuilder::FinishLambda().
+   * @return The final constructed lambda, or nullptr if the builder
+   * hasn't been constructed through FunctionBuilder::FinishLambda().
    */
-  ast::LambdaExpr *GetConstructedLambda() const { return decl_.lambda_expr_; }
+  ast::LambdaExpr *GetConstructedLambda() const { return std::get<ast::LambdaExpr *>(decl_); }
 
   /**
    * @return The code generator instance.
@@ -111,16 +112,10 @@ class FunctionBuilder {
   SourcePosition start_;
   // The list of generated statements making up the function.
   ast::BlockStmt *statements_;
-
   // `true` if this function is a lambda, `false` otherwise.
   bool is_lambda_;
-
   // The cached function declaration. Constructed once in Finish().
-  // TODO(Kyle): This needs to be a variant...
-  union {
-    ast::FunctionDecl *fn_decl_{nullptr};
-    ast::LambdaExpr *lambda_expr_;
-  } decl_;
+  std::variant<ast::FunctionDecl *, ast::LambdaExpr *> decl_;
 };
 
 }  // namespace noisepage::execution::compiler

@@ -766,9 +766,12 @@ class ForStmt : public IterationStmt {
   friend class sema::Sema;
 
   /**
-   * TODO(Kyle): Why?
+   * Set the condition for the for-loop.
    */
-  void SetCond(Expr *cond) { cond_ = cond; }
+  void SetCondition(Expr *cond) {
+    NOISEPAGE_ASSERT(cond != nullptr, "Cannot set null condition");
+    cond_ = cond;
+  }
 
  private:
   Stmt *init_;
@@ -870,6 +873,9 @@ class IfStmt : public Stmt {
  private:
   friend class sema::Sema;
 
+  /**
+   * Set the condition for the if-statement.
+   */
   void SetCondition(Expr *cond) {
     NOISEPAGE_ASSERT(cond != nullptr, "Cannot set null condition");
     cond_ = cond;
@@ -1183,7 +1189,7 @@ class CallExpr : public Expr {
   uint32_t NumArgs() const { return static_cast<uint32_t>(args_.size()); }
 
   /**
-   * TODO(Kyle): Document.
+   * Add an argument to the call.
    */
   void PushArgument(Expr *expr) { args_.push_back(expr); }
 
@@ -1909,12 +1915,19 @@ class MapTypeRepr : public Expr {
 
 /**
  * Lambda type.
- * TODO(Kyle): Document.
  */
 class LambdaTypeRepr : public Expr {
  public:
+  /**
+   * Constructor
+   * @param pos source position
+   * @param fn_type function type
+   */
   LambdaTypeRepr(const SourcePosition &pos, Expr *fn_type) : Expr(Kind::LambdaTypeRepr, pos), fn_type_(fn_type) {}
 
+  /**
+   * @return The expression for the type.
+   */
   Expr *FunctionType() const { return fn_type_; }
 
   static bool classof(const AstNode *node) {  // NOLINT

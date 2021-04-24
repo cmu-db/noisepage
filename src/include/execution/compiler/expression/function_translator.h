@@ -34,12 +34,14 @@ class FunctionTranslator : public ExpressionTranslator {
   ast::Expr *DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const override;
 
   /**
-   * TODO(Kyle): this.
+   * Define the helper functions for this function translator.
+   * @param decls The collection of helper function declarations
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
-   * TODO(Kyle): this.
+   * Define the helper structs for this function translator.
+   * @param decls The collection of helper struct declarations
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 

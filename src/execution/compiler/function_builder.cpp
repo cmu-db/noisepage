@@ -7,21 +7,23 @@ namespace noisepage::execution::compiler {
 
 FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier name, util::RegionVector<ast::FieldDecl *> &&params,
                                  ast::Expr *ret_type)
-    : codegen_(codegen),
-      name_(name),
-      params_(std::move(params)),
-      ret_type_(ret_type),
-      start_(codegen->GetPosition()),
-      statements_(codegen->MakeEmptyBlock()),
-      is_lambda_(false) {}
+    : codegen_{codegen},
+      name_{name},
+      params_{std::move(params)},
+      ret_type_{ret_type},
+      start_{codegen->GetPosition()},
+      statements_{codegen->MakeEmptyBlock()},
+      is_lambda_{false},
+      decl_{std::in_place_type<ast::FunctionDecl *>, nullptr} {}
 
 FunctionBuilder::FunctionBuilder(CodeGen *codegen, util::RegionVector<ast::FieldDecl *> &&params, ast::Expr *ret_type)
-    : codegen_(codegen),
-      params_(std::move(params)),
-      ret_type_(ret_type),
-      start_(codegen->GetPosition()),
-      statements_(codegen->MakeEmptyBlock()),
-      is_lambda_(true) {}
+    : codegen_{codegen},
+      params_{std::move(params)},
+      ret_type_{ret_type},
+      start_{codegen->GetPosition()},
+      statements_{codegen->MakeEmptyBlock()},
+      is_lambda_{true},
+      decl_{std::in_place_type<ast::LambdaExpr *>, nullptr} {}
 
 FunctionBuilder::~FunctionBuilder() { Finish(); }
 
@@ -44,8 +46,11 @@ void FunctionBuilder::Append(ast::Expr *expr) { Append(codegen_->GetFactory()->N
 void FunctionBuilder::Append(ast::VariableDecl *decl) { Append(codegen_->GetFactory()->NewDeclStmt(decl)); }
 
 ast::FunctionDecl *FunctionBuilder::Finish(ast::Expr *ret) {
-  if (decl_.fn_decl_ != nullptr) {
-    return decl_.fn_decl_;
+  NOISEPAGE_ASSERT(!is_lambda_, "Attempt to call Finish() on a FunctionDecl that is a lambda");
+  NOISEPAGE_ASSERT(std::holds_alternative<ast::FunctionDecl *>(decl_), "Broken invariant");
+  auto *declaration = std::get<ast::FunctionDecl *>(decl_);
+  if (declaration != nullptr) {
+    return declaration;
   }
 
   NOISEPAGE_ASSERT(ret == nullptr || statements_->IsEmpty() || !statements_->GetLast()->IsReturnStmt(),
@@ -66,17 +71,17 @@ ast::FunctionDecl *FunctionBuilder::Finish(ast::Expr *ret) {
 
   // Create the declaration.
   auto func_lit = codegen_->GetFactory()->NewFunctionLitExpr(func_type, statements_);
-  decl_.fn_decl_ = codegen_->GetFactory()->NewFunctionDecl(start_, name_, func_lit);
-
-  // Done
-  return decl_.fn_decl_;
+  decl_ = codegen_->GetFactory()->NewFunctionDecl(start_, name_, func_lit);
+  return std::get<ast::FunctionDecl *>(decl_);
 }
 
 noisepage::execution::ast::LambdaExpr *FunctionBuilder::FinishLambda(util::RegionVector<ast::Expr *> &&captures,
                                                                      ast::Expr *ret) {
-  NOISEPAGE_ASSERT(is_lambda_, "Asking to finish a lambda function that's not actually a lambda function");
-  if (decl_.lambda_expr_ != nullptr) {
-    return decl_.lambda_expr_;
+  NOISEPAGE_ASSERT(is_lambda_, "Attempt to call FinishLambda() on a FunctionDecl that is not a lambda");
+  NOISEPAGE_ASSERT(std::holds_alternative<ast::LambdaExpr *>(decl_), "Broken invariant");
+  auto *declaration = std::get<ast::LambdaExpr *>(decl_);
+  if (declaration != nullptr) {
+    return declaration;
   }
 
   NOISEPAGE_ASSERT(ret == nullptr || statements_->IsEmpty() || !statements_->GetLast()->IsReturnStmt(),
@@ -94,10 +99,8 @@ noisepage::execution::ast::LambdaExpr *FunctionBuilder::FinishLambda(util::Regio
 
   // Create the declaration.
   auto func_lit = codegen_->GetFactory()->NewFunctionLitExpr(func_type, statements_);
-  decl_.lambda_expr_ = codegen_->GetFactory()->NewLambdaExpr(start_, func_lit, std::move(captures));
-
-  // Done
-  return decl_.lambda_expr_;
+  decl_ = codegen_->GetFactory()->NewLambdaExpr(start_, func_lit, std::move(captures));
+  return std::get<ast::LambdaExpr *>(decl_);
 }
 
 }  // namespace noisepage::execution::compiler

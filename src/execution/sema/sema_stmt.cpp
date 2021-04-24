@@ -66,7 +66,7 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
       auto context = GetContext();
       auto factory = context->GetNodeFactory();
       auto args = util::RegionVector<ast::Expr *>({node->Condition()}, context->GetRegion());
-      node->SetCond(factory->NewBuiltinCallExpr(
+      node->SetCondition(factory->NewBuiltinCallExpr(
           factory->NewIdentifierExpr(node->Position(),
                                      GetContext()->GetBuiltinFunction(execution::ast::Builtin::SqlToBool)),
           std::move(args)));
