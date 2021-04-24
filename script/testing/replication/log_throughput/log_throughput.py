@@ -5,15 +5,16 @@ from typing import List
 
 import pandas as pd
 
+from ...util.constants import LOG
+from ..utils_sql import replica_sync
 from .constants import *
 from .log_shipper import LogShipper
 from .log_sink import LogSink
-from .metrics_file_util import get_results_dir, delete_metrics_file, create_results_dir, \
-    move_metrics_file_to_results_dir, delete_metrics_files
-from .node_server import PrimaryNode, ReplicaNode, NodeServer
+from .metrics_file_util import (create_results_dir, delete_metrics_file,
+                                delete_metrics_files, get_results_dir,
+                                move_metrics_file_to_results_dir)
+from .node_server import NodeServer, PrimaryNode, ReplicaNode
 from .test_type import TestType
-from ..utils_sql import replica_sync
-from ...util.constants import LOG
 
 """
 This file helps to generate load for the a NoisePage server. Then using the metrics collection framework will calculate 

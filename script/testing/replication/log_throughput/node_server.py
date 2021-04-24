@@ -1,17 +1,17 @@
 import os.path
 import re
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Union
 
 import zmq
 
-from .constants import *
-from .test_type import TestType
 from ...oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
 from ...oltpbench.test_case_oltp import TestCaseOLTPBench
 from ...oltpbench.test_oltpbench import TestOLTPBench
 from ...util.db_server import NoisePageServer
+from .constants import *
+from .test_type import TestType
 
 
 class NodeServer(ABC):

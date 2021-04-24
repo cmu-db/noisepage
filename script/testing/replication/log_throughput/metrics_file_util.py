@@ -2,8 +2,8 @@ import os
 import time
 from typing import Set
 
-from .constants import RESULTS_DIR
 from ...util.constants import LOG
+from .constants import RESULTS_DIR
 
 """
 This file exposes a bunch of helper methods for interacting with metric csv files

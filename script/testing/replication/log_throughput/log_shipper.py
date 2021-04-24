@@ -4,8 +4,8 @@ from time import sleep
 import zmq
 from zmq import Socket
 
-from .node_server import ImposterNode
 from ...util.constants import LOG
+from .node_server import ImposterNode
 
 
 class LogShipper(ImposterNode):

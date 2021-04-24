@@ -1,7 +1,7 @@
 import argparse
 
-from .constants import DEFAULT_CONNECTION_THREADS, DEFAULT_BENCHMARK, \
-    DEFAULT_SCALE_FACTOR, TATP, TPCC, YCSB
+from .constants import (DEFAULT_BENCHMARK, DEFAULT_CONNECTION_THREADS,
+                        DEFAULT_SCALE_FACTOR, TATP, TPCC, YCSB)
 from .log_throughput import log_throughput
 from .test_type import TestType
 
