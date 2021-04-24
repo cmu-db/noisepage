@@ -645,25 +645,59 @@ class FunctionType : public Type {
    */
   Type *GetReturnType() const { return ret_; }
 
+  /**
+   * Determine if this function is equivalent to `other`.
+   * @param other The other function of interest
+   * @return `true` if the functions are equivalent, `false` otherwise.
+   */
   bool IsEqual(const FunctionType *other);
 
+  /**
+   * @return `true` if this function is a lambda, `false` otherwise.
+   */
   bool IsLambda() const { return is_lambda_; }
 
+  /**
+   * Set the lambda disposition for this function.
+   * @param `true` if this function is a lambda, `false` otherwise.
+   */
+  void SetIsLambda(bool is_lambda) { is_lambda_ = is_lambda; }
+
+  /**
+   * Get the type of the lambda captures struct.
+   * @return The struct type for lambda captures.
+   */
   ast::StructType *GetCapturesType() const {
     NOISEPAGE_ASSERT(is_lambda_, "Getting capture type from not lambda");
     return captures_;
   }
 
+  /**
+   * Set the type of the lambda captures struct.
+   * @param captures The struct type for lambda captures.
+   */
+  void SetCapturesType(ast::StructType *captures) { captures_ = captures; }
+
+  /**
+   * Register lambda captures as a parameter to this function.
+   */
   void RegisterCapture();
 
   /**
-   * Create a function with parameters @em params and returning types of type @em ret.
+   * Create a function with parameters `params` and returning types of type `ret`.
    * @param params The parameters to the function.
    * @param ret The type of the object the function returns.
-   * @param is_lambda `true` if this function is a lambda, `false` otherwise.
    * @return The function type.
    */
-  static FunctionType *Get(util::RegionVector<Field> &&params, Type *ret, bool is_lambda);
+  static FunctionType *Get(util::RegionVector<Field> &&params, Type *ret);
+
+  /**
+   * Create a lambda function with params `params` and returning types of type `ret`.
+   * @param params The parameters to the function.
+   * @param ret The type of the object the function returns.
+   * @return The function type.
+   */
+  static FunctionType *GetLambda(util::RegionVector<Field> &&params, Type *ret);
 
   /**
    * @param type type to compare with
@@ -677,8 +711,8 @@ class FunctionType : public Type {
  private:
   util::RegionVector<Field> params_;
   Type *ret_;
-  const bool is_lambda_;
-  ast::StructType *captures_{};
+  bool is_lambda_;
+  ast::StructType *captures_;
 };
 
 /**
@@ -720,12 +754,17 @@ class MapType : public Type {
 
 /**
  * Lambda type.
- * TODO(Kyle): Document.
  */
 class LambdaType : public Type {
  public:
+  /**
+   * @return The function type representation.
+   */
   FunctionType *GetFunctionType() const { return fn_type_; }
 
+  /**
+   * @return A newly-constructed lambda type.
+   */
   static LambdaType *Get(FunctionType *fn_type);
 
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::LambdaType; }  // NOLINT

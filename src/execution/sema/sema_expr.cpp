@@ -167,49 +167,9 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
   node->SetType(func_type->GetReturnType());
 }
 
-// TODO(Kyle): Implement this
 void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
-  // make struct type
-  //  node->SetType(Resolve(node->GetFunctionLitExpr()->TypeRepr()));
-  //  const auto &locals = GetCurrentScope()->GetLocals();
   auto factory = GetContext()->GetNodeFactory();
   util::RegionVector<ast::FieldDecl *> fields(GetContext()->GetRegion());
-  //  std::unordered_set<ast::Identifier> used_idents;
-  // TODO support more than just assignment statements
-  //  for(auto s : node->GetFunctionLitExpr()->Body()->Statements()){
-  //    if(s->IsAssignmentStmt()) {
-  //      auto expr = s->As<ast::AssignmentStmt>()->Destination()->As<ast::IdentifierExpr>();
-  //      used_idents.insert(expr->Name());
-  //      auto s_expr = s->As<ast::AssignmentStmt>()->Source()->SafeAs<ast::IdentifierExpr>();
-  //      if(s_expr != nullptr){
-  //        used_idents.insert(s_expr->Name());
-  //      }
-  //    }
-  //  }
-  //  for(auto local : used_idents){
-  //    auto name = local;
-  //    auto iter = std::find_if(locals.begin(), locals.end(), [=](auto p){ return p.first == name; });
-  //    if(iter == locals.end()){
-  //      continue;
-  //    }
-  //    auto type = iter->second;
-  //    ast::Expr *type_repr = nullptr;
-  //    if(type->IsBuiltinType()) {
-  //      type_repr = factory->NewPointerType(SourcePosition(),
-  //                                          factory->NewIdentifierExpr(SourcePosition(),
-  //                                          GetContext()->GetIdentifier(ast::BuiltinType::Get(GetContext(),
-  //                                                                    type->As<ast::BuiltinType>()->GetKind())
-  //                                                  ->GetTplName())));
-  //    }else{
-  //      if(type->IsLambdaType()){
-  //        continue;
-  //      }
-  //      NOISEPAGE_ASSERT(false, "UNSUPPORTED CAPTURED TYPE");
-  //    }
-  //    type_repr->SetType(type->PointerTo());
-  //    ast::FieldDecl *field = factory->NewFieldDecl(SourcePosition(), name, type_repr);
-  //    fields.push_back(field);
-  //  }
   for (auto expr : node->GetCaptureIdents()) {
     auto ident = expr->As<ast::IdentifierExpr>();
     Resolve(ident);
@@ -244,22 +204,21 @@ void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
                             factory->NewPointerType(SourcePosition(), node->GetFunctionLitExpr()->TypeRepr())));
 
   ast::StructTypeRepr *struct_type_repr = factory->NewStructType(SourcePosition(), std::move(fields));
-  // TODO(tanujnay112) Find a better name
+  // TODO(Kyle): Find a better name for this identifier
   ast::StructDecl *struct_decl = factory->NewStructDecl(
       SourcePosition(), GetContext()->GetIdentifier("lambda" + std::to_string(node->Position().line_)),
       struct_type_repr);
   VisitStructDecl(struct_decl);
   node->SetCaptureStructType(Resolve(struct_type_repr));
   node->SetType(ast::LambdaType::Get(Resolve(node->GetFunctionLitExpr()->TypeRepr())->As<ast::FunctionType>()));
-  //  GetCurrentScope()->Declare(struct_decl->Name(), node->capture_type_);
 
-  // TODO(Kyle): Why do we need to modify internals?
-  // auto type = Resolve(node->GetFunctionLitExpr()->TypeRepr());
-  // auto fn_type = type->As<ast::FunctionType>();
-  // fn_type->GetParams().emplace_back(GetContext()->GetIdentifier("captures"),
-  //                               GetBuiltinType(ast::BuiltinType::Kind::Int32)->PointerTo());
-  // fn_type->is_lambda_ = true;
-  // fn_type->captures_ = node->GetCaptureStructType()->As<ast::StructType>();
+  // TODO(Kyle): Why are we performing so much mutation in semantic analysis?
+  auto type = Resolve(node->GetFunctionLitExpr()->TypeRepr());
+  auto fn_type = type->As<ast::FunctionType>();
+  fn_type->GetParams().emplace_back(GetContext()->GetIdentifier("captures"),
+                                    GetBuiltinType(ast::BuiltinType::Kind::Int32)->PointerTo());
+  fn_type->SetIsLambda(true);
+  fn_type->SetCapturesType(node->GetCaptureStructType()->As<ast::StructType>());
 
   VisitFunctionLitExpr(node->GetFunctionLitExpr());
 }

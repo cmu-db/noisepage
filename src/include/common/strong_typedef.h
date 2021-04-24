@@ -102,7 +102,6 @@ class StrongTypeAlias {
    */
   constexpr const IntType &UnderlyingValue() const { return val_; }
 
-  // TODO(Kyle): perhaps remove ability to static_cast to underlying value altogether.
   /**
    *
    * @return the underlying value

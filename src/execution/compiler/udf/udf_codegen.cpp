@@ -27,8 +27,6 @@
 
 #include "planner/plannodes/abstract_plan_node.h"
 
-// TODO(Kyle): Documentation.
-
 namespace noisepage {
 namespace execution {
 namespace compiler {
@@ -42,7 +40,7 @@ UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
       codegen_{codegen},
       aux_decls_(codegen->GetAstContext()->GetRegion()),
       db_oid_{db_oid} {
-  for (size_t i = 0; fb->GetParameterByPosition(i) != nullptr; i++) {
+  for (auto i = 0UL; fb->GetParameterByPosition(i) != nullptr; ++i) {
     auto param = fb->GetParameterByPosition(i);
     const auto &name = param->As<execution::ast::IdentifierExpr>()->Name();
     str_to_ident_.emplace(name.GetString(), name);
@@ -53,9 +51,13 @@ const char *UDFCodegen::GetReturnParamString() { return "return_val"; }
 
 void UDFCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
 
-void UDFCodegen::Visit(ast::udf::AbstractAST *ast) { UNREACHABLE("Not implemented"); }
+void UDFCodegen::Visit(ast::udf::AbstractAST *ast) {
+  throw NOT_IMPLEMENTED_EXCEPTION("UDFCodegen::Visit(AbstractAST*)");
+}
 
-void UDFCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) { UNREACHABLE("Not implemented"); }
+void UDFCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) {
+  throw NOT_IMPLEMENTED_EXCEPTION("UDFCodegen::Visit(DynamicSQLStmtAST*)");
+}
 
 catalog::type_oid_t UDFCodegen::GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type) {
   switch (type) {
@@ -111,7 +113,7 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
       ident_expr = it->second;
     } else {
       auto file = reinterpret_cast<execution::ast::File *>(
-          execution::ast::AstClone::Clone(context->GetFile(), codegen_->GetAstContext()->GetNodeFactory(), "",
+          execution::ast::AstClone::Clone(context->GetFile(), codegen_->GetAstContext()->GetNodeFactory(),
                                           context->GetASTContext(), codegen_->GetAstContext().Get()));
       for (auto decl : file->Declarations()) {
         aux_decls_.push_back(decl);
@@ -322,14 +324,11 @@ void UDFCodegen::Visit(ast::udf::SeqStmtAST *ast) {
 void UDFCodegen::Visit(ast::udf::WhileStmtAST *ast) {
   ast->cond_expr->Accept(this);
   auto cond = dst_;
-  //  cond = codegen_->Compare(execution::parsing::Token::Type::EQUAL_EQUAL, cond, )
-  //  cond = codegen_->CallBuiltin(execution::ast::Builtin::SqlToBool, {cond});
   Loop loop(fb_, cond);
   ast->body_stmt->Accept(this);
   loop.EndLoop();
 }
 
-// TODO(Kyle): Implement
 void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // Once we encounter a For-statement we know we need an execution context
   needs_exec_ctx_ = true;
@@ -419,7 +418,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
 
   std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second < y->second; });
   for (auto entry : sorted_vec) {
-    // TODO(Kyle): order these
+    // TODO(Kyle): Order these
     type::TypeId type = type::TypeId::INVALID;
     udf_ast_context_->GetVariableType(entry->first, &type);
     execution::ast::Builtin builtin{};
@@ -479,7 +478,6 @@ void UDFCodegen::Visit(ast::udf::RetStmtAST *ast) {
   fb_->Append(codegen_->Return(ret_expr));
 }
 
-// TODO(Kyle): Implement
 void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   // As soon as we encounter an embedded SQL statement,
   // we know we need an execution context

@@ -213,10 +213,8 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
   query->SetQueryText(query_text);
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), accessor, mode, exec_settings, output_callback);
+  CompilationContext ctx{query.get(), accessor, mode, exec_settings, output_callback};
   ctx.GeneratePlan(plan);
-
-  // TODO(Kyle): hacking
   query->SetQueryStateType(ctx.query_state_.GetType());
 
   // Done

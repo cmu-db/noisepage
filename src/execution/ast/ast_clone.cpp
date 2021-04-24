@@ -16,9 +16,8 @@ namespace noisepage::execution::ast {
 
 class AstCloneImpl : public AstVisitor<AstCloneImpl, AstNode *> {
  public:
-  explicit AstCloneImpl(AstNode *root, AstNodeFactory *factory, Context *old_context, Context *new_context,
-                        std::string prefix)
-      : root_(root), factory_{factory}, old_context_{old_context}, new_context_{new_context}, prefix_{prefix} {}
+  explicit AstCloneImpl(AstNode *root, AstNodeFactory *factory, Context *old_context, Context *new_context)
+      : root_(root), factory_{factory}, old_context_{old_context}, new_context_{new_context} {}
 
   AstNode *Run() { return Visit(root_); }
 
@@ -35,14 +34,16 @@ class AstCloneImpl : public AstVisitor<AstCloneImpl, AstNode *> {
   }
 
  private:
+  // The root of the AST to clone.
   AstNode *root_;
+  // The AST node factory used to allocate new nodes.
   AstNodeFactory *factory_;
-
+  // The AST context of the source AST.
   Context *old_context_;
+  // The AST context of the destination AST.
   Context *new_context_;
-  std::string prefix_;
 
-  llvm::DenseMap<llvm::StringRef, llvm::StringRef> allocated_strings_;
+  // llvm::DenseMap<llvm::StringRef, llvm::StringRef> allocated_strings_;
 };
 
 AstNode *AstCloneImpl::VisitFile(File *node) {
@@ -155,10 +156,7 @@ AstNode *AstCloneImpl::VisitIdentifierExpr(IdentifierExpr *node) {
   return factory_->NewIdentifierExpr(node->Position(), CloneIdentifier(node->Name()));
 }
 
-AstNode *AstCloneImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
-  // TODO(Kyle): The type might have to be cloned
-  return Visit(node->Input());
-}
+AstNode *AstCloneImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) { return Visit(node->Input()); }
 
 AstNode *AstCloneImpl::VisitIndexExpr(IndexExpr *node) {
   return factory_->NewIndexExpr(node->Position(), reinterpret_cast<Expr *>(Visit(node->Object())),
@@ -253,9 +251,8 @@ AstNode *AstCloneImpl::VisitLambdaTypeRepr(LambdaTypeRepr *node) {
   return factory_->NewLambdaType(node->Position(), reinterpret_cast<Expr *>(Visit(node->FunctionType())));
 }
 
-AstNode *AstClone::Clone(AstNode *node, AstNodeFactory *factory, std::string prefix, Context *old_context,
-                         Context *new_context) {
-  AstCloneImpl cloner(node, factory, old_context, new_context, prefix);
+AstNode *AstClone::Clone(AstNode *node, AstNodeFactory *factory, Context *old_context, Context *new_context) {
+  AstCloneImpl cloner{node, factory, old_context, new_context};
   return cloner.Run();
 }
 

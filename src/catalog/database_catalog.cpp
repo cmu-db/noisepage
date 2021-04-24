@@ -442,7 +442,6 @@ proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::
                                             const std::string &src, bool is_aggregate) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
   proc_oid_t oid = proc_oid_t{next_oid_++};
-  // TODO(Kyle): Why did Tanuj have his own implementation here?
   const auto result = pg_proc_.CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types,
                                                arg_modes, rettype, src, is_aggregate);
   return result ? oid : INVALID_PROC_OID;

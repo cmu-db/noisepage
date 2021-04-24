@@ -113,7 +113,6 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
     // The Postgres documentation says that provariadic should be 0 if no variadics are present.
     // Otherwise, it is the data type of the variadic array parameter's elements.
     // TODO(WAN): Hang on, how are we using CreateProcedure for variadics then?
-    // TODO(Kyle): Good question^
     PgProc::PROVARIADIC.Set(delta, pm, type_oid_t{0});                                   // Assume no variadics.
     PgProc::PROISAGG.Set(delta, pm, is_aggregate);                                       // Whether aggregate or not.
     PgProc::PROISWINDOW.Set(delta, pm, false);                                           // Not window.

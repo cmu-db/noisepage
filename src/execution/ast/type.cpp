@@ -97,7 +97,7 @@ bool FunctionType::IsEqual(const FunctionType *other) {
     return false;
   }
 
-  for (size_t i = 0; i < params_.size(); i++) {
+  for (auto i = 0UL; i < params_.size(); i++) {
     if (params_[i].type_ != other->params_[i].type_) {
       return false;
     }
@@ -107,7 +107,7 @@ bool FunctionType::IsEqual(const FunctionType *other) {
 }
 
 void FunctionType::RegisterCapture() {
-  NOISEPAGE_ASSERT(captures_ != nullptr, "no capture given?");
+  NOISEPAGE_ASSERT(captures_ != nullptr, "No capture given");
   params_.emplace_back(GetContext()->GetIdentifier("captures"), captures_);
 }
 

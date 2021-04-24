@@ -2841,11 +2841,6 @@ void Sema::CheckBuiltinAbortCall(ast::CallExpr *call) {
 }
 
 void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
-  // TODO(Kyle): Revisit.
-  // if (!CheckArgCount(call, 1)) {
-  //   return;
-  // }
-
   // first argument is an exec ctx
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
   if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {

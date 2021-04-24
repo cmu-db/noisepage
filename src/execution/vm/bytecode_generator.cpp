@@ -135,7 +135,6 @@ class BytecodeGenerator::BytecodePositionScope {
 // Bytecode Generator begins
 // ---------------------------------------------------------
 
-// TODO(Kyle): reserve here on functions?
 BytecodeGenerator::BytecodeGenerator() noexcept : emitter_(&code_) {}
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
@@ -300,20 +299,21 @@ void BytecodeGenerator::VisitIdentifierExpr(ast::IdentifierExpr *node) {
 
   if (local.IsInvalid()) {
     NOISEPAGE_ASSERT(GetCurrentFunction()->is_lambda_, "Not a lambda and variable not found");
-
-    // TODO(Kyle): modularize this fetch of capture struct
     auto params = GetCurrentFunction()->func_type_->GetParams();
     auto captures = GetCurrentFunction()->func_type_->GetCapturesType();
     for (auto field : captures->GetFieldsWithoutPadding()) {
-      // TODO(Kyle): cache these
       if (field.name_.GetString() == local_name) {
         auto captures_local = GetCurrentFunction()->LookupLocal("captures");
+
         auto local_ptr = GetCurrentFunction()->NewLocal(field.type_->PointerTo());
         GetEmitter()->EmitLea(local_ptr, captures_local.ValueOf(), captures->GetOffsetOfFieldByName(field.name_));
+
         auto local_ptr_2 = GetCurrentFunction()->NewLocal(field.type_, local_name + "ptr");
         GetEmitter()->EmitDerefN(local_ptr_2, local_ptr.ValueOf(), field.type_->GetSize());
+
         local = local_ptr_2;
         suffix = "ptr";
+
         if (GetExecutionResult()->IsRValue()) {
           local = GetCurrentFunction()->NewLocal(field.type_->GetPointeeType(), "");
           GetEmitter()->EmitDerefN(local, local_ptr_2.ValueOf(), field.type_->GetPointeeType()->GetSize());
@@ -328,9 +328,8 @@ void BytecodeGenerator::VisitIdentifierExpr(ast::IdentifierExpr *node) {
   NOISEPAGE_ASSERT(!local.IsInvalid(), "Local not found");
 
   if (GetExecutionResult()->IsLValue()) {
-    // TODO(Kyle): crappy names
-    auto *local_info_2 = GetCurrentFunction()->LookupLocalInfoByOffset(local.GetOffset());
-    if (local_info_2->GetType()->IsPointerType() && local_info_2->GetType()->GetPointeeType()->IsSqlValueType()) {
+    auto *local_info = GetCurrentFunction()->LookupLocalInfoByOffset(local.GetOffset());
+    if (local_info->GetType()->IsPointerType() && local_info->GetType()->GetPointeeType()->IsSqlValueType()) {
       GetExecutionResult()->SetDestination(local.ValueOf());
     } else {
       GetExecutionResult()->SetDestination(local);

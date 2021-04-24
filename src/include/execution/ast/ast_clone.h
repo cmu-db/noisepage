@@ -9,17 +9,18 @@ namespace noisepage::execution::ast {
 
 class AstNode;
 
-/**
- * TODO(Kyle): Document.
- */
 class AstClone {
  public:
   /**
    * Clones an ASTNode and its descendants.
-   * TODO(Kyle): Document.
+   * @param node The root of the AST to clone.
+   * @param factory The AstNodeFactory instance from which AST nodes are allocated.
+   * @param prefix The
+   * @param old_context
+   * @param new_context
+   * @return
    */
-  static AstNode *Clone(AstNode *node, AstNodeFactory *factory, std::string prefix, Context *old_context,
-                        Context *new_context);
+  static AstNode *Clone(AstNode *node, AstNodeFactory *factory, Context *old_context, Context *new_context);
 };
 
 }  // namespace noisepage::execution::ast

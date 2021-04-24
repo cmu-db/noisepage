@@ -45,7 +45,7 @@ class FunctionBuilder {
   /**
    * @return A reference to a function parameter by its ordinal position.
    */
-  ast::Expr *GetParameterByPosition(uint32_t param_idx);
+  ast::Expr *GetParameterByPosition(std::size_t param_idx);
 
   /**
    * Append a statement to the list of statements in this function.

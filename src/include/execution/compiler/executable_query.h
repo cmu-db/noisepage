@@ -65,10 +65,22 @@ class ExecutableQuery {
    public:
     /**
      * Construct a fragment composed of the given functions from the given module.
+     *
+     * This constructor assumes that no file is present for the fragment.
+     *
      * @param functions The name of the functions to execute, in order.
      * @param teardown_fns The name of the teardown functions in the module, in order.
      * @param module The module that contains the functions.
-     * @param file TODO(Kyle): this
+     */
+    Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
+             std::unique_ptr<vm::Module> module);
+
+    /**
+     * Construct a fragment composed of the given functions from the given module.
+     * @param functions The name of the functions to execute, in order.
+     * @param teardown_fns The name of the teardown functions in the module, in order.
+     * @param module The module that contains the functions.
+     * @param file The file associated with the fragment
      */
     Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
              std::unique_ptr<vm::Module> module, ast::File *file);
@@ -101,11 +113,13 @@ class ExecutableQuery {
     ast::File *GetFile() { return file_; };
 
    private:
-    // The functions that must be run (in the provided order) to execute this
-    // query fragment.
+    // The functions that must be run (in the provided order)
+    // to execute this query fragment.
     std::vector<std::string> functions_;
 
-    std::vector<std::string> teardown_fn_;
+    // The functions that must be run (in the provided order)
+    // to tear down this query fragment.
+    std::vector<std::string> teardown_fns_;
 
     // The module.
     std::unique_ptr<vm::Module> module_;
@@ -209,7 +223,8 @@ class ExecutableQuery {
 
   // The AST context used to generate the TPL AST.
   ast::Context *ast_context_;
-  bool owned{true};
+  // Denotes whether or not the ExecutableQuery owns the AST context.
+  bool owns_ast_context_;
 
   // The compiled query fragments that make up the query.
   std::vector<std::unique_ptr<Fragment>> fragments_;

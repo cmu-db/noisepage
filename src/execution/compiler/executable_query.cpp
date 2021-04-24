@@ -23,9 +23,16 @@ namespace noisepage::execution::compiler {
 //
 //===----------------------------------------------------------------------===//
 
-ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fn,
+ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
+                                    std::unique_ptr<vm::Module> module)
+    : functions_{std::move(functions)}, teardown_fns_{std::move(teardown_fns)}, module_{std::move(module)} {}
+
+ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
                                     std::unique_ptr<vm::Module> module, ast::File *file)
-    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)), file_(file) {}
+    : functions_{std::move(functions)},
+      teardown_fns_{std::move(teardown_fns)},
+      module_{std::move(module)},
+      file_{file} {}
 
 ExecutableQuery::Fragment::~Fragment() = default;
 
@@ -45,7 +52,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
     try {
       func(query_state);
     } catch (const AbortException &e) {
-      for (const auto &teardown_name : teardown_fn_) {
+      for (const auto &teardown_name : teardown_fns_) {
         if (!module_->GetFunction(teardown_name, mode, &func)) {
           throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name),
                                     common::ErrorCode::ERRCODE_INTERNAL_ERROR);
@@ -89,11 +96,9 @@ ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const ex
       query_state_size_{0},
       pipeline_operating_units_{nullptr},
       query_id_{query_identifier++} {
-  if (ast_context_ == nullptr) {
+  owns_ast_context_ = (ast_context_ == nullptr);
+  if (owns_ast_context_) {
     ast_context_ = new ast::Context(context_region_.get(), errors_.get());
-    owned = true;
-  } else {
-    owned = false;
   }
 }
 
@@ -106,13 +111,11 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
       exec_settings_{exec_settings},
       context_region_{std::make_unique<util::Region>("context_region")},
       errors_region_{std::make_unique<util::Region>("error_region")},
-      errors_{std::make_unique<sema::ErrorReporter>(errors_region_.get())} {
-  if (context) {
-    ast_context_ = context;
-    owned = false;
-  } else {
+      errors_{std::make_unique<sema::ErrorReporter>(errors_region_.get())},
+      ast_context_{context} {
+  owns_ast_context_ = (ast_context_ == nullptr);
+  if (owns_ast_context_) {
     ast_context_ = new ast::Context(context_region_.get(), errors_.get());
-    owned = true;
   }
   // Let's scan the source
   std::string source;
@@ -132,13 +135,11 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
   auto module = compiler::Compiler::RunCompilationSimple(input);
 
   std::vector<std::string> functions{"main"};
-  std::vector<std::string> teardown_functions;
+  std::vector<std::string> teardown_functions{};
 
-  // TODO(Kyle): bad API
-  auto fragment =
-      std::make_unique<Fragment>(std::move(functions), std::move(teardown_functions), std::move(module), nullptr);
+  auto fragment = std::make_unique<Fragment>(std::move(functions), std::move(teardown_functions), std::move(module));
 
-  std::vector<std::unique_ptr<Fragment>> fragments;
+  std::vector<std::unique_ptr<Fragment>> fragments{};
   fragments.emplace_back(std::move(fragment));
 
   Setup(std::move(fragments), query_state_size, nullptr);
@@ -151,8 +152,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 
 // Needed because we forward-declare classes used as template types to std::unique_ptr<>
 ExecutableQuery::~ExecutableQuery() {
-  // TODO(Kyle): This is a bad ownership model, revisit
-  if (owned) {
+  if (owns_ast_context_) {
     delete ast_context_;
   }
 }

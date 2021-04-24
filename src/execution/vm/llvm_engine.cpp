@@ -287,7 +287,6 @@ llvm::FunctionType *LLVMEngine::TypeMap::GetLLVMFunctionType(const ast::Function
   //
 
   for (const auto &param_info : func_type->GetParams()) {
-    // TODO(Kyle): make this read from bytecode stuff instead to avoid this
     if (param_info.type_->IsSqlValueType()) {
       param_types.push_back(GetLLVMType(param_info.type_->PointerTo()));
     } else {

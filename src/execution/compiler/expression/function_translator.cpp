@@ -56,7 +56,7 @@ void FunctionTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
     return;
   }
   auto *file = reinterpret_cast<execution::ast::File *>(
-      ast::AstClone::Clone(func_context->GetFile(), GetCodeGen()->GetAstContext()->GetNodeFactory(), "", nullptr,
+      ast::AstClone::Clone(func_context->GetFile(), GetCodeGen()->GetAstContext()->GetNodeFactory(), nullptr,
                            GetCodeGen()->GetAstContext().Get()));
   auto udf_decls = file->Declarations();
   main_fn_ = udf_decls.back()->Name();
@@ -77,7 +77,7 @@ void FunctionTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
     return;
   }
   auto *file = reinterpret_cast<execution::ast::File *>(
-      ast::AstClone::Clone(func_context->GetFile(), GetCodeGen()->GetAstContext()->GetNodeFactory(), "", nullptr,
+      ast::AstClone::Clone(func_context->GetFile(), GetCodeGen()->GetAstContext()->GetNodeFactory(), nullptr,
                            GetCodeGen()->GetAstContext().Get()));
   auto udf_decls = file->Declarations();
   size_t num_added = 0;

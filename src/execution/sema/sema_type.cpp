@@ -51,8 +51,7 @@ void Sema::VisitFunctionTypeRepr(ast::FunctionTypeRepr *node) {
   }
 
   // Create type
-  // TODO(Kyle): this is a bad API
-  ast::FunctionType *func_type = ast::FunctionType::Get(std::move(param_types), ret, false);
+  ast::FunctionType *func_type = ast::FunctionType::Get(std::move(param_types), ret);
   node->SetType(func_type);
 }
 

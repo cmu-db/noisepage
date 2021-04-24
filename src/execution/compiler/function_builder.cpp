@@ -25,7 +25,7 @@ FunctionBuilder::FunctionBuilder(CodeGen *codegen, util::RegionVector<ast::Field
 
 FunctionBuilder::~FunctionBuilder() { Finish(); }
 
-ast::Expr *FunctionBuilder::GetParameterByPosition(uint32_t param_idx) {
+ast::Expr *FunctionBuilder::GetParameterByPosition(const std::size_t param_idx) {
   if (param_idx < params_.size()) {
     return codegen_->MakeExpr(params_[param_idx]->Name());
   }

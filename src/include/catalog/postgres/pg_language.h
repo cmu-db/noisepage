@@ -21,7 +21,9 @@ class PgProcImpl;
 /** The OIDs used by the NoisePage version of pg_language. */
 class PgLanguage {
  private:
-  // TODO(Kyle): How do we want to expose these constants?
+  // TODO(Kyle): Should we come up with a better way of exposting
+  // these constants rather than simply adding friends for each
+  // class that needs to access them? This is not scalable.
   friend class storage::RecoveryManager;
   friend class execution::sql::DDLExecutors;
 
@@ -45,7 +47,6 @@ class PgLanguage {
   static constexpr CatalogColumnDef<bool> LANISPL{col_oid_t{3}};                     // BOOLEAN (skey)
   static constexpr CatalogColumnDef<bool> LANPLTRUSTED{col_oid_t{4}};                // BOOLEAN (skey)
 
-  // TODO(Kyle): Make these foreign keys when we implement pg_proc
   static constexpr CatalogColumnDef<proc_oid_t, uint32_t> LANPLCALLFOID{
       col_oid_t{5}};                                                                   // INTEGER (skey) (fkey: pg_proc)
   static constexpr CatalogColumnDef<proc_oid_t, uint32_t> LANINLINE{col_oid_t{6}};     // INTEGER (skey) (fkey: pg_proc)
