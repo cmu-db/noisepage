@@ -132,7 +132,7 @@ class BaseReplicationMessage {
   virtual ReplicationMessageType GetMessageType() const { return type_; }
 
   /** @return     Serialized form of this message. */
-  const std::string Serialize() const;
+  std::string Serialize() const;
 
   /** @return     The parsed replication message. */
   static std::unique_ptr<BaseReplicationMessage> ParseFromString(std::string_view str);

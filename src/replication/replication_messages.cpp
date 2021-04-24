@@ -41,7 +41,7 @@ MessageFacade BaseReplicationMessage::ToMessageFacade() const {
   return message;
 }
 
-const std::string BaseReplicationMessage::Serialize() const { return ToMessageFacade().Serialize(); }
+std::string BaseReplicationMessage::Serialize() const { return ToMessageFacade().Serialize(); }
 
 BaseReplicationMessage::BaseReplicationMessage(const MessageFacade &message)
     : type_(ReplicationMessageTypeFromString(message.Get<const std::string>(key_message_type))),
