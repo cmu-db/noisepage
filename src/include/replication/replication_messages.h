@@ -36,6 +36,7 @@ ENUM_DEFINE(ReplicationMessageType, uint8_t, REPLICATION_MESSAGE_TYPE_ENUM);
 class MessageFacade;
 DEFINE_JSON_HEADER_DECLARATIONS(MessageFacade);
 
+/** Abstraction over the underlying format used to send replication messages over the network */
 class MessageFacade {
  public:
   /** The underlying format of messages used in replication */
@@ -79,7 +80,7 @@ class MessageFacade {
    * format.
    *
    * @param cbor cbor input
-   * @returm parsed string
+   * @return parsed string
    *
    */
   static std::string FromCbor(const std::vector<uint8_t> &cbor) { return common::json::from_cbor(cbor); }
@@ -166,6 +167,7 @@ class BaseReplicationMessage {
   explicit BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata);
   /** Constructor (to receive). */
   explicit BaseReplicationMessage(const MessageFacade &message);
+  /** Converts message into MessageFacade form */
   virtual MessageFacade ToMessageFacade() const;
 
  private:
