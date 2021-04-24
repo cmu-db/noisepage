@@ -33,6 +33,9 @@ namespace noisepage::replication {
 ENUM_DEFINE(ReplicationMessageType, uint8_t, REPLICATION_MESSAGE_TYPE_ENUM);
 #undef REPLICATION_MESSAGE_TYPE_ENUM
 
+class MessageFacade;
+DEFINE_JSON_HEADER_DECLARATIONS(MessageFacade);
+
 class MessageFacade {
  public:
   /** The underlying format of messages used in replication */
@@ -98,6 +101,12 @@ class MessageFacade {
    * @return MessageFormat version of this message
    */
   MessageFormat ToUnderlyingMessageFormat() const { return underlying_message_; }
+
+  void SetUnderlyingMessage(MessageFormat message) { this->underlying_message_ = message; }
+
+  common::json ToJson() const { return ToUnderlyingMessageFormat(); }
+
+  void FromJson(const common::json &j) { SetUnderlyingMessage(j); }
 
  private:
   MessageFormat underlying_message_;

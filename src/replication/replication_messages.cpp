@@ -16,6 +16,10 @@ const char *RecordsBatchMsg::key_batch_id = "batch_id";
 const char *RecordsBatchMsg::key_contents = "contents";
 const char *TxnAppliedMsg::key_applied_txn_id = "applied_txn_id";
 
+// MessageFacade
+
+DEFINE_JSON_BODY_DECLARATIONS(MessageFacade);
+
 // ReplicationMessageMetadata
 
 MessageFacade ReplicationMessageMetadata::ToMessageFacade() const {
@@ -36,8 +40,7 @@ MessageFacade BaseReplicationMessage::ToMessageFacade() const {
   message.Put(key_message_type, ReplicationMessageTypeToString(type_));
   // Nested fields need to be the same type as underlying message format because MessageFacade isn't automatically
   // serialized
-  // TODO(Joe) probably a cleaner way of doing this by creating a custom serializer for MessageFacade
-  message.Put(key_metadata, metadata_.ToMessageFacade().ToUnderlyingMessageFormat());
+  message.Put(key_metadata, metadata_.ToMessageFacade());
   return message;
 }
 
@@ -45,8 +48,7 @@ std::string BaseReplicationMessage::Serialize() const { return ToMessageFacade()
 
 BaseReplicationMessage::BaseReplicationMessage(const MessageFacade &message)
     : type_(ReplicationMessageTypeFromString(message.Get<const std::string>(key_message_type))),
-      // TODO(Joe) look at above comment about custom serializers
-      metadata_(ReplicationMessageMetadata(MessageFacade(message.Get<MessageFacade::MessageFormat>(key_metadata)))) {}
+      metadata_(ReplicationMessageMetadata(message.Get<MessageFacade>(key_metadata))) {}
 
 BaseReplicationMessage::BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata)
     : type_(type), metadata_(metadata) {}
@@ -83,7 +85,7 @@ MessageFacade RecordsBatchMsg::ToMessageFacade() const {
 RecordsBatchMsg::RecordsBatchMsg(const MessageFacade &message)
     : BaseReplicationMessage(message),
       batch_id_(message.Get<record_batch_id_t>(key_batch_id)),
-      // TODO(Joe) figure out what this implicit conversion to string is
+      // TODO(Joe) What's going on here?
       contents_(MessageFacade::FromCbor(message.Get<std::vector<uint8_t>>(key_contents)).ToUnderlyingMessageFormat()) {}
 
 RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
