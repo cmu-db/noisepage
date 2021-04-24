@@ -48,11 +48,11 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
                                           const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   // Request permission from the Catalog to see if this a valid namespace name
   NOISEPAGE_ASSERT(node->GetUDFLanguage() == parser::PLType::PL_PGSQL, "Unsupported language");
-  NOISEPAGE_ASSERT(node->GetFunctionBody().size() >= 1, "Unsupported function body?");
+  NOISEPAGE_ASSERT(node->GetFunctionBody().size() >= 1, "Unsupported function body contents");
 
   // I don't like how we have to separate the two here
-  std::vector<type::TypeId> param_type_ids;
-  std::vector<catalog::type_oid_t> param_types;
+  std::vector<type::TypeId> param_type_ids{};
+  std::vector<catalog::type_oid_t> param_types{};
   for (auto t : node->GetFunctionParameterTypes()) {
     param_type_ids.push_back(parser::FuncParameter::DataTypeToTypeId(t));
     param_types.push_back(accessor->GetTypeOidFromTypeId(parser::FuncParameter::DataTypeToTypeId(t)));
@@ -66,10 +66,9 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
     return false;
   }
 
-  // make the context here using the body
+  // Make the context here using the body
   ast::udf::UDFASTContext udf_ast_context{};
-  // parser::udf::UDFContext udf_context;
-  parser::udf::PLpgSQLParser udf_parser((common::ManagedPointer(&udf_ast_context)), accessor, node->GetDatabaseOid());
+  parser::udf::PLpgSQLParser udf_parser{(common::ManagedPointer(&udf_ast_context)), accessor, node->GetDatabaseOid()};
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
     ast = udf_parser.ParsePLpgSQL(node->GetFunctionParameterNames(), std::move(param_type_ids), body,
@@ -79,66 +78,53 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   }
 
   auto region = new util::Region(node->GetFunctionName());
-  sema::ErrorReporter error_reporter(region);
-  auto ast_context = new ast::Context(region, &error_reporter);
+  sema::ErrorReporter error_reporter{region};
 
-  compiler::CodeGen codegen(ast_context, accessor.Get());
+  auto ast_context = std::make_unique<ast::Context>(region, &error_reporter);
+
+  compiler::CodeGen codegen{ast_context.get(), accessor.Get()};
   util::RegionVector<ast::FieldDecl *> fn_params{codegen.GetAstContext()->GetRegion()};
-  //  auto ret_name = parser::udf::UDFCodegen::GetReturnParamString();
-  //  auto ret_type = parser::ReturnType::DataTypeToTypeId(node->GetReturnType());
-  //  fn_params.emplace_back(codegen.MakeField(ast::Identifier{ret_name},
-  //      codegen.PointerType(codegen.TplType(ret_type))));
   fn_params.emplace_back(
       codegen.MakeField(codegen.MakeFreshIdentifier("executionCtx"),
                         codegen.PointerType(codegen.BuiltinType(ast::BuiltinType::ExecutionContext))));
 
-  for (size_t i = 0; i < node->GetFunctionParameterNames().size(); i++) {
-    auto name = node->GetFunctionParameterNames()[i];
-    auto type = parser::ReturnType::DataTypeToTypeId(node->GetFunctionParameterTypes()[i]);
-    //    auto name_alloc = reinterpret_cast<char*>(codegen.GetAstContext()->GetRegion()->Allocate(name.length()+1));
-    //    std::memcpy(name_alloc, name.c_str(), name.length() + 1);
-    fn_params.emplace_back(codegen.MakeField(ast_context->GetIdentifier(name),
-                                             //        codegen.PointerType(
-                                             codegen.TplType(execution::sql::GetTypeId(type))
-                                             //            )
-                                             ));
+  for (auto i = 0UL; i < node->GetFunctionParameterNames().size(); i++) {
+    const auto &name = node->GetFunctionParameterNames()[i];
+    const auto &type = parser::ReturnType::DataTypeToTypeId(node->GetFunctionParameterTypes()[i]);
+    fn_params.emplace_back(
+        codegen.MakeField(ast_context->GetIdentifier(name), codegen.TplType(execution::sql::GetTypeId(type))));
   }
 
   auto name = node->GetFunctionName();
-  //  char *name_alloc = reinterpret_cast<char*>(codegen.GetAstContext()->GetRegion()->Allocate(name.length() + 1));
-  //  std::memcpy(name_alloc, name.c_str(), name.length() + 1);
-
   compiler::FunctionBuilder fb{
       &codegen, codegen.MakeFreshIdentifier(name), std::move(fn_params),
-      //                               codegen.PointerType(
-      codegen.TplType(execution::sql::GetTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType())))
-      //                                   )
-  };
+      codegen.TplType(execution::sql::GetTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType())))};
+
   compiler::udf::UDFCodegen udf_codegen{accessor.Get(), &fb, &udf_ast_context, &codegen, node->GetDatabaseOid()};
   udf_codegen.GenerateUDF(ast->body.get());
-  auto fn = fb.Finish();
-  ////  util::RegionVector<ast::Decl *> decls_reg_vec{decls->begin(), decls->end(), codegen.Region()};
-  util::RegionVector<ast::Decl *> decls({fn}, codegen.GetAstContext()->GetRegion());
-  auto file = udf_codegen.Finish();
+  auto *file = udf_codegen.Finish();
 
   {
-    sema::Sema type_check(codegen.GetAstContext().Get());
+    sema::Sema type_check{codegen.GetAstContext().Get()};
     type_check.GetErrorReporter()->Reset();
-    type_check.Run(file);
-    EXECUTION_LOG_ERROR("Errors: \n {}", type_check.GetErrorReporter()->SerializeErrors());
-    execution::ast::AstPrettyPrint::Dump(std::cout, file);
-    //    NOISEPAGE_ASSERT(!bad, "bad function");
+    if (type_check.Run(file)) {
+      EXECUTION_LOG_ERROR("Errors: \n {}", type_check.GetErrorReporter()->SerializeErrors());
+      execution::ast::AstPrettyPrint::Dump(std::cout, file);
+      return false;
+    }
   }
 
-  auto udf_context = new functions::FunctionContext(
+  auto udf_context = std::make_unique<functions::FunctionContext>(
       node->GetFunctionName(), parser::ReturnType::DataTypeToTypeId(node->GetReturnType()), std::move(param_type_ids),
-      std::unique_ptr<util::Region>(region), std::unique_ptr<ast::Context>(ast_context), file);
-  if (!accessor->SetFunctionContextPointer(proc_id, udf_context)) {
-    delete udf_context;
+      std::unique_ptr<util::Region>(region), std::move(ast_context), file);
+  if (!accessor->SetFunctionContextPointer(proc_id, udf_context.get())) {
     return false;
   }
 
-  accessor->GetTxn()->RegisterAbortAction([=]() { delete udf_context; });
+  // TODO(Kyle): Not quite sure how abort actions work, but is
+  // the implication here that we leak in the event that we do
+  // not abort and the associated transaction completes?
+  accessor->GetTxn()->RegisterAbortAction([udf_context = udf_context.release()]() { delete udf_context; });
   return true;
 }
 

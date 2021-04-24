@@ -102,8 +102,8 @@ T ConstantValueExpression::Peek() const {
 }
 
 const execution::sql::Val *ConstantValueExpression::PeekPtr() const {
-  // TODO(Kyle): seems unsafe.
-  return reinterpret_cast<const execution::sql::Val *>(&value_);
+  NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::Val>(value_), "PeekPtr() bad variant access");
+  return &std::get<execution::sql::Val>(value_);
 }
 
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {

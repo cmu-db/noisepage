@@ -106,8 +106,8 @@ class ConstantValueExpression : public AbstractExpression {
     }
   }
 
-  // TODO(Kyle): Is this safe?
   common::ManagedPointer<const execution::sql::Val> GetVal() const {
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::Val>(value_), "GetVal() bad variant access");
     return common::ManagedPointer<const execution::sql::Val>(&std::get<execution::sql::Val>(value_));
   }
 
@@ -241,7 +241,8 @@ class ConstantValueExpression : public AbstractExpression {
   T Peek() const;
 
   /**
-   * TODO(Kyle): Document.
+   * Peek at the underlying value for the constant value expression.
+   * @return The underlying value pointer as a SQL value
    */
   const execution::sql::Val *PeekPtr() const;
 
@@ -266,10 +267,13 @@ class ConstantValueExpression : public AbstractExpression {
  private:
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   void Validate() const;
+
+  // The undelrying constant value
   std::variant<execution::sql::Val, execution::sql::BoolVal, execution::sql::Integer, execution::sql::Real,
                execution::sql::DecimalVal, execution::sql::StringVal, execution::sql::DateVal,
                execution::sql::TimestampVal>
       value_{execution::sql::Val(true)};
+  // Buffer for inlined string values
   std::unique_ptr<byte[]> buffer_ = nullptr;
 };
 

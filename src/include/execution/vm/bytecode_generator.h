@@ -226,7 +226,6 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   ExpressionResultScope *execution_result_{nullptr};
 
   // The loop builder for the current loop.
-  // TODO(Kyle): seems messy.
   LoopBuilder *current_loop_{nullptr};
 };
 

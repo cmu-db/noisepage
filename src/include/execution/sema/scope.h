@@ -68,12 +68,14 @@ class Scope {
   ast::Type *LookupLocal(ast::Identifier name) const;
 
   /**
-   * TODO(Kyle): Document.
+   * Get the kind of the scope.
+   * @return The kind
    */
   Kind GetKind() const;
 
   /**
-   * TODO(Kyle): Document.
+   * Get the local variables for the scope.
+   * @return A collection of the scope's locals
    */
   std::vector<std::pair<ast::Identifier, ast::Type *>> GetLocals() const;
 

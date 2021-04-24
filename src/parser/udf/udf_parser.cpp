@@ -121,8 +121,8 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseBlock(const nlohmann::json &block) 
       stmts.push_back(ParseIf(stmt[kPLpgSQL_stmt_if]));
     } else if (stmt_names.key() == kPLpgSQL_stmt_assign) {
       // TODO[Siva]: Need to fix Assignment expression / statement
-      const std::string &var_name =
-          udf_ast_context_->GetVariableAtIndex(stmt[kPLpgSQL_stmt_assign][kVarno].get<uint32_t>());
+      const auto &var_name =
+          udf_ast_context_->GetLocalVariableAtIndex(stmt[kPLpgSQL_stmt_assign][kVarno].get<std::size_t>());
       std::unique_ptr<VariableExprAST> lhs(new VariableExprAST(var_name));
       auto rhs = ParseExprSQL(stmt[kPLpgSQL_stmt_assign][kExpr][kPLpgSQL_expr][kQuery].get<std::string>());
       std::unique_ptr<AssignStmtAST> ass_expr_ast(new AssignStmtAST(std::move(lhs), std::move(rhs)));

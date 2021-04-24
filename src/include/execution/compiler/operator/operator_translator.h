@@ -254,17 +254,6 @@ class OperatorTranslator : public ColumnValueProvider {
   /** @return The address of the current tuple slot, if any. */
   virtual ast::Expr *GetSlotAddress() const { UNREACHABLE("This translator does not deal with tupleslots."); }
 
-  /**
-   * TODO(Kyle): This.
-   */
-  virtual void RegisterNeedValue(const OperatorTranslator *requester, uint32_t child_idx, uint32_t attr_idx) {
-    UNREACHABLE("not implemented");
-  }
-
-  /** @return The pipeline this translator is a part of. */
-  // TODO(Kyle): Why did we change visibility of this? Protected to public
-  Pipeline *GetPipeline() const { return pipeline_; }
-
  protected:
   /** Get the code generator instance. */
   CodeGen *GetCodeGen() const;
@@ -280,6 +269,9 @@ class OperatorTranslator : public ColumnValueProvider {
 
   /** Get the memory pool pointer from the execution context stored in the query state. */
   ast::Expr *GetMemoryPool() const;
+
+  /** @return The pipeline this translator is a part of. */
+  Pipeline *GetPipeline() const { return pipeline_; }
 
   /** The plan node for this translator as its concrete type. */
   template <typename T>
@@ -369,7 +361,7 @@ class OperatorTranslator : public ColumnValueProvider {
   const planner::AbstractPlanNode &plan_;
   // The compilation context.
   CompilationContext *compilation_context_;
-  // The pipeline the operator belongs to.
+  // The pipeline to which the operator belongs.
   Pipeline *pipeline_;
 
   /** The child operator translator. */

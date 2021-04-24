@@ -38,8 +38,9 @@ UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
       fb_{fb},
       udf_ast_context_{udf_ast_context},
       codegen_{codegen},
+      db_oid_{db_oid},
       aux_decls_(codegen->GetAstContext()->GetRegion()),
-      db_oid_{db_oid} {
+      needs_exec_ctx_{false} {
   for (auto i = 0UL; fb->GetParameterByPosition(i) != nullptr; ++i) {
     auto param = fb->GetParameterByPosition(i);
     const auto &name = param->As<execution::ast::IdentifierExpr>()->Name();
@@ -47,6 +48,7 @@ UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
   }
 }
 
+// Static
 const char *UDFCodegen::GetReturnParamString() { return "return_val"; }
 
 void UDFCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
@@ -75,11 +77,7 @@ catalog::type_oid_t UDFCodegen::GetCatalogTypeOidFromSQLType(execution::ast::Bui
 
 execution::ast::File *UDFCodegen::Finish() {
   auto fn = fb_->Finish();
-  //  util::RegionVector<ast::Decl *> decls_reg_vec{decls->begin(), decls->end(), codegen.Region()};
-  execution::util::RegionVector<execution::ast::Decl *> decls({fn}, codegen_->GetAstContext()->GetRegion());
-  //    for(auto decl : aux_decls_){
-  //      decls.push_back(decl);
-  //    }
+  execution::util::RegionVector<execution::ast::Decl *> decls{{fn}, codegen_->GetAstContext()->GetRegion()};
   decls.insert(decls.begin(), aux_decls_.begin(), aux_decls_.end());
   auto file = codegen_->GetAstContext()->GetNodeFactory()->NewFile({0, 0}, std::move(decls));
   return file;

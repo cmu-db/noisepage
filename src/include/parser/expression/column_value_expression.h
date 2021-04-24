@@ -111,13 +111,11 @@ class ColumnValueExpression : public AbstractExpression {
   /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
-  // TODO(Kyle): Why are we narrowing here?
-
   /** @return parameter index */
   std::int32_t GetParamIdx() const { return param_idx_; }
 
   /** @brief set the parameter index */
-  void SetParamIdx(std::uint32_t param_idx) { param_idx_ = static_cast<std::int32_t>(param_idx); }
+  void SetParamIdx(const std::size_t param_idx) { param_idx_ = static_cast<std::int32_t>(param_idx); }
 
   /**
    * Get Column Full Name [tbl].[col]

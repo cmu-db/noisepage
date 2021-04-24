@@ -1291,7 +1291,6 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
         }
         default: {
           // TODO(WAN): previous code just ignored it, is this right?
-          // TODO(Kyle): Good question^
           break;
         }
       }

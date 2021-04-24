@@ -570,7 +570,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
     if (table_name.empty()) {
       if (udf_ast_context_ != nullptr && udf_ast_context_->GetVariableType(expr->GetColumnName(), &the_type)) {
         expr->SetReturnValueType(the_type);
-        auto idx = 0;
+        std::size_t idx = 0;
         if (udf_params_.count(expr->GetColumnName()) == 0) {
           udf_params_[expr->GetColumnName()] = std::make_pair("", udf_params_.size());
           idx = udf_params_.size() - 1;
@@ -593,7 +593,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
         NOISEPAGE_ASSERT(the_type == type::TypeId::INVALID, "unknown type");
         auto &fields = udf_ast_context_->GetRecordType(expr->GetTableName());
         auto it = std::find_if(fields.begin(), fields.end(), [=](auto p) { return p.first == expr->GetColumnName(); });
-        auto idx = 0;
+        std::size_t idx = 0;
         if (it != fields.end()) {
           if (udf_params_.count(expr->GetColumnName()) == 0) {
             udf_params_[expr->GetColumnName()] = std::make_pair(expr->GetTableName(), udf_params_.size());

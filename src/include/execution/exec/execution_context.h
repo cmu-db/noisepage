@@ -188,12 +188,20 @@ class EXPORT ExecutionContext {
    */
   void InitializeParallelOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
-  // TODO(Kyle): Document + revisit this.
-
+  /**
+   * Initialize the UDF parameter stack.
+   */
   void StartParams() { udf_param_stack_.push_back({}); }
 
+  /**
+   * Remove an element from the UDF parameter stack.
+   */
   void PopParams() { udf_param_stack_.pop_back(); }
 
+  /**
+   * Add a parameter to the set of parameters at the top of the UDF parameter stack.
+   * @param val The parameter to be added
+   */
   void AddParam(common::ManagedPointer<sql::Val> val) {
     udf_param_stack_.back().push_back(val.CastManagedPointerTo<const sql::Val>());
   }
@@ -226,10 +234,11 @@ class EXPORT ExecutionContext {
   }
 
   /**
+   * Get the parameter at the specified index.
    * @param param_idx index of parameter to access
    * @return immutable parameter at provided index
    */
-  common::ManagedPointer<const sql::Val> GetParam(uint32_t param_idx) const {
+  common::ManagedPointer<const sql::Val> GetParam(std::size_t param_idx) const {
     return udf_param_stack_.empty() ? (*params_)[param_idx] : udf_param_stack_.back()[param_idx];
   }
 
@@ -255,8 +264,8 @@ class EXPORT ExecutionContext {
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
   /**
-   * @return    On the primary, returns the ID of the last txn sent.
-   *            On a replica, returns the ID of the last txn applied.
+   * @return On the primary, returns the ID of the last txn sent.
+   * On a replica, returns the ID of the last txn applied.
    */
   uint64_t ReplicationGetLastTransactionId() const;
 
@@ -374,6 +383,8 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<replication::ReplicationManager> replication_manager_;
   common::ManagedPointer<storage::RecoveryManager> recovery_manager_;
 
+  // The stack of UDF parameters; each element in the stack
+  // is itself a (possibly-incomplete) set of parameters
   std::vector<std::vector<common::ManagedPointer<const sql::Val>>> udf_param_stack_;
 
   bool memory_use_override_ = false;

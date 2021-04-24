@@ -10,7 +10,6 @@
 #include "parser/expression_util.h"
 #include "parser/postgresparser.h"
 
-// TODO(Kyle): Do we want to place UDF parsing in its own namespace?
 namespace noisepage {
 
 // Forward declaration
