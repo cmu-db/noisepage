@@ -18,45 +18,52 @@ const char *TxnAppliedMsg::key_applied_txn_id = "applied_txn_id";
 
 // ReplicationMessageMetadata
 
-common::json ReplicationMessageMetadata::ToJson() const {
-  common::json json;
-  json[key_message_id] = msg_id_;
-  return json;
+MessageFacade ReplicationMessageMetadata::ToMessageFacade() const {
+  MessageFacade message;
+  message.Put(key_message_id, msg_id_);
+  return message;
 }
 
-ReplicationMessageMetadata::ReplicationMessageMetadata(const common::json &json) : msg_id_(json[key_message_id]) {}
+ReplicationMessageMetadata::ReplicationMessageMetadata(const MessageFacade &message)
+    : msg_id_(message.Get<msg_id_t>(key_message_id)) {}
 
 ReplicationMessageMetadata::ReplicationMessageMetadata(msg_id_t msg_id) : msg_id_(msg_id) {}
 
 // BaseReplicationMessage
 
-common::json BaseReplicationMessage::ToJson() const {
-  common::json json;
-  json[key_message_type] = ReplicationMessageTypeToString(type_);
-  json[key_metadata] = metadata_.ToJson();
-  return json;
+MessageFacade BaseReplicationMessage::ToMessageFacade() const {
+  MessageFacade message;
+  message.Put(key_message_type, ReplicationMessageTypeToString(type_));
+  // Nested fields need to be the same type as underlying message format because MessageFacade isn't automatically
+  // serialized
+  // TODO(Joe) probably a cleaner way of doing this by creating a custom serializer for MessageFacade
+  message.Put(key_metadata, metadata_.ToMessageFacade().ToUnderlyingMessageFormat());
+  return message;
 }
 
-BaseReplicationMessage::BaseReplicationMessage(const common::json &json)
-    : type_(ReplicationMessageTypeFromString(json[key_message_type].get<std::string>())),
-      metadata_(ReplicationMessageMetadata(json[key_metadata].get<common::json>())) {}
+const std::string BaseReplicationMessage::Serialize() const { return ToMessageFacade().Serialize(); }
+
+BaseReplicationMessage::BaseReplicationMessage(const MessageFacade &message)
+    : type_(ReplicationMessageTypeFromString(message.Get<const std::string>(key_message_type))),
+      // TODO(Joe) look at above comment about custom serializers
+      metadata_(ReplicationMessageMetadata(MessageFacade(message.Get<MessageFacade::MessageFormat>(key_metadata)))) {}
 
 BaseReplicationMessage::BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata)
     : type_(type), metadata_(metadata) {}
 
 // NotifyOATMsg
 
-common::json NotifyOATMsg::ToJson() const {
-  common::json json = BaseReplicationMessage::ToJson();
-  json[key_batch_id] = batch_id_;
-  json[key_oldest_active_txn] = oldest_active_txn_;
-  return json;
+MessageFacade NotifyOATMsg::ToMessageFacade() const {
+  MessageFacade message = BaseReplicationMessage::ToMessageFacade();
+  message.Put(key_batch_id, batch_id_);
+  message.Put(key_oldest_active_txn, oldest_active_txn_);
+  return message;
 }
 
-NotifyOATMsg::NotifyOATMsg(const common::json &json)
-    : BaseReplicationMessage(json),
-      batch_id_(json[key_batch_id].get<record_batch_id_t>()),
-      oldest_active_txn_(json[key_oldest_active_txn].get<transaction::timestamp_t>()) {}
+NotifyOATMsg::NotifyOATMsg(const MessageFacade &message)
+    : BaseReplicationMessage(message),
+      batch_id_(message.Get<record_batch_id_t>(key_batch_id)),
+      oldest_active_txn_(message.Get<transaction::timestamp_t>(key_oldest_active_txn)) {}
 
 NotifyOATMsg::NotifyOATMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
                            transaction::timestamp_t oldest_active_txn)
@@ -66,17 +73,18 @@ NotifyOATMsg::NotifyOATMsg(ReplicationMessageMetadata metadata, record_batch_id_
 
 // RecordsBatchMsg
 
-common::json RecordsBatchMsg::ToJson() const {
-  common::json json = BaseReplicationMessage::ToJson();
-  json[key_batch_id] = batch_id_;
-  json[key_contents] = nlohmann::json::to_cbor(contents_);
-  return json;
+MessageFacade RecordsBatchMsg::ToMessageFacade() const {
+  MessageFacade message = BaseReplicationMessage::ToMessageFacade();
+  message.Put(key_batch_id, batch_id_);
+  message.Put(key_contents, MessageFacade::ToCbor(contents_));
+  return message;
 }
 
-RecordsBatchMsg::RecordsBatchMsg(const common::json &json)
-    : BaseReplicationMessage(json),
-      batch_id_(json[key_batch_id].get<record_batch_id_t>()),
-      contents_(nlohmann::json::from_cbor(json[key_contents].get<std::vector<uint8_t>>())) {}
+RecordsBatchMsg::RecordsBatchMsg(const MessageFacade &message)
+    : BaseReplicationMessage(message),
+      batch_id_(message.Get<record_batch_id_t>(key_batch_id)),
+      // TODO(Joe) figure out what this implicit conversion to string is
+      contents_(MessageFacade::FromCbor(message.Get<std::vector<uint8_t>>(key_contents)).ToUnderlyingMessageFormat()) {}
 
 RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
                                  storage::BufferedLogWriter *buffer)
@@ -86,26 +94,27 @@ RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_bat
 
 // TxnAppliedMsg
 
-common::json TxnAppliedMsg::ToJson() const {
-  common::json json = BaseReplicationMessage::ToJson();
-  json[key_applied_txn_id] = applied_txn_id_;
-  return json;
+MessageFacade TxnAppliedMsg::ToMessageFacade() const {
+  MessageFacade message = BaseReplicationMessage::ToMessageFacade();
+  message.Put(key_applied_txn_id, applied_txn_id_);
+  return message;
 }
 
-TxnAppliedMsg::TxnAppliedMsg(const common::json &json)
-    : BaseReplicationMessage(json), applied_txn_id_(json[key_applied_txn_id].get<transaction::timestamp_t>()) {}
+TxnAppliedMsg::TxnAppliedMsg(const MessageFacade &message)
+    : BaseReplicationMessage(message), applied_txn_id_(message.Get<transaction::timestamp_t>(key_applied_txn_id)) {}
 
 TxnAppliedMsg::TxnAppliedMsg(ReplicationMessageMetadata metadata, transaction::timestamp_t applied_txn_id)
     : BaseReplicationMessage(ReplicationMessageType::TXN_APPLIED, metadata), applied_txn_id_(applied_txn_id) {}
 
-std::unique_ptr<BaseReplicationMessage> BaseReplicationMessage::ParseFromJson(const common::json &json) {
-  // BaseReplicationMessage switches on the json's key_message_type to figure out what type of message to create.
-  ReplicationMessageType msg_type = ReplicationMessageTypeFromString(json[key_message_type]);
+std::unique_ptr<BaseReplicationMessage> BaseReplicationMessage::ParseFromString(std::string_view str) {
+  MessageFacade message(str);
+  // BaseReplicationMessage switches on the messages's key_message_type to figure out what type of message to create.
+  ReplicationMessageType msg_type = ReplicationMessageTypeFromString(message.Get<const std::string>(key_message_type));
   switch (msg_type) {
-      // clang-format off
-    case ReplicationMessageType::NOTIFY_OAT:          { return std::make_unique<NotifyOATMsg>(json); }
-    case ReplicationMessageType::RECORDS_BATCH:       { return std::make_unique<RecordsBatchMsg>(json); }
-    case ReplicationMessageType::TXN_APPLIED:         { return std::make_unique<TxnAppliedMsg>(json); }
+    // clang-format off
+    case ReplicationMessageType::NOTIFY_OAT:          { return std::make_unique<NotifyOATMsg>(message); }
+    case ReplicationMessageType::RECORDS_BATCH:       { return std::make_unique<RecordsBatchMsg>(message); }
+    case ReplicationMessageType::TXN_APPLIED:         { return std::make_unique<TxnAppliedMsg>(message); }
     case ReplicationMessageType::INVALID:             // Fall-through.
     case ReplicationMessageType::NUM_ENUM_ENTRIES:
       throw REPLICATION_EXCEPTION("Got an INVALID ReplicationMessage?");
