@@ -82,9 +82,7 @@ class MessageFacade {
    * @returm parsed MessageFacade
    *
    */
-  static MessageFacade FromCbor(const std::vector<uint8_t> &cbor) {
-    return MessageFacade(common::json::from_cbor(cbor));
-  }
+  static std::string FromCbor(const std::vector<uint8_t> &cbor) { return common::json::from_cbor(cbor); }
 
   static std::vector<uint8_t> ToCbor(std::string_view str) { return common::json::to_cbor(str); }
 
@@ -102,11 +100,9 @@ class MessageFacade {
    */
   MessageFormat ToUnderlyingMessageFormat() const { return underlying_message_; }
 
-  void SetUnderlyingMessage(MessageFormat message) { this->underlying_message_ = message; }
-
   common::json ToJson() const { return ToUnderlyingMessageFormat(); }
 
-  void FromJson(const common::json &j) { SetUnderlyingMessage(j); }
+  void FromJson(const common::json &j) { this->underlying_message_ = j; }
 
  private:
   MessageFormat underlying_message_;

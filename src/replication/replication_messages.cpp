@@ -85,8 +85,7 @@ MessageFacade RecordsBatchMsg::ToMessageFacade() const {
 RecordsBatchMsg::RecordsBatchMsg(const MessageFacade &message)
     : BaseReplicationMessage(message),
       batch_id_(message.Get<record_batch_id_t>(key_batch_id)),
-      // TODO(Joe) What's going on here?
-      contents_(MessageFacade::FromCbor(message.Get<std::vector<uint8_t>>(key_contents)).ToUnderlyingMessageFormat()) {}
+      contents_(MessageFacade::FromCbor(message.Get<std::vector<uint8_t>>(key_contents))) {}
 
 RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
                                  storage::BufferedLogWriter *buffer)
