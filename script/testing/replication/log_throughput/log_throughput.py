@@ -35,19 +35,30 @@ def log_throughput(test_type: TestType, build_type: str, replication_enabled: bo
     For replica nodes we manually send log records to a replica node using the LogShipper. Log records are automatically
     generated using the LogSink. Alternatively you can specify a file containing log record messages.
 
-    :param test_type Indicates whether to measure throughput on primary or replica nodes
-    :param build_type The type of build for the server
-    :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
-    :param async_replication Whether or not async replication is enabled (only relevant when test_type is PRIMARY and
-           replication is enabled)
-    :param async_commit Whether or not async commit is enabled
-    :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
-    :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
-    :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type
-           is REPLICA)
-    :param connection_threads How many database connection threads to use
-    :param output_file Where to save the metrics to
-    :param save_generated_log_file Whether or not to save generated log record messages to a file
+    Parameters
+    ----------
+    test_type
+        Indicates whether to measure throughput on primary or replica nodes
+    build_type
+        The type of build for the server
+    replication_enabled
+        Whether or not replication is enabled (only relevant when test_type is PRIMARY)
+    async_replication
+        Whether or not async replication is enabled (only relevant when test_type is PRIMARY and replication is enabled)
+    async_commit
+        Whether or not async commit is enabled
+    oltp_benchmark
+        Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    scale_factor
+        OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
+    log_messages_file
+        File containing log record messages to send to the replica (only relevant when test_type is REPLICA)
+    connection_threads
+        How many database connection threads to use
+    output_file
+        Where to save the metrics to
+    save_generated_log_file
+        Whether or not to save generated log record messages to a file
     """
 
     if output_file is None:
@@ -113,10 +124,21 @@ def generate_log_messages(build_type: str, oltp_benchmark: str, scale_factor: in
     Generates log record messages by running the load phase of an OLTP Benchmark and capturing the messages produced by
     the primary node
 
-    :param build_type The type of build for the server
-    :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
-    :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
-    :param connection_threads How many database connection threads to use
+    Parameters
+    ----------
+    build_type
+        The type of build for the server
+    oltp_benchmark
+        Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    scale_factor
+        OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
+    connection_threads
+        How many database connection threads to use
+
+    Returns
+    -------
+    log_messages_file
+        path to file containing log record messages
     """
     LOG.info("Generating log record messages")
 
@@ -158,19 +180,31 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
     """
     Creates server instances for the log throughput test
 
-    :param test_type Indicates whether to measure throughput on primary or replica nodes
-    :param build_type The type of build for the server
-    :param replication_enabled Whether or not replication is enabled (only relevant when test_type is PRIMARY)
-    :param async_commit Whether or not async commit is enabled
-    :param async_replication Whether or not async replication is enabled (only relevant when test_type is PRIMARY and
-           replication is enabled)
-    :param oltp_benchmark Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
-    :param scale_factor OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
-    :param log_messages_file File containing log record messages to send to the replica (only relevant when test_type
-           is REPLICA)
-    :param connection_threads How many database connection threads to use
+    Parameters
+    ----------
+    test_type
+        Indicates whether to measure throughput on primary or replica nodes
+    build_type
+        The type of build for the server
+    replication_enabled
+        Whether or not replication is enabled (only relevant when test_type is PRIMARY)
+    async_commit
+        Whether or not async commit is enabled
+    async_replication
+        Whether or not async replication is enabled (only relevant when test_type is PRIMARY and replication is enabled)
+    oltp_benchmark
+        Which OLTP benchmark to run (only relevant when test_type is PRIMARY)
+    scale_factor
+        OLTP benchmark scale factor (only relevant when test_type is PRIMARY)
+    log_messages_file
+        File containing log record messages to send to the replica (only relevant when test_type is REPLICA)
+    connection_threads
+        How many database connection threads to use
 
-    :return list of server instances
+    Returns
+    -------
+    servers
+        list of server instances
     """
     servers = []
     if test_type.value == TestType.PRIMARY.value:
@@ -198,7 +232,10 @@ def sync_servers(servers: List[NodeServer]):
     """
     Sync primary with all replicas
 
-    :param servers list of running servers
+    Parameters
+    ----------
+    servers
+        list of running servers
     """
     if len(servers) < 2:
         return
@@ -221,7 +258,10 @@ def aggregate_log_throughput(file_name: str):
     """
     Computes the average log throughput for a metrics file and logs the results
 
-    :param file_name Name of metrics file
+    Parameters
+    ----------
+    file_name
+        Name of metrics file
     """
     path = os.path.join(get_results_dir(), file_name)
     df = pd.read_csv(path)

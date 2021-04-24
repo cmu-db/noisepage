@@ -15,12 +15,20 @@ class LogSink(ImposterNode):
         """
         Initialize LogSink
 
-        :param log_file File to save log record messages to
-        :param replica_identity network identity of replica node
-        :param replica_messenger_port port that the replica messenger runs on
-        :param replica_replication_port port that replica replication runs on
-        :param primary_identity network identity of primary node
-        :param primary_replication_port port that primary replication runs on
+        Parameters
+        ----------
+        log_file
+            File to save log record messages to
+        replica_identity
+            network identity of replica node
+        replica_messenger_port
+            port that the replica messenger runs on
+        replica_replication_port
+            port that replica replication runs on
+        primary_identity
+            network identity of primary node
+        primary_replication_port
+            port that primary replication runs on
         """
         ImposterNode.__init__(self, replica_identity, replica_messenger_port, replica_replication_port)
         self.log_file = log_file
@@ -67,6 +75,11 @@ class LogSink(ImposterNode):
     def recv_log_record(self) -> str:
         """
         Receive a log record message from the primary node (can also be a Notify OAT message)
+
+        Returns
+        -------
+        log_record_msg
+            log record message from primary node
         """
         identity = self.recv_msg(self.router_socket)
         empty_msg = self.recv_msg(self.router_socket)

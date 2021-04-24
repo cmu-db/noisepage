@@ -18,12 +18,20 @@ class LogShipper(ImposterNode):
         """
         Initializes LogShipper
 
-        :param log_file file contain log record messages
-        :param primary_identity network identity of primary node
-        :param primary_messenger_port port that the primary messenger runs on
-        :param primary_replication_port port that the primary replication runs on
-        :param replica_identity network identity of replica node
-        :param replica_replication_port port that the replica replication runs on
+        Parameters
+        ----------
+        log_file
+            file contain log record messages
+        primary_identity
+            network identity of primary node
+        primary_messenger_port
+            port that the primary messenger runs on
+        primary_replication_port
+            port that the primary replication runs on
+        replica_identity
+            network identity of replica node
+        replica_replication_port
+            port that the replica replication runs on
         """
         ImposterNode.__init__(self, primary_identity, primary_messenger_port, primary_replication_port)
 
@@ -93,7 +101,10 @@ class LogShipper(ImposterNode):
         """
         Send log record message to replica
 
-        :param log_record_message Log record to send (can also be a Notify OAT message)
+        Parameters
+        ----------
+        log_record_message
+            Log record to send (can also be a Notify OAT message)
         """
         self.send_msg(["", log_record_message], self.replica_dealer_socket)
         msg_id = self.extract_msg_id(log_record_message)
@@ -135,9 +146,15 @@ class LogShipper(ImposterNode):
         """
         Receives an ACK.
 
-        :param socket Socket to receive ACK on
+        Parameters
+        ----------
+        socket
+            Socket to receive ACK on
 
-        :return Message Id of ACK
+        Returns
+        -------
+        msg_id
+            Message Id of ACK
         """
         receiver_identity = self.recv_msg(socket)
         empty_message = self.recv_msg(socket)

@@ -45,7 +45,10 @@ class NodeServer(ABC):
         """
         Indicates whether or not the server is running
 
-        :return True if the server is running False otherwise
+        Returns
+        -------
+        is_running
+            True if the server is running False otherwise
         """
         pass
 
@@ -60,13 +63,22 @@ class PrimaryNode(NodeServer):
         """
         Creates the NoisePage primary server and an OLTP test case
 
-        :param build_type build type of NoisePage binary
-        :param replication_enabled Whether or not to enable replication
-        :param async_replication Whether or not async replication is enabled (only relevant when replication is enabled)
-        :param async_commit
-        :param oltp_benchmark Which OLTP benchmark to run
-        :param scale_factor OLTP benchmark scale factor
-        :param connection_threads How many database connection threads to use
+        Parameters
+        ----------
+        build_type
+            build type of NoisePage binary
+        replication_enabled
+            Whether or not to enable replication
+        async_replication
+            Whether or not async replication is enabled (only relevant when replication is enabled)
+        async_commit
+            Whether or not async WAL commit is enabled
+        oltp_benchmark
+            Which OLTPBench benchmark to run
+        scale_factor
+            OLTPBench benchmark scale factor
+        connection_threads
+            How many database connection threads to use
         """
         # Create DB instance
         primary_server_args = DEFAULT_PRIMARY_SERVER_ARGS
@@ -150,10 +162,16 @@ class ReplicaNode(NodeServer):
         Creates the NoisePage replica server. If we are testing throughput on the replica node then we also create a
         log shipper instance to send logs to the replica
 
-        :param test_type Indicates whether we are testing throughput on the primary or replica node
-        :param build_type Build type of NoisePage binary
-        :param log_messages_file File containing log record messages to send to the replica
-        :param connection_threads How many database connection threads to use
+        Parameters
+        ----------
+        test_type
+            Indicates whether we are testing throughput on the primary or replica node
+        build_type
+            Build type of NoisePage binary
+        log_messages_file
+            File containing log record messages to send to the replica
+        connection_threads
+            How many database connection threads to use
         """
         replica_server_args = DEFAULT_REPLICA_SERVER_ARGS
         replica_server_args[SERVER_ARGS_KEY][WAL_ASYNC_COMMIT_KEY] = async_commit
@@ -207,9 +225,14 @@ class ImposterNode(NodeServer):
         """
         Initializes ImposterNode
 
-        :param identity network identity of node
-        :param messenger_port port that messenger is running on
-        :param replication_port port that replication is running on
+        Parameters
+        ----------
+        identity
+            network identity of node
+        messenger_port
+            port that messenger is running on
+        replication_port
+            port that replication is running on
         """
         self.running = True
         self.identity = identity
@@ -231,11 +254,15 @@ class ImposterNode(NodeServer):
         Creates the socket responsible for receiving messages. This method allows the flexibility of creating this
         socket in the main thread or a different thread.
 
-        WARNING:
-        You must only call this method once and you must call this from the same thread that context was created in.
-        You must also make sure to destroy the socket properly, from the same thread that created it
+        Parameters
+        ----------
+        context
+            ZMQ context to use to create the socket
 
-        :param context ZMQ context to use to create the socket
+        Warnings
+        ---------
+        You must only call this method once and you must call this from the same thread that context was created in.
+        You must make sure to destroy the socket properly, from the same thread that created it
         """
         self.router_socket = context.socket(zmq.ROUTER)
         self.router_socket.set_string(zmq.IDENTITY, self.identity)
@@ -248,10 +275,19 @@ class ImposterNode(NodeServer):
         """
         Creates a socket for sending messages to another node.
 
-        WARNING:
-        You must call this from the same thread the context was created in.
+        Parameters
+        ----------
+        context
+            ZMQ context to use to create the socket
 
-        :param context ZMQ context to use to create the socket
+        Returns
+        -------
+        socket
+            Dealer socket on specified port
+
+        Warnings
+        ---------
+        You must call this from the same thread the context was created in.
         """
         dealer_socket = context.socket(zmq.DEALER)
         dealer_socket.set_string(zmq.IDENTITY, connection_identity)
@@ -272,8 +308,12 @@ class ImposterNode(NodeServer):
         """
         Send multipart message over socket
 
-        :param message_parts messages to send
-        :param socket socket to send over
+        Parameters
+        ----------
+        message_parts
+            messages to send
+        socket
+            socket to send over
         """
         socket.send_multipart([message.encode(UTF_8) for message in message_parts])
 
@@ -281,8 +321,12 @@ class ImposterNode(NodeServer):
         """
         Sends ack message
 
-        :param message_id ID of message that we are ACKing
-        :param socket Socket to send ACK over
+        Parameters
+        ----------
+        message_id
+            ID of message that we are ACKing
+        socket
+            Socket to send ACK over
         """
         self.send_msg([self.identity, "", f"{message_id}-{BuiltinCallback.NOOP.value}-{BuiltinCallback.ACK.value}-"],
                       socket)
@@ -292,7 +336,15 @@ class ImposterNode(NodeServer):
         """
         Receive message from socket
 
-        :param socket Socket to receive message from
+        Parameters
+        ----------
+        socket
+            Socket to receive message from
+
+        Returns
+        -------
+        msg
+            Message received on socket
         """
         return socket.recv().decode(UTF_8)
 
@@ -301,10 +353,17 @@ class ImposterNode(NodeServer):
         """
         Checks if a socket has any pending messages
 
-        :param socket Socket to check for messages
-        :param timeout How long to check for messages
+        Parameters
+        ----------
+        socket
+            Socket to check for messages
+        timeout
+            How long to check for messages
 
-        :return True if there are pending messages, false otherwise
+        Returns
+        -------
+        has_pending_messages
+            True if there are pending messages, false otherwise
         """
         return socket.poll(timeout) == zmq.POLLIN
 

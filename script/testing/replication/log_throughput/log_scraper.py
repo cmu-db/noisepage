@@ -9,9 +9,14 @@ def scrape_logs(input_file: str, replica_name: str, output_file: str):
     """
     Uses database logs to scrape messages sent from a primary NoisePage server to a replica NoisePage server
 
-    :param input_file file containing the database logs
-    :param replica_name identity name of replica that messages should be scraped for
-    :param output_file where to save the scraped messages
+    Parameters
+    ----------
+    input_file
+        file containing the database logs
+    replica_name
+        identity name of replica that messages should be scraped for
+    output_file
+        where to save the scraped messages
     """
     with open(input_file, 'r') as in_file, open(output_file, 'w') as out_file:
         for log in in_file:
@@ -25,10 +30,17 @@ def extract_msg(log: str, replica_name: str) -> Union[str, None]:
     """
     Extracts a message from a single log
 
-    :param log full log string
-    :param replica_name identity name of replica
+    Parameters
+    ----------
+    log
+        full log string
+    replica_name
+        identity name of replica
 
-    :return message sent from primary to replica
+    Returns
+    -------
+    msg
+        message sent from primary to replica
     """
     pattern = rf".*SENT-TO {replica_name}: (\d+-\d+-\d+-.*)"
     matches = re.findall(pattern, log)
