@@ -12,7 +12,7 @@ class ReplicationMessagesBenchmark : public benchmark::Fixture {
  public:
   void TearDown(const benchmark::State &state) final { unlink(noisepage::BenchmarkConfig::logfile_path.data()); }
   void FillBuffer(storage::BufferedLogWriter *buffer) {
-    for (int i = 0; i < common::Constants::LOG_BUFFER_SIZE) {
+    for (size_t i = 0; i < common::Constants::LOG_BUFFER_SIZE; i++) {
       char c = RandomChar();
       buffer->BufferWrite(&c, 1);
     }
@@ -84,7 +84,10 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, NotifyOATMsgDeserialization)(be
   // NOLINTNEXTLINE
   for (auto _ : state) {
     uint64_t elapsed_ms;
-    { replication::BaseReplicationMessage::ParseFromString(serialized_msg); }
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      replication::BaseReplicationMessage::ParseFromString(serialized_msg);
+    }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations());
@@ -101,7 +104,10 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, RecordsBatchMsgDeserialization)
   // NOLINTNEXTLINE
   for (auto _ : state) {
     uint64_t elapsed_ms;
-    { replication::BaseReplicationMessage::ParseFromString(serialized_msg); }
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      replication::BaseReplicationMessage::ParseFromString(serialized_msg);
+    }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations());
@@ -116,7 +122,10 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, TxnAppliedMsgDeserialization)(b
   // NOLINTNEXTLINE
   for (auto _ : state) {
     uint64_t elapsed_ms;
-    { replication::BaseReplicationMessage::ParseFromString(serialized_msg); }
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      replication::BaseReplicationMessage::ParseFromString(serialized_msg);
+    }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations());
