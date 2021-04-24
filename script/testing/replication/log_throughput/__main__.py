@@ -33,13 +33,13 @@ def main():
     aparser.add_argument("--oltp-benchmark",
                          default=DEFAULT_BENCHMARK,
                          choices=[YCSB, TPCC, TATP],
-                         help="Which OLTP benchmark to use")
+                         help="Which OLTPBenchmark benchmark to use")
     aparser.add_argument("--oltp-scale-factor",
                          default=DEFAULT_SCALE_FACTOR,
-                         help="Scale factor for OLTP benchmark")
+                         help="Scale factor for OLTPBenchmark")
     aparser.add_argument("--log-file",
                          help=f"File containing log record messages to send to replica node. If no file is specified "
-                              f"then logs will be generated using OLTP. only relevant when test_type is "
+                              f"then logs will be generated using OLTPBench. Only relevant when test_type is "
                               f"{TestType.REPLICA.value}")
     aparser.add_argument("--save-generated-log-file",
                          default=False,
@@ -49,7 +49,7 @@ def main():
                               f"param is not specified")
     aparser.add_argument("--connection-threads",
                          default=DEFAULT_CONNECTION_THREADS,
-                         help=f"Number of database connection threads to use, OLTP threads will scale accordingly")
+                         help=f"Number of database connection threads to use, OLTPBench threads will scale accordingly")
     aparser.add_argument("--output-file",
                          help="File to output the metrics results to")
 

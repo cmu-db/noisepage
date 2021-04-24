@@ -277,7 +277,7 @@ wal.log
 **/oltp_output_*
 **/oltp_result
 
-# Log Throuput output
+# Log Throughput output
 **/log_throughput/results
 
 # JUnit intermediate out directory

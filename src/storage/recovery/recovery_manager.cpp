@@ -166,14 +166,12 @@ uint32_t RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::ti
 
     if (IsSpecialCaseCatalogRecord(buffered_record)) {
       idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
-      records_processed++;
     } else if (buffered_record->RecordType() == LogRecordType::REDO) {
       ReplayRedoRecord(txn, buffered_record);
-      records_processed++;
     } else {
       ReplayDeleteRecord(txn, buffered_record);
-      records_processed++;
     }
+    records_processed++;
   }
 
   // Defer deletes of the log records

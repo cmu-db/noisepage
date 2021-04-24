@@ -200,7 +200,7 @@ class ReplicaNode(NodeServer):
 
 class ImposterNode(NodeServer):
     """
-    Python process that imitates a NoisePage server. This ii useful for mocking one side of replication
+    Python process that imitates a NoisePage server. This is useful for mocking one side of replication
     """
 
     def __init__(self, identity: str, messenger_port: int, replication_port: int):

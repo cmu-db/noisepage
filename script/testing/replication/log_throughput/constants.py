@@ -17,6 +17,7 @@ CONNECTION_THREAD_COUNT_KEY = "connection_thread_count"
 # Server Arg Default Values
 DEFAULT_BUILD_TYPE = "release"
 REPLICATION_HOSTS_PATH = "../../script/testing/replication/log_throughput/resources/replication.config"
+# Tuned to maximize log throughput under async durability and no replication on the dev10 machine
 DEFAULT_CONNECTION_THREADS = 140
 DEFAULT_RECORD_BUFFER_SEGMENT_SIZE = 10000000
 
@@ -76,6 +77,7 @@ DEFAULT_BENCHMARK = YCSB
 TERMINALS_KEY = "terminals"
 LOADER_THREADS_KEY = "loader_threads"
 SCALE_FACTOR_KEY = "scale_factor"
+# Tuned to maximize log throughput under async durability and no replication on the dev10 machine
 DEFAULT_SCALE_FACTOR = 3000
 WEIGHTS_KEY = "weights"
 

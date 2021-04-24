@@ -40,7 +40,7 @@ def extract_msg(log: str, replica_name: str) -> Union[str, None]:
 
 def main():
     """
-    This file helps scrape logs produced by the Messenger component of NoisePage. It will go through the logs and
+    This file helps to scrape logs produced by the Messenger component of NoisePage. It will go through the logs and
     extract all the messages that were sent by the primary and save them in a separate file. This is useful for being
     able to resend messages to replica nodes without having an actual primary node.
 
