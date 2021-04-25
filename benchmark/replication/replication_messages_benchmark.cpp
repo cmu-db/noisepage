@@ -21,6 +21,7 @@ class ReplicationMessagesBenchmark : public benchmark::Fixture {
 
 // Serialize
 
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, NotifyOATMsgSerialization)(benchmark::State &state) {
   replication::NotifyOATMsg msg(replication::ReplicationMessageMetadata(replication::msg_id_t(666)),
                                 replication::record_batch_id_t(42), transaction::timestamp_t(999));
@@ -37,6 +38,7 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, NotifyOATMsgSerialization)(benc
   state.SetItemsProcessed(state.iterations());
 }
 
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, RecordsBatchMsgSerialization)(benchmark::State &state) {
   unlink(noisepage::BenchmarkConfig::logfile_path.data());
   storage::BufferedLogWriter buffer(noisepage::BenchmarkConfig::logfile_path.data());
@@ -57,6 +59,7 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, RecordsBatchMsgSerialization)(b
   unlink(noisepage::BenchmarkConfig::logfile_path.data());
 }
 
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, TxnAppliedMsgSerialization)(benchmark::State &state) {
   replication::TxnAppliedMsg msg(replication::ReplicationMessageMetadata(replication::msg_id_t(666)),
                                  transaction::timestamp_t(42));
@@ -75,6 +78,7 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, TxnAppliedMsgSerialization)(ben
 
 // Deserialize
 
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, NotifyOATMsgDeserialization)(benchmark::State &state) {
   replication::NotifyOATMsg msg(replication::ReplicationMessageMetadata(replication::msg_id_t(666)),
                                 replication::record_batch_id_t(42), transaction::timestamp_t(999));
@@ -92,6 +96,7 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, NotifyOATMsgDeserialization)(be
   state.SetItemsProcessed(state.iterations());
 }
 
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, RecordsBatchMsgDeserialization)(benchmark::State &state) {
   unlink(noisepage::BenchmarkConfig::logfile_path.data());
   storage::BufferedLogWriter buffer(noisepage::BenchmarkConfig::logfile_path.data());
@@ -113,6 +118,7 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, RecordsBatchMsgDeserialization)
   unlink(noisepage::BenchmarkConfig::logfile_path.data());
 }
 
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, TxnAppliedMsgDeserialization)(benchmark::State &state) {
   replication::TxnAppliedMsg msg(replication::ReplicationMessageMetadata(replication::msg_id_t(666)),
                                  transaction::timestamp_t(42));
