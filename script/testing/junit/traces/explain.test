@@ -1,0 +1,296 @@
+statement ok
+CREATE TABLE temp(name VARCHAR(256), num INTEGER);
+
+statement ok
+EXPLAIN INSERT INTO temp VALUES ('a', 0), ('abi', 20), ('b', 3), ('c', 84), ('aBcDeF', 38), ('2389', 15213), ('andy', 15445), ('rohan', 15445);
+
+statement ok
+INSERT INTO temp VALUES ('a', 0), ('abi', 20), ('b', 3), ('c', 84), ('aBcDeF', 38), ('2389', 15213), ('andy', 15445), ('rohan', 15445);
+
+statement ok
+EXPLAIN SELECT * from temp;
+
+statement ok
+EXPLAIN SELECT name from temp;
+
+statement ok
+EXPLAIN SELECT * from temp where num > 2;
+
+statement ok
+EXPLAIN SELECT num from temp where num > 39;
+
+statement ok
+EXPLAIN SELECT name from temp where num = 15445;
+
+statement ok
+EXPLAIN SELECT num from temp where name LIKE 'andy';
+
+statement ok
+EXPLAIN SELECT num from temp where name LIKE 'Andy';
+
+statement ok
+EXPLAIN SELECT name, num from temp where name like 'a%';
+
+statement ok
+EXPLAIN SELECT num, name from temp where name like 'a%';
+
+statement ok
+EXPLAIN TABLE temp;
+
+statement ok
+EXPLAIN TABLE temp ORDER BY name;
+
+statement ok
+EXPLAIN TABLE temp ORDER BY num;
+
+statement ok
+EXPLAIN DELETE from temp where true;
+
+statement ok
+EXPLAIN DELETE from temp where num > 2;
+
+statement ok
+EXPLAIN DELETE from temp where num > 39;
+
+statement ok
+EXPLAIN DELETE from temp where num = 15445;
+
+statement ok
+EXPLAIN DELETE from temp where name LIKE 'andy';
+
+statement ok
+EXPLAIN DELETE from temp where name LIKE 'Andy';
+
+statement ok
+EXPLAIN DELETE from temp where name like 'a%';
+
+statement ok
+EXPLAIN UPDATE temp SET name='yeet' where true;
+
+statement ok
+EXPLAIN UPDATE temp SET name='yeet' where num > 2;
+
+statement ok
+EXPLAIN UPDATE temp SET name='yeet' where num > 39;
+
+statement ok
+EXPLAIN UPDATE temp SET name='yeet' where num = 15445;
+
+statement ok
+EXPLAIN UPDATE temp SET num=251 where name LIKE 'andy';
+
+statement ok
+EXPLAIN UPDATE temp SET num=83 where name LIKE 'Andy';
+
+statement ok
+EXPLAIN UPDATE temp SET num=100 where name like 'a%';
+
+statement ok
+DROP TABLE temp;
+
+statement ok
+CREATE TABLE temp1 (id INT, data INT, time INT);
+
+statement ok
+EXPLAIN INSERT INTO temp1 VALUES (1, 10, 100),(2, 20, 200),(3, 30, 300),(4, 40, 400);
+
+statement ok
+INSERT INTO temp1 VALUES (1, 10, 100),(2, 20, 200),(3, 30, 300),(4, 40, 400);
+
+statement ok
+EXPLAIN SELECT * FROM temp1 WHERE id=1 OR id=2 OR id=3 OR id=4;
+
+statement ok
+EXPLAIN SELECT * FROM temp1 WHERE id=1 AND data=10 AND time=100 OR id=2;
+
+statement ok
+EXPLAIN SELECT * FROM temp1 WHERE (id=1 OR data=10 AND time=200) AND (time=100 OR id=2);
+
+statement ok
+EXPLAIN SELECT * FROM temp1 WHERE (id=2 OR (id=1 AND (time=100 AND data=10))) OR (id=3 AND data=30);
+
+statement ok
+EXPLAIN SELECT * FROM temp1 WHERE id=1 OR time=300 AND id=3 OR id=4 AND time=200 OR id=2 AND data=20 OR id=5;
+
+statement ok
+EXPLAIN DELETE FROM temp1 WHERE id=1 OR id=2 OR id=3 OR id=4;
+
+statement ok
+EXPLAIN DELETE FROM temp1 WHERE id=1 AND data=10 AND time=100 OR id=2;
+
+statement ok
+EXPLAIN DELETE FROM temp1 WHERE (id=1 OR data=10 AND time=200) AND (time=100 OR id=2);
+
+statement ok
+EXPLAIN DELETE FROM temp1 WHERE (id=2 OR (id=1 AND (time=100 AND data=10))) OR (id=3 AND data=30);
+
+statement ok
+EXPLAIN DELETE FROM temp1 WHERE id=1 OR time=300 AND id=3 OR id=4 AND time=200 OR id=2 AND data=20 OR id=5;
+
+statement ok
+EXPLAIN TABLE temp1;
+
+statement ok
+EXPLAIN TABLE temp1 ORDER BY id;
+
+statement ok
+EXPLAIN TABLE temp1 ORDER by data;
+
+statement ok
+EXPLAIN TABLE temp1 ORDER by time;
+
+statement ok
+DROP TABLE temp1;
+
+statement ok
+CREATE TABLE temp2 (c1 int, c2 timestamp);
+
+statement ok
+EXPLAIN INSERT INTO temp2 (c1, c2) VALUES (1, '2020-01-02 12:23:34.56789');
+
+statement ok
+INSERT INTO temp2 (c1, c2) VALUES (1, '2020-01-02 12:23:34.56789');
+
+statement ok
+EXPLAIN INSERT INTO temp2 (c1, c2) VALUES (2, '2020-01-02 11:22:33.721-05');
+
+statement ok
+INSERT INTO temp2 (c1, c2) VALUES (2, '2020-01-02 11:22:33.721-05');
+
+statement ok
+EXPLAIN UPDATE temp2 SET c2 = '2020-01-02 11:22:33.721-05' WHERE c1 = 2;
+
+statement ok
+UPDATE temp2 SET c2 = '2020-01-02 11:22:33.721-05' WHERE c1 = 2;
+
+statement ok
+EXPLAIN SELECT * from temp2 ORDER BY c1 ASC;
+
+statement ok
+EXPLAIN DELETE from temp2 where c1 = 2;
+
+statement ok
+EXPLAIN TABLE temp2;
+
+statement ok
+EXPLAIN TABLE temp2 ORDER BY c1;
+
+statement ok
+EXPLAIN TABLE temp2 ORDER BY c2;
+
+statement ok
+DROP TABLE temp2;
+
+statement ok
+CREATE TABLE temp3 (c1 int, c2 INTEGER);
+
+statement ok
+EXPLAIN INSERT INTO temp3 (c1, c2) VALUES (1, 1);
+
+statement ok
+INSERT INTO temp3 (c1, c2) VALUES (1, 1);
+
+statement ok
+EXPLAIN INSERT INTO temp3 (c1, c2) VALUES (22, 22);
+
+statement ok
+INSERT INTO temp3 (c1, c2) VALUES (22, 22);
+
+statement ok
+EXPLAIN INSERT INTO temp3 (c1, c2) VALUES (23, 33);
+
+statement ok
+INSERT INTO temp3 (c1, c2) VALUES (23, 33);
+
+statement ok
+EXPLAIN UPDATE temp3 SET c2 = 4 WHERE c1 = 22;
+
+statement ok
+UPDATE temp3 SET c2 = 4 WHERE c1 = 22;
+
+statement ok
+EXPLAIN SELECT * FROM temp3;
+
+statement ok
+EXPLAIN SELECT * FROM temp3 WHERE c2=22;
+
+statement ok
+EXPLAIN SELECT c2 FROM temp3 WHERE c1=23;
+
+statement ok
+EXPLAIN DELETE FROM temp3 where true;
+
+statement ok
+EXPLAIN DELETE FROM temp3 WHERE c2=22;
+
+statement ok
+EXPLAIN DELETE FROM temp3 WHERE c1=23;
+
+statement ok
+EXPLAIN TABLE temp3;
+
+statement ok
+EXPLAIN TABLE temp3 ORDER BY c1;
+
+statement ok
+EXPLAIN TABLE temp3 ORDER BY c2;
+
+statement ok
+DROP TABLE temp3;
+
+statement ok
+CREATE TABLE temp4 (c1 int, c2 float, c3 varchar);
+
+statement ok
+EXPLAIN INSERT INTO temp4 (c1, c2, c3) VALUES (1, 1.0, '1');
+
+statement ok
+INSERT INTO temp4 (c1, c2, c3) VALUES (1, 1.0, '1');
+
+statement ok
+EXPLAIN INSERT INTO temp4 (c1, c2, c3) VALUES (2, 2.0, '2');
+
+statement ok
+INSERT INTO temp4 (c1, c2, c3) VALUES (2, 2.0, '2');
+
+statement ok
+EXPLAIN INSERT INTO temp4 (c1, c2, c3) VALUES (3, 3.0, '3');
+
+statement ok
+INSERT INTO temp4 (c1, c2, c3) VALUES (3, 3.0, '3');
+
+statement ok
+EXPLAIN UPDATE temp4 SET c2 = 4.0 WHERE c1 = 2;
+
+statement ok
+UPDATE temp4 SET c2 = 4.0 WHERE c1 = 2;
+
+statement ok
+EXPLAIN SELECT * FROM temp4;
+
+statement ok
+EXPLAIN SELECT * FROM temp4 WHERE c2=2.0;
+
+statement ok
+EXPLAIN SELECT * FROM temp4 WHERE c2=2.0 AND c3='2';
+
+statement ok
+EXPLAIN SELECT c1 FROM temp4 WHERE c2=2.0 OR c3='1';
+
+statement ok
+EXPLAIN SELECT * FROM temp4 WHERE c2=2.0 AND c3='2' OR c1=1;
+
+statement ok
+EXPLAIN SELECT c2 FROM temp4 WHERE c1=2;
+
+statement ok
+EXPLAIN UPDATE temp4 SET c1=2 WHERE c2=1.0;
+
+statement ok
+UPDATE temp4 SET c1=2 WHERE c2=1.0;
+
+statement ok
+EXPLAIN SELECT * FROM temp4 WHERE c1=2;
+
+statement ok
+DROP TABLE temp4;

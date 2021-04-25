@@ -1,9 +1,8 @@
-#include "storage/index/bplustree.h"
-
 #include <cstdlib>
 #include <set>
 #include <unordered_map>
 
+#include "storage/index/bplustree.h"
 #include "storage/storage_defs.h"
 #include "test_util/multithread_test_util.h"
 #include "test_util/test_harness.h"

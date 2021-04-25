@@ -335,59 +335,26 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ExplainStatement> nod
       BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::AnalyzeStatement>());
       break;
     }
-    case parser::StatementType::COPY: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::CopyStatement>());
-      break;
-    }
-    case parser::StatementType::CREATE_FUNC: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::CreateFunctionStatement>());
-      break;
-    }
-    case parser::StatementType::CREATE: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::CreateStatement>());
-      break;
-    }
     case parser::StatementType::DELETE: {
       BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::DeleteStatement>());
-      break;
-    }
-    case parser::StatementType::DROP: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::DropStatement>());
-      break;
-    }
-    case parser::StatementType::EXECUTE: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::ExecuteStatement>());
-      break;
-    }
-    case parser::StatementType::EXPLAIN: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::ExplainStatement>());
       break;
     }
     case parser::StatementType::INSERT: {
       BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::InsertStatement>());
       break;
     }
-    case parser::StatementType::PREPARE: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::PrepareStatement>());
-      break;
-    }
     case parser::StatementType::SELECT: {
       BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::SelectStatement>());
-      break;
-    }
-    case parser::StatementType::TRANSACTION: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::TransactionStatement>());
       break;
     }
     case parser::StatementType::UPDATE: {
       BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::UpdateStatement>());
       break;
     }
-    case parser::StatementType::VARIABLE_SET: {
-      BindNodeVisitor::Visit(inside_statement.CastManagedPointerTo<parser::VariableSetStatement>());
-      break;
-    }
     default: {
+      // see https://www.postgresql.org/docs/current/sql-explain.html for supported statements
+      // TODO(Matt): postgres supports CREATE TABLE AS, or CREATE MATERIALIZED VIEW AS statement, add when we support
+      // TODO(Matt): postgres support EXECUTE, add when we support
       throw BINDER_EXCEPTION("Statement inside explain is invalid.", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
     }
   }
