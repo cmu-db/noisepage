@@ -1279,3 +1279,48 @@ SELECT a FROM t WHERE b IN ('a','nananananabanana','catdogelephantfishgiraffehor
 
 statement ok
 DROP TABLE t;
+
+statement ok
+CREATE TABLE t (a INT);
+
+statement ok
+INSERT INTO t VALUES (1), (2), (3), (4);
+
+statement error
+SELECT a FROM t WHERE 5;
+----
+
+query I rowsort
+SELECT a FROM t WHERE 5=4;
+----
+
+query I rowsort
+SELECT a FROM t WHERE 5=5;
+----
+1
+2
+3
+4
+
+query I rowsort
+SELECT a FROM t WHERE 1 = NULL;
+----
+
+# query I rowsort
+# SELECT a FROM t WHERE NULL;
+# ----
+
+# query I rowsort
+# SELECT a FROM t WHERE true;
+# ----
+# 1
+# 2
+# 3
+# 4
+
+# query I rowsort
+# SELECT a FROM t WHERE false;
+# ----
+
+statement ok
+DROP TABLE t;

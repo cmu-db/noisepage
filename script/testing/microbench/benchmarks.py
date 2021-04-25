@@ -1,6 +1,6 @@
 from .constants import DEFAULT_FAILURE_THRESHOLD
 
-# The benchmark names and their associated threasholds
+# The benchmark names and their associated thresholds
 BENCHMARKS_TO_RUN = {
     "catalog_benchmark": 20,
     "data_table_benchmark": 75,

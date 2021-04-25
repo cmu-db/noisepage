@@ -431,18 +431,6 @@ class ForecastModel(AbstractModel):
     def __init__(self) -> None:
         AbstractModel.__init__(self)
 
-    def _update_parameters(self, interval):
-        # TODO(wz2): Possibly expose parameters
-
-        # Number of data points in a sequence
-        self.SEQ_LEN = 10 * ForecastModel.MICRO_SEC_PER_SEC // interval
-
-        # Number of data points for the horizon
-        self.HORIZON_LEN = 30 * ForecastModel.MICRO_SEC_PER_SEC // interval
-
-        # Number of data points for testing set
-        self.EVAL_DATA_SIZE = self.SEQ_LEN + 2 * self.HORIZON_LEN
-
     def train(self, data: Dict) -> Tuple[bool, str]:
         """
         Train a model with the given model name and seq_files directory
@@ -450,17 +438,22 @@ class ForecastModel(AbstractModel):
             model_names: [LSTM...]
             models_config: PATH_TO_JSON model config file
             input_path: PATH_TO_TRACE, or None
+            input_sequence: Trace sequence or None
             save_path: PATH_TO_SAVE_MODEL_MAP
             interval_micro_sec: Interval duration for aggregation in microseconds
+            sequence_length: Number of intervals in a data sequence
+            horizon_length: Number of intervals ahead for the planning horizon
         }
         :return: if training succeeds, {True and empty string}, else {False, error message}
         """
-        input_path = data["input_path"]
+        input_path = data["input_path"] if "input_path" in data else None
+        input_sequence = data["input_sequence"] if "input_sequence" in data else None
         save_path = data["save_path"]
         model_names = data["methods"]
         models_config = data.get("models_config")
         interval = data["interval_micro_sec"]
-        self._update_parameters(interval)
+        seq_length = data["sequence_length"]
+        horizon_length = data["horizon_length"]
 
         # Parse models arguments
         models_kwargs = parse_model_config(model_names, models_config)
@@ -474,13 +467,20 @@ class ForecastModel(AbstractModel):
         except PermissionError as e:
             return False, "FAIL_PERMISSION_ERROR"
 
+        if input_path is None and input_sequence is None:
+            return False, "NO_INPUT_PROVIDED"
+
+        if input_path is not None and input_sequence is not None:
+            return [], False, "BOTH_INPUT_PATH_AND_SEQUENCE_SPECIFIED"
+
         forecaster = Forecaster(
             trace_file=input_path,
+            trace_sequence=input_sequence,
             interval_us=interval,
             test_mode=False,
-            seq_len=self.SEQ_LEN,
-            eval_size=self.EVAL_DATA_SIZE,
-            horizon_len=self.HORIZON_LEN)
+            seq_len=seq_length,
+            eval_size=seq_length + 2 * horizon_length,
+            horizon_len=horizon_length)
 
         models = forecaster.train(models_kwargs)
 
@@ -495,19 +495,24 @@ class ForecastModel(AbstractModel):
         Do inference on the model, give the data file, and the model_map_path
         :param data: {
             input_path: PATH_TO_TRACE, or None
+            input_sequence: Input sequence data, or None
             model_path: model path
             model_names: [LSTM...]
             models_config: PATH_TO_JSON model config file
             interval_micro_sec: Interval duration for aggregation in microseconds
+            sequence_length: Number of intervals in a data sequence
+            horizon_length: Number of intervals ahead for the planning horizon
         }
         :return: {Dict<cluster, Dict<query>, List<preds>>, if inference succeeds, error message}
         """
-        input_path = data["input_path"]
+        input_path = data["input_path"] if "input_path" in data else None
+        input_sequence = data["input_sequence"] if "input_sequence" in data else None
         model_names = data["model_names"]
         models_config = data.get("models_config")
         interval = data["interval_micro_sec"]
+        seq_length = data["sequence_length"]
+        horizon_length = data["horizon_length"]
         model_path = data["model_path"]
-        self._update_parameters(interval)
 
         # Load the trained models
         models = self._load_model(model_path)
@@ -516,13 +521,20 @@ class ForecastModel(AbstractModel):
                 f"Models at {str(model_path)} has not been trained")
             return [], False, "MODELS_NOT_TRAINED"
 
+        if input_path is None and input_sequence is None:
+            return [], False, "NO_INPUT_PROVIDED"
+
+        if input_path is not None and input_sequence is not None:
+            return [], False, "BOTH_INPUT_PATH_AND_SEQUENCE_SPECIFIED"
+
         forecaster = Forecaster(
             trace_file=input_path,
+            trace_sequence=input_sequence,
             test_mode=True,
             interval_us=interval,
-            seq_len=self.SEQ_LEN,
-            eval_size=self.EVAL_DATA_SIZE,
-            horizon_len=self.HORIZON_LEN)
+            seq_len=seq_length,
+            eval_size=seq_length + 2 * horizon_length,
+            horizon_len=horizon_length)
 
         # FIXME:
         # Assuming all the queries in the current trace file are from
@@ -637,7 +649,6 @@ class ModelServer:
 
     @staticmethod
     def _parse_msg(payload: str) -> Tuple[int, int, int, Optional[Message]]:
-        print(payload)
         logging.debug("PY RECV: " + payload)
         tokens = payload.split('-', 3)
 

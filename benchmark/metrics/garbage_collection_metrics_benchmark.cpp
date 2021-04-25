@@ -34,7 +34,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, TPCCish)(benchmark::State 
   for (auto _ : state) {
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    auto *const metrics_thread =
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::GARBAGECOLLECTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
@@ -65,7 +66,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, HighAbortRate)(benchmark::
   for (auto _ : state) {
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    auto *const metrics_thread =
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::GARBAGECOLLECTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
@@ -96,7 +98,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementInsert)(ben
   for (auto _ : state) {
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    auto *const metrics_thread =
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::GARBAGECOLLECTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
@@ -127,7 +130,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementUpdate)(ben
   for (auto _ : state) {
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    auto *const metrics_thread =
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::GARBAGECOLLECTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
@@ -158,7 +162,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementSelect)(ben
   for (auto _ : state) {
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    auto *const metrics_thread =
+        new metrics::MetricsThread(common::ManagedPointer(metrics_manager), DISABLED, metrics_period_);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::GARBAGECOLLECTION, 100);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 

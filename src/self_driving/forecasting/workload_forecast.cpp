@@ -14,10 +14,41 @@
 
 namespace noisepage::selfdriving {
 
-WorkloadForecast::WorkloadForecast(uint64_t forecast_interval) : forecast_interval_(forecast_interval) {
+WorkloadForecast::WorkloadForecast(uint64_t forecast_interval, uint64_t num_sample)
+    : num_sample_(num_sample), workload_metadata_({}), forecast_interval_(forecast_interval) {
   LoadQueryText();
   LoadQueryTrace();
   CreateSegments();
+}
+
+void WorkloadForecast::InitFromInference(const WorkloadForecastPrediction &inference) {
+  bool init = false;
+  for (auto &cluster : inference) {
+    for (auto &query_info : cluster.second) {
+      if (!init) {
+        forecast_segments_ = std::vector<WorkloadForecastSegment>(query_info.second.size());
+        init = true;
+      }
+
+      for (size_t seg = 0; seg < query_info.second.size(); seg++) {
+        double freq = query_info.second[seg];
+        forecast_segments_[seg].AddQueryInfo(execution::query_id_t{static_cast<uint32_t>(query_info.first)}, freq);
+      }
+    }
+  }
+  num_forecast_segment_ = forecast_segments_.size();
+}
+
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, WorkloadMetadata &&metadata) {
+  workload_metadata_ = std::move(metadata);
+  InitFromInference(inference);
+}
+
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, uint64_t num_sample) {
+  num_sample_ = num_sample;
+  LoadQueryText();
+  LoadQueryTrace();
+  InitFromInference(inference);
 }
 
 /**
@@ -27,7 +58,7 @@ WorkloadForecast::WorkloadForecast(uint64_t forecast_interval) : forecast_interv
  * These segments will eventually store the result of workload/query arrival rate prediction.
  */
 void WorkloadForecast::CreateSegments() {
-  std::unordered_map<execution::query_id_t, uint64_t> curr_segment;
+  std::unordered_map<execution::query_id_t, double> curr_segment;
 
   uint64_t curr_time = query_timestamp_to_id_.begin()->first;
 
@@ -36,7 +67,7 @@ void WorkloadForecast::CreateSegments() {
     if (it.first > curr_time + forecast_interval_) {
       forecast_segments_.emplace_back(std::move(curr_segment));
       curr_time = it.first;
-      curr_segment = std::unordered_map<execution::query_id_t, uint64_t>();
+      curr_segment = std::unordered_map<execution::query_id_t, double>();
     }
 
     if (curr_segment.find(it.second) == curr_segment.end()) curr_segment.emplace(it.second, 0);
@@ -112,8 +143,7 @@ void WorkloadForecast::LoadQueryText() {
     db_oid = static_cast<uint64_t>(std::stoi(val_vec[0]));
     query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[1]));
     type_string = val_vec[4];
-    query_id_to_text_[query_id] = val_vec[query_text_col];
-    query_text_to_id_[val_vec[query_text_col]] = query_id;
+    workload_metadata_.query_id_to_text_[query_id] = val_vec[query_text_col];
 
     // extract each type in the type_string
     while ((pos = type_string.find(';')) != std::string::npos) {
@@ -121,8 +151,8 @@ void WorkloadForecast::LoadQueryText() {
       type_string.erase(0, pos + 1);
     }
 
-    query_id_to_dboid_[query_id] = db_oid;
-    query_id_to_param_types_[query_id] = std::move(param_types);
+    workload_metadata_.query_id_to_dboid_[query_id] = db_oid;
+    workload_metadata_.query_id_to_param_types_[query_id] = std::move(param_types);
   }
   // Close file
   query_text_file.close();
@@ -172,22 +202,24 @@ void WorkloadForecast::LoadQueryTrace() {
 
     if (!parse_succ) continue;
 
-    query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[0]));
-    param_string = val_vec[2];
+    // Database id is recorded here for consistency with LoadQueryText but no use for now.
+    // db_oid = static_cast<uint64_t>(std::stoi(val_vec[0]));
+    query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[1]));
+    param_string = val_vec[3];
 
     // extract each parameter in the param_string
     std::vector<parser::ConstantValueExpression> param_vec;
     while ((pos = param_string.find(';')) != std::string::npos) {
-      auto cve = parser::ConstantValueExpression::FromString(param_string.substr(0, pos),
-                                                             query_id_to_param_types_[query_id][param_vec.size()]);
+      auto cve = parser::ConstantValueExpression::FromString(
+          param_string.substr(0, pos), workload_metadata_.query_id_to_param_types_[query_id][param_vec.size()]);
       param_vec.push_back(cve);
       param_string.erase(0, pos + 1);
     }
 
-    if (query_id_to_params_[query_id].size() < num_sample_) {
-      query_id_to_params_[query_id].push_back(param_vec);
+    if (workload_metadata_.query_id_to_params_[query_id].size() < num_sample_) {
+      workload_metadata_.query_id_to_params_[query_id].push_back(param_vec);
     }
-    query_timestamp_to_id_.insert(std::make_pair(std::stoull(val_vec[1]), query_id));
+    query_timestamp_to_id_.insert(std::make_pair(std::stoull(val_vec[2]), query_id));
   }
   // Close file
   trace_file.close();
