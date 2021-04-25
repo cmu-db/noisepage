@@ -47,7 +47,7 @@ MessageFacade BaseReplicationMessage::ToMessageFacade() const {
 std::string BaseReplicationMessage::Serialize() const { return ToMessageFacade().Serialize(); }
 
 BaseReplicationMessage::BaseReplicationMessage(const MessageFacade &message)
-    : type_(ReplicationMessageTypeFromString(message.Get<const std::string>(key_message_type))),
+    : type_(ReplicationMessageTypeFromString(message.Get<std::string>(key_message_type))),
       metadata_(ReplicationMessageMetadata(message.Get<MessageFacade>(key_metadata))) {}
 
 BaseReplicationMessage::BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata)
@@ -109,8 +109,8 @@ TxnAppliedMsg::TxnAppliedMsg(ReplicationMessageMetadata metadata, transaction::t
 
 std::unique_ptr<BaseReplicationMessage> BaseReplicationMessage::ParseFromString(std::string_view str) {
   MessageFacade message(str);
-  // BaseReplicationMessage switches on the messages's key_message_type to figure out what type of message to create.
-  ReplicationMessageType msg_type = ReplicationMessageTypeFromString(message.Get<const std::string>(key_message_type));
+  // BaseReplicationMessage switches on the message's key_message_type to figure out what type of message to create.
+  ReplicationMessageType msg_type = ReplicationMessageTypeFromString(message.Get<std::string>(key_message_type));
   switch (msg_type) {
     // clang-format off
     case ReplicationMessageType::NOTIFY_OAT:          { return std::make_unique<NotifyOATMsg>(message); }
