@@ -136,6 +136,12 @@ pipeline {
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageModeling() } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
+                stage('Pilot'){
+                    agent       { docker { image 'noisepage:focal' ; label 'dgb' ; args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache' } }
+                    environment { CODECOV_TOKEN=credentials('codecov-token') }
+                    steps       { script { utils = utils ?: load(utilsFileName) ; utils.stagePilot() } }
+                    post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
+                }
             }
         }
     }
