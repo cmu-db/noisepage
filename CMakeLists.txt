@@ -1434,6 +1434,29 @@ endif ()
 unset(CLANG_TIDY_BIN)
 
 #######################################################################################################################
+# check-clang-tidy-full  :   Run clang-tidy static analysis on the codebase in "full", i.e.,
+#                            normally clang-tidy is only run on files that differ from origin/master.
+#######################################################################################################################
+
+find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy HINTS ${CLANG_TOOLS_SEARCH_PATH})
+if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+    message(STATUS "[MISSING] clang-tidy not found, no check-clang-tidy.")
+else ()
+    # Run clang-tidy and exit with a non-zero exit code if any errors are found.
+    # clang-tidy automatically searches for a .clang-tidy file in parent directories.
+    add_custom_target(check-clang-tidy-full
+            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # Run LLVM's clang-tidy script.
+            -clang-tidy-binary ${CLANG_TIDY_BIN}                              # Using the specified clang-tidy binary.
+            -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
+            -full                                                             # Do not apply the git filter.
+            USES_TERMINAL
+            )
+    add_custom_command(TARGET check-clang-tidy-full DEPENDS benchmark gflags gtest)
+    message(STATUS "[ADDED] check-clang-tidy-full (${CLANG_TIDY_BIN})")
+endif ()
+unset(CLANG_TIDY_BIN)
+
+#######################################################################################################################
 # Apply +x permissions to all scripts in the build-support folder.
 #######################################################################################################################
 
