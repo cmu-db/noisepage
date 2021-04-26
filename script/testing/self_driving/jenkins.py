@@ -55,5 +55,5 @@ if __name__ == "__main__":
     #               the future.Wait(). Therefore we ignore the exit codes. If the index failed to be created,
     #               it would still timeout in Jenkins waiting for automated_index_foo to be created.
     _, _ = _pilot_planning()
-    LOG.warn("We are ignoring the DBMS exit code!")
+    LOG.warning("We are ignoring the DBMS exit code!")
     sys.exit(0)
