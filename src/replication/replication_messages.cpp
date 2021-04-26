@@ -16,53 +16,90 @@ const char *RecordsBatchMsg::key_batch_id = "batch_id";
 const char *RecordsBatchMsg::key_contents = "contents";
 const char *TxnAppliedMsg::key_applied_txn_id = "applied_txn_id";
 
-// MessageFacade
+// MessageWrapper
 
-DEFINE_JSON_BODY_DECLARATIONS(MessageFacade);
+MessageWrapper::MessageWrapper() : underlying_message_(std::make_unique<MessageFormat>()) {}
+
+MessageWrapper::MessageWrapper(std::string_view str)
+    : underlying_message_(std::make_unique<MessageFormat>(common::json::parse(str))) {}
+
+template <typename T>
+void MessageWrapper::Put(const char *key, T value) {
+  (*underlying_message_)[key] = value;
+}
+template void MessageWrapper::Put<std::string>(const char *key, std::string value);
+template void MessageWrapper::Put<std::vector<uint8_t>>(const char *key, std::vector<uint8_t> value);
+template void MessageWrapper::Put<MessageWrapper>(const char *key, MessageWrapper value);
+template void MessageWrapper::Put<record_batch_id_t>(const char *key, record_batch_id_t value);
+template void MessageWrapper::Put<msg_id_t>(const char *key, msg_id_t value);
+template void MessageWrapper::Put<transaction::timestamp_t>(const char *key, transaction::timestamp_t value);
+
+template <typename T>
+T MessageWrapper::Get(const char *key) const {
+  return underlying_message_->at(key).get<T>();
+}
+template std::string MessageWrapper::Get<std::string>(const char *key) const;
+template std::vector<uint8_t> MessageWrapper::Get<std::vector<uint8_t>>(const char *key) const;
+template MessageWrapper MessageWrapper::Get<MessageWrapper>(const char *key) const;
+template record_batch_id_t MessageWrapper::Get<record_batch_id_t>(const char *key) const;
+template msg_id_t MessageWrapper::Get<msg_id_t>(const char *key) const;
+template transaction::timestamp_t MessageWrapper::Get<transaction::timestamp_t>(const char *key) const;
+
+std::string MessageWrapper::FromCbor(const std::vector<uint8_t> &cbor) { return common::json::from_cbor(cbor); }
+
+std::vector<uint8_t> MessageWrapper::ToCbor(std::string_view str) { return common::json::to_cbor(str); }
+
+std::string MessageWrapper::Serialize() const { return underlying_message_->dump(); }
+
+common::json MessageWrapper::ToJson() const { return *underlying_message_; }
+
+void MessageWrapper::FromJson(const common::json &j) { *(this->underlying_message_) = j; }
 
 // ReplicationMessageMetadata
 
-MessageFacade ReplicationMessageMetadata::ToMessageFacade() const {
-  MessageFacade message;
+MessageWrapper ReplicationMessageMetadata::ToMessageWrapper() const {
+  MessageWrapper message;
   message.Put(key_message_id, msg_id_);
   return message;
 }
 
-ReplicationMessageMetadata::ReplicationMessageMetadata(const MessageFacade &message)
+ReplicationMessageMetadata::ReplicationMessageMetadata(const MessageWrapper &message)
     : msg_id_(message.Get<msg_id_t>(key_message_id)) {}
 
 ReplicationMessageMetadata::ReplicationMessageMetadata(msg_id_t msg_id) : msg_id_(msg_id) {}
 
 // BaseReplicationMessage
 
-MessageFacade BaseReplicationMessage::ToMessageFacade() const {
-  MessageFacade message;
+MessageWrapper BaseReplicationMessage::ToMessageWrapper() const {
+  MessageWrapper message;
   message.Put(key_message_type, ReplicationMessageTypeToString(type_));
-  // Nested fields need to be the same type as underlying message format because MessageFacade isn't automatically
+  // Nested fields need to be the same type as underlying message format because MessageWrapper isn't automatically
   // serialized
-  message.Put(key_metadata, metadata_.ToMessageFacade());
+  message.Put(key_metadata, metadata_.ToMessageWrapper());
   return message;
 }
 
-std::string BaseReplicationMessage::Serialize() const { return ToMessageFacade().Serialize(); }
+std::string BaseReplicationMessage::Serialize() const { return ToMessageWrapper().Serialize(); }
 
-BaseReplicationMessage::BaseReplicationMessage(const MessageFacade &message)
+BaseReplicationMessage::BaseReplicationMessage(const MessageWrapper &message)
     : type_(ReplicationMessageTypeFromString(message.Get<std::string>(key_message_type))),
-      metadata_(ReplicationMessageMetadata(message.Get<MessageFacade>(key_metadata))) {}
+      metadata_(ReplicationMessageMetadata(message.Get<MessageWrapper>(key_metadata))) {}
 
 BaseReplicationMessage::BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata)
     : type_(type), metadata_(metadata) {}
 
+DEFINE_JSON_BODY_DECLARATIONS(MessageWrapper);
+
 // NotifyOATMsg
 
-MessageFacade NotifyOATMsg::ToMessageFacade() const {
-  MessageFacade message = BaseReplicationMessage::ToMessageFacade();
+MessageWrapper NotifyOATMsg::ToMessageWrapper() const {
+  MessageWrapper message = BaseReplicationMessage::ToMessageWrapper();
   message.Put(key_batch_id, batch_id_);
   message.Put(key_oldest_active_txn, oldest_active_txn_);
   return message;
 }
 
-NotifyOATMsg::NotifyOATMsg(const MessageFacade &message)
+NotifyOATMsg::NotifyOATMsg(const MessageWrapper &message)
     : BaseReplicationMessage(message),
       batch_id_(message.Get<record_batch_id_t>(key_batch_id)),
       oldest_active_txn_(message.Get<transaction::timestamp_t>(key_oldest_active_txn)) {}
@@ -75,17 +112,17 @@ NotifyOATMsg::NotifyOATMsg(ReplicationMessageMetadata metadata, record_batch_id_
 
 // RecordsBatchMsg
 
-MessageFacade RecordsBatchMsg::ToMessageFacade() const {
-  MessageFacade message = BaseReplicationMessage::ToMessageFacade();
+MessageWrapper RecordsBatchMsg::ToMessageWrapper() const {
+  MessageWrapper message = BaseReplicationMessage::ToMessageWrapper();
   message.Put(key_batch_id, batch_id_);
-  message.Put(key_contents, MessageFacade::ToCbor(contents_));
+  message.Put(key_contents, MessageWrapper::ToCbor(contents_));
   return message;
 }
 
-RecordsBatchMsg::RecordsBatchMsg(const MessageFacade &message)
+RecordsBatchMsg::RecordsBatchMsg(const MessageWrapper &message)
     : BaseReplicationMessage(message),
       batch_id_(message.Get<record_batch_id_t>(key_batch_id)),
-      contents_(MessageFacade::FromCbor(message.Get<std::vector<uint8_t>>(key_contents))) {}
+      contents_(MessageWrapper::FromCbor(message.Get<std::vector<uint8_t>>(key_contents))) {}
 
 RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
                                  storage::BufferedLogWriter *buffer)
@@ -95,20 +132,20 @@ RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_bat
 
 // TxnAppliedMsg
 
-MessageFacade TxnAppliedMsg::ToMessageFacade() const {
-  MessageFacade message = BaseReplicationMessage::ToMessageFacade();
+MessageWrapper TxnAppliedMsg::ToMessageWrapper() const {
+  MessageWrapper message = BaseReplicationMessage::ToMessageWrapper();
   message.Put(key_applied_txn_id, applied_txn_id_);
   return message;
 }
 
-TxnAppliedMsg::TxnAppliedMsg(const MessageFacade &message)
+TxnAppliedMsg::TxnAppliedMsg(const MessageWrapper &message)
     : BaseReplicationMessage(message), applied_txn_id_(message.Get<transaction::timestamp_t>(key_applied_txn_id)) {}
 
 TxnAppliedMsg::TxnAppliedMsg(ReplicationMessageMetadata metadata, transaction::timestamp_t applied_txn_id)
     : BaseReplicationMessage(ReplicationMessageType::TXN_APPLIED, metadata), applied_txn_id_(applied_txn_id) {}
 
 std::unique_ptr<BaseReplicationMessage> BaseReplicationMessage::ParseFromString(std::string_view str) {
-  MessageFacade message(str);
+  MessageWrapper message(str);
   // BaseReplicationMessage switches on the message's key_message_type to figure out what type of message to create.
   ReplicationMessageType msg_type = ReplicationMessageTypeFromString(message.Get<std::string>(key_message_type));
   switch (msg_type) {
