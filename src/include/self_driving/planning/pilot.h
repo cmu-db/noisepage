@@ -71,6 +71,9 @@ class PilotUtil;
  */
 class Pilot {
  public:
+  /** The default timeout for pilot futures. Inferences take milliseconds, but CI is flaky. */
+  static constexpr std::chrono::seconds future_timeout_{10};
+
   /** Describes how the workload forecast should be initialized */
   enum class WorkloadForecastInitMode : uint8_t {
     /**
