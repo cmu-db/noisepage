@@ -119,11 +119,8 @@ void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::
 }
 
 void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
-  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(), [&](auto &entry) {
-    if (entry.second != nullptr && entry.second->State() != nullptr) {
-      iterate_fn(ctx, entry.second->State());
-    }
-  });
+  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(),
+                         [&](auto &entry) { iterate_fn(ctx, entry.second->State()); });
 }
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
