@@ -2,19 +2,19 @@
 # Class definition for `NoisePageServer` used in JUnit tests.
 
 import os
-import time
-import shlex
 import pathlib
+import shlex
 import subprocess
+import time
+from typing import Dict, List
 
 import psycopg2 as psql
-
-from typing import Dict, List
 
 from .common import print_pipe
 from .constants import (DEFAULT_DB_BIN, DEFAULT_DB_HOST,
                         DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_PORT,
                         DEFAULT_DB_USER, DEFAULT_DB_WAL_FILE, DIR_REPO, LOG)
+
 
 # -----------------------------------------------------------------------------
 # NoisePageServer
@@ -53,7 +53,7 @@ class NoisePageServer:
         self.db_output_file = db_output_file
         self.db_process = None
 
-    def run_db(self, is_dry_run=False):
+    def run_db(self, is_dry_run=False, timeout=600):
         """
         Start the DBMS.
 
@@ -62,6 +62,9 @@ class NoisePageServer:
         is_dry_run : bool
             True if the commands that will be run should be printed,
             with the commands themselves not actually executing.
+        timeout : int
+            How long to wait, in seconds, for the database to start up
+            before exiting. Default is 600 seconds.
 
         Returns
         -------
@@ -108,9 +111,9 @@ class NoisePageServer:
                 LOG.info("************* DB Logs End *************")
                 return True
 
-            if now - start_time >= 600:
+            if now - start_time >= timeout:
                 LOG.error('\n'.join(logs))
-                LOG.error(f'DBMS [PID={db_process.pid}] took more than 600 seconds to start up. Killing.')
+                LOG.error(f'DBMS [PID={db_process.pid}] took more than {timeout} seconds to start up. Killing.')
                 db_process.kill()
                 return False
 
@@ -247,6 +250,7 @@ class NoisePageServer:
             LOG.error(f"Executing SQL failed: {sql}")
             raise e
 
+
 # -----------------------------------------------------------------------------
 # Server Utilities
 
@@ -285,6 +289,7 @@ def get_binary_directory(build_type):
 
     raise RuntimeError(f'No DBMS binary found in: {path_list}')
 
+
 def construct_server_args_string(server_args, bin_dir):
     """ 
     Construct the arguments string to pass to the DBMS server.
@@ -305,6 +310,7 @@ def construct_server_args_string(server_args, bin_dir):
 
     # Construct the string DBMS argument string
     return " ".join([construct_server_argument(attribute, value, meta) for attribute, value in server_args.items()])
+
 
 def construct_server_argument(attr, value, meta):
     """
@@ -350,9 +356,10 @@ def construct_server_argument(attr, value, meta):
     # Make the attribute available to the value preprocessors
     value_meta = {**meta, **{"attr": attr}}
 
-    preprocessed_attr  = apply_all(ATTR_PREPROCESSORS, attr, attr_meta)
+    preprocessed_attr = apply_all(ATTR_PREPROCESSORS, attr, attr_meta)
     preprocessed_value = apply_all(VALUE_PREPROCESSORS, value, value_meta)
     return f"-{preprocessed_attr}{preprocessed_value}"
+
 
 # -----------------------------------------------------------------------------
 # Preprocessing Utilities
@@ -363,8 +370,10 @@ class AllTypes:
     that should ALWAYS be applied, regardless of the type of the
     value or attribute being processed.
     """
+
     def __init__(self):
         pass
+
 
 def applies_to(*target_types):
     """
@@ -376,6 +385,7 @@ def applies_to(*target_types):
     as a decorator for preprocessor functions to deal with the fact that 
     certain preprocessing operations are only applicable to certain types.
     """
+
     def wrap_outer(f):
         def wrap_inner(target, meta):
             # The argument is a targeted type if the catch-all type AllTypes 
@@ -383,8 +393,11 @@ def applies_to(*target_types):
             # an instance of any of the types provided as an argument
             arg_is_targeted_type = AllTypes in target_types or any(isinstance(target, ty) for ty in target_types)
             return f(target, meta) if arg_is_targeted_type else target
+
         return wrap_inner
+
     return wrap_outer
+
 
 # -----------------------------------------------------------------------------
 # Attribute Preprocessors
@@ -424,6 +437,7 @@ def lower_booleans(value: str, meta: Dict) -> str:
     assert value is True or value is False, "Input must be a first-class boolean type."
     return str(value).lower()
 
+
 @applies_to(str)
 def resolve_relative_paths(value: str, meta: Dict) -> str:
     """
@@ -462,11 +476,12 @@ def resolve_relative_paths(value: str, meta: Dict) -> str:
     # otherwise be expected, never more.
     is_path = str.endswith(meta["attr"], "_path")
     is_relative = not os.path.isabs(value)
-    
+
     if is_path and is_relative:
         return pathlib.Path(os.path.join(meta["bin_dir"], value)).resolve()
     else:
         return value
+
 
 @applies_to(AllTypes)
 def handle_flags(value: str, meta: Dict) -> str:
@@ -493,6 +508,7 @@ def handle_flags(value: str, meta: Dict) -> str:
     The preprocessed server argument value
     """
     return f"={value}" if value is not None else ""
+
 
 # -----------------------------------------------------------------------------
 # Utility

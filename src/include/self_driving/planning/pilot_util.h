@@ -96,25 +96,6 @@ class PilotUtil {
                             std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs);
 
   /**
-   * Generate abstract plan from a query's parse result and parameters
-   * @param txn current transaction
-   * @param accessor pointer to catalog accessor
-   * @param params pointer to parameters of the query, nullptr for actions
-   * @param param_types pointer to parameters of the query, nullptr for actions
-   * @param stmt_list statement list that's the parse result
-   * @param db_oid database oid for the query
-   * @param stats_storage stats storage
-   * @param optimizer_timeout optimizer timeout
-   * @return the abstract plan generated
-   */
-  static std::unique_ptr<planner::AbstractPlanNode> GenerateQueryPlan(
-      transaction::TransactionContext *txn, common::ManagedPointer<catalog::CatalogAccessor> accessor,
-      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-      common::ManagedPointer<std::vector<type::TypeId>> param_types,
-      common::ManagedPointer<parser::ParseResult> stmt_list, catalog::db_oid_t db_oid,
-      common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout);
-
-  /**
    * Compute cost of executed queries in the segments between start and end index (both inclusive)
    * @param pilot pointer to the pilot
    * @param forecast pointer to the forecast segments
