@@ -45,9 +45,6 @@ class MessageFacade {
   /** Default constructor */
   MessageFacade() = default;
 
-  /** Constructor using underlying message format */
-  explicit MessageFacade(MessageFormat underlying_message) : underlying_message_(std::move(underlying_message)) {}
-
   /** Constructor which parses a string */
   explicit MessageFacade(std::string_view str) : underlying_message_(common::json::parse(str)) {}
 
