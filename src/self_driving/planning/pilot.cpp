@@ -380,8 +380,8 @@ void Pilot::PerformPlanning() {
       metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
 
   NOISEPAGE_ASSERT((mode == WorkloadForecastInitMode::DISK_ONLY) ||
-                       (mode == metrics_in_db ? WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
-                                              : WorkloadForecastInitMode::DISK_WITH_INFERENCE),
+                       (mode == (metrics_in_db ? WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
+                                               : WorkloadForecastInitMode::DISK_WITH_INFERENCE)),
                    "The mode should either be DISK_ONLY, or it should match whatever the metric output type is.");
 
   LoadWorkloadForecast(mode);
