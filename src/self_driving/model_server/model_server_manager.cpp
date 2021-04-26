@@ -8,6 +8,7 @@
 #endif
 #include <sys/wait.h>
 
+#include <optional>
 #include <thread>  // NOLINT
 
 #include "common/json.h"
@@ -312,7 +313,11 @@ std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, co
     return {{}, false};
   }
 
-  return future.Wait();
+  auto future_result = future.WaitFor(future.future_timeout_);
+  if (!future_result.has_value()) {
+    return {{}, false};
+  }
+  return *future_result;
 }
 
 std::pair<std::vector<std::vector<double>>, bool> ModelServerManager::InferOUModel(

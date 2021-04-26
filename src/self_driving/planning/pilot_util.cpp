@@ -168,7 +168,10 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
         std::make_unique<task::TaskDML>(db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
                                         std::move(params), std::move(param_types), nullptr, metrics_manager, true, true,
                                         std::make_optional<execution::query_id_t>(qid), common::ManagedPointer(&sync)));
-    sync.Wait();
+    auto future_result = sync.WaitFor(Pilot::future_timeout_);
+    if (!future_result.has_value()) {
+      throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+    }
   }
 
   // retrieve the features

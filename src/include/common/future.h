@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>  // NOLINT
+#include <optional>
 #include <string>
 #include <thread>  // NOLINT
 #include <utility>
@@ -47,10 +48,30 @@ class Future {
   Future() = default;
 
   /**
-   * Suspends the current thread and wait for the result to be ready
+   * Suspends the current thread and wait up to a limited time for the result to be ready.
+   * @param wait_millis The duration that the current thread should wait, in milliseconds.
+   * @return The (Result, success) state if the future did NOT time out. Otherwise, nullopt.
+   */
+  std::optional<std::pair<Result, bool>> WaitFor(std::chrono::milliseconds wait_millis) {
+    bool timed_out;
+    {
+      std::unique_lock<std::mutex> lock(mtx_);
+
+      // Wait until the future is completed by someone with successful result or failure
+      timed_out = cvar_.wait_for(lock, wait_millis, [&] { return done_.load(); });
+    }
+
+    return timed_out ? std::nullopt : std::make_optional(std::pair<Result, bool>(result_, success_));
+  }
+
+  /**
+   * Suspends the current thread and wait for the result to be ready. THIS IS A FOOTGUN.
+   *
+   * @warning This wait is a footgun since the DBMS will not exit cleanly if still waiting. You have been warned.
+   *
    * @return Result, and success/fail
    */
-  std::pair<Result, bool> Wait() {
+  std::pair<Result, bool> WaitFootgun() {
     {
       std::unique_lock<std::mutex> lock(mtx_);
 
