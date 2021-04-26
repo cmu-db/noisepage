@@ -25,6 +25,7 @@ static constexpr const char *MODEL_TARGET_NAME = "model";
 static constexpr const char *MODEL_IPC_PATH = "model-server-ipc";
 static constexpr const char *COVERAGE_COMMAND = "coverage";
 static constexpr const char *COVERAGE_RUN = "run";
+static constexpr const char *COVERAGE_RUNM = "-m";
 // used to generate a unique coverage file name and then potentially combine multiple coverage files together
 static constexpr const char *COVERAGE_PARALLEL = "-p";
 static constexpr const char *COVERAGE_INCLUDE = "--include";
@@ -152,6 +153,7 @@ void ModelServerManager::StartModelServer(bool enable_python_coverage) {
     // Args to set up Python code coverage then execute model server
     std::string coverage_command = COVERAGE_COMMAND;
     std::string coverage_run = COVERAGE_RUN;
+    std::string coverage_runm = COVERAGE_RUNM;
     std::string coverage_parallel = COVERAGE_PARALLEL;
     std::string coverage_include = COVERAGE_INCLUDE;
     std::string coverage_include_path = COVERAGE_INCLUDE_PATH;
@@ -160,11 +162,10 @@ void ModelServerManager::StartModelServer(bool enable_python_coverage) {
     std::string module = MODULE_NAME;
     char *coverage_args[] = {coverage_command.data(),
                              coverage_run.data(),
+                             coverage_runm.data(),
                              coverage_parallel.data(),
                              coverage_include.data(),
                              coverage_include_path.data(),
-                             python3.data(),
-                             python3m.data(),
                              module.data(),
                              ipc_path.data(),
                              nullptr};
