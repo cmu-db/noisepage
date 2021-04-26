@@ -317,10 +317,21 @@ void stagePilot() {
     PYTHONPATH=../.. python3 -m script.self_driving.modeling.ou_model_trainer --input_path=./ou_runner_input --model_results_path=./ou_runner_model_results --save_path=./ou_runner_trained_model
     ''', label: 'Train OU models.'
 
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON'
+    ])
+
     sh script :'''
-    cd build/bin
-    PYTHONPATH=../.. python3 -m script.testing.self_driving.jenkins
+    cd build
+    PYTHONPATH=.. python3 -m script.testing.self_driving.jenkins
     ''', label: 'Test the pilot planning.'
+
+    sh script :'''
+    cd build
+    coverage combine
+    ''', label: 'Combine Python code coverage.'
+
+    uploadCoverage()
 
     stagePost()
 }
