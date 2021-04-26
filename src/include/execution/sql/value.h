@@ -378,7 +378,7 @@ struct ValUtil {
       case type::TypeId::VARBINARY:
         return static_cast<uint32_t>(alignof(StringVal));
       default:
-        return 0;
+        UNREACHABLE("Not a valid TypeId.");
     }
   }
 };
