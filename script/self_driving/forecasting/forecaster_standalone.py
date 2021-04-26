@@ -20,11 +20,7 @@ TODO:
 import argparse
 import pickle
 
-from ...testing.self_driving.constants import (DEFAULT_ITER_NUM,
-                                               DEFAULT_QUERY_TRACE_FILE,
-                                               DEFAULT_TPCC_WEIGHTS,
-                                               DEFAULT_WORKLOAD_PATTERN)
-from ...testing.self_driving.forecast import gen_oltp_trace
+from ...testing.self_driving import constants, forecast
 from ...testing.util.constants import LOG
 from .forecaster import Forecaster, parse_model_config
 
@@ -59,19 +55,37 @@ argp.add_argument(
 argp.add_argument(
     "--tpcc_weight",
     type=str,
-    default=DEFAULT_TPCC_WEIGHTS,
-    help="Workload weights for the TPCC")
+    default=constants.DEFAULT_TPCC_WEIGHTS,
+    help="Workload weights for TPC-C.")
+argp.add_argument(
+    "--tpcc_terminals",
+    type=int,
+    default=constants.DEFAULT_TPCC_TERMINALS,
+    help="Number of terminals for TPC-C."
+)
+argp.add_argument(
+    "--tpcc_scale_factor",
+    type=int,
+    default=constants.DEFAULT_TPCC_SCALE_FACTOR,
+    help="Number of warehouses for TPC-C."
+)
+argp.add_argument(
+    "--tpcc_query_mode",
+    type=str,
+    default=constants.DEFAULT_TPCC_QUERY_MODE,
+    help="Default query mode for TPC-C."
+)
 argp.add_argument(
     "--tpcc_rates",
     nargs="+",
-    default=DEFAULT_WORKLOAD_PATTERN,
+    default=constants.DEFAULT_WORKLOAD_PATTERN,
     help="Rate array for the TPCC workload")
 argp.add_argument(
     "--pattern_iter",
     type=int,
-    default=DEFAULT_ITER_NUM,
+    default=constants.DEFAULT_ITER_NUM,
     help="Number of iterations the DEFAULT_WORKLOAD_PATTERN should be run")
-argp.add_argument("--trace_file", default=DEFAULT_QUERY_TRACE_FILE,
+argp.add_argument("--trace_file", default=constants.DEFAULT_QUERY_TRACE_FILE,
                   help="Path to the query trace file", metavar="FILE")
 
 # Model specific
@@ -120,12 +134,32 @@ if __name__ == "__main__":
     args = argp.parse_args()
 
     if args.generate_data:
-        # Generate OLTP trace file
-        gen_oltp_trace(
-            tpcc_weight=args.tpcc_weight,
-            tpcc_rates=args.tpcc_rates,
-            pattern_iter=args.pattern_iter,
-            record_pipeline_metrics=args.record_pipeline_metrics)
+        if args.record_pipeline_metrics:
+            forecast.run_oltpbench(
+                server_args={},
+                benchmark_config=forecast.get_config_tpcc(weights=args.tpcc_weight),
+                result_file_path=constants.DEFAULT_PIPELINE_METRICS_FILE,
+                fns_pre_run=[forecast.make_fn_test_case_run_pre_test(create=True, load=True),
+                             forecast.make_fn_config_forecast_data_tpcc(args.tpcc_rates, args.pattern_iter),
+                             forecast.fn_pipeline_metrics,
+                             forecast.make_fn_remove_results_file(constants.DEFAULT_PIPELINE_METRICS_FILE)],
+                should_execute=True,
+                fns_post_run=[],
+                fn_final=forecast.fn_test_results_file
+            )
+        else:
+            forecast.run_oltpbench(
+                server_args={},
+                benchmark_config=forecast.get_config_tpcc(weights=args.tpcc_weight),
+                result_file_path=constants.DEFAULT_QUERY_TRACE_FILE,
+                fns_pre_run=[forecast.make_fn_test_case_run_pre_test(create=True, load=True),
+                             forecast.make_fn_config_forecast_data_tpcc(args.tpcc_rates, args.pattern_iter),
+                             forecast.fn_query_trace_metrics,
+                             forecast.make_fn_remove_results_file(constants.DEFAULT_QUERY_TRACE_FILE)],
+                should_execute=True,
+                fns_post_run=[],
+                fn_final=forecast.fn_test_results_file
+            )
     elif args.test_file is None:
         # Parse models arguments
         models_kwargs = parse_model_config(args.models, args.models_config)

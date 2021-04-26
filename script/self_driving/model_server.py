@@ -36,12 +36,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import zmq
-from forecasting.forecaster import Forecaster, parse_model_config
-from modeling.info import data_info
-from modeling.interference_model_trainer import InterferenceModelTrainer
-from modeling.ou_model_trainer import OUModelTrainer
-from modeling.type import OpUnit
-from modeling.util import logging_util
+
+from .forecasting.forecaster import Forecaster, parse_model_config
+from .modeling.info import data_info
+from .modeling.interference_model_trainer import InterferenceModelTrainer
+from .modeling.ou_model_trainer import OUModelTrainer
+from .modeling.type import OpUnit
+from .modeling.util import logging_util
 
 logging_util.init_logging('info')
 

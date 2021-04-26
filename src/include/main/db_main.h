@@ -528,8 +528,8 @@ class DBMain {
       std::unique_ptr<modelserver::ModelServerManager> model_server_manager = DISABLED;
       if (use_model_server_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
-        model_server_manager = std::make_unique<modelserver::ModelServerManager>(
-            model_server_path_, messenger_layer->GetMessenger(), model_server_enable_python_coverage_);
+        model_server_manager = std::make_unique<modelserver::ModelServerManager>(messenger_layer->GetMessenger(),
+                                                                                 model_server_enable_python_coverage_);
       }
 
       std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
@@ -888,15 +888,6 @@ class DBMain {
     }
 
     /**
-     * @param value model_server_path
-     * @return self reference for chaining
-     */
-    Builder &SetModelServerPath(const std::string &value) {
-      model_server_path_ = value;
-      return *this;
-    }
-
-    /**
      * @param value enable_python_coverage for ModelServer
      * @return self reference for chaining
      */
@@ -945,12 +936,6 @@ class DBMain {
     std::string network_identity_ = "primary";
     std::string uds_file_directory_ = "/tmp/";
     std::string replication_hosts_path_ = "./replication.config";
-    /**
-     * The ModelServer script is located at PROJECT_ROOT/script/model by default, and also assume
-     * the build binary at PROJECT_ROOT/build/bin/noisepage. This should be override or set explicitly
-     * in use cases where such assumptions are no longer true.
-     */
-    std::string model_server_path_ = "../../script/model/model_server.py";
 
     bool use_settings_manager_ = false;
     bool use_thread_registry_ = false;
@@ -1076,7 +1061,6 @@ class DBMain {
       replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
       use_model_server_ = settings_manager->GetBool(settings::Param::model_server_enable);
-      model_server_path_ = settings_manager->GetString(settings::Param::model_server_path);
 
       return settings_manager;
     }

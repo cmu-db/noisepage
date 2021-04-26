@@ -22,7 +22,8 @@ class PilotThread {
   PilotThread(common::ManagedPointer<selfdriving::Pilot> pilot, std::chrono::microseconds pilot_interval,
               std::chrono::microseconds forecaster_train_interval, bool pilot_planning);
 
-  ~PilotThread() { StopPilot(); }
+  /** Destructor. */
+  ~PilotThread() = default;
 
   /**
    * Kill the Pilot thread.
@@ -60,6 +61,9 @@ class PilotThread {
     pilot_paused_ = false;
   }
 
+  /** @return True if the pilot is still running. */
+  bool PilotRunning() const { return run_pilot_; }
+
   /**
    * @return the underlying Pilot object, mostly to register indexes currently.
    */
@@ -75,7 +79,7 @@ class PilotThread {
   std::thread pilot_thread_;
 
   void PilotThreadLoop() {
-    while (run_pilot_) {
+    while (PilotRunning()) {
       std::this_thread::sleep_for(pilot_interval_);
       forecaster_remain_period_ -=
           ((forecaster_remain_period_ > pilot_interval_) ? pilot_interval_ : forecaster_remain_period_);

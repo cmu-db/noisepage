@@ -287,6 +287,16 @@ SETTING_bool(
     noisepage::settings::Callbacks::PilotEnablePlanning
 )
 
+SETTING_int(
+    pilot_workload_forecast_init_mode,
+    "Control how the workload forecast should be initialized, see WorkloadForecastInitMode.",
+    2 /* DISK_ONLY. */,
+    0,
+    2,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     logging_metrics_enable,
     "Metrics collection for the Logging component (default: false).",
@@ -477,15 +487,6 @@ SETTING_bool(
     model_server_enable,
     "Whether to enable the ModelServerManager (default: false)",
     false,
-    false,
-    noisepage::settings::Callbacks::NoOp
-)
-
-// Relative path assuming binary locate at PROJECT_ROOT/build/bin/, and model_server.py at PROJECT_ROOT/script/model
-SETTING_string(
-    model_server_path,
-    "The python model server script to invoke (default: ../../script/model/model_server.py)",
-    "../../script/model/model_server.py",
     false,
     noisepage::settings::Callbacks::NoOp
 )

@@ -100,10 +100,15 @@ class TestCaseOLTPBench(TestCase):
             HISTOGRAMS=self.test_histogram_path)
         self.test_command_cwd = constants.OLTPBENCH_GIT_LOCAL_PATH
 
-    def run_pre_test(self):
+    def run_pre_test(self,
+                     create=constants.OLTPBENCH_DEFAULT_DATABASE_CREATE,
+                     load=constants.OLTPBENCH_DEFAULT_DATABASE_LOAD):
         self._config_xml_file()
         self._create_result_dir()
-        self._create_and_load_db()
+        if create:
+            self._create_db()
+        if load:
+            self._load_db()
 
     def run_post_test(self):
         # validate the OLTP result
@@ -124,22 +129,37 @@ class TestCaseOLTPBench(TestCase):
         if not os.path.exists(self.test_result_dir):
             os.makedirs(self.test_result_dir)
 
-    def _create_and_load_db(self):
+    def _create_db(self):
         """
-        Create the database and load the data before the actual test execution.
+        Create the database before the actual test execution.
         """
-        cmd = "{BIN} -c {XML} -b {BENCHMARK} --create={CREATE} --load={LOAD}".format(
+        cmd = "{BIN} -c {XML} -b {BENCHMARK} --create={CREATE}".format(
             BIN=constants.OLTPBENCH_DEFAULT_BIN,
             XML=self.xml_config,
             BENCHMARK=self.benchmark,
-            CREATE=self.db_create,
+            CREATE=self.db_create)
+        rc, stdout, stderr = run_command(cmd,
+                                         cwd=self.test_command_cwd)
+        if rc != ErrorCode.SUCCESS:
+            LOG.info(stdout.read())
+            LOG.error(stderr.read())
+            raise RuntimeError("Error: Unable to create the database.")
+
+    def _load_db(self):
+        """
+        Load into the database before the actual test execution.
+        """
+        cmd = "{BIN} -c {XML} -b {BENCHMARK} --load={LOAD}".format(
+            BIN=constants.OLTPBENCH_DEFAULT_BIN,
+            XML=self.xml_config,
+            BENCHMARK=self.benchmark,
             LOAD=self.db_load)
         rc, stdout, stderr = run_command(cmd,
                                          cwd=self.test_command_cwd)
         if rc != ErrorCode.SUCCESS:
             LOG.info(stdout.read())
             LOG.error(stderr.read())
-            raise RuntimeError("Error: Unable to create and load the database.")
+            raise RuntimeError("Error: Unable to load the database.")
 
     def _get_db_url(self):
         db_url = f"jdbc:postgresql://{self.db_host}:{self.db_port}/noisepage"

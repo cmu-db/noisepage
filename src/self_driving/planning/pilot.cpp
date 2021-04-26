@@ -370,12 +370,21 @@ void Pilot::PerformPlanning() {
   // Suspend the metrics thread while we are handling the data (snapshot).
   metrics_thread_->PauseMetrics();
 
-  // Populate the workload forecast
-  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
-  bool metrics_in_db =
+  // Populate the workload forecast. Initialization mode is controlled by the settings manager.
+  auto mode = static_cast<WorkloadForecastInitMode>(
+      settings_manager_->GetInt(settings::Param::pilot_workload_forecast_init_mode));
+
+  auto UNUSED_ATTRIBUTE metrics_output =
+      metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
+  bool UNUSED_ATTRIBUTE metrics_in_db =
       metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
-  LoadWorkloadForecast(metrics_in_db ? WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
-                                     : WorkloadForecastInitMode::DISK_WITH_INFERENCE);
+
+  NOISEPAGE_ASSERT((mode == WorkloadForecastInitMode::DISK_ONLY) ||
+                       (mode == metrics_in_db ? WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
+                                              : WorkloadForecastInitMode::DISK_WITH_INFERENCE),
+                   "The mode should either be DISK_ONLY, or it should match whatever the metric output type is.");
+
+  LoadWorkloadForecast(mode);
   if (forecast_ == nullptr) {
     SELFDRIVING_LOG_ERROR("Unable to initialize the WorkloadForecast information");
     metrics_thread_->ResumeMetrics();

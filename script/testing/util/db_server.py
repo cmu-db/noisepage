@@ -24,7 +24,7 @@ class NoisePageServer:
     NoisePageServer represents a NoisePage DBMS instance.
     """
 
-    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args={},
+    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args=None,
                  db_output_file=DEFAULT_DB_OUTPUT_FILE):
         """
         Creates an instance of the DB that can be started, stopped, or restarted.
@@ -43,6 +43,9 @@ class NoisePageServer:
         db_output_file : str, filepath
             The output file that the DB should output its logs to.
         """
+        if server_args is None:
+            server_args = {}
+
         default_server_args = {
             'wal_file_path': DEFAULT_DB_WAL_FILE
         }
@@ -117,7 +120,7 @@ class NoisePageServer:
                 db_process.kill()
                 return False
 
-    def stop_db(self, is_dry_run=False):
+    def stop_db(self, is_dry_run=False, timeout=60):
         """
         Stop the DBMS. The DBMS must be running!
 
@@ -126,6 +129,8 @@ class NoisePageServer:
         is_dry_run : bool
             True if the commands that will be run should be printed,
             with the commands themselves not actually executing.
+        timeout : int
+            The number of seconds we wait between DBMS termination attempts (polite, forceful, error out).
 
         Returns
         -------
@@ -153,12 +158,12 @@ class NoisePageServer:
         try:
             # Try to kill the process politely and wait for 60 seconds.
             self.db_process.terminate()
-            self.db_process.wait(60)
+            self.db_process.wait(timeout)
         except subprocess.TimeoutExpired:
             # Otherwise, try to kill the process forcefully and wait another 60 seconds.
             # If the process hasn't died yet, then something terrible has happened and we raise an error.
             self.db_process.kill()
-            self.db_process.wait(60)
+            self.db_process.wait(timeout)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         finally:
@@ -236,7 +241,7 @@ class NoisePageServer:
                 conn.set_session(autocommit=autocommit)
                 with conn.cursor() as cursor:
                     if not quiet:
-                        LOG.info(f"Executing SQL on {self.identity}: {sql}")
+                        LOG.info(f"Executing SQL on [host={self.db_host},port={self.db_port},user={user}]: {sql}")
                     cursor.execute(sql)
                     if expect_result:
                         rows = cursor.fetchall()
@@ -279,6 +284,8 @@ def get_binary_directory(build_type):
     path_list = [
         ("standard", "build"),
         ("CLion", "cmake-build-{}".format(build_type)),
+        ("cwd", os.getcwd()),
+        ("cwd_parent", pathlib.Path(os.getcwd()).parent.absolute())
     ]
     for _, path in path_list:
         bin_dir = os.path.join(DIR_REPO, path, "bin")

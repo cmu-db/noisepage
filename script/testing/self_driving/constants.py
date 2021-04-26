@@ -8,19 +8,17 @@ DEFAULT_TPCC_TIME_SEC = 30
 # Run the workload pattern for 2 iterations
 DEFAULT_ITER_NUM = 2
 
-# Load the workload pattern - based on the tpcc.json in
-# testing/oltpbench/config
+# Default weights for TPC-C transactions (NewOrder, Payment, OrderStatus, Delivery, StockLevel).
 DEFAULT_TPCC_WEIGHTS = "45,43,4,4,4"
-DEFAULT_OLTP_TEST_CASE = {
-    "benchmark": "tpcc",
-    "query_mode": "extended",
-    "terminals": 4,
-    "scale_factor": 4,
-    "weights": DEFAULT_TPCC_WEIGHTS
-}
+# Default number of TPC-C terminals.
+DEFAULT_TPCC_TERMINALS = 4
+# Default number of TPC-C warehouses.
+DEFAULT_TPCC_SCALE_FACTOR = 4
+# Default query mode for TPC-C.
+DEFAULT_TPCC_QUERY_MODE = "extended"
 
 # Enable query trace collection, it will produce a query_trace.csv at CWD
-DEFAULT_OLTP_SERVER_ARGS = {
+DEFAULT_SERVER_ARGS = {
     "server_args": {}
 }
 

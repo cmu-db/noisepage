@@ -72,6 +72,12 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
+  if (model_server_manager_ != DISABLED) {
+    model_server_manager_->StopModelServer();
+  }
+  if (pilot_thread_ != DISABLED) {
+    pilot_thread_->StopPilot();
+  }
   if (replication_manager_ != DISABLED) {
     GetLogManager()->EndReplication();
     if (!replication_manager_->IsPrimary()) {

@@ -276,6 +276,55 @@ void stageModeling() {
     stagePost()
 }
 
+void stagePilot() {
+    stagePre()
+    installPackages()
+
+    // Build the noisepage DBMS and the execution_runners binary in release mode for efficient data generation.
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
+    ])
+
+    buildNoisePageTarget("execution_runners")
+    // The parameters to the execution_runners target are arbitrarily picked to complete tests within 10 minutes while
+    // still exercising all OUs and generating a reasonable amount of training data.
+    //
+    // Specifically, the parameters chosen are:
+    // - execution_runner_rows_limit=100, which sets the max number of rows/tuples processed to be 100 (small table).
+    // - rerun=0, which skips rerun since we are not testing benchmark performance here.
+    // - warm_num=1, which also tests the warm up phase for the execution_runners.
+    sh script :'''
+    cd build/bin
+    ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
+    ''', label: 'OU model training data generation'
+
+    // This generates execution_SEQ(numbers).csv files in the build/bin directory.
+
+    sh script:'''
+    cd build/bin
+    mkdir ou_runner_input
+    mkdir ou_runner_model_results
+    mkdir ou_runner_trained_model
+    ''', label: 'Create folders for OU model training.'
+
+    sh script:'''
+    cd build/bin
+    mv *SEQ*.csv ou_runner_input
+    ''', label: 'Move OU model training data to the ou_runner_input folder.'
+
+    sh script:'''
+    cd build/bin
+    PYTHONPATH=../.. python3 -m script.self_driving.modeling.ou_model_trainer --input_path=./ou_runner_input --model_results_path=./ou_runner_model_results --save_path=./ou_runner_trained_model
+    ''', label: 'Train OU models.'
+
+    sh script :'''
+    cd build/bin
+    PYTHONPATH=../.. python3 -m script.testing.self_driving.jenkins
+    ''', label: 'Test the pilot planning.'
+
+    stagePost()
+}
+
 void stageArchive() {
     archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
     xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]

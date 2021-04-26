@@ -116,18 +116,14 @@ class ModelServerManager {
 
  public:
   /**
-   * Construct a ModelServerManager with the given executable script to the Python ModelServer
-   * @param model_bin Python script path
+   * Construct a ModelServerManager which assumes script.self_driving.model_server is in the PYTHONPATH.
    * @param messenger Messenger pointer
    * @param enable_python_coverage Whether to enable the Python code coverage. Should only be true in tests.
    */
-  ModelServerManager(const std::string &model_bin, const common::ManagedPointer<messenger::Messenger> &messenger,
-                     bool enable_python_coverage);
+  ModelServerManager(const common::ManagedPointer<messenger::Messenger> &messenger, bool enable_python_coverage);
 
-  /**
-   * Stop the Python ModelServer when exits
-   */
-  ~ModelServerManager() { StopModelServer(); }
+  /** Destructor. */
+  ~ModelServerManager() = default;
 
   /**
    * Stop the Python-ModelServer daemon by sending a message to the Python model server
@@ -143,6 +139,9 @@ class ModelServerManager {
    * @return true if model server has started
    */
   bool ModelServerStarted() const { return connected_; }
+
+  /** @return True if the model server is still running. */
+  bool ModelServerRunning() const { return !shut_down_; }
 
   /**
    * Get the Python model-server's PID
@@ -346,7 +345,7 @@ class ModelServerManager {
    * 2. Prepare arguments and forks to initialize a Python daemon
    * 3. Record the pid
    */
-  void StartModelServer(const std::string &model_path, bool enable_python_coverage);
+  void StartModelServer(bool enable_python_coverage);
 
   /**
    * Send a marshalled message string in JSON format through the Messenger
