@@ -58,7 +58,7 @@ class Future {
       std::unique_lock<std::mutex> lock(mtx_);
 
       // Wait until the future is completed by someone with successful result or failure
-      timed_out = cvar_.wait_for(lock, wait_millis, [&] { return done_.load(); });
+      timed_out = !cvar_.wait_for(lock, wait_millis, [&] { return done_.load(); });
     }
 
     return timed_out ? std::nullopt : std::make_optional(std::pair<Result, bool>(result_, success_));

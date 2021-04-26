@@ -51,9 +51,5 @@ if __name__ == "__main__":
     if exit_code != 0:
         sys.exit(exit_code)
 
-    # TODO(WAN):    Unfortunately, the ModelServer and Pilot currently do not cleanly shutdown because of
-    #               the future.Wait(). Therefore we ignore the exit codes. If the index failed to be created,
-    #               it would still timeout in Jenkins waiting for automated_index_foo to be created.
-    _, _ = _pilot_planning()
-    LOG.warning("We are ignoring the DBMS exit code!")
-    sys.exit(0)
+    exit_code, _ = _pilot_planning()
+    sys.exit(exit_code)

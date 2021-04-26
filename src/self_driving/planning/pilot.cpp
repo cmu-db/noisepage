@@ -4,8 +4,8 @@
 #include <memory>
 #include <utility>
 
-#include "common/error/error_code.h"
 #include "common/action_context.h"
+#include "common/error/error_code.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
@@ -409,7 +409,15 @@ void Pilot::PerformPlanning() {
 
   // Perform planning
   std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;
-  Pilot::ActionSearch(&best_action_seq);
+  try {
+    Pilot::ActionSearch(&best_action_seq);
+  } catch (PilotException &e) {
+    // If we're shutting down, exceptions will happen all over the place. Ignore them here and just quit.
+    // Otherwise, rethrow the exception.
+    if (model_server_manager_->ModelServerRunning()) {
+      throw e;
+    }
+  }
 
   metrics_thread_->ResumeMetrics();
 }
