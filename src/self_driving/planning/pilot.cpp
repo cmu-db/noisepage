@@ -106,7 +106,7 @@ void Pilot::PerformForecasterTrain() {
     }
   }
 
-  auto future_result = future.WaitFor(future_timeout_);
+  auto future_result = future.WaitFor(FUTURE_TIMEOUT);
   if (!future_result.has_value()) {
     throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
   }
@@ -183,7 +183,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_texts",
         std::make_unique<optimizer::TrivialCostModel>(), false, to_row_fn, common::ManagedPointer(&sync)));
 
-    auto future_result = sync.WaitFor(future_timeout_);
+    auto future_result = sync.WaitFor(FUTURE_TIMEOUT);
     if (!future_result.has_value()) {
       throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
     }
@@ -209,7 +209,7 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
                                                            std::make_unique<optimizer::TrivialCostModel>(), false,
                                                            to_row_fn, common::ManagedPointer(&sync)));
 
-    auto future_result = sync.WaitFor(future_timeout_);
+    auto future_result = sync.WaitFor(FUTURE_TIMEOUT);
     if (!future_result.has_value()) {
       throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
     }
@@ -252,7 +252,7 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(st
                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                          to_row_fn, common::ManagedPointer(&sync)));
 
-  auto future_result = sync.WaitFor(future_timeout_);
+  auto future_result = sync.WaitFor(FUTURE_TIMEOUT);
   if (!future_result.has_value()) {
     throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
   }

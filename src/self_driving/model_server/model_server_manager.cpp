@@ -302,7 +302,7 @@ std::pair<Result, bool> ModelServerManager::InferModel(ModelType::Type model, co
     return {{}, false};
   }
 
-  auto future_result = future.WaitFor(future.future_timeout_);
+  auto future_result = future.WaitFor(future.FUTURE_TIMEOUT);
   if (!future_result.has_value()) {
     return {{}, false};
   }
