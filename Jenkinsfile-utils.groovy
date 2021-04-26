@@ -261,7 +261,7 @@ void stageModeling() {
     sh script: '''
     cd build
     export BUILD_ABS_PATH=`pwd`
-    timeout 10m ninja self_driving_e2e_test
+    PYTHONPATH=.. timeout 10m ninja self_driving_e2e_test
     ''', label: 'Running self-driving end-to-end test'
 
     // We need `coverage combine` because coverage files are generated separately for each test and then moved into the
