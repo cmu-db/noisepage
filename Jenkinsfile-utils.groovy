@@ -323,7 +323,7 @@ void stagePilot() {
 
     sh script :'''
     cd build
-    PYTHONPATH=.. python3 -m script.testing.self_driving.jenkins
+    PYTHONPATH=.. timeout 20m python3 -m script.testing.self_driving.jenkins
     ''', label: 'Test the pilot planning.'
 
     sh script :'''
