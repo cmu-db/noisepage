@@ -65,13 +65,17 @@ class Future {
   }
 
   /**
-   * Suspends the current thread and wait for the result to be ready. THIS IS A FOOTGUN.
+   * Suspends the current thread and wait for the result to be ready.
+   * This wait is dangerous to use, do not use it unless you guarantee that the future will be signaled no matter what.
+   * An example that you should handle is simply shutting down the DBMS -- can you guarantee that the future will not
+   * be stuck waiting? This would cause the DBMS to be stuck until forcefully killed, which results in the DBMS having
+   * a bad exit code, and thus it will fail CI, so on and so forth.
    *
-   * @warning This wait is a footgun since the DBMS will not exit cleanly if still waiting. You have been warned.
+   * @warning This wait is dangerous to use since the DBMS will not exit cleanly if still waiting. You have been warned.
    *
    * @return Result, and success/fail
    */
-  std::pair<Result, bool> WaitFootgun() {
+  std::pair<Result, bool> DangerousWait() {
     {
       std::unique_lock<std::mutex> lock(mtx_);
 

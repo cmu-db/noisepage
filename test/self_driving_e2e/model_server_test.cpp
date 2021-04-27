@@ -96,7 +96,7 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
   std::string model_path = project_build_path + "/bin";
   ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, &model_path, ou_model_save_path, nullptr,
                          common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  auto res = future.WaitFootgun();
+  auto res = future.DangerousWait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
@@ -152,7 +152,7 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
 
   ms_manager->TrainInterferenceModel(interference_methods, input_path, interference_model_save_path, ou_model_save_path,
                                      sample_rate, common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  auto interference_res = future.WaitFootgun();
+  auto interference_res = future.DangerousWait();
   ASSERT_EQ(interference_res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
@@ -199,7 +199,7 @@ TEST_F(ModelServerTest, ForecastModelTest) {
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval, seq_length, horizon_length,
                                  common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  auto res = future.WaitFootgun();
+  auto res = future.DangerousWait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
