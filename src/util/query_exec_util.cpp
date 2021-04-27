@@ -25,7 +25,6 @@
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-#include "util/query_exec_util.h"
 
 namespace noisepage::util {
 
