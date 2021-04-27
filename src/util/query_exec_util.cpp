@@ -55,9 +55,7 @@ void QueryExecUtil::ClearPlan(const std::string &query) {
   exec_queries_.erase(query);
 }
 
-void QueryExecUtil::ResetError() {
-  error_msg_ = "";
-}
+void QueryExecUtil::ResetError() { error_msg_ = ""; }
 
 void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) {
   if (db_oid != catalog::INVALID_DATABASE_OID) {
