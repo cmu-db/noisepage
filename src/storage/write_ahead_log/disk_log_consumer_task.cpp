@@ -66,13 +66,16 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   const std::chrono::microseconds max_sleep = std::chrono::microseconds(10000);
   // Time since last log file persist
   auto last_persist = std::chrono::high_resolution_clock::now();
+
+  // Initialize whether to collect metrics outside of the spin loop so as not to count each loop iteration as a sample
+  // (by calling ComponentToRecord this increments the sample count)
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
   // Disk log consumer task thread spins in this loop. When notified or periodically, we wake up and process serialized
   // buffers
   do {
-    const bool logging_metrics_enabled =
-        common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
-
     if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
       // start the operating unit resource tracker
       common::thread_context.resource_tracker_.Start();
@@ -118,13 +121,20 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       persist_cv_.notify_all();
     }
 
-    if (logging_metrics_enabled && num_buffers > 0) {
-      // Stop the resource tracker for this operating unit
-      common::thread_context.resource_tracker_.Stop();
-      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, persist_interval_.count(),
-                                                                resource_metrics);
+    if (num_buffers > 0) {
+      if (common::thread_context.resource_tracker_.IsRunning()) {
+        // Stop the resource tracker for this operating unit
+        common::thread_context.resource_tracker_.Stop();
+        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+        common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, persist_interval_.count(),
+                                                                  resource_metrics);
+      }
       num_bytes = num_buffers = 0;
+      // Update whether to collect metrics only if we did work (starting a new event) so as not to count each loop
+      // iteration as a sample (by calling ComponentToRecord this increments the sample count)
+      logging_metrics_enabled =
+          common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
     }
   } while (run_task_);
   // Be extra sure we processed everything
