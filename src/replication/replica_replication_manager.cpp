@@ -53,7 +53,7 @@ void ReplicaReplicationManager::NotifyPrimaryTransactionApplied(transaction::tim
   REPLICATION_LOG_TRACE(fmt::format("[SEND] TxnAppliedMsg -> primary: ID {} START {}", msg_id, txn_start_time));
 
   TxnAppliedMsg msg(ReplicationMessageMetadata(msg_id), txn_start_time);
-  const std::string msg_string = msg.ToJson().dump();
+  const std::string msg_string = msg.Serialize();
   Send("primary", msg_id, msg_string, nullptr,
        messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP));
 }
