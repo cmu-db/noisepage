@@ -209,6 +209,7 @@ class QueryExecUtil {
   std::string GetError() { return error_msg_; }
 
  private:
+  void ResetError();
   void SetDatabase(catalog::db_oid_t db_oid);
 
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
