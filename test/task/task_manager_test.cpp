@@ -64,7 +64,7 @@ class TaskManagerTests : public TerrierTest {
                                                            std::make_unique<optimizer::TrivialCostModel>(), false,
                                                            to_row_fn, common::ManagedPointer(&sync)));
 
-    EXPECT_TRUE(sync.WaitFootgun().first);
+    EXPECT_TRUE(sync.DangerousWait().first);
     EXPECT_EQ(results.size(), NUM_VALUE);
     for (size_t i = 0; i < NUM_VALUE; i++) {
       EXPECT_TRUE(results.find(i) != results.end());
