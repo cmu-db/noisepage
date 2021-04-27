@@ -3,9 +3,12 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "common/enum_defs.h"
 #include "common/json_header.h"
+#include "common/macros.h"
 #include "messenger/messenger_defs.h"
 #include "replication/replication_defs.h"
 #include "transaction/transaction_defs.h"
@@ -30,16 +33,90 @@ namespace noisepage::replication {
 ENUM_DEFINE(ReplicationMessageType, uint8_t, REPLICATION_MESSAGE_TYPE_ENUM);
 #undef REPLICATION_MESSAGE_TYPE_ENUM
 
+/** Abstraction over the underlying format used to send replication messages over the network */
+class MessageWrapper {
+ public:
+  /** The underlying format of messages used in replication */
+  using MessageFormat = common::json;
+
+  /** Default constructor */
+  MessageWrapper();
+
+  /** Constructor which parses a string */
+  explicit MessageWrapper(std::string_view str);
+
+  /**
+   * Adds a value to the message with a specific key
+   *
+   * @tparam T type of value to add
+   * @param key key of value in message
+   * @param value value to add to message
+   */
+  template <typename T>
+  void Put(const char *key, T value);
+
+  /**
+   * Get a value from the message with specific key
+   *
+   * @tparam T type of value to get
+   * @param key key of value
+   * @return value from message with specified key
+   */
+  template <typename T>
+  T Get(const char *key) const;
+
+  /**
+   * Deserializes a given input to a string using the CBOR (Concise Binary Object Representation) serialization
+   * format.
+   *
+   * @param cbor cbor input
+   * @return parsed string
+   *
+   */
+  static std::string FromCbor(const std::vector<uint8_t> &cbor);
+
+  /**
+   * Serializes a given input string to CBOR format
+   * @param str string to serialize
+   * @return CBOR format of string
+   */
+  static std::vector<uint8_t> ToCbor(std::string_view str);
+
+  /**
+   * Serialize the message
+   *
+   * @return serialized version of message
+   */
+  std::string Serialize() const;
+
+  /**
+   * Converts MessageWrapper to JSON
+   * @return JSON version of MessageWrapper
+   */
+  common::json ToJson() const;
+
+  /**
+   * Converts JSON to MessageWrapper
+   * @param j JSON to convert
+   */
+  void FromJson(const common::json &j);
+
+ private:
+  std::unique_ptr<MessageFormat> underlying_message_;
+};
+
+DEFINE_JSON_HEADER_DECLARATIONS(MessageWrapper);
+
 /** ReplicationMessageMetadata contains all of the metadata that every type of BaseReplicationMessage should contain. */
 class ReplicationMessageMetadata {
  public:
   /** Constructor (to send). */
   explicit ReplicationMessageMetadata(msg_id_t msg_id);
   /** Constructor (to receive). */
-  explicit ReplicationMessageMetadata(const common::json &json);
+  explicit ReplicationMessageMetadata(const MessageWrapper &message);
 
-  /** @return     The JSON form of this metadata. */
-  common::json ToJson() const;
+  /** @return     The MessageWrapper form of this metadata. */
+  MessageWrapper ToMessageWrapper() const;
 
   /** @return     The ID of the message. */
   msg_id_t GetMessageId() const { return msg_id_; }
@@ -58,11 +135,11 @@ class BaseReplicationMessage {
   /** @return     The type of replication message that this is. */
   virtual ReplicationMessageType GetMessageType() const { return type_; }
 
-  /** @return     The JSON form of this message. */
-  virtual common::json ToJson() const;
+  /** @return     Serialized form of this message. */
+  std::string Serialize() const;
 
   /** @return     The parsed replication message. */
-  static std::unique_ptr<BaseReplicationMessage> ParseFromJson(const common::json &json);
+  static std::unique_ptr<BaseReplicationMessage> ParseFromString(std::string_view str);
 
   /** @return     The metadata for this message. */
   const ReplicationMessageMetadata &GetMetadata() const { return metadata_; }
@@ -74,7 +151,9 @@ class BaseReplicationMessage {
   /** Constructor (to send). */
   explicit BaseReplicationMessage(ReplicationMessageType type, ReplicationMessageMetadata metadata);
   /** Constructor (to receive). */
-  explicit BaseReplicationMessage(const common::json &json);
+  explicit BaseReplicationMessage(const MessageWrapper &message);
+  /** Converts message into MessageWrapper form */
+  virtual MessageWrapper ToMessageWrapper() const;
 
  private:
   static const char *key_message_type;  ///< JSON key for the message type.
@@ -100,18 +179,20 @@ class NotifyOATMsg : public BaseReplicationMessage {
   NotifyOATMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
                transaction::timestamp_t oldest_active_txn);
   /** Constructor (to receive). */
-  explicit NotifyOATMsg(const common::json &json);
+  explicit NotifyOATMsg(const MessageWrapper &message);
   /** Destructor. */
   ~NotifyOATMsg() override = default;
 
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::NOTIFY_OAT; }
-  common::json ToJson() const override;
 
   /** @return The ID of the last batch of log records that was sent. */
   record_batch_id_t GetBatchId() const { return batch_id_; }
 
   /** @return The oldest active transaction of the OAT. */
   transaction::timestamp_t GetOldestActiveTxn() const { return oldest_active_txn_; }
+
+ protected:
+  MessageWrapper ToMessageWrapper() const override;
 
  private:
   static const char *key_batch_id;           ///< JSON key for the batch ID.
@@ -136,12 +217,11 @@ class RecordsBatchMsg : public BaseReplicationMessage {
    */
   RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id, storage::BufferedLogWriter *buffer);
   /** Constructor (to receive). */
-  explicit RecordsBatchMsg(const common::json &json);
+  explicit RecordsBatchMsg(const MessageWrapper &message);
   /** Destructor. */
   ~RecordsBatchMsg() override = default;
 
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::RECORDS_BATCH; }
-  common::json ToJson() const override;
 
   /** @return The ID of this batch of log records. */
   record_batch_id_t GetBatchId() const { return batch_id_; }
@@ -157,6 +237,9 @@ class RecordsBatchMsg : public BaseReplicationMessage {
     return record_batch_id_t{batch_id.UnderlyingValue() + 1};
   }
 
+ protected:
+  MessageWrapper ToMessageWrapper() const override;
+
  private:
   static const char *key_batch_id;  ///< JSON key for the batch ID.
   static const char *key_contents;  ///< JSON key for the contents.
@@ -171,15 +254,17 @@ class TxnAppliedMsg : public BaseReplicationMessage {
   /** Constructor (to send). */
   explicit TxnAppliedMsg(ReplicationMessageMetadata metadata, transaction::timestamp_t applied_txn_id);
   /** Constructor (to receive). */
-  explicit TxnAppliedMsg(const common::json &json);
+  explicit TxnAppliedMsg(const MessageWrapper &message);
   /** Destructor. */
   ~TxnAppliedMsg() override = default;
 
   ReplicationMessageType GetMessageType() const override { return ReplicationMessageType::TXN_APPLIED; }
-  common::json ToJson() const override;
 
   /** @return The ID of the transaction that was applied on the replica. */
   transaction::timestamp_t GetAppliedTxnId() const { return applied_txn_id_; }
+
+ protected:
+  MessageWrapper ToMessageWrapper() const override;
 
  private:
   static const char *key_applied_txn_id;     ///< JSON key for the applied transaction ID.
