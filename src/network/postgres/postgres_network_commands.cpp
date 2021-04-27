@@ -190,6 +190,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
       if (query_type == network::QueryType::QUERY_SELECT) {
         out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(),
                                  portal->ResultFormats());
+      } else if (query_type == network::QueryType::QUERY_EXPLAIN) {
+        out->WriteExplainRowDescription();
       }
 
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
@@ -461,6 +463,8 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
     } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
       out->WriteRowDescription(portal->OptimizeResult()->GetPlanNode()->GetOutputSchema()->GetColumns(),
                                portal->ResultFormats());
+    } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_EXPLAIN) {
+      out->WriteExplainRowDescription();
     } else {
       out->WriteNoData();
     }

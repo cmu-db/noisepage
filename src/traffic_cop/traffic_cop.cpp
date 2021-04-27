@@ -352,7 +352,6 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
-  out->WriteExplainRowDescription();
 
   // Dump to JSON string, wrap in StringVal, write the data row to the client
   // Create dummy column output scheme for writing data row
