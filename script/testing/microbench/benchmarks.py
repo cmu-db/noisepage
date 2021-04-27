@@ -8,6 +8,7 @@ BENCHMARKS_TO_RUN = {
     "large_transaction_benchmark": DEFAULT_FAILURE_THRESHOLD,
     "index_wrapper_benchmark": DEFAULT_FAILURE_THRESHOLD,
     "logging_benchmark": DEFAULT_FAILURE_THRESHOLD,
+    "replication_messages_benchmark": DEFAULT_FAILURE_THRESHOLD,
     "recovery_benchmark": DEFAULT_FAILURE_THRESHOLD,
     "large_transaction_metrics_benchmark": DEFAULT_FAILURE_THRESHOLD,
     "logging_metrics_benchmark": DEFAULT_FAILURE_THRESHOLD,
