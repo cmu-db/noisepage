@@ -287,6 +287,9 @@ class DatabaseCatalog {
   bool CreateIndexEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
                         table_oid_t table_oid, index_oid_t index_oid, const std::string &name,
                         const IndexSchema &schema);
+
+  void CreateTableStatisticEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                                 const Schema &schema);
   /**
    * @brief Delete all of the indexes for a given table.
    *

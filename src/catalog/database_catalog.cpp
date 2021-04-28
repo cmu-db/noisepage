@@ -334,14 +334,19 @@ void DatabaseCatalog::BootstrapIndex(const common::ManagedPointer<transaction::T
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
-  // Create associated entries in pg_statistic.
-  {
-    col_oid_t col_oid(1);
-    for (auto &col : schema.GetColumns()) {
-      pg_stat_.CreateColumnStatistic(txn, table_oid, col_oid++, col);
-    }
+  if (pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema)) {
+    CreateTableStatisticEntry(txn, table_oid, schema);
+    return true;
   }
-  return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
+  return false;
+}
+
+void DatabaseCatalog::CreateTableStatisticEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                                const table_oid_t table_oid, const Schema &schema) {
+  // Create associated entries in pg_statistic.
+  for (const auto &col : schema.GetColumns()) {
+    pg_stat_.CreateColumnStatistic(txn, table_oid, col.Oid(), col);
+  }
 }
 
 bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
