@@ -44,7 +44,7 @@ class Pilot;
 class PilotUtil {
  protected:
   // This is to avoid division by zero when normalizing ou features by time elapsed.
-  static constexpr double EPSILON = 1e-3;
+  static constexpr double NORMEPSILON = 1e-3;
 
  public:
   /**

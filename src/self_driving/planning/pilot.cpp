@@ -465,7 +465,7 @@ void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_i
       pipeline_to_prediction;
 
   // Then we perform inference through model server to get ou prediction results for all pipelines
-  PilotUtil::InferenceWithFeatures(ou_model_save_path_, model_server_manager_, pipeline_qids, pipeline_data,
+  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_qids, pipeline_data,
                                    &pipeline_to_prediction);
 
   PilotUtil::InterferenceInference(interference_model_save_path_, model_server_manager_,
