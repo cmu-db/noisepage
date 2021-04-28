@@ -19,8 +19,7 @@ ReplicationManager::ReplicationManager(
   messenger_->ListenForConnection(
       listen_destination, network_identity,
       [this](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-        auto json = nlohmann::json::parse(msg.GetMessage());
-        auto replication_msg = BaseReplicationMessage::ParseFromJson(json);
+        auto replication_msg = BaseReplicationMessage::ParseFromString(msg.GetMessage());
         EventLoop(messenger, msg, common::ManagedPointer(replication_msg));
       });
   // Connect to all of the other nodes.

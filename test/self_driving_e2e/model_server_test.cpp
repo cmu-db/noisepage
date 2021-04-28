@@ -92,10 +92,11 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
 
   ModelServerFuture<std::string> future;
   const char *env = ::getenv(BUILD_ABS_PATH);
-  std::string project_build_path = (env != nullptr ? env : ".");
-  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, project_build_path + "/bin", ou_model_save_path,
-                         nullptr, common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  auto res = future.Wait();
+  std::string project_build_path = std::string(env != nullptr ? env : ".");
+  std::string model_path = project_build_path + "/bin";
+  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, &model_path, ou_model_save_path, nullptr,
+                         common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  auto res = future.DangerousWait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
@@ -151,7 +152,7 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
 
   ms_manager->TrainInterferenceModel(interference_methods, input_path, interference_model_save_path, ou_model_save_path,
                                      sample_rate, common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  auto interference_res = future.Wait();
+  auto interference_res = future.DangerousWait();
   ASSERT_EQ(interference_res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
@@ -188,19 +189,22 @@ TEST_F(ModelServerTest, ForecastModelTest) {
   // Perform a training of the opunit models with {LSTM} as training methods.
   std::vector<std::string> methods{"LSTM"};
   uint64_t interval = 500000;
+  uint64_t seq_length = 10;
+  uint64_t horizon_length = 30;
   const char *env = ::getenv(BUILD_ABS_PATH);
   std::string project_build_path = (env != nullptr ? env : ".");
   std::string save_path = "model.pickle";
   std::string input_path = project_build_path + "/query_trace.csv";
 
   ModelServerFuture<std::string> future;
-  ms_manager->TrainForecastModel(methods, input_path, save_path, interval,
+  ms_manager->TrainForecastModel(methods, input_path, save_path, interval, seq_length, horizon_length,
                                  common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  auto res = future.Wait();
+  auto res = future.DangerousWait();
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
-  auto result = ms_manager->InferForecastModel(input_path, save_path, methods, nullptr, interval);
+  auto result =
+      ms_manager->InferForecastModel(input_path, save_path, methods, nullptr, interval, seq_length, horizon_length);
   ASSERT_TRUE(result.second);
 
   // Quit

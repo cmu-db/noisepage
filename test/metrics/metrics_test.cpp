@@ -108,7 +108,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   if (!(aggregated_data->consumer_data_.empty())) {
     EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);  // 1 buffer flushed
   }
-  metrics_manager_->ToCSV();
+  metrics_manager_->ToOutput(DISABLED);
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
 
@@ -126,7 +126,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   if (!(aggregated_data->consumer_data_.empty())) {
     EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);  // 2 buffers flushed
   }
-  metrics_manager_->ToCSV();
+  metrics_manager_->ToOutput(DISABLED);
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
 
@@ -145,7 +145,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   if (!(aggregated_data->consumer_data_.empty())) {
     EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);  // 3 buffers flushed
   }
-  metrics_manager_->ToCSV();
+  metrics_manager_->ToOutput(DISABLED);
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
 
@@ -177,7 +177,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   EXPECT_NE(aggregated_data, nullptr);
   EXPECT_GE(aggregated_data->begin_data_.size(), 0);   // 1 txn recorded
   EXPECT_GE(aggregated_data->commit_data_.size(), 0);  // 1 txn recorded
-  metrics_manager_->ToCSV();
+  metrics_manager_->ToOutput(DISABLED);
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
 
@@ -189,7 +189,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   metrics_manager_->Aggregate();
   EXPECT_GE(aggregated_data->begin_data_.size(), 0);   // 2 txns recorded
   EXPECT_GE(aggregated_data->commit_data_.size(), 0);  // 2 txns recorded
-  metrics_manager_->ToCSV();
+  metrics_manager_->ToOutput(DISABLED);
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
 
@@ -202,7 +202,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   metrics_manager_->Aggregate();
   EXPECT_GE(aggregated_data->begin_data_.size(), 0);   // 3 txns recorded
   EXPECT_GE(aggregated_data->commit_data_.size(), 0);  // 3 txns recorded
-  metrics_manager_->ToCSV();
+  metrics_manager_->ToOutput(DISABLED);
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
 
@@ -271,9 +271,9 @@ TEST_F(MetricsTests, PipelineCSVTest) {
     EXPECT_EQ(aggregated_data != nullptr, enable_metric);
     if (aggregated_data != nullptr) {
       EXPECT_EQ(aggregated_data->pipeline_data_.size(), expected_points);
-      metrics_manager_->ToCSV();
+      metrics_manager_->ToOutput(DISABLED);
 
-      // After ToCSV(), we should expect no more data points
+      // After ToOutput(), we should expect no more data points
       EXPECT_EQ(aggregated_data->pipeline_data_.size(), 0);
     }
 
@@ -344,7 +344,7 @@ TEST_F(MetricsTests, QueryCSVTest) {
                 aggregated_data->query_text_.begin()->query_id_);  // 2 records: insert, select
     }
   }
-  metrics_manager_->ToCSV();
+  metrics_manager_->ToOutput(DISABLED);
   EXPECT_EQ(aggregated_data->query_trace_.size(), 0);
   EXPECT_EQ(aggregated_data->query_text_.size(), 0);
 

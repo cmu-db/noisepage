@@ -41,6 +41,7 @@ MetricsManager::MetricsManager() {
   std::vector<bool> samples_mask(100, true);
   for (uint8_t i = 0; i < NUM_COMPONENTS; i++) {
     samples_mask_[i] = samples_mask;
+    metrics_output_[i] = MetricsOutput::CSV;
   }
 }
 
@@ -55,6 +56,8 @@ void MetricsManager::Aggregate() {
           aggregated_metrics_[component] = std::move(raw_data[component]);
         else
           aggregated_metrics_[component]->Aggregate(raw_data[component].get());
+
+        NOISEPAGE_ASSERT(aggregated_metrics_[component], "Post-aggregation component should not be NULL");
       }
     }
   }
@@ -147,50 +150,66 @@ void MetricsManager::UnregisterThread() {
   common::thread_context.metrics_store_ = nullptr;
 }
 
-void MetricsManager::ToCSV() const {
+void MetricsManager::ToOutput(common::ManagedPointer<task::TaskManager> task_manager) const {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
     if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
-      std::vector<std::ofstream> outfiles;
-      switch (static_cast<MetricsComponent>(component)) {
-        case MetricsComponent::LOGGING: {
-          OpenFiles<LoggingMetricRawData>(&outfiles);
-          break;
-        }
-        case MetricsComponent::TRANSACTION: {
-          OpenFiles<TransactionMetricRawData>(&outfiles);
-          break;
-        }
-        case MetricsComponent::GARBAGECOLLECTION: {
-          OpenFiles<GarbageCollectionMetricRawData>(&outfiles);
-          break;
-        }
-        case MetricsComponent::EXECUTION: {
-          OpenFiles<ExecutionMetricRawData>(&outfiles);
-          break;
-        }
-        case MetricsComponent::EXECUTION_PIPELINE: {
-          OpenFiles<PipelineMetricRawData>(&outfiles);
-          break;
-        }
-        case MetricsComponent::BIND_COMMAND: {
-          OpenFiles<BindCommandMetricRawData>(&outfiles);
-          break;
-        }
-        case MetricsComponent::EXECUTE_COMMAND: {
-          OpenFiles<ExecuteCommandMetricRawData>(&outfiles);
-          break;
-        }
-        case MetricsComponent::QUERY_TRACE: {
-          OpenFiles<QueryTraceMetricRawData>(&outfiles);
-          break;
-        }
+      auto output = metrics_output_[component];
+      if (output == MetricsOutput::CSV || output == MetricsOutput::CSV_AND_DB) {
+        ToCSV(component);
       }
-      aggregated_metrics_[component]->ToCSV(&outfiles);
-      for (auto &file : outfiles) {
-        file.close();
+
+      if (task_manager && (output == MetricsOutput::DB || output == MetricsOutput::CSV_AND_DB)) {
+        ToDB(component, task_manager);
       }
     }
+  }
+}
+
+void MetricsManager::ToDB(uint8_t component, common::ManagedPointer<task::TaskManager> task_manager) const {
+  NOISEPAGE_ASSERT(task_manager != nullptr, "MetricsManager::ToDB invoked with null task_manager");
+  aggregated_metrics_[component]->ToDB(task_manager);
+}
+
+void MetricsManager::ToCSV(uint8_t component) const {
+  std::vector<std::ofstream> outfiles;
+  switch (static_cast<MetricsComponent>(component)) {
+    case MetricsComponent::LOGGING: {
+      OpenFiles<LoggingMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::TRANSACTION: {
+      OpenFiles<TransactionMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::GARBAGECOLLECTION: {
+      OpenFiles<GarbageCollectionMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::EXECUTION: {
+      OpenFiles<ExecutionMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::EXECUTION_PIPELINE: {
+      OpenFiles<PipelineMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::BIND_COMMAND: {
+      OpenFiles<BindCommandMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::EXECUTE_COMMAND: {
+      OpenFiles<ExecuteCommandMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::QUERY_TRACE: {
+      OpenFiles<QueryTraceMetricRawData>(&outfiles);
+      break;
+    }
+  }
+  aggregated_metrics_[component]->ToCSV(&outfiles);
+  for (auto &file : outfiles) {
+    file.close();
   }
 }
 

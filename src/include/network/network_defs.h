@@ -117,6 +117,7 @@ enum class QueryType : uint8_t {
   QUERY_DROP_SCHEMA,
   QUERY_DROP_VIEW,
   // Misc (non-transactional)
+  QUERY_EXPLAIN,
   QUERY_SET,
   QUERY_SHOW,
   // end of what we support in the traffic cop right now
@@ -129,7 +130,6 @@ enum class QueryType : uint8_t {
   // Misc
   QUERY_COPY,
   QUERY_OTHER,
-  QUERY_EXPLAIN,
   QUERY_INVALID
 };
 

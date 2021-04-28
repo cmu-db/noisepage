@@ -3,10 +3,10 @@
 // clang-format off
 // SETTING_<type>(name, description, default_value, min_value, max_value, is_mutable, callback_fn)
 
-// Terrier port
+// NoisePage port
 SETTING_int(
     port,
-    "Terrier port (default: 15721)",
+    "NoisePage port (default: 15721)",
     15721,
     1024,
     65535,
@@ -124,6 +124,15 @@ SETTING_bool(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Asynchronous replication instead of synchronous replication, if replication is enabled.
+SETTING_bool(
+    async_replication_enable,
+    "Asynchronous replication instead of synchronous replication, if replication is enabled. (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     wal_num_buffers,
@@ -195,10 +204,33 @@ SETTING_int(
 
 SETTING_int64(
     workload_forecast_interval,
-    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: micro-second)",
-    10000000,
-    10000000,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 1000000, unit: micro-second)",
+    1000000,
+    1000000,
     1000000000000,
+    true,
+
+    // When this callback is implemented in the near-fuure, do not
+    // forget to update QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    sequence_length,
+    "Length of a planning data sequence. (default: 10, unit: workload_forecast_intervals)",
+    10,
+    1,
+    1000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    horizon_length,
+    "Length of the planning horizon. (default: 30, unit: workload_forecast_intervals)",
+    30,
+    1,
+    1000000,
     true,
     noisepage::settings::Callbacks::NoOp
 )
@@ -285,6 +317,14 @@ SETTING_bool(
     false,
     true,
     noisepage::settings::Callbacks::MetricsQueryTrace
+)
+
+SETTING_string(
+    query_trace_metrics_output,
+    "Output type for Query Traces Metrics (default: CSV, values: NONE, CSV, DB, CSV_AND_DB)",
+    "CSV",
+    true,
+    noisepage::settings::Callbacks::MetricsQueryTraceOutput
 )
 
 SETTING_bool(
@@ -452,7 +492,7 @@ SETTING_string(
 
 // Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH)
 SETTING_string(
-    ou_model_save_path,
+    model_save_path,
     "Save path of the OU model relative to the build path (default: ou_model_map.pickle)",
     "ou_model_map.pickle",
     false,
@@ -471,6 +511,34 @@ SETTING_string(
     forecast_model_save_path,
     "Save path of the forecast model relative to the build path (default: forecast_model.pickle)",
     "forecast_model.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    forecast_sample_limit,
+    "Limit on number of samples for workload forecasting",
+    5,
+    0,
+    100,
+    true,
+    noisepage::settings::Callbacks::ForecastSampleLimit
+)
+
+SETTING_int(
+    task_pool_size,
+    "Number of threads available to the task manager",
+    1,
+    1,
+    32,
+    true,
+    noisepage::settings::Callbacks::TaskPoolSize
+)
+
+SETTING_string(
+    startup_ddl_path,
+    "Path to startup DDL (default: bin/startup.sql)",
+    "bin/startup.sql",
     false,
     noisepage::settings::Callbacks::NoOp
 )

@@ -10,6 +10,7 @@
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "messenger/messenger.h"
+#include "metrics/metrics_defs.h"
 #include "metrics/metrics_thread.h"
 #include "network/connection_handle_factory.h"
 #include "network/noisepage_server.h"
@@ -25,9 +26,11 @@
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/recovery/recovery_manager.h"
+#include "task/task_manager.h"
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
+#include "util/query_exec_util.h"
 
 namespace noisepage {
 
@@ -60,6 +63,19 @@ class DBMain {
    * It will block until server shuts down.
    */
   void Run();
+
+  /**
+   * Function loads a startup.sql file specified by the startup_ddl_path
+   * settings parameter. The file is treated as a file of DDL commands
+   * that are then executed.
+   *
+   * Function assumes the following:
+   * - Each SQL command is a DDL statement
+   * - Each line is either blank, a comment, or a SQL command to run
+   * - A comment is any line that starts with '--'
+   * - A SQL command must fit on a single line
+   */
+  void TryLoadStartupDDL();
 
   /**
    * Shuts down the server.
@@ -370,12 +386,9 @@ class DBMain {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
       if (use_metrics_) metrics_manager = BootstrapMetricsManager();
 
-      std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
-      if (use_metrics_thread_) {
-        NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
-                         "Can't have a MetricsThread without a MetricsManager.");
-        metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
-                                                                  std::chrono::microseconds{metrics_interval_});
+      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
+      if (use_stats_storage_) {
+        stats_storage = std::make_unique<optimizer::StatsStorage>();
       }
 
       std::unique_ptr<common::DedicatedThreadRegistry> thread_registry = DISABLED;
@@ -439,6 +452,30 @@ class DBMain {
                                            common::ManagedPointer(log_manager), create_default_database_);
       }
 
+      // Instantiate the task manager
+      std::unique_ptr<util::QueryExecUtil> query_exec_util = DISABLED;
+      std::unique_ptr<task::TaskManager> task_manager = DISABLED;
+      if (thread_registry && txn_layer && use_catalog_ && use_settings_manager_) {
+        // Create the base QueryExecUtil
+        query_exec_util = std::make_unique<util::QueryExecUtil>(
+            txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), common::ManagedPointer(settings_manager),
+            common::ManagedPointer(stats_storage), optimizer_timeout_);
+
+        task_manager = std::make_unique<task::TaskManager>(
+            common::ManagedPointer(thread_registry),
+            util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util)), task_pool_size_);
+      }
+
+      std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
+      if (use_metrics_thread_) {
+        NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
+                         "Can't have a MetricsThread without a MetricsManager.");
+
+        metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
+                                                                  common::ManagedPointer(task_manager),
+                                                                  std::chrono::microseconds{metrics_interval_});
+      }
+
       std::unique_ptr<storage::RecoveryManager> recovery_manager = DISABLED;
       if (use_replication_) {
         auto log_provider = replication_manager->IsPrimary()
@@ -460,11 +497,6 @@ class DBMain {
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
                                                                       std::chrono::microseconds{gc_interval_},
                                                                       common::ManagedPointer(metrics_manager));
-      }
-
-      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
-      if (use_stats_storage_) {
-        stats_storage = std::make_unique<optimizer::StatsStorage>();
       }
 
       std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
@@ -504,23 +536,32 @@ class DBMain {
       std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
         NOISEPAGE_ASSERT(use_model_server_, "Pilot requires model server manager.");
+        std::unique_ptr<util::QueryExecUtil> util =
+            query_exec_util ? util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util))
+                            : nullptr;
         pilot = std::make_unique<selfdriving::Pilot>(
-            ou_model_save_path_, interference_model_save_path_, forecast_model_save_path_,
-            common::ManagedPointer(catalog_layer->GetCatalog()), common::ManagedPointer(metrics_thread),
-            common::ManagedPointer(model_server_manager), common::ManagedPointer(settings_manager),
-            common::ManagedPointer(stats_storage), common::ManagedPointer(txn_layer->GetTransactionManager()),
-            workload_forecast_interval_);
+            model_save_path_, interference_model_save_path_, forecast_model_save_path_,
+            common::ManagedPointer(catalog_layer->GetCatalog()),
+            common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
+            common::ManagedPointer(txn_layer->GetTransactionManager()), std::move(util),
+            common::ManagedPointer(task_manager), workload_forecast_interval_, sequence_length_, horizon_length_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
       }
 
+      NOISEPAGE_ASSERT(!(async_replication_enable_ && !use_replication_),
+                       "async_replication_enable only controls whether replication is sync or async, you also need "
+                       "use_replication.");
+
       // If replication is enabled, configure the replication policy for all transactions.
       if (use_replication_) {
         if (replication_manager->IsPrimary()) {
-          // On the primary, perform synchronous replication by default.
-          txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
-              transaction::ReplicationPolicy::SYNC);
+          // On the primary, replicate buffers synchronously by default, but can be made async via command line.
+          transaction::ReplicationPolicy policy =
+              async_replication_enable_ ? transaction::ReplicationPolicy::ASYNC : transaction::ReplicationPolicy::SYNC;
+          txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(policy);
         } else {
           // On a replica, do not replicate any buffers by default.
           txn_layer->GetTransactionManager()->SetDefaultTransactionReplicationPolicy(
@@ -554,7 +595,8 @@ class DBMain {
       db_main->model_server_manager_ = std::move(model_server_manager);
       db_main->messenger_layer_ = std::move(messenger_layer);
       db_main->replication_manager_ = std::move(replication_manager);
-
+      db_main->query_exec_util_ = std::move(query_exec_util);
+      db_main->task_manager_ = std::move(task_manager);
       return db_main;
     }
 
@@ -889,13 +931,16 @@ class DBMain {
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     uint64_t pilot_interval_ = 1e7;
     uint64_t forecast_train_interval_ = 120e7;
-    uint64_t workload_forecast_interval_ = 1e7;
+    uint64_t workload_forecast_interval_ = 1e6;
+    uint64_t sequence_length_ = 10;
+    uint64_t horizon_length_ = 30;
     uint64_t block_store_size_ = 1e5;
     uint64_t block_store_reuse_ = 1e3;
     uint64_t optimizer_timeout_ = 5000;
+    uint64_t forecast_sample_limit_ = 5;
 
     std::string wal_file_path_ = "wal.log";
-    std::string ou_model_save_path_;
+    std::string model_save_path_;
     std::string interference_model_save_path_;
     std::string forecast_model_save_path_;
     std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
@@ -915,6 +960,7 @@ class DBMain {
     uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
     bool query_trace_metrics_ = false;
+    metrics::MetricsOutput query_trace_metrics_output_ = metrics::MetricsOutput::CSV;
     bool pipeline_metrics_ = false;
     uint8_t pipeline_metrics_sample_rate_ = 10;
     bool transaction_metrics_ = false;
@@ -923,10 +969,10 @@ class DBMain {
     bool gc_metrics_ = false;
     bool bind_command_metrics_ = false;
     bool execute_command_metrics_ = false;
-
     int32_t wal_serialization_interval_ = 100;
     int32_t wal_persist_interval_ = 100;
     int32_t gc_interval_ = 1000;
+    uint32_t task_pool_size_ = 1;
 
     uint16_t connection_thread_count_ = 4;
     uint16_t network_port_ = 15721;
@@ -948,6 +994,7 @@ class DBMain {
     bool use_network_ = false;
     bool use_messenger_ = false;
     bool use_replication_ = false;
+    bool async_replication_enable_ = false;
     bool use_model_server_ = false;
     bool model_server_enable_python_coverage_ = false;
     bool use_pilot_thread_ = false;
@@ -989,9 +1036,12 @@ class DBMain {
       pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
       forecast_train_interval_ = settings_manager->GetInt64(settings::Param::forecast_train_interval);
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
-      ou_model_save_path_ = settings_manager->GetString(settings::Param::ou_model_save_path);
+      sequence_length_ = settings_manager->GetInt64(settings::Param::sequence_length);
+      horizon_length_ = settings_manager->GetInt64(settings::Param::horizon_length);
+      model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
       interference_model_save_path_ = settings_manager->GetString(settings::Param::interference_model_save_path);
       forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
+      task_pool_size_ = settings_manager->GetInt(settings::Param::task_pool_size);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       // TODO(WAN): open an issue for handling settings.
@@ -1010,6 +1060,9 @@ class DBMain {
       bytecode_handlers_path_ = settings_manager->GetString(settings::Param::bytecode_handlers_path);
 
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
+      query_trace_metrics_output_ = static_cast<metrics::MetricsOutput>(metrics::MetricsUtil::FromMetricsOutputString(
+          settings_manager->GetString(settings::Param::query_trace_metrics_output)));
+      forecast_sample_limit_ = settings_manager->GetInt(settings::Param::forecast_sample_limit);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
       pipeline_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::pipeline_metrics_sample_rate);
       logging_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::logging_metrics_sample_rate);
@@ -1022,6 +1075,7 @@ class DBMain {
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
       messenger_port_ = settings_manager->GetInt(settings::Param::messenger_port);
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
+      async_replication_enable_ = settings_manager->GetBool(settings::Param::async_replication_enable);
       replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
       use_model_server_ = settings_manager->GetBool(settings::Param::model_server_enable);
@@ -1041,6 +1095,10 @@ class DBMain {
       metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::LOGGING, logging_metrics_sample_rate_);
 
       if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
+      metrics::QueryTraceMetricRawData::query_param_sample = forecast_sample_limit_;
+      metrics::QueryTraceMetricRawData::query_segment_interval = workload_forecast_interval_;
+      metrics_manager->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, query_trace_metrics_output_);
+
       if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
       if (transaction_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
       if (logging_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
@@ -1163,6 +1221,14 @@ class DBMain {
     return common::ManagedPointer(model_server_manager_);
   }
 
+  /** @return Standard QueryExecUtil from which other utils can be derived from */
+  common::ManagedPointer<util::QueryExecUtil> GetQueryExecUtil() const {
+    return common::ManagedPointer(query_exec_util_);
+  }
+
+  /** @return ManagedPointer to task manager */
+  common::ManagedPointer<task::TaskManager> GetTaskManager() const { return common::ManagedPointer(task_manager_); }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -1186,6 +1252,8 @@ class DBMain {
   std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
   std::unique_ptr<selfdriving::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
+  std::unique_ptr<util::QueryExecUtil> query_exec_util_;
+  std::unique_ptr<task::TaskManager> task_manager_;
 };
 
 }  // namespace noisepage
