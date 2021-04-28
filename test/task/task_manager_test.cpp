@@ -64,7 +64,7 @@ class TaskManagerTests : public TerrierTest {
                                                            std::make_unique<optimizer::TrivialCostModel>(), false,
                                                            to_row_fn, common::ManagedPointer(&sync)));
 
-    EXPECT_TRUE(sync.Wait().second);
+    EXPECT_TRUE(sync.DangerousWait().second);
     EXPECT_EQ(results.size(), NUM_VALUE);
     for (size_t i = 0; i < NUM_VALUE; i++) {
       EXPECT_TRUE(results.find(i) != results.end());
@@ -158,7 +158,7 @@ TEST_F(TaskManagerTests, InvalidStatements) {
                                                          nullptr, nullptr));
   task_manager_->WaitForFlush();
 
-  auto result = sync.Wait();
+  auto result = sync.DangerousWait();
   EXPECT_TRUE(!result.second);
   EXPECT_TRUE(!sync.FailMessage().empty());
 }
@@ -185,7 +185,7 @@ TEST_F(TaskManagerTests, AbortingTest) {
                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                          to_row_fn, common::ManagedPointer(&sync)));
 
-  auto result = sync.Wait();
+  auto result = sync.DangerousWait();
   EXPECT_TRUE(result.second);
   EXPECT_EQ(results.size(), 1);
   EXPECT_EQ(results[0], 1);

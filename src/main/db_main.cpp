@@ -45,9 +45,9 @@ void DBMain::TryLoadStartupDDL() {
       task_manager_->AddTask(
           std::make_unique<task::TaskDDL>(catalog::INVALID_DATABASE_OID, ddl, common::ManagedPointer(&sync)));
 
-      auto result = sync.Wait();
-      NOISEPAGE_ASSERT(result.second, "Error encountered executing startup DDL.");
-      (void)result;
+      auto future_result = sync.DangerousWait();
+      NOISEPAGE_ASSERT(future_result.second, "Error encountered executing startup DDL.");
+      (void)future_result;
     }
   } else if (task_manager_ == nullptr) {
     COMMON_LOG_WARN("TryLoadStartupDDL() invoked without TaskManager");

@@ -171,7 +171,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
         std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
         false, true, std::nullopt, common::ManagedPointer(&sync)));
 
-    auto sync_result = sync.Wait();
+    auto sync_result = sync.DangerousWait();
     bool result = sync_result.second;
     EXPECT_TRUE(result && "SELECT frequencies should have succeeded");
     EXPECT_TRUE(seen == combined && "Incorrect number recorded");

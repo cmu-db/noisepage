@@ -221,6 +221,17 @@ class TrafficCop {
                                         noisepage::network::QueryType query_type) const;
 
   /**
+   * Contains the logic to reason about EXPLAIN execution.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param out packet writer to return results
+   * @param physical_plan to be executed
+   * @return result of the operation
+   */
+  TrafficCopResult ExecuteExplainStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                           common::ManagedPointer<network::PostgresPacketWriter> out,
+                                           common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
+
+  /**
    * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
    * (can't) stick it in TrafficCopResult.
    * @param connection_ctx context to be used to access the internal txn
