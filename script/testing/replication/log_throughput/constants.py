@@ -1,4 +1,6 @@
 # Server Arg Keys
+import sys
+
 BUILD_TYPE_KEY = "build_type"
 SERVER_ARGS_KEY = "server_args"
 PORT_KEY = "port"
@@ -117,6 +119,11 @@ RESULTS_DIR = "script/testing/replication/log_throughput/results"
 METRICS_NUM_RECORDS_COL = "num_records"
 METRICS_START_TIME_COL = "start_time"
 METRICS_ELAPSED_TIME_COL = "elapsed_us"
+
+# Information for writing and reading messages to files
+ENDIAN = "big"
+# Length in bytes of the size of the next message
+SIZE_LENGTH = sys.getsizeof(int)
 
 # Misc
 UTF_8 = "utf-8"

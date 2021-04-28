@@ -2,16 +2,16 @@ import os.path
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Union
+from typing import List
 
 import zmq
 
+from .constants import *
+from .test_type import TestType
 from ...oltpbench.constants import OLTPBENCH_GIT_LOCAL_PATH
 from ...oltpbench.test_case_oltp import TestCaseOLTPBench
 from ...oltpbench.test_oltpbench import TestOLTPBench
 from ...util.db_server import NoisePageServer
-from .constants import *
-from .test_type import TestType
 
 
 class NodeServer(ABC):
@@ -304,7 +304,7 @@ class ImposterNode(NodeServer):
         pass
 
     @staticmethod
-    def send_msg(message_parts: List[str], socket: zmq.Socket):
+    def send_msg(message_parts: List[bytes], socket: zmq.Socket):
         """
         Send multipart message over socket
 
@@ -315,9 +315,9 @@ class ImposterNode(NodeServer):
         socket
             socket to send over
         """
-        socket.send_multipart([message.encode(UTF_8) for message in message_parts])
+        socket.send_multipart([message for message in message_parts])
 
-    def send_ack_msg(self, message_id: str, socket: zmq.Socket):
+    def send_ack_msg(self, message_id: bytes, socket: zmq.Socket):
         """
         Sends ack message
 
@@ -328,11 +328,11 @@ class ImposterNode(NodeServer):
         socket
             Socket to send ACK over
         """
-        self.send_msg([self.identity, "", f"{message_id}-{BuiltinCallback.NOOP.value}-{BuiltinCallback.ACK.value}-"],
-                      socket)
+        message = message_id + f"-{BuiltinCallback.NOOP.value}-{BuiltinCallback.ACK.value}-".encode(UTF_8)
+        self.send_msg([self.identity.encode(UTF_8), b"", message], socket)
 
     @staticmethod
-    def recv_msg(socket: zmq.Socket) -> str:
+    def recv_msg(socket: zmq.Socket) -> bytes:
         """
         Receive message from socket
 
@@ -346,7 +346,7 @@ class ImposterNode(NodeServer):
         msg
             Message received on socket
         """
-        return socket.recv().decode(UTF_8)
+        return socket.recv()
 
     @staticmethod
     def has_pending_messages(socket: zmq.Socket, timeout: int) -> bool:
@@ -368,9 +368,8 @@ class ImposterNode(NodeServer):
         return socket.poll(timeout) == zmq.POLLIN
 
     @staticmethod
-    def extract_msg_id(msg: Union[str, bytes]) -> str:
-        msg_str = msg.decode(UTF_8) if isinstance(msg, bytes) else msg
-        return msg_str.split("-")[0]
+    def extract_msg_id(msg: bytes) -> bytes:
+        return msg.partition(b'-')[0]
 
     def teardown_router_socket(self):
         """
@@ -391,6 +390,6 @@ class ImposterNode(NodeServer):
 
 
 class BuiltinCallback(Enum):
-    NOOP = 0,
-    ECHO = 1,
+    NOOP = 0
+    ECHO = 1
     ACK = 2
