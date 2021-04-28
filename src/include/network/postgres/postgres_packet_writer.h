@@ -78,6 +78,12 @@ class PostgresPacketWriter : public PacketWriter {
                            const std::vector<FieldFormat> &field_formats);
 
   /**
+   * Writes row description for SQL EXPLAIN. This is special-cased because it requires the type be
+   * PostgresValueType::TEXT. If we ever support TEXT correctly, this function can be removed
+   */
+  void WriteExplainRowDescription();
+
+  /**
    * Tells the client that the query command is complete.
    * @param tag records the which kind of query it is
    */
