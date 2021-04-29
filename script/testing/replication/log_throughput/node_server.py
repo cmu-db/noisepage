@@ -358,7 +358,7 @@ class ImposterNode(NodeServer):
         socket
             Socket to check for messages
         timeout
-            How long to check for messages
+            How long to wait for messages in milliseconds
 
         Returns
         -------

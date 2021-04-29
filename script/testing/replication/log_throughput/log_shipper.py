@@ -61,10 +61,11 @@ class LogShipper(ImposterNode):
     def ship(self):
         """
         Send log records to replica.
-        This method guarantees that the replica node receives all log messages, however it does not guarantee or wait
-        for the replica to apply all transactions sent. If you send enough log messages then enough data should be
-        generated so that this doesn't matter. If this ever does become an issue then you can keep track of the
-        TXN APPLIED messages and block until all transactions have been applied.
+        This method guarantees that the replica node receives all log messages, however it does not guarantee that the
+        replica has applied all transactions sent. It attempts to wait for the replica to apply all transactions by
+        waiting for a gap longer than 5 seconds in between TXN APPLIED messages (see recv_thread_action()). If we need
+        something more precise then you can keep track of the TXN APPLIED messages and block until all transactions that
+        were sent have been applied.
         """
         LOG.info("Shipping logs to replica")
         for idx, message in enumerate(self.read_messages()):
@@ -134,6 +135,11 @@ class LogShipper(ImposterNode):
         while self.running:
             if self.has_pending_messages(self.router_socket, 1):
                 self.recv_txn_applied_msg()
+
+        # Wait for all txn applied messages
+        LOG.info("Waiting for replica to apply all transaction")
+        while self.has_pending_messages(self.router_socket, 120000):
+            self.recv_txn_applied_msg()
         self.teardown_router_socket()
         self.recv_context.destroy()
 
