@@ -335,7 +335,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
   if (pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema)) {
-    CreateTableStatisticEntry(txn, table_oid, schema);
+    CreateTableStatisticEntry(txn, table_oid, GetSchema(txn, table_oid));
     return true;
   }
   return false;
