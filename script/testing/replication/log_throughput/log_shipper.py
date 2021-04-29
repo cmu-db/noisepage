@@ -53,9 +53,8 @@ class LogShipper(ImposterNode):
 
     def setup(self):
         self.log_file_len = 0
-        with open(self.log_file, "rb") as f:
-            for _ in self.read_messages(f):
-                self.log_file_len += 1
+        for _ in self.read_messages():
+            self.log_file_len += 1
 
     def run(self):
         self.ship()
@@ -70,20 +69,20 @@ class LogShipper(ImposterNode):
         were sent have been applied.
         """
         LOG.info("Shipping logs to replica")
-        with open(self.log_file, "rb") as f:
-            for idx, message in enumerate(self.read_messages(f)):
-                # Check and dispose of ACKs
-                if self.has_pending_messages(self.replica_dealer_socket, 0):
-                    self.recv_log_record_ack()
 
-                self.send_log_record(message)
+        for idx, message in enumerate(self.read_messages()):
+            # Check and dispose of ACKs
+            if self.has_pending_messages(self.replica_dealer_socket, 0):
+                self.recv_log_record_ack()
 
-                # Every thousand messages log status and retry any pending messages
-                # This is a bit naive, but we want to ship logs as fast as possible and not spend too long every
-                # iteration checking for dropped messages
-                if idx % 1000 == 0 and idx != 0:
-                    LOG.info(f"Shipping log number {idx} out of {self.log_file_len}")
-                    self.retry_pending_msgs()
+            self.send_log_record(message)
+
+            # Every thousand messages log status and retry any pending messages
+            # This is a bit naive, but we want to ship logs as fast as possible and not spend too long every
+            # iteration checking for dropped messages
+            if idx % 1000 == 0 and idx != 0:
+                LOG.info(f"Shipping log number {idx} out of {self.log_file_len}")
+                self.retry_pending_msgs()
 
         LOG.info("Waiting for replica to ACK all messages")
 
@@ -93,21 +92,16 @@ class LogShipper(ImposterNode):
 
         LOG.info("Log shipping has completed")
 
-    @staticmethod
-    def read_messages(f: BinaryIO):
+    def read_messages(self):
         """
         Reads in messages from log file
-
-        Parameters
-        ----------
-        f
-            file contain log record messages
         """
-        size_bytes = f.read(SIZE_LENGTH)
-        while size_bytes:
-            size = int.from_bytes(size_bytes, ENDIAN)
-            yield f.read(size)
+        with open(self.log_file, "rb") as f:
             size_bytes = f.read(SIZE_LENGTH)
+            while size_bytes:
+                size = int.from_bytes(size_bytes, ENDIAN)
+                yield f.read(size)
+                size_bytes = f.read(SIZE_LENGTH)
 
     def retry_pending_msgs(self):
         """
