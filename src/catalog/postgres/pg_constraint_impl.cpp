@@ -52,7 +52,7 @@ std::function<void(void)> PgConstraintImpl::GetTearDownFn(common::ManagedPointer
   while (table_iter != constraints_->end()) {
     constraints_->Scan(txn, &table_iter, pc);
 
-    for (uint i = 0; i < pc->NumTuples(); i++) {
+    for (uint32_t i = 0; i < pc->NumTuples(); i++) {
       expressions.emplace_back(exprs[i]);
     }
   }

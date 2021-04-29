@@ -56,8 +56,8 @@ bool PgLanguageImpl::CreateLanguage(const common::ManagedPointer<transaction::Tr
   const auto tuple_slot = languages_->Insert(txn, redo);
 
   // Allocate enough space for the largest PRI.
-  auto name_pri = languages_name_index_->GetProjectedRowInitializer();
-  auto oid_pri = languages_oid_index_->GetProjectedRowInitializer();
+  const auto &name_pri = languages_name_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = languages_oid_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT(name_pri.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "PRI too small.");
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
 
@@ -87,7 +87,7 @@ bool PgLanguageImpl::CreateLanguage(const common::ManagedPointer<transaction::Tr
 
 language_oid_t PgLanguageImpl::GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                               const std::string &lanname) {
-  auto name_pri = languages_name_index_->GetProjectedRowInitializer();
+  const auto &name_pri = languages_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_language_all_cols_pri_.ProjectedRowSize());
 
   auto name_pr = name_pri.InitializeRow(buffer);
@@ -121,8 +121,8 @@ language_oid_t PgLanguageImpl::GetLanguageOid(const common::ManagedPointer<trans
 bool PgLanguageImpl::DropLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   language_oid_t oid) {
   NOISEPAGE_ASSERT(oid != INVALID_LANGUAGE_OID, "Invalid oid passed in to DropLanguage.");
-  auto name_pri = languages_name_index_->GetProjectedRowInitializer();
-  auto oid_pri = languages_oid_index_->GetProjectedRowInitializer();
+  const auto &name_pri = languages_name_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = languages_oid_index_->GetProjectedRowInitializer();
 
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_language_all_cols_pri_.ProjectedRowSize());
   auto index_pr = oid_pri.InitializeRow(buffer);
