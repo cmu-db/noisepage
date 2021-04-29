@@ -6,6 +6,7 @@ import zmq
 
 from .constants import ENDIAN, SIZE_LENGTH
 from .node_server import ImposterNode
+from ...util.constants import LOG
 
 
 class LogSink(ImposterNode):
@@ -66,6 +67,7 @@ class LogSink(ImposterNode):
                     self.save_message(f)
 
             # Drain any additional messages
+            LOG.info("Waiting for all messages to arrive")
             while self.has_pending_messages(self.router_socket, 2000):
                 self.save_message(f)
 
