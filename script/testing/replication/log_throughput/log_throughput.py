@@ -216,7 +216,6 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
             servers.append(ReplicaNode(test_type, build_type, async_commit, log_messages_file, connection_threads))
     elif test_type.value == TestType.REPLICA.value:
         replica = ReplicaNode(test_type, build_type, async_commit, log_messages_file, connection_threads)
-        servers.append(replica)
 
         primary_identity = DEFAULT_PRIMARY_SERVER_ARGS[SERVER_ARGS_KEY][NETWORK_IDENTITY_KEY]
         primary_messenger_port = DEFAULT_PRIMARY_SERVER_ARGS[SERVER_ARGS_KEY][MESSENGER_PORT_KEY]
@@ -225,7 +224,9 @@ def get_servers(test_type: TestType, build_type: str, replication_enabled: bool,
         replica_replication_port = replica.replica.server_args[REPLICATION_PORT_KEY]
         log_shipper = LogShipper(log_messages_file, primary_identity, primary_messenger_port,
                                  primary_replication_port, replica_identity, replica_replication_port)
+
         servers.append(log_shipper)
+        servers.append(replica)
     return servers
 
 

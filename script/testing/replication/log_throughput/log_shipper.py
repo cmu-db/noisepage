@@ -138,7 +138,7 @@ class LogShipper(ImposterNode):
 
         # Wait for all txn applied messages
         LOG.info("Waiting for replica to apply all transaction")
-        while self.has_pending_messages(self.router_socket, 120000):
+        while self.has_pending_messages(self.router_socket, 60000):
             self.recv_txn_applied_msg()
         self.teardown_router_socket()
         self.recv_context.destroy()
