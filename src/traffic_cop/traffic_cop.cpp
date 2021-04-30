@@ -364,7 +364,7 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 
-  return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
+  return {ResultType::COMPLETE, 0u};
 }
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
