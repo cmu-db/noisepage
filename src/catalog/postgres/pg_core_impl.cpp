@@ -200,7 +200,7 @@ std::function<void(void)> PgCoreImpl::GetTearDownFn(common::ManagedPointer<trans
   auto table_iter = classes_->begin();
   while (table_iter != classes_->end()) {
     classes_->Scan(txn, &table_iter, pc);
-    for (uint i = 0; i < pc->NumTuples(); i++) {
+    for (uint32_t i = 0; i < pc->NumTuples(); i++) {
       NOISEPAGE_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
       NOISEPAGE_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
@@ -241,7 +241,7 @@ bool PgCoreImpl::CreateNamespace(const common::ManagedPointer<transaction::Trans
                                  const std::string &name, const namespace_oid_t ns_oid) {
   auto *const redo = txn->StageWrite(db_oid_, PgNamespace::NAMESPACE_TABLE_OID, pg_namespace_all_cols_pri_);
   auto delta = common::ManagedPointer(redo->Delta());
-  auto &pm = pg_namespace_all_cols_prm_;
+  const auto &pm = pg_namespace_all_cols_prm_;
 
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
@@ -252,8 +252,8 @@ bool PgCoreImpl::CreateNamespace(const common::ManagedPointer<transaction::Trans
   }
   const auto tuple_slot = namespaces_->Insert(txn, redo);
 
-  auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
-  auto oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
+  const auto &name_pri = namespaces_name_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT(name_pri.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Name should be largest PRI.");
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
 
@@ -285,7 +285,7 @@ bool PgCoreImpl::DeleteNamespace(const common::ManagedPointer<transaction::Trans
   // This buffer is large enough for all prs because it's meant to hold 1 VarlenEntry.
   byte *const buffer = common::AllocationUtil::AllocateAligned(delete_namespace_pri_.ProjectedRowSize());
 
-  const auto oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
 
   // Scan pg_namespace_oid_index.
   std::vector<storage::TupleSlot> index_results;
@@ -377,7 +377,7 @@ bool PgCoreImpl::DeleteNamespace(const common::ManagedPointer<transaction::Trans
 namespace_oid_t PgCoreImpl::GetNamespaceOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                             const std::string &name) {
   // Buffer is large enough for all prs because it's meant to hold 1 VarlenEntry
-  const auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
+  const auto &name_pri = namespaces_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
 
   // Scan through pg_namespace_name_index.
@@ -422,7 +422,7 @@ bool PgCoreImpl::SetClassPointer(const common::ManagedPointer<transaction::Trans
                 "Invalid Ptr.");
   NOISEPAGE_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
 
-  const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = classes_oid_index_->GetProjectedRowInitializer();
   auto pr_init = classes_->InitializerForProjectedRow({class_col});
 
   NOISEPAGE_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
@@ -553,7 +553,7 @@ bool PgCoreImpl::DeleteTable(const common::ManagedPointer<transaction::Transacti
     if (!result) return false;
   }
 
-  const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = classes_oid_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                    "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
@@ -823,7 +823,7 @@ bool PgCoreImpl::DeleteIndex(const common::ManagedPointer<transaction::Transacti
   }
 
   // Allocate buffer for largest PR.
-  const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  const auto &class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
                    "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
@@ -985,7 +985,7 @@ bool PgCoreImpl::DeleteIndex(const common::ManagedPointer<transaction::Transacti
 
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> PgCoreImpl::GetIndexes(
     const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
-  auto indexes_oid_pri = indexes_table_index_->GetProjectedRowInitializer();
+  const auto &indexes_oid_pri = indexes_table_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT(get_class_object_and_schema_pri_.ProjectedRowSize() >= indexes_oid_pri.ProjectedRowSize() &&
                        get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
                        get_class_object_and_schema_pri_.ProjectedRowSize() >=
@@ -1077,7 +1077,7 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
 
 std::vector<index_oid_t> PgCoreImpl::GetIndexOids(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                   table_oid_t table) {
-  auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = indexes_table_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT(get_indexes_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                    "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_indexes_pri_.ProjectedRowSize());
@@ -1117,7 +1117,7 @@ std::vector<index_oid_t> PgCoreImpl::GetIndexOids(const common::ManagedPointer<t
 std::vector<std::pair<uint32_t, PgClass::RelKind>> PgCoreImpl::GetNamespaceClassOids(
     const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid) {
   // Initialize both PR initializers, allocate buffer using size of largest one so we can reuse buffer.
-  auto oid_pri = classes_namespace_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = classes_namespace_index_->GetProjectedRowInitializer();
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_oid_kind_pri_.ProjectedRowSize());
 
   // Find the entry using pg_class_namespace_index.
@@ -1157,7 +1157,7 @@ std::vector<std::pair<uint32_t, PgClass::RelKind>> PgCoreImpl::GetNamespaceClass
 std::pair<void *, PgClass::RelKind> PgCoreImpl::GetClassPtrKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
   // Initialize both PR initializers, allocate buffer using size of largest one so we can reuse buffer.
-  auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR is 0 and KIND is 1.
   NOISEPAGE_ASSERT(get_class_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
@@ -1200,7 +1200,7 @@ std::pair<void *, PgClass::RelKind> PgCoreImpl::GetClassPtrKind(
 std::pair<void *, PgClass::RelKind> PgCoreImpl::GetClassSchemaPtrKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
   // Initialize both PR initializers, allocate buffer using size of largest one so we can reuse buffer.
-  auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR is 0 and KIND is 1.
   NOISEPAGE_ASSERT(get_class_schema_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
@@ -1239,7 +1239,7 @@ std::pair<void *, PgClass::RelKind> PgCoreImpl::GetClassSchemaPtrKind(
 std::pair<uint32_t, PgClass::RelKind> PgCoreImpl::GetClassOidKind(
     const common::ManagedPointer<transaction::TransactionContext> txn, const namespace_oid_t ns_oid,
     const std::string &name) {
-  const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
+  const auto &name_pri = classes_name_index_->GetProjectedRowInitializer();
 
   // Buffer is large enough to hold all PRs.
   auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
@@ -1322,7 +1322,7 @@ bool PgCoreImpl::CreateColumn(const common::ManagedPointer<transaction::Transact
   const auto tupleslot = columns_->Insert(txn, redo);
 
   // Create a buffer large enough for all columns.
-  const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
+  const auto &name_pri = columns_name_index_->GetProjectedRowInitializer();
   auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
 
   // Insert into pg_attribute_name_index.
@@ -1343,11 +1343,11 @@ bool PgCoreImpl::CreateColumn(const common::ManagedPointer<transaction::Transact
 
   // Insert into pg_attribute_oid_index.
   {
-    const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-    auto oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
+    const auto &oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+    const auto &oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
     auto *pr = oid_pri.InitializeRow(buffer);
-    pr->Set<ClassOid, false>(oid_prm[indexkeycol_oid_t(1)], class_oid, false);
-    pr->Set<ColOid, false>(oid_prm[indexkeycol_oid_t(2)], col_oid, false);
+    pr->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), class_oid, false);
+    pr->Set<ColOid, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid, false);
     bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
     NOISEPAGE_ASSERT(result, "Assigned OIDs failed to be unique.");
   }
@@ -1359,8 +1359,8 @@ bool PgCoreImpl::CreateColumn(const common::ManagedPointer<transaction::Transact
 template <typename Column, typename ClassOid, typename ColOid>
 std::vector<Column> PgCoreImpl::GetColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
                                            ClassOid class_oid) {
-  const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-  auto oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
+  const auto &oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
 
   // Buffer is large enough to hold all PRs.
   byte *const buffer = common::AllocationUtil::AllocateAligned(get_columns_pri_.ProjectedRowSize());
@@ -1375,12 +1375,12 @@ std::vector<Column> PgCoreImpl::GetColumns(const common::ManagedPointer<transact
     auto *pr_high = oid_pri.InitializeRow(key_buffer);
 
     // Low key (class, INVALID_COLUMN_OID)
-    pr->Set<ClassOid, false>(oid_prm[indexkeycol_oid_t(1)], class_oid, false);
-    pr->Set<ColOid, false>(oid_prm[indexkeycol_oid_t(2)], ColOid(0), false);
+    pr->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), class_oid, false);
+    pr->Set<ColOid, false>(oid_prm.at(indexkeycol_oid_t(2)), ColOid(0), false);
 
     // High key (class + 1, INVALID_COLUMN_OID)
-    pr_high->Set<ClassOid, false>(oid_prm[indexkeycol_oid_t(1)], ++class_oid, false);
-    pr_high->Set<ColOid, false>(oid_prm[indexkeycol_oid_t(2)], ColOid(0), false);
+    pr_high->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), ++class_oid, false);
+    pr_high->Set<ColOid, false>(oid_prm.at(indexkeycol_oid_t(2)), ColOid(0), false);
     columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, pr_high, 0, &index_results);
 
     NOISEPAGE_ASSERT(
@@ -1413,9 +1413,9 @@ std::vector<Column> PgCoreImpl::GetColumns(const common::ManagedPointer<transact
 template <typename Column, typename ClassOid>
 bool PgCoreImpl::DeleteColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
                                const ClassOid class_oid) {
-  const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-  const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
-  auto oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
+  const auto &oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+  const auto &name_pri = columns_name_index_->GetProjectedRowInitializer();
+  const auto &oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
 
   // Buffer is large enough to hold all PRs.
   byte *const buffer = common::AllocationUtil::AllocateAligned(delete_columns_pri_.ProjectedRowSize());
@@ -1429,13 +1429,13 @@ bool PgCoreImpl::DeleteColumns(const common::ManagedPointer<transaction::Transac
 
     // Write the attributes in the ProjectedRow
     // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-    pr->Set<ClassOid, false>(oid_prm[indexkeycol_oid_t(1)], class_oid, false);
-    pr->Set<uint32_t, false>(oid_prm[indexkeycol_oid_t(2)], 0, false);
+    pr->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), class_oid, false);
+    pr->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), 0, false);
 
     // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
     auto next_oid = ClassOid(class_oid.UnderlyingValue() + 1);
-    pr_high->Set<ClassOid, false>(oid_prm[indexkeycol_oid_t(1)], next_oid, false);
-    pr_high->Set<uint32_t, false>(oid_prm[indexkeycol_oid_t(2)], 0, false);
+    pr_high->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), next_oid, false);
+    pr_high->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), 0, false);
 
     columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, pr_high, 0, &index_results);
 
@@ -1475,8 +1475,8 @@ bool PgCoreImpl::DeleteColumns(const common::ManagedPointer<transaction::Transac
       // Delete from pg_attribute_oid_index.
       {
         auto *key_pr = oid_pri.InitializeRow(key_buffer);
-        key_pr->Set<ClassOid, false>(oid_prm[indexkeycol_oid_t(1)], class_oid, false);
-        key_pr->Set<uint32_t, false>(oid_prm[indexkeycol_oid_t(2)], col_oid->UnderlyingValue(), false);
+        key_pr->Set<ClassOid, false>(oid_prm.at(indexkeycol_oid_t(1)), class_oid, false);
+        key_pr->Set<uint32_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid->UnderlyingValue(), false);
         columns_oid_index_->Delete(txn, *key_pr, slot);
       }
 
