@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
 #include "type/type_id.h"
@@ -20,10 +21,6 @@ class TransactionManager;
 namespace noisepage::parser {
 class ConstantValueExpression;
 }  // namespace noisepage::parser
-
-namespace noisepage::execution::compiler {
-class ExecutableQuery;
-}  // namespace noisepage::execution::compiler
 
 namespace noisepage::execution::sql {
 struct Val;
@@ -179,6 +176,15 @@ class QueryExecUtil {
                     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
                     common::ManagedPointer<metrics::MetricsManager> metrics,
                     const execution::exec::ExecutionSettings &exec_settings);
+
+  /**
+   * Get ExecutableQuery
+   * @param statement Previously compiled query statement (serves as identifier)
+   * @return compiled query statement or nullptr if haven't compiled
+   */
+  common::ManagedPointer<execution::compiler::ExecutableQuery> GetExecutableQuery(std::string &statement) {
+    return common::ManagedPointer(exec_queries_[statement]);
+  }
 
   /**
    * Plans a query

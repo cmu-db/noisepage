@@ -268,34 +268,31 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
           num_rows = index_scan_plan->GetIndexSize();
         else
           num_rows = table_num_rows;
+
+        std::vector<catalog::col_oid_t> mapped_cols;
+        std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> lookup;
+
+        UNUSED_ATTRIBUTE bool status = optimizer::IndexUtil::ConvertIndexKeyOidToColOid(
+            accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
+        NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
+
+        cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
+        for (auto col_id : mapped_cols) {
+          cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
+        }
       } else {
         NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
         auto index_join_plan = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan);
-        table_oid = index_join_plan->GetTableOid();
-        index_oid = index_join_plan->GetIndexOid();
-        if (table_num_rows == 0)
-          // When we didn't run Analyze
-          num_rows = index_join_plan->GetIndexSize();
-        else
-          num_rows = table_num_rows;
 
-        UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
+        auto *c_plan = plan->GetChild(0);
         // extract from c_plan num_row
         num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+
+        // FIXME(lin): Right now we do not populate the cardinality or selectivity stats for the inner index scan of
+        //  INDEXNLJOIN. We directly get the size from the index and assume the inner index scan only returns 1 tuple.
+        num_rows = index_join_plan->GetIndexSize();
+        cardinality = 1;
       }
-
-      std::vector<catalog::col_oid_t> mapped_cols;
-      std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> lookup;
-
-      UNUSED_ATTRIBUTE bool status = optimizer::IndexUtil::ConvertIndexKeyOidToColOid(
-          accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
-      NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
-
-      cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
-      for (auto col_id : mapped_cols) {
-        cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
-      }
-
     } break;
     case ExecutionOperatingUnitType::SEQ_SCAN: {
       num_rows = table_num_rows;

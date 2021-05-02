@@ -127,12 +127,12 @@ class CompilationContext {
   bool IsPipelineMetricsEnabled() const { return pipeline_metrics_enabled_; }
 
   /** @return Query Id associated with the query */
-  query_id_t GetQueryId() const { return query_id_t{unique_id_}; }
+  query_id_t GetQueryId() const { return query_id_; }
 
  private:
   // Private to force use of static Compile() function.
-  explicit CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, CompilationMode mode,
-                              const exec::ExecutionSettings &exec_settings);
+  explicit CompilationContext(ExecutableQuery *query, query_id_t query_id_, catalog::CatalogAccessor *accessor,
+                              CompilationMode mode, const exec::ExecutionSettings &exec_settings);
 
   // Given a plan node, compile it into a compiled query object.
   void GeneratePlan(const planner::AbstractPlanNode &plan,
@@ -150,6 +150,9 @@ class CompilationContext {
  private:
   // Unique ID used as a prefix for all generated functions to ensure uniqueness.
   uint32_t unique_id_;
+
+  // Query ID generated from ExecutableQuery or overridden specifically
+  query_id_t query_id_;
 
   // The compiled query object we'll update.
   ExecutableQuery *query_;

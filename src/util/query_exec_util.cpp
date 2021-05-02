@@ -187,10 +187,10 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  std::unique_ptr<optimizer::AbstractCostModel> cost,
                                  std::optional<execution::query_id_t> override_qid,
                                  const execution::exec::ExecutionSettings &exec_settings) {
-  // if (exec_queries_.find(statement) != exec_queries_.end()) {
-  // We have already optimized and compiled this query before
-  //  return true;
-  //}
+  if (exec_queries_.find(statement) != exec_queries_.end()) {
+    // We have already optimized and compiled this query before
+    return true;
+  }
 
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);

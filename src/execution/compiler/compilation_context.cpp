@@ -79,9 +79,10 @@ namespace {
 std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
-CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
+CompilationContext::CompilationContext(ExecutableQuery *query, query_id_t query_id, catalog::CatalogAccessor *accessor,
                                        const CompilationMode mode, const exec::ExecutionSettings &settings)
     : unique_id_(unique_ids++),
+      query_id_(query_id),
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext(), accessor),
@@ -201,7 +202,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
   }
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), accessor, mode, exec_settings);
+  CompilationContext ctx(query.get(), query->GetQueryId(), accessor, mode, exec_settings);
   ctx.GeneratePlan(plan, plan_meta_data);
 
   // Done

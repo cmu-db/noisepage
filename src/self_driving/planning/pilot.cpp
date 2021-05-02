@@ -32,8 +32,8 @@
 
 namespace noisepage::selfdriving {
 
-Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
-             common::ManagedPointer<catalog::Catalog> catalog,
+Pilot::Pilot(std::string ou_model_save_path, std::string interference_model_save_path,
+             std::string forecast_model_save_path, common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<metrics::MetricsThread> metrics_thread,
              common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
              common::ManagedPointer<settings::SettingsManager> settings_manager,
@@ -42,7 +42,8 @@ Pilot::Pilot(std::string model_save_path, std::string forecast_model_save_path,
              std::unique_ptr<util::QueryExecUtil> query_exec_util,
              common::ManagedPointer<task::TaskManager> task_manager, uint64_t workload_forecast_interval,
              uint64_t sequence_length, uint64_t horizon_length)
-    : model_save_path_(std::move(model_save_path)),
+    : ou_model_save_path_(std::move(ou_model_save_path)),
+      interference_model_save_path_(std::move(interference_model_save_path)),
       forecast_model_save_path_(std::move(forecast_model_save_path)),
       catalog_(catalog),
       metrics_thread_(metrics_thread),
@@ -356,7 +357,7 @@ void Pilot::LoadWorkloadForecast(WorkloadForecastInitMode mode) {
 
     // Construct the WorkloadForecast froM a mix of on-disk and inference information
     auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
-    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, sample);
+    forecast_ = std::make_unique<selfdriving::WorkloadForecast>(result.first, workload_forecast_interval_, sample);
   } else {
     NOISEPAGE_ASSERT(mode == WorkloadForecastInitMode::DISK_ONLY, "Expected the mode to be directly from disk");
 
@@ -410,9 +411,10 @@ void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oi
                          best_action_seq->begin()->second);
 }
 
-void Pilot::ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                     std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction,
-                            uint64_t start_segment_index, uint64_t end_segment_index) {
+void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
+                            std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+                            std::map<uint32_t, uint64_t> *segment_to_offset,
+                            std::vector<std::vector<double>> *interference_result_matrix) {
   NOISEPAGE_ASSERT(forecast_ != nullptr, "Need forecast_ initialized.");
   // first we make sure the pipeline metrics flag as well as the counters is enabled. Also set the sample rate to be 0
   // so that every query execution is being recorded
@@ -442,11 +444,22 @@ void Pilot::ExecuteForecast(std::map<std::pair<execution::query_id_t, execution:
   // Collect pipeline metrics of forecasted queries within the interval of segments
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
                                                           common::ManagedPointer(forecast_), start_segment_index,
-                                                          end_segment_index, &pipeline_qids, true);
+                                                          end_segment_index, &pipeline_qids, false);
+
+  // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
+  // (where each entry corresponds to a different query param)
+  // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
+  // parameters
+  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
+      pipeline_to_prediction;
+
   // Then we perform inference through model server to get ou prediction results for all pipelines
-  PilotUtil::InferenceWithFeatures(model_save_path_, model_server_manager_, pipeline_qids,
-                                   pipeline_data->pipeline_data_,
-                                   pipeline_to_prediction);
+  PilotUtil::OUModelInference(ou_model_save_path_, model_server_manager_, pipeline_qids, pipeline_data->pipeline_data_,
+                              &pipeline_to_prediction);
+
+  PilotUtil::InterferenceModelInference(interference_model_save_path_, model_server_manager_, pipeline_to_prediction,
+                                        common::ManagedPointer(forecast_), start_segment_index, end_segment_index,
+                                        query_info, segment_to_offset, interference_result_matrix);
 
   // restore the old parameters
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));

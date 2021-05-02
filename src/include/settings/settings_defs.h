@@ -492,9 +492,17 @@ SETTING_string(
 
 // Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH)
 SETTING_string(
-    model_save_path,
-    "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
-    "../script/model/terrier_model_server_trained/mini_model_test.pickle",
+    ou_model_save_path,
+    "Save path of the OU model relative to the build path (default: ou_model_map.pickle)",
+    "ou_model_map.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    interference_model_save_path,
+    "Save path of the forecast model relative to the build path (default: interference_direct_model.pickle)",
+    "interference_direct_model.pickle",
     false,
     noisepage::settings::Callbacks::NoOp
 )
