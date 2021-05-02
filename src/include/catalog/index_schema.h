@@ -299,7 +299,7 @@ class IndexSchema {
    * @throw std::out_of_range if the column doesn't exist.
    */
   const Column &GetColumn(const std::string &name) const {
-    for (auto &c : columns_) {
+    for (const auto &c : columns_) {
       if (c.Name() == name) {
         return c;
       }
@@ -375,7 +375,7 @@ class IndexSchema {
     std::deque<common::ManagedPointer<const parser::AbstractExpression>> expr_queue;
 
     // Traverse expression tree for each index key
-    for (auto &col : GetColumns()) {
+    for (const auto &col : GetColumns()) {
       NOISEPAGE_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be missing");
       // Add root of expression of tree for the column
       expr_queue.push_back(col.StoredExpression());

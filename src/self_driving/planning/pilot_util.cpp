@@ -189,7 +189,10 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
           std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<type::TypeId>(*param_types),
           nullptr, metrics_manager, true, true, std::make_optional<execution::query_id_t>(qid),
           common::ManagedPointer(&sync)));
-      sync.Wait();
+      auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
+      if (!future_result.has_value()) {
+        throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+      }
     } else {
       // Just compile the queries (generate the bytecodes) to get features with statistics
       auto &query_util = pilot->query_exec_util_;

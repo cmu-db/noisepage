@@ -67,7 +67,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     messenger::callback_id_t destination_cb =
         messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
     const msg_id_t msg_id = msg.GetMessageId();
-    const std::string msg_string = msg.ToJson().dump();
+    const std::string msg_string = msg.Serialize();
     for (const auto &replica : replicas_) {
       Send(replica.first, msg_id, msg_string, messenger::CallbackFns::Noop, destination_cb);
     }
@@ -92,7 +92,7 @@ void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t old
       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
 
   const msg_id_t msg_id = msg.GetMessageId();
-  const std::string msg_string = msg.ToJson().dump();
+  const std::string msg_string = msg.Serialize();
   for (const auto &replica : replicas_) {
     Send(replica.first, msg_id, msg_string, messenger::CallbackFns::Noop, destination_cb);
   }

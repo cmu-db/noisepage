@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "common/action_context.h"
+#include "common/error/error_code.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
@@ -106,7 +107,10 @@ void Pilot::PerformForecasterTrain() {
     }
   }
 
-  future.Wait();
+  auto future_result = future.WaitFor(FUTURE_TIMEOUT);
+  if (!future_result.has_value()) {
+    throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+  }
 }
 
 std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
@@ -180,7 +184,11 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_texts",
         std::make_unique<optimizer::TrivialCostModel>(), false, to_row_fn, common::ManagedPointer(&sync)));
 
-    result &= sync.Wait().first;
+    auto future_result = sync.WaitFor(FUTURE_TIMEOUT);
+    if (!future_result.has_value()) {
+      throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+    }
+    result &= future_result->first;
   }
 
   {
@@ -202,7 +210,11 @@ std::pair<WorkloadMetadata, bool> Pilot::RetrieveWorkloadMetadata(
                                                            std::make_unique<optimizer::TrivialCostModel>(), false,
                                                            to_row_fn, common::ManagedPointer(&sync)));
 
-    result &= sync.Wait().first;
+    auto future_result = sync.WaitFor(FUTURE_TIMEOUT);
+    if (!future_result.has_value()) {
+      throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+    }
+    result &= future_result->first;
   }
 
   return std::make_pair(std::move(metadata), result);
@@ -241,7 +253,11 @@ std::unordered_map<int64_t, std::vector<double>> Pilot::GetSegmentInformation(st
                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
                                                          to_row_fn, common::ManagedPointer(&sync)));
 
-  *success = sync.Wait().first;
+  auto future_result = sync.WaitFor(FUTURE_TIMEOUT);
+  if (!future_result.has_value()) {
+    throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+  }
+  *success = future_result->first;
 
   NOISEPAGE_ASSERT(segment_number <= (((bounds.second - bounds.first) / interval) + 1),
                    "Incorrect data retrieved from internal tables");
