@@ -203,9 +203,15 @@ void ExecutableQuery::RunProfileRecompile(common::ManagedPointer<exec::Execution
   for (const auto &fragment : fragments_) {
     auto profile = fragment->GetFunctionProfile();
     if (controls.should_agg_) {
-      if (!profile->IsAgg()) profile->StartAgg();
+      if (!profile->IsAgg()) {
+        profile->StartAgg();
+        std::cout << "|--| AGG START." << std::endl;
+      }
     } else {
-      if (profile->IsAgg()) profile->StopAgg();
+      if (profile->IsAgg()) {
+        profile->StopAgg();
+        std::cout << "|--| AGG STOP." << std::endl;
+      }
     }
     profile->SetNumIterationsLeft(controls.num_iterations_left_);
     fragment->Run(query_state.get(), mode);
@@ -213,10 +219,11 @@ void ExecutableQuery::RunProfileRecompile(common::ManagedPointer<exec::Execution
     profile->EndIteration();
     if (controls.should_print_agg_) {
       auto agg = profile->GetCombinedAgg();
-      std::cout << "Agg num_samples: " << agg.num_samples_ << std::endl;
-      std::cout << "Agg min: " << agg.min_.ToStrShort() << std::endl;
-      std::cout << "Agg mean: " << agg.mean_.ToStrShort() << std::endl;
-      std::cout << "Agg max: " << agg.max_.ToStrShort() << std::endl;
+      std::cout << "|--| AGG DATA." << std::endl;
+      std::cout << "|----| Agg num_samples: " << agg.num_samples_ << std::endl;
+      std::cout << "|----| Agg min: " << agg.min_.ToStrShort() << std::endl;
+      std::cout << "|----| Agg mean: " << agg.mean_.ToStrShort() << std::endl;
+      std::cout << "|----| Agg max: " << agg.max_.ToStrShort() << std::endl;
     }
   }
 

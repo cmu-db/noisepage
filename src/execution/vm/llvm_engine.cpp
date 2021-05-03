@@ -1133,7 +1133,7 @@ void LLVMEngine::Shutdown() {
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeModule &module,
                                                                 const LLVMEngineCompilerOptions &options,
                                                                 const common::ManagedPointer<FunctionProfile> profile) {
-  std::cout << "|---| Profile Input: " << profile->GetCombinedPrev().ToStrShort() << std::endl;
+  std::cout << "|--| Profile input (combined): " << profile->GetCombinedPrev().ToStrShort() << std::endl;
 
   CompiledModuleBuilder builder(options, module);
 

@@ -430,8 +430,8 @@ void FunctionOptimizer::Optimize(const common::ManagedPointer<llvm::Module> llvm
                          profile->GetTeardowns().cend();
       if (is_step || is_teardown) {
         auto func_profile = profile->GetPrev(func_name);
-        std::cout << fmt::format("Profile input {}: {} cnt {} opt {} exec", func_name, func_profile->inst_count_,
-                                 func_profile->optimize_ns_, func_profile->exec_ns_)
+        std::cout << fmt::format("|----| Profile input ({}): {} cnt {} opt {} exec", func_name,
+                                 func_profile->inst_count_, func_profile->optimize_ns_, func_profile->exec_ns_)
                   << std::endl;
       }
     }

@@ -542,12 +542,11 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   execution::compiler::ExecutableQuery::ProfilerControls controls;
   controls.num_iterations_left_ = 30;
   controls.should_agg_ = true;
-  controls.should_print_agg_ = true;
 
   while (controls.num_iterations_left_-- > 1) {
     run_profile_once(controls);
   }
-  controls.should_agg_ = false;
+  controls.should_print_agg_ = true;
   run_profile_once(controls);
 
   try {
