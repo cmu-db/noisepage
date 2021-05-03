@@ -278,9 +278,17 @@ FunctionTransform FunctionOptimizer::transforms[] = {
 
     // ---------------------------------------------------------------------------------------------------------------
     // LLVM transformations not documented in https://releases.llvm.org/8.0.0/docs/Passes.html but in API.
+    // Prefixed with nd- to mean not documented.
     // ---------------------------------------------------------------------------------------------------------------
 
-    // TODO(WAN): Exhaustively check stuff in the API.
+    // TODO(WAN): Exhaustively check stuff in the API. Here are some examples.
+    {"nd-correlated-value-propagation",
+     [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createCorrelatedValuePropagationPass()); }},
+    {"nd-early-cse", [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createEarlyCSEPass()); }},
+    {"nd-flatten-cfg", [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createFlattenCFGPass()); }},
+    {"nd-gvn", [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createNewGVNPass()); }},
+    {"nd-loop-inst-simplify",
+     [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createLoopInstSimplifyPass()); }},
 };
 
 FunctionOptimizer::FunctionOptimizer(common::ManagedPointer<llvm::TargetMachine> target_machine)
