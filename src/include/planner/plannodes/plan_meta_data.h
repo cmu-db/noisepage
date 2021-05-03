@@ -21,6 +21,9 @@ class PlanMetaData {
     /**
      * Construct a PlanNodeMetaData with a cardinality value
      * @param cardinality output cardinality of the plan node
+     * @param table_num_rows number of rows in the base table (for sequential or index scans)
+     * @param filter_column_selectivities maps from column id to the selectivity on that column (multiplied
+     *   with duplicates)
      */
     explicit PlanNodeMetaData(size_t cardinality, size_t table_num_rows,
                               std::unordered_map<catalog::col_oid_t, double> filter_column_selectivities)

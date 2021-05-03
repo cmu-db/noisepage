@@ -97,7 +97,8 @@ class Pilot {
 
   /**
    * Constructor for Pilot
-   * @param model_save_path model save path
+   * @param ou_model_save_path OU model save path
+   * @param interference_model_save_path interference model save path
    * @param forecast_model_save_path forecast model save path
    * @param catalog catalog
    * @param metrics_thread metrics thread for metrics manager
