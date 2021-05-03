@@ -259,7 +259,11 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
+      util::Timer<std::milli> x;
+      x.Start();
       EXECUTION_LOG_INFO("JIT main() returned: {}", main());
+      x.Stop();
+      EXECUTION_LOG_INFO("Jit exec: {} ms", x.GetElapsed());
     }
   }
 
