@@ -89,7 +89,7 @@ class IndexUtil {
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds);
 
  private:
-  friend selfdriving::OperatingUnitRecorder;
+  friend class selfdriving::OperatingUnitRecorder;
 
   /**
    * Check whether predicate can take part in index computation

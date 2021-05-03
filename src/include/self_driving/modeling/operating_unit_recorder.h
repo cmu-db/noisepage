@@ -52,7 +52,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param accessor CatalogAccessor
    * @param ast_ctx AstContext
    * @param pipeline Current pipeline, used to figure out if a given translator is Build or Probe.
-   * @param query_text The SQL query string
+   * @param plan_meta_data The plan meta data that stores the stats
    */
   explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                  common::ManagedPointer<execution::ast::Context> ast_ctx,

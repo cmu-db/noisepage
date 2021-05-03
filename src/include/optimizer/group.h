@@ -26,6 +26,7 @@ class GroupExpression;
  */
 class Group {
  public:
+  /** Value for uninitialized stats (cardinality and number of rows in table) */
   static constexpr size_t UNINITIALIZED_NUM_ROWS = std::numeric_limits<size_t>::max();
 
   /**
