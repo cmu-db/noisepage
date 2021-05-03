@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -7,7 +8,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <limits>
 
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_node_contents.h"
