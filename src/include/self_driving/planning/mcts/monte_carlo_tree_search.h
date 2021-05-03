@@ -50,7 +50,8 @@ class MonteCarloTreeSearch {
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
   bool use_min_cost_;      // Use the minimum cost of all leaves (instead of the average) as the cost for internal nodes
-  uint64_t start_memory_;  // Memory consumption at the beginning of the planning
+  // TODO(lin): check the memory constraint
+  UNUSED_ATTRIBUTE uint64_t start_memory_;  // Memory consumption at the beginning of the planning
 };
 }  // namespace pilot
 

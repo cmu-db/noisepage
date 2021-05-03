@@ -144,7 +144,8 @@ class TreeNode {
   uint64_t number_of_visits_;  // number of leaf in subtree rooted at node
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
-  uint64_t memory_;
+  // TODO(lin): check the memory constraint
+  UNUSED_ATTRIBUTE uint64_t memory_;
 };
 }  // namespace pilot
 
