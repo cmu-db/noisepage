@@ -182,7 +182,7 @@ class QueryExecUtil {
    * @param statement Previously compiled query statement (serves as identifier)
    * @return compiled query statement or nullptr if haven't compiled
    */
-  common::ManagedPointer<execution::compiler::ExecutableQuery> GetExecutableQuery(std::string &statement) {
+  common::ManagedPointer<execution::compiler::ExecutableQuery> GetExecutableQuery(const std::string &statement) {
     return common::ManagedPointer(exec_queries_[statement]);
   }
 

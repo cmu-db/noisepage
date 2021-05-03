@@ -136,7 +136,7 @@ class PilotUtil {
    * @param delta_feature The amount to add
    * @param normalization Divide delta_feature by this value
    */
-  static void SumFeatureInPlace(std::vector<double> &feature, const std::vector<double> &delta_feature,
+  static void SumFeatureInPlace(std::vector<double> *feature, const std::vector<double> &delta_feature,
                                 double normalization);
 
   /**

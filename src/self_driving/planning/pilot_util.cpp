@@ -95,10 +95,10 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
   }
 }
 
-void PilotUtil::SumFeatureInPlace(std::vector<double> &feature, const std::vector<double> &delta_feature,
+void PilotUtil::SumFeatureInPlace(std::vector<double> *feature, const std::vector<double> &delta_feature,
                                   double normalization) {
-  for (size_t i = 0; i < feature.size(); i++) {
-    feature[i] += delta_feature[i] / normalization;
+  for (size_t i = 0; i < feature->size(); i++) {
+    (*feature)[i] += delta_feature[i] / normalization;
   }
 }
 
@@ -307,12 +307,12 @@ void PilotUtil::InterferenceModelInference(
     for (auto const &pipeline_res : pipeline_to_pred.second) {
       for (const auto &ou_res : pipeline_res) {
         // sum up the ou prediction results of all ous in a pipeline
-        SumFeatureInPlace(pipeline_sum, ou_res, 1);
+        SumFeatureInPlace(&pipeline_sum, ou_res, 1);
       }
       num_ou_for_ppl += pipeline_res.size();
     }
     // record average feat sum of this pipeline among the same queries with diff param
-    SumFeatureInPlace(query_feat_sum.back().second, pipeline_sum, pipeline_to_pred.second.size());
+    SumFeatureInPlace(&query_feat_sum.back().second, pipeline_sum, pipeline_to_pred.second.size());
     query_info->at(curr_qid).second += num_ou_for_ppl;
   }
 
@@ -330,7 +330,7 @@ void PilotUtil::InterferenceModelInference(
       if (id_to_num_exec.find(id_to_query_sum.first) != id_to_num_exec.end()) {
         // account for number of exec of this query
         // and normalize the ou_sum in an interval by the length of this interval
-        SumFeatureInPlace(normalized_feat_sum, id_to_query_sum.second,
+        SumFeatureInPlace(&normalized_feat_sum, id_to_query_sum.second,
                           forecast->forecast_interval_ / id_to_num_exec[id_to_query_sum.first]);
       }
     }
