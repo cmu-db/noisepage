@@ -295,6 +295,92 @@ FunctionTransform FunctionOptimizer::transforms[] = {
      [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createLoopInstSimplifyPass()); }},
 };
 
+// Start of actual code.
+
+// FunctionMetadata.
+
+std::string FunctionMetadata::ToStrShort() const {
+  return fmt::format("[{} insts, {} opt ns, {} exec ns]", inst_count_, optimize_ns_, exec_ns_);
+}
+
+// FunctionProfile.
+
+void FunctionProfile::EndIteration() {
+  auto init_agg = [](MetadataAgg *agg, const FunctionMetadata &sample) {
+    agg->num_samples_ = 1;
+    agg->min_ = sample;
+    agg->mean_ = sample;
+    agg->max_ = sample;
+  };
+
+  auto update_agg = [](MetadataAgg *agg, const FunctionMetadata &sample) {
+    agg->num_samples_++;
+    // min
+    agg->min_.inst_count_ = std::min(agg->min_.inst_count_, sample.inst_count_);
+    agg->min_.optimize_ns_ = std::min(agg->min_.optimize_ns_, sample.optimize_ns_);
+    agg->min_.exec_ns_ = std::min(agg->min_.exec_ns_, sample.exec_ns_);
+    // mean (no thought was given to numerical stability)
+    agg->mean_.inst_count_ = (agg->mean_.inst_count_ * (agg->num_samples_ - 1) + sample.inst_count_) /
+                             static_cast<double>(agg->num_samples_);
+    agg->mean_.optimize_ns_ = (agg->mean_.optimize_ns_ * (agg->num_samples_ - 1) + sample.optimize_ns_) /
+                              static_cast<double>(agg->num_samples_);
+    agg->mean_.exec_ns_ =
+        (agg->mean_.exec_ns_ * (agg->num_samples_ - 1) + sample.exec_ns_) / static_cast<double>(agg->num_samples_);
+    // max
+    agg->max_.inst_count_ = std::max(agg->max_.inst_count_, sample.inst_count_);
+    agg->max_.optimize_ns_ = std::max(agg->max_.optimize_ns_, sample.optimize_ns_);
+    agg->max_.exec_ns_ = std::max(agg->max_.exec_ns_, sample.exec_ns_);
+  };
+
+  for (auto &entry : functions_) {
+    entry.second.prev_ = entry.second.curr_;
+    if (should_update_agg_) {
+      if (!is_agg_initialized_) {
+        init_agg(&entry.second.agg_, entry.second.prev_);
+        // The is_agg_initialized_ flag is set later after updating combined_agg_.
+      } else {
+        update_agg(&entry.second.agg_, entry.second.prev_);
+      }
+    }
+    entry.second.curr_ = FunctionMetadata{};
+  }
+  if (!is_agg_initialized_) {
+    init_agg(&combined_agg_, GetCombinedPrev());
+    is_agg_initialized_ = true;
+  } else {
+    update_agg(&combined_agg_, GetCombinedPrev());
+  }
+}
+
+FunctionMetadata FunctionProfile::GetCombinedPrev() const {
+  uint64_t total_inst_cnt = 0;
+  uint64_t total_opt_ns = 0;
+  uint64_t total_exec_ns = 0;
+  for (auto &entry : functions_) {
+    bool is_step = std::find(steps_.cbegin(), steps_.cend(), entry.first) != steps_.cend();
+    bool is_teardown = std::find(teardowns_.cbegin(), teardowns_.cend(), entry.first) != teardowns_.cend();
+    if (is_step || is_teardown) {
+      const FunctionMetadata &md = entry.second.prev_;
+      total_inst_cnt += md.inst_count_;
+      total_opt_ns += md.optimize_ns_;
+      total_exec_ns += md.exec_ns_;
+    }
+  }
+  return {"", total_inst_cnt, total_opt_ns, total_exec_ns};
+}
+
+void FunctionProfile::StartAgg() {
+  NOISEPAGE_ASSERT(!should_update_agg_, "Already aggregating.");
+  should_update_agg_ = true;
+  is_agg_initialized_ = false;
+  for (auto &entry : functions_) {
+    entry.second.agg_ = MetadataAgg{};
+  }
+  combined_agg_ = MetadataAgg{};
+}
+
+// FunctionOptimizer.
+
 FunctionOptimizer::FunctionOptimizer(common::ManagedPointer<llvm::TargetMachine> target_machine)
     : target_machine_(target_machine) {}
 
@@ -335,22 +421,17 @@ void FunctionOptimizer::Optimize(const common::ManagedPointer<llvm::Module> llvm
   // Run optimization passes on all functions.
   function_passes.doInitialization();
   uint64_t elapsed_ns;
-  uint64_t total_inst_cnt = 0;
-  uint64_t total_opt_ns = 0;
-  uint64_t total_exec_ns = 0;
   for (llvm::Function &func : *llvm_module) {
     {
       std::string func_name(func.getName());
-      bool is_step = std::find(profile->steps_.cbegin(), profile->steps_.cend(), func_name) != profile->steps_.cend();
-      bool is_teardown =
-          std::find(profile->teardowns_.cbegin(), profile->teardowns_.cend(), func_name) != profile->teardowns_.cend();
+      bool is_step =
+          std::find(profile->GetSteps().cbegin(), profile->GetSteps().cend(), func_name) != profile->GetSteps().cend();
+      bool is_teardown = std::find(profile->GetTeardowns().cbegin(), profile->GetTeardowns().cend(), func_name) !=
+                         profile->GetTeardowns().cend();
       if (is_step || is_teardown) {
-        auto &func_profile = profile->functions_[func_name];
-        total_inst_cnt += func_profile.inst_count_;
-        total_opt_ns += func_profile.optimize_ns_;
-        total_exec_ns += func_profile.exec_ns_;
-        std::cout << fmt::format("Profile input {}: {} cnt {} opt {} exec", func_name, func_profile.inst_count_,
-                                 func_profile.optimize_ns_, func_profile.exec_ns_)
+        auto func_profile = profile->GetPrev(func_name);
+        std::cout << fmt::format("Profile input {}: {} cnt {} opt {} exec", func_name, func_profile->inst_count_,
+                                 func_profile->optimize_ns_, func_profile->exec_ns_)
                   << std::endl;
       }
     }
@@ -358,12 +439,9 @@ void FunctionOptimizer::Optimize(const common::ManagedPointer<llvm::Module> llvm
       common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_ns);
       function_passes.run(func);
     }
-    profile->functions_[std::string(func.getName())].optimize_ns_ = elapsed_ns;
+    profile->GetCurr(func.getName())->optimize_ns_ = elapsed_ns;
   }
-  std::cout << fmt::format("Profile input (combined): {} cnt {} opt {} exec", total_inst_cnt, total_opt_ns,
-                           total_exec_ns)
-            << std::endl
-            << std::endl;
+
   function_passes.doFinalization();
 
   FinalizeStats(llvm_module, options, profile);
@@ -377,10 +455,10 @@ void FunctionOptimizer::FinalizeStats(const common::ManagedPointer<llvm::Module>
     std::string func_name = func.getName();
 
     // Instruction count.
-    profile->functions_[func_name].inst_count_ = func.getInstructionCount();
+    profile->GetCurr(func_name)->inst_count_ = func.getInstructionCount();
     // IR.
     llvm::Function *llvm_func = llvm_module->getFunction(func_name);
-    llvm::raw_string_ostream ostream(profile->functions_[func_name].ir_);
+    llvm::raw_string_ostream ostream(profile->GetCurr(func_name)->ir_);
     llvm_func->print(ostream, nullptr);
   }
 }

@@ -24,6 +24,8 @@ struct FunctionMetadata {
   uint64_t inst_count_;   ///< The instruction count of the function.
   uint64_t optimize_ns_;  ///< Time taken to optimize the function.
   uint64_t exec_ns_;      ///< Time taken to run the function.
+
+  std::string ToStrShort() const;
 };
 
 /**
@@ -35,11 +37,65 @@ struct FunctionMetadata {
  */
 class FunctionProfile {
  public:
+  enum class Strategy {
+    NOOP,
+    PMENON,
+  };
+
+  struct MetadataAgg {
+    uint64_t num_samples_;
+    FunctionMetadata min_;
+    FunctionMetadata mean_;
+    FunctionMetadata max_;
+  };
+
   FunctionProfile() = default;
 
-  std::unordered_map<std::string, FunctionMetadata> functions_;
+  void SetStrategy(Strategy strategy) { strategy_ = strategy; }
+  Strategy GetStrategy(Strategy strategy) const { return strategy_; }
+
+  void StartAgg();
+  void StopAgg() { should_update_agg_ = false; }
+  bool IsAgg() const { return should_update_agg_; }
+
+  void SetNumIterationsLeft(uint64_t num_iterations_left) { num_iterations_left_ = num_iterations_left; }
+  void EndIteration();
+
+  void RegisterSteps(const std::vector<std::string> &steps) { steps_ = steps; }
+  void RegisterTeardowns(const std::vector<std::string> &teardowns) { teardowns_ = teardowns; }
+  const std::vector<std::string> &GetSteps() const { return steps_; }
+  const std::vector<std::string> &GetTeardowns() const { return teardowns_; }
+
+  common::ManagedPointer<FunctionMetadata> GetPrev(const std::string &func_name) {
+    return common::ManagedPointer(&functions_[func_name].prev_);
+  }
+  common::ManagedPointer<FunctionMetadata> GetCurr(const std::string &func_name) {
+    return common::ManagedPointer(&functions_[func_name].curr_);
+  }
+  common::ManagedPointer<MetadataAgg> GetAgg(const std::string &func_name) {
+    return common::ManagedPointer(&functions_[func_name].agg_);
+  }
+
+  FunctionMetadata GetCombinedPrev() const;
+  const MetadataAgg &GetCombinedAgg() const { return combined_agg_; }
+
+ private:
+  Strategy strategy_;
+
+  uint64_t num_iterations_left_;  ///< When this reaches 0, there are no more profiling iterations coming. Last chance.
   std::vector<std::string> steps_;
   std::vector<std::string> teardowns_;
+
+  struct MetadataPair {
+    FunctionMetadata prev_;
+    FunctionMetadata curr_;
+    MetadataAgg agg_;
+  };
+
+  std::unordered_map<std::string, MetadataPair> functions_;
+  MetadataAgg combined_agg_;
+  bool should_update_agg_{false};
+  bool is_agg_initialized_{false};
 };
 
 struct FunctionTransform {

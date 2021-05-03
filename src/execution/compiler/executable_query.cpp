@@ -27,8 +27,8 @@ ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::v
                                     std::unique_ptr<vm::Module> module)
     : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {
   // Note which are the step and teardown functions.
-  module_->GetFunctionProfile()->steps_ = functions_;
-  module_->GetFunctionProfile()->teardowns_ = teardown_fn_;
+  module_->GetFunctionProfile()->RegisterSteps(functions_);
+  module_->GetFunctionProfile()->RegisterTeardowns(teardown_fn_);
 }
 
 ExecutableQuery::Fragment::~Fragment() = default;
@@ -54,7 +54,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
         common::ScopedTimer<std::chrono::nanoseconds> func_timer(&func_duration_ns);
         func(query_state);
       }
-      module_->GetFunctionProfile()->functions_[func_name].exec_ns_ = func_duration_ns;
+      module_->GetFunctionProfile()->GetCurr(func_name)->exec_ns_ = func_duration_ns;
     } catch (const AbortException &e) {
       for (const auto &teardown_name : teardown_fn_) {
         if (!module_->GetFunction(teardown_name, mode, &func)) {
@@ -69,6 +69,10 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
 }
 
 void ExecutableQuery::Fragment::ForceRecompile() { module_->DangerousRecompile(); }
+
+common::ManagedPointer<vm::FunctionProfile> ExecutableQuery::Fragment::GetFunctionProfile() {
+  return module_->GetFunctionProfile();
+}
 
 //===----------------------------------------------------------------------===//
 //
@@ -184,7 +188,8 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   exec_ctx->SetQueryState(nullptr);
 }
 
-void ExecutableQuery::RunProfileRecompile(common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+void ExecutableQuery::RunProfileRecompile(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
+                                          const ProfilerControls &controls) {
   auto mode = vm::ExecutionMode::Compiled;
   auto query_state = std::make_unique<byte[]>(query_state_size_);
 
@@ -196,8 +201,23 @@ void ExecutableQuery::RunProfileRecompile(common::ManagedPointer<exec::Execution
   exec_ctx->SetQueryId(query_id_);
 
   for (const auto &fragment : fragments_) {
+    auto profile = fragment->GetFunctionProfile();
+    if (controls.should_agg_) {
+      if (!profile->IsAgg()) profile->StartAgg();
+    } else {
+      if (profile->IsAgg()) profile->StopAgg();
+    }
+    profile->SetNumIterationsLeft(controls.num_iterations_left_);
     fragment->Run(query_state.get(), mode);
     fragment->ForceRecompile();
+    profile->EndIteration();
+    if (controls.should_print_agg_) {
+      auto agg = profile->GetCombinedAgg();
+      std::cout << "Agg num_samples: " << agg.num_samples_ << std::endl;
+      std::cout << "Agg min: " << agg.min_.ToStrShort() << std::endl;
+      std::cout << "Agg mean: " << agg.mean_.ToStrShort() << std::endl;
+      std::cout << "Agg max: " << agg.max_.ToStrShort() << std::endl;
+    }
   }
 
   // All profiling runs must abort!

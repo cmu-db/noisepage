@@ -357,7 +357,7 @@ llvm::Value *LLVMEngine::FunctionLocalsMap::GetArgumentById(LocalVar var) {
 /** A builder for compiled modules. We need this because compiled modules are immutable after creation. */
 class LLVMEngine::CompiledModuleBuilder {
  public:
-  CompiledModuleBuilder(const CompilerOptions &options, const BytecodeModule &tpl_module);
+  CompiledModuleBuilder(const LLVMEngineCompilerOptions &options, const BytecodeModule &tpl_module);
 
   // No copying or moving this class
   DISALLOW_COPY_AND_MOVE(CompiledModuleBuilder);
@@ -377,10 +377,10 @@ class LLVMEngine::CompiledModuleBuilder {
   void Verify();
 
   // Remove unused code to make optimizations quicker
-  void Simplify();
+  void Simplify(const LLVMEngineCompilerOptions &options, common::ManagedPointer<FunctionProfile> profile);
 
   // Optimize the generate code
-  void Optimize();
+  void Optimize(const LLVMEngineCompilerOptions &options, common::ManagedPointer<FunctionProfile> profile);
 
   // Perform finalization logic and create a compiled module
   std::unique_ptr<CompiledModule> Finalize();
@@ -390,16 +390,6 @@ class LLVMEngine::CompiledModuleBuilder {
 
   // Print the contents of the module's assembly to a string and return it
   std::string DumpModuleAsm();
-
-  /** Collect the ASM representation of the module being built into the metadata object. */
-  void CollectMetadataASM();
-  /** Collect LLVM-related metadata of the module being built into the metadata object. */
-  void CollectMetadataLLVM();
-  /** Collect metadata about what functions were explicitly declared in TPL. */
-  void CollectMetadataFunctionInfo();
-
-  /** @return The metadata collected for the module being built. */
-  CompiledModuleMetadata &&TakeCollectedMetadata() { return std::move(metadata_); }
 
  private:
   // Given a TPL function, build a simple CFG using 'blocks' as an output param
@@ -419,21 +409,20 @@ class LLVMEngine::CompiledModuleBuilder {
   void PersistObjectToFile(const llvm::MemoryBuffer &obj_buffer);
 
  private:
-  const CompilerOptions &options_;
+  const LLVMEngineCompilerOptions &options_;
   const BytecodeModule &tpl_module_;
   std::unique_ptr<llvm::TargetMachine> target_machine_;
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> llvm_module_;
   std::unique_ptr<TypeMap> type_map_;
   llvm::DenseMap<std::size_t, llvm::Constant *> static_locals_;
-  CompiledModuleMetadata metadata_;  ///< Metadata for the module being built.
 };
 
 // ---------------------------------------------------------
 // Compiled Module Builder
 // ---------------------------------------------------------
 
-LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const CompilerOptions &options,
+LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const LLVMEngineCompilerOptions &options,
                                                          const BytecodeModule &tpl_module)
     : options_(options),
       tpl_module_(tpl_module),
@@ -946,18 +935,16 @@ void LLVMEngine::CompiledModuleBuilder::Verify() {
   }
 }
 
-void LLVMEngine::CompiledModuleBuilder::Simplify() {
-  ProfileInformation prof;
+void LLVMEngine::CompiledModuleBuilder::Simplify(const LLVMEngineCompilerOptions &options,
+                                                 const common::ManagedPointer<FunctionProfile> profile) {
   FunctionOptimizer optimizer{common::ManagedPointer(target_machine_)};
-  optimizer.Simplify(common::ManagedPointer(llvm_module_), common::ManagedPointer(&prof),
-                     common::ManagedPointer(engine_settings));
+  optimizer.Simplify(common::ManagedPointer(llvm_module_), options, profile);
 }
 
-void LLVMEngine::CompiledModuleBuilder::Optimize() {
-  ProfileInformation prof;
+void LLVMEngine::CompiledModuleBuilder::Optimize(const LLVMEngineCompilerOptions &options,
+                                                 const common::ManagedPointer<FunctionProfile> profile) {
   FunctionOptimizer optimizer{common::ManagedPointer(target_machine_)};
-  optimizer.Optimize(common::ManagedPointer(llvm_module_), common::ManagedPointer(&prof),
-                     common::ManagedPointer(engine_settings));
+  optimizer.Optimize(common::ManagedPointer(llvm_module_), options, profile);
 }
 
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::CompiledModuleBuilder::Finalize() {
@@ -1028,22 +1015,6 @@ std::string LLVMEngine::CompiledModuleBuilder::DumpModuleAsm() {
   target_machine_->Options.MCOptions.AsmVerbose = false;
 
   return asm_str.str().str();
-}
-
-void LLVMEngine::CompiledModuleBuilder::CollectMetadataASM() { metadata_.repr_asm_ = DumpModuleAsm(); }
-
-void LLVMEngine::CompiledModuleBuilder::CollectMetadataLLVM() {
-  for (auto &func_info : tpl_module_.GetFunctionsInfo()) {
-    const std::string &func_name = func_info.GetName();
-    llvm::Function *llvm_func = llvm_module_->getFunction(func_name);
-    llvm::raw_string_ostream ostream(metadata_.repr_llvm_[func_name].ir_);           // Collect IR setup.
-    llvm_func->print(ostream, nullptr);                                              // Collect IR.
-    metadata_.repr_llvm_[func_name].inst_count_ = llvm_func->getInstructionCount();  // Collect instruction count.
-  }
-}
-
-void LLVMEngine::CompiledModuleBuilder::CollectMetadataFunctionInfo() {
-  metadata_.function_info_ = tpl_module_.GetFunctionsInfo();
 }
 
 // ---------------------------------------------------------
@@ -1138,8 +1109,6 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   loaded_ = true;
 }
 
-void LLVMEngine::CompiledModule::SetMetadata(CompiledModuleMetadata &&metadata) { metadata_ = std::move(metadata); }
-
 // ---------------------------------------------------------
 // LLVM Engine
 // ---------------------------------------------------------
@@ -1162,7 +1131,10 @@ void LLVMEngine::Shutdown() {
 }
 
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeModule &module,
-                                                                const CompilerOptions &options) {
+                                                                const LLVMEngineCompilerOptions &options,
+                                                                const common::ManagedPointer<FunctionProfile> profile) {
+  std::cout << "|---| Profile Input: " << profile->GetCombinedPrev().ToStrShort() << std::endl;
+
   CompiledModuleBuilder builder(options, module);
 
   builder.DeclareStaticLocals();
@@ -1171,25 +1143,14 @@ std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeMo
 
   builder.DefineFunctions();
 
-  builder.Simplify();
+  builder.Simplify(options, profile);
 
   builder.Verify();
 
-  builder.Optimize();
+  builder.Optimize(options, profile);
 
   auto compiled_module = builder.Finalize();
 
-  if (engine_settings->ShouldCompiledQueriesStoreASM()) {
-    builder.CollectMetadataASM();
-  }
-  if (engine_settings->ShouldCompiledQueriesStoreLLVM()) {
-    builder.CollectMetadataLLVM();
-  }
-  if (engine_settings->ShouldCompiledQueriesStoreFunctionInfo()) {
-    builder.CollectMetadataFunctionInfo();
-  }
-
-  compiled_module->SetMetadata(builder.TakeCollectedMetadata());
   compiled_module->Load(module);
 
   return compiled_module;

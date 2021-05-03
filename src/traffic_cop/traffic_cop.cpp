@@ -529,16 +529,26 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   execution::exec::NoOpResultConsumer noop_consumer;
 
   // TODO(WAN): Gate profiling behind a setting.
-  uint32_t tripwire = 50;
-  while (tripwire-- != 0) {
+  auto run_profile_once = [&](const execution::compiler::ExecutableQuery::ProfilerControls &controls) {
     auto fake_txn = txn_manager_->BeginTransaction();
     auto tmp_accessor = catalog_->GetAccessor(common::ManagedPointer(fake_txn), db_oid, DISABLED);
     auto tmp_exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(fake_txn), noop_consumer, physical_plan->GetOutputSchema().Get(),
         common::ManagedPointer(tmp_accessor), exec_settings, metrics, replication_manager_, recovery_manager_);
-    exec_query->RunProfileRecompile(common::ManagedPointer(tmp_exec_ctx));
+    exec_query->RunProfileRecompile(common::ManagedPointer(tmp_exec_ctx), controls);
     txn_manager_->Abort(fake_txn);
+  };
+
+  execution::compiler::ExecutableQuery::ProfilerControls controls;
+  controls.num_iterations_left_ = 30;
+  controls.should_agg_ = true;
+  controls.should_print_agg_ = true;
+
+  while (controls.num_iterations_left_-- > 1) {
+    run_profile_once(controls);
   }
+  controls.should_agg_ = false;
+  run_profile_once(controls);
 
   try {
     exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
