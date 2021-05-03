@@ -251,13 +251,13 @@ class LLVMEngine {
     const std::string &GetBytecodeHandlersBcPath() const noexcept { return bytecode_handlers_path_; }
 
     /** @return True if compiled queries should cache their ASM representation. */
-    bool ShouldCompiledQueriesStoreASM() const noexcept { return false; }
+    bool ShouldCompiledQueriesStoreASM() const noexcept { return true; }
 
     /** @return True if compiled queries should cache their LLVM metadata. */
-    bool ShouldCompiledQueriesStoreLLVM() const noexcept { return false; }
+    bool ShouldCompiledQueriesStoreLLVM() const noexcept { return true; }
 
     /** @return True if compiled queries should cache their function information. */
-    bool ShouldCompiledQueriesStoreFunctionInfo() const noexcept { return false; }
+    bool ShouldCompiledQueriesStoreFunctionInfo() const noexcept { return true; }
 
    private:
     const std::string bytecode_handlers_path_;

@@ -17,12 +17,6 @@
 #include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
-#include <llvm/Transforms/IPO.h>
-#include <llvm/Transforms/IPO/AlwaysInliner.h>
-#include <llvm/Transforms/IPO/PassManagerBuilder.h>
-#include <llvm/Transforms/InstCombine/InstCombine.h>
-#include <llvm/Transforms/Scalar.h>
-#include <llvm/Transforms/Scalar/GVN.h>
 
 #include <map>
 #include <memory>
@@ -35,6 +29,7 @@
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecode_traits.h"
+#include "execution/vm/llvm_optimizer.h"
 #include "loggers/execution_logger.h"
 
 extern void *__dso_handle __attribute__((__visibility__("hidden")));  // NOLINT
@@ -952,59 +947,17 @@ void LLVMEngine::CompiledModuleBuilder::Verify() {
 }
 
 void LLVMEngine::CompiledModuleBuilder::Simplify() {
-  // When this function is called, the generated IR consists of many function
-  // calls to cross-compiled bytecode handler functions. We now inline those
-  // function calls directly into the body of the functions we've generated
-  // by running the 'AlwaysInliner' pass.
-  llvm::legacy::PassManager pass_manager;
-  pass_manager.add(llvm::createAlwaysInlinerLegacyPass());
-  pass_manager.add(llvm::createGlobalDCEPass());
-  pass_manager.run(*llvm_module_);
+  ProfileInformation prof;
+  FunctionOptimizer optimizer{common::ManagedPointer(target_machine_)};
+  optimizer.Simplify(common::ManagedPointer(llvm_module_), common::ManagedPointer(&prof),
+                     common::ManagedPointer(engine_settings));
 }
 
 void LLVMEngine::CompiledModuleBuilder::Optimize() {
-  llvm::legacy::FunctionPassManager function_passes(llvm_module_.get());
-
-  // Add the appropriate TargetTransformInfo.
-  function_passes.add(llvm::createTargetTransformInfoWrapperPass(target_machine_->getTargetIRAnalysis()));
-
-  // Build up optimization pipeline.
-  llvm::PassManagerBuilder pm_builder;
-  uint32_t opt_level = 3;
-  uint32_t size_opt_level = 0;
-  bool disable_inline_hot_call_site = false;
-  pm_builder.OptLevel = opt_level;
-  pm_builder.Inliner = llvm::createFunctionInliningPass(opt_level, size_opt_level, disable_inline_hot_call_site);
-  pm_builder.populateFunctionPassManager(function_passes);
-
-  // Add custom passes. Hand-selected based on empirical evaluation.
-  function_passes.add(llvm::createInstructionCombiningPass());
-  function_passes.add(llvm::createReassociatePass());
-  function_passes.add(llvm::createGVNPass());
-  function_passes.add(llvm::createCFGSimplificationPass());
-  function_passes.add(llvm::createAggressiveDCEPass());
-  function_passes.add(llvm::createCFGSimplificationPass());
-
-  if (engine_settings->ShouldCompiledQueriesStoreLLVM()) {  // Run with timing information.
-    // Run optimization passes on all functions.
-    function_passes.doInitialization();
-    uint64_t elapsed_ns;
-    for (llvm::Function &func : *llvm_module_) {
-      {
-        common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_ns);
-        function_passes.run(func);
-      }
-      metadata_.repr_llvm_[std::string(func.getName())].optimize_ns_ = elapsed_ns;
-    }
-    function_passes.doFinalization();
-  } else {  // Run without timing.
-    // Run optimization passes on all functions.
-    function_passes.doInitialization();
-    for (llvm::Function &func : *llvm_module_) {
-      function_passes.run(func);
-    }
-    function_passes.doFinalization();
-  }
+  ProfileInformation prof;
+  FunctionOptimizer optimizer{common::ManagedPointer(target_machine_)};
+  optimizer.Optimize(common::ManagedPointer(llvm_module_), common::ManagedPointer(&prof),
+                     common::ManagedPointer(engine_settings));
 }
 
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::CompiledModuleBuilder::Finalize() {
