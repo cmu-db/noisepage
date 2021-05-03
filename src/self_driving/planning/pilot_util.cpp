@@ -107,7 +107,7 @@ std::vector<double> PilotUtil::GetInterferenceFeature(const std::vector<double> 
   std::vector<double> interference_feat;
   for (size_t i = 0; i < feature.size(); i++) {
     // normalize the output of ou_model by the elapsed time
-    interference_feat.emplace_back(feature[i] / feature[feature.size() - 1]);
+    interference_feat.emplace_back(feature[i] / (feature[feature.size() - 1] + 1e-2));
   }
 
   // append with the normalized feature for this segment

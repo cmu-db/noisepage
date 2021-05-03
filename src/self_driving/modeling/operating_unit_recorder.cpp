@@ -204,16 +204,21 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
 void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size,
                                               size_t num_keys, const planner::AbstractPlanNode *plan,
                                               size_t scaling_factor, double mem_factor) {
-  size_t num_rows = 0;
+  size_t num_rows;
   // TODO(lin): Some times cardinality represents the number of distinct values for some OUs (e.g., SORT_BUILD),
   //  but we don't have a good way to estimate that right now. So in those cases we just copy num_rows
-  size_t cardinality = 0;
+  size_t cardinality;
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
 
-  auto &plan_node_meta_data = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId());
-  size_t current_plan_cardinality = plan_node_meta_data.GetCardinality();
-  size_t table_num_rows = plan_node_meta_data.GetTableNumRows();
+  // Dummy default values in case we don't have stats
+  size_t current_plan_cardinality = 1;
+  size_t table_num_rows = 1;
+  if (plan_meta_data_ != nullptr) {
+    auto &plan_node_meta_data = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId());
+    current_plan_cardinality = plan_node_meta_data.GetCardinality();
+    table_num_rows = plan_node_meta_data.GetTableNumRows();
+  }
 
   switch (type) {
     case ExecutionOperatingUnitType::OUTPUT: {
@@ -249,9 +254,13 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
       cardinality = current_plan_cardinality;  // extract from plan num_rows (# matched rows)
 
-      auto *c_plan = plan->GetChild(1);
-      // extract from c_plan num_rows (# row to probe)
-      num_rows = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+      if (plan_meta_data_ != nullptr) {
+        auto *c_plan = plan->GetChild(1);
+        // extract from c_plan num_rows (# row to probe)
+        num_rows = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+      } else {
+        num_rows = 1;
+      }
     } break;
     case ExecutionOperatingUnitType::IDX_SCAN: {
       // For IDX_SCAN, the feature is as follows:
@@ -276,17 +285,24 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
             accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
         NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
 
-        cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
-        for (auto col_id : mapped_cols) {
-          cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
+        if (plan_meta_data_ != nullptr) {
+          cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
+          auto &plan_node_meta_data = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId());
+          for (auto col_id : mapped_cols) {
+            cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
+          }
+        } else {
+          cardinality = 1;
         }
       } else {
         NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
         auto index_join_plan = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan);
 
-        auto *c_plan = plan->GetChild(0);
-        // extract from c_plan num_row
-        num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+        if (plan_meta_data_ != nullptr) {
+          auto *c_plan = plan->GetChild(0);
+          // extract from c_plan num_row
+          num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+        }
 
         // FIXME(lin): Right now we do not populate the cardinality or selectivity stats for the inner index scan of
         //  INDEXNLJOIN. We directly get the size from the index and assume the inner index scan only returns 1 tuple.

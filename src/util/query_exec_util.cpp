@@ -133,7 +133,9 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
   auto statement = PlanStatement(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>());
-  auto out_plan = statement->OptimizeResult()->GetPlanNode();
+  if (statement == nullptr) {
+    return false;
+  }
   NOISEPAGE_ASSERT(!network::NetworkUtil::DMLQueryType(statement->GetQueryType()), "ExecuteDDL expects DDL statement");
 
   // Handle SET queries
@@ -143,6 +145,10 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
     settings_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
     status = true;
   } else {
+    if (statement->OptimizeResult() == nullptr) {
+      return false;
+    }
+    auto out_plan = statement->OptimizeResult()->GetPlanNode();
     switch (statement->GetQueryType()) {
       case network::QueryType::QUERY_CREATE_TABLE:
         status = execution::sql::DDLExecutors::CreateTableExecutor(
