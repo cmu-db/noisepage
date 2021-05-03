@@ -247,7 +247,12 @@ FunctionTransform FunctionOptimizer::transforms[] = {
     /// @note Good idea to run DCE of some kind afterwards.
     {"sccp", [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createSCCPPass()); }},
 
-    // TODO(WAN): Unknown API equivalent: -simplifycfg: Simplify the CFG
+    // -simplifycfg: Simplify the CFG
+    /// TODO(WAN): Many parameters to optimize.
+    //    unsigned Threshold = 1, bool ForwardSwitchCond = false,
+    //    bool ConvertSwitch = false, bool KeepLoops = true, bool SinkCommon = false,
+    //    std::function<bool(const Function &)> Ftor = nullptr
+    {"simplifycfg", [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createCFGSimplificationPass()); }},
 
     /// -sink: Code sinking
     /// Move instructions into successor blocks when possible, avoid execution on paths where results not needed.
@@ -270,6 +275,12 @@ FunctionTransform FunctionOptimizer::transforms[] = {
 
     /// -tailcallelim: Tail-call elimination.
     {"tailcallelim", [](llvm::legacy::FunctionPassManager &fpm) { fpm.add(llvm::createTailCallEliminationPass()); }},
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // LLVM transformations not documented in https://releases.llvm.org/8.0.0/docs/Passes.html but in API.
+    // ---------------------------------------------------------------------------------------------------------------
+
+    // TODO(WAN): Exhaustively check stuff in the API.
 };
 
 FunctionOptimizer::FunctionOptimizer(common::ManagedPointer<llvm::TargetMachine> target_machine)
