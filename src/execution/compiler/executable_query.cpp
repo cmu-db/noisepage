@@ -215,8 +215,9 @@ void ExecutableQuery::RunProfileRecompile(common::ManagedPointer<exec::Execution
     }
     profile->SetNumIterationsLeft(controls.num_iterations_left_);
     fragment->Run(query_state.get(), mode);
-    fragment->ForceRecompile();
     profile->EndIteration();
+    std::cout << "|--| RECOMPILE." << std::endl;
+    fragment->ForceRecompile();
     if (controls.should_print_agg_) {
       auto agg = profile->GetCombinedAgg();
       std::cout << "|--| AGG DATA." << std::endl;
