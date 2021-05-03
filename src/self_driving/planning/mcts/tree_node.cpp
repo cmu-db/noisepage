@@ -28,6 +28,9 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
   SELFDRIVING_LOG_INFO(
       "Creating Tree Node: Depth {} Action {} Cost {} Current_Segment_Cost {} Later_Segment_Cost {} Ancestor_Cost {}",
       depth_, current_action_, cost_, current_segment_cost, later_segments_cost, ancestor_cost_);
+
+  // TODO(lin): check the memory constraint
+  (void)memory_;
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
