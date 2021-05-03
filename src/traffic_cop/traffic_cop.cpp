@@ -18,15 +18,18 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
 #include "execution/sql/ddl_executors.h"
+#include "execution/sql/value.h"
 #include "execution/vm/module.h"
 #include "metrics/metrics_store.h"
 #include "network/connection_context.h"
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
+#include "nlohmann/json.hpp"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
+#include "parser/explain_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "parser/variable_show_statement.h"
@@ -341,6 +344,27 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
   // to acquire DDL lock?
   return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "failed to execute DROP",
                                                common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
+}
+
+TrafficCopResult TrafficCop::ExecuteExplainStatement(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<network::PostgresPacketWriter> out,
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const {
+  NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                   "Not in a valid txn. This should have been caught before calling this function.");
+
+  // Dump to JSON string, wrap in StringVal, write the data row to the client
+  // Create dummy column output scheme for writing data row
+  std::vector<planner::OutputSchema::Column> output_columns;
+  output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
+
+  const std::string plan_string = physical_plan->ToJson().dump(4);
+  const execution::sql::StringVal plan_string_val =
+      execution::sql::StringVal(plan_string.c_str(), plan_string.length());
+  out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
+                    {network::FieldFormat::text});
+
+  return {ResultType::COMPLETE, 0u};
 }
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(

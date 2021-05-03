@@ -70,6 +70,9 @@ class ModelType {
 template <class Result>
 class ModelServerFuture : public common::Future<Result> {
  public:
+  /** The default timeout for model server futures. */
+  static constexpr std::chrono::seconds FUTURE_TIMEOUT{300};
+
   /**
    * Initialize a future object
    */

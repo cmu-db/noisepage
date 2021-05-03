@@ -66,23 +66,6 @@ class MessageWrapper {
   T Get(const char *key) const;
 
   /**
-   * Deserializes a given input to a string using the CBOR (Concise Binary Object Representation) serialization
-   * format.
-   *
-   * @param cbor cbor input
-   * @return parsed string
-   *
-   */
-  static std::string FromCbor(const std::vector<uint8_t> &cbor);
-
-  /**
-   * Serializes a given input string to CBOR format
-   * @param str string to serialize
-   * @return CBOR format of string
-   */
-  static std::vector<uint8_t> ToCbor(std::string_view str);
-
-  /**
    * Serialize the message
    *
    * @return serialized version of message
