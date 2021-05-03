@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "execution/util/execution_common.h"
 
 namespace noisepage::execution::ast {
@@ -18,7 +19,74 @@ namespace noisepage::execution::vm {
 
 class BytecodeModule;
 class FunctionInfo;
+class FunctionProfile;
 class LocalVar;
+
+// -------------------------------------------------------
+// Compiler Options
+// -------------------------------------------------------
+
+/**
+ * Options to provide when compiling
+ */
+class LLVMEngineCompilerOptions {
+ public:
+  /**
+   * Constructor. Turns off all options
+   */
+  LLVMEngineCompilerOptions() = default;
+
+  /**
+   * Set the debug option
+   * @param debug debug options
+   * @return the updated object
+   */
+  LLVMEngineCompilerOptions &SetDebug(bool debug) {
+    debug_ = debug;
+    (void)debug_;
+    return *this;
+  }
+
+  /**
+   * @return whether debugging is on
+   */
+  bool IsDebug() const { return debug_; }
+
+  /**
+   * Set the persisting option
+   * @param write_obj_file the persisting options
+   * @return the updated object
+   */
+  LLVMEngineCompilerOptions &SetPersistObjectFile(bool write_obj_file) {
+    write_obj_file_ = write_obj_file;
+    return *this;
+  }
+
+  /**
+   * @return whether the persisting flag is on
+   */
+  bool ShouldPersistObjectFile() const { return write_obj_file_; }
+
+  /**
+   * Set the output file name
+   * @param name name of the file
+   * @return the updated object
+   */
+  LLVMEngineCompilerOptions &SetOutputObjectFileName(const std::string &name) {
+    output_file_name_ = name;
+    return *this;
+  }
+
+  /**
+   * @return the output file name
+   */
+  const std::string &GetOutputObjectFileName() const { return output_file_name_; }
+
+ private:
+  bool debug_{false};
+  bool write_obj_file_{false};
+  std::string output_file_name_;
+};
 
 /**
  * The interface to LLVM to JIT compile TPL bytecode
@@ -32,7 +100,6 @@ class LLVMEngine {
   class TPLMemoryManager;
   class TypeMap;
   class FunctionLocalsMap;
-  class CompilerOptions;
   class CompiledModule;
   class CompiledModuleBuilder;
   class Settings;
@@ -56,110 +123,16 @@ class LLVMEngine {
    * JIT compile a TPL bytecode module to native code
    * @param module The module to compile
    * @param options The compiler options
+   * @param profile The profile information that guides module compilation
    * @return The JIT compiled module
    */
-  static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
+  static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const LLVMEngineCompilerOptions &options,
+                                                 common::ManagedPointer<FunctionProfile> profile);
 
   /**
    * @return A non-mutating pointer to the LLVM engine settings
    */
   static const Settings *GetEngineSettings();
-
-  // -------------------------------------------------------
-  // Compiler Options
-  // -------------------------------------------------------
-
-  /**
-   * Options to provide when compiling
-   */
-  class CompilerOptions {
-   public:
-    /**
-     * Constructor. Turns off all options
-     */
-    CompilerOptions() = default;
-
-    /**
-     * Set the debug option
-     * @param debug debug options
-     * @return the updated object
-     */
-    CompilerOptions &SetDebug(bool debug) {
-      debug_ = debug;
-      (void)debug_;
-      return *this;
-    }
-
-    /**
-     * @return whether debugging is on
-     */
-    bool IsDebug() const { return debug_; }
-
-    /**
-     * Set the persisting option
-     * @param write_obj_file the persisting options
-     * @return the updated object
-     */
-    CompilerOptions &SetPersistObjectFile(bool write_obj_file) {
-      write_obj_file_ = write_obj_file;
-      return *this;
-    }
-
-    /**
-     * @return whether the persisting flag is on
-     */
-    bool ShouldPersistObjectFile() const { return write_obj_file_; }
-
-    /**
-     * Set the output file name
-     * @param name name of the file
-     * @return the updated object
-     */
-    CompilerOptions &SetOutputObjectFileName(const std::string &name) {
-      output_file_name_ = name;
-      return *this;
-    }
-
-    /**
-     * @return the output file name
-     */
-    const std::string &GetOutputObjectFileName() const { return output_file_name_; }
-
-   private:
-    bool debug_{false};
-    bool write_obj_file_{false};
-    std::string output_file_name_;
-  };
-
-  // -------------------------------------------------------
-  // Compiled Module Metadata
-  // -------------------------------------------------------
-
-  /** Metadata for a compiled module that is gathered at compile time. */
-  class CompiledModuleMetadata {
-   public:
-    /** Metadata for each function. */
-    struct FunctionMetadata {
-      std::string ir_;        ///< The IR of the function.
-      uint64_t inst_count_;   ///< The instruction count of the function.
-      uint64_t optimize_ns_;  ///< Time taken to optimize the function.
-    };
-    /** Constructor. */
-    explicit CompiledModuleMetadata() = default;
-    /** @return The ASM representation for this compiled module. */
-    const std::string &GetReprASM() const { return repr_asm_; }
-    /** @return LLVM-related metadata for ALL functions. This includes functions not explicitly declared in TPL. */
-    const std::unordered_map<std::string, FunctionMetadata> &GetReprLLVM() const { return repr_llvm_; }
-    /** @return All the functions that were explicitly declared in TPL. */
-    const std::vector<FunctionInfo> &GetFunctionInfo() const { return function_info_; }
-
-   private:
-    friend CompiledModuleBuilder;
-
-    std::vector<FunctionInfo> function_info_;
-    std::unordered_map<std::string, FunctionMetadata> repr_llvm_;
-    std::string repr_asm_;
-  };
 
   // -------------------------------------------------------
   // Compiled Module
@@ -217,17 +190,11 @@ class LLVMEngine {
      */
     bool IsLoaded() const { return loaded_; }
 
-    /** Set the metadata for this compiled module. */
-    void SetMetadata(CompiledModuleMetadata &&metadata);
-    /** @return The metadata for this compiled module. */
-    const CompiledModuleMetadata &GetMetadata() const { return metadata_; }
-
    private:
     bool loaded_;
     std::unique_ptr<llvm::MemoryBuffer> object_code_;
     std::unique_ptr<TPLMemoryManager> memory_manager_;
     std::unordered_map<std::string, void *> functions_;
-    CompiledModuleMetadata metadata_;
   };
 
   // -------------------------------------------------------
@@ -249,15 +216,6 @@ class LLVMEngine {
      * @return The path to the bytecode handlers bitcode file.
      */
     const std::string &GetBytecodeHandlersBcPath() const noexcept { return bytecode_handlers_path_; }
-
-    /** @return True if compiled queries should cache their ASM representation. */
-    bool ShouldCompiledQueriesStoreASM() const noexcept { return true; }
-
-    /** @return True if compiled queries should cache their LLVM metadata. */
-    bool ShouldCompiledQueriesStoreLLVM() const noexcept { return true; }
-
-    /** @return True if compiled queries should cache their function information. */
-    bool ShouldCompiledQueriesStoreFunctionInfo() const noexcept { return true; }
 
    private:
     const std::string bytecode_handlers_path_;

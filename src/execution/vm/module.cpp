@@ -263,31 +263,33 @@ void Module::CreateFunctionTrampoline(FunctionId func_id) {
 }
 
 void Module::CompileToMachineCode() {
-  std::call_once(compiled_flag_, [this]() {
-    // Exit if the module has already been compiled. This might happen if
-    // requested to execute in adaptive mode by concurrent threads.
-    if (jit_module_ != nullptr) {
-      return;
-    }
-
-    // JIT the module.
-    LLVMEngine::CompilerOptions options;
-    jit_module_ = LLVMEngine::Compile(*bytecode_module_, options);
-
-    // JIT completed successfully. For each function in the module, pull out its
-    // compiled implementation into the function cache, atomically replacing any
-    // previous implementation.
-    for (const auto &func_info : bytecode_module_->GetFunctionsInfo()) {
-      auto *jit_function = jit_module_->GetFunctionPointer(func_info.GetName());
-      NOISEPAGE_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
-      functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
-    }
-  });
+  std::call_once(compiled_flag_, [this]() { CompileJIT(false); });
 }
 
 void Module::CompileToMachineCodeAsync() {
   auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(this);
   tbb::task::enqueue(*compile_task);
+}
+
+void Module::CompileJIT(bool recompile_ok) {
+  // Exit if the module has already been compiled. This might happen if
+  // requested to execute in adaptive mode by concurrent threads.
+  if (!recompile_ok && jit_module_ != nullptr) {
+    return;
+  }
+
+  // JIT the module.
+  LLVMEngineCompilerOptions options;
+  jit_module_ = LLVMEngine::Compile(*bytecode_module_, options, common::ManagedPointer(&profile_));
+
+  // JIT completed successfully. For each function in the module, pull out its
+  // compiled implementation into the function cache, atomically replacing any
+  // previous implementation.
+  for (const auto &func_info : bytecode_module_->GetFunctionsInfo()) {
+    auto *jit_function = jit_module_->GetFunctionPointer(func_info.GetName());
+    NOISEPAGE_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
+    functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
+  }
 }
 
 }  // namespace noisepage::execution::vm

@@ -524,6 +524,22 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
+  // Profile run five times.
+  auto db_oid = connection_ctx->GetDatabaseOid();
+  execution::exec::NoOpResultConsumer noop_consumer;
+
+  // TODO(WAN): Gate profiling behind a setting.
+  uint32_t tripwire = 50;
+  while (tripwire-- != 0) {
+    auto fake_txn = txn_manager_->BeginTransaction();
+    auto tmp_accessor = catalog_->GetAccessor(common::ManagedPointer(fake_txn), db_oid, DISABLED);
+    auto tmp_exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+        db_oid, common::ManagedPointer(fake_txn), noop_consumer, physical_plan->GetOutputSchema().Get(),
+        common::ManagedPointer(tmp_accessor), exec_settings, metrics, replication_manager_, recovery_manager_);
+    exec_query->RunProfileRecompile(common::ManagedPointer(tmp_exec_ctx));
+    txn_manager_->Abort(fake_txn);
+  }
+
   try {
     exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
   } catch (ExecutionException &e) {

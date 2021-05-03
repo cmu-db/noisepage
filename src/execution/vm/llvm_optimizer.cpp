@@ -11,7 +11,11 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 
+#include <iostream>
+
+#include "common/macros.h"
 #include "common/scoped_timer.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace noisepage::execution::vm {
 
@@ -295,8 +299,8 @@ FunctionOptimizer::FunctionOptimizer(common::ManagedPointer<llvm::TargetMachine>
     : target_machine_(target_machine) {}
 
 void FunctionOptimizer::Simplify(const common::ManagedPointer<llvm::Module> llvm_module,
-                                 const common::ManagedPointer<ProfileInformation> profile,
-                                 const common::ManagedPointer<const LLVMEngine::Settings> engine_settings) {
+                                 UNUSED_ATTRIBUTE const LLVMEngineCompilerOptions &options,
+                                 UNUSED_ATTRIBUTE const common::ManagedPointer<FunctionProfile> profile) {
   // When this function is called, the generated IR consists of many function
   // calls to cross-compiled bytecode handler functions. We now inline those
   // function calls directly into the body of the functions we've generated
@@ -308,8 +312,8 @@ void FunctionOptimizer::Simplify(const common::ManagedPointer<llvm::Module> llvm
 }
 
 void FunctionOptimizer::Optimize(const common::ManagedPointer<llvm::Module> llvm_module,
-                                 const common::ManagedPointer<ProfileInformation> profile,
-                                 const common::ManagedPointer<const LLVMEngine::Settings> engine_settings) {
+                                 UNUSED_ATTRIBUTE const LLVMEngineCompilerOptions &options,
+                                 const common::ManagedPointer<FunctionProfile> profile) {
   llvm::legacy::FunctionPassManager function_passes(llvm_module.Get());
 
   // Add the appropriate TargetTransformInfo.
@@ -328,25 +332,56 @@ void FunctionOptimizer::Optimize(const common::ManagedPointer<llvm::Module> llvm
     pass.transform_(function_passes);
   }
 
-  if (engine_settings->ShouldCompiledQueriesStoreLLVM()) {  // Run with timing information.
-    // Run optimization passes on all functions.
-    function_passes.doInitialization();
-    uint64_t elapsed_ns;
-    for (llvm::Function &func : *llvm_module) {
-      {
-        common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_ns);
-        function_passes.run(func);
+  // Run optimization passes on all functions.
+  function_passes.doInitialization();
+  uint64_t elapsed_ns;
+  uint64_t total_inst_cnt = 0;
+  uint64_t total_opt_ns = 0;
+  uint64_t total_exec_ns = 0;
+  for (llvm::Function &func : *llvm_module) {
+    {
+      std::string func_name(func.getName());
+      bool is_step = std::find(profile->steps_.cbegin(), profile->steps_.cend(), func_name) != profile->steps_.cend();
+      bool is_teardown =
+          std::find(profile->teardowns_.cbegin(), profile->teardowns_.cend(), func_name) != profile->teardowns_.cend();
+      if (is_step || is_teardown) {
+        auto &func_profile = profile->functions_[func_name];
+        total_inst_cnt += func_profile.inst_count_;
+        total_opt_ns += func_profile.optimize_ns_;
+        total_exec_ns += func_profile.exec_ns_;
+        std::cout << fmt::format("Profile input {}: {} cnt {} opt {} exec", func_name, func_profile.inst_count_,
+                                 func_profile.optimize_ns_, func_profile.exec_ns_)
+                  << std::endl;
       }
-      //      metadata_.repr_llvm_[std::string(func.getName())].optimize_ns_ = elapsed_ns;
     }
-    function_passes.doFinalization();
-  } else {  // Run without timing.
-    // Run optimization passes on all functions.
-    function_passes.doInitialization();
-    for (llvm::Function &func : *llvm_module) {
+    {
+      common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_ns);
       function_passes.run(func);
     }
-    function_passes.doFinalization();
+    profile->functions_[std::string(func.getName())].optimize_ns_ = elapsed_ns;
+  }
+  std::cout << fmt::format("Profile input (combined): {} cnt {} opt {} exec", total_inst_cnt, total_opt_ns,
+                           total_exec_ns)
+            << std::endl
+            << std::endl;
+  function_passes.doFinalization();
+
+  FinalizeStats(llvm_module, options, profile);
+}
+
+void FunctionOptimizer::FinalizeStats(const common::ManagedPointer<llvm::Module> llvm_module,
+                                      const LLVMEngineCompilerOptions &options,
+                                      const common::ManagedPointer<FunctionProfile> profile) {
+  // Last chance to grab compile-time attributes.
+  for (llvm::Function &func : *llvm_module) {
+    std::string func_name = func.getName();
+
+    // Instruction count.
+    profile->functions_[func_name].inst_count_ = func.getInstructionCount();
+    // IR.
+    llvm::Function *llvm_func = llvm_module->getFunction(func_name);
+    llvm::raw_string_ostream ostream(profile->functions_[func_name].ir_);
+    llvm_func->print(ostream, nullptr);
   }
 }
 

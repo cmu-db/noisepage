@@ -11,6 +11,7 @@
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
+#include "execution/vm/llvm_optimizer.h"
 #include "execution/vm/vm_defs.h"
 
 namespace noisepage::execution::vm {
@@ -99,10 +100,14 @@ class Module {
    */
   const BytecodeModule *GetBytecodeModule() const { return bytecode_module_.get(); }
 
+  common::ManagedPointer<FunctionProfile> GetFunctionProfile() { return common::ManagedPointer(&profile_); }
+
   /**
-   * @return The TPL compiled module.
+   * Recompile the JIT module.
+   *
+   * @warning This absolutely should not be called unless you are sure that the JIT module is not currently in use.
    */
-  const LLVMEngine::CompiledModule *GetCompiledModule() const { return jit_module_.get(); }
+  void DangerousRecompile() { CompileJIT(true); }
 
  private:
   friend class VM;                            // For the VM to access raw bytecode.
@@ -155,6 +160,12 @@ class Module {
   // triggers a compilation in the background.
   void CompileToMachineCodeAsync();
 
+  /**
+   * Compile the JIT module.
+   * @param recompile_ok True if it is OK to recompile the JIT module.
+   */
+  void CompileJIT(bool recompile_ok);
+
  private:
   // The module containing all TBC (i.e., bytecode) for the TPL program.
   std::unique_ptr<BytecodeModule> bytecode_module_;
@@ -173,6 +184,9 @@ class Module {
 
   // Flag to indicate if the JIT compilation has occurred.
   std::once_flag compiled_flag_;
+
+  /// Profiling information, if any is available. This is used in recompiles.
+  FunctionProfile profile_;
 };
 
 // ---------------------------------------------------------

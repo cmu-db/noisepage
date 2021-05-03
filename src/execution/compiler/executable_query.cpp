@@ -4,6 +4,7 @@
 
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
+#include "common/scoped_timer.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/context.h"
 #include "execution/compiler/compiler.h"
@@ -24,7 +25,11 @@ namespace noisepage::execution::compiler {
 
 ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fn,
                                     std::unique_ptr<vm::Module> module)
-    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {}
+    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {
+  // Note which are the step and teardown functions.
+  module_->GetFunctionProfile()->steps_ = functions_;
+  module_->GetFunctionProfile()->teardowns_ = teardown_fn_;
+}
 
 ExecutableQuery::Fragment::~Fragment() = default;
 
@@ -42,7 +47,14 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
                                 common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
     try {
-      func(query_state);
+      // TODO(WAN): This is a temporary hack that can only capture execution times for registered steps.
+      //            Kyle to replace this with TaggedDictionary approach to capture execution times for all functions.
+      uint64_t func_duration_ns;
+      {
+        common::ScopedTimer<std::chrono::nanoseconds> func_timer(&func_duration_ns);
+        func(query_state);
+      }
+      module_->GetFunctionProfile()->functions_[func_name].exec_ns_ = func_duration_ns;
     } catch (const AbortException &e) {
       for (const auto &teardown_name : teardown_fn_) {
         if (!module_->GetFunction(teardown_name, mode, &func)) {
@@ -55,6 +67,8 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
     }
   }
 }
+
+void ExecutableQuery::Fragment::ForceRecompile() { module_->DangerousRecompile(); }
 
 //===----------------------------------------------------------------------===//
 //
@@ -168,6 +182,26 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   // We do not currently re-use ExecutionContexts. However, this is unset to help ensure
   // we don't *intentionally* retain any dangling pointers.
   exec_ctx->SetQueryState(nullptr);
+}
+
+void ExecutableQuery::RunProfileRecompile(common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+  auto mode = vm::ExecutionMode::Compiled;
+  auto query_state = std::make_unique<byte[]>(query_state_size_);
+
+  *reinterpret_cast<exec::ExecutionContext **>(query_state.get()) = exec_ctx.Get();
+  exec_ctx->SetQueryState(query_state.get());
+
+  exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
+  exec_ctx->SetPipelineOperatingUnits(GetPipelineOperatingUnits());
+  exec_ctx->SetQueryId(query_id_);
+
+  for (const auto &fragment : fragments_) {
+    fragment->Run(query_state.get(), mode);
+    fragment->ForceRecompile();
+  }
+
+  // All profiling runs must abort!
+  exec_ctx->GetTxn()->SetMustAbort();
 }
 
 }  // namespace noisepage::execution::compiler

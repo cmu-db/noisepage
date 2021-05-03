@@ -89,6 +89,8 @@ class ExecutableQuery {
      */
     bool IsCompiled() const { return module_ != nullptr; }
 
+    void ForceRecompile();
+
    private:
     // The functions that must be run (in the provided order) to execute this
     // query fragment.
@@ -135,6 +137,11 @@ class ExecutableQuery {
    */
   void Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
            vm::ExecutionMode mode = vm::ExecutionMode::Interpret);
+
+  /**
+   * Execute the query under profiling, then recompile the query.
+   */
+  void RunProfileRecompile(common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
    * @return The physical plan this executable query implements.

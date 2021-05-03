@@ -1,7 +1,9 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
 #include "common/managed_pointer.h"
-#include "execution/vm/llvm_engine.h"
 
 namespace llvm {
 class Module;
@@ -14,6 +16,16 @@ class FunctionPassManager;
 
 namespace noisepage::execution::vm {
 
+class LLVMEngineCompilerOptions;
+
+/** Metadata for each function. */
+struct FunctionMetadata {
+  std::string ir_;        ///< The IR of the function.
+  uint64_t inst_count_;   ///< The instruction count of the function.
+  uint64_t optimize_ns_;  ///< Time taken to optimize the function.
+  uint64_t exec_ns_;      ///< Time taken to run the function.
+};
+
 /**
  * A mockup of information that we hope to obtain through Kyle's implementation of Tagged Dictionaries from
  * http://db.in.tum.de/~beischl/papers/Profiling_Dataflow_Systems_on_Multiple_Abstraction_Levels.pdf
@@ -21,11 +33,13 @@ namespace noisepage::execution::vm {
  *
  * TODO(WAN): I guess in the absence of profile information it
  */
-class ProfileInformation {
+class FunctionProfile {
  public:
-  ProfileInformation() = default;
+  FunctionProfile() = default;
 
- private:
+  std::unordered_map<std::string, FunctionMetadata> functions_;
+  std::vector<std::string> steps_;
+  std::vector<std::string> teardowns_;
 };
 
 struct FunctionTransform {
@@ -45,13 +59,16 @@ class FunctionOptimizer {
  public:
   explicit FunctionOptimizer(common::ManagedPointer<llvm::TargetMachine> target_machine);
 
-  void Simplify(common::ManagedPointer<llvm::Module> llvm_module, common::ManagedPointer<ProfileInformation> profile,
-                common::ManagedPointer<const LLVMEngine::Settings> engine_settings);
+  void Simplify(common::ManagedPointer<llvm::Module> llvm_module, const LLVMEngineCompilerOptions &options,
+                common::ManagedPointer<FunctionProfile> profile);
 
-  void Optimize(common::ManagedPointer<llvm::Module> llvm_module, common::ManagedPointer<ProfileInformation> profile,
-                common::ManagedPointer<const LLVMEngine::Settings> engine_settings);
+  void Optimize(common::ManagedPointer<llvm::Module> llvm_module, const LLVMEngineCompilerOptions &options,
+                common::ManagedPointer<FunctionProfile> profile);
 
  private:
+  void FinalizeStats(common::ManagedPointer<llvm::Module> llvm_module, const LLVMEngineCompilerOptions &options,
+                     common::ManagedPointer<FunctionProfile> profile);
+
   static FunctionTransform transforms[];
 
   const common::ManagedPointer<llvm::TargetMachine> target_machine_;
