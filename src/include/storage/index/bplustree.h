@@ -916,10 +916,10 @@ class BPlusTree : public BPlusTreeBase {
     }
 
    public:
-    /** Key at the current position of the iterator */
-    KeyType first_;
-    /** Value at the current position of the iterator */
-    ValueType second_;
+    /** Returns key at the current position of the iterator */
+    KeyType Key() { return curr_key_->first; }
+    /** Returns value at the current position of the iterator */
+    ValueType Value() { return *curr_val_; }
 
     /**
      * Constructor to create a new Iterator. Returns a valid iterator.
@@ -931,8 +931,6 @@ class BPlusTree : public BPlusTreeBase {
       curr_node_ = reinterpret_cast<ElasticNode<KeyValuePair> *>(node);
       curr_key_ = element;
       curr_val_ = value;
-      first_ = element->first;
-      second_ = *curr_val_;
       state_ = VALID;
     }
 
@@ -953,8 +951,6 @@ class BPlusTree : public BPlusTreeBase {
       curr_node_ = itr.curr_node_;
       curr_key_ = itr.curr_key_;
       curr_val_ = itr.curr_val_;
-      first_ = itr.first_;
-      second_ = itr.second_;
       state_ = itr.state_;
     }
 
@@ -995,9 +991,6 @@ class BPlusTree : public BPlusTreeBase {
         curr_key_ = curr_node_->Begin();
         curr_val_ = curr_key_->second->begin();
       }
-
-      first_ = curr_key_->first;
-      second_ = *curr_val_;
     }
 
     /**
@@ -1037,9 +1030,6 @@ class BPlusTree : public BPlusTreeBase {
         curr_key_ = curr_node_->RBegin();
         curr_val_ = curr_key_->second->begin();
       }
-
-      first_ = curr_key_->first;
-      second_ = *curr_val_;
     }
 
     /**
@@ -1668,12 +1658,12 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     while ((limit == 0 || value_list->size() < limit) && (iterator != End()) && (iterator != Retry()) &&
-           (!high_key_exists || iterator.first_.PartialLessThan(index_high_key, metadata, num_attrs))) {
-      if (!predicate(iterator.second_)) {
+           (!high_key_exists || iterator.Key().PartialLessThan(index_high_key, metadata, num_attrs))) {
+      if (!predicate(iterator.Value())) {
         ++iterator;
         continue;
       }
-      value_list->push_back(iterator.second_);
+      value_list->push_back(iterator.Value());
       if (!(limit == 0 || value_list->size() < limit)) break;
       ++iterator;
     }
@@ -1700,8 +1690,8 @@ class BPlusTree : public BPlusTreeBase {
   bool ScanDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list) {
     BPlusTreeIterator iterator = RBegin(index_high_key);
 
-    while (KeyCmpGreaterEqual(iterator.first_, index_low_key) && (iterator != REnd()) && (iterator != Retry())) {
-      value_list->push_back(iterator.second_);
+    while ((iterator != REnd()) && (iterator != Retry()) && KeyCmpGreaterEqual(iterator.Key(), index_low_key)) {
+      value_list->push_back(iterator.Value());
       --iterator;
     }
 
@@ -1730,13 +1720,13 @@ class BPlusTree : public BPlusTreeBase {
                            uint32_t limit, std::function<bool(const ValueType)> predicate) {
     BPlusTreeIterator iterator = RBegin(index_high_key);
 
-    while ((value_list->size() < limit) && KeyCmpGreaterEqual(iterator.first_, index_low_key) && (iterator != REnd()) &&
+    while ((value_list->size() < limit) && KeyCmpGreaterEqual(iterator.Key(), index_low_key) && (iterator != REnd()) &&
            (iterator != Retry())) {
-      if (!predicate(iterator.second_)) {
+      if (!predicate(iterator.Value())) {
         --iterator;
         continue;
       }
-      value_list->push_back(iterator.second_);
+      value_list->push_back(iterator.Value());
       if (value_list->size() >= limit) break;
       --iterator;
     }
