@@ -231,7 +231,6 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
             .release()));
   }
   SELFDRIVING_LOG_DEBUG("Printing qid and pipeline id to sanity check pipeline metrics recorded");
-  printf("%lu\n", aggregated_data->pipeline_data_.size());
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
     SELFDRIVING_LOG_DEBUG(fmt::format("qid: {}; pipeline_id: {}", static_cast<uint>(it->query_id_),
                                       static_cast<uint32_t>(it->pipeline_id_)));
@@ -343,9 +342,6 @@ void PilotUtil::InterferenceModelInference(
       }
       for (auto const &pipeline_res : pipeline_to_pred.second) {
         for (const auto &ou_res : pipeline_res) {
-          if (ou_res[ou_res.size() - 1] < 1e-6) {
-            printf("small elapsed time: %f\n", ou_res[ou_res.size() - 1]);
-          }
           interference_features.emplace_back(GetInterferenceFeature(ou_res, normalized_feat_sum));
         }
       }

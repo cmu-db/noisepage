@@ -44,7 +44,8 @@ WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, 
   InitFromInference(inference);
 }
 
-WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, uint64_t forecast_interval, uint64_t num_sample) {
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, uint64_t forecast_interval,
+                                   uint64_t num_sample) {
   num_sample_ = num_sample;
   forecast_interval_ = forecast_interval;
   LoadQueryText();

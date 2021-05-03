@@ -187,9 +187,6 @@ class Forecaster:
             preds.append(pred)
             gts.append(label.item())
 
-        logging.info(f"Validation Ground Truth: {gts}")
-        logging.info(f"Validation Prediction: {preds}")
-
         # FIXME:
         # simple L2 norm for comparing the prediction and results
         l2norm = np.linalg.norm(np.array(preds) - np.array(gts))
