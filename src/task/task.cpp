@@ -11,6 +11,13 @@ void TaskDDL::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   query_exec_util->BeginTransaction(db_oid_);
   bool status = query_exec_util->ExecuteDDL(query_text_);
   query_exec_util->EndTransaction(status);
+
+  if (sync_) {
+    if (status)
+      sync_->Success(DummyResult{});
+    else
+      sync_->Fail(query_exec_util->GetError());
+  }
 }
 
 void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
@@ -57,7 +64,10 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
 
   query_exec_util->EndTransaction(result && !force_abort_);
   if (sync_) {
-    sync_->Success(result);
+    if (result)
+      sync_->Success(DummyResult{});
+    else
+      sync_->Fail(query_exec_util->GetError());
   }
 }
 
