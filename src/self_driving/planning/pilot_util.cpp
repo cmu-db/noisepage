@@ -180,7 +180,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
 
     if (execute_query) {
       // Execute the queries to get features with counters
-      common::Future<bool> sync;
+      common::Future<task::DummyResult> sync;
       // Forcefully reoptimize all the queries and set the query identifier to use
       // If copying params and param_types gets expensive, we might have to tweak the Task::TaskDML
       // constructor to allow specifying pointer params or a custom planning task.
