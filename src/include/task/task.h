@@ -20,6 +20,13 @@ class TaskManager;
 enum class TaskType : uint8_t { DDL_TASK, DML_TASK };
 
 /**
+ * Type meant to represent a dummy result value.
+ * A Future<> cannot be specified with (void), hence why
+ * this dummy result type is used.
+ */
+struct DummyResult {};
+
+/**
  * Abstract class for defining a task
  */
 class Task {
@@ -52,8 +59,10 @@ class TaskDDL : public Task {
    * TaskDDL constructor
    * @param db_oid Database to execute task within
    * @param query_text Query text of DDL/SET
+   * @param sync Future for the caller to block on
    */
-  TaskDDL(catalog::db_oid_t db_oid, std::string query_text) : db_oid_(db_oid), query_text_(std::move(query_text)) {}
+  TaskDDL(catalog::db_oid_t db_oid, std::string query_text, common::ManagedPointer<common::Future<DummyResult>> sync)
+      : db_oid_(db_oid), query_text_(std::move(query_text)), sync_(sync) {}
 
   void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                common::ManagedPointer<task::TaskManager> task_manager) override;
@@ -64,6 +73,7 @@ class TaskDDL : public Task {
  private:
   catalog::db_oid_t db_oid_;
   std::string query_text_;
+  common::ManagedPointer<common::Future<DummyResult>> sync_;
 };
 
 /**
@@ -113,7 +123,7 @@ class TaskDML : public Task {
           std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<type::TypeId> &&param_types,
           util::TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics_manager,
           bool force_abort, bool skip_query_cache, std::optional<execution::query_id_t> override_qid,
-          common::ManagedPointer<common::Future<bool>> sync)
+          common::ManagedPointer<common::Future<DummyResult>> sync)
       : db_oid_(db_oid),
         query_text_(std::move(query_text)),
         cost_model_(std::move(cost_model)),
@@ -138,7 +148,7 @@ class TaskDML : public Task {
    * @param sync Future for the caller to block on
    */
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
-          bool skip_query_cache, util::TupleFunction tuple_fn, common::ManagedPointer<common::Future<bool>> sync)
+          bool skip_query_cache, util::TupleFunction tuple_fn, common::ManagedPointer<common::Future<DummyResult>> sync)
       : db_oid_(db_oid),
         query_text_(std::move(query_text)),
         cost_model_(std::move(cost_model)),
@@ -168,7 +178,7 @@ class TaskDML : public Task {
   bool force_abort_;
   bool skip_query_cache_;
   std::optional<execution::query_id_t> override_qid_;
-  common::ManagedPointer<common::Future<bool>> sync_;
+  common::ManagedPointer<common::Future<DummyResult>> sync_;
 };
 
 }  // namespace noisepage::task
