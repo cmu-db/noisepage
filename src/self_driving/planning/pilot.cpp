@@ -460,7 +460,7 @@ void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_i
   // Collect pipeline metrics of forecasted queries within the interval of segments
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
                                                           common::ManagedPointer(forecast_), start_segment_index,
-                                                          end_segment_index, &pipeline_qids, true);
+                                                          end_segment_index, &pipeline_qids, false);
 
   // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
   // (where each entry corresponds to a different query param)
