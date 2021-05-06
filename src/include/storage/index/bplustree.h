@@ -866,9 +866,6 @@ class BPlusTree : public BPlusTreeBase {
    * This class implements a bi-directional iterator for the B+ Tree. In order to
    * fetch an element to start iteration, Begin() function can be used. Then, ++ or --
    * operators can be used to iterate till End() or REnd() is reached respectively.
-   *
-   * NOTE: In order to avoid holding locks in case of error, user of the iterator should
-   * call Done() to release any lock that is being currently held.
    */
   class BPlusTreeIterator {
     /** Enum that represents the state of the iterator */
@@ -915,9 +912,24 @@ class BPlusTree : public BPlusTreeBase {
       state_ = RETRY;
     }
 
+    /**
+     * Function to notify that iteration is complete. This is used to release any pending
+     * locks that is being held
+     */
+    void Done() {
+      if (curr_node_ != nullptr) {
+        curr_node_->ReleaseNodeSharedLatch();
+      }
+
+      state_ = INVALID;
+    }
+
    public:
     /** Returns key at the current position of the iterator */
-    KeyType Key() { return curr_key_->first; }
+    KeyType Key() {
+      NOISEPAGE_ASSERT(curr_key_ != nullptr, "Iterator should be valid, pointing to a valid key.");
+      return curr_key_->first;
+    }
     /** Returns value at the current position of the iterator */
     ValueType Value() { return *curr_val_; }
 
@@ -944,14 +956,61 @@ class BPlusTree : public BPlusTreeBase {
     }
 
     /**
-     * Copy constructor for the iterator
-     * @param itr Iterator to be copied from
+     * Destructor for the Iterator
      */
-    BPlusTreeIterator(const BPlusTreeIterator &itr) {
+    ~BPlusTreeIterator() {
+      Done();
+      curr_node_ = nullptr;
+      curr_key_ = nullptr;
+    }
+
+    /**
+     * Copy constructor for the iterator (deleted)
+     */
+    BPlusTreeIterator(const BPlusTreeIterator &) = delete;
+
+    /**
+     * Copy Assignment operator for the iterator (deleted)
+     */
+    BPlusTreeIterator &operator=(const BPlusTreeIterator &) = delete;
+
+    /**
+     * Move constructor for the iterator
+     * @param itr Iterator to be moved from
+     */
+    BPlusTreeIterator(BPlusTreeIterator &&itr) {
+      // Copy contents
       curr_node_ = itr.curr_node_;
       curr_key_ = itr.curr_key_;
       curr_val_ = itr.curr_val_;
       state_ = itr.state_;
+
+      // Invalidate the source iterator
+      itr.curr_node_ = nullptr;
+      itr.curr_key_ = nullptr;
+      itr.state_ = INVALID;
+    }
+
+    /**
+     * Move Assignment operator for the iterator
+     * @param itr Source iterator
+     * @return Iterator after assignment
+     */
+    BPlusTreeIterator &operator=(BPlusTreeIterator &&itr) {
+      if (this != &itr) {
+        // Copy contents
+        curr_node_ = itr.curr_node_;
+        curr_key_ = itr.curr_key_;
+        curr_val_ = itr.curr_val_;
+        state_ = itr.state_;
+
+        // Invalidate the source iterator
+        itr.curr_node_ = nullptr;
+        itr.curr_key_ = nullptr;
+        itr.state_ = INVALID;
+      }
+
+      return *this;
     }
 
     /**
@@ -1056,18 +1115,6 @@ class BPlusTree : public BPlusTreeBase {
         result = result && (curr_val_ == itr.curr_val_);
       }
       return !result;
-    }
-
-    /**
-     * Function to notify that iteration is complete. This is used to release any pending
-     * locks that is being held
-     */
-    void Done() {
-      if (curr_node_ != nullptr) {
-        curr_node_->ReleaseNodeSharedLatch();
-      }
-
-      state_ = INVALID;
     }
 
     /**
@@ -1671,7 +1718,6 @@ class BPlusTree : public BPlusTreeBase {
     if (iterator == Retry()) {
       return false;
     }
-    iterator.Done();
     return true;
   }
 
@@ -1698,7 +1744,6 @@ class BPlusTree : public BPlusTreeBase {
     if (iterator == Retry()) {
       return false;
     }
-    iterator.Done();
     return true;
   }
 
@@ -1734,7 +1779,6 @@ class BPlusTree : public BPlusTreeBase {
     if (iterator == Retry()) {
       return false;
     }
-    iterator.Done();
     return true;
   }
 

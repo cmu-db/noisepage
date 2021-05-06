@@ -1529,7 +1529,6 @@ TEST_F(BPlusTreeTests, IteratorTest) {
     EXPECT_EQ(it.Key(), i);
     EXPECT_EQ(it.Value(), i);
   }
-  it.Done();
   EXPECT_EQ(i, key_num);
 
   // Reverse Iteration
@@ -1539,7 +1538,6 @@ TEST_F(BPlusTreeTests, IteratorTest) {
     EXPECT_EQ(rit.Key(), i);
     EXPECT_EQ(rit.Value(), i);
   }
-  rit.Done();
   EXPECT_EQ(i, -1);
 
   delete tree;
@@ -1572,7 +1570,6 @@ TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
       EXPECT_EQ(it.Key(), i);
       EXPECT_EQ(it.Value(), i);
     }
-    it.Done();
     EXPECT_EQ(i, key_num);
 
     // Reverse Iteration
@@ -1582,7 +1579,6 @@ TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
       EXPECT_EQ(rit.Key(), i);
       EXPECT_EQ(rit.Value(), i);
     }
-    rit.Done();
     EXPECT_EQ(i, -1);
   };
 
