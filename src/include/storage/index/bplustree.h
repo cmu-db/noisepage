@@ -978,7 +978,7 @@ class BPlusTree : public BPlusTreeBase {
      * Move constructor for the iterator
      * @param itr Iterator to be moved from
      */
-    BPlusTreeIterator(BPlusTreeIterator &&itr) {
+    BPlusTreeIterator(BPlusTreeIterator &&itr) noexcept {
       // Copy contents
       curr_node_ = itr.curr_node_;
       curr_key_ = itr.curr_key_;
@@ -996,7 +996,7 @@ class BPlusTree : public BPlusTreeBase {
      * @param itr Source iterator
      * @return Iterator after assignment
      */
-    BPlusTreeIterator &operator=(BPlusTreeIterator &&itr) {
+    BPlusTreeIterator &operator=(BPlusTreeIterator &&itr) noexcept {
       if (this != &itr) {
         // Copy contents
         curr_node_ = itr.curr_node_;
@@ -1715,10 +1715,7 @@ class BPlusTree : public BPlusTreeBase {
       ++iterator;
     }
 
-    if (iterator == Retry()) {
-      return false;
-    }
-    return true;
+    return (iterator != Retry());
   }
 
   /**
@@ -1741,10 +1738,7 @@ class BPlusTree : public BPlusTreeBase {
       --iterator;
     }
 
-    if (iterator == Retry()) {
-      return false;
-    }
-    return true;
+    return (iterator != Retry());
   }
 
   /**
@@ -1776,10 +1770,7 @@ class BPlusTree : public BPlusTreeBase {
       --iterator;
     }
 
-    if (iterator == Retry()) {
-      return false;
-    }
-    return true;
+    return (iterator != Retry());
   }
 
   /**
