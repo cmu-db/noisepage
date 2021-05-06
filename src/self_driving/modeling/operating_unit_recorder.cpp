@@ -317,9 +317,10 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       cardinality = table_num_rows;
     } break;
     case ExecutionOperatingUnitType::SORT_TOPK_BUILD: {
-      auto order_by_plan = reinterpret_cast<const planner::OrderByPlanNode *>(plan);
       num_rows = current_plan_cardinality;
-      cardinality = order_by_plan->GetLimit();
+      // TODO(lin): This should be the limit size for the OrderByPlanNode, which is the parent plan for the plan of
+      //  the SORT_TOPK_BUILD OU. We need to refactor the interface to pass in this information correctly.
+      cardinality = 1;
     } break;
     case ExecutionOperatingUnitType::CREATE_INDEX: {
       num_rows = table_num_rows;
