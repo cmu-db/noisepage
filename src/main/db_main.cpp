@@ -4,10 +4,12 @@
 #include "settings/settings_defs.h"  // NOLINT
 #undef __SETTING_GFLAGS_DEFINE__     // NOLINT
 
+#include "common/future.h"
 #include "execution/execution_util.h"
 #include "loggers/common_logger.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "storage/recovery/replication_log_provider.h"
+#include "task/task.h"
 
 namespace noisepage {
 
@@ -39,10 +41,14 @@ void DBMain::TryLoadStartupDDL() {
 
   if (!startup_ddls.empty() && task_manager_ != nullptr) {
     for (auto &ddl : startup_ddls) {
-      task_manager_->AddTask(std::make_unique<task::TaskDDL>(catalog::INVALID_DATABASE_OID, ddl));
-    }
+      common::Future<task::DummyResult> sync;
+      task_manager_->AddTask(
+          std::make_unique<task::TaskDDL>(catalog::INVALID_DATABASE_OID, ddl, common::ManagedPointer(&sync)));
 
-    task_manager_->WaitForFlush();
+      auto future_result = sync.DangerousWait();
+      NOISEPAGE_ASSERT(future_result.second, "Error encountered executing startup DDL.");
+      (void)future_result;
+    }
   } else if (task_manager_ == nullptr) {
     COMMON_LOG_WARN("TryLoadStartupDDL() invoked without TaskManager");
   }
