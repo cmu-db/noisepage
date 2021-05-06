@@ -292,8 +292,7 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
           for (auto col_id : mapped_cols) {
             selectivity *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
           }
-          // Add 0.5 to round up
-          cardinality = std::llround(cardinality * selectivity + 0.5);
+          cardinality = cardinality * selectivity;
         } else {
           cardinality = 1;
         }
@@ -316,6 +315,11 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
     case ExecutionOperatingUnitType::SEQ_SCAN: {
       num_rows = table_num_rows;
       cardinality = table_num_rows;
+    } break;
+    case ExecutionOperatingUnitType::SORT_TOPK_BUILD: {
+      auto order_by_plan = reinterpret_cast<const planner::OrderByPlanNode *>(plan);
+      num_rows = current_plan_cardinality;
+      cardinality = order_by_plan->GetLimit();
     } break;
     case ExecutionOperatingUnitType::CREATE_INDEX: {
       num_rows = table_num_rows;
