@@ -17,6 +17,57 @@ class Pilot;
 namespace pilot {
 
 /**
+ * Used to represent information that encapsulates a given tree
+ * node's information and information about the action to be applied.
+ */
+class ActionTreeNode {
+ public:
+  /**
+   * Constructor
+   * @param parent_node_id Parent Node Identifier
+   * @param tree_node_id Tree Node Identifier
+   * @param action_id Action Identifier
+   * @param cost Cost to apply
+   * @param db_oid Database OID that action acts on
+   * @param action_text SQL string associated with action
+   */
+  ActionTreeNode(tree_node_id_t parent_node_id, tree_node_id_t tree_node_id, action_id_t action_id, double cost,
+                 catalog::db_oid_t db_oid, std::string action_text)
+      : parent_node_id_(parent_node_id),
+        tree_node_id_(tree_node_id),
+        action_id_(action_id),
+        cost_(cost),
+        db_oid_(db_oid),
+        action_text_(std::move(action_text)) {}
+
+  /** @return parent node id */
+  tree_node_id_t GetParentNodeId() const { return parent_node_id_; }
+
+  /** @return tree node id */
+  tree_node_id_t GetTreeNodeId() const { return tree_node_id_; }
+
+  /** @return action ID */
+  action_id_t GetActionId() const { return action_id_; }
+
+  /** @return cost */
+  double GetCost() const { return cost_; }
+
+  /** @return database OID that action acts upon */
+  catalog::db_oid_t GetDbOid() const { return db_oid_; }
+
+  /** @return action text */
+  const std::string &GetActionText() const { return action_text_; }
+
+ private:
+  tree_node_id_t parent_node_id_;
+  tree_node_id_t tree_node_id_;
+  action_id_t action_id_;
+  double cost_;
+  catalog::db_oid_t db_oid_;
+  std::string action_text_;
+};
+
+/**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
 class MonteCarloTreeSearch {
@@ -33,13 +84,17 @@ class MonteCarloTreeSearch {
                        bool use_min_cost = true);
 
   /**
-   * Returns query string of the best action to take at the root of the current tree
+   * Runs the monte carlo tree search simulations
    * @param simulation_number number of simulations to run
-   * @param best_action_seq
-   * @return query string of the best first action as well as the associated database oid
    */
-  void BestAction(uint64_t simulation_number,
-                  std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq);
+  void RunSimulation(uint64_t simulation_number);
+
+  /**
+   * Calculates the best action sequence from the root.
+   * Then for each node on the path, topk - 1 of its optimal siblings
+   * are also added to its vector in best_action_seq
+   */
+  void BestAction(std::vector<std::vector<ActionTreeNode>> *best_action_seq, size_t topk);
 
  private:
   const common::ManagedPointer<Pilot> pilot_;

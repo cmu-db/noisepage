@@ -170,4 +170,66 @@ void ForecastRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp_to
   }
 }
 
+void ForecastRecordingUtil::RecordAppliedAction(uint64_t timestamp_to_record, common::action_id_t action_id,
+                                                double cost, catalog::db_oid_t db_id, const std::string &action_text,
+                                                common::ManagedPointer<task::TaskManager> task_manager) {
+  std::vector<parser::ConstantValueExpression> param(5);
+  param[0] = parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
+  param[1] =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(action_id.UnderlyingValue()));
+  param[2] = parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(cost));
+  param[3] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(db_id.UnderlyingValue()));
+
+  {
+    const auto string = std::string_view(action_text);
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+    param[4] = parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+  }
+  std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
+  params_vec.emplace_back(std::move(param));
+
+  std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::REAL,
+                                           type::TypeId::INTEGER, type::TypeId::VARCHAR};
+  std::string query_text = ForecastRecordingUtil::APPLIED_ACTIONS_INSERT_STMT;
+  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
+                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                        std::move(params_vec), std::move(param_types)));
+}
+
+void ForecastRecordingUtil::RecordBestActions(uint64_t timestamp_to_record,
+                                              const std::vector<std::vector<selfdriving::pilot::ActionTreeNode>> &actions,
+                                              common::ManagedPointer<task::TaskManager> task_manager) {
+  std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
+  for (size_t i = 0; i < actions.size(); i++) {
+    for (const selfdriving::pilot::ActionTreeNode &node : actions[i]) {
+      std::vector<parser::ConstantValueExpression> param(8);
+      param[0] = parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
+      param[1] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(i));
+      param[2] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                 execution::sql::Integer(node.GetTreeNodeId().UnderlyingValue()));
+      param[3] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                 execution::sql::Integer(node.GetParentNodeId().UnderlyingValue()));
+      param[4] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                 execution::sql::Integer(node.GetActionId().UnderlyingValue()));
+      param[5] = parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(node.GetCost()));
+      param[6] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                 execution::sql::Integer(node.GetDbOid().UnderlyingValue()));
+
+      const auto string = std::string_view(node.GetActionText());
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      param[7] = parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+
+      params_vec.emplace_back(std::move(param));
+    }
+  }
+
+  std::vector<type::TypeId> param_types = {type::TypeId::BIGINT,  type::TypeId::INTEGER, type::TypeId::INTEGER,
+                                           type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL,
+                                           type::TypeId::INTEGER, type::TypeId::VARCHAR};
+  std::string query_text = ForecastRecordingUtil::BEST_ACTIONS_INSERT_STMT;
+  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
+                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                        std::move(params_vec), std::move(param_types)));
+}
+
 }  // namespace noisepage::util

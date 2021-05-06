@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 
+#include "common/strong_typedef_body.h"
 #include "loggers/selfdriving_logger.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/abstract_action.h"
@@ -14,9 +15,14 @@
 
 namespace noisepage::selfdriving::pilot {
 
+STRONG_TYPEDEF_BODY(tree_node_id_t, uint64_t);
+
+tree_node_id_t TreeNode::tree_node_identifier = tree_node_id_t(1);
+
 TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
                    double later_segments_cost)
-    : is_leaf_{true},
+    : tree_node_id_(TreeNode::tree_node_identifier++),
+      is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
       current_action_(current_action),
       ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
@@ -40,6 +46,26 @@ common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
                          child->GetCurrentAction(), child->cost_);
   }
   return best_child;
+}
+
+std::vector<common::ManagedPointer<TreeNode>> TreeNode::BestSubtreeOrdering() {
+  NOISEPAGE_ASSERT(!is_leaf_, "Trying to return best action on a leaf node");
+  // Get child of least cost
+  NOISEPAGE_ASSERT(!children_.empty(), "Trying to return best action for unexpanded nodes");
+
+  std::vector<common::ManagedPointer<TreeNode>> results;
+  results.reserve(children_.size());
+  for (auto &child : children_) {
+    results.emplace_back(child);
+  }
+
+  struct {
+    bool operator()(common::ManagedPointer<TreeNode> a, common::ManagedPointer<TreeNode> b) {
+      return a->cost_ < b->cost_;
+    }
+  } cmp;
+  std::sort(results.begin(), results.end(), cmp);
+  return results;
 }
 
 void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost) {

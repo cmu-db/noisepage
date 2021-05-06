@@ -19,6 +19,10 @@ class WorkloadForecast;
 namespace pilot {
 class AbstractAction;
 
+STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);
+
+constexpr tree_node_id_t INVALID_TREE_NODE_ID = tree_node_id_t(0);
+
 /**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
@@ -39,6 +43,11 @@ class TreeNode {
    * @return action id at node with least cost
    */
   common::ManagedPointer<TreeNode> BestSubtree();
+
+  /**
+   * @return nodes ordered from optimal to least optimal
+   */
+  std::vector<common::ManagedPointer<TreeNode>> BestSubtreeOrdering();
 
   /**
    * Recursively sample the vertex whose children will be assigned values through rollout.
@@ -90,6 +99,17 @@ class TreeNode {
    */
   action_id_t GetCurrentAction() { return current_action_; }
 
+  /**
+   * Get estimated cost of applying the action
+   * @return estimated cost
+   */
+  double GetCost() { return cost_; }
+
+  /**
+   * @return tree node id
+   */
+  tree_node_id_t GetTreeNodeId() { return tree_node_id_; }
+
  private:
   /**
    * Sample child based on cost and number of visits
@@ -133,6 +153,7 @@ class TreeNode {
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
+  tree_node_id_t tree_node_id_;
   bool is_leaf_;
   const uint64_t depth_;  // number of edges in path from root
   const action_id_t current_action_;
@@ -142,6 +163,8 @@ class TreeNode {
   uint64_t number_of_visits_;  // number of leaf in subtree rooted at node
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
+
+  static tree_node_id_t tree_node_identifier;
 };
 }  // namespace pilot
 
