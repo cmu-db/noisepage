@@ -288,9 +288,12 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
         if (plan_meta_data_ != nullptr) {
           cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
           auto &plan_node_meta_data = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId());
+          double selectivity = 1;
           for (auto col_id : mapped_cols) {
-            cardinality *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
+            selectivity *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
           }
+          // Add 0.5 to round up
+          cardinality = std::llround(cardinality * selectivity + 0.5);
         } else {
           cardinality = 1;
         }
