@@ -1503,4 +1503,100 @@ TEST_F(BPlusTreeTests, MultiThreadedDeleteTest) {
   delete tree;
 }
 
+TEST_F(BPlusTreeTests, IteratorTest) {
+  const auto key_num = 1000 * 1000;
+  auto predicate = [](const int64_t slot) -> bool { return false; };
+  auto *const tree = new BPlusTree<int64_t, int64_t>;
+
+  std::vector<int64_t> keys;
+  keys.reserve(key_num);
+
+  for (int64_t i = 0; i < key_num; i++) {
+    keys.emplace_back(i);
+  }
+
+  for (int i = 0; i < key_num; i++) {
+    BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+    p1.first = keys[i];
+    p1.second = keys[i];
+    tree->Insert(p1, predicate);
+  }
+
+  // Forward Iteration
+  int i = 0;
+  auto it = tree->Begin();
+  for (; it != tree->End(); ++it, ++i) {
+    EXPECT_EQ(it.Key(), i);
+    EXPECT_EQ(it.Value(), i);
+  }
+  EXPECT_EQ(i, key_num);
+
+  // Reverse Iteration
+  i = key_num - 1;
+  auto rit = tree->Begin(key_num - 1);
+  for (; rit != tree->REnd(); --rit, --i) {
+    EXPECT_EQ(rit.Key(), i);
+    EXPECT_EQ(rit.Value(), i);
+  }
+  EXPECT_EQ(i, -1);
+
+  delete tree;
+}
+
+TEST_F(BPlusTreeTests, MultiThreadedIteratorTest) {
+  const auto key_num = 1000 * 1000;
+  auto predicate = [](const int64_t slot) -> bool { return false; };
+  auto *const tree = new BPlusTree<int64_t, int64_t>;
+
+  std::vector<int64_t> keys;
+  keys.reserve(key_num);
+
+  for (int64_t i = 0; i < key_num; i++) {
+    keys.emplace_back(i);
+  }
+
+  for (int i = 0; i < key_num; i++) {
+    BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+    p1.first = keys[i];
+    p1.second = keys[i];
+    tree->Insert(p1, predicate);
+  }
+
+  auto workload = [&](uint32_t worker_id) {
+    // Forward Iteration
+    int i = 0;
+    auto it = tree->Begin();
+    for (; (it != tree->End()) && (it != tree->Retry()); ++it, ++i) {
+      EXPECT_EQ(it.Key(), i);
+      EXPECT_EQ(it.Value(), i);
+    }
+    EXPECT_EQ(i, key_num);
+
+    // Reverse Iteration
+    i = key_num - 1;
+    auto rit = tree->Begin(key_num - 1);
+    for (; (rit != tree->REnd()) && (rit != tree->Retry()); --rit, --i) {
+      EXPECT_EQ(rit.Key(), i);
+      EXPECT_EQ(rit.Value(), i);
+    }
+    EXPECT_EQ(i, -1);
+  };
+
+  // Run the workload
+  for (uint32_t i = 0; i < num_threads_; i++) {
+    thread_pool_.SubmitTask([i, &workload] { workload(i); });
+  }
+  thread_pool_.WaitUntilAllFinished();
+
+  // Insert more elements to make sure that locks are all released
+  for (int i = 0; i < key_num; i++) {
+    BPlusTree<int64_t, int64_t>::KeyElementPair p1;
+    p1.first = keys[i];
+    p1.second = keys[i];
+    tree->Insert(p1, predicate);
+  }
+
+  delete tree;
+}
+
 }  // namespace noisepage::storage::index
