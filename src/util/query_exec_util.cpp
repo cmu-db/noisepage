@@ -142,7 +142,7 @@ std::unique_ptr<network::Statement> QueryExecUtil::PlanStatement(
   return statement;
 }
 
-bool QueryExecUtil::ExecuteDDL(const std::string &query) {
+bool QueryExecUtil::ExecuteDDL(const std::string &query, bool what_if) {
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   ResetError();
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
@@ -182,8 +182,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
             out_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(),
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
 
-        /*
-        if (status) {
+        if (status && !what_if) {
           // This is unfortunate but this is because we can't re-parse the query once the CreateIndexExecutor
           // has run. We can't compile the query before the CreateIndexExecutor because codegen would have
           // no idea which index to insert into.
@@ -195,7 +194,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
           schemas_[query] = schema->Copy();
           exec_queries_[query] = std::move(exec_query);
           ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
-        }*/
+        }
         break;
       default:
         NOISEPAGE_ASSERT(false, "Unsupported QueryExecUtil::ExecuteStatement");

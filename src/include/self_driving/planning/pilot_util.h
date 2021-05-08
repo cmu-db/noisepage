@@ -102,8 +102,11 @@ class PilotUtil {
    * @param pilot pointer to the pilot
    * @param sql_query query of the action to be executed
    * @param db_oid oid of the database where this action should be applied
+   * @param what_if whether this is a "what-if" API call (e.g., only create the index entry in the catalog without
+   * populating it)
    */
-  static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid);
+  static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid,
+                          bool what_if);
 
   /**
    * Retrieve all query plans associated with queries in the interval of forecasted segments

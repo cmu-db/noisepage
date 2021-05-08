@@ -29,6 +29,10 @@ namespace noisepage::tpch {
 class Workload;
 }  // namespace noisepage::tpch
 
+namespace noisepage::selfdriving {
+class PilotUtil;
+}  // namespace noisepage::selfdriving
+
 namespace noisepage::task {
 class TaskDML;
 }  // namespace noisepage::task
@@ -99,5 +103,6 @@ class EXPORT ExecutionSettings {
   friend class noisepage::optimizer::IdxJoinTest_BarOnlyScan_Test;
   friend class noisepage::optimizer::IdxJoinTest_IndexToIndexJoin_Test;
   friend class noisepage::task::TaskDML;
+  friend class noisepage::selfdriving::PilotUtil;
 };
 }  // namespace noisepage::execution::exec

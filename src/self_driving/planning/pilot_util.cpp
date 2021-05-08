@@ -34,8 +34,8 @@
 
 namespace noisepage::selfdriving {
 
-void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query,
-                            catalog::db_oid_t db_oid) {
+void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid,
+                            bool what_if) {
   SELFDRIVING_LOG_INFO("Applying action: {}", sql_query);
 
   auto txn_manager = pilot->txn_manager_;
@@ -54,7 +54,7 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   }
 
   if (is_query_ddl) {
-    util.ExecuteDDL(sql_query);
+    util.ExecuteDDL(sql_query, what_if);
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     execution::exec::ExecutionSettings settings{};
@@ -181,13 +181,16 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     if (execute_query) {
       // Execute the queries to get features with counters
       common::Future<task::DummyResult> sync;
+      execution::exec::ExecutionSettings settings{};
+      settings.is_counters_enabled_ = true;
+      settings.is_pipeline_metrics_enabled_ = true;
       // Forcefully reoptimize all the queries and set the query identifier to use
       // If copying params and param_types gets expensive, we might have to tweak the Task::TaskDML
       // constructor to allow specifying pointer params or a custom planning task.
       pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
           db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
           std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<type::TypeId>(*param_types),
-          nullptr, metrics_manager, true, true, std::make_optional<execution::query_id_t>(qid),
+          nullptr, metrics_manager, std::move(settings), true, true, std::make_optional<execution::query_id_t>(qid),
           common::ManagedPointer(&sync)));
       auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
       if (!future_result.has_value()) {

@@ -74,6 +74,14 @@ class Pilot {
   /** The default timeout for pilot futures. Inferences take milliseconds, but CI is flaky. */
   static constexpr std::chrono::seconds FUTURE_TIMEOUT{10};
 
+  /**
+   * Whether to use "what-if" API during the action search.
+   * If true, the pilot only create the entries in the catalog for the indexes during the search. And the pilot uses
+   * the stats to generate OU features.
+   * If false, the pilot populate the candidate indexes during the search and execute queries to get OU features.
+   */
+  static constexpr bool WHAT_IF = true;
+
   /** Describes how the workload forecast should be initialized */
   enum class WorkloadForecastInitMode : uint8_t {
     /**

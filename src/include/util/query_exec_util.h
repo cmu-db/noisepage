@@ -124,9 +124,11 @@ class QueryExecUtil {
   /**
    * Execute a standalone DDL
    * @param query DDL query to execute
+   * @param what_if whether this is a "what-if" API call (e.g., only create the index entry in the catalog without
+   * populating it)
    * @return true if success
    */
-  bool ExecuteDDL(const std::string &query);
+  bool ExecuteDDL(const std::string &query, bool what_if);
 
   /**
    * Execute a standalone DML statement

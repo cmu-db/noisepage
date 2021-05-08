@@ -104,7 +104,8 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
     for (auto enabled_action : action_map.at(action)->GetEnabledActions()) {
       candidate_actions->insert(enabled_action);
     }
-    PilotUtil::ApplyAction(pilot, action_map.at(action)->GetSQLCommand(), action_map.at(action)->GetDatabaseOid());
+    PilotUtil::ApplyAction(pilot, action_map.at(action)->GetSQLCommand(), action_map.at(action)->GetDatabaseOid(),
+                           Pilot::WHAT_IF);
   }
   return curr;
 }
@@ -124,8 +125,8 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     if (!action_map.at(action_id)->IsValid() ||
         action_map.at(action_id)->GetSQLCommand() == "set compiled_query_execution = 'true';")
       continue;
-    PilotUtil::ApplyAction(pilot, action_map.at(action_id)->GetSQLCommand(),
-                           action_map.at(action_id)->GetDatabaseOid());
+    PilotUtil::ApplyAction(pilot, action_map.at(action_id)->GetSQLCommand(), action_map.at(action_id)->GetDatabaseOid(),
+                           Pilot::WHAT_IF);
 
     double child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
     double later_segments_cost = 0;
@@ -139,7 +140,7 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     // apply one reverse action to undo the above
     auto rev_actions = action_map.at(action_id)->GetReverseActions();
     PilotUtil::ApplyAction(pilot, action_map.at(rev_actions[0])->GetSQLCommand(),
-                           action_map.at(rev_actions[0])->GetDatabaseOid());
+                           action_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
   }
 }
 
@@ -154,7 +155,7 @@ void TreeNode::BackPropogate(common::ManagedPointer<Pilot> pilot,
   while (curr != nullptr && curr->parent_ != nullptr) {
     auto rev_action = action_map.at(curr->current_action_)->GetReverseActions()[0];
     PilotUtil::ApplyAction(pilot, action_map.at(rev_action)->GetSQLCommand(),
-                           action_map.at(rev_action)->GetDatabaseOid());
+                           action_map.at(rev_action)->GetDatabaseOid(), Pilot::WHAT_IF);
     if (use_min_cost) {
       curr->cost_ = std::min(curr->cost_, expanded_cost);
     } else {
