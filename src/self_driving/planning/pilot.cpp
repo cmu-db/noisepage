@@ -412,7 +412,8 @@ void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oi
 
   auto mcst =
       pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
-  mcst.BestAction(simulation_number_, best_action_seq, 1000000);
+  mcst.BestAction(simulation_number_, best_action_seq,
+                  settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
   for (uint64_t i = 0; i < best_action_seq->size(); i++) {
     SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", i,
                                      best_action_seq->at(i).first,

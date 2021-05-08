@@ -50,8 +50,8 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
       for (auto &param_vec : params_) {
         if (!result) break;
 
-        result &= query_exec_util->ExecuteQuery(query_text_, tuple_fn_, common::ManagedPointer(&param_vec), metrics_manager_,
-                                                settings);
+        result &= query_exec_util->ExecuteQuery(query_text_, tuple_fn_, common::ManagedPointer(&param_vec),
+                                                metrics_manager_, settings);
       }
     }
 

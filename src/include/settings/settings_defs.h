@@ -255,6 +255,16 @@ SETTING_int64(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int64(
+    pilot_memory_constraint,
+    "Maximum amount of memory allowed for the pilot to plan. (default : 1000000000, unit: byte)",
+    1000000000,
+    0,
+    100000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",
