@@ -166,12 +166,15 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
 
   auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   std::unique_ptr<metrics::PipelineMetricRawData> aggregated_data = nullptr;
+  bool old_metrics_enable = false;
   uint8_t old_sample_rate = 0;
   if (!execute_query) {
     aggregated_data = std::make_unique<metrics::PipelineMetricRawData>();
   } else {
-    // record previous sample rate to be restored at the end of this function
+    // record previous parameters to be restored at the end of this function
+    old_metrics_enable = pilot->settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
     old_sample_rate = pilot->settings_manager_->GetInt64(settings::Param::pipeline_metrics_sample_rate);
+    if (!old_metrics_enable) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, 100);
   }
 
@@ -238,8 +241,9 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
             .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
             .release()));
 
-    // restore the old sample rate
+    // restore the old parameters
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, old_sample_rate);
+    if (!old_metrics_enable) metrics_manager->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
   }
   SELFDRIVING_LOG_DEBUG("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
