@@ -190,7 +190,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
       pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
           db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
           std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<type::TypeId>(*param_types),
-          nullptr, metrics_manager, std::move(settings), true, true, std::make_optional<execution::query_id_t>(qid),
+          nullptr, metrics_manager, settings, true, true, std::make_optional<execution::query_id_t>(qid),
           common::ManagedPointer(&sync)));
       auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
       if (!future_result.has_value()) {
