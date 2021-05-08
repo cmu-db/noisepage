@@ -37,7 +37,7 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
   settings.is_counters_enabled_ = true;
   settings.is_pipeline_metrics_enabled_ = true;
   if (params_.empty()) {
-    result = query_exec_util->ExecuteDML(query_text_, nullptr, nullptr, tuple_fn_, nullptr,
+    result = query_exec_util->ExecuteDML(query_text_, nullptr, nullptr, tuple_fn_, metrics_manager_,
                                          std::make_unique<optimizer::TrivialCostModel>(), override_qid_, settings);
   } else {
     std::vector<parser::ConstantValueExpression> &params_0 = params_[0];
@@ -50,7 +50,7 @@ void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
       for (auto &param_vec : params_) {
         if (!result) break;
 
-        result &= query_exec_util->ExecuteQuery(query_text_, tuple_fn_, common::ManagedPointer(&param_vec), nullptr,
+        result &= query_exec_util->ExecuteQuery(query_text_, tuple_fn_, common::ManagedPointer(&param_vec), metrics_manager_,
                                                 settings);
       }
     }
