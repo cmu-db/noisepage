@@ -420,7 +420,7 @@ void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oi
                                      static_cast<uint32_t>(best_action_seq->at(i).second)));
   }
   PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first,
-                         best_action_seq->begin()->second, true);
+                         best_action_seq->begin()->second, false);
 }
 
 void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
