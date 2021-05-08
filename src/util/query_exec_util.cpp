@@ -182,6 +182,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
             out_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(),
             common::ManagedPointer<catalog::CatalogAccessor>(accessor));
 
+        /*
         if (status) {
           // This is unfortunate but this is because we can't re-parse the query once the CreateIndexExecutor
           // has run. We can't compile the query before the CreateIndexExecutor because codegen would have
@@ -194,7 +195,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query) {
           schemas_[query] = schema->Copy();
           exec_queries_[query] = std::move(exec_query);
           ExecuteQuery(query, nullptr, nullptr, nullptr, settings);
-        }
+        }*/
         break;
       default:
         NOISEPAGE_ASSERT(false, "Unsupported QueryExecUtil::ExecuteStatement");

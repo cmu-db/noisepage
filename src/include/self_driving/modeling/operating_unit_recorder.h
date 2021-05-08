@@ -115,9 +115,10 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * that requires modifying any system index.
    *
    * @param index_oids Index OIDs to record operations for.
+   * @param table_oid Table OID that the indexes belong to.
    */
   template <typename IndexPlanNode>
-  void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids);
+  void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids, catalog::table_oid_t table_oid);
 
   template <typename Translator>
   void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);

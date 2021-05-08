@@ -12,7 +12,6 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
-#include "optimizer/group.h"
 #include "optimizer/index_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
@@ -52,12 +51,14 @@
 #include "self_driving/modeling/operating_unit_util.h"
 #include "storage/block_layout.h"
 #include "storage/index/index.h"
+#include "storage/sql_table.h"
 #include "type/type_id.h"
 
 namespace noisepage::selfdriving {
 
 template <typename IndexPlanNode>
-void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids) {
+void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids,
+                                                  catalog::table_oid_t table_oid) {
   selfdriving::ExecutionOperatingUnitType type;
   if (std::is_same<IndexPlanNode, planner::InsertPlanNode>::value) {
     type = selfdriving::ExecutionOperatingUnitType::INDEX_INSERT;
@@ -65,8 +66,8 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
     type = selfdriving::ExecutionOperatingUnitType::INDEX_DELETE;
   } else if (std::is_same<IndexPlanNode, planner::UpdatePlanNode>::value) {
     // UPDATE is done as a DELETE followed by INSERT
-    RecordIndexOperations<planner::InsertPlanNode>(index_oids);
-    RecordIndexOperations<planner::DeletePlanNode>(index_oids);
+    RecordIndexOperations<planner::InsertPlanNode>(index_oids, table_oid);
+    RecordIndexOperations<planner::DeletePlanNode>(index_oids, table_oid);
     return;
   } else {
     NOISEPAGE_ASSERT(false, "Recording index operations for non-modiying plan node");
@@ -75,12 +76,12 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
   for (auto &oid : index_oids) {
     auto &index_schema = accessor_->GetIndexSchema(oid);
 
-    // Currenty favor using the index size extracted from the index as opposed to table size
-    // estimate. This will probably be replaced with stats in the future.
-    auto index = accessor_->GetIndex(oid);
+    // TODO(lin): Use the table size instead of the index size as the estiamte (since there may be "what-if" indexes
+    //  that we don't populate). We probably need to use the stats if the pilot is not running on the primary.
+    auto table = accessor_->GetTable(table_oid);
 
     std::vector<catalog::indexkeycol_oid_t> keys;
-    size_t num_rows = index->GetSize();
+    size_t num_rows = table->GetNumTuple();
     size_t num_keys = index_schema.GetColumns().size();
     size_t key_size = ComputeKeySize(common::ManagedPointer(&index_schema), false, keys, &num_keys);
 
@@ -338,6 +339,11 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       num_rows = current_plan_cardinality;
       cardinality = current_plan_cardinality;
   }
+
+  // Setting the cardinality to at least to one in case losing accuracy during casting. We don't model the case when
+  // the cardinality is 0 either.
+  num_rows = std::max(num_rows, 1lu);
+  cardinality = std::max(cardinality, 1lu);
 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
@@ -619,7 +625,7 @@ void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
   }
 
   if (!plan->GetIndexOids().empty()) {
-    RecordIndexOperations<planner::InsertPlanNode>(plan->GetIndexOids());
+    RecordIndexOperations<planner::InsertPlanNode>(plan->GetIndexOids(), plan->GetTableOid());
   }
 }
 
@@ -650,7 +656,7 @@ void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {
     AggregateFeatures(selfdriving::ExecutionOperatingUnitType::INSERT, key_size, num_cols, plan, 1, 1);
     AggregateFeatures(selfdriving::ExecutionOperatingUnitType::DELETE, key_size, num_cols, plan, 1, 1);
 
-    RecordIndexOperations<planner::UpdatePlanNode>(plan->GetIndexOids());
+    RecordIndexOperations<planner::UpdatePlanNode>(plan->GetIndexOids(), plan->GetTableOid());
   }
 }
 
@@ -664,7 +670,7 @@ void OperatingUnitRecorder::Visit(const planner::DeletePlanNode *plan) {
   AggregateFeatures(plan_feature_type_, key_size, num_cols, plan, 1, 1);
 
   if (!plan->GetIndexOids().empty()) {
-    RecordIndexOperations<planner::DeletePlanNode>(plan->GetIndexOids());
+    RecordIndexOperations<planner::DeletePlanNode>(plan->GetIndexOids(), plan->GetTableOid());
   }
 }
 
