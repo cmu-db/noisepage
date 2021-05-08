@@ -132,6 +132,7 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     if (start_segment_index != end_segment_index)
       later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
 
+    // TODO(lin): store the current memory consumption up to this node instead of 0
     children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, child_segment_cost,
                                                    later_segments_cost, 0));
 

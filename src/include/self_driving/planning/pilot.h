@@ -203,9 +203,9 @@ class Pilot {
    * queries between start and end segment indices (both inclusive) in workload forecast.
    * @param start_segment_index start segment index in forecast to be considered
    * @param end_segment_index end segment index in forecast to be considered
-   * @param query_info
-   * @param segment_to_offset
-   * @param interference_result_matrix
+   * @param query_info <query id, <num_param of this query executed, total number of collected ous for this query>>
+   * @param segment_to_offset start index of ou records belonging to a segment in input to the interference model
+   * @param interference_result_matrix stores the final results of the interference model
    */
   void ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
                        std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
