@@ -156,7 +156,7 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
 std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatures(
     common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
     uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids,
-    bool execute_query) {
+    const bool execute_query) {
   std::unordered_set<execution::query_id_t> qids;
   for (auto i = start_segment_index; i <= end_segment_index; i++) {
     for (auto &it : forecast->GetSegmentByIndex(i).GetIdToNumexec()) {
@@ -164,12 +164,17 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     }
   }
 
+  auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   std::unique_ptr<metrics::PipelineMetricRawData> aggregated_data = nullptr;
+  uint8_t old_sample_rate = 0;
   if (!execute_query) {
     aggregated_data = std::make_unique<metrics::PipelineMetricRawData>();
+  } else {
+    // record previous sample rate to be restored at the end of this function
+    old_sample_rate = pilot->settings_manager_->GetInt64(settings::Param::pipeline_metrics_sample_rate);
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, 100);
   }
 
-  auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
   for (const auto &qid : qids) {
     catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
     auto query_text = forecast->GetQuerytextByQid(qid);
@@ -232,6 +237,9 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
         metrics_manager->AggregatedMetrics()
             .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
             .release()));
+
+    // restore the old sample rate
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, old_sample_rate);
   }
   SELFDRIVING_LOG_DEBUG("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {

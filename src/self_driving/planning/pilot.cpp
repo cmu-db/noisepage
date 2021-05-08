@@ -431,27 +431,6 @@ void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_i
   // first we make sure the pipeline metrics flag as well as the counters is enabled. Also set the sample rate to be 0
   // so that every query execution is being recorded
 
-  // record previous parameters to be restored at the end of this function
-  const bool old_metrics_enable = settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
-  const bool old_counters_enable = settings_manager_->GetBool(settings::Param::counters_enable);
-  const auto old_sample_rate = settings_manager_->GetInt64(settings::Param::pipeline_metrics_sample_rate);
-
-  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  if (!old_metrics_enable) {
-    settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
-                               EmptySetterCallback);
-  }
-
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-  if (!old_counters_enable) {
-    settings_manager_->SetBool(settings::Param::counters_enable, true, common::ManagedPointer(action_context),
-                               EmptySetterCallback);
-  }
-
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
-  settings_manager_->SetInt(settings::Param::pipeline_metrics_sample_rate, 100, common::ManagedPointer(action_context),
-                            EmptySetterCallback);
-
   std::vector<execution::query_id_t> pipeline_qids;
   // Collect pipeline metrics of forecasted queries within the interval of segments
   auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
@@ -472,23 +451,6 @@ void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_i
   PilotUtil::InterferenceModelInference(interference_model_save_path_, model_server_manager_, pipeline_to_prediction,
                                         common::ManagedPointer(forecast_), start_segment_index, end_segment_index,
                                         query_info, segment_to_offset, interference_result_matrix);
-
-  // restore the old parameters
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
-  if (!old_metrics_enable) {
-    settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false, common::ManagedPointer(action_context),
-                               EmptySetterCallback);
-  }
-
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
-  if (!old_counters_enable) {
-    settings_manager_->SetBool(settings::Param::counters_enable, false, common::ManagedPointer(action_context),
-                               EmptySetterCallback);
-  }
-
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
-  settings_manager_->SetInt(settings::Param::pipeline_metrics_sample_rate, old_sample_rate,
-                            common::ManagedPointer(action_context), EmptySetterCallback);
 }
 
 }  // namespace noisepage::selfdriving
