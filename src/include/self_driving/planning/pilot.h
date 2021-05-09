@@ -135,7 +135,7 @@ class Pilot {
   /**
    * Performs training of the forecasting model
    */
-  void PerformForecasterTrain() { forecaster_.PerformTraining(); };
+  void PerformForecasterTrain() { forecaster_.PerformTraining(); }
 
  private:
   /**

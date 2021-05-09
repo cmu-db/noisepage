@@ -1,5 +1,11 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "execution/exec_defs.h"
 #include "metrics/query_trace_metric.h"
 #include "self_driving/forecasting/workload_forecast.h"
@@ -63,7 +69,6 @@ class Forecaster {
    * @param metrics_thread metrics thread for metrics manager
    * @param model_server_manager model server manager
    * @param settings_manager settings manager
-   * @param txn_manager transaction manager
    * @param task_manager task manager to submit internal jobs to
    * @param workload_forecast_interval Interval used in the Forecaster
    * @param sequence_length Length of a planning sequence
