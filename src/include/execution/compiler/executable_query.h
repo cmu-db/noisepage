@@ -157,12 +157,6 @@ class ExecutableQuery {
   /** @return The Query Identifier */
   query_id_t GetQueryId() { return query_id_; }
 
-  /** @param query_text The SQL string for this query */
-  void SetQueryText(common::ManagedPointer<const std::string> query_text) { query_text_ = query_text; }
-
-  /** @return The SQL query string */
-  common::ManagedPointer<const std::string> GetQueryText() { return query_text_; }
-
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
@@ -202,7 +196,6 @@ class ExecutableQuery {
   std::string query_name_;
   query_id_t query_id_;
   static std::atomic<query_id_t> query_identifier;
-  common::ManagedPointer<const std::string> query_text_;
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;

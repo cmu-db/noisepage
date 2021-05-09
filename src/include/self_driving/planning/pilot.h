@@ -74,6 +74,14 @@ class Pilot {
   /** The default timeout for pilot futures. Inferences take milliseconds, but CI is flaky. */
   static constexpr std::chrono::seconds FUTURE_TIMEOUT{10};
 
+  /**
+   * Whether to use "what-if" API during the action search.
+   * If true, the pilot only create the entries in the catalog for the indexes during the search. And the pilot uses
+   * the stats to generate OU features.
+   * If false, the pilot populate the candidate indexes during the search and execute queries to get OU features.
+   */
+  static constexpr bool WHAT_IF = true;
+
   /** Describes how the workload forecast should be initialized */
   enum class WorkloadForecastInitMode : uint8_t {
     /**
@@ -97,7 +105,8 @@ class Pilot {
 
   /**
    * Constructor for Pilot
-   * @param model_save_path model save path
+   * @param ou_model_save_path OU model save path
+   * @param interference_model_save_path interference model save path
    * @param forecast_model_save_path forecast model save path
    * @param catalog catalog
    * @param metrics_thread metrics thread for metrics manager
@@ -111,7 +120,7 @@ class Pilot {
    * @param sequence_length Length of a planning sequence
    * @param horizon_length Length of the planning horizon
    */
-  Pilot(std::string model_save_path, std::string forecast_model_save_path,
+  Pilot(std::string ou_model_save_path, std::string interference_model_save_path, std::string forecast_model_save_path,
         common::ManagedPointer<catalog::Catalog> catalog, common::ManagedPointer<metrics::MetricsThread> metrics_thread,
         common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
         common::ManagedPointer<settings::SettingsManager> settings_manager,
@@ -124,7 +133,7 @@ class Pilot {
    * Get model save path
    * @return save path of the mini model
    */
-  const std::string &GetModelSavePath() { return model_save_path_; }
+  const std::string &GetOUModelSavePath() { return ou_model_save_path_; }
 
   /**
    * Get pointer to model server manager
@@ -200,14 +209,16 @@ class Pilot {
   /**
    * Execute, collect pipeline metrics, and get ou prediction for each pipeline under different query parameters for
    * queries between start and end segment indices (both inclusive) in workload forecast.
-   * @param pipeline_to_prediction to be populated, map from a pipeline in forecasted queries to the list of ou
-   * prediction for different parameters, each ou prediction is a 2D double array
    * @param start_segment_index start segment index in forecast to be considered
    * @param end_segment_index end segment index in forecast to be considered
+   * @param query_info <query id, <num_param of this query executed, total number of collected ous for this query>>
+   * @param segment_to_offset start index of ou records belonging to a segment in input to the interference model
+   * @param interference_result_matrix stores the final results of the interference model
    */
-  void ExecuteForecast(std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction,
-                       uint64_t start_segment_index, uint64_t end_segment_index);
+  void ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
+                       std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+                       std::map<uint32_t, uint64_t> *segment_to_offset,
+                       std::vector<std::vector<double>> *interference_result_matrix);
 
   /**
    * Computes the valid range of data to be pulling from the internal tables.
@@ -217,7 +228,8 @@ class Pilot {
    */
   std::pair<uint64_t, uint64_t> ComputeTimestampDataRange(uint64_t now, bool train);
 
-  std::string model_save_path_;
+  std::string ou_model_save_path_;
+  std::string interference_model_save_path_;
   std::string forecast_model_save_path_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<metrics::MetricsThread> metrics_thread_;
