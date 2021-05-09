@@ -4,7 +4,6 @@
 
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
-#include "execution/ast/ast_dump.h"
 #include "execution/ast/context.h"
 #include "execution/compiler/compiler.h"
 #include "execution/exec/execution_context.h"
@@ -71,7 +70,8 @@ std::string GetFileName(const std::string &path) {
 }
 }  // namespace
 
-std::atomic<query_id_t> ExecutableQuery::query_identifier{0};
+// We use 0 to represent NULL_QUERY_ID so the query id starts from 1.
+std::atomic<query_id_t> ExecutableQuery::query_identifier{1};
 
 void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::PipelineOperatingUnits> &&units) {
   pipeline_operating_units_ = std::move(units);

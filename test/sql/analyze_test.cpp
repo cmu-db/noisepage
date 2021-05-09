@@ -101,8 +101,8 @@ class PgStatisticOutputChecker : public execution::compiler::test::OutputChecker
 TEST_F(AnalyzeTest, SingleColumnTest) {
   auto table_name = "empty_nullable_table";
   auto table_oid = accessor_->GetTableOid(table_name);
-  optimizer::TopKElements<int64_t> top_k(16, 64);
-  optimizer::Histogram<int64_t> histogram(64);
+  optimizer::TopKElements<int64_t> top_k(16, 1024);
+  optimizer::Histogram<int64_t> histogram(255);
 
   // Row is initially empty for column
   PgStatisticOutputChecker empty_checker(table_oid.UnderlyingValue(), 1, 0, 0, 0, true, true);
@@ -187,14 +187,14 @@ TEST_F(AnalyzeTest, MultiColumnTest) {
   auto table_oid = accessor_->GetTableOid(table_name);
   auto num_cols = accessor_->GetSchema(table_oid).GetColumns().size();
 
-  optimizer::TopKElements<storage::VarlenEntry> string_top_k(16, 64);
-  optimizer::Histogram<storage::VarlenEntry> string_histogram(64);
-  optimizer::TopKElements<execution::sql::Date> date_top_k(16, 64);
-  optimizer::Histogram<execution::sql::Date> date_histogram(64);
-  optimizer::TopKElements<bool> bool_top_k(16, 64);
-  optimizer::Histogram<bool> bool_histogram(64);
-  optimizer::TopKElements<int64_t> int_top_k(16, 64);
-  optimizer::Histogram<int64_t> int_histogram(64);
+  optimizer::TopKElements<storage::VarlenEntry> string_top_k(16, 1024);
+  optimizer::Histogram<storage::VarlenEntry> string_histogram(255);
+  optimizer::TopKElements<execution::sql::Date> date_top_k(16, 1024);
+  optimizer::Histogram<execution::sql::Date> date_histogram(255);
+  optimizer::TopKElements<bool> bool_top_k(16, 1024);
+  optimizer::Histogram<bool> bool_histogram(255);
+  optimizer::TopKElements<int64_t> int_top_k(16, 1024);
+  optimizer::Histogram<int64_t> int_histogram(255);
 
   // Row is initially empty for columns
   for (int64_t i = 0; static_cast<size_t>(i) < num_cols; i++) {

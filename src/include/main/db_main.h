@@ -540,11 +540,12 @@ class DBMain {
             query_exec_util ? util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util))
                             : nullptr;
         pilot = std::make_unique<selfdriving::Pilot>(
-            model_save_path_, forecast_model_save_path_, common::ManagedPointer(catalog_layer->GetCatalog()),
-            common::ManagedPointer(metrics_thread), common::ManagedPointer(model_server_manager),
-            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage),
-            common::ManagedPointer(txn_layer->GetTransactionManager()), std::move(util),
-            common::ManagedPointer(task_manager), workload_forecast_interval_, sequence_length_, horizon_length_);
+            ou_model_save_path_, interference_model_save_path_, forecast_model_save_path_,
+            common::ManagedPointer(catalog_layer->GetCatalog()), common::ManagedPointer(metrics_thread),
+            common::ManagedPointer(model_server_manager), common::ManagedPointer(settings_manager),
+            common::ManagedPointer(stats_storage), common::ManagedPointer(txn_layer->GetTransactionManager()),
+            std::move(util), common::ManagedPointer(task_manager), workload_forecast_interval_, sequence_length_,
+            horizon_length_);
         pilot_thread = std::make_unique<selfdriving::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
@@ -939,7 +940,8 @@ class DBMain {
     uint64_t forecast_sample_limit_ = 5;
 
     std::string wal_file_path_ = "wal.log";
-    std::string model_save_path_;
+    std::string ou_model_save_path_;
+    std::string interference_model_save_path_;
     std::string forecast_model_save_path_;
     std::string bytecode_handlers_path_ = "./bytecode_handlers_ir.bc";
     std::string network_identity_ = "primary";
@@ -1036,7 +1038,8 @@ class DBMain {
       workload_forecast_interval_ = settings_manager->GetInt64(settings::Param::workload_forecast_interval);
       sequence_length_ = settings_manager->GetInt64(settings::Param::sequence_length);
       horizon_length_ = settings_manager->GetInt64(settings::Param::horizon_length);
-      model_save_path_ = settings_manager->GetString(settings::Param::model_save_path);
+      ou_model_save_path_ = settings_manager->GetString(settings::Param::ou_model_save_path);
+      interference_model_save_path_ = settings_manager->GetString(settings::Param::interference_model_save_path);
       forecast_model_save_path_ = settings_manager->GetString(settings::Param::forecast_model_save_path);
       task_pool_size_ = settings_manager->GetInt(settings::Param::task_pool_size);
 

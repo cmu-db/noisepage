@@ -202,6 +202,7 @@ class Forecaster:
         """
         test_seqs = self._cluster_seqs(cid, test_mode=True, with_label=False)
         preds = list([model.predict(seq) for seq in test_seqs])
+        logging.info(f"Inference preds: {preds}")
         query_preds = self._clusters[cid].segregate(preds)
 
         return query_preds

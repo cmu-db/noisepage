@@ -136,8 +136,8 @@ TEST_F(TaskManagerTests, Index) {
   std::string query = "SELECT * FROM t WHERE a = 1";
   auto result =
       query_exec_util->PlanStatement(query, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>());
-  EXPECT_TRUE(result.second != nullptr);
-  EXPECT_EQ(result.second->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->PhysicalPlan()->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
   query_exec_util->EndTransaction(true);
 }
 

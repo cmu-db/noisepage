@@ -114,6 +114,8 @@ class TaskDML : public Task {
    * @param param_types Types of the query parameters if any
    * @param tuple_fn Function for processing rows
    * @param metrics_manager Metrics Manager to be used
+   * @param settings ExecutionSettings of this query (note: clang-tidy complains that ExecutionSettings is
+   * trivially-copyable so we can't use std::move())
    * @param force_abort Whether to forcefully abort the transaction
    * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
    * @param override_qid Describes whether to override the qid with a value
@@ -122,8 +124,8 @@ class TaskDML : public Task {
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
           std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<type::TypeId> &&param_types,
           util::TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-          bool force_abort, bool skip_query_cache, std::optional<execution::query_id_t> override_qid,
-          common::ManagedPointer<common::Future<DummyResult>> sync)
+          execution::exec::ExecutionSettings settings, bool force_abort, bool skip_query_cache,
+          std::optional<execution::query_id_t> override_qid, common::ManagedPointer<common::Future<DummyResult>> sync)
       : db_oid_(db_oid),
         query_text_(std::move(query_text)),
         cost_model_(std::move(cost_model)),
@@ -131,6 +133,7 @@ class TaskDML : public Task {
         param_types_(param_types),
         tuple_fn_(std::move(tuple_fn)),
         metrics_manager_(metrics_manager),
+        settings_(settings),
         force_abort_(force_abort),
         skip_query_cache_(skip_query_cache),
         override_qid_(override_qid),
@@ -175,6 +178,7 @@ class TaskDML : public Task {
   std::vector<type::TypeId> param_types_;
   util::TupleFunction tuple_fn_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
+  execution::exec::ExecutionSettings settings_;
   bool force_abort_;
   bool skip_query_cache_;
   std::optional<execution::query_id_t> override_qid_;
