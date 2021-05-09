@@ -265,6 +265,7 @@ std::unique_ptr<selfdriving::WorkloadForecast> Forecaster::LoadWorkloadForecast(
     }
   }
 
+  // Using the query trace from internal tables for inference
   if (infer_from_internal) {
     bool success = false;
     std::vector<std::string> models{"LSTM"};
@@ -301,7 +302,10 @@ std::unique_ptr<selfdriving::WorkloadForecast> Forecaster::LoadWorkloadForecast(
 
     // Construct workload forecast
     return std::make_unique<selfdriving::WorkloadForecast>(result.first, std::move(metadata_result.first));
-  } else if (infer_from_disk) {
+  }
+
+  // Load query trace from disk then do inference
+  if (infer_from_disk) {
     std::vector<std::string> models{"LSTM"};
     std::pair<selfdriving::WorkloadForecastPrediction, bool> result;
 
@@ -323,13 +327,14 @@ std::unique_ptr<selfdriving::WorkloadForecast> Forecaster::LoadWorkloadForecast(
     // Construct the WorkloadForecast froM a mix of on-disk and inference information
     auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
     return std::make_unique<selfdriving::WorkloadForecast>(result.first, workload_forecast_interval_, sample);
-  } else {
-    NOISEPAGE_ASSERT(mode == WorkloadForecastInitMode::DISK_ONLY, "Expected the mode to be directly from disk");
-
-    // Load the WorkloadForecast directly from disk without using the model
-    auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
-    return std::make_unique<selfdriving::WorkloadForecast>(workload_forecast_interval_, sample);
   }
+
+  // Directly use the query trace loaded from disk as the workload forecast
+  NOISEPAGE_ASSERT(mode == WorkloadForecastInitMode::DISK_ONLY, "Expected the mode to be directly from disk");
+
+  // Load the WorkloadForecast directly from disk without using the model
+  auto sample = settings_manager_->GetInt(settings::Param::forecast_sample_limit);
+  return std::make_unique<selfdriving::WorkloadForecast>(workload_forecast_interval_, sample);
 }
 
 }  // namespace noisepage::selfdriving
