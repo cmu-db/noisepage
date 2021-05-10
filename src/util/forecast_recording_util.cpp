@@ -170,7 +170,7 @@ void ForecastRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp_to
   }
 }
 
-void ForecastRecordingUtil::RecordAppliedAction(uint64_t timestamp_to_record, common::action_id_t action_id,
+void ForecastRecordingUtil::RecordAppliedAction(uint64_t timestamp_to_record, selfdriving::pilot::action_id_t action_id,
                                                 double cost, catalog::db_oid_t db_id, const std::string &action_text,
                                                 common::ManagedPointer<task::TaskManager> task_manager) {
   std::vector<parser::ConstantValueExpression> param(5);
@@ -196,9 +196,9 @@ void ForecastRecordingUtil::RecordAppliedAction(uint64_t timestamp_to_record, co
                                                         std::move(params_vec), std::move(param_types)));
 }
 
-void ForecastRecordingUtil::RecordBestActions(uint64_t timestamp_to_record,
-                                              const std::vector<std::vector<selfdriving::pilot::ActionTreeNode>> &actions,
-                                              common::ManagedPointer<task::TaskManager> task_manager) {
+void ForecastRecordingUtil::RecordBestActions(
+    uint64_t timestamp_to_record, const std::vector<std::vector<selfdriving::pilot::ActionTreeNode>> &actions,
+    common::ManagedPointer<task::TaskManager> task_manager) {
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (size_t i = 0; i < actions.size(); i++) {
     for (const selfdriving::pilot::ActionTreeNode &node : actions[i]) {

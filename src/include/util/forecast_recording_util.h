@@ -9,6 +9,7 @@
 #include "execution/exec_defs.h"
 #include "metrics/query_trace_metric.h"
 #include "self_driving/forecasting/workload_forecast.h"
+#include "self_driving/planning/action/action_defs.h"
 #include "self_driving/planning/mcts/monte_carlo_tree_search.h"
 
 namespace noisepage::util {
@@ -72,7 +73,7 @@ class ForecastRecordingUtil {
    * @param action_text SQL string representation of the action
    * @param task_manager Task Manager to use for submitting jobs
    */
-  static void RecordAppliedAction(uint64_t timestamp_to_record, common::action_id_t action_id, double cost,
+  static void RecordAppliedAction(uint64_t timestamp_to_record, selfdriving::pilot::action_id_t action_id, double cost,
                                   catalog::db_oid_t db_id, const std::string &action_text,
                                   common::ManagedPointer<task::TaskManager> task_manager);
 

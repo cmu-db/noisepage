@@ -57,6 +57,8 @@ void MonteCarloTreeSearch::BestAction(std::vector<std::vector<pilot::ActionTreeN
   while (!curr_node->IsLeaf()) {
     std::vector<ActionTreeNode> top;
     std::vector<common::ManagedPointer<TreeNode>> order = curr_node->BestSubtreeOrdering();
+    NOISEPAGE_ASSERT(!order.empty(), "TreeNode should have some children");
+
     for (size_t i = 0; i < order.size() && i < topk; i++) {
       auto child = order[i];
       auto action = child->GetCurrentAction();
@@ -66,6 +68,7 @@ void MonteCarloTreeSearch::BestAction(std::vector<std::vector<pilot::ActionTreeN
     }
 
     best_action_seq->emplace_back(std::move(top));
+    curr_node = order[0];
   }
 }
 

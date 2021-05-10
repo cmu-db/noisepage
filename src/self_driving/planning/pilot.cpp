@@ -101,8 +101,11 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
 
   uint64_t timestamp = metrics::MetricsUtil::Now();
   util::ForecastRecordingUtil::RecordBestActions(timestamp, layered_action, task_manager_);
-  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->GetActionText(),
-                         best_action_seq->begin()->GetDbOid(), false);
+
+  pilot::ActionTreeNode &best_action = (*best_action_seq)[0];
+  util::ForecastRecordingUtil::RecordAppliedAction(timestamp, best_action.GetActionId(), best_action.GetCost(),
+                                                   best_action.GetDbOid(), best_action.GetActionText(), task_manager_);
+  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action.GetActionText(), best_action.GetDbOid(), false);
 }
 
 void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
