@@ -36,17 +36,18 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   // create root_
   auto later_cost = PilotUtil::ComputeCost(pilot, forecast, 0, end_segment_index);
   // root correspond to no action applied to any segment
-  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, later_cost);
+  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, later_cost, 0);
 }
 
-void MonteCarloTreeSearch::RunSimulation(uint64_t simulation_number) {
+void MonteCarloTreeSearch::RunSimulation(uint64_t simulation_number, uint64_t memory_constraint) {
   for (uint64_t i = 0; i < simulation_number; i++) {
     std::unordered_set<action_id_t> candidate_actions;
     for (auto action_id : candidate_actions_) candidate_actions.insert(action_id);
     auto vertex =
         TreeNode::Selection(common::ManagedPointer(root_), pilot_, action_map_, &candidate_actions, end_segment_index_);
 
-    vertex->ChildrenRollout(pilot_, forecast_, 0, end_segment_index_, action_map_, candidate_actions);
+    vertex->ChildrenRollout(pilot_, forecast_, 0, end_segment_index_, action_map_, candidate_actions,
+                            memory_constraint);
     vertex->BackPropogate(pilot_, action_map_, use_min_cost_);
   }
 }

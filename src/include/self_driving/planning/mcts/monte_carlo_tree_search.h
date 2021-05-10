@@ -86,13 +86,17 @@ class MonteCarloTreeSearch {
   /**
    * Runs the monte carlo tree search simulations
    * @param simulation_number number of simulations to run
+   * @param memory_constraint maximum allowed memory in bytes
    */
-  void RunSimulation(uint64_t simulation_number);
+  void RunSimulation(uint64_t simulation_number, uint64_t memory_constraint);
 
   /**
    * Calculates the best action sequence from the root.
    * Then for each node on the path, topk - 1 of its optimal siblings
    * are also added to its vector in best_action_seq
+   *
+   * @param best_action_seq storing output of ActionTreeNode
+   * @param topk number of nodes per level
    */
   void BestAction(std::vector<std::vector<ActionTreeNode>> *best_action_seq, size_t topk);
 

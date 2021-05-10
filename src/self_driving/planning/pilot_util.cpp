@@ -34,8 +34,10 @@
 
 namespace noisepage::selfdriving {
 
-void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query,
-                            catalog::db_oid_t db_oid) {
+void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid,
+                            bool what_if) {
+  SELFDRIVING_LOG_INFO("Applying action: {}", sql_query);
+
   auto txn_manager = pilot->txn_manager_;
   auto catalog = pilot->catalog_;
   util::QueryExecUtil util(txn_manager, catalog, pilot->settings_manager_, pilot->stats_storage_,
@@ -52,7 +54,7 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   }
 
   if (is_query_ddl) {
-    util.ExecuteDDL(sql_query);
+    util.ExecuteDDL(sql_query, what_if);
   } else {
     // Parameters are also specified in the query string, hence we have no parameters nor parameter types here
     execution::exec::ExecutionSettings settings{};
@@ -88,62 +90,73 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
     auto param_types = common::ManagedPointer(forecast->GetParamtypesByQid(qid));
     auto result = query_exec_util->PlanStatement(query_text, params, param_types,
                                                  std::make_unique<optimizer::TrivialCostModel>());
-    plan_vecs->emplace_back(std::move(result.second));
+    plan_vecs->emplace_back(std::move(result->OptimizeResult()->TakePlanNodeOwnership()));
     query_exec_util->UseTransaction(db_oid, nullptr);
   }
+}
+
+void PilotUtil::SumFeatureInPlace(std::vector<double> *feature, const std::vector<double> &delta_feature,
+                                  double normalization) {
+  for (size_t i = 0; i < feature->size(); i++) {
+    (*feature)[i] += delta_feature[i] / normalization;
+  }
+}
+
+std::vector<double> PilotUtil::GetInterferenceFeature(const std::vector<double> &feature,
+                                                      const std::vector<double> &normalized_feat_sum) {
+  std::vector<double> interference_feat;
+  for (size_t i = 0; i < feature.size(); i++) {
+    // normalize the output of ou_model by the elapsed time
+    interference_feat.emplace_back(feature[i] / (feature[feature.size() - 1] + 1e-2));
+  }
+
+  // append with the normalized feature for this segment
+  interference_feat.insert(interference_feat.end(), normalized_feat_sum.begin(), normalized_feat_sum.end());
+  NOISEPAGE_ASSERT(interference_feat.size() == 18, "expect 18 nonzero elements in interference feature");
+  interference_feat.resize(INTERFERENCE_DIMENSION, 0.0);
+  return interference_feat;
 }
 
 double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                               uint64_t start_segment_index, uint64_t end_segment_index) {
   // Compute cost as total latency of queries based on their num of exec
-  // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
-  // (where each entry corresponds to a different query param)
-  // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
-  // parameters
-  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
-      pipeline_to_prediction;
-  pilot->ExecuteForecast(&pipeline_to_prediction, start_segment_index, end_segment_index);
+  // query id, <num_param of this query executed, total number of collected ous for this query>
+  std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> query_info;
+  // This is to record the start index of ou records belonging to a segment in input to the interference model
+  std::map<uint32_t, uint64_t> segment_to_offset;
+  std::vector<std::vector<double>> interference_result_matrix;
 
-  std::vector<std::pair<execution::query_id_t, double>> query_cost;
-  execution::query_id_t prev_qid = pipeline_to_prediction.begin()->first.first;
-  query_cost.emplace_back(prev_qid, 0);
+  pilot->ExecuteForecast(start_segment_index, end_segment_index, &query_info, &segment_to_offset,
+                         &interference_result_matrix);
 
-  for (auto const &pipeline_to_pred : pipeline_to_prediction) {
-    double pipeline_sum = 0;
-    for (auto const &pipeline_res : pipeline_to_pred.second) {
-      for (auto ou_res : pipeline_res) {
-        // sum up the latency of ous
-        pipeline_sum += ou_res[ou_res.size() - 1];
+  double total_cost = 0.0;
+
+  for (auto seg_idx = start_segment_index; seg_idx <= end_segment_index; seg_idx++) {
+    std::vector<std::pair<execution::query_id_t, double>> query_cost;
+
+    auto query_ou_offset = segment_to_offset[seg_idx];
+
+    // separately get the cost of each query, averaged over diff set of params, for this segment
+    // iterate through the sorted list of qids for this segment
+    for (auto id_to_num_exec : forecast->GetSegmentByIndex(seg_idx).GetIdToNumexec()) {
+      double curr_query_cost = 0.0;
+      for (auto ou_idx = query_ou_offset; ou_idx < query_ou_offset + query_info[id_to_num_exec.first].second;
+           ou_idx++) {
+        curr_query_cost +=
+            interference_result_matrix.at(ou_idx).back() / static_cast<double>(query_info[id_to_num_exec.first].first);
       }
-    }
-    // record average cost of this pipeline among the same queries with diff param
-    if (prev_qid == pipeline_to_pred.first.first) {
-      query_cost.back().second += pipeline_sum / pipeline_to_pred.second.size();
-    } else {
-      query_cost.emplace_back(pipeline_to_pred.first.first, pipeline_sum / pipeline_to_pred.second.size());
-      prev_qid = pipeline_to_pred.first.first;
+      total_cost += static_cast<double>(id_to_num_exec.second) * curr_query_cost;
+      query_ou_offset += query_info[id_to_num_exec.first].second;
     }
   }
-  double total_cost = 0;
-  double num_queries = 0;
-  for (auto qcost : query_cost) {
-    for (auto i = start_segment_index; i <= end_segment_index; i++) {
-      // It is possible that within the forecast, we don't actually have the qid.
-      // (i.e., query executed count is 0 within this particular segment).
-      const auto &seg_map = forecast->GetSegmentByIndex(i).GetIdToNumexec();
-      if (seg_map.find(qcost.first) != seg_map.end()) {
-        total_cost += seg_map.at(qcost.first) * qcost.second;
-        num_queries += seg_map.at(qcost.first);
-      }
-    }
-  }
-  NOISEPAGE_ASSERT(num_queries > 0, "expect more then one query");
+
   return total_cost;
 }
 
-const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::CollectPipelineFeatures(
+std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatures(
     common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-    uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids) {
+    uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids,
+    const bool execute_query) {
   std::unordered_set<execution::query_id_t> qids;
   for (auto i = start_segment_index; i <= end_segment_index; i++) {
     for (auto &it : forecast->GetSegmentByIndex(i).GetIdToNumexec()) {
@@ -152,50 +165,101 @@ const std::list<metrics::PipelineMetricRawData::PipelineData> &PilotUtil::Collec
   }
 
   auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
+  std::unique_ptr<metrics::PipelineMetricRawData> aggregated_data = nullptr;
+  bool old_metrics_enable = false;
+  uint8_t old_sample_rate = 0;
+  if (!execute_query) {
+    aggregated_data = std::make_unique<metrics::PipelineMetricRawData>();
+  } else {
+    // record previous parameters to be restored at the end of this function
+    old_metrics_enable = pilot->settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
+    old_sample_rate = pilot->settings_manager_->GetInt64(settings::Param::pipeline_metrics_sample_rate);
+    if (!old_metrics_enable) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, 100);
+  }
+
   for (const auto &qid : qids) {
     catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
     auto query_text = forecast->GetQuerytextByQid(qid);
 
-    // If this copying gets expensive, we might have to tweak the Task::TaskDML
-    // constructor to allow specifying pointer params or a custom planning task.
-    std::vector<type::TypeId> param_types(*forecast->GetParamtypesByQid(qid));
-    std::vector<std::vector<parser::ConstantValueExpression>> params(*forecast->GetQueryparamsByQid(qid));
+    std::vector<type::TypeId> *param_types = forecast->GetParamtypesByQid(qid);
+    std::vector<std::vector<parser::ConstantValueExpression>> *params = forecast->GetQueryparamsByQid(qid);
     pipeline_qids->push_back(qid);
 
-    // Forcefully reoptimize all the queries and set the query identifier to use
-    common::Future<task::DummyResult> sync;
-    pilot->task_manager_->AddTask(
-        std::make_unique<task::TaskDML>(db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
-                                        std::move(params), std::move(param_types), nullptr, metrics_manager, true, true,
-                                        std::make_optional<execution::query_id_t>(qid), common::ManagedPointer(&sync)));
-    auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
-    if (!future_result.has_value()) {
-      throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+    if (execute_query) {
+      // Execute the queries to get features with counters
+      common::Future<task::DummyResult> sync;
+      execution::exec::ExecutionSettings settings{};
+      settings.is_counters_enabled_ = true;
+      settings.is_pipeline_metrics_enabled_ = true;
+      // Forcefully reoptimize all the queries and set the query identifier to use
+      // If copying params and param_types gets expensive, we might have to tweak the Task::TaskDML
+      // constructor to allow specifying pointer params or a custom planning task.
+      pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
+          db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
+          std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<type::TypeId>(*param_types),
+          nullptr, metrics_manager, settings, true, true, std::make_optional<execution::query_id_t>(qid),
+          common::ManagedPointer(&sync)));
+      auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
+      if (!future_result.has_value()) {
+        throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+      }
+    } else {
+      // Just compile the queries (generate the bytecodes) to get features with statistics
+      auto &query_util = pilot->query_exec_util_;
+      query_util->BeginTransaction(db_oid);
+      // TODO(lin): Do we need to pass in any settings?
+      execution::exec::ExecutionSettings settings{};
+      for (auto &param : *params) {
+        query_util->CompileQuery(query_text, common::ManagedPointer(&param), common::ManagedPointer(param_types),
+                                 std::make_unique<optimizer::TrivialCostModel>(), std::nullopt, settings);
+        auto executable_query = query_util->GetExecutableQuery(query_text);
+
+        auto ous = executable_query->GetPipelineOperatingUnits();
+
+        // used just a placeholder
+        const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+
+        for (auto &iter : ous->GetPipelineFeatureMap()) {
+          // TODO(lin): Get the execution mode from settings manager when we can support changing it...
+          aggregated_data->RecordPipelineData(
+              qid, iter.first, 0, std::vector<ExecutionOperatingUnitFeature>(iter.second), resource_metrics);
+        }
+        query_util->ClearPlan(query_text);
+      }
+
+      query_util->EndTransaction(false);
     }
   }
 
-  // retrieve the features
-  metrics_manager->Aggregate();
+  if (execute_query) {
+    // retrieve the features
+    metrics_manager->Aggregate();
 
-  auto aggregated_data = reinterpret_cast<metrics::PipelineMetricRawData *>(
-      metrics_manager->AggregatedMetrics()
-          .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
-          .get());
+    aggregated_data.reset(reinterpret_cast<metrics::PipelineMetricRawData *>(
+        metrics_manager->AggregatedMetrics()
+            .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
+            .release()));
+
+    // restore the old parameters
+    metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, old_sample_rate);
+    if (!old_metrics_enable) metrics_manager->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+  }
   SELFDRIVING_LOG_DEBUG("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
     SELFDRIVING_LOG_DEBUG(fmt::format("qid: {}; pipeline_id: {}", static_cast<uint>(it->query_id_),
                                       static_cast<uint32_t>(it->pipeline_id_)));
   }
 
-  return aggregated_data->pipeline_data_;
+  return aggregated_data;
 }
 
-void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
-                                      common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
-                                      const std::vector<execution::query_id_t> &pipeline_qids,
-                                      const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
-                                      std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                               std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction) {
+void PilotUtil::OUModelInference(const std::string &model_save_path,
+                                 common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+                                 const std::vector<execution::query_id_t> &pipeline_qids,
+                                 const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
+                                 std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
+                                          std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction) {
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> ou_to_features;
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
                        std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>>
@@ -229,6 +293,80 @@ void PilotUtil::InferenceWithFeatures(const std::string &model_save_path,
     }
     pipeline_to_prediction->at(pipeline_key).emplace_back(std::move(pipeline_result));
   }
+}
+
+void PilotUtil::InterferenceModelInference(
+    const std::string &interference_model_save_path,
+    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+    const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
+                   std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
+    common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
+    uint64_t end_segment_index, std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+    std::map<uint32_t, uint64_t> *segment_to_offset, std::vector<std::vector<double>> *interference_result_matrix) {
+  std::vector<std::pair<execution::query_id_t, std::vector<double>>> query_feat_sum;
+  execution::query_id_t curr_qid = execution::INVALID_QUERY_ID;
+
+  auto feat_dim = pipeline_to_prediction.begin()->second.back().back().size();
+
+  // Compute the sum of ous for a query, averaged over diff set of params
+  for (auto const &pipeline_to_pred : pipeline_to_prediction) {
+    std::vector<double> pipeline_sum(feat_dim, 0.0);
+    auto num_ou_for_ppl = 0;
+
+    if (curr_qid != pipeline_to_pred.first.first) {
+      curr_qid = pipeline_to_pred.first.first;
+      query_feat_sum.emplace_back(curr_qid, std::vector<double>(feat_dim, 0.0));
+      query_info->emplace(curr_qid, std::make_pair(pipeline_to_pred.second.size(), 0));
+    }
+
+    for (auto const &pipeline_res : pipeline_to_pred.second) {
+      for (const auto &ou_res : pipeline_res) {
+        // sum up the ou prediction results of all ous in a pipeline
+        SumFeatureInPlace(&pipeline_sum, ou_res, 1);
+      }
+      num_ou_for_ppl += pipeline_res.size();
+    }
+    // record average feat sum of this pipeline among the same queries with diff param
+    SumFeatureInPlace(&query_feat_sum.back().second, pipeline_sum, pipeline_to_pred.second.size());
+    query_info->at(curr_qid).second += num_ou_for_ppl;
+  }
+
+  // Populate interference_features matrix:
+  // Compute sum of all ous in a segment, normalized by its interval
+  std::vector<std::vector<double>> interference_features;
+
+  for (auto i = start_segment_index; i <= end_segment_index; i++) {
+    std::vector<double> normalized_feat_sum(feat_dim, 0.0);
+    auto id_to_num_exec = forecast->GetSegmentByIndex(i).GetIdToNumexec();
+
+    segment_to_offset->emplace(i, interference_features.size());
+
+    for (auto const &id_to_query_sum : query_feat_sum) {
+      if (id_to_num_exec.find(id_to_query_sum.first) != id_to_num_exec.end()) {
+        // account for number of exec of this query
+        // and normalize the ou_sum in an interval by the length of this interval
+        SumFeatureInPlace(&normalized_feat_sum, id_to_query_sum.second,
+                          forecast->forecast_interval_ / id_to_num_exec[id_to_query_sum.first]);
+      }
+    }
+    // curr_feat_sum now holds the sum of ous for queries contained in this segment (averaged over diff set of param)
+    // multiplied by number of execution of the query containing it and normalized by its interval
+    for (auto const &pipeline_to_pred : pipeline_to_prediction) {
+      if (id_to_num_exec.find(pipeline_to_pred.first.first) == id_to_num_exec.end()) {
+        continue;
+      }
+      for (auto const &pipeline_res : pipeline_to_pred.second) {
+        for (const auto &ou_res : pipeline_res) {
+          interference_features.emplace_back(GetInterferenceFeature(ou_res, normalized_feat_sum));
+        }
+      }
+    }
+  }
+
+  auto interference_result =
+      model_server_manager->InferInterferenceModel(interference_model_save_path, interference_features);
+  NOISEPAGE_ASSERT(interference_result.second, "Inference through interference model has error");
+  *interference_result_matrix = interference_result.first;
 }
 
 void PilotUtil::GroupFeaturesByOU(

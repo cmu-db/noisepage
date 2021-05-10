@@ -35,9 +35,10 @@ class TreeNode {
    * @param current_segment_cost cost of executing current segment with actions applied on path from root to current
    * node
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
+   * @param memory memory consumption at the current node in bytes
    */
   TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-           double later_segments_cost);
+           double later_segments_cost, uint64_t memory);
 
   /**
    * @return action id at node with least cost
@@ -71,11 +72,12 @@ class TreeNode {
    * @param tree_end_segment_index end_segment_index of the search tree
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree
+   * @param memory_constraint maximum allowed memory in bytes
    */
   void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                        uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-                       const std::unordered_set<action_id_t> &candidate_actions);
+                       const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint);
 
   /**
    * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
@@ -163,6 +165,7 @@ class TreeNode {
   uint64_t number_of_visits_;  // number of leaf in subtree rooted at node
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
+  uint64_t memory_;
 
   static tree_node_id_t tree_node_identifier;
 };
