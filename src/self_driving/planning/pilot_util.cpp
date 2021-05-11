@@ -459,7 +459,7 @@ void PilotUtil::ComputeMemoryInfo(const WorkloadForecast *forecast,
   auto &metadata = forecast->GetWorkloadMetadata();
   auto txn = txn_manager->BeginTransaction();
   // <query_id, <table_id, number of rows changed by that query in that table>>
-  std::unordered_map<execution::query_id_t , std::pair<catalog::table_oid_t, uint64_t>> query_row_changes;
+  std::unordered_map<execution::query_id_t, std::pair<catalog::table_oid_t, int64_t>> query_row_changes;
   for (const auto &[query_id, query_text] : metadata.query_id_to_text_) {
     // Parse the query
     auto parse_result = parser::PostgresParser::BuildParseTree(query_text);
@@ -467,7 +467,7 @@ void PilotUtil::ComputeMemoryInfo(const WorkloadForecast *forecast,
     auto statement = parse_result->GetStatement(0);
 
     // Identify the table and the number of inserts/deletes
-    int num_row_delta = 0;
+    int64_t num_row_delta = 0;
     catalog::table_oid_t table_oid;
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn),
                                          catalog::db_oid_t(forecast->GetDboidByQid(query_id)), DISABLED);
@@ -491,9 +491,32 @@ void PilotUtil::ComputeMemoryInfo(const WorkloadForecast *forecast,
           num_row_delta = -table_sizes[table_oid];
       }
     }
-    if (num_row_delta != 0) query_row_changes[query_id] = std::make_pair(table_oid, num_row_delta);
+    if (num_row_delta != 0 && table_sizes.find(table_oid) != table_sizes.end())
+      query_row_changes[query_id] = std::make_pair(table_oid, num_row_delta);
   }
   txn_manager->Abort(txn);
+
+  // <segment index, <table id, ratio between the predicted table size and the original table size>>
+  std::unordered_map<uint64_t, std::unordered_map<catalog::table_oid_t, double>> segment_table_size_ratios;
+  for (uint64_t idx = 0; idx < forecast->GetNumberOfSegments() - 1; ++idx) {
+    // Get the table num row changes in this segment
+    auto &id_to_num_exec = forecast->GetSegmentByIndex(idx).GetIdToNumexec();
+    std::unordered_map<catalog::table_oid_t, double> table_size_deltas;
+    for (const auto &[query_id, table_id_to_delta] : query_row_changes) {
+      auto table_id = table_id_to_delta.first;
+      if (table_size_deltas.find(table_id) == table_size_deltas.end()) table_size_deltas[table_id] = 0;
+      table_size_deltas[table_id] += table_id_to_delta.second * id_to_num_exec.at(query_id);
+    }
+
+    // Calculate the table size change ratio for this segment
+    for (const auto &[table_id, size_delta] : table_size_deltas) {
+      double new_table_size = size_delta + static_cast<int64_t>(table_sizes[table_id]);
+      if (new_table_size < 0)
+        segment_table_size_ratios[idx][table_id] = 0;
+      else
+        segment_table_size_ratios[idx][table_id] = new_table_size / table_sizes[table_id];
+    }
+  }
   std::getchar();
 }
 
