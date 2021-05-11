@@ -17,7 +17,9 @@
 #include "network/network_util.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "parser/delete_statement.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/insert_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -417,6 +419,82 @@ void PilotUtil::GroupFeaturesByOU(
     pipeline_to_ou_position->emplace_back(pipeline_qids.at(pipeline_idx), data_it.pipeline_id_,
                                           std::move(ou_positions));
   }
+}
+
+void PilotUtil::ComputeMemoryInfo(const WorkloadForecast *forecast,
+                                  common::ManagedPointer<task::TaskManager> task_manager,
+                                  util::QueryExecUtil *query_exec_util,
+                                  common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                  common::ManagedPointer<catalog::Catalog> catalog) {
+  NOISEPAGE_ASSERT(task_manager, "ComputeMemoryInfo() requires task manager");
+
+  // Maps from table oid to the number of rows (acquired from pg_statistic)
+  std::unordered_map<catalog::table_oid_t, uint64_t> table_sizes;
+
+  auto to_row_fn = [&table_sizes](const std::vector<execution::sql::Val *> &values) {
+    auto table_oid = static_cast<execution::sql::Integer *>(values[0])->val_;
+    auto num_rows = static_cast<execution::sql::Integer *>(values[1])->val_;
+
+    table_sizes[catalog::table_oid_t(table_oid)] = num_rows;
+  };
+
+  // Get <table_id, num_rows> pairs with num_rows > 0
+  auto query = fmt::format(
+      "select starelid, max(stanumrows) as num_rows from pg_statistic group by starelid "
+      "having max(stanumrows) > 0;");
+
+  common::Future<task::DummyResult> sync;
+  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
+                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                        to_row_fn, common::ManagedPointer(&sync)));
+
+  auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
+  if (!future_result.has_value()) {
+    throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+  }
+  UNUSED_ATTRIBUTE bool success = future_result->second;
+  NOISEPAGE_ASSERT(success, "Failed reading from pg_statistic");
+
+  // Calculating queries' changes in the number of rows
+  auto &metadata = forecast->GetWorkloadMetadata();
+  auto txn = txn_manager->BeginTransaction();
+  // <query_id, <table_id, number of rows changed by that query in that table>>
+  std::unordered_map<execution::query_id_t , std::pair<catalog::table_oid_t, uint64_t>> query_row_changes;
+  for (const auto &[query_id, query_text] : metadata.query_id_to_text_) {
+    // Parse the query
+    auto parse_result = parser::PostgresParser::BuildParseTree(query_text);
+    if (parse_result->NumStatements() == 0) continue;
+    auto statement = parse_result->GetStatement(0);
+
+    // Identify the table and the number of inserts/deletes
+    int num_row_delta = 0;
+    catalog::table_oid_t table_oid;
+    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn),
+                                         catalog::db_oid_t(forecast->GetDboidByQid(query_id)), DISABLED);
+    if (statement->GetType() == parser::StatementType::INSERT) {
+      auto insert_statement = reinterpret_cast<parser::InsertStatement *>(statement.Get());
+      table_oid = accessor->GetTableOid(insert_statement->GetInsertionTable()->GetTableName());
+      // Number of values is the number of rows inserted
+      num_row_delta = insert_statement->GetValues()->size();
+    }
+
+    if (statement->GetType() == parser::StatementType::DELETE) {
+      auto delete_statement = reinterpret_cast<parser::DeleteStatement *>(statement.Get());
+      table_oid = accessor->GetTableOid(delete_statement->GetDeletionTable()->GetTableName());
+      if (delete_statement->GetDeleteCondition() != nullptr) {
+        // TODO(lin): right now assuming only deleting one row when there's a condition. Need cardinality estimation
+        //  to get a more accurate estimation
+        num_row_delta = -1;
+      } else {
+        if (table_sizes.find(table_oid) != table_sizes.end())
+          // Delete all the tuples when without condition
+          num_row_delta = -table_sizes[table_oid];
+      }
+    }
+    if (num_row_delta != 0) query_row_changes[query_id] = std::make_pair(table_oid, num_row_delta);
+  }
+  txn_manager->Abort(txn);
+  std::getchar();
 }
 
 }  // namespace noisepage::selfdriving

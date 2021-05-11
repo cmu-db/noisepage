@@ -132,6 +132,12 @@ class PilotUtil {
   static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t start_segment_index, uint64_t end_segment_index);
 
+  static void ComputeMemoryInfo(const WorkloadForecast *forecast,
+                                common::ManagedPointer<task::TaskManager> task_manager,
+                                util::QueryExecUtil *query_exec_util,
+                                common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                common::ManagedPointer<catalog::Catalog> catalog);
+
  private:
   /**
    * Add features to existing features

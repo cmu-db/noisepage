@@ -70,6 +70,8 @@ void Pilot::PerformPlanning() {
     return;
   }
 
+  PilotUtil::ComputeMemoryInfo(forecast_.get(), task_manager_, query_exec_util_.get(), txn_manager_, catalog_);
+
   // Perform planning
   std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;
   Pilot::ActionSearch(&best_action_seq);

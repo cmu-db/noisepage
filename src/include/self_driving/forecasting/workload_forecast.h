@@ -102,11 +102,13 @@ class WorkloadForecast {
     return &(workload_metadata_.query_id_to_param_types_.at(qid));
   }
 
-  uint64_t GetDboidByQid(execution::query_id_t qid) {
+  uint64_t GetDboidByQid(execution::query_id_t qid) const {
     NOISEPAGE_ASSERT(workload_metadata_.query_id_to_dboid_.find(qid) != workload_metadata_.query_id_to_dboid_.end(),
                      "invalid qid");
     return workload_metadata_.query_id_to_dboid_.at(qid);
   }
+
+  const WorkloadMetadata &GetWorkloadMetadata() const { return workload_metadata_; }
 
   /**
    * Initializes segments from inference results
