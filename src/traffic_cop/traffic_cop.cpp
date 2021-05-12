@@ -364,7 +364,7 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, 0u};
 }
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
@@ -449,8 +449,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *physical_plan, exec_settings, connection_ctx->Accessor().Get(),
-      execution::compiler::CompilationMode::Interleaved, std::nullopt,
-      common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
+      execution::compiler::CompilationMode::Interleaved, std::nullopt, portal->OptimizeResult()->GetPlanMetaData());
 
   // TODO(Matt): handle code generation failing
 

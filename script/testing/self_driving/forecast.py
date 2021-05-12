@@ -55,7 +55,7 @@ def config_forecast_data(xml_config_file: str, rate_pattern: List[int]) -> None:
 
 
 def gen_oltp_trace(
-        tpcc_weight: str, tpcc_rates: List[int], pattern_iter: int, record_pipeline_metrics: bool) -> bool:
+        tpcc_weight: str, tpcc_rates: List[int], pattern_iter: int, record_pipeline_metrics_with_counters: bool) -> bool:
     """
     Generate the trace by running OLTPBench's TPCC benchmark on the built DBMS.
 
@@ -67,7 +67,7 @@ def gen_oltp_trace(
         The arrival rates for each phase in a pattern.
     pattern_iter : int
         The number of patterns.
-    record_pipeline_metrics : bool
+    record_pipeline_metrics_with_counters : bool
         Record the pipeline metrics instead of query traces
 
     Returns
@@ -94,11 +94,12 @@ def gen_oltp_trace(
     rates = tpcc_rates * pattern_iter
     config_forecast_data(test_case.xml_config, rates)
 
-    if record_pipeline_metrics:
+    if record_pipeline_metrics_with_counters:
         # Turn on pipeline metrics recording
         db_server.execute("SET pipeline_metrics_enable='true'", expect_result=False)
         db_server.execute("SET pipeline_metrics_sample_rate={}".format(DEFAULT_PIPELINE_METRICS_SAMPLE_RATE),
                           expect_result=False)
+        db_server.execute("SET counters_enable='true'", expect_result=False)
         result_file = DEFAULT_PIPELINE_METRICS_FILE
     else:
         # Turn on query trace metrics tracing
