@@ -95,26 +95,6 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
   }
 }
 
-<<<<<<< HEAD
-void PilotUtil::SumFeatureInPlace(std::vector<double> feature, std::vector<double> delta_feature, double normalization) {
-  for (auto i = 0; i < feature.size(); i++) {
-    feature[i] += delta_feature[i] / normalization;
-  }
-}
-
-/**
- * Normalize feature by the last dimension
- * @param feature
- * @param normalization
- * @return
- */
-std::vector<double> PilotUtil::GetInterferenceFeature(std::vector<double> feature,
-                                                      std::vector<double> normalized_feat_sum) {
-  std::vector<double> interference_feat;
-  for (auto i = 0; i < feature.size(); i++) {
-    // normalize the output of ou_model by the elapsed time
-    interference_feat.emplace_back(feature[i] / (feature[feature.size() - 1] + PilotUtil::NORMEPSILON));
-=======
 void PilotUtil::SumFeatureInPlace(std::vector<double> *feature, const std::vector<double> &delta_feature,
                                   double normalization) {
   for (size_t i = 0; i < feature->size(); i++) {
@@ -128,49 +108,30 @@ std::vector<double> PilotUtil::GetInterferenceFeature(const std::vector<double> 
   for (size_t i = 0; i < feature.size(); i++) {
     // normalize the output of ou_model by the elapsed time
     interference_feat.emplace_back(feature[i] / (feature[feature.size() - 1] + 1e-2));
->>>>>>> 0f8ab92fc36d40376820da753cc5cf9d73331e55
   }
 
   // append with the normalized feature for this segment
   interference_feat.insert(interference_feat.end(), normalized_feat_sum.begin(), normalized_feat_sum.end());
   NOISEPAGE_ASSERT(interference_feat.size() == 18, "expect 18 nonzero elements in interference feature");
-<<<<<<< HEAD
-  interference_feat.resize(interference_dimension, 0.0);
-=======
   interference_feat.resize(INTERFERENCE_DIMENSION, 0.0);
->>>>>>> 0f8ab92fc36d40376820da753cc5cf9d73331e55
   return interference_feat;
 }
 
 double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                               uint64_t start_segment_index, uint64_t end_segment_index) {
   // Compute cost as total latency of queries based on their num of exec
-<<<<<<< HEAD
-
   // query id, <num_param of this query executed, total number of collected ous for this query>
   std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> query_info;
   // This is to record the start index of ou records belonging to a segment in input to the interference model
   std::map<uint32_t, uint64_t> segment_to_offset;
   std::vector<std::vector<double>> interference_result_matrix;
 
-=======
-  // query id, <num_param of this query executed, total number of collected ous for this query>
-  std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> query_info;
-  // This is to record the start index of ou records belonging to a segment in input to the interference model
-  std::map<uint32_t, uint64_t> segment_to_offset;
-  std::vector<std::vector<double>> interference_result_matrix;
-
->>>>>>> 0f8ab92fc36d40376820da753cc5cf9d73331e55
   pilot->ExecuteForecast(start_segment_index, end_segment_index, &query_info, &segment_to_offset,
                          &interference_result_matrix);
 
   double total_cost = 0.0;
 
-<<<<<<< HEAD
-  for (auto seg_idx = start_segment_index; seg_idx <= end_segment_index; seg_idx ++) {
-=======
   for (auto seg_idx = start_segment_index; seg_idx <= end_segment_index; seg_idx++) {
->>>>>>> 0f8ab92fc36d40376820da753cc5cf9d73331e55
     std::vector<std::pair<execution::query_id_t, double>> query_cost;
 
     auto query_ou_offset = segment_to_offset[seg_idx];
@@ -179,21 +140,12 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
     // iterate through the sorted list of qids for this segment
     for (auto id_to_num_exec : forecast->GetSegmentByIndex(seg_idx).GetIdToNumexec()) {
       double curr_query_cost = 0.0;
-<<<<<<< HEAD
-      for (auto ou_idx = query_ou_offset; ou_idx < query_ou_offset + query_info[id_to_num_exec.first].second; ou_idx++) {
-        curr_query_cost +=
-            interference_result_matrix.at(ou_idx).back() / (double) query_info[id_to_num_exec.first].first;
-
-      }
-      total_cost += (double) id_to_num_exec.second * curr_query_cost;
-=======
       for (auto ou_idx = query_ou_offset; ou_idx < query_ou_offset + query_info[id_to_num_exec.first].second;
            ou_idx++) {
         curr_query_cost +=
             interference_result_matrix.at(ou_idx).back() / static_cast<double>(query_info[id_to_num_exec.first].first);
       }
       total_cost += static_cast<double>(id_to_num_exec.second) * curr_query_cost;
->>>>>>> 0f8ab92fc36d40376820da753cc5cf9d73331e55
       query_ou_offset += query_info[id_to_num_exec.first].second;
     }
   }
