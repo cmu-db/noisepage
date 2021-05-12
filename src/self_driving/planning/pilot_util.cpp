@@ -5,7 +5,6 @@
 #include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "execution/compiler/compilation_context.h"
-#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
@@ -28,9 +27,10 @@
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/planning/pilot.h"
 #include "settings/settings_manager.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
 #include "task/task.h"
 #include "task/task_manager.h"
-#include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
 
@@ -421,21 +421,23 @@ void PilotUtil::GroupFeaturesByOU(
   }
 }
 
-void PilotUtil::ComputeMemoryInfo(const WorkloadForecast *forecast,
-                                  common::ManagedPointer<task::TaskManager> task_manager,
-                                  util::QueryExecUtil *query_exec_util,
-                                  common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                  common::ManagedPointer<catalog::Catalog> catalog) {
-  NOISEPAGE_ASSERT(task_manager, "ComputeMemoryInfo() requires task manager");
+void PilotUtil::ComputeTableSizeRatios(const WorkloadForecast *forecast,
+                                       common::ManagedPointer<task::TaskManager> task_manager,
+                                       util::QueryExecUtil *query_exec_util,
+                                       common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                       common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info) {
+  NOISEPAGE_ASSERT(task_manager, "ComputeTableSizeRatios() requires task manager");
 
   // Maps from table oid to the number of rows (acquired from pg_statistic)
   std::unordered_map<catalog::table_oid_t, uint64_t> table_sizes;
 
-  auto to_row_fn = [&table_sizes](const std::vector<execution::sql::Val *> &values) {
+  auto to_row_fn = [&table_sizes, memory_info](const std::vector<execution::sql::Val *> &values) {
     auto table_oid = static_cast<execution::sql::Integer *>(values[0])->val_;
     auto num_rows = static_cast<execution::sql::Integer *>(values[1])->val_;
 
     table_sizes[catalog::table_oid_t(table_oid)] = num_rows;
+    // Currently only track tables with more than 0 rows in the stats
+    memory_info->table_oids_.emplace_back(table_oid);
   };
 
   // Get <table_id, num_rows> pairs with num_rows > 0
@@ -496,9 +498,8 @@ void PilotUtil::ComputeMemoryInfo(const WorkloadForecast *forecast,
   }
   txn_manager->Abort(txn);
 
-  // <segment index, <table id, ratio between the predicted table size and the original table size>>
-  std::unordered_map<uint64_t, std::unordered_map<catalog::table_oid_t, double>> segment_table_size_ratios;
-  for (uint64_t idx = 0; idx < forecast->GetNumberOfSegments() - 1; ++idx) {
+  // Compute table size ratios given the workload forecast
+  for (uint64_t idx = 0; idx < forecast->GetNumberOfSegments(); ++idx) {
     // Get the table num row changes in this segment
     auto &id_to_num_exec = forecast->GetSegmentByIndex(idx).GetIdToNumexec();
     std::unordered_map<catalog::table_oid_t, double> table_size_deltas;
@@ -512,12 +513,35 @@ void PilotUtil::ComputeMemoryInfo(const WorkloadForecast *forecast,
     for (const auto &[table_id, size_delta] : table_size_deltas) {
       double new_table_size = size_delta + static_cast<int64_t>(table_sizes[table_id]);
       if (new_table_size < 0)
-        segment_table_size_ratios[idx][table_id] = 0;
+        memory_info->segment_table_size_ratios_[idx][table_id] = 0;
       else
-        segment_table_size_ratios[idx][table_id] = new_table_size / table_sizes[table_id];
+        memory_info->segment_table_size_ratios_[idx][table_id] = new_table_size / table_sizes[table_id];
     }
   }
-  std::getchar();
+}
+
+void PilotUtil::ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                       common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info) {
+  catalog::db_oid_t max_db_oid = catalog->GetNextOid();
+  auto txn = txn_manager->BeginTransaction();
+  // Traverse all databases to find the info (since we don't know which table belongs to which database)
+  for (auto db_oid = catalog::db_oid_t(1); db_oid < max_db_oid; db_oid++) {
+    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+    if (accessor == nullptr) continue;
+    for (auto table_oid : memory_info->table_oids_) {
+      // Get table memory size
+      auto sql_table = accessor->GetTable(table_oid);
+      if (sql_table == nullptr) continue;
+      memory_info->table_memory_bytes_[table_oid] = sql_table->EstimateHeapUsage();
+
+      // Get index memory size
+      auto index_oids = accessor->GetIndexOids(table_oid);
+      for (auto index_oid : index_oids) {
+        auto index = accessor->GetIndex(index_oid);
+        memory_info->table_index_memory_bytes_[table_oid][index_oid] = index->EstimateHeapUsage();
+      }
+    }
+  }
 }
 
 }  // namespace noisepage::selfdriving

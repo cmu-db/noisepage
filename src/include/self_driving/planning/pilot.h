@@ -18,6 +18,7 @@
 #include "self_driving/forecasting/forecaster.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/action_defs.h"
+#include "self_driving/planning/memory_info.h"
 
 namespace noisepage {
 namespace messenger {
@@ -173,8 +174,10 @@ class Pilot {
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   common::ManagedPointer<task::TaskManager> task_manager_;
   Forecaster forecaster_;
+  MemoryInfo memory_info_;
   uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};
+
   friend class noisepage::selfdriving::PilotUtil;
   friend class noisepage::selfdriving::pilot::MonteCarloTreeSearch;
 };

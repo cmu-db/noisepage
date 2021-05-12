@@ -70,7 +70,10 @@ void Pilot::PerformPlanning() {
     return;
   }
 
-  PilotUtil::ComputeMemoryInfo(forecast_.get(), task_manager_, query_exec_util_.get(), txn_manager_, catalog_);
+  PilotUtil::ComputeTableSizeRatios(forecast_.get(), task_manager_, query_exec_util_.get(), txn_manager_, catalog_,
+                                    &memory_info_);
+
+  PilotUtil::ComputeTableIndexSizes(txn_manager_, catalog_, &memory_info_);
 
   // Perform planning
   std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;

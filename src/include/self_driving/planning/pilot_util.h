@@ -132,11 +132,21 @@ class PilotUtil {
   static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t start_segment_index, uint64_t end_segment_index);
 
-  static void ComputeMemoryInfo(const WorkloadForecast *forecast,
-                                common::ManagedPointer<task::TaskManager> task_manager,
-                                util::QueryExecUtil *query_exec_util,
-                                common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                common::ManagedPointer<catalog::Catalog> catalog);
+  static void ComputeTableSizeRatios(const WorkloadForecast *forecast,
+                                     common::ManagedPointer<task::TaskManager> task_manager,
+                                     util::QueryExecUtil *query_exec_util,
+                                     common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                     common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info);
+
+  /**
+   * TODO(lin): we should get this information from the stats if the pilot is not running on the primary. But since
+   * we don't have this in stats yet we're directly getting the information from c++ objects.
+   * @param txn_manager
+   * @param catalog
+   * @param memory_info
+   */
+  static void ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                     common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info);
 
  private:
   /**
