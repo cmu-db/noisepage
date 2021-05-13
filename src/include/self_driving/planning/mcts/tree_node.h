@@ -65,6 +65,7 @@ class TreeNode {
    * @param pilot pointer to pilot
    * @param forecast pointer to forecasted workload
    * @param tree_start_segment_index start_segment_index of the search tree
+   * @param action_horizon number of next levels only influenced by the action selected at current node
    * @param tree_end_segment_index end_segment_index of the search tree
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree

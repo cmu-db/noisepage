@@ -121,8 +121,8 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
   auto action_plan_end_index = std::min(tree_start_segment_index + depth_ + action_horizon - 1, tree_end_segment_index);
   auto end_segment_index = tree_end_segment_index;
 
-  SELFDRIVING_LOG_INFO("action_plan_start_index: {} action_plan_end_index: {} end_segment_index: {}",
-                       action_plan_start_index, action_plan_end_index, end_segment_index);
+  SELFDRIVING_LOG_DEBUG("action_plan_start_index: {} action_plan_end_index: {} end_segment_index: {}",
+                        action_plan_start_index, action_plan_end_index, end_segment_index);
 
 
   NOISEPAGE_ASSERT(action_plan_start_index <= end_segment_index,
