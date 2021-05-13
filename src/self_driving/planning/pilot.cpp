@@ -58,12 +58,12 @@ void Pilot::PerformPlanning() {
   metrics_thread_->PauseMetrics();
 
   // Populate the workload forecast
-  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
-  bool metrics_in_db =
-      metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
-  forecast_ = forecaster_.LoadWorkloadForecast(
-      metrics_in_db ? Forecaster::WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
-                    : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE);
+  //  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
+  //  bool metrics_in_db =
+  //      metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
+  forecast_ = forecaster_.LoadWorkloadForecast(Forecaster::WorkloadForecastInitMode::DISK_ONLY);
+  //      metrics_in_db ? Forecaster::WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
+  //                    : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE);
   if (forecast_ == nullptr) {
     SELFDRIVING_LOG_ERROR("Unable to initialize the WorkloadForecast information");
     metrics_thread_->ResumeMetrics();

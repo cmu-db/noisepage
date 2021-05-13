@@ -42,6 +42,11 @@ class TreeNode {
   common::ManagedPointer<TreeNode> BestSubtree();
 
   /**
+   * @return depth of the treenode in the search tree
+   */
+  uint64_t GetDepth() { return depth_; }
+
+  /**
    * Recursively sample the vertex whose children will be assigned values through rollout.
    * @param root pointer to root of the search tree
    * @param pilot pointer to pilot
@@ -66,7 +71,7 @@ class TreeNode {
    * @param memory_constraint maximum allowed memory in bytes
    */
   void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                       uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
+                       uint64_t tree_start_segment_index, uint64_t action_horizon, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint);
 
