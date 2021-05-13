@@ -116,14 +116,12 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                                uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint) {
-
   auto action_plan_start_index = tree_start_segment_index + depth_;
   auto action_plan_end_index = std::min(tree_start_segment_index + depth_ + action_horizon - 1, tree_end_segment_index);
   auto end_segment_index = tree_end_segment_index;
 
   SELFDRIVING_LOG_DEBUG("action_plan_start_index: {} action_plan_end_index: {} end_segment_index: {}",
                         action_plan_start_index, action_plan_end_index, end_segment_index);
-  
   NOISEPAGE_ASSERT(action_plan_start_index <= end_segment_index,
                    "action plan end segment index should be no greater than tree end segment index");
 
