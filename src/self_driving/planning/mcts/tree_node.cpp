@@ -126,7 +126,7 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
 
 
   NOISEPAGE_ASSERT(action_plan_start_index <= end_segment_index,
-                   "start segment index should be no greater than the end segment index");
+                   "action plan end segment index should be no greater than tree end segment index");
 
   for (const auto &action_id : candidate_actions) {
     // expand each action not yet applied
