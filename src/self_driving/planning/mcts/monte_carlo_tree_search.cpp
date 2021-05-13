@@ -48,8 +48,8 @@ void MonteCarloTreeSearch::BestAction(uint64_t simulation_number,
     auto vertex =
         TreeNode::Selection(common::ManagedPointer(root_), pilot_, action_map_, &candidate_actions, end_segment_index_);
 
-    vertex->ChildrenRollout(pilot_, forecast_, 0, levels_to_plan_.at(vertex->GetDepth()), end_segment_index_, action_map_, candidate_actions,
-                            memory_constraint);
+    vertex->ChildrenRollout(pilot_, forecast_, 0, levels_to_plan_.at(vertex->GetDepth()), end_segment_index_,
+                            action_map_, candidate_actions, memory_constraint);
     vertex->BackPropogate(pilot_, action_map_, use_min_cost_);
   }
   // return the best action at root
