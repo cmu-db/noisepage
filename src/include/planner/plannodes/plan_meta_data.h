@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <utility>
 
 #include "planner/plannodes/plan_node_defs.h"
 
@@ -21,16 +22,41 @@ class PlanMetaData {
     /**
      * Construct a PlanNodeMetaData with a cardinality value
      * @param cardinality output cardinality of the plan node
+     * @param table_num_rows number of rows in the base table (for sequential or index scans)
+     * @param filter_column_selectivities maps from column id to the selectivity on that column (multiplied
+     *   with duplicates)
      */
-    explicit PlanNodeMetaData(int cardinality) : cardinality_(cardinality) {}
+    explicit PlanNodeMetaData(size_t cardinality, size_t table_num_rows,
+                              std::unordered_map<catalog::col_oid_t, double> filter_column_selectivities)
+        : cardinality_(cardinality),
+          table_num_rows_(table_num_rows),
+          filter_column_selectivities_(std::move(filter_column_selectivities)) {}
 
     /**
      * @return the output cardinality
      */
-    int GetCardinality() { return cardinality_; }
+    size_t GetCardinality() const { return cardinality_; }
+
+    /**
+     * @return the number of rows in the table to scan
+     */
+    size_t GetTableNumRows() const { return table_num_rows_; }
+
+    /**
+     * @return the number of rows in the table to scan
+     */
+    double GetFilterColumnSelectivity(catalog::col_oid_t col_oid) const {
+      if (filter_column_selectivities_.find(col_oid) == filter_column_selectivities_.end())
+        // Does not filter on this column
+        return 1;
+
+      return filter_column_selectivities_.at(col_oid);
+    }
 
    private:
-    int cardinality_ = -1;
+    size_t cardinality_;
+    size_t table_num_rows_;
+    std::unordered_map<catalog::col_oid_t, double> filter_column_selectivities_;
   };
 
   /**

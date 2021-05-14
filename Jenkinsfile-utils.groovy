@@ -239,7 +239,7 @@ void stageModeling() {
     // This script runs TPC-C with pipeline metrics enabled, saving to build/concurrent_runner_input/pipeline.csv.
     sh script :'''
     cd build
-    PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics --pattern_iter=1
+    PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics_with_counters --pattern_iter=1
     mkdir concurrent_runner_input
     mv pipeline.csv concurrent_runner_input
     ''', label: 'Interference model training data generation'

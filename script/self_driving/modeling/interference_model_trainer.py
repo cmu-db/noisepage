@@ -181,7 +181,7 @@ class InterferenceModelTrainer:
             # x.append(np.concatenate((ou_model_y_pred[-1] / predicted_elapsed_us,
             #                          predicted_resource_util,
             #                          d.resource_util_same_core_x)))
-            x.append(np.concatenate((ou_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util)))
+            x.append(np.concatenate((ou_model_y_pred[-1] / (predicted_elapsed_us + epsilon), predicted_resource_util)))
             raw_y.append(d.target_grouped_op_unit_data.y)
             y.append(raw_y[-1] / (ou_model_y_pred[-1] + epsilon))
             # Do not adjust memory consumption since it shouldn't change

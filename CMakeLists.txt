@@ -1154,6 +1154,7 @@ file(GLOB_RECURSE NOISEPAGE_BENCHMARK_SOURCES
         "benchmark/integration/*.cpp"
         "benchmark/metrics/*.cpp"
         "benchmark/parser/*.cpp"
+        "benchmark/replication/*.cpp"
         "benchmark/storage/*.cpp"
         "benchmark/transaction/*.cpp"
         "benchmark/runner/*.cpp"

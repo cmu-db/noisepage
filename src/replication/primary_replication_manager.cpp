@@ -37,6 +37,19 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   REPLICATION_LOG_TRACE(fmt::format("[SEND] Preparing ReplicateBatchOfRecords."));
   NOISEPAGE_ASSERT(policy != transaction::ReplicationPolicy::DISABLE, "Replication is disabled, so why are we here?");
 
+  // Handle the degenerate case of having no replicas.
+  if (replicas_.empty()) {
+    // Invoke all the commit callbacks.
+    for (const auto &cb : commit_callbacks) {
+      cb.fn_(cb.arg_);
+    }
+    // Return the buffered log writer to the pool if necessary.
+    if (records_batch != nullptr && records_batch->MarkSerialized()) {
+      empty_buffer_queue_->Enqueue(records_batch);
+    }
+    return;
+  }
+
   if (policy == transaction::ReplicationPolicy::ASYNC) {
     // In asynchronous replication, just invoke the commit callbacks immediately.
     for (const auto &cb : commit_callbacks) {
@@ -67,7 +80,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     messenger::callback_id_t destination_cb =
         messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
     const msg_id_t msg_id = msg.GetMessageId();
-    const std::string msg_string = msg.ToJson().dump();
+    const std::string msg_string = msg.Serialize();
     for (const auto &replica : replicas_) {
       Send(replica.first, msg_id, msg_string, messenger::CallbackFns::Noop, destination_cb);
     }
@@ -92,7 +105,7 @@ void PrimaryReplicationManager::NotifyReplicasOfOAT(transaction::timestamp_t old
       messenger::Messenger::GetBuiltinCallback(messenger::Messenger::BuiltinCallback::NOOP);
 
   const msg_id_t msg_id = msg.GetMessageId();
-  const std::string msg_string = msg.ToJson().dump();
+  const std::string msg_string = msg.Serialize();
   for (const auto &replica : replicas_) {
     Send(replica.first, msg_id, msg_string, messenger::CallbackFns::Noop, destination_cb);
   }
