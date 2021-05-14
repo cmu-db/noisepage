@@ -30,6 +30,7 @@ class TreeNode {
    * @param current_action action that leads its parent to the current node, root has NULL action
    * @param current_segment_cost cost of executing current segment with actions applied on path from root to current
    * node
+   * @param action_start_segment_index start of segment index that this node will influence
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    * @param memory memory consumption at the current node in bytes
    */
@@ -64,7 +65,6 @@ class TreeNode {
    * Expand each child of current node and update its cost and num of visits accordingly
    * @param pilot pointer to pilot
    * @param forecast pointer to forecasted workload
-   * @param tree_start_segment_index start_segment_index of the search tree
    * @param action_horizon number of next levels only influenced by the action selected at current node
    * @param tree_end_segment_index end_segment_index of the search tree
    * @param action_map action map of the search tree
