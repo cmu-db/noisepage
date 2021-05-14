@@ -30,16 +30,22 @@ class TreeNode {
    * @param current_action action that leads its parent to the current node, root has NULL action
    * @param current_segment_cost cost of executing current segment with actions applied on path from root to current
    * node
+   * @param action_start_segment_index start of segment index that this node will influence
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    * @param memory memory consumption at the current node in bytes
    */
-  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-           double later_segments_cost, uint64_t memory);
+  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t action_start_segment_index,
+           double current_segment_cost, double later_segments_cost, uint64_t memory);
 
   /**
    * @return action id at node with least cost
    */
   common::ManagedPointer<TreeNode> BestSubtree();
+
+  /**
+   * @return depth of the treenode in the search tree
+   */
+  uint64_t GetDepth() { return depth_; }
 
   /**
    * Recursively sample the vertex whose children will be assigned values through rollout.
@@ -59,14 +65,14 @@ class TreeNode {
    * Expand each child of current node and update its cost and num of visits accordingly
    * @param pilot pointer to pilot
    * @param forecast pointer to forecasted workload
-   * @param tree_start_segment_index start_segment_index of the search tree
+   * @param action_horizon number of next levels only influenced by the action selected at current node
    * @param tree_end_segment_index end_segment_index of the search tree
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree
    * @param memory_constraint maximum allowed memory in bytes
    */
   void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                       uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
+                       uint64_t action_horizon, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint);
 
@@ -136,7 +142,8 @@ class TreeNode {
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
   bool is_leaf_;
-  const uint64_t depth_;  // number of edges in path from root
+  const uint64_t depth_;                       // number of edges in path from root
+  const uint64_t action_start_segment_index_;  // start of segment index that this node will influence
   const action_id_t current_action_;
   const double ancestor_cost_;  // cost of executing segments with actions applied on path from root to current node
   const common::ManagedPointer<TreeNode> parent_;
