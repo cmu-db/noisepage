@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>  // NOLINT
+#include <optional>
 #include <string>
 #include <thread>  // NOLINT
 #include <utility>
@@ -47,10 +48,34 @@ class Future {
   Future() = default;
 
   /**
-   * Suspends the current thread and wait for the result to be ready
+   * Suspends the current thread and wait up to a limited time for the result to be ready.
+   * @param wait_millis The duration that the current thread should wait, in milliseconds.
+   * @return The (Result, success) state if the future did NOT time out. Otherwise, nullopt.
+   */
+  std::optional<std::pair<Result, bool>> WaitFor(std::chrono::milliseconds wait_millis) {
+    bool timed_out;
+    {
+      std::unique_lock<std::mutex> lock(mtx_);
+
+      // Wait until the future is completed by someone with successful result or failure
+      timed_out = !cvar_.wait_for(lock, wait_millis, [&] { return done_.load(); });
+    }
+
+    return timed_out ? std::nullopt : std::make_optional(std::pair<Result, bool>(result_, success_));
+  }
+
+  /**
+   * Suspends the current thread and wait for the result to be ready.
+   * This wait is dangerous to use, do not use it unless you guarantee that the future will be signaled no matter what.
+   * An example that you should handle is simply shutting down the DBMS -- can you guarantee that the future will not
+   * be stuck waiting? This would cause the DBMS to be stuck until forcefully killed, which results in the DBMS having
+   * a bad exit code, and thus it will fail CI, so on and so forth.
+   *
+   * @warning This wait is dangerous to use since the DBMS will not exit cleanly if still waiting. You have been warned.
+   *
    * @return Result, and success/fail
    */
-  std::pair<Result, bool> Wait() {
+  std::pair<Result, bool> DangerousWait() {
     {
       std::unique_lock<std::mutex> lock(mtx_);
 

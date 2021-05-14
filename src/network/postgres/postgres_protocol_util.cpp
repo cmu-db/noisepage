@@ -83,7 +83,8 @@ PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(con
       return PostgresValueType::DATE;
 
     case type::TypeId::VARCHAR:
-      return PostgresValueType::VARCHAR2;
+      return PostgresValueType::VARCHAR2;  // TODO(Matt): should this just be VARCHAR? VARCHAR2 is an Postgres-Oracle
+                                           // compatibility thing
 
     case type::TypeId::VARBINARY:
       return PostgresValueType::VARBINARY;

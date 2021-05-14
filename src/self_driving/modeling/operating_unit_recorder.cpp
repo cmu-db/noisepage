@@ -5,7 +5,6 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/context.h"
-#include "execution/ast/type.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
@@ -13,6 +12,7 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
+#include "optimizer/index_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression_defs.h"
@@ -42,6 +42,7 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/plan_meta_data.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
@@ -50,12 +51,14 @@
 #include "self_driving/modeling/operating_unit_util.h"
 #include "storage/block_layout.h"
 #include "storage/index/index.h"
+#include "storage/sql_table.h"
 #include "type/type_id.h"
 
 namespace noisepage::selfdriving {
 
 template <typename IndexPlanNode>
-void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids) {
+void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids,
+                                                  catalog::table_oid_t table_oid) {
   selfdriving::ExecutionOperatingUnitType type;
   if (std::is_same<IndexPlanNode, planner::InsertPlanNode>::value) {
     type = selfdriving::ExecutionOperatingUnitType::INDEX_INSERT;
@@ -63,8 +66,8 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
     type = selfdriving::ExecutionOperatingUnitType::INDEX_DELETE;
   } else if (std::is_same<IndexPlanNode, planner::UpdatePlanNode>::value) {
     // UPDATE is done as a DELETE followed by INSERT
-    RecordIndexOperations<planner::InsertPlanNode>(index_oids);
-    RecordIndexOperations<planner::DeletePlanNode>(index_oids);
+    RecordIndexOperations<planner::InsertPlanNode>(index_oids, table_oid);
+    RecordIndexOperations<planner::DeletePlanNode>(index_oids, table_oid);
     return;
   } else {
     NOISEPAGE_ASSERT(false, "Recording index operations for non-modiying plan node");
@@ -73,12 +76,12 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
   for (auto &oid : index_oids) {
     auto &index_schema = accessor_->GetIndexSchema(oid);
 
-    // Currenty favor using the index size extracted from the index as opposed to table size
-    // estimate. This will probably be replaced with stats in the future.
-    auto index = accessor_->GetIndex(oid);
+    // TODO(lin): Use the table size instead of the index size as the estiamte (since there may be "what-if" indexes
+    //  that we don't populate). We probably need to use the stats if the pilot is not running on the primary.
+    auto table = accessor_->GetTable(table_oid);
 
     std::vector<catalog::indexkeycol_oid_t> keys;
-    size_t num_rows = index->GetSize();
+    size_t num_rows = table->GetNumTuple();
     size_t num_keys = index_schema.GetColumns().size();
     size_t key_size = ComputeKeySize(common::ManagedPointer(&index_schema), false, keys, &num_keys);
 
@@ -202,71 +205,145 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
 void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUnitType type, size_t key_size,
                                               size_t num_keys, const planner::AbstractPlanNode *plan,
                                               size_t scaling_factor, double mem_factor) {
-  // TODO(wz2): Populate actual num_rows/cardinality after #759
-  size_t num_rows = 1;
-  size_t cardinality = 1;
+  size_t num_rows;
+  // TODO(lin): Some times cardinality represents the number of distinct values for some OUs (e.g., SORT_BUILD),
+  //  but we don't have a good way to estimate that right now. So in those cases we just copy num_rows
+  size_t cardinality;
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
-  if (type == ExecutionOperatingUnitType::OUTPUT) {
-    if (accessor_->GetDatabaseOid("tpch_runner_db") != catalog::INVALID_DATABASE_OID) {
-      // Unfortunately we don't know what kind of output callback that we're going to call at runtime, so we just
-      // special case this when we execute the plans directly from the TPCH runner and use the NoOpResultConsumer
-      cardinality = 0;
-    } else {
-      // Uses the network result consumer
-      cardinality = 1;
-    }
-    auto child_translator = current_translator_->GetChildTranslator();
-    if (child_translator != nullptr) {
-      if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
-        auto output = child_translator->Op()->GetOutputSchema()->GetColumn(0).GetExpr();
-        if (output && output->GetExpressionType() == parser::ExpressionType::FUNCTION) {
-          auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
-          if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
-            auto child = f_expr->GetChild(0);
-            NOISEPAGE_ASSERT(child, "NpRunnersEmit should have children");
-            NOISEPAGE_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
-                             "Child should be constants");
 
-            auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
-            num_rows = cve->GetInteger().val_;
+  // Dummy default values in case we don't have stats
+  size_t current_plan_cardinality = 1;
+  size_t table_num_rows = 1;
+  if (plan_meta_data_ != nullptr) {
+    auto &plan_node_meta_data = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId());
+    current_plan_cardinality = plan_node_meta_data.GetCardinality();
+    table_num_rows = plan_node_meta_data.GetTableNumRows();
+  }
+
+  switch (type) {
+    case ExecutionOperatingUnitType::OUTPUT: {
+      num_rows = current_plan_cardinality;
+      if (accessor_->GetDatabaseOid("tpch_runner_db") != catalog::INVALID_DATABASE_OID) {
+        // Unfortunately we don't know what kind of output callback that we're going to call at runtime, so we just
+        // special case this when we execute the plans directly from the TPCH runner and use the NoOpResultConsumer
+        cardinality = 0;
+      } else {
+        // Uses the network result consumer
+        cardinality = 1;
+      }
+      auto child_translator = current_translator_->GetChildTranslator();
+      if (child_translator != nullptr) {
+        if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
+          auto output = child_translator->Op()->GetOutputSchema()->GetColumn(0).GetExpr();
+          if (output && output->GetExpressionType() == parser::ExpressionType::FUNCTION) {
+            auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
+            if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
+              auto child = f_expr->GetChild(0);
+              NOISEPAGE_ASSERT(child, "NpRunnersEmit should have children");
+              NOISEPAGE_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
+                               "Child should be constants");
+
+              auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
+              num_rows = cve->GetInteger().val_;
+            }
           }
         }
       }
-    }
-  } else if (type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
-    // If feature is OUTPUT or computation, then cardinality = num_rows
-    cardinality = num_rows;
-  } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
-    NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
-    UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(1);
-    num_rows = 1;     // extract from c_plan num_rows (# row to probe)
-    cardinality = 1;  // extract from plan num_rows (# matched rows)
-  } else if (type == ExecutionOperatingUnitType::IDX_SCAN) {
-    // For IDX_SCAN, the feature is as follows:
-    // - num_rows is the size of the index
-    // - cardinality is the scan size
-    if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
-      num_rows = reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetIndexSize();
-    } else {
-      NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
-      num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
+    } break;
+    case ExecutionOperatingUnitType::HASHJOIN_PROBE: {
+      NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
+      cardinality = current_plan_cardinality;  // extract from plan num_rows (# matched rows)
 
-      UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
-      num_loops = 0;  // extract from c_plan num_rows
-    }
+      if (plan_meta_data_ != nullptr) {
+        auto *c_plan = plan->GetChild(1);
+        // extract from c_plan num_rows (# row to probe)
+        num_rows = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+      } else {
+        num_rows = 1;
+      }
+    } break;
+    case ExecutionOperatingUnitType::IDX_SCAN: {
+      // For IDX_SCAN, the feature is as follows:
+      // - num_rows is the size of the index
+      // - cardinality is the scan size
+      catalog::table_oid_t table_oid;
+      catalog::index_oid_t index_oid;
+      if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
+        auto index_scan_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plan);
+        index_oid = index_scan_plan->GetIndexOid();
+        table_oid = index_scan_plan->GetTableOid();
+        if (table_num_rows == 0)
+          // When we didn't run Analyze
+          num_rows = index_scan_plan->GetIndexSize();
+        else
+          num_rows = table_num_rows;
 
-    cardinality = 1;  // extract from plan num_rows (this is the scan size)
-  } else if (type == ExecutionOperatingUnitType::CREATE_INDEX) {
-    // We extract the num_rows and cardinality from the table name if possible
-    // This is a special case for mini-runners
-    std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();
-    auto mrpos = idx_name.find("minirunners__");
-    if (mrpos != std::string::npos) {
-      num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
-      cardinality = num_rows;
-    }
+        std::vector<catalog::col_oid_t> mapped_cols;
+        std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> lookup;
+
+        UNUSED_ATTRIBUTE bool status = optimizer::IndexUtil::ConvertIndexKeyOidToColOid(
+            accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
+        NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
+
+        if (plan_meta_data_ != nullptr) {
+          cardinality = table_num_rows;  // extract from plan num_rows (this is the scan size)
+          auto &plan_node_meta_data = plan_meta_data_->GetPlanNodeMetaData(plan->GetPlanNodeId());
+          double selectivity = 1;
+          for (auto col_id : mapped_cols) {
+            selectivity *= plan_node_meta_data.GetFilterColumnSelectivity(col_id);
+          }
+          cardinality = cardinality * selectivity;
+        } else {
+          cardinality = 1;
+        }
+      } else {
+        NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
+        auto index_join_plan = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan);
+
+        if (plan_meta_data_ != nullptr) {
+          auto *c_plan = plan->GetChild(0);
+          // extract from c_plan num_row
+          num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
+        }
+
+        // FIXME(lin): Right now we do not populate the cardinality or selectivity stats for the inner index scan of
+        //  INDEXNLJOIN. We directly get the size from the index and assume the inner index scan only returns 1 tuple.
+        num_rows = index_join_plan->GetIndexSize();
+        cardinality = 1;
+      }
+    } break;
+    case ExecutionOperatingUnitType::SEQ_SCAN: {
+      num_rows = table_num_rows;
+      cardinality = table_num_rows;
+    } break;
+    case ExecutionOperatingUnitType::SORT_TOPK_BUILD: {
+      num_rows = current_plan_cardinality;
+      // TODO(lin): This should be the limit size for the OrderByPlanNode, which is the parent plan for the plan of
+      //  the SORT_TOPK_BUILD OU. We need to refactor the interface to pass in this information correctly.
+      cardinality = 1;
+    } break;
+    case ExecutionOperatingUnitType::CREATE_INDEX: {
+      num_rows = table_num_rows;
+      cardinality = table_num_rows;
+      // We extract the num_rows and cardinality from the table name if possible
+      // This is a special case for mini-runners
+      std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();
+      auto mrpos = idx_name.find("minirunners__");
+      if (mrpos != std::string::npos) {
+        num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
+        cardinality = num_rows;
+      }
+    } break;
+    default:
+      num_rows = current_plan_cardinality;
+      cardinality = current_plan_cardinality;
   }
+
+  // Setting the cardinality to at least to one in case losing accuracy during casting. We don't model the case when
+  // the cardinality is 0 either.
+  num_rows = std::max(num_rows, 1lu);
+  cardinality = std::max(cardinality, 1lu);
 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
@@ -548,7 +625,7 @@ void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
   }
 
   if (!plan->GetIndexOids().empty()) {
-    RecordIndexOperations<planner::InsertPlanNode>(plan->GetIndexOids());
+    RecordIndexOperations<planner::InsertPlanNode>(plan->GetIndexOids(), plan->GetTableOid());
   }
 }
 
@@ -579,7 +656,7 @@ void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {
     AggregateFeatures(selfdriving::ExecutionOperatingUnitType::INSERT, key_size, num_cols, plan, 1, 1);
     AggregateFeatures(selfdriving::ExecutionOperatingUnitType::DELETE, key_size, num_cols, plan, 1, 1);
 
-    RecordIndexOperations<planner::UpdatePlanNode>(plan->GetIndexOids());
+    RecordIndexOperations<planner::UpdatePlanNode>(plan->GetIndexOids(), plan->GetTableOid());
   }
 }
 
@@ -593,7 +670,7 @@ void OperatingUnitRecorder::Visit(const planner::DeletePlanNode *plan) {
   AggregateFeatures(plan_feature_type_, key_size, num_cols, plan, 1, 1);
 
   if (!plan->GetIndexOids().empty()) {
-    RecordIndexOperations<planner::DeletePlanNode>(plan->GetIndexOids());
+    RecordIndexOperations<planner::DeletePlanNode>(plan->GetIndexOids(), plan->GetTableOid());
   }
 }
 

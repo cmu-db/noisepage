@@ -36,11 +36,11 @@ namespace noisepage::optimizer {
 struct IdxJoinTest : public TerrierTest {
   const uint64_t optimizer_timeout_ = 1000000;
 
-  void CompileAndRun(std::unique_ptr<planner::AbstractPlanNode> *plan, network::Statement *stmt) {
+  void CompileAndRun(std::unique_ptr<optimizer::OptimizeResult> *optimize_result, network::Statement *stmt) {
     network::WriteQueue queue;
     auto pwriter = network::PostgresPacketWriter(common::ManagedPointer(&queue));
     auto portal = network::Portal(common::ManagedPointer(stmt));
-    stmt->SetPhysicalPlan(std::move(*plan));
+    stmt->SetOptimizeResult(std::move(*optimize_result));
     auto result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
                                              common::ManagedPointer(&portal));
     NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
@@ -49,9 +49,9 @@ struct IdxJoinTest : public TerrierTest {
     NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
   }
 
-  void ExecuteCreate(std::unique_ptr<planner::AbstractPlanNode> *plan, network::QueryType qtype) {
+  void ExecuteCreate(std::unique_ptr<optimizer::OptimizeResult> *optimize_result, network::QueryType qtype) {
     auto result =
-        tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), common::ManagedPointer(*plan), qtype);
+        tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), (*optimize_result)->GetPlanNode(), qtype);
     NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
   }
 
@@ -64,17 +64,15 @@ struct IdxJoinTest : public TerrierTest {
                                    common::ManagedPointer(&params));
     NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
 
-    auto plan =
-        tcop_
-            ->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult(), common::ManagedPointer(&params))
-            ->TakePlanNodeOwnership();
+    auto optimize_result = tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult(),
+                                                     common::ManagedPointer(&params));
     if (qtype >= network::QueryType::QUERY_CREATE_TABLE && qtype != network::QueryType::QUERY_CREATE_INDEX) {
-      ExecuteCreate(&plan, qtype);
+      ExecuteCreate(&optimize_result, qtype);
     } else if (qtype == network::QueryType::QUERY_CREATE_INDEX) {
-      ExecuteCreate(&plan, qtype);
-      CompileAndRun(&plan, &stmt);
+      ExecuteCreate(&optimize_result, qtype);
+      CompileAndRun(&optimize_result, &stmt);
     } else {
-      CompileAndRun(&plan, &stmt);
+      CompileAndRun(&optimize_result, &stmt);
     }
 
     tcop_->EndTransaction(common::ManagedPointer(&context_), network::QueryType::QUERY_COMMIT);

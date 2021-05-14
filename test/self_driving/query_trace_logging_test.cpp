@@ -165,14 +165,15 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     std::vector<std::vector<parser::ConstantValueExpression>> params;
     std::vector<type::TypeId> param_types;
 
-    common::Future<bool> sync;
+    common::Future<task::DummyResult> sync;
+    execution::exec::ExecutionSettings settings{};
     task_manager->AddTask(std::make_unique<task::TaskDML>(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
         std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
-        false, true, std::nullopt, common::ManagedPointer(&sync)));
+        settings, false, true, std::nullopt, common::ManagedPointer(&sync)));
 
-    auto sync_result = sync.Wait();
-    bool result = sync_result.first;
+    auto sync_result = sync.DangerousWait();
+    bool result = sync_result.second;
     EXPECT_TRUE(result && "SELECT frequencies should have succeeded");
     EXPECT_TRUE(seen == combined && "Incorrect number recorded");
     EXPECT_TRUE(qid_map.size() == qids.size() && "Incorrect number qids recorded");
@@ -210,8 +211,8 @@ TEST_F(QueryTraceLogging, BasicLogging) {
       auto type_json = std::string(reinterpret_cast<execution::sql::StringVal *>(values[3])->StringView());
 
       std::vector<std::string> type_strs;
-      for (const auto &val : parameters[qid]) {
-        auto tstr = type::TypeUtil::TypeIdToString(val.GetReturnValueType());
+      for (const auto &param_val : parameters[qid]) {
+        auto tstr = type::TypeUtil::TypeIdToString(param_val.GetReturnValueType());
         type_strs.push_back(tstr);
       }
 

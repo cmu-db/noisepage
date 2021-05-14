@@ -64,6 +64,7 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/plan_meta_data.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
@@ -78,10 +79,11 @@ namespace {
 std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
-CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
+CompilationContext::CompilationContext(ExecutableQuery *query, query_id_t query_id, catalog::CatalogAccessor *accessor,
                                        const CompilationMode mode, const exec::ExecutionSettings &settings,
                                        ast::LambdaExpr *output_callback)
     : unique_id_(unique_ids++),
+      query_id_(query_id),
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext(), accessor),
@@ -123,7 +125,8 @@ ast::FunctionDecl *CompilationContext::GenerateTearDownFunction() {
   return builder.Finish();
 }
 
-void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
+void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
+                                      common::ManagedPointer<planner::PlanMetaData> plan_meta_data) {
   exec_ctx_ =
       query_state_.DeclareStateEntry(GetCodeGen(), "execCtx", codegen_.PointerType(ast::BuiltinType::ExecutionContext));
 
@@ -169,7 +172,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     // Therefore translator extraction must happen before pipelines are generated.
     selfdriving::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                                 common::ManagedPointer(codegen_.GetAstContext()),
-                                                common::ManagedPointer(pipeline), query_->GetQueryText());
+                                                common::ManagedPointer(pipeline), plan_meta_data);
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
 
@@ -201,6 +204,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
                                                              const exec::ExecutionSettings &exec_settings,
                                                              catalog::CatalogAccessor *accessor, CompilationMode mode,
                                                              std::optional<execution::query_id_t> override_qid,
+                                                             common::ManagedPointer<planner::PlanMetaData> plan_meta_data,
                                                              common::ManagedPointer<const std::string> query_text,
                                                              ast::LambdaExpr *output_callback,
                                                              common::ManagedPointer<ast::Context> context) {
@@ -209,12 +213,10 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
   if (override_qid.has_value()) {
     query->SetQueryId(override_qid.value());
   }
-  // TODO(Lin): Hacking... remove this after getting the counters in
-  query->SetQueryText(query_text);
 
   // Generate the plan for the query
-  CompilationContext ctx{query.get(), accessor, mode, exec_settings, output_callback};
-  ctx.GeneratePlan(plan);
+  CompilationContext ctx{query.get(), query->GetQueryId(), accessor, mode, exec_settings, output_callback};
+  ctx.GeneratePlan(plan, plan_meta_data);
   query->SetQueryStateType(ctx.query_state_.GetType());
 
   // Done

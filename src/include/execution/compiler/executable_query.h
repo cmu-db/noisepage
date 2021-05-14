@@ -259,7 +259,6 @@ class ExecutableQuery {
   std::string query_name_;
   query_id_t query_id_;
   static std::atomic<query_id_t> query_identifier;
-  common::ManagedPointer<const std::string> query_text_;
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;

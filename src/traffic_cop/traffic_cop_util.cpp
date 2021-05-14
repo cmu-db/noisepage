@@ -12,6 +12,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/analyze_statement.h"
 #include "parser/drop_statement.h"
+#include "parser/explain_statement.h"
 #include "parser/insert_statement.h"
 #include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
@@ -29,7 +30,16 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
+  auto query_statement = query->GetStatement(0);
+
+  // If the statement type is EXPLAIN, the statement we should be operating on is not the EXPLAIN
+  // statement; it should be the statement you're "explaining". In order to code this logic, we
+  // have to extract the inside statement from the ExplainStatement interface.
+  if (query_statement->GetType() == parser::StatementType::EXPLAIN) {
+    const auto explain_stmt = query_statement.CastManagedPointerTo<parser::ExplainStatement>();
+    query_statement = explain_stmt->GetSQLStatement();
+  }
+  auto logical_exprs = transformer.ConvertToOpExpression(query_statement, query);
 
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::move(cost_model), optimizer_timeout);

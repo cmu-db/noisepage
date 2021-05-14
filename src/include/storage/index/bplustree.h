@@ -136,8 +136,10 @@ class BPlusTree : public BPlusTreeBase {
 
   /** <KeyType, BaseNode *> pair - represents an element in the inner node */
   using KeyNodePointerPair = std::pair<KeyType, BaseNode *>;
+  /**  Shorthand for the value list type */
+  using ValueList = std::list<ValueType>;
   /** <KeyType, List of ValueType> pair - represents an element in the leaf node */
-  using KeyValuePair = std::pair<KeyType, std::list<ValueType> *>;
+  using KeyValuePair = std::pair<KeyType, ValueList *>;
   /** <KeyType, ValueType> pair - used for inserts and deletes which operates using a key-value pair */
   using KeyElementPair = std::pair<KeyType, ValueType>;
 
@@ -748,6 +750,538 @@ class BPlusTree : public BPlusTreeBase {
 
  public:
   /**
+   * This function returns the pointer to the First Leaf Node (node containing the
+   * smallest key)
+   *
+   * NOTE: Upon return, shared latch will be held on the corresponding leaf node.
+   *
+   * @return Pointer to LeafNode if tree is not empty, nullptr otherwise
+   */
+  BaseNode *FindLeafNode() {
+    root_latch_.LockShared();
+
+    if (root_ == nullptr) {
+      root_latch_.UnlockShared();
+      return nullptr;
+    }
+
+    BaseNode *current_node = root_;
+    BaseNode *parent = nullptr;
+
+    // Acquire latch on the root, release root_latch
+    current_node->GetNodeSharedLatch();
+    root_latch_.UnlockShared();
+
+    // Traversing Down to the correct leaf node
+    while (current_node->GetType() != NodeType::LeafType) {
+      // Set parent for releasing the lock
+      parent = current_node;
+      current_node = current_node->GetLowKeyPair().second;
+
+      // Get shared latch on current node, and release the parent.
+      current_node->GetNodeSharedLatch();
+      parent->ReleaseNodeSharedLatch();
+    }
+
+    return current_node;
+  }
+
+  /**
+   * This function returns the pointer to the leaf node containing a particular key.
+   *
+   * NOTE: Upon return, shared latch will be held on the corresponding leaf node.
+   *
+   * @param key Key to be searched for.
+   * @return Pointer to LeafNode if tree is not empty, nullptr otherwise
+   */
+  BaseNode *FindLeafNode(KeyType key) {
+    root_latch_.LockShared();
+
+    if (root_ == nullptr) {
+      root_latch_.UnlockShared();
+      return nullptr;
+    }
+
+    BaseNode *current_node = root_;
+    BaseNode *parent = nullptr;
+
+    // Get the shared latch of next node, release the root_latch
+    current_node->GetNodeSharedLatch();
+    root_latch_.UnlockShared();
+
+    // Traversing Down to the right leaf node
+    while (current_node->GetType() != NodeType::LeafType) {
+      auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
+      // Note that Find Location returns the location of first element
+      // that compare greater than
+      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
+      // Thus we have to go in the left side of location which will be the
+      // pointer of the previous location.
+      parent = current_node;
+      if (index_pointer != node->Begin()) {
+        index_pointer -= 1;
+        current_node = index_pointer->second;
+      } else {
+        current_node = node->GetLowKeyPair().second;
+      }
+
+      // Get the shared latch for next node and release the parent
+      current_node->GetNodeSharedLatch();
+      parent->ReleaseNodeSharedLatch();
+    }
+
+    return current_node;
+  }
+
+  /**
+   * This function returns the last leaf node in the B+ Tree (node that contains
+   * the highest key in the tree)
+   * @return Pointer to the last leaf node
+   */
+  BaseNode *FindLastLeafNode() {
+    root_latch_.LockShared();
+
+    if (root_ == nullptr) {
+      root_latch_.UnlockShared();
+      return nullptr;
+    }
+    BaseNode *current_node = root_;
+    BaseNode *parent = nullptr;
+    // Acquire latch on the root, release root_latch
+    current_node->GetNodeSharedLatch();
+    root_latch_.UnlockShared();
+    // Traversing Down to the correct leaf node
+    while (current_node->GetType() != NodeType::LeafType) {
+      // Set parent for releasing the lock
+      parent = current_node;
+      current_node = current_node->GetHighKeyPair().second;
+      // Get shared latch on current node, and release the parent.
+      current_node->GetNodeSharedLatch();
+      parent->ReleaseNodeSharedLatch();
+    }
+    return current_node;
+  }
+
+  /**
+   * This class implements a bi-directional iterator for the B+ Tree. In order to
+   * fetch an element to start iteration, Begin() function can be used. Then, ++ or --
+   * operators can be used to iterate till End() or REnd() is reached respectively.
+   */
+  class BPlusTreeIterator {
+    /** Enum that represents the state of the iterator */
+    enum IteratorState { VALID, END, REND, RETRY, INVALID };
+
+    /** Node in which iterator is operating currently */
+    ElasticNode<KeyValuePair> *curr_node_;
+    /** Leaf Node element at which iterator is operating currently */
+    KeyValuePair *curr_key_;
+    /** Internal iterator of the value list on which iterator is operating currently */
+    typename ValueList::iterator curr_val_;
+    /** State of the iterator */
+    IteratorState state_;
+
+    /**
+     * Resets the iterator to represent a dummy iterator.
+     */
+    void ResetIterator() {
+      curr_node_ = nullptr;
+      curr_key_ = nullptr;
+    }
+
+    /**
+     * Sets the state of the iterator to END iterator
+     */
+    void SetEndIterator() {
+      ResetIterator();
+      state_ = END;
+    }
+
+    /**
+     * Sets the state of the iterator to REND iterator
+     */
+    void SetREndIterator() {
+      ResetIterator();
+      state_ = REND;
+    }
+
+    /**
+     * Sets the state of the iterator to RETRY iterator
+     */
+    void SetRetryIterator() {
+      ResetIterator();
+      state_ = RETRY;
+    }
+
+    /**
+     * Function to notify that iteration is complete. This is used to release any pending
+     * locks that is being held
+     */
+    void Done() {
+      if (curr_node_ != nullptr) {
+        curr_node_->ReleaseNodeSharedLatch();
+      }
+
+      state_ = INVALID;
+    }
+
+   public:
+    /** Returns key at the current position of the iterator */
+    KeyType Key() {
+      NOISEPAGE_ASSERT(curr_key_ != nullptr, "Iterator should be valid, pointing to a valid key.");
+      return curr_key_->first;
+    }
+    /** Returns value at the current position of the iterator */
+    ValueType Value() { return *curr_val_; }
+
+    /**
+     * Constructor to create a new Iterator. Returns a valid iterator.
+     * @param node Node at starting position of iterator
+     * @param element Element at starting position of iterator
+     * @param value List iterator at starting position of iterator
+     */
+    BPlusTreeIterator(BaseNode *node, KeyValuePair *element, typename ValueList::iterator value) {
+      curr_node_ = reinterpret_cast<ElasticNode<KeyValuePair> *>(node);
+      curr_key_ = element;
+      curr_val_ = value;
+      state_ = VALID;
+    }
+
+    /**
+     * Constructor to create a new iterator. Returns an invalid iterator.
+     */
+    BPlusTreeIterator() {
+      curr_node_ = nullptr;
+      curr_key_ = nullptr;
+      state_ = INVALID;
+    }
+
+    /**
+     * Destructor for the Iterator
+     */
+    ~BPlusTreeIterator() {
+      Done();
+      curr_node_ = nullptr;
+      curr_key_ = nullptr;
+    }
+
+    /**
+     * Copy constructor for the iterator (deleted)
+     */
+    BPlusTreeIterator(const BPlusTreeIterator &) = delete;
+
+    /**
+     * Copy Assignment operator for the iterator (deleted)
+     */
+    BPlusTreeIterator &operator=(const BPlusTreeIterator &) = delete;
+
+    /**
+     * Move constructor for the iterator
+     * @param itr Iterator to be moved from
+     */
+    BPlusTreeIterator(BPlusTreeIterator &&itr) noexcept {
+      // Copy contents
+      curr_node_ = itr.curr_node_;
+      curr_key_ = itr.curr_key_;
+      curr_val_ = itr.curr_val_;
+      state_ = itr.state_;
+
+      // Invalidate the source iterator
+      itr.curr_node_ = nullptr;
+      itr.curr_key_ = nullptr;
+      itr.state_ = INVALID;
+    }
+
+    /**
+     * Move Assignment operator for the iterator
+     * @param itr Source iterator
+     * @return Iterator after assignment
+     */
+    BPlusTreeIterator &operator=(BPlusTreeIterator &&itr) noexcept {
+      if (this != &itr) {
+        // Copy contents
+        curr_node_ = itr.curr_node_;
+        curr_key_ = itr.curr_key_;
+        curr_val_ = itr.curr_val_;
+        state_ = itr.state_;
+
+        // Invalidate the source iterator
+        itr.curr_node_ = nullptr;
+        itr.curr_key_ = nullptr;
+        itr.state_ = INVALID;
+      }
+
+      return *this;
+    }
+
+    /**
+     * Prefix Increment operator to perform forward iteration
+     */
+    void operator++() {
+      NOISEPAGE_ASSERT(state_ == VALID, "Iterator in Invalid State.");
+
+      // Move by one value
+      curr_val_++;
+      if (curr_val_ == curr_key_->second->end()) {
+        // If the current list has been exhausted, move to the next key
+        curr_key_++;
+        if (curr_key_ != curr_node_->End()) {
+          curr_val_ = curr_key_->second->begin();
+        }
+      }
+
+      if (curr_key_ == curr_node_->End()) {
+        // If the current node has been exhausted, move to the next node
+        if (curr_node_->GetHighKeyPair().second == nullptr) {
+          curr_node_->ReleaseNodeSharedLatch();
+          SetEndIterator();
+          return;
+        }
+        auto prev_node = curr_node_;
+        curr_node_ = reinterpret_cast<ElasticNode<KeyValuePair> *>(curr_node_->GetHighKeyPair().second);
+
+        // Get shared latch on current node, and release the prev_node.
+        if (!(curr_node_->TrySharedLock())) {
+          prev_node->ReleaseNodeSharedLatch();
+          SetRetryIterator();
+          return;
+        }
+        prev_node->ReleaseNodeSharedLatch();
+
+        curr_key_ = curr_node_->Begin();
+        curr_val_ = curr_key_->second->begin();
+      }
+    }
+
+    /**
+     * Prefix Decrement operator to perform backward iteration
+     */
+    void operator--() {
+      NOISEPAGE_ASSERT(state_ == VALID, "Iterator in Invalid State.");
+
+      // Move by one value
+      curr_val_++;
+      if (curr_val_ == curr_key_->second->end()) {
+        // If the current list has been exhausted, move to the next key
+        curr_key_--;
+        if (curr_key_ != curr_node_->REnd()) {
+          curr_val_ = curr_key_->second->begin();
+        }
+      }
+
+      if (curr_key_ == curr_node_->REnd()) {
+        // If the current node has been exhausted, move to the next node
+        if (curr_node_->GetLowKeyPair().second == nullptr) {
+          curr_node_->ReleaseNodeSharedLatch();
+          SetREndIterator();
+          return;
+        }
+        auto prev_node = curr_node_;
+        curr_node_ = reinterpret_cast<ElasticNode<KeyValuePair> *>(curr_node_->GetLowKeyPair().second);
+
+        // Get shared latch on current node, and release the prev_node.
+        if (!(curr_node_->TrySharedLock())) {
+          prev_node->ReleaseNodeSharedLatch();
+          SetRetryIterator();
+          return;
+        }
+        prev_node->ReleaseNodeSharedLatch();
+
+        curr_key_ = curr_node_->RBegin();
+        curr_val_ = curr_key_->second->begin();
+      }
+    }
+
+    /**
+     * Equality operator to check if two iterators are equal
+     * @param itr Iterator to be compared with this iterator
+     * @return true if iterators are equal, false otherwise
+     */
+    bool operator==(const BPlusTreeIterator &itr) {
+      bool result = (curr_node_ == itr.curr_node_ && curr_key_ == itr.curr_key_ && state_ == itr.state_);
+      if (state_ == VALID) {
+        result = result && (curr_val_ == itr.curr_val_);
+      }
+      return result;
+    }
+
+    /**
+     * Inequality operator to check if two iterators are inequal
+     * @param itr Iterator to be compared with this iterator
+     * @return true if iterators are inequal, false otherwise
+     */
+    bool operator!=(const BPlusTreeIterator &itr) {
+      bool result = (curr_node_ == itr.curr_node_ && curr_key_ == itr.curr_key_ && state_ == itr.state_);
+      if (state_ == VALID) {
+        result = result && (curr_val_ == itr.curr_val_);
+      }
+      return !result;
+    }
+
+    /**
+     * Returns End() iterator
+     */
+    static BPlusTreeIterator GetEndIterator() {
+      auto iterator = BPlusTreeIterator();
+      iterator.SetEndIterator();
+      return iterator;
+    }
+
+    /**
+     * Returns REnd() iterator
+     */
+    static BPlusTreeIterator GetREndIterator() {
+      auto iterator = BPlusTreeIterator();
+      iterator.SetREndIterator();
+      return iterator;
+    }
+
+    /**
+     * Returns Retry() iterator
+     */
+    static BPlusTreeIterator GetRetryIterator() {
+      auto iterator = BPlusTreeIterator();
+      iterator.SetRetryIterator();
+      return iterator;
+    }
+  };
+
+  /**
+   * Returns End() iterator for the B+ Tree
+   */
+  BPlusTreeIterator End() { return BPlusTreeIterator::GetEndIterator(); }
+
+  /**
+   * Returns REnd() iterator for the B+ Tree
+   */
+  BPlusTreeIterator REnd() { return BPlusTreeIterator::GetREndIterator(); }
+
+  /**
+   * Returns Retry() iterator for the B+ Tree
+   */
+  BPlusTreeIterator Retry() { return BPlusTreeIterator::GetRetryIterator(); }
+
+  /**
+   * Returns iterator starting at the smallest key in the B+ Tree
+   */
+  BPlusTreeIterator Begin() {
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLeafNode();
+    if (current_node == nullptr) {
+      // Empty tree
+      return End();
+    }
+
+    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
+    return BPlusTreeIterator(current_node, node->Begin(), node->Begin()->second->begin());
+  }
+
+  /**
+   * Returns iterator corresponding to the key passed to the B+ Tree. If the key is not present,
+   * iterator to the key greater than the key being searched for is returned.
+   * @param key Key to be looked up in the B+ Tree
+   * @return Iterator corresponding to the key
+   */
+  BPlusTreeIterator Begin(KeyType key) {
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLeafNode(key);
+    if (current_node == nullptr) {
+      // Empty tree
+      return End();
+    }
+
+    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
+    // FindLocation returns element greater than the key
+    KeyValuePair *element_p = static_cast<LeafNode *>(node)->FindLocation(key, this);
+    if (element_p != node->Begin()) {
+      if (KeyCmpEqual((element_p - 1)->first, key)) {
+        // Move back one element since the current element is greater than the key,
+        // but the previous element is equal to the key
+        element_p--;
+      }
+      if (element_p == node->End()) {
+        // If the element is at the end of the node, move to the next node.
+        if (node->GetHighKeyPair().second == nullptr) {
+          current_node->ReleaseNodeSharedLatch();
+          return End();
+        }
+        auto parent = node;
+        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetHighKeyPair().second);
+        current_node = node;
+
+        // Get shared latch on current node, and release the parent (here, parent is the previous
+        // node while iterating at the leaf level).
+        if (!(current_node->TrySharedLock())) {
+          parent->ReleaseNodeSharedLatch();
+          return Retry();
+        }
+        parent->ReleaseNodeSharedLatch();
+
+        element_p = node->Begin();
+      }
+    }
+
+    // Return new iterator
+    return BPlusTreeIterator(current_node, element_p, element_p->second->begin());
+  }
+
+  /**
+   * Returns iterator starting at the largest key in the B+ Tree
+   */
+  BPlusTreeIterator RBegin() {
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLastLeafNode();
+    if (current_node == nullptr) {
+      // Empty tree
+      return REnd();
+    }
+    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
+    return BPlusTreeIterator(current_node, node->RBegin(), node->RBegin()->second->begin());
+  }
+
+  /**
+   * Returns iterator corresponding to the key passed to the B+ Tree. Iterator to the key
+   * less than or equal to the provided key is returned.
+   * @param key Key to be looked up in the B+ Tree
+   * @return Iterator corresponding to the key
+   */
+  BPlusTreeIterator RBegin(KeyType key) {
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLeafNode(key);
+    if (current_node == nullptr) {
+      // Empty tree
+      return REnd();
+    }
+
+    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
+    KeyValuePair *element_p = static_cast<LeafNode *>(node)->FindLocation(key, this);
+
+    // Find location returns the element greater than the key being searched for. Hence,
+    // move back to get the key less than or equal to the provided key.
+    if (element_p != node->Begin()) {
+      element_p--;
+    } else {
+      if (node->GetLowKeyPair().second == nullptr) {
+        current_node->ReleaseNodeSharedLatch();
+        return REnd();
+      }
+
+      auto parent = node;
+      node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
+      current_node = node;
+      if (!(current_node->TrySharedLock())) {
+        // If the shared latch on the current node is node available, abort operation to prevent
+        // deadlock scenarios.
+        parent->ReleaseNodeSharedLatch();
+        return Retry();
+      }
+      parent->ReleaseNodeSharedLatch();
+      element_p = node->End() - 1;
+    }
+
+    return BPlusTreeIterator(current_node, element_p, element_p->second->begin());
+  }
+
+  /**
    * Get Root - Returns the current root
    */
   BaseNode *GetRoot() { return root_; }
@@ -806,39 +1340,11 @@ class BPlusTree : public BPlusTreeBase {
    * Returns null if not found
    */
   void FindValueOfKey(KeyType key, std::vector<ValueType> *result) {
-    root_latch_.LockShared();
-
-    if (root_ == nullptr) {
-      root_latch_.UnlockShared();
+    // Fetch Leaf Node containing the key
+    auto current_node = FindLeafNode(key);
+    if (current_node == nullptr) {
+      // Empty tree
       return;
-    }
-
-    BaseNode *current_node = root_;
-    BaseNode *parent = nullptr;
-
-    // Get the shared latch of next node, release the root_latch
-    current_node->GetNodeSharedLatch();
-    root_latch_.UnlockShared();
-
-    // Traversing Down to the right leaf node
-    while (current_node->GetType() != NodeType::LeafType) {
-      auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
-      // Note that Find Location returns the location of first element
-      // that compare greater than
-      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(key, this);
-      // Thus we have to go in the left side of location which will be the
-      // pointer of the previous location.
-      parent = current_node;
-      if (index_pointer != node->Begin()) {
-        index_pointer -= 1;
-        current_node = index_pointer->second;
-      } else {
-        current_node = node->GetLowKeyPair().second;
-      }
-
-      // Get the shared latch for next node and release the parent
-      current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeSharedLatch();
     }
 
     auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
@@ -1191,115 +1697,25 @@ class BPlusTree : public BPlusTreeBase {
   bool ScanAscending(KeyType index_low_key, KeyType index_high_key, bool low_key_exists, uint32_t num_attrs,
                      bool high_key_exists, uint32_t limit, std::vector<TupleSlot> *value_list,
                      const IndexMetadata *metadata, std::function<bool(const ValueType)> predicate) {
-    root_latch_.LockShared();
-
-    if (root_ == nullptr) {
-      root_latch_.UnlockShared();
-      return true;
-    }
-
-    BaseNode *current_node = root_;
-    BaseNode *parent = nullptr;
-
-    // Acquire latch on the root, release root_latch
-    current_node->GetNodeSharedLatch();
-    root_latch_.UnlockShared();
-
-    // Traversing Down to the correct leaf node
-    while (current_node->GetType() != NodeType::LeafType) {
-      // Set parent for releasing the lock
-      parent = current_node;
-
-      if (low_key_exists) {
-        auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
-        // Note that Find Location returns the location of first element
-        // that compare greater than
-        auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(index_low_key, this);
-        // Thus we have to go in the left side of location which will be the
-        // pointer of the previous location.
-
-        if (index_pointer != node->Begin()) {
-          index_pointer -= 1;
-          current_node = index_pointer->second;
-        } else {
-          current_node = node->GetLowKeyPair().second;
-        }
-      } else {
-        current_node = current_node->GetLowKeyPair().second;
-      }
-
-      // Get shared latch on current node, and release the parent.
-      current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeSharedLatch();
-    }
-
-    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    KeyValuePair *element_p;
+    BPlusTreeIterator iterator;
     if (low_key_exists) {
-      element_p = static_cast<LeafNode *>(node)->FindLocation(index_low_key, this);
-      if (element_p != node->Begin()) {
-        if (KeyCmpEqual((element_p - 1)->first, index_low_key)) {
-          element_p--;
-        }
-        if (element_p == node->End()) {
-          if (node->GetHighKeyPair().second == nullptr) {
-            current_node->ReleaseNodeSharedLatch();
-            return true;
-          }
-          parent = node;
-          node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetHighKeyPair().second);
-          current_node = node;
-
-          // Get shared latch on current node, and release the parent (here, parent is the previous
-          // node while iterating at the leaf level).
-          if (!(current_node->TrySharedLock())) {
-            parent->ReleaseNodeSharedLatch();
-            return false;
-          }
-          parent->ReleaseNodeSharedLatch();
-
-          element_p = node->Begin();
-        }
-      }
+      iterator = Begin(index_low_key);
     } else {
-      element_p = node->Begin();
+      iterator = Begin();
     }
 
-    while ((limit == 0 || value_list->size() < limit) &&
-           (!high_key_exists || element_p->first.PartialLessThan(index_high_key, metadata, num_attrs))) {
-      auto itr_list = element_p->second->begin();
-      while (itr_list != element_p->second->end()) {
-        if (!predicate(*itr_list)) {
-          itr_list++;
-          continue;
-        }
-        value_list->push_back(*itr_list);
-        if (!(limit == 0 || value_list->size() < limit)) break;
-        itr_list++;
+    while ((limit == 0 || value_list->size() < limit) && (iterator != End()) && (iterator != Retry()) &&
+           (!high_key_exists || iterator.Key().PartialLessThan(index_high_key, metadata, num_attrs))) {
+      if (!predicate(iterator.Value())) {
+        ++iterator;
+        continue;
       }
-
-      element_p++;
-      if (element_p == node->End()) {
-        if (node->GetHighKeyPair().second == nullptr) break;
-        parent = node;
-        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetHighKeyPair().second);
-        current_node = node;
-
-        // Get shared latch on current node, and release the parent (here, parent is the previous
-        // node while iterating at the leaf level).
-        if (!(current_node->TrySharedLock())) {
-          parent->ReleaseNodeSharedLatch();
-          return false;
-        }
-        parent->ReleaseNodeSharedLatch();
-
-        element_p = node->Begin();
-      }
+      value_list->push_back(iterator.Value());
+      if (!(limit == 0 || value_list->size() < limit)) break;
+      ++iterator;
     }
 
-    // Release the latch on the leaf node
-    current_node->ReleaseNodeSharedLatch();
-    return true;
+    return (iterator != Retry());
   }
 
   /**
@@ -1315,100 +1731,14 @@ class BPlusTree : public BPlusTreeBase {
    * @return true on success, false on failure
    */
   bool ScanDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list) {
-    root_latch_.LockShared();
+    BPlusTreeIterator iterator = RBegin(index_high_key);
 
-    if (root_ == nullptr) {
-      root_latch_.UnlockShared();
-      return true;
+    while ((iterator != REnd()) && (iterator != Retry()) && KeyCmpGreaterEqual(iterator.Key(), index_low_key)) {
+      value_list->push_back(iterator.Value());
+      --iterator;
     }
 
-    BaseNode *current_node = root_;
-    BaseNode *parent = nullptr;
-
-    // Unlock root latch and get shared latch on root node
-    current_node->GetNodeSharedLatch();
-    root_latch_.UnlockShared();
-
-    // Traversing Down to the right leaf node
-    while (current_node->GetType() != NodeType::LeafType) {
-      auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
-      // Note that Find Location returns the location of first element
-      // that compare greater than
-      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(index_high_key, this);
-      // Thus we have to go in the left side of location which will be the
-      // pointer of the previous location.
-
-      // set parent for crabbing
-      parent = node;
-
-      if (index_pointer != node->Begin()) {
-        index_pointer -= 1;
-        current_node = index_pointer->second;
-      } else {
-        current_node = node->GetLowKeyPair().second;
-      }
-
-      // Unlock parent and get shared latch on current node
-      current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeSharedLatch();
-    }
-
-    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    KeyValuePair *element_p;
-    element_p = static_cast<LeafNode *>(node)->FindLocation(index_high_key, this);
-
-    bool reach_end = false;
-    if (element_p != node->Begin()) {
-      element_p--;
-    } else {
-      if (node->GetLowKeyPair().second == nullptr) {
-        current_node->ReleaseNodeSharedLatch();
-        reach_end = true;
-      } else {
-        parent = node;
-        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
-        current_node = node;
-        if (!(current_node->TrySharedLock())) {
-          // If the shared latch on the current node is node available, abort operation to prevent
-          // deadlock scenarios.
-          parent->ReleaseNodeSharedLatch();
-          return false;
-        }
-        parent->ReleaseNodeSharedLatch();
-        element_p = node->End() - 1;
-      }
-    }
-
-    if (reach_end) {
-      return true;
-    }
-
-    while (KeyCmpGreaterEqual(element_p->first, index_low_key)) {
-      auto itr_list = element_p->second->begin();
-      while (itr_list != element_p->second->end()) {
-        value_list->push_back(*itr_list);
-        itr_list++;
-      }
-
-      element_p--;
-      if (element_p == node->Begin() - 1) {
-        parent = node;
-        if (node->GetLowKeyPair().second == nullptr) break;
-        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
-        current_node = node;
-        if (!(current_node->TrySharedLock())) {
-          // If shared latch on current node is not available, abort operation to prevent
-          // deadlock scenarios.
-          parent->ReleaseNodeSharedLatch();
-          return false;
-        }
-        parent->ReleaseNodeSharedLatch();
-        element_p = node->End() - 1;
-      }
-    }
-
-    current_node->ReleaseNodeSharedLatch();
-    return true;
+    return (iterator != Retry());
   }
 
   /**
@@ -1427,104 +1757,20 @@ class BPlusTree : public BPlusTreeBase {
    */
   bool ScanLimitDescending(KeyType index_low_key, KeyType index_high_key, std::vector<TupleSlot> *value_list,
                            uint32_t limit, std::function<bool(const ValueType)> predicate) {
-    root_latch_.LockShared();
+    BPlusTreeIterator iterator = RBegin(index_high_key);
 
-    if (root_ == nullptr) {
-      root_latch_.UnlockShared();
-      return true;
-    }
-
-    BaseNode *current_node = root_;
-    BaseNode *parent = nullptr;
-
-    // Release root latch and get shared latch on the root node
-    current_node->GetNodeSharedLatch();
-    root_latch_.UnlockShared();
-
-    // Traversing Down to the right leaf node
-    while (current_node->GetType() != NodeType::LeafType) {
-      auto node = reinterpret_cast<ElasticNode<KeyNodePointerPair> *>(current_node);
-      // Note that Find Location returns the location of first element
-      // that compare greater than
-      auto index_pointer = static_cast<InnerNode *>(node)->FindLocation(index_high_key, this);
-      // Thus we have to go in the left side of location which will be the
-      // pointer of the previous location.
-
-      // set parent for crabbing
-      parent = node;
-      if (index_pointer != node->Begin()) {
-        index_pointer -= 1;
-        current_node = index_pointer->second;
-      } else {
-        current_node = node->GetLowKeyPair().second;
+    while ((value_list->size() < limit) && KeyCmpGreaterEqual(iterator.Key(), index_low_key) && (iterator != REnd()) &&
+           (iterator != Retry())) {
+      if (!predicate(iterator.Value())) {
+        --iterator;
+        continue;
       }
-
-      // Unlock parent and get shared latch on current node
-      current_node->GetNodeSharedLatch();
-      parent->ReleaseNodeSharedLatch();
+      value_list->push_back(iterator.Value());
+      if (value_list->size() >= limit) break;
+      --iterator;
     }
 
-    auto node = reinterpret_cast<ElasticNode<KeyValuePair> *>(current_node);
-    KeyValuePair *element_p;
-    element_p = static_cast<LeafNode *>(node)->FindLocation(index_high_key, this);
-
-    bool reach_end = false;
-    if (element_p != node->Begin()) {
-      element_p--;
-    } else {
-      if (node->GetLowKeyPair().second == nullptr) {
-        current_node->ReleaseNodeSharedLatch();
-        reach_end = true;
-      } else {
-        parent = node;
-        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
-        current_node = node;
-        if (!(current_node->TrySharedLock())) {
-          // If shared latch on current node is not available, abort operation to prevent
-          // deadlock scenarios.
-          parent->ReleaseNodeSharedLatch();
-          return false;
-        }
-        parent->ReleaseNodeSharedLatch();
-        element_p = node->End() - 1;
-      }
-    }
-
-    if (reach_end) {
-      return true;
-    }
-
-    while ((value_list->size() < limit) && KeyCmpGreaterEqual(element_p->first, index_low_key)) {
-      auto itr_list = element_p->second->begin();
-      while (itr_list != element_p->second->end()) {
-        if (!predicate(*itr_list)) {
-          itr_list++;
-          continue;
-        }
-        value_list->push_back(*itr_list);
-        if (value_list->size() >= limit) break;
-        itr_list++;
-      }
-
-      element_p--;
-      if (element_p == node->Begin() - 1) {
-        parent = node;
-        if (node->GetLowKeyPair().second == nullptr) break;
-        node = reinterpret_cast<ElasticNode<KeyValuePair> *>(node->GetLowKeyPair().second);
-        current_node = node;
-        if (!(current_node->TrySharedLock())) {
-          // If shared latch on current node is not available, abort operation to prevent
-          // deadlock scenarios.
-          parent->ReleaseNodeSharedLatch();
-          return false;
-        }
-        parent->ReleaseNodeSharedLatch();
-        element_p = node->End() - 1;
-      }
-    }
-
-    current_node->ReleaseNodeSharedLatch();
-    return true;
+    return (iterator != Retry());
   }
 
   /**
