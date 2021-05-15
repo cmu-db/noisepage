@@ -136,7 +136,7 @@ double SelectivityUtil::Equal(common::ManagedPointer<ColumnStats<T>> column_stat
   auto value_frequency_estimate = top_k->EstimateItemCount(value);
 
   // If all values are distinct, then there can be at most one value equal to the specified value
-  if (column_stats->GetDistinctValues() == numrows) value_frequency_estimate = std::min(value_frequency_estimate, 1lu);
+  if (column_stats->GetDistinctValues() == numrows) value_frequency_estimate = std::min<unsigned long long int>(value_frequency_estimate, 1lu);
 
   double res = value_frequency_estimate / static_cast<double>(numrows);
 
