@@ -20,7 +20,7 @@ class AbstractAction {
    * @param db_oid The ID of the database that this action belongs to
    */
   explicit AbstractAction(ActionType family, catalog::db_oid_t db_oid)
-      : action_family_(family), db_oid_(db_oid), id_(action_id_counter++) {}
+      : action_type_(family), db_oid_(db_oid), id_(action_id_counter++) {}
 
   virtual ~AbstractAction() = default;
 
@@ -38,8 +38,8 @@ class AbstractAction {
   /** @return This action's ID */
   action_id_t GetActionID() const { return id_; }
 
-  /** @return This action's family */
-  ActionType GetActionFamily() const { return action_family_; }
+  /** @return This action's type */
+  ActionType GetActionType() const { return action_type_; }
 
   /** @return This action's database oid */
   catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
@@ -103,7 +103,7 @@ class AbstractAction {
 
   common::ResourceTracker::Metrics estimated_metrics_{};
 
-  ActionType action_family_;
+  ActionType action_type_;
 
   catalog::db_oid_t db_oid_;
 

@@ -30,8 +30,16 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   for (const auto &it UNUSED_ATTRIBUTE : action_map_) {
     SELFDRIVING_LOG_INFO("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
   }
-
   pilot->txn_manager_->Abort(txn);
+
+  // Estimate the create index action costs
+  for (auto &[action_id, action] : action_map_) {
+    if (action->GetActionType() == ActionType::CREATE_INDEX) {
+      PilotUtil::EstimateCreateIndexAction(reinterpret_cast<CreateIndexAction *>(action.get()),
+                                           pilot->query_exec_util_.get(), pilot->ou_model_save_path_,
+                                           pilot->model_server_manager_);
+    }
+  }
 
   // create root_
   auto later_cost = PilotUtil::ComputeCost(pilot, forecast, 0, end_segment_index);

@@ -38,6 +38,10 @@ namespace noisepage::selfdriving {
 class WorkloadForecast;
 class Pilot;
 
+namespace pilot {
+class CreateIndexAction;
+}
+
 /**
  * Utility class for helper functions
  */
@@ -132,21 +136,33 @@ class PilotUtil {
   static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t start_segment_index, uint64_t end_segment_index);
 
+  /**
+   * Get the ratios between estimated future table sizes (given the forecasted workload) and current table sizes
+   * @param forecast Workload forecast information
+   * @param task_manager Task manager pointer
+   * @param txn_manager Transaction manager pointer
+   * @param catalog Catalog pointer
+   * @param memory_info Object that stores the returned table size info
+   */
   static void ComputeTableSizeRatios(const WorkloadForecast *forecast,
                                      common::ManagedPointer<task::TaskManager> task_manager,
-                                     util::QueryExecUtil *query_exec_util,
                                      common::ManagedPointer<transaction::TransactionManager> txn_manager,
                                      common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info);
 
   /**
+   * Get the current table and index heap memory usage
    * TODO(lin): we should get this information from the stats if the pilot is not running on the primary. But since
-   * we don't have this in stats yet we're directly getting the information from c++ objects.
-   * @param txn_manager
-   * @param catalog
-   * @param memory_info
+   *   we don't have this in stats yet we're directly getting the information from c++ objects.
+   * @param txn_manager Transaction manager pointer
+   * @param catalog Catalog pointer
+   * @param memory_info Object that stores the returned memory info
    */
   static void ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
                                      common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info);
+
+  static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
+                                        const std::string &ou_model_save_path,
+                                        common::ManagedPointer<modelserver::ModelServerManager> model_server_manager);
 
  private:
   /**

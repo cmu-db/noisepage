@@ -25,6 +25,7 @@
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/modeling/operating_unit.h"
+#include "self_driving/planning/action/create_index_action.h"
 #include "self_driving/planning/pilot.h"
 #include "settings/settings_manager.h"
 #include "storage/index/index.h"
@@ -423,7 +424,6 @@ void PilotUtil::GroupFeaturesByOU(
 
 void PilotUtil::ComputeTableSizeRatios(const WorkloadForecast *forecast,
                                        common::ManagedPointer<task::TaskManager> task_manager,
-                                       util::QueryExecUtil *query_exec_util,
                                        common::ManagedPointer<transaction::TransactionManager> txn_manager,
                                        common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info) {
   NOISEPAGE_ASSERT(task_manager, "ComputeTableSizeRatios() requires task manager");
@@ -542,6 +542,73 @@ void PilotUtil::ComputeTableIndexSizes(common::ManagedPointer<transaction::Trans
       }
     }
   }
+}
+
+void PilotUtil::EstimateCreateIndexAction(
+    pilot::CreateIndexAction *action, util::QueryExecUtil *query_util, const std::string &ou_model_save_path,
+    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager) {
+  std::string query_text = action->GetSQLCommand();
+
+  // Just compile the queries (generate the bytecodes) to get features with statistics
+  query_util->BeginTransaction(action->GetDatabaseOid());
+
+  // First need to insert the index entry into the catalog so that we can correclty generate the query plan
+  query_util->ExecuteDDL(query_text, true);
+
+  // TODO(lin): Do we need to pass in any settings?
+  execution::exec::ExecutionSettings settings{};
+  query_util->CompileQuery(query_text, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), std::nullopt,
+                           settings);
+  auto executable_query = query_util->GetExecutableQuery(query_text);
+
+  auto ous = executable_query->GetPipelineOperatingUnits();
+
+  // used just a placeholder
+  const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+
+  // query id shouldn't matter
+  execution::query_id_t qid(1);
+  std::vector<execution::query_id_t> pipeline_qids{qid};
+  std::unique_ptr<metrics::PipelineMetricRawData> aggregated_data = std::make_unique<metrics::PipelineMetricRawData>();
+  for (auto &iter : ous->GetPipelineFeatureMap()) {
+    // TODO(lin): Interpret mode by default. May want to add that as an option (knob) for the action
+    aggregated_data->RecordPipelineData(qid, iter.first, 0, std::vector<ExecutionOperatingUnitFeature>(iter.second),
+                                        resource_metrics);
+  }
+  query_util->ClearPlan(query_text);
+
+  // Abort the transaction
+  query_util->EndTransaction(false);
+
+  // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
+  // (where each entry corresponds to a different query param)
+  // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
+  // parameters
+  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
+      pipeline_to_prediction;
+
+  // Then we perform inference through model server to get ou prediction results for all pipelines
+  PilotUtil::OUModelInference(ou_model_save_path, model_server_manager, pipeline_qids, aggregated_data->pipeline_data_,
+                              &pipeline_to_prediction);
+
+  auto pred_dim = pipeline_to_prediction.begin()->second.back().back().size();
+
+  // Compute the sum of all ous
+  std::vector<double> pipeline_sum(pred_dim, 0.0);
+  for (auto const &pipeline_to_pred : pipeline_to_prediction) {
+    for (auto const &pipeline_res : pipeline_to_pred.second) {
+      for (const auto &ou_res : pipeline_res) {
+        // sum up the ou prediction results of all ous in a pipeline
+        SumFeatureInPlace(&pipeline_sum, ou_res, 1);
+      }
+    }
+  }
+
+  printf("Estimating labels for action %s\n", action->GetSQLCommand().c_str());
+  for (auto label : pipeline_sum) {
+    printf("%f, ", label);
+  }
+  printf("\n");
 }
 
 }  // namespace noisepage::selfdriving

@@ -70,9 +70,8 @@ void Pilot::PerformPlanning() {
     return;
   }
 
-  PilotUtil::ComputeTableSizeRatios(forecast_.get(), task_manager_, query_exec_util_.get(), txn_manager_, catalog_,
-                                    &memory_info_);
-
+  // Compute memory information used to satisfy the memory constraint
+  PilotUtil::ComputeTableSizeRatios(forecast_.get(), task_manager_, txn_manager_, catalog_, &memory_info_);
   PilotUtil::ComputeTableIndexSizes(txn_manager_, catalog_, &memory_info_);
 
   // Perform planning
