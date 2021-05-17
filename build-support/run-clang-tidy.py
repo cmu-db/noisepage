@@ -221,6 +221,8 @@ def main():
     parser.add_argument('-fix', action='store_true', help='apply fix-its')
     parser.add_argument('-format', action='store_true', help='Reformat code '
                                                              'after applying fixes')
+    parser.add_argument('-full', action='store_true',
+                        help='(NoisePage) Run clang-tidy in full, ignoring the git filter.')
     parser.add_argument('-style', default='file', help='The style of reformat '
                                                        'code after applying fixes')
     parser.add_argument('-p', dest='build_path',
@@ -283,7 +285,7 @@ def main():
     return_code = 0
     try:
         # Initialize file blacklist 
-        cc = CheckConfig()
+        cc = CheckConfig(apply_git_filter=False if args.full else True)
         # Spin up a bunch of tidy-launching threads.
         task_queue = queue.Queue(max_task)
         # List of files with a non-zero return code.

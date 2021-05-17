@@ -108,6 +108,7 @@ class MonteCarloTreeSearch {
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
   bool use_min_cost_;  // Use the minimum cost of all leaves (instead of the average) as the cost for internal nodes
+  std::vector<uint64_t> levels_to_plan_ = {1, 2, 2, 3, 3, 3, 4, 4, 4};
 };
 }  // namespace pilot
 
