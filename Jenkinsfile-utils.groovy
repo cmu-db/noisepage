@@ -48,7 +48,11 @@ void stageCheck() {
     sh 'cd build && timeout 20m ninja check-format'
     sh 'cd build && timeout 20m ninja check-lint'
     sh 'cd build && timeout 20m ninja check-censored'
-    sh 'cd build && ninja check-clang-tidy'
+    if (env.BRANCH_NAME != 'master') {
+        sh 'cd build && ninja check-clang-tidy'
+    } else {
+        sh 'cd build && ninja check-clang-tidy-full'
+    }
     stagePost()
 }
 
