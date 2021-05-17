@@ -22,8 +22,8 @@
 #include "settings/settings_manager.h"
 #include "task/task_manager.h"
 #include "transaction/transaction_manager.h"
-#include "util/forecast_recording_util.h"
 #include "util/query_exec_util.h"
+#include "util/self_driving_recording_util.h"
 
 namespace noisepage::selfdriving {
 
@@ -91,8 +91,8 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   std::vector<std::vector<pilot::ActionTreeNode>> layered_action;
   mcst.BestAction(&layered_action, 3);
   for (size_t i = 0; i < layered_action.size(); i++) {
-    pilot::ActionTreeNode &atn = layered_action[i].front();
-    best_action_seq->emplace_back(atn);
+    pilot::ActionTreeNode &action = layered_action[i].front();
+    best_action_seq->emplace_back(action);
 
     SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", i,
                                      best_action_seq->at(i).GetActionText(),
@@ -100,11 +100,12 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   }
 
   uint64_t timestamp = metrics::MetricsUtil::Now();
-  util::ForecastRecordingUtil::RecordBestActions(timestamp, layered_action, task_manager_);
+  util::SelfDrivingRecordingUtil::RecordBestActions(timestamp, layered_action, task_manager_);
 
   pilot::ActionTreeNode &best_action = (*best_action_seq)[0];
-  util::ForecastRecordingUtil::RecordAppliedAction(timestamp, best_action.GetActionId(), best_action.GetCost(),
-                                                   best_action.GetDbOid(), best_action.GetActionText(), task_manager_);
+  util::SelfDrivingRecordingUtil::RecordAppliedAction(timestamp, best_action.GetActionId(), best_action.GetCost(),
+                                                      best_action.GetDbOid(), best_action.GetActionText(),
+                                                      task_manager_);
   PilotUtil::ApplyAction(common::ManagedPointer(this), best_action.GetActionText(), best_action.GetDbOid(), false);
 }
 

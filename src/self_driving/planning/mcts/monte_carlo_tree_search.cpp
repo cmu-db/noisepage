@@ -54,6 +54,7 @@ void MonteCarloTreeSearch::RunSimulation(uint64_t simulation_number, uint64_t me
 
 void MonteCarloTreeSearch::BestAction(std::vector<std::vector<pilot::ActionTreeNode>> *best_action_seq, size_t topk) {
   auto curr_node = common::ManagedPointer(root_);
+  std::vector<action_id_t> reversals;
   while (!curr_node->IsLeaf()) {
     std::vector<ActionTreeNode> top;
     std::vector<common::ManagedPointer<TreeNode>> order = curr_node->BestSubtreeOrdering();
@@ -69,6 +70,21 @@ void MonteCarloTreeSearch::BestAction(std::vector<std::vector<pilot::ActionTreeN
 
     best_action_seq->emplace_back(std::move(top));
     curr_node = order[0];
+
+    // Apply the root action. This is because some actions (i.e., ChangeKnobActions) are deltas
+    // rather than absolute values. Actions are applied as "what-if" since they will be reversed
+    // afterwards once the traversal ends.
+    auto action = curr_node->GetCurrentAction();
+    auto &action_info = action_map_.at(action);
+    PilotUtil::ApplyAction(pilot_, action_info->GetSQLCommand(), action_info->GetDatabaseOid(), true);
+    NOISEPAGE_ASSERT(!action_info->GetReverseActions().empty(), "Action should have reverse");
+    reversals.push_back(action_info->GetReverseActions()[0]);
+  }
+
+  for (auto it = reversals.rbegin(); it != reversals.rend(); it++) {
+    auto action = *it;
+    auto &action_info = action_map_.at(action);
+    PilotUtil::ApplyAction(pilot_, action_info->GetSQLCommand(), action_info->GetDatabaseOid(), true);
   }
 }
 

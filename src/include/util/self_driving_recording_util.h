@@ -17,7 +17,7 @@ namespace noisepage::util {
 /**
  * Utility class for recording forecast information to internal tables.
  */
-class ForecastRecordingUtil {
+class SelfDrivingRecordingUtil {
  public:
   /**
    * Records query metadata to internal database tables
