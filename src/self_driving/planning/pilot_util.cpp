@@ -67,6 +67,8 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
     }
   }
 
+  util.ClearPlan(sql_query);
+
   // Commit
   util.EndTransaction(true);
 }
@@ -555,10 +557,6 @@ void PilotUtil::EstimateCreateIndexAction(
   // First need to insert the index entry into the catalog so that we can correclty generate the query plan
   query_util->ExecuteDDL(query_text, true);
 
-  // TODO(lin): Do we need to pass in any settings?
-  execution::exec::ExecutionSettings settings{};
-  query_util->CompileQuery(query_text, nullptr, nullptr, std::make_unique<optimizer::TrivialCostModel>(), std::nullopt,
-                           settings);
   auto executable_query = query_util->GetExecutableQuery(query_text);
 
   auto ous = executable_query->GetPipelineOperatingUnits();
@@ -603,12 +601,6 @@ void PilotUtil::EstimateCreateIndexAction(
       }
     }
   }
-
-  printf("Estimating labels for action %s\n", action->GetSQLCommand().c_str());
-  for (auto label : pipeline_sum) {
-    printf("%f, ", label);
-  }
-  printf("\n");
 }
 
 }  // namespace noisepage::selfdriving
