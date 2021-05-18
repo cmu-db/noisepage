@@ -22,4 +22,4 @@ CREATE TABLE noisepage_applied_actions(ts BIGINT, action_id INT, cost REAL, db_i
 
 -- Following the "best" sequence of actions to apply in the horizon, noisepage_best_actions
 -- records that sequence of actions along with at each level, k-1 other high ranking actions.
-CREATE TABLE noisepage_best_actions(ts BIGINT, depth INT, node_id INT, parent_node_id INT, action_id INT, cost REAL, db_id INT, action_text VARCHAR);
+CREATE TABLE noisepage_best_actions(ts BIGINT, depth INT, node_id INT, parent_node_id INT, start_segment_index INT, end_segment_index INT, action_id INT, cost REAL, db_id INT, action_text VARCHAR);

@@ -203,7 +203,7 @@ void SelfDrivingRecordingUtil::RecordBestActions(
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (size_t i = 0; i < actions.size(); i++) {
     for (const selfdriving::pilot::ActionTreeNode &node : actions[i]) {
-      std::vector<parser::ConstantValueExpression> param(8);
+      std::vector<parser::ConstantValueExpression> param(10);
       param[0] = parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
       param[1] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(i));
       param[2] = parser::ConstantValueExpression(type::TypeId::INTEGER,
