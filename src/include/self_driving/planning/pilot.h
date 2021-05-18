@@ -62,6 +62,7 @@ namespace noisepage::selfdriving {
 namespace pilot {
 class AbstractAction;
 class MonteCarloTreeSearch;
+class SequenceTuning;
 class TreeNode;
 }  // namespace pilot
 
@@ -173,10 +174,11 @@ class Pilot {
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   common::ManagedPointer<task::TaskManager> task_manager_;
   Forecaster forecaster_;
-  uint64_t action_planning_horizon_{15};
+  uint64_t action_planning_horizon_{5};
   uint64_t simulation_number_{20};
   friend class noisepage::selfdriving::PilotUtil;
   friend class noisepage::selfdriving::pilot::MonteCarloTreeSearch;
+  friend class noisepage::selfdriving::pilot::SequenceTuning;
 };
 
 }  // namespace noisepage::selfdriving

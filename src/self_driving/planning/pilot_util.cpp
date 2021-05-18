@@ -24,6 +24,7 @@
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/modeling/operating_unit.h"
+#include "self_driving/planning/action/abstract_action.h"
 #include "self_driving/planning/pilot.h"
 #include "settings/settings_manager.h"
 #include "task/task.h"
@@ -417,6 +418,12 @@ void PilotUtil::GroupFeaturesByOU(
     pipeline_to_ou_position->emplace_back(pipeline_qids.at(pipeline_idx), data_it.pipeline_id_,
                                           std::move(ou_positions));
   }
+}
+
+double PilotUtil::ConfigTransitionCost(
+    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map,
+    std::set<pilot::action_id_t> start_config, std::set<pilot::action_id_t> end_config) {
+  return 0.0; // TODO
 }
 
 }  // namespace noisepage::selfdriving

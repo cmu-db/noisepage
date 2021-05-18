@@ -6,11 +6,13 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <set>
 #include <utility>
 #include <vector>
 
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
+#include "self_driving/planning/action/action_defs.h"
 
 namespace noisepage {
 namespace catalog {
@@ -32,9 +34,15 @@ class StatsStorage;
 namespace planner {
 class AbstractPlanNode;
 }
+
 }  // namespace noisepage
 
 namespace noisepage::selfdriving {
+
+namespace pilot {
+class AbstractAction;
+}
+
 class WorkloadForecast;
 class Pilot;
 
@@ -131,6 +139,17 @@ class PilotUtil {
    */
   static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t start_segment_index, uint64_t end_segment_index);
+
+  /**
+   *
+   * @param action_map
+   * @param start_config
+   * @param end_config
+   * @return
+   */
+  static double ConfigTransitionCost(
+      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map,
+      std::set<pilot::action_id_t> start_config, std::set<pilot::action_id_t> end_config);
 
  private:
   /**
