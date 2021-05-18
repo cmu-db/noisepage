@@ -135,10 +135,9 @@ void SequenceTuning::GreedySeq(
   std::vector<std::vector<std::set<action_id_t>>> candidate_structures_by_segment(end_segment_index_ + 1,
                                                                                   candidate_structures);
 
-  double final_soln_cost UNUSED_ATTRIBUTE =
-      GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
-                  candidate_structures_by_segment, 0.0)
-          .RecoverShortestPath(best_final_config_path, nullptr);
+  double final_soln_cost UNUSED_ATTRIBUTE = GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_,
+                                                        default_segment_cost_, candidate_structures_by_segment, 0.0)
+                                                .RecoverShortestPath(best_final_config_path, nullptr);
   SELFDRIVING_LOG_DEBUG("[GREEDY-SEQ] final solution cost {}", final_soln_cost);
 }
 
