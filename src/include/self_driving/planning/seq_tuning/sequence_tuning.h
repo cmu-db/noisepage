@@ -28,7 +28,6 @@ class SequenceTuning {
    * @param pilot pointer to pilot
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
-   * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
   SequenceTuning(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                  uint64_t end_segment_index);
