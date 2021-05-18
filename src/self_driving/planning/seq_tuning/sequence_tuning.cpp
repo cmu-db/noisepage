@@ -135,9 +135,10 @@ void SequenceTuning::GreedySeq(
   std::vector<std::vector<std::set<action_id_t>>> candidate_structures_by_segment(end_segment_index_ + 1,
                                                                                   candidate_structures);
 
-  double final_soln_cost = GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
-                                       candidate_structures_by_segment, 0.0)
-                               .RecoverShortestPath(best_final_config_path, nullptr);
+  double final_soln_cost UNUSED_ATTRIBUTE =
+      GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
+                  candidate_structures_by_segment, 0.0)
+          .RecoverShortestPath(best_final_config_path, nullptr);
   SELFDRIVING_LOG_DEBUG("[GREEDY-SEQ] final solution cost {}", final_soln_cost);
 }
 
@@ -196,14 +197,12 @@ void SequenceTuning::MergeConfigs(
     }
 
     if (best_union_cost < least_cost) {
-      auto s = global_path_set->size();
       global_path_set->erase(best_couple_pair);
-      NOISEPAGE_ASSERT(global_path_set->size() + 1 == s, "Expect global_path_set->erase decrease size by 1");
       all_paths->emplace_back(best_merged_solution, best_merged_config_set, best_union_cost);
       global_path_set->emplace(best_union_cost, all_paths->size() - 1);
+
       SELFDRIVING_LOG_DEBUG("[GreedySeq] new path added to global_path_set with distance {} number of config {}",
                             best_union_cost, best_merged_config_set.size());
-      NOISEPAGE_ASSERT(global_path_set->size() == s, "Expect new unioned path doesn't exist in global_path_set");
     } else {
       // if there's no combination that's better than the least cost path alone, break out of step 3
       break;
