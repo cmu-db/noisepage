@@ -35,11 +35,12 @@ class MonteCarloTreeSearch {
   /**
    * Returns query string of the best action to take at the root of the current tree
    * @param simulation_number number of simulations to run
-   * @param best_action_seq storing output: query string of the best first action as well as the associated database oid
+   * @param best_actions_seq storing output: query string of the best first actions as well as the
+   * associated database oid
    * @param memory_constraint maximum allowed memory in bytes
    */
   void BestAction(uint64_t simulation_number,
-                  std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq,
+                  std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq,
                   uint64_t memory_constraint);
 
  private:

@@ -18,8 +18,8 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/planning/mcts/monte_carlo_tree_search.h"
-#include "self_driving/planning/seq_tuning/sequence_tuning.h"
 #include "self_driving/planning/pilot_util.h"
+#include "self_driving/planning/seq_tuning/sequence_tuning.h"
 #include "settings/settings_manager.h"
 #include "task/task_manager.h"
 #include "transaction/transaction_manager.h"
@@ -72,40 +72,42 @@ void Pilot::PerformPlanning() {
   }
 
   // Perform planning
-  std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;
-  Pilot::ActionSearch(&best_action_seq);
+  std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_actions_seq;
+  Pilot::ActionSearch(&best_actions_seq);
 
   metrics_thread_->ResumeMetrics();
 }
 
-void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq) {
+void Pilot::ActionSearch(std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq) {
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
   if (settings_manager_->GetBool(settings::Param::enable_seq_tuning)) {
-    auto seqtunining = pilot::SequenceTuning(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
+    auto seqtunining =
+        pilot::SequenceTuning(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
     std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
     seqtunining.BestAction(&best_action_set_seq, settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
-    for (auto action_set_idx = 0; action_set_idx < best_action_set_seq.size(); action_set_idx ++) {
+    for (auto action_set_idx = 0; action_set_idx < best_action_set_seq.size(); action_set_idx++) {
       auto action_set = best_action_set_seq.at(action_set_idx);
       for (auto action : action_set) {
-        best_action_seq->emplace_back(std::move(action));
-        SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}",
-                                         action_set_idx, action.first, static_cast<uint32_t>(action.second)));
+        SELFDRIVING_LOG_INFO(
+            fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", action_set_idx,
+                        action.first, static_cast<uint32_t>(action.second)));
       }
+      best_actions_seq->emplace_back(action_set);
     }
   } else {
     auto mcst =
         pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
-    mcst.BestAction(simulation_number_, best_action_seq,
+    mcst.BestAction(simulation_number_, best_actions_seq,
                     settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
-    for (uint64_t i = 0; i < best_action_seq->size(); i++) {
-      SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", i,
-                                       best_action_seq->at(i).first,
-                                       static_cast<uint32_t>(best_action_seq->at(i).second)));
+    for (uint64_t i = 0; i < best_actions_seq->size(); i++) {
+      SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}",
+                                       i, best_actions_seq->at(i).begin()->first,
+                                       static_cast<uint32_t>(best_actions_seq->at(i).begin()->second)));
     }
-    PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first,
-                           best_action_seq->begin()->second, false);
+    PilotUtil::ApplyAction(common::ManagedPointer(this), best_actions_seq->begin()->begin()->first,
+                           best_actions_seq->begin()->begin()->second, false);
   }
 }
 

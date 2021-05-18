@@ -40,7 +40,7 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
 }
 
 void MonteCarloTreeSearch::BestAction(uint64_t simulation_number,
-                                      std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq,
+                                      std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq,
                                       uint64_t memory_constraint) {
   for (uint64_t i = 0; i < simulation_number; i++) {
     std::unordered_set<action_id_t> candidate_actions;
@@ -56,8 +56,9 @@ void MonteCarloTreeSearch::BestAction(uint64_t simulation_number,
   auto curr_node = common::ManagedPointer(root_);
   while (!curr_node->IsLeaf()) {
     auto best_child = curr_node->BestSubtree();
-    best_action_seq->emplace_back(action_map_.at(best_child->GetCurrentAction())->GetSQLCommand(),
-                                  action_map_.at(best_child->GetCurrentAction())->GetDatabaseOid());
+    best_actions_seq->push_back({
+        std::make_pair(action_map_.at(best_child->GetCurrentAction())->GetSQLCommand(),
+                       action_map_.at(best_child->GetCurrentAction())->GetDatabaseOid())});
     SELFDRIVING_LOG_DEBUG(action_map_.at(best_child->GetCurrentAction())->GetSQLCommand());
     curr_node = best_child;
   }
