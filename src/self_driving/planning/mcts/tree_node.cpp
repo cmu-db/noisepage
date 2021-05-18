@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 
+#include "common/strong_typedef_body.h"
 #include "loggers/selfdriving_logger.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/abstract_action.h"
@@ -14,12 +15,18 @@
 
 namespace noisepage::selfdriving::pilot {
 
+STRONG_TYPEDEF_BODY(tree_node_id_t, uint64_t);
+
+tree_node_id_t TreeNode::tree_node_identifier = tree_node_id_t(1);
+
 TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action,
                    uint64_t action_start_segment_index, double current_segment_cost, double later_segments_cost,
                    uint64_t memory)
-    : is_leaf_{true},
+    : tree_node_id_(TreeNode::tree_node_identifier++),
+      is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
       action_start_segment_index_(action_start_segment_index),
+      action_plan_end_index_(action_start_segment_index_),
       current_action_(current_action),
       ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
       parent_(parent),
@@ -48,6 +55,26 @@ common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
                          child->GetCurrentAction(), child->cost_);
   }
   return best_child;
+}
+
+std::vector<common::ManagedPointer<TreeNode>> TreeNode::BestSubtreeOrdering() {
+  NOISEPAGE_ASSERT(!is_leaf_, "Trying to return best action on a leaf node");
+  // Get child of least cost
+  NOISEPAGE_ASSERT(!children_.empty(), "Trying to return best action for unexpanded nodes");
+
+  std::vector<common::ManagedPointer<TreeNode>> results;
+  results.reserve(children_.size());
+  for (auto &child : children_) {
+    results.emplace_back(child);
+  }
+
+  struct {
+    bool operator()(common::ManagedPointer<TreeNode> a, common::ManagedPointer<TreeNode> b) {
+      return a->cost_ < b->cost_;
+    }
+  } cmp;
+  std::sort(results.begin(), results.end(), cmp);
+  return results;
 }
 
 void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost) {
@@ -119,10 +146,10 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                                uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint) {
-  auto action_plan_end_index = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
+  action_plan_end_index_ = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
 
   SELFDRIVING_LOG_DEBUG("action_start_segment_index: {} action_plan_end_index: {} tree_end_segment_index: {}",
-                        action_start_segment_index_, action_plan_end_index, tree_end_segment_index);
+                        action_start_segment_index_, action_plan_end_index_, tree_end_segment_index);
   NOISEPAGE_ASSERT(action_start_segment_index_ <= tree_end_segment_index,
                    "action plan end segment index should be no greater than tree end segment index");
 
@@ -136,13 +163,13 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
 
     // compute cost of segments influenced by this action in the action plan horizon at this level
     double child_segment_cost =
-        PilotUtil::ComputeCost(pilot, forecast, action_start_segment_index_, action_plan_end_index);
+        PilotUtil::ComputeCost(pilot, forecast, action_start_segment_index_, action_plan_end_index_);
     double later_segments_cost = 0;
-    if (action_plan_end_index != tree_end_segment_index)
-      later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, action_plan_end_index + 1, tree_end_segment_index);
+    if (action_plan_end_index_ != tree_end_segment_index)
+      later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, action_plan_end_index_ + 1, tree_end_segment_index);
 
     // TODO(lin): store the current memory consumption up to this node instead of 0
-    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, action_plan_end_index + 1,
+    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, action_plan_end_index_ + 1,
                                                    child_segment_cost, later_segments_cost, 0));
 
     // apply one reverse action to undo the above

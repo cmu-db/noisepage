@@ -7,7 +7,7 @@
 #include "self_driving/model_server/model_server_manager.h"
 #include "settings/settings_manager.h"
 #include "task/task_manager.h"
-#include "util/forecast_recording_util.h"
+#include "util/self_driving_recording_util.h"
 
 namespace noisepage::selfdriving {
 
@@ -227,8 +227,8 @@ void Forecaster::RecordWorkloadForecastPrediction(uint64_t timestamp,
     return;
   }
 
-  util::ForecastRecordingUtil::RecordForecastClusters(timestamp, metadata, prediction, task_manager_);
-  util::ForecastRecordingUtil::RecordForecastQueryFrequencies(timestamp, metadata, prediction, task_manager_);
+  util::SelfDrivingRecordingUtil::RecordForecastClusters(timestamp, metadata, prediction, task_manager_);
+  util::SelfDrivingRecordingUtil::RecordForecastQueryFrequencies(timestamp, metadata, prediction, task_manager_);
 }
 
 std::unique_ptr<selfdriving::WorkloadForecast> Forecaster::LoadWorkloadForecast(WorkloadForecastInitMode mode) {
