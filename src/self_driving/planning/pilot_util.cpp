@@ -421,8 +421,8 @@ void PilotUtil::GroupFeaturesByOU(
 }
 
 double PilotUtil::ConfigTransitionCost(
-    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map,
-    std::set<pilot::action_id_t> start_config, std::set<pilot::action_id_t> end_config) {
+    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
+    const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config) {
   return 0.0;  // TODO(Katrina): compute transition cost
 }
 

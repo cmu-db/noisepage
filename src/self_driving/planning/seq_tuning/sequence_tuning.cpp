@@ -120,7 +120,7 @@ void SequenceTuning::GreedySeq(
 
   auto ct = 0;
   for (auto const &path_it : best_path_for_structure) {
-    auto config_set = std::get<1>(path_it.second);
+    auto const &config_set = std::get<1>(path_it.second);
     global_config_set.insert(config_set.begin(), config_set.end());
     all_paths.push_back(path_it.second);
     global_path_set.emplace(std::get<2>(path_it.second), ct);

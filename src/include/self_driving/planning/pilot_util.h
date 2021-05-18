@@ -149,7 +149,7 @@ class PilotUtil {
    */
   static double ConfigTransitionCost(
       const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
-      std::set<pilot::action_id_t> start_config, std::set<pilot::action_id_t> end_config);
+      const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config);
 
   /**
    * Utility function for printing a configuration (set of structures)

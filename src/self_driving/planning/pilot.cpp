@@ -89,7 +89,7 @@ void Pilot::ActionSearch(std::vector<std::set<std::pair<const std::string, catal
     seqtunining.BestAction(&best_action_set_seq, settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
     for (auto action_set_idx = 0; action_set_idx < best_action_set_seq.size(); action_set_idx++) {
       auto action_set = best_action_set_seq.at(action_set_idx);
-      for (auto action : action_set) {
+      for (auto const &action : action_set) {
         SELFDRIVING_LOG_INFO(
             fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", action_set_idx,
                         action.first, static_cast<uint32_t>(action.second)));
