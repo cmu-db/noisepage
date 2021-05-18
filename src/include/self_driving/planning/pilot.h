@@ -130,7 +130,8 @@ class Pilot {
 
   /**
    * Search for and apply the best action for the current timestamp
-   * @param best_actions_seq pointer to the vector to be filled with the sequence of best actions to take at current time
+   * @param best_actions_seq pointer to the vector to be filled with the sequence of best actions to take at current
+   * time
    */
   void ActionSearch(std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq);
 

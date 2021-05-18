@@ -423,7 +423,16 @@ void PilotUtil::GroupFeaturesByOU(
 double PilotUtil::ConfigTransitionCost(
     const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map,
     std::set<pilot::action_id_t> start_config, std::set<pilot::action_id_t> end_config) {
-  return 0.0; // TODO
+  return 0.0;  // TODO(Katrina): compute transition cost
+}
+
+std::string PilotUtil::ConfigToString(const std::set<pilot::action_id_t> &config_set) {
+  std::string set_string = "{";
+  for (auto action : config_set) {
+    set_string += fmt::format(" action_id {} ", action);
+  }
+  set_string += "}";
+  return set_string;
 }
 
 }  // namespace noisepage::selfdriving

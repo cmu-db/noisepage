@@ -2,7 +2,9 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -10,8 +12,6 @@
 #include "self_driving/planning/action/action_defs.h"
 #include "self_driving/planning/mcts/tree_node.h"
 #include "self_driving/planning/pilot.h"
-
-#define NULL_ACTION INT32_MAX
 
 namespace noisepage::selfdriving {
 class Pilot;
@@ -32,12 +32,14 @@ class SequenceTuning {
    */
   SequenceTuning(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                  uint64_t end_segment_index);
+
   /**
-   * Returns best sequence of configurations, computed using sequence tuning with cost-based pruning & greedy merge
-   * @param best_action_seq storing output: query string of the best first action as well as the associated database oid
+   * Returns sequence of actions that lead to the best sequence of configurations,
+   * computed using sequence tuning with cost-based pruning & greedy merge
+   * @param best_actions_seq storing output: query string of the best actions as well as the associated database oid
    * @param memory_constraint maximum allowed memory in bytes
    */
-  void BestAction(std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_action_seq,
+  void BestAction(std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq,
                   uint64_t memory_constraint);
 
  private:
@@ -50,8 +52,7 @@ class SequenceTuning {
    * @param merged_config_set set of unique configurations in merged solution
    * @return
    */
-  double UnionPair(const std::vector<std::set<action_id_t>> &seq_one,
-                   const std::vector<std::set<action_id_t>> &seq_two,
+  double UnionPair(const std::vector<std::set<action_id_t>> &seq_one, const std::vector<std::set<action_id_t>> &seq_two,
                    std::vector<std::set<action_id_t>> *merged_solution,
                    std::set<std::set<action_id_t>> *merged_config_set);
 
@@ -64,33 +65,31 @@ class SequenceTuning {
    * @param best_actions_seq best sequence of actions to apply (a set of actions for each segment)
    */
   void GreedySeq(const std::map<action_id_t,
-                                std::tuple<std::vector<std::set<action_id_t>>,
-                                           std::set<std::set<action_id_t>>, double>> &best_path_for_structure,
+                                std::tuple<std::vector<std::set<action_id_t>>, std::set<std::set<action_id_t>>, double>>
+                     &best_path_for_structure,
                  std::vector<std::set<action_id_t>> *best_final_config_path);
-
 
   /**
    * Extract the best sequence of actions to apply from the optimal sequence of configuration.
    * @param best_final_path best path of configuration in the final graph computed from all candidate structures
    * @param best_actions_seq extracted best sequence of actions
    */
-  void ExtractActionsFromConfigPath(const std::vector<std::set<action_id_t>> &best_final_config_path,
-                                    std::vector<std::set<std::pair<const std::string,
-                                                                   catalog::db_oid_t>>> *best_actions_seq);
+  void ExtractActionsFromConfigPath(
+      const std::vector<std::set<action_id_t>> &best_final_config_path,
+      std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq);
 
   /**
    * Runs a while loop that iteratively considers the least cost solution so far, and if applicable
    * selects the best pair of sequence to merge.
    * Implements step 3 of the GREEDY-SEQ algo in the paper linked above.
-   * @param P set of candidate paths,
-   * @param all_paths
-   * @param C
+   * @param global_path_set set of candidate paths
+   * @param all_paths vector of all paths to keep track of unique paths in the
+   * @param global_config_set
    */
-  void MergeConfigs(std::set<std::pair<double, uint64_t>> *P,
-                    std::vector<std::tuple<std::vector<std::set<action_id_t>>,
-                                           std::set<std::set<action_id_t>>,
-                                           double>> *all_paths,
-                    std::set<std::set<action_id_t>> *C);
+  void MergeConfigs(
+      std::set<std::pair<double, uint64_t>> *global_path_set,
+      std::vector<std::tuple<std::vector<std::set<action_id_t>>, std::set<std::set<action_id_t>>, double>> *all_paths,
+      std::set<std::set<action_id_t>> *global_config_set);
 
   const common::ManagedPointer<Pilot> pilot_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;

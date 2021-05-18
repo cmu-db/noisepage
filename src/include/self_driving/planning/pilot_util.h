@@ -3,10 +3,10 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <tuple>
 #include <unordered_map>
-#include <set>
 #include <utility>
 #include <vector>
 
@@ -141,15 +141,22 @@ class PilotUtil {
                             uint64_t start_segment_index, uint64_t end_segment_index);
 
   /**
-   *
-   * @param action_map
-   * @param start_config
-   * @param end_config
-   * @return
+   * Computing the transition cost from one configuration to another.
+   * @param structure_map action map containing information about the indexes/structures
+   * @param start_config initial config
+   * @param end_config target config
+   * @return cost of the transition/index creation
    */
   static double ConfigTransitionCost(
-      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map,
+      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
       std::set<pilot::action_id_t> start_config, std::set<pilot::action_id_t> end_config);
+
+  /**
+   * Utility function for printing a configuration (set of structures)
+   * @param config_set configuration
+   * @return string representation
+   */
+  static std::string ConfigToString(const std::set<pilot::action_id_t> &config_set);
 
  private:
   /**
