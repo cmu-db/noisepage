@@ -32,13 +32,16 @@ class ActionTreeNode {
    * @param action_text SQL string associated with action
    */
   ActionTreeNode(tree_node_id_t parent_node_id, tree_node_id_t tree_node_id, action_id_t action_id, double cost,
-                 catalog::db_oid_t db_oid, std::string action_text)
+                 catalog::db_oid_t db_oid, std::string action_text, uint64_t action_start_segment_index,
+                 uint64_t action_plan_end_index)
       : parent_node_id_(parent_node_id),
         tree_node_id_(tree_node_id),
         action_id_(action_id),
         cost_(cost),
         db_oid_(db_oid),
-        action_text_(std::move(action_text)) {}
+        action_text_(std::move(action_text)),
+        action_start_segment_index_(action_start_segment_index),
+        action_plan_end_index_(action_plan_end_index) {}
 
   /** @return parent node id */
   tree_node_id_t GetParentNodeId() const { return parent_node_id_; }
@@ -58,6 +61,12 @@ class ActionTreeNode {
   /** @return action text */
   const std::string &GetActionText() const { return action_text_; }
 
+  /** @return action start segment index */
+  uint64_t GetActionStartSegmentIndex() const { return action_start_segment_index_; }
+
+  /** @return action plan end index */
+  uint64_t GetActionPlanEndIndex() const { return action_plan_end_index_; }
+
  private:
   tree_node_id_t parent_node_id_;
   tree_node_id_t tree_node_id_;
@@ -65,6 +74,8 @@ class ActionTreeNode {
   double cost_;
   catalog::db_oid_t db_oid_;
   std::string action_text_;
+  uint64_t action_start_segment_index_;
+  uint64_t action_plan_end_index_;
 };
 
 /**

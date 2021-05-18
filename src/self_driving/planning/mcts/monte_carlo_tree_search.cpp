@@ -65,7 +65,8 @@ void MonteCarloTreeSearch::BestAction(std::vector<std::vector<pilot::ActionTreeN
       auto action = child->GetCurrentAction();
       auto &action_info = action_map_.at(action);
       top.emplace_back(curr_node->GetTreeNodeId(), child->GetTreeNodeId(), action, child->GetCost(),
-                       action_info->GetDatabaseOid(), action_info->GetSQLCommand());
+                       action_info->GetDatabaseOid(), action_info->GetSQLCommand(), child->GetActionStartSegmentIndex(),
+                       child->GetActionPlanEndIndex());
     }
 
     best_action_seq->emplace_back(std::move(top));

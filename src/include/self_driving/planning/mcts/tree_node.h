@@ -118,6 +118,16 @@ class TreeNode {
    */
   tree_node_id_t GetTreeNodeId() { return tree_node_id_; }
 
+  /**
+   * @return action start segment index
+   */
+  uint64_t GetActionStartSegmentIndex() { return action_start_segment_index_; }
+
+  /**
+   * @return action plan end index
+   */
+  uint64_t GetActionPlanEndIndex() { return action_plan_end_index_; }
+
  private:
   /**
    * Sample child based on cost and number of visits
@@ -165,6 +175,7 @@ class TreeNode {
   bool is_leaf_;
   const uint64_t depth_;                       // number of edges in path from root
   const uint64_t action_start_segment_index_;  // start of segment index that this node will influence
+  uint64_t action_plan_end_index_;             // end of segment index for planning
   const action_id_t current_action_;
   const double ancestor_cost_;  // cost of executing segments with actions applied on path from root to current node
   const common::ManagedPointer<TreeNode> parent_;

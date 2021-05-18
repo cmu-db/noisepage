@@ -211,22 +211,27 @@ void SelfDrivingRecordingUtil::RecordBestActions(
       param[3] = parser::ConstantValueExpression(type::TypeId::INTEGER,
                                                  execution::sql::Integer(node.GetParentNodeId().UnderlyingValue()));
       param[4] = parser::ConstantValueExpression(type::TypeId::INTEGER,
-                                                 execution::sql::Integer(node.GetActionId().UnderlyingValue()));
-      param[5] = parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(node.GetCost()));
+                                                 execution::sql::Integer(node.GetActionStartSegmentIndex()));
+      param[5] =
+          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(node.GetActionPlanEndIndex()));
       param[6] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                 execution::sql::Integer(node.GetActionId().UnderlyingValue()));
+      param[7] = parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(node.GetCost()));
+      param[8] = parser::ConstantValueExpression(type::TypeId::INTEGER,
                                                  execution::sql::Integer(node.GetDbOid().UnderlyingValue()));
 
       const auto string = std::string_view(node.GetActionText());
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      param[7] = parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+      param[9] = parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
 
       params_vec.emplace_back(std::move(param));
     }
   }
 
   std::vector<type::TypeId> param_types = {type::TypeId::BIGINT,  type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                           type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::REAL,
-                                           type::TypeId::INTEGER, type::TypeId::VARCHAR};
+                                           type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
+                                           type::TypeId::INTEGER, type::TypeId::REAL,    type::TypeId::INTEGER,
+                                           type::TypeId::VARCHAR};
   std::string query_text = SelfDrivingRecordingUtil::BEST_ACTIONS_INSERT_STMT;
   task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
                                                         std::make_unique<optimizer::TrivialCostModel>(), false,

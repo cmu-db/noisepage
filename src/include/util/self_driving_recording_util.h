@@ -132,7 +132,7 @@ class SelfDrivingRecordingUtil {
    * For parameters, see src/main/startup.sql
    */
   static constexpr char BEST_ACTIONS_INSERT_STMT[] =
-      "INSERT INTO noisepage_best_actions VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
+      "INSERT INTO noisepage_best_actions VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)";
 };
 
 }  // namespace noisepage::util

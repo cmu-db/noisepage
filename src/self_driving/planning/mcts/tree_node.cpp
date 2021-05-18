@@ -26,6 +26,7 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
       is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
       action_start_segment_index_(action_start_segment_index),
+      action_plan_end_index_(action_start_segment_index_),
       current_action_(current_action),
       ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
       parent_(parent),
@@ -145,10 +146,10 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                                uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint) {
-  auto action_plan_end_index = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
+  action_plan_end_index_ = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
 
   SELFDRIVING_LOG_DEBUG("action_start_segment_index: {} action_plan_end_index: {} tree_end_segment_index: {}",
-                        action_start_segment_index_, action_plan_end_index, tree_end_segment_index);
+                        action_start_segment_index_, action_plan_end_index_, tree_end_segment_index);
   NOISEPAGE_ASSERT(action_start_segment_index_ <= tree_end_segment_index,
                    "action plan end segment index should be no greater than tree end segment index");
 
@@ -162,13 +163,13 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
 
     // compute cost of segments influenced by this action in the action plan horizon at this level
     double child_segment_cost =
-        PilotUtil::ComputeCost(pilot, forecast, action_start_segment_index_, action_plan_end_index);
+        PilotUtil::ComputeCost(pilot, forecast, action_start_segment_index_, action_plan_end_index_);
     double later_segments_cost = 0;
-    if (action_plan_end_index != tree_end_segment_index)
-      later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, action_plan_end_index + 1, tree_end_segment_index);
+    if (action_plan_end_index_ != tree_end_segment_index)
+      later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, action_plan_end_index_ + 1, tree_end_segment_index);
 
     // TODO(lin): store the current memory consumption up to this node instead of 0
-    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, action_plan_end_index + 1,
+    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, action_plan_end_index_ + 1,
                                                    child_segment_cost, later_segments_cost, 0));
 
     // apply one reverse action to undo the above
