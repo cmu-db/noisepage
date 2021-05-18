@@ -118,7 +118,7 @@ void SequenceTuning::GreedySeq(
   std::set<std::pair<double, uint64_t>> global_path_set;
   std::vector<std::tuple<std::vector<std::set<action_id_t>>, std::set<std::set<action_id_t>>, double>> all_paths;
 
-  auto ct = 0;
+  uint64_t ct = 0;
   for (auto const &path_it : best_path_for_structure) {
     auto const &config_set = std::get<1>(path_it.second);
     global_config_set.insert(config_set.begin(), config_set.end());
@@ -144,7 +144,7 @@ void SequenceTuning::GreedySeq(
 void SequenceTuning::ExtractActionsFromConfigPath(
     const std::vector<std::set<action_id_t>> &best_final_config_path,
     std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq) {
-  for (auto config_idx = 1; config_idx < best_final_config_path.size(); config_idx++) {
+  for (uint64_t config_idx = 1; config_idx < best_final_config_path.size(); config_idx++) {
     std::set<std::pair<const std::string, catalog::db_oid_t>> action_set;
     for (auto structure_id : best_final_config_path.at(config_idx))
       if (best_final_config_path.at(config_idx - 1).find(structure_id) ==
