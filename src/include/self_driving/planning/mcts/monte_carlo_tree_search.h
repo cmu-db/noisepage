@@ -30,6 +30,8 @@ class ActionTreeNode {
    * @param cost Cost to apply
    * @param db_oid Database OID that action acts on
    * @param action_text SQL string associated with action
+   * @param action_start_segment_index start of segment index that this node will influence
+   * @param action_plan_end_index end of segment index for planning
    */
   ActionTreeNode(tree_node_id_t parent_node_id, tree_node_id_t tree_node_id, action_id_t action_id, double cost,
                  catalog::db_oid_t db_oid, std::string action_text, uint64_t action_start_segment_index,
