@@ -3,6 +3,7 @@
 #include <cmath>
 #include <random>
 
+#include "common/strong_typedef_body.h"
 #include "loggers/selfdriving_logger.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/abstract_action.h"
@@ -13,10 +14,18 @@
 
 namespace noisepage::selfdriving::pilot {
 
-TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-                   double later_segments_cost, uint64_t memory, common::ManagedPointer<ActionState> action_state)
-    : is_leaf_{true},
+STRONG_TYPEDEF_BODY(tree_node_id_t, uint64_t);
+
+tree_node_id_t TreeNode::tree_node_identifier = tree_node_id_t(1);
+
+TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action,
+                   uint64_t action_start_segment_index, double current_segment_cost, double later_segments_cost,
+                   uint64_t memory, common::ManagedPointer<ActionState> action_state)
+    : tree_node_id_(TreeNode::tree_node_identifier++),
+      is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
+      action_start_segment_index_(action_start_segment_index),
+      action_plan_end_index_(action_start_segment_index_),
       current_action_(current_action),
       ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
       parent_(parent),
@@ -26,8 +35,10 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
   if (parent != nullptr) parent->is_leaf_ = false;
   cost_ = ancestor_cost_ + later_segments_cost;
   SELFDRIVING_LOG_INFO(
-      "Creating Tree Node: Depth {} Action {} Cost {} Current_Segment_Cost {} Later_Segment_Cost {} Ancestor_Cost {}",
-      depth_, current_action_, cost_, current_segment_cost, later_segments_cost, ancestor_cost_);
+      "Creating Tree Node: Depth {} Action Start Segment Index {} Action {} Cost {} Current_Segment_Cost {} "
+      "Later_Segment_Cost {} Ancestor_Cost {}",
+      depth_, action_start_segment_index_, current_action_, cost_, current_segment_cost, later_segments_cost,
+      ancestor_cost_);
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
@@ -41,6 +52,26 @@ common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
                          child->GetCurrentAction(), child->cost_);
   }
   return best_child;
+}
+
+std::vector<common::ManagedPointer<TreeNode>> TreeNode::BestSubtreeOrdering() {
+  NOISEPAGE_ASSERT(!is_leaf_, "Trying to return best action on a leaf node");
+  // Get child of least cost
+  NOISEPAGE_ASSERT(!children_.empty(), "Trying to return best action for unexpanded nodes");
+
+  std::vector<common::ManagedPointer<TreeNode>> results;
+  results.reserve(children_.size());
+  for (auto &child : children_) {
+    results.emplace_back(child);
+  }
+
+  struct {
+    bool operator()(common::ManagedPointer<TreeNode> a, common::ManagedPointer<TreeNode> b) {
+      return a->cost_ < b->cost_;
+    }
+  } cmp;
+  std::sort(results.begin(), results.end(), cmp);
+  return results;
 }
 
 void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost) {
@@ -92,7 +123,7 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
       curr = curr->SampleChild();
       actions_on_path.push_back(curr->current_action_);
     }
-  } while (curr->depth_ > end_segment_index);
+  } while (curr->action_start_segment_index_ > end_segment_index);
 
   for (auto action : actions_on_path) {
     for (auto invalid_action : action_map.at(action)->GetInvalidatedActions()) {
@@ -108,14 +139,16 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
 }
 
 void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
-                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                               uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
+                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t action_horizon,
+                               uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint) {
-  auto start_segment_index = tree_start_segment_index + depth_;
-  auto end_segment_index = tree_end_segment_index;
-  NOISEPAGE_ASSERT(start_segment_index <= end_segment_index,
-                   "start segment index should be no greater than the end segment index");
+  action_plan_end_index_ = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
+
+  SELFDRIVING_LOG_DEBUG("action_start_segment_index: {} action_plan_end_index: {} tree_end_segment_index: {}",
+                        action_start_segment_index_, action_plan_end_index_, tree_end_segment_index);
+  NOISEPAGE_ASSERT(action_start_segment_index_ <= tree_end_segment_index,
+                   "action plan end segment index should be no greater than tree end segment index");
 
   for (const auto &action_id : candidate_actions) {
     // expand each action not yet applied
@@ -137,11 +170,11 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
       PilotUtil::ApplyAction(pilot, action_map.at(action_id)->GetSQLCommand(),
                              action_map.at(action_id)->GetDatabaseOid(), Pilot::WHAT_IF);
 
-      child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
-      if (start_segment_index == end_segment_index)
+      child_segment_cost = PilotUtil::ComputeCost(pilot, forecast,action_start_segment_index_, action_plan_end_index_);
+      if (action_plan_end_index_ == tree_end_segment_index)
         later_segments_cost = 0;
       else
-        later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
+        later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, action_plan_end_index_ + 1, tree_end_segment_index);
 
       // apply one reverse action to undo the above
       auto rev_actions = action_map.at(action_id)->GetReverseActions();
@@ -149,7 +182,7 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                              action_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
     }
 
-    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, child_segment_cost,
+    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, action_plan_end_index_ + 1,child_segment_cost,
                                                    later_segments_cost, start_memory_consumption));
   }
 }

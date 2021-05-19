@@ -20,6 +20,10 @@ namespace pilot {
 class AbstractAction;
 class ActionState;
 
+STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);
+
+constexpr tree_node_id_t INVALID_TREE_NODE_ID = tree_node_id_t(0);
+
 /**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
@@ -31,18 +35,30 @@ class TreeNode {
    * @param current_action action that leads its parent to the current node, root has NULL action
    * @param current_segment_cost cost of executing current segment with actions applied on path from root to current
    * node
+   * @param action_start_segment_index start of segment index that this node will influence
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    * @param memory memory consumption at the current node in bytes
    * @param action_state pointer of the state of the action after the intervals represented by this node. The life
    * cycle of the state is the same as the MonteCarloTreeSearch object
    */
-  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
+  TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t action_start_segment_index,
+           double current_segment_cost,
            double later_segments_cost, uint64_t memory, common::ManagedPointer<ActionState> action_state);
 
   /**
    * @return action id at node with least cost
    */
   common::ManagedPointer<TreeNode> BestSubtree();
+
+  /**
+   * @return nodes ordered from optimal to least optimal
+   */
+  std::vector<common::ManagedPointer<TreeNode>> BestSubtreeOrdering();
+
+  /**
+   * @return depth of the treenode in the search tree
+   */
+  uint64_t GetDepth() { return depth_; }
 
   /**
    * Recursively sample the vertex whose children will be assigned values through rollout.
@@ -62,14 +78,14 @@ class TreeNode {
    * Expand each child of current node and update its cost and num of visits accordingly
    * @param pilot pointer to pilot
    * @param forecast pointer to forecasted workload
-   * @param tree_start_segment_index start_segment_index of the search tree
+   * @param action_horizon number of next levels only influenced by the action selected at current node
    * @param tree_end_segment_index end_segment_index of the search tree
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree
    * @param memory_constraint maximum allowed memory in bytes
    */
   void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                       uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
+                       uint64_t action_horizon, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint);
 
@@ -94,6 +110,27 @@ class TreeNode {
    * @return current action
    */
   action_id_t GetCurrentAction() { return current_action_; }
+
+  /**
+   * Get estimated cost of applying the action
+   * @return estimated cost
+   */
+  double GetCost() { return cost_; }
+
+  /**
+   * @return tree node id
+   */
+  tree_node_id_t GetTreeNodeId() { return tree_node_id_; }
+
+  /**
+   * @return action start segment index
+   */
+  uint64_t GetActionStartSegmentIndex() { return action_start_segment_index_; }
+
+  /**
+   * @return action plan end index
+   */
+  uint64_t GetActionPlanEndIndex() { return action_plan_end_index_; }
 
  private:
   /**
@@ -138,8 +175,11 @@ class TreeNode {
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
+  tree_node_id_t tree_node_id_;
   bool is_leaf_;
-  const uint64_t depth_;  // number of edges in path from root
+  const uint64_t depth_;                       // number of edges in path from root
+  const uint64_t action_start_segment_index_;  // start of segment index that this node will influence
+  uint64_t action_plan_end_index_;             // end of segment index for planning
   const action_id_t current_action_;
   const double ancestor_cost_;  // cost of executing segments with actions applied on path from root to current node
   const common::ManagedPointer<TreeNode> parent_;
@@ -149,6 +189,8 @@ class TreeNode {
   double cost_;
   uint64_t memory_;
   common::ManagedPointer<ActionState> action_state_;
+
+  static tree_node_id_t tree_node_identifier;
 };
 }  // namespace pilot
 

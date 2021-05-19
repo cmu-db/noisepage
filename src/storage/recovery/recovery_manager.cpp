@@ -46,8 +46,37 @@ void RecoveryManager::WaitForRecoveryToFinish() {
 }
 
 void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogProvider> log_provider) {
+  uint64_t num_records = 0, num_txns = 0;
+
+  // Initialize whether to collect metrics outside of the spin loop so as not to count each loop iteration as a sample
+  // (by calling ComponentToRecord this increments the sample count)
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
   // Replay logs until the log provider no longer gives us logs
   while (true) {
+    // Record metrics from previous iteration
+    if (num_records > 0) {
+      if (common::thread_context.resource_tracker_.IsRunning()) {
+        // Stop the resource tracker for this operating unit
+        common::thread_context.resource_tracker_.Stop();
+        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+        common::thread_context.metrics_store_->RecordRecoveryData(num_records, num_txns, resource_metrics);
+      }
+      num_records = num_txns = 0;
+      // Update whether to collect metrics only if we did work (starting a new event) so as not to count each loop
+      // iteration as a sample (by calling ComponentToRecord this increments the sample count)
+      logging_metrics_enabled =
+          common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+    }
+
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
+
     if (replication_manager_ != DISABLED && replication_manager_->IsReplica() &&
         log_provider->GetType() == AbstractLogProvider::LogProviderType::REPLICATION) {
       auto rlp = log_provider.CastManagedPointerTo<ReplicationLogProvider>();
@@ -59,7 +88,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
 
       if (event == ReplicationLogProvider::ReplicationEvent::OAT) {
         auto oat = rlp->PopOAT();
-        recovered_txns_ += ProcessDeferredTransactions(oat);
+        std::tie(num_txns, num_records) = ProcessDeferredTransactions(oat);
+        recovered_txns_ += num_txns;
         continue;
       }
       NOISEPAGE_ASSERT(event == ReplicationLogProvider::ReplicationEvent::LOGS,
@@ -78,6 +108,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
+        // Record the current abort txn
+        num_records++;
         break;
       }
 
@@ -88,7 +120,11 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
         // We defer all transactions initially
         deferred_txns_.insert(log_record->TxnBegin());
         // Process any deferred transactions that are safe to execute
-        recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
+        std::tie(num_txns, num_records) = ProcessDeferredTransactions(commit_record->OldestActiveTxn());
+        recovered_txns_ += num_txns;
+        // Record the current commit txn
+        num_records++;
+
         // Clean up the log record
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
@@ -116,7 +152,8 @@ void RecoveryManager::RecoverFromLogs(const common::ManagedPointer<AbstractLogPr
   }
 }
 
-void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
+uint32_t RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
+  auto records_processed = 0;
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
 
@@ -134,6 +171,7 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
     } else {
       ReplayDeleteRecord(txn, buffered_record);
     }
+    records_processed++;
   }
 
   // Defer deletes of the log records
@@ -153,6 +191,8 @@ void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timest
       replication_manager_->GetAsReplica()->NotifyPrimaryTransactionApplied(txn_id);
     }
   }
+
+  return records_processed;
 }
 
 void RecoveryManager::DeferRecordDeletes(noisepage::transaction::timestamp_t txn_id, bool delete_varlens) {
@@ -169,8 +209,10 @@ void RecoveryManager::DeferRecordDeletes(noisepage::transaction::timestamp_t txn
   });
 }
 
-uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::timestamp_t upper_bound_ts) {
+std::pair<uint32_t, uint32_t> RecoveryManager::ProcessDeferredTransactions(
+    noisepage::transaction::timestamp_t upper_bound_ts) {
   auto txns_processed = 0;
+  auto records_processed = 0;
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
   upper_bound_ts =
@@ -178,14 +220,14 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::ti
   auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
-    ProcessCommittedTransaction(*it);
+    records_processed += ProcessCommittedTransaction(*it);
     txns_processed++;
   }
 
   // If we actually processed some txns, remove them from the set
   if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
 
-  return txns_processed;
+  return {txns_processed, records_processed};
 }
 
 void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, LogRecord *record) {

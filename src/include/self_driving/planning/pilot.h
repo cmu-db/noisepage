@@ -64,6 +64,7 @@ namespace pilot {
 class AbstractAction;
 class MonteCarloTreeSearch;
 class TreeNode;
+class ActionTreeNode;
 }  // namespace pilot
 
 class PilotUtil;
@@ -134,7 +135,7 @@ class Pilot {
    * Search for and apply the best action for the current timestamp
    * @param best_action_seq pointer to the vector to be filled with the sequence of best actions to take at current time
    */
-  void ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq);
+  void ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq);
 
   /**
    * Performs training of the forecasting model
@@ -178,7 +179,7 @@ class Pilot {
   common::ManagedPointer<task::TaskManager> task_manager_;
   Forecaster forecaster_;
   pilot::MemoryInfo memory_info_;
-  uint64_t action_planning_horizon_{5};
+  uint64_t action_planning_horizon_{15};
   uint64_t simulation_number_{20};
 
   friend class noisepage::selfdriving::PilotUtil;
