@@ -141,16 +141,15 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
 }
 
 size_t TreeNode::CalculateMemoryConsumption(const MemoryInfo &memory_info, const ActionState &action_state,
-                                  uint64_t segment_index, const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map) {
+                                            uint64_t segment_index,
+                                            const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map) {
   auto created_indexes = action_state.GetCreatedIndexes();
   auto dropped_indexes = action_state.GetDroppedIndexes();
   auto index_action_map = action_state.GetIndexActionMap();
-  printf("here1\n");
 
   // First count the table sizes
   std::unordered_map<catalog::table_oid_t, double> table_memory_sizes;
   for (auto &[table_id, size] : memory_info.table_memory_bytes_) table_memory_sizes[table_id] = size;
-  printf("here2\n");
 
   // Then count the index sizes for each table, if they're not dropped
   for (auto &[table_id, index_sizes] : memory_info.table_index_memory_bytes_) {
@@ -159,22 +158,25 @@ size_t TreeNode::CalculateMemoryConsumption(const MemoryInfo &memory_info, const
     }
   }
 
-  printf("here3\n");
   // Then count the newly added indexes
   for (auto &name : created_indexes) {
     auto const &action = action_map.at(index_action_map[name]);
     double size = action->GetEstimatedMemoryBytes();
     NOISEPAGE_ASSERT(action->GetActionType() == ActionType::CREATE_INDEX, "This must be a create index action");
-    auto table_id = reinterpret_cast<CreateIndexAction*>(action.get())->GetTableOid();
+    auto table_id = reinterpret_cast<CreateIndexAction *>(action.get())->GetTableOid();
     table_memory_sizes[table_id] += size;
   }
-  printf("here4\n");
 
   double total_memory = 0;
   auto &table_size_ratios = memory_info.segment_table_size_ratios_.at(segment_index);
   // Adjust the sizes based on the forecasted table size ratio and calculate the sum
-  for (auto [table_id, size] : table_memory_sizes) total_memory += size * table_size_ratios.at(table_id);
-  printf("here5\n");
+  for (auto [table_id, size] : table_memory_sizes) {
+    // We won't store the size ratio if the table size doesn't change
+    if (table_size_ratios.find(table_id) == table_size_ratios.end())
+      total_memory += size;
+    else
+      total_memory += size * table_size_ratios.at(table_id);
+  }
 
   return total_memory;
 }
@@ -210,7 +212,7 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
         satisfy_memory_constraint = false;
         break;
       }
-      printf("%d %lu %lu", action_id.UnderlyingValue(), segment_index, memory);
+      printf("Action: %d Segment: %lu Memory: %lu\n", action_id.UnderlyingValue(), segment_index, memory);
       if (segment_index == action_plan_end_index_) plan_end_memory_consumption = memory;
     }
 

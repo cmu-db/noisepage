@@ -176,7 +176,8 @@ class TreeNode {
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
   static size_t CalculateMemoryConsumption(const MemoryInfo &memory_info, const ActionState &action_state,
-                                           uint64_t segment_index, const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map);
+                                           uint64_t segment_index,
+                                           const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map);
 
   tree_node_id_t tree_node_id_;
   bool is_leaf_;

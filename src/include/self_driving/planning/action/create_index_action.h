@@ -29,9 +29,8 @@ class CreateIndexAction : public AbstractAction {
    * @param table_name The table to create index on
    * @param columns The columns to build index on
    */
-  CreateIndexAction(catalog::db_oid_t db_oid, std::string index_name, std::string table_name, catalog::table_oid_t
-                                                                                                  table_oid,
-                    std::vector<IndexColumn> columns)
+  CreateIndexAction(catalog::db_oid_t db_oid, std::string index_name, std::string table_name,
+                    catalog::table_oid_t table_oid, std::vector<IndexColumn> columns)
       : AbstractAction(ActionType::CREATE_INDEX, db_oid),
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),

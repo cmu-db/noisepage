@@ -68,9 +68,9 @@ class ActionState {
     return hash;
   }
 
-  const std::set<std::string> &GetCreatedIndexes() const { return created_indexes_;}
-  const std::set<std::string> &GetDroppedIndexes() const { return dropped_indexes_;}
-  const std::unordered_map<std::string, action_id_t> &GetIndexActionMap() const { return index_action_map_;}
+  const std::set<std::string> &GetCreatedIndexes() const { return created_indexes_; }
+  const std::set<std::string> &GetDroppedIndexes() const { return dropped_indexes_; }
+  const std::unordered_map<std::string, action_id_t> &GetIndexActionMap() const { return index_action_map_; }
 
  private:
   uint64_t start_interval_;
