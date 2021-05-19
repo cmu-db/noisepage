@@ -14,14 +14,15 @@
 namespace noisepage::selfdriving::pilot {
 
 TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-                   double later_segments_cost, uint64_t memory)
+                   double later_segments_cost, uint64_t memory, common::ManagedPointer<ActionState> action_state)
     : is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
       current_action_(current_action),
       ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
       parent_(parent),
       number_of_visits_{1},
-      memory_(memory) {
+      memory_(memory),
+      action_state_(action_state) {
   if (parent != nullptr) parent->is_leaf_ = false;
   cost_ = ancestor_cost_ + later_segments_cost;
   SELFDRIVING_LOG_INFO(

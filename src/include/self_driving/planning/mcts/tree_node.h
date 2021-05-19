@@ -18,6 +18,7 @@ class WorkloadForecast;
 
 namespace pilot {
 class AbstractAction;
+class ActionState;
 
 /**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
@@ -32,9 +33,11 @@ class TreeNode {
    * node
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    * @param memory memory consumption at the current node in bytes
+   * @param action_state pointer of the state of the action after the intervals represented by this node. The life
+   * cycle of the state is the same as the MonteCarloTreeSearch object
    */
   TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-           double later_segments_cost, uint64_t memory);
+           double later_segments_cost, uint64_t memory, common::ManagedPointer<ActionState> action_state);
 
   /**
    * @return action id at node with least cost
@@ -145,6 +148,7 @@ class TreeNode {
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
   uint64_t memory_;
+  common::ManagedPointer<ActionState> action_state_;
 };
 }  // namespace pilot
 

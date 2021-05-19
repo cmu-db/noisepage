@@ -536,15 +536,18 @@ void PilotUtil::ComputeTableIndexSizes(common::ManagedPointer<transaction::Trans
       // Get table memory size
       auto sql_table = accessor->GetTable(table_oid);
       if (sql_table == nullptr) continue;
-      memory_info->table_memory_bytes_[table_oid] = sql_table->EstimateHeapUsage();
+      size_t table_memory = sql_table->EstimateHeapUsage();
+      memory_info->table_memory_bytes_[table_oid] = table_memory;
+      memory_info->initial_memory_bytes_ += table_memory;
 
       // Get index memory size
       auto index_oids = accessor->GetIndexOids(table_oid);
       for (auto index_oid : index_oids) {
         auto index = accessor->GetIndex(index_oid);
-        memory_info->table_index_memory_bytes_[table_oid][index_oid] = index->EstimateHeapUsage();
-        printf("%d %d %s\n", table_oid.UnderlyingValue(), index_oid.UnderlyingValue(),
-               accessor->GetIndexName(index_oid).c_str());
+        auto index_name = accessor->GetIndexName(index_oid);
+        size_t index_memory = index->EstimateHeapUsage();
+        memory_info->table_index_memory_bytes_[table_oid][index_name] = index_memory;
+        memory_info->initial_memory_bytes_ += index_memory;
       }
     }
   }

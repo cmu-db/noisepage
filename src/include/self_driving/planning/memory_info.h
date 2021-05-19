@@ -14,8 +14,11 @@ struct MemoryInfo {
   // <table id, table heap usage in bytes>
   std::unordered_map<catalog::table_oid_t, size_t> table_memory_bytes_;
 
-  // <table id, <index id, index heap usage in bytes>>
-  std::unordered_map<catalog::table_oid_t, std::unordered_map<catalog::index_oid_t, size_t>> table_index_memory_bytes_;
+  // <table id, <index name, index heap usage in bytes>>
+  std::unordered_map<catalog::table_oid_t, std::unordered_map<std::string, size_t>> table_index_memory_bytes_;
+
+  // Memory consumption at the start of the planning
+  size_t initial_memory_bytes_;
 };
 
 }  // namespace noisepage::selfdriving::pilot

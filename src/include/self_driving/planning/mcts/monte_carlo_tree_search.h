@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "self_driving/planning/mcts/tree_node.h"
+#include "self_driving/planning/mcts/action_state.h"
 
 namespace noisepage::selfdriving {
 class Pilot;
@@ -48,6 +49,8 @@ class MonteCarloTreeSearch {
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
   bool use_min_cost_;  // Use the minimum cost of all leaves (instead of the average) as the cost for internal nodes
+
+  std::unordered_map<std::unique_ptr<ActionState>, double, ActionStateHasher> action_state_cost_map_;
 };
 }  // namespace pilot
 
