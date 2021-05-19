@@ -7,7 +7,9 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "self_driving/planning/action/abstract_action.h"
 #include "self_driving/planning/action/action_defs.h"
+#include "self_driving/planning/mcts/action_state.h"
 
 #define EPSILON 1e-3
 #define NULL_ACTION INT32_MAX
@@ -17,8 +19,8 @@ class Pilot;
 class WorkloadForecast;
 
 namespace pilot {
-class AbstractAction;
-class ActionState;
+
+struct MemoryInfo;
 
 STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);
 
@@ -38,12 +40,10 @@ class TreeNode {
    * @param action_start_segment_index start of segment index that this node will influence
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    * @param memory memory consumption at the current node in bytes
-   * @param action_state pointer of the state of the action after the intervals represented by this node. The life
-   * cycle of the state is the same as the MonteCarloTreeSearch object
+   * @param action_state the state of the action after the intervals represented by this node.
    */
   TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t action_start_segment_index,
-           double current_segment_cost,
-           double later_segments_cost, uint64_t memory, common::ManagedPointer<ActionState> action_state);
+           double current_segment_cost, double later_segments_cost, uint64_t memory, ActionState action_state);
 
   /**
    * @return action id at node with least cost
@@ -175,6 +175,9 @@ class TreeNode {
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
+  static size_t CalculateMemoryConsumption(const MemoryInfo &memory_info, const ActionState &action_state,
+                                           uint64_t segment_index, const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map);
+
   tree_node_id_t tree_node_id_;
   bool is_leaf_;
   const uint64_t depth_;                       // number of edges in path from root
@@ -188,7 +191,7 @@ class TreeNode {
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
   uint64_t memory_;
-  common::ManagedPointer<ActionState> action_state_;
+  ActionState action_state_;
 
   static tree_node_id_t tree_node_identifier;
 };

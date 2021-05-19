@@ -44,12 +44,11 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
 
   // create root_
   auto later_cost = PilotUtil::ComputeCost(pilot, forecast, 0, end_segment_index);
-  auto action_state = std::make_unique<ActionState>();
-  action_state->SetIntervals(0, end_segment_index);
+  ActionState action_state;
+  action_state.SetIntervals(0, end_segment_index);
   // root correspond to no action applied to any segment
   root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, 0, later_cost,
-                                     pilot_->GetMemoryInfo().initial_memory_bytes_,
-                                     common::ManagedPointer<ActionState>(action_state));
+                                     pilot_->GetMemoryInfo().initial_memory_bytes_, action_state);
   action_state_cost_map_.emplace(std::make_pair(std::move(action_state), later_cost));
 }
 

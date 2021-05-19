@@ -9,6 +9,8 @@
 
 namespace noisepage::selfdriving::pilot {
 
+class ActionState;
+
 /**
  * The abstract class for self-driving actions
  */
@@ -20,7 +22,7 @@ class AbstractAction {
    * @param db_oid The ID of the database that this action belongs to
    */
   explicit AbstractAction(ActionType family, catalog::db_oid_t db_oid)
-      : action_type_(family), db_oid_(db_oid), id_(action_id_counter++) {}
+      : id_(action_id_counter++), action_type_(family), db_oid_(db_oid) {}
 
   virtual ~AbstractAction() = default;
 
@@ -109,7 +111,16 @@ class AbstractAction {
    */
   virtual bool IsValid() { return true; }
 
+  /**
+   * Modify the action state given the effect of this action
+   * @param action_state the action state to modify
+   */
+  virtual void ModifyActionState(ActionState *action_state) = 0;
+
  protected:
+  /** ID is unique for an action among on planning process (one MCTS) */
+  action_id_t id_;
+
   std::string sql_command_;  ///< The SQL commaned used to apply the action
 
  private:
@@ -120,9 +131,6 @@ class AbstractAction {
   ActionType action_type_;
 
   catalog::db_oid_t db_oid_;
-
-  /** ID is unique for an action among on planning process (one MCTS) */
-  action_id_t id_;
 
   std::vector<action_id_t> invalidated_action_ids_;
   std::vector<action_id_t> enabled_action_ids_;

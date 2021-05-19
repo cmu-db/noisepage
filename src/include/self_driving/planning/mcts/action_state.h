@@ -68,6 +68,10 @@ class ActionState {
     return hash;
   }
 
+  const std::set<std::string> &GetCreatedIndexes() const { return created_indexes_;}
+  const std::set<std::string> &GetDroppedIndexes() const { return dropped_indexes_;}
+  const std::unordered_map<std::string, action_id_t> &GetIndexActionMap() const { return index_action_map_;}
+
  private:
   uint64_t start_interval_;
   uint64_t end_interval_;
@@ -81,7 +85,7 @@ class ActionState {
 
 class ActionStateHasher {
  public:
-  size_t operator()(const std::unique_ptr<ActionState> &a) const { return a->Hash(); }
+  size_t operator()(const ActionState &a) const { return a.Hash(); }
 };
 
 }  // namespace noisepage::selfdriving::pilot
