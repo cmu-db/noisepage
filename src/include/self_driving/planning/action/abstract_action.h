@@ -28,12 +28,26 @@ class AbstractAction {
    * Set the estimated runtime metrics for this action
    * @param estimated_metrics The metrics to set to
    */
-  void SetEstimatedMetrics(const common::ResourceTracker::Metrics &estimated_metrics) {
-    estimated_metrics_ = estimated_metrics;
+  void SetEstimatedMetrics(std::vector<double> &&estimated_metrics) {
+    estimated_metrics_ = std::move(estimated_metrics);
   }
 
   /** @return The estimated runtime metrics for this action */
-  const common::ResourceTracker::Metrics &GetEstimatedMetrics() { return estimated_metrics_; }
+  const std::vector<double> &GetEstimatedMetrics() { return estimated_metrics_; }
+
+  /** @return The estimated elapsed time in us for this action */
+  double GetEstimatedElapsedUs() {
+    if (estimated_metrics_.empty()) return 0;
+    // Assumes the elapsed time is the last element
+    return estimated_metrics_.end()[-1];
+  }
+
+  /** @return The estimated memory consumption in bytes for this action */
+  double GetEstimatedMemoryBytes() {
+    if (estimated_metrics_.size() < 2) return 0;
+    // Assumes the memory consumption is the second last element
+    return estimated_metrics_.end()[-2];
+  }
 
   /** @return This action's ID */
   action_id_t GetActionID() const { return id_; }
@@ -101,7 +115,7 @@ class AbstractAction {
  private:
   static action_id_t action_id_counter;
 
-  common::ResourceTracker::Metrics estimated_metrics_{};
+  std::vector<double> estimated_metrics_;
 
   ActionType action_type_;
 

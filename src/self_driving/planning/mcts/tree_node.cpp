@@ -1,4 +1,3 @@
-
 #include "self_driving/planning/mcts/tree_node.h"
 
 #include <cmath>
@@ -28,9 +27,6 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
   SELFDRIVING_LOG_INFO(
       "Creating Tree Node: Depth {} Action {} Cost {} Current_Segment_Cost {} Later_Segment_Cost {} Ancestor_Cost {}",
       depth_, current_action_, cost_, current_segment_cost, later_segments_cost, ancestor_cost_);
-
-  // TODO(lin): check the memory constraint
-  (void)memory_;
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
@@ -125,22 +121,35 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
     if (!action_map.at(action_id)->IsValid() ||
         action_map.at(action_id)->GetSQLCommand() == "set compiled_query_execution = 'true';")
       continue;
-    PilotUtil::ApplyAction(pilot, action_map.at(action_id)->GetSQLCommand(), action_map.at(action_id)->GetDatabaseOid(),
-                           Pilot::WHAT_IF);
 
-    double child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
-    double later_segments_cost = 0;
-    if (start_segment_index != end_segment_index)
-      later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
+    // Compute memory consumption
+    bool satisfy_memory_constraint = true;
+    double start_memory_consumption = 0;
+    // for (auto segment_index = start_segment_index; segment_index <= end_segment_index; segment_index++) {
+    //  CalculateMemoryConsumption(pilot->GetMemoryInfo(), forecast, segment_index);
+    //}
 
-    // TODO(lin): store the current memory consumption up to this node instead of 0
+    // Initialize to large enough value when the memory constraint is not satisfied
+    double child_segment_cost = 1e10;
+    double later_segments_cost = 1e10;
+    if (satisfy_memory_constraint) {
+      PilotUtil::ApplyAction(pilot, action_map.at(action_id)->GetSQLCommand(),
+                             action_map.at(action_id)->GetDatabaseOid(), Pilot::WHAT_IF);
+
+      child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
+      if (start_segment_index == end_segment_index)
+        later_segments_cost = 0;
+      else
+        later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
+
+      // apply one reverse action to undo the above
+      auto rev_actions = action_map.at(action_id)->GetReverseActions();
+      PilotUtil::ApplyAction(pilot, action_map.at(rev_actions[0])->GetSQLCommand(),
+                             action_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
+    }
+
     children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, child_segment_cost,
-                                                   later_segments_cost, 0));
-
-    // apply one reverse action to undo the above
-    auto rev_actions = action_map.at(action_id)->GetReverseActions();
-    PilotUtil::ApplyAction(pilot, action_map.at(rev_actions[0])->GetSQLCommand(),
-                           action_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
+                                                   later_segments_cost, start_memory_consumption));
   }
 }
 

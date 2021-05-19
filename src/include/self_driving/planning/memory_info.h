@@ -2,7 +2,7 @@
 
 #include "catalog/catalog_defs.h"
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 /** Stores the information related to table and index memory consumption and the table growth ratios */
 struct MemoryInfo {
   // The tables that we track memory with
@@ -18,4 +18,4 @@ struct MemoryInfo {
   std::unordered_map<catalog::table_oid_t, std::unordered_map<catalog::index_oid_t, size_t>> table_index_memory_bytes_;
 };
 
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot

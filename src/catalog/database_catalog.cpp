@@ -219,6 +219,16 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
   return common::ManagedPointer(reinterpret_cast<storage::index::Index *>(ptr_pair.first));
 }
 
+std::string DatabaseCatalog::GetIndexName(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                          index_oid_t index) {
+  const auto name_pair = pg_core_.GetClassNameKind(txn, index.UnderlyingValue());
+  if (name_pair.second != postgres::PgClass::RelKind::INDEX) {
+    // User called GetTable with an OID for an object that doesn't have type INDEX
+    return std::string();
+  }
+  return name_pair.first;
+}
+
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const table_oid_t table) {
   const auto ptr_pair = pg_core_.GetClassSchemaPtrKind(txn, table.UnderlyingValue());

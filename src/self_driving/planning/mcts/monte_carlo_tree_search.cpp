@@ -8,6 +8,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/planning/action/generators/change_knob_action_generator.h"
 #include "self_driving/planning/action/generators/index_action_generator.h"
+#include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
 #include "transaction/transaction_manager.h"
 

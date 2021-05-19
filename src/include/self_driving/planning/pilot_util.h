@@ -147,7 +147,7 @@ class PilotUtil {
   static void ComputeTableSizeRatios(const WorkloadForecast *forecast,
                                      common::ManagedPointer<task::TaskManager> task_manager,
                                      common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                     common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info);
+                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
 
   /**
    * Get the current table and index heap memory usage
@@ -158,7 +158,7 @@ class PilotUtil {
    * @param memory_info Object that stores the returned memory info
    */
   static void ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                     common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info);
+                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
 
   static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
                                         const std::string &ou_model_save_path,

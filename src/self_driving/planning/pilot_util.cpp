@@ -427,7 +427,8 @@ void PilotUtil::GroupFeaturesByOU(
 void PilotUtil::ComputeTableSizeRatios(const WorkloadForecast *forecast,
                                        common::ManagedPointer<task::TaskManager> task_manager,
                                        common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                       common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info) {
+                                       common::ManagedPointer<catalog::Catalog> catalog,
+                                       pilot::MemoryInfo *memory_info) {
   NOISEPAGE_ASSERT(task_manager, "ComputeTableSizeRatios() requires task manager");
 
   // Maps from table oid to the number of rows (acquired from pg_statistic)
@@ -523,7 +524,8 @@ void PilotUtil::ComputeTableSizeRatios(const WorkloadForecast *forecast,
 }
 
 void PilotUtil::ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                       common::ManagedPointer<catalog::Catalog> catalog, MemoryInfo *memory_info) {
+                                       common::ManagedPointer<catalog::Catalog> catalog,
+                                       pilot::MemoryInfo *memory_info) {
   catalog::db_oid_t max_db_oid = catalog->GetNextOid();
   auto txn = txn_manager->BeginTransaction();
   // Traverse all databases to find the info (since we don't know which table belongs to which database)
@@ -541,6 +543,8 @@ void PilotUtil::ComputeTableIndexSizes(common::ManagedPointer<transaction::Trans
       for (auto index_oid : index_oids) {
         auto index = accessor->GetIndex(index_oid);
         memory_info->table_index_memory_bytes_[table_oid][index_oid] = index->EstimateHeapUsage();
+        printf("%d %d %s\n", table_oid.UnderlyingValue(), index_oid.UnderlyingValue(),
+               accessor->GetIndexName(index_oid).c_str());
       }
     }
   }
@@ -601,6 +605,8 @@ void PilotUtil::EstimateCreateIndexAction(
       }
     }
   }
+
+  action->SetEstimatedMetrics(std::move(pipeline_sum));
 }
 
 }  // namespace noisepage::selfdriving

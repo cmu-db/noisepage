@@ -50,6 +50,9 @@ void PgCoreImpl::BootstrapPRIsPgClass() {
   const std::vector<col_oid_t> set_class_schema_oids{PgClass::REL_SCHEMA.oid_};
   set_class_schema_pri_ = classes_->InitializerForProjectedRow(set_class_schema_oids);
 
+  const std::vector<col_oid_t> get_class_name_kind_oids{PgClass::RELNAME.oid_, PgClass::RELKIND.oid_};
+  get_class_name_kind_pri_ = classes_->InitializerForProjectedRow(get_class_name_kind_oids);
+
   const std::vector<col_oid_t> get_class_pointer_kind_oids{PgClass::REL_PTR.oid_, PgClass::RELKIND.oid_};
   get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
 
@@ -1290,6 +1293,53 @@ std::pair<uint32_t, PgClass::RelKind> PgCoreImpl::GetClassOidKind(
 
   delete[] buffer;
   return std::make_pair(oid, kind);
+}
+
+std::pair<std::string, PgClass::RelKind> PgCoreImpl::GetClassNameKind(
+    common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
+  // Buffer is large enough to hold all PRs.
+  byte *const buffer = common::AllocationUtil::AllocateAligned(get_class_name_kind_pri_.ProjectedRowSize());
+
+  const auto &oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+
+  // Scan pg_class_oid_index.
+  std::vector<storage::TupleSlot> index_results;
+  {
+    auto *pr = oid_pri.InitializeRow(buffer);
+    pr->Set<table_oid_t, false>(0, table_oid_t(oid), false);
+    classes_oid_index_->ScanKey(*txn, *pr, &index_results);
+  }
+
+  // If the OID is invalid, we don't care about the class kind and return a random one.
+  {
+    if (index_results.empty()) {
+      delete[] buffer;
+      return std::make_pair(std::string(), PgClass::RelKind::REGULAR_TABLE);
+    }
+  }
+
+  NOISEPAGE_ASSERT(index_results.size() == 1, "Name not unique in pg_class_name_index.");
+  NOISEPAGE_ASSERT(get_class_name_kind_pri_.ProjectedRowSize() <= oid_pri.ProjectedRowSize(),
+                   "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
+
+  // Select out the tuple from pg_class.
+  auto *pr = get_class_name_kind_pri_.InitializeRow(buffer);
+  {
+    const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], pr);
+    NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+  }
+
+  // Get the name and kind.
+  storage::VarlenEntry name_varlen;
+  PgClass::RelKind kind;
+  {
+    name_varlen = *pr->Get<storage::VarlenEntry, false>(0, nullptr);
+    kind = static_cast<PgClass::RelKind>(*pr->Get<char, false>(1, nullptr));
+  }
+
+  delete[] buffer;
+  // TODO(lin): Do we want to directly return the VarlenEntry? In that case, how do we handle non-existent oid?
+  return std::make_pair(std::string(name_varlen.StringView()), kind);
 }
 
 template <typename Column, typename ClassOid, typename ColOid>
