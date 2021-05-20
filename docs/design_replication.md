@@ -34,7 +34,7 @@ By default, Postgres streaming replication has two types of log shipping:
 - File-based: ship at the granularity of 16 MB WAL segments
 - Record-based: ship at the granularity of records
 
-NoisePage is currently record-based. We could tweak it to be file-based in the ASYNC case; to allow for the general case see `remote_apply` discussion below.
+NoisePage is currently kind of file-based, but the "file size" is whatever is in the `LogSerializerTask`.
 
 ##### Monitoring
 
