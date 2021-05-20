@@ -51,7 +51,7 @@ NoisePage is currently kind of file-based, but the "file size" is whatever is in
 Sync
 - Postgres controls this with the `synchronous_commit` setting, roughly in order of decreasing strength:
   - `remote_apply`: replicas must have flushed AND applied the data.
-  - `on`: default setting, all `synchronous_standby_names` servers must have flushed the data. But note that 
+  - `on`: default setting, all `synchronous_standby_names` servers must have flushed the data.
   - `local`: only wait for txn to be flushed to local disk.
   - `remote_write`: replicas must have written the data (but not necessarily fsync).
   - `off`: see async below.
