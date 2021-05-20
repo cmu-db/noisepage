@@ -3319,7 +3319,12 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      GetEmitter()->EmitAssignImm8F(target, static_cast<float>(node->Float64Val()));
+      if (const auto size = node->GetType()->GetSize(); size == 4) {
+        GetEmitter()->EmitAssignImm4F(target, static_cast<float>(node->Float64Val()));
+      } else {
+        NOISEPAGE_ASSERT(size == 8, "Invalid float literal size. Must be 4-, or 8-bytes.");
+        GetEmitter()->EmitAssignImm8F(target, node->Float64Val());
+      }
       GetExecutionResult()->SetDestination(target.ValueOf());
       break;
     }
