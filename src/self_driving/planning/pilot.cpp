@@ -74,7 +74,8 @@ void Pilot::PerformPlanning() {
 
   // Perform planning
   if (settings_manager_->GetBool(settings::Param::enable_seq_tuning)) {
-
+    std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_actions_seq;
+    Pilot::ActionSearchBaseline(&best_actions_seq);
   } else {
     std::vector<pilot::ActionTreeNode> best_action_seq;
     Pilot::ActionSearch(&best_action_seq);
@@ -121,14 +122,15 @@ void Pilot::ActionSearchBaseline(
 
   auto seqtunining =
       pilot::SequenceTuning(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
+
   std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
   seqtunining.BestAction(&best_action_set_seq, settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
+
   for (uint64_t action_set_idx = 0; action_set_idx < best_action_set_seq.size(); action_set_idx++) {
     auto action_set = best_action_set_seq.at(action_set_idx);
     for (auto const &action UNUSED_ATTRIBUTE : action_set) {
-      SELFDRIVING_LOG_INFO(
-          fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", action_set_idx,
-                      action.first, static_cast<uint32_t>(action.second)));
+      SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}",
+                                       action_set_idx, action.first, static_cast<uint32_t>(action.second)));
     }
     best_actions_seq->emplace_back(action_set);
   }
