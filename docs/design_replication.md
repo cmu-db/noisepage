@@ -56,7 +56,7 @@ Sync
   - `remote_write`: replicas must have written the data (but not necessarily fsync).
   - `off`: see async below.
 
-Aync
+Async
 - Postgres ships WAL records after txn commit.
 - Postgres hot standbys are eventually consistent.
 
