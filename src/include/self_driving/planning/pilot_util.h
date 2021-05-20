@@ -11,6 +11,7 @@
 
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
+#include "self_driving/planning/action/action_defs.h"
 
 namespace noisepage {
 namespace catalog {
@@ -40,7 +41,10 @@ class Pilot;
 
 namespace pilot {
 class CreateIndexAction;
-}
+struct MemoryInfo;
+class ActionState;
+class AbstractAction;
+}  // namespace pilot
 
 /**
  * Utility class for helper functions
@@ -170,6 +174,18 @@ class PilotUtil {
   static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
                                         const std::string &ou_model_save_path,
                                         common::ManagedPointer<modelserver::ModelServerManager> model_server_manager);
+
+  /**
+   * Calculate the memory consumption given a specific forecasted workload segment with a specific action state
+   * @param memory_info Pre-calculated memory information
+   * @param action_state The state of the actions
+   * @param segment_index Which forecasted interval to compute memory consumption for
+   * @param action_map Reference of the map from action id to action pointers
+   * @return The memory consumption estimation
+   */
+  static size_t CalculateMemoryConsumption(
+      const pilot::MemoryInfo &memory_info, const pilot::ActionState &action_state, uint64_t segment_index,
+      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map);
 
  private:
   /**

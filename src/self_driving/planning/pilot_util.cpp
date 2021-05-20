@@ -612,4 +612,45 @@ void PilotUtil::EstimateCreateIndexAction(
   action->SetEstimatedMetrics(std::move(pipeline_sum));
 }
 
+size_t PilotUtil::CalculateMemoryConsumption(
+    const pilot::MemoryInfo &memory_info, const pilot::ActionState &action_state, uint64_t segment_index,
+    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map) {
+  auto created_indexes = action_state.GetCreatedIndexes();
+  auto dropped_indexes = action_state.GetDroppedIndexes();
+  auto index_action_map = action_state.GetIndexActionMap();
+
+  // First count the table sizes
+  std::unordered_map<catalog::table_oid_t, double> table_memory_sizes;
+  for (auto &[table_id, size] : memory_info.table_memory_bytes_) table_memory_sizes[table_id] = size;
+
+  // Then count the index sizes for each table, if they're not dropped
+  for (auto &[table_id, index_sizes] : memory_info.table_index_memory_bytes_) {
+    for (auto &[index_name, size] : index_sizes) {
+      if (dropped_indexes.find(index_name) != dropped_indexes.end()) table_memory_sizes[table_id] += size;
+    }
+  }
+
+  // Then count the newly added indexes
+  for (auto &name : created_indexes) {
+    auto const &action = action_map.at(index_action_map[name]);
+    double size = action->GetEstimatedMemoryBytes();
+    NOISEPAGE_ASSERT(action->GetActionType() == pilot::ActionType::CREATE_INDEX, "This must be a create index action");
+    auto table_id = reinterpret_cast<pilot::CreateIndexAction *>(action.get())->GetTableOid();
+    table_memory_sizes[table_id] += size;
+  }
+
+  double total_memory = 0;
+  auto &table_size_ratios = memory_info.segment_table_size_ratios_.at(segment_index);
+  // Adjust the sizes based on the forecasted table size ratio and calculate the sum
+  for (auto [table_id, size] : table_memory_sizes) {
+    // We won't store the size ratio if the table size doesn't change
+    if (table_size_ratios.find(table_id) == table_size_ratios.end())
+      total_memory += size;
+    else
+      total_memory += size * table_size_ratios.at(table_id);
+  }
+
+  return total_memory;
+}
+
 }  // namespace noisepage::selfdriving

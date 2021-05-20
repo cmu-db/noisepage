@@ -13,7 +13,6 @@ namespace noisepage::selfdriving::pilot {
  */
 class ActionState {
  public:
-
   /**
    * Set the start and end intervals for the action state
    * @param start_interval The start interval

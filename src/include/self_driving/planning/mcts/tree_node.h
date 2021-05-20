@@ -20,8 +20,6 @@ class WorkloadForecast;
 
 namespace pilot {
 
-struct MemoryInfo;
-
 STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);
 
 constexpr tree_node_id_t INVALID_TREE_NODE_ID = tree_node_id_t(0);
@@ -174,10 +172,6 @@ class TreeNode {
    * @param expanded_cost new cost of the leaf after expansion
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
-
-  static size_t CalculateMemoryConsumption(const MemoryInfo &memory_info, const ActionState &action_state,
-                                           uint64_t segment_index,
-                                           const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map);
 
   tree_node_id_t tree_node_id_;
   bool is_leaf_;
