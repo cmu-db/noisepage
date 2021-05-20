@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"

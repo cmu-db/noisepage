@@ -172,9 +172,8 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
       if (memory > memory_constraint) satisfy_memory_constraint = false;
     }
     // For bookkeeping purpose
-    size_t plan_end_memory_consumption =
-        PilotUtil::CalculateMemoryConsumption(pilot->GetMemoryInfo(), new_action_state, action_plan_end_index_,
-                                               action_map);
+    size_t plan_end_memory_consumption = PilotUtil::CalculateMemoryConsumption(pilot->GetMemoryInfo(), new_action_state,
+                                                                               action_plan_end_index_, action_map);
 
     // Initialize to large enough value when the memory constraint is not satisfied
     double child_segment_cost = 1e10;

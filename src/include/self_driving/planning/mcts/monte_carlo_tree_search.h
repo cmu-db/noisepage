@@ -3,9 +3,9 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <unordered_map>
 
 #include "catalog/catalog_defs.h"
 #include "self_driving/planning/mcts/action_state.h"

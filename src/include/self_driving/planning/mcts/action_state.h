@@ -1,8 +1,8 @@
 #pragma once
 
 #include <set>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #include "common/hash_util.h"
 #include "self_driving/planning/action/action_defs.h"
