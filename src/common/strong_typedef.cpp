@@ -8,6 +8,7 @@
 #include "network/network_defs.h"
 #include "optimizer/optimizer_defs.h"
 #include "replication/replication_defs.h"
+#include "self_driving/planning/mcts/tree_node.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
@@ -60,6 +61,7 @@ template class StrongTypeAlias<noisepage::messenger::tags::router_id_t_typedef_t
 template class StrongTypeAlias<noisepage::network::tags::connection_id_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::replication::tags::msg_id_t_typedef_tag, uint64_t>;
 template class StrongTypeAlias<noisepage::replication::tags::record_batch_id_t_typedef_tag, uint64_t>;
+template class StrongTypeAlias<noisepage::selfdriving::pilot::tags::tree_node_id_t_typedef_tag, uint64_t>;
 template class StrongTypeAlias<noisepage::storage::tags::col_id_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::storage::tags::layout_version_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::transaction::tags::timestamp_t_typedef_tag, uint64_t>;

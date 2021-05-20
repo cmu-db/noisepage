@@ -23,6 +23,7 @@
 #include "task/task_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
+#include "util/self_driving_recording_util.h"
 
 namespace noisepage::selfdriving {
 
@@ -71,27 +72,41 @@ void Pilot::PerformPlanning() {
   }
 
   // Perform planning
-  std::vector<std::pair<const std::string, catalog::db_oid_t>> best_action_seq;
+  std::vector<pilot::ActionTreeNode> best_action_seq;
   Pilot::ActionSearch(&best_action_seq);
 
   metrics_thread_->ResumeMetrics();
 }
 
-void Pilot::ActionSearch(std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq) {
+void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
   auto mcst =
       pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
-  mcst.BestAction(simulation_number_, best_action_seq,
-                  settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
-  for (uint64_t i = 0; i < best_action_seq->size(); i++) {
+  mcst.RunSimulation(simulation_number_, settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
+
+  // Record the top 3 at each level along the "best action path".
+  // TODO(wz2): May want to improve this at a later time.
+  std::vector<std::vector<pilot::ActionTreeNode>> layered_action;
+  mcst.BestAction(&layered_action, 3);
+  for (size_t i = 0; i < layered_action.size(); i++) {
+    pilot::ActionTreeNode &action = layered_action[i].front();
+    best_action_seq->emplace_back(action);
+
     SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", i,
-                                     best_action_seq->at(i).first,
-                                     static_cast<uint32_t>(best_action_seq->at(i).second)));
+                                     best_action_seq->at(i).GetActionText(),
+                                     static_cast<uint32_t>(best_action_seq->at(i).GetDbOid())));
   }
-  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action_seq->begin()->first,
-                         best_action_seq->begin()->second, false);
+
+  uint64_t timestamp = metrics::MetricsUtil::Now();
+  util::SelfDrivingRecordingUtil::RecordBestActions(timestamp, layered_action, task_manager_);
+
+  pilot::ActionTreeNode &best_action = (*best_action_seq)[0];
+  util::SelfDrivingRecordingUtil::RecordAppliedAction(timestamp, best_action.GetActionId(), best_action.GetCost(),
+                                                      best_action.GetDbOid(), best_action.GetActionText(),
+                                                      task_manager_);
+  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action.GetActionText(), best_action.GetDbOid(), false);
 }
 
 void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
