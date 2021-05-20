@@ -4,7 +4,7 @@
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "self_driving/planning/pilot.h"
 #include "task/task_manager.h"
-#include "util/forecast_recording_util.h"
+#include "util/self_driving_recording_util.h"
 
 namespace noisepage::metrics {
 
@@ -67,13 +67,13 @@ void QueryTraceMetricRawData::WriteToDB(
   NOISEPAGE_ASSERT(task_manager != nullptr, "Task Manager not initialized");
 
   if (write_parameters) {
-    util::ForecastRecordingUtil::RecordQueryMetadata(metadata_.qmetadata_, task_manager);
+    util::SelfDrivingRecordingUtil::RecordQueryMetadata(metadata_.qmetadata_, task_manager);
     if (out_metadata != nullptr) {
       *out_metadata = metadata_.qmetadata_;
     }
 
-    util::ForecastRecordingUtil::RecordQueryParameters(write_timestamp, &metadata_.qid_param_samples_, task_manager,
-                                                       out_params);
+    util::SelfDrivingRecordingUtil::RecordQueryParameters(write_timestamp, &metadata_.qid_param_samples_, task_manager,
+                                                          out_params);
     metadata_.ResetQueryMetadata();
   }
 
