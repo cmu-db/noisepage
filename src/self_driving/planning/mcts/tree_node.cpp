@@ -43,7 +43,7 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
       ancestor_cost_);
 
   // TODO(lin): Add the memory information to the action recording table
-  (void*)memory_;
+  (void)memory_;
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
