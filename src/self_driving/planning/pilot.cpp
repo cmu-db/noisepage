@@ -135,7 +135,7 @@ void Pilot::ActionSearchBaseline(
     best_actions_seq->emplace_back(action_set);
   }
 
-  for (auto action : *best_actions_seq->begin())
+  for (auto const &action : *best_actions_seq->begin())
     PilotUtil::ApplyAction(common::ManagedPointer(this), action.first, action.second, false);
 }
 
