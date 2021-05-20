@@ -8,6 +8,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/planning/action/generators/change_knob_action_generator.h"
 #include "self_driving/planning/action/generators/index_action_generator.h"
+#include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
 #include "transaction/transaction_manager.h"
 
@@ -30,13 +31,26 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   for (const auto &it UNUSED_ATTRIBUTE : action_map_) {
     SELFDRIVING_LOG_INFO("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
   }
-
   pilot->txn_manager_->Abort(txn);
+
+  // Estimate the create index action costs
+  for (auto &[action_id, action] : action_map_) {
+    if (action->GetActionType() == ActionType::CREATE_INDEX) {
+      PilotUtil::EstimateCreateIndexAction(reinterpret_cast<CreateIndexAction *>(action.get()),
+                                           pilot->query_exec_util_.get(), pilot->ou_model_save_path_,
+                                           pilot->model_server_manager_);
+    }
+  }
 
   // create root_
   auto later_cost = PilotUtil::ComputeCost(pilot, forecast, 0, end_segment_index);
+  ActionState action_state;
+  action_state.SetIntervals(0, end_segment_index);
   // root correspond to no action applied to any segment
-  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, 0, later_cost, 0);
+  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, 0, later_cost,
+                                     pilot_->GetMemoryInfo().initial_memory_bytes_, action_state);
+  // TODO(lin): actually using the cost map during the search to reduce computation
+  action_state_cost_map_.emplace(std::make_pair(std::move(action_state), later_cost));
 }
 
 void MonteCarloTreeSearch::RunSimulation(uint64_t simulation_number, uint64_t memory_constraint) {

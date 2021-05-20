@@ -74,16 +74,16 @@ class WorkloadForecast {
    * Get number of forecasted segments
    * @return number of forecasted segments
    */
-  uint64_t GetNumberOfSegments() { return num_forecast_segment_; }
+  uint64_t GetNumberOfSegments() const { return num_forecast_segment_; }
 
  private:
   friend class PilotUtil;
-  const WorkloadForecastSegment &GetSegmentByIndex(uint64_t segment_index) {
+  const WorkloadForecastSegment &GetSegmentByIndex(uint64_t segment_index) const {
     NOISEPAGE_ASSERT(segment_index < num_forecast_segment_, "invalid index");
     return forecast_segments_[segment_index];
   }
 
-  std::string GetQuerytextByQid(execution::query_id_t qid) {
+  std::string GetQuerytextByQid(execution::query_id_t qid) const {
     NOISEPAGE_ASSERT(workload_metadata_.query_id_to_text_.find(qid) != workload_metadata_.query_id_to_text_.end(),
                      "invalid qid");
     return workload_metadata_.query_id_to_text_.at(qid);
@@ -102,11 +102,13 @@ class WorkloadForecast {
     return &(workload_metadata_.query_id_to_param_types_.at(qid));
   }
 
-  uint64_t GetDboidByQid(execution::query_id_t qid) {
+  uint64_t GetDboidByQid(execution::query_id_t qid) const {
     NOISEPAGE_ASSERT(workload_metadata_.query_id_to_dboid_.find(qid) != workload_metadata_.query_id_to_dboid_.end(),
                      "invalid qid");
     return workload_metadata_.query_id_to_dboid_.at(qid);
   }
+
+  const WorkloadMetadata &GetWorkloadMetadata() const { return workload_metadata_; }
 
   /**
    * Initializes segments from inference results

@@ -72,6 +72,10 @@ void Pilot::PerformPlanning() {
     return;
   }
 
+  // Compute memory information used to satisfy the memory constraint
+  PilotUtil::ComputeTableSizeRatios(forecast_.get(), task_manager_, txn_manager_, catalog_, &memory_info_);
+  PilotUtil::ComputeTableIndexSizes(txn_manager_, catalog_, &memory_info_);
+
   // Perform planning
   if (settings_manager_->GetBool(settings::Param::enable_seq_tuning)) {
     std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_actions_seq;

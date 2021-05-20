@@ -88,7 +88,8 @@ void IndexActionGenerator::FindMissingIndex(const planner::AbstractPlanNode *pla
       // TODO(Lin): Don't insert potentially duplicated actions
       // Generate the create index action
       std::string new_index_name = IndexActionUtil::GenerateIndexName(table_name, index_columns);
-      auto create_index_action = std::make_unique<CreateIndexAction>(db_oid, new_index_name, table_name, index_columns);
+      auto create_index_action =
+          std::make_unique<CreateIndexAction>(db_oid, new_index_name, table_name, table_oid, index_columns);
       action_id_t create_index_action_id = create_index_action->GetActionID();
       // Create index would invalidate itself
       create_index_action->AddInvalidatedAction(create_index_action_id);

@@ -5,7 +5,6 @@
 #include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "execution/compiler/compilation_context.h"
-#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
@@ -17,7 +16,9 @@
 #include "network/network_util.h"
 #include "network/postgres/statement.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "parser/delete_statement.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/insert_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -25,11 +26,14 @@
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/planning/action/abstract_action.h"
+#include "self_driving/planning/action/create_index_action.h"
+#include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/pilot.h"
 #include "settings/settings_manager.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
 #include "task/task.h"
 #include "task/task_manager.h"
-#include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
 
@@ -64,6 +68,8 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
       util.ExecuteQuery(sql_query, nullptr, nullptr, nullptr, settings);
     }
   }
+
+  util.ClearPlan(sql_query);
 
   // Commit
   util.EndTransaction(true);
@@ -238,9 +244,9 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     metrics_manager->Aggregate();
 
     aggregated_data.reset(reinterpret_cast<metrics::PipelineMetricRawData *>(
-        metrics_manager->AggregatedMetrics()
-            .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
-            .release()));
+                              metrics_manager->AggregatedMetrics()
+                                  .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
+                                  .release()));
 
     // restore the old parameters
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, old_sample_rate);
@@ -260,10 +266,10 @@ void PilotUtil::OUModelInference(const std::string &model_save_path,
                                  const std::vector<execution::query_id_t> &pipeline_qids,
                                  const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
                                  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                          std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction) {
+                                     std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction) {
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> ou_to_features;
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
-                       std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>>
+      std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>>
       pipeline_to_ou_position;
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_qids, pipeline_data, &ou_to_features);
@@ -300,7 +306,7 @@ void PilotUtil::InterferenceModelInference(
     const std::string &interference_model_save_path,
     common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
     const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                   std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
+        std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
     common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
     uint64_t end_segment_index, std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
     std::map<uint32_t, uint64_t> *segment_to_offset, std::vector<std::vector<double>> *interference_result_matrix) {
@@ -372,7 +378,7 @@ void PilotUtil::InterferenceModelInference(
 
 void PilotUtil::GroupFeaturesByOU(
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
-                         std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
+        std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
     const std::vector<execution::query_id_t> &pipeline_qids,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features) {
@@ -418,6 +424,235 @@ void PilotUtil::GroupFeaturesByOU(
     pipeline_to_ou_position->emplace_back(pipeline_qids.at(pipeline_idx), data_it.pipeline_id_,
                                           std::move(ou_positions));
   }
+}
+
+void PilotUtil::ComputeTableSizeRatios(const WorkloadForecast *forecast,
+                                       common::ManagedPointer<task::TaskManager> task_manager,
+                                       common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                       common::ManagedPointer<catalog::Catalog> catalog,
+                                       pilot::MemoryInfo *memory_info) {
+  NOISEPAGE_ASSERT(task_manager, "ComputeTableSizeRatios() requires task manager");
+
+  // Maps from table oid to the number of rows (acquired from pg_statistic)
+  std::unordered_map<catalog::table_oid_t, uint64_t> table_sizes;
+
+  auto to_row_fn = [&table_sizes, memory_info](const std::vector<execution::sql::Val *> &values) {
+    auto table_oid = static_cast<execution::sql::Integer *>(values[0])->val_;
+    auto num_rows = static_cast<execution::sql::Integer *>(values[1])->val_;
+
+    table_sizes[catalog::table_oid_t(table_oid)] = num_rows;
+    // Currently only track tables with more than 0 rows in the stats
+    memory_info->table_oids_.emplace_back(table_oid);
+  };
+
+  // Get <table_id, num_rows> pairs with num_rows > 0
+  auto query = fmt::format(
+      "select starelid, max(stanumrows) as num_rows from pg_statistic group by starelid "
+      "having max(stanumrows) > 0;");
+
+  common::Future<task::DummyResult> sync;
+  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
+                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
+                                                        to_row_fn, common::ManagedPointer(&sync)));
+
+  auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
+  if (!future_result.has_value()) {
+    throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
+  }
+  UNUSED_ATTRIBUTE bool success = future_result->second;
+  NOISEPAGE_ASSERT(success, "Failed reading from pg_statistic");
+
+  // Calculating queries' changes in the number of rows
+  auto &metadata = forecast->GetWorkloadMetadata();
+  auto txn = txn_manager->BeginTransaction();
+  // <query_id, <table_id, number of rows changed by that query in that table>>
+  std::unordered_map<execution::query_id_t, std::pair<catalog::table_oid_t, int64_t>> query_row_changes;
+  for (const auto &[query_id, query_text] : metadata.query_id_to_text_) {
+    // Parse the query
+    auto parse_result = parser::PostgresParser::BuildParseTree(query_text);
+    if (parse_result->NumStatements() == 0) continue;
+    auto statement = parse_result->GetStatement(0);
+
+    // Identify the table and the number of inserts/deletes
+    int64_t num_row_delta = 0;
+    catalog::table_oid_t table_oid;
+    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn),
+                                         catalog::db_oid_t(forecast->GetDboidByQid(query_id)), DISABLED);
+    if (statement->GetType() == parser::StatementType::INSERT) {
+      auto insert_statement = reinterpret_cast<parser::InsertStatement *>(statement.Get());
+      table_oid = accessor->GetTableOid(insert_statement->GetInsertionTable()->GetTableName());
+      // Number of values is the number of rows inserted
+      num_row_delta = insert_statement->GetValues()->size();
+    }
+
+    if (statement->GetType() == parser::StatementType::DELETE) {
+      auto delete_statement = reinterpret_cast<parser::DeleteStatement *>(statement.Get());
+      table_oid = accessor->GetTableOid(delete_statement->GetDeletionTable()->GetTableName());
+      if (delete_statement->GetDeleteCondition() != nullptr) {
+        // TODO(lin): right now assuming only deleting one row when there's a condition. Need cardinality estimation
+        //  to get a more accurate estimation
+        num_row_delta = -1;
+      } else {
+        if (table_sizes.find(table_oid) != table_sizes.end())
+          // Delete all the tuples when without condition
+          num_row_delta = -table_sizes[table_oid];
+      }
+    }
+    if (num_row_delta != 0 && table_sizes.find(table_oid) != table_sizes.end())
+      query_row_changes[query_id] = std::make_pair(table_oid, num_row_delta);
+  }
+  txn_manager->Abort(txn);
+
+  // Compute table size ratios given the workload forecast
+  for (uint64_t idx = 0; idx < forecast->GetNumberOfSegments(); ++idx) {
+    // Get the table num row changes in this segment
+    auto &id_to_num_exec = forecast->GetSegmentByIndex(idx).GetIdToNumexec();
+    std::unordered_map<catalog::table_oid_t, double> table_size_deltas;
+    for (const auto &[query_id, table_id_to_delta] : query_row_changes) {
+      auto table_id = table_id_to_delta.first;
+      if (table_size_deltas.find(table_id) == table_size_deltas.end()) table_size_deltas[table_id] = 0;
+      table_size_deltas[table_id] += table_id_to_delta.second * id_to_num_exec.at(query_id);
+    }
+
+    // Calculate the table size change ratio for this segment
+    for (const auto &[table_id, size_delta] : table_size_deltas) {
+      double new_table_size = size_delta + static_cast<int64_t>(table_sizes[table_id]);
+      if (new_table_size < 0)
+        memory_info->segment_table_size_ratios_[idx][table_id] = 0;
+      else
+        memory_info->segment_table_size_ratios_[idx][table_id] = new_table_size / table_sizes[table_id];
+    }
+  }
+}
+
+void PilotUtil::ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                       common::ManagedPointer<catalog::Catalog> catalog,
+                                       pilot::MemoryInfo *memory_info) {
+  catalog::db_oid_t max_db_oid = catalog->GetNextOid();
+  auto txn = txn_manager->BeginTransaction();
+  // Traverse all databases to find the info (since we don't know which table belongs to which database)
+  for (auto db_oid = catalog::db_oid_t(1); db_oid < max_db_oid; db_oid++) {
+    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+    if (accessor == nullptr) continue;
+    for (auto table_oid : memory_info->table_oids_) {
+      // Get table memory size
+      auto sql_table = accessor->GetTable(table_oid);
+      if (sql_table == nullptr) continue;
+      size_t table_memory = sql_table->EstimateHeapUsage();
+      memory_info->table_memory_bytes_[table_oid] = table_memory;
+      memory_info->initial_memory_bytes_ += table_memory;
+
+      // Get index memory size
+      auto index_oids = accessor->GetIndexOids(table_oid);
+      for (auto index_oid : index_oids) {
+        auto index = accessor->GetIndex(index_oid);
+        auto index_name = accessor->GetIndexName(index_oid);
+        size_t index_memory = index->EstimateHeapUsage();
+        memory_info->table_index_memory_bytes_[table_oid][index_name] = index_memory;
+        memory_info->initial_memory_bytes_ += index_memory;
+      }
+    }
+  }
+}
+
+void PilotUtil::EstimateCreateIndexAction(
+    pilot::CreateIndexAction *action, util::QueryExecUtil *query_util, const std::string &ou_model_save_path,
+    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager) {
+  std::string query_text = action->GetSQLCommand();
+
+  // Just compile the queries (generate the bytecodes) to get features with statistics
+  query_util->BeginTransaction(action->GetDatabaseOid());
+
+  // First need to insert the index entry into the catalog so that we can correclty generate the query plan
+  query_util->ExecuteDDL(query_text, true);
+
+  auto executable_query = query_util->GetExecutableQuery(query_text);
+
+  auto ous = executable_query->GetPipelineOperatingUnits();
+
+  // used just a placeholder
+  const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+
+  // query id shouldn't matter
+  execution::query_id_t qid(1);
+  std::vector<execution::query_id_t> pipeline_qids{qid};
+  std::unique_ptr<metrics::PipelineMetricRawData> aggregated_data = std::make_unique<metrics::PipelineMetricRawData>();
+  for (auto &iter : ous->GetPipelineFeatureMap()) {
+    // TODO(lin): Interpret mode by default. May want to add that as an option (knob) for the action
+    aggregated_data->RecordPipelineData(qid, iter.first, 0, std::vector<ExecutionOperatingUnitFeature>(iter.second),
+                                        resource_metrics);
+  }
+  query_util->ClearPlan(query_text);
+
+  // Abort the transaction
+  query_util->EndTransaction(false);
+
+  // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
+  // (where each entry corresponds to a different query param)
+  // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
+  // parameters
+  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
+      pipeline_to_prediction;
+
+  // Then we perform inference through model server to get ou prediction results for all pipelines
+  PilotUtil::OUModelInference(ou_model_save_path, model_server_manager, pipeline_qids, aggregated_data->pipeline_data_,
+                              &pipeline_to_prediction);
+
+  auto pred_dim = pipeline_to_prediction.begin()->second.back().back().size();
+
+  // Compute the sum of all ous
+  std::vector<double> pipeline_sum(pred_dim, 0.0);
+  for (auto const &pipeline_to_pred : pipeline_to_prediction) {
+    for (auto const &pipeline_res : pipeline_to_pred.second) {
+      for (const auto &ou_res : pipeline_res) {
+        // sum up the ou prediction results of all ous in a pipeline
+        SumFeatureInPlace(&pipeline_sum, ou_res, 1);
+      }
+    }
+  }
+
+  action->SetEstimatedMetrics(std::move(pipeline_sum));
+}
+
+size_t PilotUtil::CalculateMemoryConsumption(
+    const pilot::MemoryInfo &memory_info, const pilot::ActionState &action_state, uint64_t segment_index,
+    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map) {
+  auto created_indexes = action_state.GetCreatedIndexes();
+  auto dropped_indexes = action_state.GetDroppedIndexes();
+  auto index_action_map = action_state.GetIndexActionMap();
+
+  // First count the table sizes
+  std::unordered_map<catalog::table_oid_t, double> table_memory_sizes;
+  for (auto &[table_id, size] : memory_info.table_memory_bytes_) table_memory_sizes[table_id] = size;
+
+  // Then count the index sizes for each table, if they're not dropped
+  for (auto &[table_id, index_sizes] : memory_info.table_index_memory_bytes_) {
+    for (auto &[index_name, size] : index_sizes) {
+      if (dropped_indexes.find(index_name) != dropped_indexes.end()) table_memory_sizes[table_id] += size;
+    }
+  }
+
+  // Then count the newly added indexes
+  for (auto &name : created_indexes) {
+    auto const &action = action_map.at(index_action_map[name]);
+    double size = action->GetEstimatedMemoryBytes();
+    NOISEPAGE_ASSERT(action->GetActionType() == pilot::ActionType::CREATE_INDEX, "This must be a create index action");
+    auto table_id = reinterpret_cast<pilot::CreateIndexAction *>(action.get())->GetTableOid();
+    table_memory_sizes[table_id] += size;
+  }
+
+  double total_memory = 0;
+  auto &table_size_ratios = memory_info.segment_table_size_ratios_.at(segment_index);
+  // Adjust the sizes based on the forecasted table size ratio and calculate the sum
+  for (auto [table_id, size] : table_memory_sizes) {
+    // We won't store the size ratio if the table size doesn't change
+    if (table_size_ratios.find(table_id) == table_size_ratios.end())
+      total_memory += size;
+    else
+      total_memory += size * table_size_ratios.at(table_id);
+  }
+
+  return total_memory;
 }
 
 double PilotUtil::ConfigTransitionCost(

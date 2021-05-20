@@ -17,7 +17,8 @@
 namespace noisepage {
 namespace catalog {
 class CatalogAccessor;
-}
+class Catalog;
+}  // namespace catalog
 
 namespace modelserver {
 class ModelServerManager;
@@ -34,17 +35,18 @@ class StatsStorage;
 namespace planner {
 class AbstractPlanNode;
 }
-
 }  // namespace noisepage
 
 namespace noisepage::selfdriving {
-
-namespace pilot {
-class AbstractAction;
-}
-
 class WorkloadForecast;
 class Pilot;
+
+namespace pilot {
+class CreateIndexAction;
+struct MemoryInfo;
+class ActionState;
+class AbstractAction;
+}  // namespace pilot
 
 /**
  * Utility class for helper functions
@@ -82,7 +84,7 @@ class PilotUtil {
                                const std::vector<execution::query_id_t> &pipeline_qids,
                                const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
                                std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                        std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
+                                   std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
 
   /**
    * Perform inference on the interference model through model server manager
@@ -100,7 +102,7 @@ class PilotUtil {
       const std::string &interference_model_save_path,
       common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
       const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                     std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
+          std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
       common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
       uint64_t end_segment_index, std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
       std::map<uint32_t, uint64_t> *segment_to_offset, std::vector<std::vector<double>> *interference_result_matrix);
@@ -139,6 +141,53 @@ class PilotUtil {
    */
   static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t start_segment_index, uint64_t end_segment_index);
+
+  /**
+   * Get the ratios between estimated future table sizes (given the forecasted workload) and current table sizes
+   * @param forecast Workload forecast information
+   * @param task_manager Task manager pointer
+   * @param txn_manager Transaction manager pointer
+   * @param catalog Catalog pointer
+   * @param memory_info Object that stores the returned table size info
+   */
+  static void ComputeTableSizeRatios(const WorkloadForecast *forecast,
+                                     common::ManagedPointer<task::TaskManager> task_manager,
+                                     common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
+
+  /**
+   * Get the current table and index heap memory usage
+   * TODO(lin): we should get this information from the stats if the pilot is not running on the primary. But since
+   *   we don't have this in stats yet we're directly getting the information from c++ objects.
+   * @param txn_manager Transaction manager pointer
+   * @param catalog Catalog pointer
+   * @param memory_info Object that stores the returned memory info
+   */
+  static void ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
+
+  /**
+   * Predict the runtime metrics of a create index action
+   * @param action Pointer to the CreateIndexAction
+   * @param query_util Query execution utility
+   * @param ou_model_save_path Path of the OU model
+   * @param model_server_manager Model server manager
+   */
+  static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
+                                        const std::string &ou_model_save_path,
+                                        common::ManagedPointer<modelserver::ModelServerManager> model_server_manager);
+
+  /**
+   * Calculate the memory consumption given a specific forecasted workload segment with a specific action state
+   * @param memory_info Pre-calculated memory information
+   * @param action_state The state of the actions
+   * @param segment_index Which forecasted interval to compute memory consumption for
+   * @param action_map Reference of the map from action id to action pointers
+   * @return The memory consumption estimation
+   */
+  static size_t CalculateMemoryConsumption(
+      const pilot::MemoryInfo &memory_info, const pilot::ActionState &action_state, uint64_t segment_index,
+      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map);
 
   /**
    * Computing the transition cost from one configuration to another.

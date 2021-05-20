@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -8,6 +9,8 @@
 #include "self_driving/planning/action/action_defs.h"
 
 namespace noisepage::selfdriving::pilot {
+
+class ActionState;
 
 /**
  * The abstract class for self-driving actions
@@ -20,7 +23,7 @@ class AbstractAction {
    * @param db_oid The ID of the database that this action belongs to
    */
   explicit AbstractAction(ActionType family, catalog::db_oid_t db_oid)
-      : action_family_(family), db_oid_(db_oid), id_(action_id_counter++) {}
+      : id_(action_id_counter++), action_type_(family), db_oid_(db_oid) {}
 
   virtual ~AbstractAction() = default;
 
@@ -28,18 +31,32 @@ class AbstractAction {
    * Set the estimated runtime metrics for this action
    * @param estimated_metrics The metrics to set to
    */
-  void SetEstimatedMetrics(const common::ResourceTracker::Metrics &estimated_metrics) {
-    estimated_metrics_ = estimated_metrics;
+  void SetEstimatedMetrics(std::vector<double> &&estimated_metrics) {
+    estimated_metrics_ = std::move(estimated_metrics);
   }
 
   /** @return The estimated runtime metrics for this action */
-  const common::ResourceTracker::Metrics &GetEstimatedMetrics() { return estimated_metrics_; }
+  const std::vector<double> &GetEstimatedMetrics() { return estimated_metrics_; }
+
+  /** @return The estimated elapsed time in us for this action */
+  double GetEstimatedElapsedUs() {
+    if (estimated_metrics_.empty()) return 0;
+    // Assumes the elapsed time is the last element
+    return estimated_metrics_.end()[-1];
+  }
+
+  /** @return The estimated memory consumption in bytes for this action */
+  double GetEstimatedMemoryBytes() {
+    if (estimated_metrics_.size() < 2) return 0;
+    // Assumes the memory consumption is the second last element
+    return estimated_metrics_.end()[-2];
+  }
 
   /** @return This action's ID */
   action_id_t GetActionID() const { return id_; }
 
-  /** @return This action's family */
-  ActionType GetActionFamily() const { return action_family_; }
+  /** @return This action's type */
+  ActionType GetActionType() const { return action_type_; }
 
   /** @return This action's database oid */
   catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
@@ -95,20 +112,26 @@ class AbstractAction {
    */
   virtual bool IsValid() { return true; }
 
+  /**
+   * Modify the action state given the effect of this action
+   * @param action_state the action state to modify
+   */
+  virtual void ModifyActionState(ActionState *action_state) = 0;
+
  protected:
+  /** ID is unique for an action among on planning process (one MCTS) */
+  action_id_t id_;
+
   std::string sql_command_;  ///< The SQL commaned used to apply the action
 
  private:
   static action_id_t action_id_counter;
 
-  common::ResourceTracker::Metrics estimated_metrics_{};
+  std::vector<double> estimated_metrics_;
 
-  ActionType action_family_;
+  ActionType action_type_;
 
   catalog::db_oid_t db_oid_;
-
-  /** ID is unique for an action among on planning process (one MCTS) */
-  action_id_t id_;
 
   std::vector<action_id_t> invalidated_action_ids_;
   std::vector<action_id_t> enabled_action_ids_;

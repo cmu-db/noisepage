@@ -6,6 +6,7 @@
 #include "common/managed_pointer.h"
 #include "loggers/selfdriving_logger.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "self_driving/planning/action/create_index_action.h"
 #include "self_driving/planning/action/generators/change_knob_action_generator.h"
 #include "self_driving/planning/action/generators/index_action_generator.h"
 #include "self_driving/planning/pilot_util.h"
@@ -31,6 +32,9 @@ SequenceTuning::SequenceTuning(common::ManagedPointer<Pilot> pilot,
   for (auto &action : candidate_actions)
     if (structure_map_.at(action)->GetActionFamily() == ActionType::CREATE_INDEX) {
       candidate_structures_.emplace_back(action);
+      //      PilotUtil::EstimateCreateIndexAction(reinterpret_cast<CreateIndexAction *>(structure_map_.at(action).get()),
+      //                                           pilot->query_exec_util_.get(), pilot->ou_model_save_path_,
+      //                                           pilot->model_server_manager_);
       SELFDRIVING_LOG_DEBUG("Candidate structure: ID {} Command {}", action,
                             structure_map_.at(action)->GetSQLCommand());
     }
