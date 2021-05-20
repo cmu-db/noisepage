@@ -349,6 +349,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
 TrafficCopResult TrafficCop::ExecuteExplainStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::PostgresPacketWriter> out,
+    const common::ManagedPointer<network::Statement> statement,
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
@@ -358,9 +359,16 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   std::vector<planner::OutputSchema::Column> output_columns;
   output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
 
-  const std::string plan_string = physical_plan->ToJson().dump(4);
-  const execution::sql::StringVal plan_string_val =
-      execution::sql::StringVal(plan_string.c_str(), plan_string.length());
+  const auto format = statement->RootStatement().CastManagedPointerTo<parser::ExplainStatement>()->GetFormat();
+  std::string plan_string;
+  if (format == parser::ExplainStatementFormat::JSON) {
+    plan_string = physical_plan->ToJson().dump(4);
+  } else {
+    NOISEPAGE_ASSERT(format == parser::ExplainStatementFormat::TPL, "We only support JSON and TPL formats.");
+    // we have to codegen it in this case
+    plan_string = "tpl lives here";
+  }
+  const auto plan_string_val = execution::sql::StringVal(plan_string.c_str(), plan_string.length());
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 

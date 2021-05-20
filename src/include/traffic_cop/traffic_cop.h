@@ -229,6 +229,7 @@ class TrafficCop {
    */
   TrafficCopResult ExecuteExplainStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                            common::ManagedPointer<network::PostgresPacketWriter> out,
+                                           common::ManagedPointer<network::Statement> statement,
                                            common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
 
   /**
