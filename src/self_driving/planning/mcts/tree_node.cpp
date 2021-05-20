@@ -41,6 +41,9 @@ TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_
       "Later_Segment_Cost {} Ancestor_Cost {}",
       depth_, action_start_segment_index_, current_action_, cost_, current_segment_cost, later_segments_cost,
       ancestor_cost_);
+
+  // TODO(lin): Add the memory information to the action recording table
+  (void*)memory_;
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
