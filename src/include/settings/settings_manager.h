@@ -18,6 +18,8 @@ class ConstantValueExpression;
 }
 
 namespace noisepage::settings {
+class Callbacks;
+
 using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext> action_context);
 
 /**
@@ -173,6 +175,8 @@ class SettingsManager {
                                      common::ManagedPointer<common::ActionContext> action_context);
 
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
+
+  friend class Callbacks;
 };
 
 }  // namespace noisepage::settings
