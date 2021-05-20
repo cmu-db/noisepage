@@ -187,7 +187,8 @@ class TreeNode {
   uint64_t number_of_visits_;  // number of leaf in subtree rooted at node
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
-  uint64_t memory_;
+  // TODO(lin): Add to action recording
+  UNUSED_ATTRIBUTE uint64_t memory_;
   ActionState action_state_;
 
   static tree_node_id_t tree_node_identifier;

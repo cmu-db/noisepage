@@ -16,7 +16,8 @@
 namespace noisepage {
 namespace catalog {
 class CatalogAccessor;
-}
+class Catalog;
+}  // namespace catalog
 
 namespace modelserver {
 class ModelServerManager;

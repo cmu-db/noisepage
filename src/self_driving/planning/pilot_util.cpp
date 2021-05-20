@@ -26,6 +26,7 @@
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/planning/action/create_index_action.h"
+#include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/pilot.h"
 #include "settings/settings_manager.h"
 #include "storage/index/index.h"
