@@ -13,12 +13,29 @@ namespace noisepage::selfdriving::pilot {
  */
 class ActionState {
  public:
+
+  /**
+   * Set the start and end intervals for the action state
+   * @param start_interval The start interval
+   * @param end_interval The end interval
+   */
   void SetIntervals(uint64_t start_interval, uint64_t end_interval) {
     start_interval_ = start_interval;
     end_interval_ = end_interval;
   }
+
+  /**
+   * Update a knob value in the action state
+   * @param knob The name of the knob
+   * @param value The value to update (cast to int64_t)
+   */
   void UpdateKnobValue(const std::string &knob, int64_t value) { knob_values_[knob] = value; }
 
+  /**
+   * Add an index in the action state
+   * @param name The name of the index
+   * @param id The action id that created the index
+   */
   void AddIndex(const std::string &name, action_id_t id) {
     if (dropped_indexes_.find(name) == dropped_indexes_.end()) {
       created_indexes_.insert(name);
@@ -29,6 +46,11 @@ class ActionState {
     }
   }
 
+  /**
+   * Remove an index from the action state
+   * @param name The name of the index
+   * @param id The action id that dropped the index
+   */
   void RemoveIndex(const std::string &name, action_id_t id) {
     if (created_indexes_.find(name) == created_indexes_.end()) {
       dropped_indexes_.insert(name);
@@ -39,6 +61,7 @@ class ActionState {
     }
   }
 
+  /** @brief Define the equality operator */
   bool operator==(const ActionState &a) const {
     // We don't need to consider index_action_map_ to evaluate equivalence
     if (start_interval_ != a.start_interval_) return false;
@@ -49,6 +72,7 @@ class ActionState {
     return true;
   }
 
+  /** @return The hash value of this action state */
   hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(start_interval_);
     hash = common::HashUtil::CombineHashes(hash, end_interval_);
@@ -68,8 +92,11 @@ class ActionState {
     return hash;
   }
 
+  /** @return The set of created indexes */
   const std::set<std::string> &GetCreatedIndexes() const { return created_indexes_; }
+  /** @return The set of dropped indexes */
   const std::set<std::string> &GetDroppedIndexes() const { return dropped_indexes_; }
+  /** @return Map from an index name to the action id that created/dropped that index */
   const std::unordered_map<std::string, action_id_t> &GetIndexActionMap() const { return index_action_map_; }
 
  private:
@@ -83,8 +110,10 @@ class ActionState {
   std::unordered_map<std::string, action_id_t> index_action_map_;
 };
 
+/** Hasher for ActionState used in STL containers */
 class ActionStateHasher {
  public:
+  /** @brief Hash operator */
   size_t operator()(const ActionState &a) const { return a.Hash(); }
 };
 

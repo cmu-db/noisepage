@@ -160,6 +160,13 @@ class PilotUtil {
   static void ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
                                      common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
 
+  /**
+   * Predict the runtime metrics of a create index action
+   * @param action Pointer to the CreateIndexAction
+   * @param query_util Query execution utility
+   * @param ou_model_save_path Path of the OU model
+   * @param model_server_manager Model server manager
+   */
   static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
                                         const std::string &ou_model_save_path,
                                         common::ManagedPointer<modelserver::ModelServerManager> model_server_manager);

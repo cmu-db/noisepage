@@ -27,6 +27,7 @@ class CreateIndexAction : public AbstractAction {
    * @param db_oid Database id of the index
    * @param index_name Name of the index
    * @param table_name The table to create index on
+   * @param table_oid The oid of the table to create index on
    * @param columns The columns to build index on
    */
   CreateIndexAction(catalog::db_oid_t db_oid, std::string index_name, std::string table_name,
