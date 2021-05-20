@@ -1,5 +1,9 @@
 #pragma once
 
+#include <vector>
+#include <string>
+#include <unordered_map>
+
 #include "catalog/catalog_defs.h"
 
 namespace noisepage::selfdriving::pilot {

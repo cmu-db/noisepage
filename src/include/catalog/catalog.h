@@ -158,7 +158,7 @@ class Catalog {
   storage::ProjectionMap delete_database_entry_prm_;
 
   /** @return The next oid counter value */
-  db_oid_t GetNextOid() const { return next_oid_.load(); };
+  db_oid_t GetNextOid() const { return next_oid_.load(); }
 
   /**
    * Atomically updates the next oid counter to the max of the current count and the provided next oid

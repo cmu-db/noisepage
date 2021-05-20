@@ -2,6 +2,7 @@
 
 #include <set>
 #include <unordered_map>
+#include <string>
 
 #include "common/hash_util.h"
 #include "self_driving/planning/action/action_defs.h"

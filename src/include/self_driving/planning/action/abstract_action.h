@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"
