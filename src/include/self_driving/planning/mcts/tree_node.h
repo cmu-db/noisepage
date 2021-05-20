@@ -173,6 +173,8 @@ class TreeNode {
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
+  static constexpr double MEMORY_CONSUMPTION_VIOLATION_COST = 1e10;
+
   tree_node_id_t tree_node_id_;
   bool is_leaf_;
   const uint64_t depth_;                       // number of edges in path from root

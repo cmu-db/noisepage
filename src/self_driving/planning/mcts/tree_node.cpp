@@ -176,8 +176,8 @@ void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
                                                                                action_plan_end_index_, action_map);
 
     // Initialize to large enough value when the memory constraint is not satisfied
-    double child_segment_cost = 1e10;
-    double later_segments_cost = 1e10;
+    double child_segment_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
+    double later_segments_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
     if (satisfy_memory_constraint) {
       PilotUtil::ApplyAction(pilot, action_ptr->GetSQLCommand(), action_ptr->GetDatabaseOid(), Pilot::WHAT_IF);
 

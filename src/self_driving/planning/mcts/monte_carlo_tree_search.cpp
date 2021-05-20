@@ -49,6 +49,7 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   // root correspond to no action applied to any segment
   root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, 0, later_cost,
                                      pilot_->GetMemoryInfo().initial_memory_bytes_, action_state);
+  // TODO(lin): actually using the cost map during the search to reduce computation
   action_state_cost_map_.emplace(std::make_pair(std::move(action_state), later_cost));
 }
 
