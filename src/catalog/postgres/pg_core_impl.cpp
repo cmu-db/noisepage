@@ -1319,7 +1319,7 @@ std::pair<std::string, PgClass::RelKind> PgCoreImpl::GetClassNameKind(
   }
 
   NOISEPAGE_ASSERT(index_results.size() == 1, "Name not unique in pg_class_name_index.");
-  NOISEPAGE_ASSERT(get_class_name_kind_pri_.ProjectedRowSize() <= oid_pri.ProjectedRowSize(),
+  NOISEPAGE_ASSERT(get_class_name_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                    "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
 
   // Select out the tuple from pg_class.
