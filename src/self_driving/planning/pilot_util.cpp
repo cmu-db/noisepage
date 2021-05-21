@@ -244,9 +244,9 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     metrics_manager->Aggregate();
 
     aggregated_data.reset(reinterpret_cast<metrics::PipelineMetricRawData *>(
-                              metrics_manager->AggregatedMetrics()
-                                  .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
-                                  .release()));
+        metrics_manager->AggregatedMetrics()
+            .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
+            .release()));
 
     // restore the old parameters
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, old_sample_rate);
@@ -266,10 +266,10 @@ void PilotUtil::OUModelInference(const std::string &model_save_path,
                                  const std::vector<execution::query_id_t> &pipeline_qids,
                                  const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
                                  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                     std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction) {
+                                          std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction) {
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> ou_to_features;
   std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
-      std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>>
+                       std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>>
       pipeline_to_ou_position;
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_qids, pipeline_data, &ou_to_features);
@@ -306,7 +306,7 @@ void PilotUtil::InterferenceModelInference(
     const std::string &interference_model_save_path,
     common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
     const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-        std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
+                   std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
     common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
     uint64_t end_segment_index, std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
     std::map<uint32_t, uint64_t> *segment_to_offset, std::vector<std::vector<double>> *interference_result_matrix) {
@@ -378,7 +378,7 @@ void PilotUtil::InterferenceModelInference(
 
 void PilotUtil::GroupFeaturesByOU(
     std::list<std::tuple<execution::query_id_t, execution::pipeline_id_t,
-        std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
+                         std::vector<std::pair<ExecutionOperatingUnitType, uint64_t>>>> *pipeline_to_ou_position,
     const std::vector<execution::query_id_t> &pipeline_qids,
     const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
     std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> *ou_to_features) {

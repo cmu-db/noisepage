@@ -54,6 +54,20 @@ class GraphSolver {
                      const std::set<action_id_t> &config_set);
 
   /**
+   *
+   * @param pilot
+   * @param forecast
+   * @param structure_map
+   * @param config_set
+   * @param segment_index
+   * @return
+   */
+  double ComputeConfigCost(common::ManagedPointer<Pilot> pilot,
+                           common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                           const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
+                           const std::set<action_id_t> &config_set, uint64_t segment_index);
+
+  /**
    * Find a shortest path in the current graph to populate the best config sequence.
    * Also collect the set of unique configurations on the best config sequence.
    * Breaking tie arbitrarily.

@@ -84,7 +84,7 @@ class PilotUtil {
                                const std::vector<execution::query_id_t> &pipeline_qids,
                                const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
                                std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                                   std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
+                                        std::vector<std::vector<std::vector<double>>>> *pipeline_to_prediction);
 
   /**
    * Perform inference on the interference model through model server manager
@@ -102,7 +102,7 @@ class PilotUtil {
       const std::string &interference_model_save_path,
       common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
       const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-          std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
+                     std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
       common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
       uint64_t end_segment_index, std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
       std::map<uint32_t, uint64_t> *segment_to_offset, std::vector<std::vector<double>> *interference_result_matrix);

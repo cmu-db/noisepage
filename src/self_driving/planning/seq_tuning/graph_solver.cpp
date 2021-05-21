@@ -19,19 +19,11 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
                          const std::vector<std::vector<std::set<action_id_t>>> &candidate_configurations_by_segment,
                          uint64_t memory_constraint) {
   // build the graph and compute shortest path simultaneously
-  // TODO(Katrina): populate all memory attributes correctly
 
   ActionState action_state;
   action_state.SetIntervals(0, end_segment_index);
 
   source_level_.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), 0.0, 0.0, action_state, true));
-
-  // initialize nodes with no action applied;
-  for (auto segment_cost : default_segment_cost) {
-    std::vector<std::unique_ptr<SeqNode>> curr_level;
-    curr_level.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), segment_cost, 0.0, action_state));
-    nodes_by_segment_index_.push_back(std::move(curr_level));
-  }
 
   auto new_action_state = action_state;
   for (uint64_t segment_index = 0; segment_index <= end_segment_index; segment_index++) {
@@ -39,7 +31,8 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
 
     // initialize nodes with no action applied
     std::vector<std::unique_ptr<SeqNode>> curr_level;
-    curr_level.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), default_segment_cost.at(segment_index), 0.0, new_action_state));
+    curr_level.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), default_segment_cost.at(segment_index), 0.0,
+                                                   new_action_state));
     nodes_by_segment_index_.push_back(std::move(curr_level));
 
     const std::vector<std::unique_ptr<SeqNode>> &parent_level =
@@ -67,28 +60,11 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
       double node_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
 
       if (satisfy_memory_constraint) {
-        for (auto const action : config_set) {
-          PilotUtil::ApplyAction(pilot, structure_map.at(action)->GetSQLCommand(),
-                                 structure_map.at(action)->GetDatabaseOid(), Pilot::WHAT_IF);
-        }
-
-        // if configuration is valid, include it as a node in the graph
-        node_cost = PilotUtil::ComputeCost(pilot, forecast, segment_index, segment_index);
-
-        SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set {}, node_cost {}, best_dist {}", segment_index,
-                              PilotUtil::ConfigToString(config_set), node_cost,
-                              nodes_by_segment_index_.at(segment_index).back()->GetBestDist());
-
-        for (auto const action : config_set) {
-          // clean up by applying one reverse action to undo the above
-          auto rev_actions = structure_map.at(action)->GetReverseActions();
-          PilotUtil::ApplyAction(pilot, structure_map.at(rev_actions[0])->GetSQLCommand(),
-                                 structure_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
-        }
+        node_cost = ComputeConfigCost(pilot, forecast, structure_map, config_set, segment_index);
       }
 
-      nodes_by_segment_index_.at(segment_index).push_back(std::make_unique<SeqNode>(config_set, node_cost, memory,
-                                                                                    new_action_state));
+      nodes_by_segment_index_.at(segment_index)
+          .push_back(std::make_unique<SeqNode>(config_set, node_cost, memory, new_action_state));
       nodes_by_segment_index_.at(segment_index).back()->RelaxNode(structure_map, parent_level);
 
       for (auto const action : config_set) {
@@ -102,6 +78,32 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
   // add dummy destination node, relaxing it computes the optimal path
   dest_node_ = std::make_unique<SeqNode>(std::set<action_id_t>(), 0.0, 0.0, action_state);
   dest_node_->RelaxNode(structure_map, nodes_by_segment_index_.back());
+}
+
+double GraphSolver::ComputeConfigCost(common::ManagedPointer<Pilot> pilot,
+                                      common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
+                                      const std::set<action_id_t> &config_set, uint64_t segment_index) {
+  for (auto const action : config_set) {
+    PilotUtil::ApplyAction(pilot, structure_map.at(action)->GetSQLCommand(), structure_map.at(action)->GetDatabaseOid(),
+                           Pilot::WHAT_IF);
+  }
+
+  // if configuration is valid, include it as a node in the graph
+  auto node_cost = PilotUtil::ComputeCost(pilot, forecast, segment_index, segment_index);
+
+  SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set {}, node_cost {}, best_dist {}", segment_index,
+                        PilotUtil::ConfigToString(config_set), node_cost,
+                        nodes_by_segment_index_.at(segment_index).back()->GetBestDist());
+
+  for (auto const action : config_set) {
+    // clean up by applying one reverse action to undo the above
+    auto rev_actions = structure_map.at(action)->GetReverseActions();
+    PilotUtil::ApplyAction(pilot, structure_map.at(rev_actions[0])->GetSQLCommand(),
+                           structure_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
+  }
+
+  return node_cost;
 }
 
 bool GraphSolver::IsValidConfig(common::ManagedPointer<Pilot> pilot,
