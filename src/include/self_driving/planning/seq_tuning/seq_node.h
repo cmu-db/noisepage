@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/pilot_util.h"
 
 #define INIT_DIST INT64_MAX
@@ -30,9 +31,11 @@ class SeqNode {
    * @param memory number of bytes consumed by the config
    * @param if_source if the node is a source node (default to have distance 0)
    */
-  SeqNode(std::set<action_id_t> configuration, double node_cost, uint64_t memory, bool if_source = false)
-      : configuration_(std::move(configuration)), node_cost_(node_cost), memory_(memory) {
-    (void)memory_;  // TODO(Katrina): use memory to check validity;
+  explicit SeqNode(std::set<action_id_t> configuration, double node_cost, uint64_t memory, ActionState action_state,
+          bool if_source = false)
+      : configuration_(std::move(configuration)), node_cost_(node_cost), memory_(memory),
+        best_action_state_(std::move(action_state)) {
+    (void)memory_;  // TODO(Katrina): Add the memory information to the action recording table
     if (if_source) best_source_dist_ = 0.0;
   }
 
@@ -80,6 +83,7 @@ class SeqNode {
   double best_source_dist_{static_cast<double>(INIT_DIST)};
   common::ManagedPointer<SeqNode> best_parent_{nullptr};
   uint64_t memory_;
+  ActionState best_action_state_;
 };
 }  // namespace pilot
 

@@ -51,8 +51,7 @@ class GraphSolver {
    */
   bool IsValidConfig(common::ManagedPointer<Pilot> pilot,
                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
-                     const std::set<action_id_t> &config_set, std::set<action_id_t> *actions_applied,
-                     uint64_t memory_constraint);
+                     const std::set<action_id_t> &config_set);
 
   /**
    * Find a shortest path in the current graph to populate the best config sequence.
@@ -66,6 +65,8 @@ class GraphSolver {
                              std::set<std::set<action_id_t>> *best_config_set);
 
  private:
+  static constexpr double MEMORY_CONSUMPTION_VIOLATION_COST = 1e10;
+
   std::vector<std::vector<std::unique_ptr<SeqNode>>> nodes_by_segment_index_;
   std::vector<std::unique_ptr<SeqNode>> source_level_;
   std::unique_ptr<SeqNode> dest_node_;

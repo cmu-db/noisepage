@@ -53,6 +53,15 @@ Pilot::Pilot(std::string ou_model_save_path, std::string interference_model_save
   forecast_ = nullptr;
   while (!model_server_manager_->ModelServerStarted()) {
   }
+  //  // Perform a training of the opunit models with {lr, rf} as training methods.
+  //  std::vector<std::string> methods{"lr", "rf"};
+  //
+  //  modelserver::ModelServerFuture<std::string> future;
+  //  std::string model_path = "/Users/jiaojie/myterrier/terrier/script/model/mini_runner_data/";
+  //  model_server_manager_->TrainModel(modelserver::ModelType::Type::OperatingUnit, methods, &model_path, ou_model_save_path_, nullptr,
+  //                                    common::ManagedPointer<modelserver::ModelServerFuture<std::string>>(&future));
+  //  auto res = future.DangerousWait();
+  //  NOISEPAGE_ASSERT(res.second, "expect training to succeed");  // Training succeeds
 }
 
 void Pilot::PerformPlanning() {
@@ -60,12 +69,12 @@ void Pilot::PerformPlanning() {
   metrics_thread_->PauseMetrics();
 
   // Populate the workload forecast
-  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
-  bool metrics_in_db =
-      metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
-  forecast_ = forecaster_.LoadWorkloadForecast(
-      metrics_in_db ? Forecaster::WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
-                    : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE);
+  //  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
+  //  bool metrics_in_db =
+  //      metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
+  forecast_ = forecaster_.LoadWorkloadForecast(Forecaster::WorkloadForecastInitMode::DISK_ONLY);
+  //      metrics_in_db ? Forecaster::WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
+  //                    : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE);
   if (forecast_ == nullptr) {
     SELFDRIVING_LOG_ERROR("Unable to initialize the WorkloadForecast information");
     metrics_thread_->ResumeMetrics();

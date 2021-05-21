@@ -30,11 +30,11 @@ SequenceTuning::SequenceTuning(common::ManagedPointer<Pilot> pilot,
   IndexActionGenerator().GenerateActions(plans, pilot->settings_manager_, &structure_map_, &candidate_actions);
 
   for (auto &action : candidate_actions)
-    if (structure_map_.at(action)->GetActionFamily() == ActionType::CREATE_INDEX) {
+    if (structure_map_.at(action)->GetActionType() == ActionType::CREATE_INDEX) {
       candidate_structures_.emplace_back(action);
-      //      PilotUtil::EstimateCreateIndexAction(reinterpret_cast<CreateIndexAction *>(structure_map_.at(action).get()),
-      //                                           pilot->query_exec_util_.get(), pilot->ou_model_save_path_,
-      //                                           pilot->model_server_manager_);
+      PilotUtil::EstimateCreateIndexAction(reinterpret_cast<CreateIndexAction *>(structure_map_.at(action).get()),
+                                           pilot->query_exec_util_.get(), pilot->ou_model_save_path_,
+                                           pilot->model_server_manager_);
       SELFDRIVING_LOG_DEBUG("Candidate structure: ID {} Command {}", action,
                             structure_map_.at(action)->GetSQLCommand());
     }

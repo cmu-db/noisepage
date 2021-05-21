@@ -6,6 +6,7 @@
 #include "loggers/selfdriving_logger.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/abstract_action.h"
+#include "self_driving/planning/memory_info.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
 
@@ -20,68 +21,98 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
   // build the graph and compute shortest path simultaneously
   // TODO(Katrina): populate all memory attributes correctly
 
-  source_level_.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), 0.0, 0.0, true));
+  ActionState action_state;
+  action_state.SetIntervals(0, end_segment_index);
+
+  source_level_.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), 0.0, 0.0, action_state, true));
 
   // initialize nodes with no action applied;
   for (auto segment_cost : default_segment_cost) {
     std::vector<std::unique_ptr<SeqNode>> curr_level;
-    curr_level.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), segment_cost, 0.0));
+    curr_level.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), segment_cost, 0.0, action_state));
     nodes_by_segment_index_.push_back(std::move(curr_level));
   }
 
+  auto new_action_state = action_state;
   for (uint64_t segment_index = 0; segment_index <= end_segment_index; segment_index++) {
+    new_action_state.SetIntervals(segment_index + 1, end_segment_index);
+
+    // initialize nodes with no action applied
+    std::vector<std::unique_ptr<SeqNode>> curr_level;
+    curr_level.push_back(std::make_unique<SeqNode>(std::set<action_id_t>(), default_segment_cost.at(segment_index), 0.0, new_action_state));
+    nodes_by_segment_index_.push_back(std::move(curr_level));
+
     const std::vector<std::unique_ptr<SeqNode>> &parent_level =
         segment_index == 0 ? source_level_ : nodes_by_segment_index_.at(segment_index - 1);
     nodes_by_segment_index_.at(segment_index).back()->RelaxNode(structure_map, parent_level);
 
+    // initialize nodes with each of the config
     for (auto const &config_set : candidate_configurations_by_segment.at(segment_index)) {
-      if (config_set.empty()) continue;
-      std::set<action_id_t> actions_applied;
-      bool is_valid_config = IsValidConfig(pilot, structure_map, config_set, &actions_applied, memory_constraint);
+      if (config_set.empty() || !IsValidConfig(pilot, structure_map, config_set)) continue;
 
-      if (is_valid_config) {
+      new_action_state.SetIntervals(segment_index + 1, end_segment_index);
+
+      for (auto const action : config_set) {
+        auto const &action_ptr = structure_map.at(action);
+        action_ptr->ModifyActionState(&new_action_state);
+      }
+
+      // Compute memory consumption
+      bool satisfy_memory_constraint = true;
+      // We may apply actions to reduce memory consumption in future, so we only need to evaluate the memory constraint
+      size_t memory =
+          PilotUtil::CalculateMemoryConsumption(pilot->GetMemoryInfo(), new_action_state, segment_index, structure_map);
+      if (memory > memory_constraint) satisfy_memory_constraint = false;
+
+      double node_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
+
+      if (satisfy_memory_constraint) {
+        for (auto const action : config_set) {
+          PilotUtil::ApplyAction(pilot, structure_map.at(action)->GetSQLCommand(),
+                                 structure_map.at(action)->GetDatabaseOid(), Pilot::WHAT_IF);
+        }
+
         // if configuration is valid, include it as a node in the graph
-        double node_cost = PilotUtil::ComputeCost(pilot, forecast, segment_index, segment_index);
-        nodes_by_segment_index_.at(segment_index).push_back(std::make_unique<SeqNode>(config_set, node_cost, 0.0));
-
-        nodes_by_segment_index_.at(segment_index).back()->RelaxNode(structure_map, parent_level);
+        node_cost = PilotUtil::ComputeCost(pilot, forecast, segment_index, segment_index);
 
         SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set {}, node_cost {}, best_dist {}", segment_index,
                               PilotUtil::ConfigToString(config_set), node_cost,
                               nodes_by_segment_index_.at(segment_index).back()->GetBestDist());
+
+        for (auto const action : config_set) {
+          // clean up by applying one reverse action to undo the above
+          auto rev_actions = structure_map.at(action)->GetReverseActions();
+          PilotUtil::ApplyAction(pilot, structure_map.at(rev_actions[0])->GetSQLCommand(),
+                                 structure_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
+        }
       }
 
-      for (auto action : actions_applied) {
+      nodes_by_segment_index_.at(segment_index).push_back(std::make_unique<SeqNode>(config_set, node_cost, memory,
+                                                                                    new_action_state));
+      nodes_by_segment_index_.at(segment_index).back()->RelaxNode(structure_map, parent_level);
+
+      for (auto const action : config_set) {
         // clean up by applying one reverse action to undo the above
         auto rev_actions = structure_map.at(action)->GetReverseActions();
-        PilotUtil::ApplyAction(pilot, structure_map.at(rev_actions[0])->GetSQLCommand(),
-                               structure_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
+        structure_map.at(rev_actions[0])->ModifyActionState(&new_action_state);
       }
     }
   }
 
   // add dummy destination node, relaxing it computes the optimal path
-  dest_node_ = std::make_unique<SeqNode>(std::set<action_id_t>(), 0.0, 0.0);
+  dest_node_ = std::make_unique<SeqNode>(std::set<action_id_t>(), 0.0, 0.0, action_state);
   dest_node_->RelaxNode(structure_map, nodes_by_segment_index_.back());
 }
 
 bool GraphSolver::IsValidConfig(common::ManagedPointer<Pilot> pilot,
                                 const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
-                                const std::set<action_id_t> &config_set, std::set<action_id_t> *actions_applied,
-                                uint64_t memory_constraint) {
-  bool is_valid_config = true;
-  (void)memory_constraint;  // TODO(Katrina): use memory constraint to check if action valid;
+                                const std::set<action_id_t> &config_set) {
   for (auto candidate_action : config_set) {
-    if (structure_map.at(candidate_action)->IsValid()) {
-      PilotUtil::ApplyAction(pilot, structure_map.at(candidate_action)->GetSQLCommand(),
-                             structure_map.at(candidate_action)->GetDatabaseOid(), Pilot::WHAT_IF);
-      actions_applied->emplace(candidate_action);
-    } else {
-      is_valid_config = false;
-      break;
+    if (!structure_map.at(candidate_action)->IsValid()) {
+      return false;
     }
   }
-  return is_valid_config;
+  return true;
 }
 
 double GraphSolver::RecoverShortestPath(std::vector<std::set<action_id_t>> *best_config_path,
