@@ -55,6 +55,9 @@ class ZmqMessage {
   /** @return The raw payload of the message. */
   std::string_view GetRawPayload() const { return std::string_view(payload_); }
 
+  /** @return All followup payloads of the message. */
+  const std::vector<std::string> &GetFollowupPayloads() const { return followup_payloads_; }
+
  private:
   friend Messenger;
   friend ZmqUtil;
@@ -72,20 +75,40 @@ class ZmqMessage {
                           const std::string &routing_id, std::string_view message);
 
   /**
-   * Parse the given payload into a ZmqMessage.
-   * @param routing_id      The message's routing ID.
-   * @param message         The message for the destination.
+   * Build a new ZmqMessage from the supplied information.
+   * @param message_id          The ID of this message.
+   * @param source_cb_id        The callback ID of the message on the source.
+   * @param dest_cb_id          The callback ID of the message on the destination.
+   * @param routing_id          The routing ID of the message sender. Roughly speaking, "who sent this message".
+   * @param message             The contents of the message.
+   * @param followup_payloads   The contents of any followup payloads.
    * @return A ZmqMessage encapsulating the given message.
    */
-  static ZmqMessage Parse(const std::string &routing_id, const std::string &message);
+  static ZmqMessage Build(message_id_t message_id, callback_id_t source_cb_id, callback_id_t dest_cb_id,
+                          const std::string &routing_id, std::string_view message,
+                          const std::vector<std::string> &followup_payloads);
 
-  /** Construct a new ZmqMessage with the given routing ID and payload. Payload of form ID-MESSAGE. */
-  ZmqMessage(std::string routing_id, std::string payload);
+  /**
+   * Parse the given payload into a ZmqMessage.
+   * @param routing_id          The message's routing ID.
+   * @param payload             The message payload for the destination.
+   * @param followup_payloads   The contents of any followup payloads.
+   * @return A ZmqMessage encapsulating the given message.
+   */
+  static ZmqMessage Parse(const std::string &routing_id, const std::string &payload,
+                          const std::vector<std::string> &followup_payloads);
+
+  /** Construct a new ZmqMessage with the given routing ID, payload, and followup payloads. Payload of form
+   * MsgId-SourceCallbackId-DestCallbackId-Message. */
+  ZmqMessage(std::string routing_id, std::string payload, std::vector<std::string> followup_payloads);
 
   /** The routing ID of the message. */
   std::string routing_id_;
-  /** The payload in the message, of form ID-MESSAGE.  */
+  /** The payload in the message, of form MsgId-SourceCallbackId-DestCallbackId-Message.  */
   std::string payload_;
+  /** To avoid excesses copying you can send messages in multiple parts. These payloads are the message contents that
+   * aren't part of the main payload. */
+  std::vector<std::string> followup_payloads_;
 
   /** The cached id of the message. */
   message_id_t message_id_;
@@ -259,6 +282,21 @@ class Messenger : public common::DedicatedThreadTask {
    */
   void SendMessage(connection_id_t connection_id, const std::string &message, CallbackFn callback,
                    callback_id_t remote_cb_id);
+  /**
+   * Send a message through the specified connection id.
+   *
+   * @warning   Remember that ConnectionId can only be used from the same thread that created it!
+   *
+   * @param connection_id       The connection to send the message over.
+   * @param message             The message to be sent.
+   * @param followup_payloads   The contents of any followup payloads.
+   * @param callback            The callback function to be invoked locally on the response. Can be nullptr.
+   * @param remote_cb_id        The callback function to be invoked remotely on the destination to handle this message.
+   *                            For example, used for invoking preregistered functions or messages sent in response.
+   *                            To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
+   */
+  void SendMessage(connection_id_t connection_id, const std::string &message,
+                   const std::vector<std::string> &followup_payloads, CallbackFn callback, callback_id_t remote_cb_id);
 
   /**
    * Send a message through the specified connection router.
@@ -275,6 +313,23 @@ class Messenger : public common::DedicatedThreadTask {
    */
   void SendMessage(router_id_t router_id, const std::string &recv_id, const std::string &message, CallbackFn callback,
                    callback_id_t remote_cb_id);
+
+  /**
+   * Send a message through the specified connection router.
+   *
+   * @warning   A ConnectionRouter only knows about destinations that are directly connected to it.
+   *
+   * @param router_id           The connection router to send the message over.
+   * @param recv_id             The routing ID of the destination.
+   * @param message             The message to be sent.
+   * @param followup_payloads   The contents of any followup payloads.
+   * @param callback            The callback function to be invoked on the response. Can be nullptr.
+   * @param remote_cb_id        The callback function to be invoked remotely on the destination to handle this message.
+   *                            For example, used for invoking preregistered functions or messages sent in response.
+   *                            To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
+   */
+  void SendMessage(router_id_t router_id, const std::string &recv_id, const std::string &message,
+                   const std::vector<std::string> &followup_payloads, CallbackFn callback, callback_id_t remote_cb_id);
 
  private:
   friend ConnectionId;

@@ -74,7 +74,7 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   if (records_batch != nullptr) {
     // Send the batch of records to all replicas.
     ReplicationMessageMetadata metadata(GetNextMessageId());
-    RecordsBatchMsg msg(metadata, GetNextBatchId(), records_batch);
+    RecordsBatchMsg msg(metadata, GetNextBatchId());
     REPLICATION_LOG_TRACE(fmt::format("[SEND] BATCH {}", msg.GetBatchId()));
 
     messenger::callback_id_t destination_cb =
@@ -82,7 +82,8 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
     const msg_id_t msg_id = msg.GetMessageId();
     const std::string msg_string = msg.Serialize();
     for (const auto &replica : replicas_) {
-      Send(replica.first, msg_id, msg_string, messenger::CallbackFns::Noop, destination_cb);
+      Send(replica.first, msg_id, msg_string, {std::string(records_batch->GetContents(), records_batch->GetSize())},
+           messenger::CallbackFns::Noop, destination_cb);
     }
 
     NOISEPAGE_ASSERT(newest_buffer_txn >= newest_txn_sent_,

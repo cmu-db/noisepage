@@ -104,12 +104,19 @@ void ReplicationManager::BuildReplicationNetwork(const std::string &replication_
 void ReplicationManager::Send(const std::string &destination, UNUSED_ATTRIBUTE const msg_id_t msg_id,
                               const std::string &message, const messenger::CallbackFn &source_callback,
                               messenger::callback_id_t destination_callback) {
+  Send(destination, msg_id, message, {}, source_callback, destination_callback);
+}
+
+void ReplicationManager::Send(const std::string &destination, UNUSED_ATTRIBUTE const msg_id_t msg_id,
+                              const std::string &message, const std::vector<std::string> &followup_payloads,
+                              const messenger::CallbackFn &source_callback,
+                              messenger::callback_id_t destination_callback) {
   messenger::connection_id_t con_id = GetNodeConnection(destination);
 
   REPLICATION_LOG_TRACE(fmt::format("[SEND] -> {}: ID {}        // PREVIEW {}", destination, msg_id,
                                     message.substr(0, MESSAGE_PREVIEW_LEN)));
 
-  messenger_->SendMessage(con_id, message, source_callback, destination_callback);
+  messenger_->SendMessage(con_id, message, followup_payloads, source_callback, destination_callback);
 }
 
 void ReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,

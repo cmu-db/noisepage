@@ -155,6 +155,16 @@ class BufferedLogWriter {
     return count_before_sub == 1;
   }
 
+  /**
+   * @return Pointer to contents of buffer
+   */
+  char *GetContents() { return buffer_; }
+
+  /**
+   * @return Size of buffer
+   */
+  uint32_t GetSize() { return buffer_size_; }
+
  private:
   friend class replication::RecordsBatchMsg;
 

@@ -21,11 +21,15 @@ void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, con
   provider_.UpdateOAT(msg.GetOldestActiveTxn(), msg.GetBatchId());
 }
 
-void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg, const RecordsBatchMsg &msg) {
+void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg,
+                                       common::ManagedPointer<RecordsBatchMsg> msg) {
   REPLICATION_LOG_TRACE(fmt::format("[RECV] RecordsBatchMsg from {}: ID {} BATCH {}", zmq_msg.GetRoutingId(),
-                                    msg.GetMessageId(), msg.GetBatchId()));
+                                    msg->GetMessageId(), msg->GetBatchId()));
+  NOISEPAGE_ASSERT(zmq_msg.GetFollowupPayloads().size() == 1,
+                   "Records batch messages should have the actual records batch as a followup message");
+  msg->SetContents(std::move(zmq_msg.GetFollowupPayloads()[0]));
   // Add the batch of log records directly to the provider, which handles out of order batches.
-  provider_.AddBatchOfRecords(msg);
+  provider_.AddBatchOfRecords(*msg);
 }
 
 void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Messenger> messenger,
@@ -37,7 +41,7 @@ void ReplicaReplicationManager::EventLoop(common::ManagedPointer<messenger::Mess
       break;
     }
     case ReplicationMessageType::RECORDS_BATCH: {
-      Handle(zmq_msg, *msg.CastManagedPointerTo<RecordsBatchMsg>());
+      Handle(zmq_msg, msg.CastManagedPointerTo<RecordsBatchMsg>());
       break;
     }
     default: {

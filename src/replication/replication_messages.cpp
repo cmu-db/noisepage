@@ -13,7 +13,6 @@ const char *BaseReplicationMessage::key_metadata = "metadata";
 const char *NotifyOATMsg::key_batch_id = "oat_batch";
 const char *NotifyOATMsg::key_oldest_active_txn = "oat_ts";
 const char *RecordsBatchMsg::key_batch_id = "batch_id";
-const char *RecordsBatchMsg::key_contents = "contents";
 const char *TxnAppliedMsg::key_applied_txn_id = "applied_txn_id";
 
 // MessageWrapper
@@ -114,20 +113,14 @@ NotifyOATMsg::NotifyOATMsg(ReplicationMessageMetadata metadata, record_batch_id_
 MessageWrapper RecordsBatchMsg::ToMessageWrapper() const {
   MessageWrapper message = BaseReplicationMessage::ToMessageWrapper();
   message.Put(key_batch_id, batch_id_);
-  message.Put(key_contents, contents_);
   return message;
 }
 
 RecordsBatchMsg::RecordsBatchMsg(const MessageWrapper &message)
-    : BaseReplicationMessage(message),
-      batch_id_(message.Get<record_batch_id_t>(key_batch_id)),
-      contents_(message.Get<std::string>(key_contents)) {}
+    : BaseReplicationMessage(message), batch_id_(message.Get<record_batch_id_t>(key_batch_id)) {}
 
-RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id,
-                                 storage::BufferedLogWriter *buffer)
-    : BaseReplicationMessage(ReplicationMessageType::RECORDS_BATCH, metadata),
-      batch_id_(batch_id),
-      contents_(std::string(buffer->buffer_, buffer->buffer_size_)) {}
+RecordsBatchMsg::RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id)
+    : BaseReplicationMessage(ReplicationMessageType::RECORDS_BATCH, metadata), batch_id_(batch_id) {}
 
 // TxnAppliedMsg
 

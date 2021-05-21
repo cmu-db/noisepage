@@ -95,16 +95,28 @@ namespace noisepage::messenger {
 
 ZmqMessage ZmqMessage::Build(message_id_t message_id, callback_id_t source_cb_id, callback_id_t dest_cb_id,
                              const std::string &routing_id, std::string_view message) {
-  return ZmqMessage{routing_id, fmt::format("{}-{}-{}-{}", message_id.UnderlyingValue(), source_cb_id.UnderlyingValue(),
-                                            dest_cb_id.UnderlyingValue(), message)};
+  return Build(message_id, source_cb_id, dest_cb_id, routing_id, message, {});
 }
 
-ZmqMessage ZmqMessage::Parse(const std::string &routing_id, const std::string &message) {
-  return ZmqMessage{routing_id, message};
+ZmqMessage ZmqMessage::Build(message_id_t message_id, callback_id_t source_cb_id, callback_id_t dest_cb_id,
+                             const std::string &routing_id, std::string_view message,
+                             const std::vector<std::string> &followup_payloads) {
+  return ZmqMessage{routing_id,
+                    fmt::format("{}-{}-{}-{}", message_id.UnderlyingValue(), source_cb_id.UnderlyingValue(),
+                                dest_cb_id.UnderlyingValue(), message),
+                    followup_payloads};
 }
 
-ZmqMessage::ZmqMessage(std::string routing_id, std::string payload)
-    : routing_id_(std::move(routing_id)), payload_(std::move(payload)), message_(payload_) {
+ZmqMessage ZmqMessage::Parse(const std::string &routing_id, const std::string &payload,
+                             const std::vector<std::string> &followup_payloads) {
+  return ZmqMessage{routing_id, payload, followup_payloads};
+}
+
+ZmqMessage::ZmqMessage(std::string routing_id, std::string payload, std::vector<std::string> followup_payloads)
+    : routing_id_(std::move(routing_id)),
+      payload_(std::move(payload)),
+      followup_payloads_(std::move(followup_payloads)),
+      message_(payload_) {
   uint64_t message_id;
   uint64_t source_cb_id;
   uint64_t dest_cb_id;
@@ -236,8 +248,11 @@ class ZmqUtil {
     std::string delimiter = Recv(socket, zmq::recv_flags::none);
     NOISEPAGE_ASSERT(HasMoreMessagePartsToReceive(socket), "Bad multipart message.");
     std::string payload = Recv(socket, zmq::recv_flags::none);
-
-    return ZmqMessage::Parse(identity, payload);
+    std::vector<std::string> followup_payloads;
+    while (HasMoreMessagePartsToReceive(socket)) {
+      followup_payloads.emplace_back(Recv(socket, zmq::recv_flags::none));
+    }
+    return ZmqMessage::Parse(identity, payload, followup_payloads);
   }
 
   /**
@@ -263,7 +278,16 @@ class ZmqUtil {
     bool ok = true;
 
     ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore).has_value();
-    ok = ok && socket->send(payload_msg, zmq::send_flags::none).has_value();
+    ok = ok &&
+         socket->send(payload_msg, msg.GetFollowupPayloads().empty() ? zmq::send_flags::none : zmq::send_flags::sndmore)
+             .has_value();
+    for (size_t i = 0; i < msg.GetFollowupPayloads().size(); i++) {
+      const auto &followup_payload = msg.GetFollowupPayloads()[i];
+      zmq::message_t followup_payload_msg(followup_payload.data(), followup_payload.size());
+      zmq::send_flags send_flag =
+          i == msg.GetFollowupPayloads().size() - 1 ? zmq::send_flags::none : zmq::send_flags::sndmore;
+      ok = ok && socket->send(followup_payload_msg, send_flag);
+    }
 
     if (!ok) {
       throw MESSENGER_EXCEPTION(fmt::format("Unable to send on socket: {}", ZmqUtil::GetRoutingId(socket)));
@@ -427,6 +451,12 @@ connection_id_t Messenger::MakeConnection(const ConnectionDestination &target) {
 
 void Messenger::SendMessage(const connection_id_t connection_id, const std::string &message, CallbackFn callback,
                             callback_id_t remote_cb_id) {
+  SendMessage(connection_id, message, {}, callback, remote_cb_id);
+}
+
+void Messenger::SendMessage(const connection_id_t connection_id, const std::string &message,
+                            const std::vector<std::string> &followup_payloads, CallbackFn callback,
+                            callback_id_t remote_cb_id) {
   common::ManagedPointer<ConnectionId> connection = common::ManagedPointer(connections_.at(connection_id));
   message_id_t msg_id = next_message_id_++;
   callback_id_t sender_cb_id = GetBuiltinCallback(BuiltinCallback::NOOP);
@@ -443,14 +473,21 @@ void Messenger::SendMessage(const connection_id_t connection_id, const std::stri
   {
     std::unique_lock lock(pending_messages_mutex_);
     pending_messages_.emplace(
-        msg_id,
-        PendingMessage{socket, connection->target_name_,
-                       ZmqMessage::Build(msg_id, sender_cb_id, remote_cb_id, connection->routing_id_, message), false});
+        msg_id, PendingMessage{socket, connection->target_name_,
+                               ZmqMessage::Build(msg_id, sender_cb_id, remote_cb_id, connection->routing_id_, message,
+                                                 followup_payloads),
+                               false});
   }
 }
 
 void Messenger::SendMessage(const router_id_t router_id, const std::string &recv_id, const std::string &message,
                             CallbackFn callback, callback_id_t remote_cb_id) {
+  SendMessage(router_id, recv_id, message, {}, callback, remote_cb_id);
+}
+
+void Messenger::SendMessage(const router_id_t router_id, const std::string &recv_id, const std::string &message,
+                            const std::vector<std::string> &followup_payloads, CallbackFn callback,
+                            callback_id_t remote_cb_id) {
   common::ManagedPointer<ConnectionRouter> router = common::ManagedPointer(routers_.at(router_id));
   message_id_t msg_id = next_message_id_++;
   callback_id_t send_cb_id = GetBuiltinCallback(BuiltinCallback::NOOP);
@@ -466,9 +503,10 @@ void Messenger::SendMessage(const router_id_t router_id, const std::string &recv
   common::ManagedPointer<zmq::socket_t> socket = common::ManagedPointer(router->socket_);
   {
     std::unique_lock lock(pending_messages_mutex_);
-    pending_messages_.emplace(
-        msg_id, PendingMessage{socket, recv_id,
-                               ZmqMessage::Build(msg_id, send_cb_id, remote_cb_id, router->identity_, message), true});
+    pending_messages_.emplace(msg_id, PendingMessage{socket, recv_id,
+                                                     ZmqMessage::Build(msg_id, send_cb_id, remote_cb_id,
+                                                                       router->identity_, message, followup_payloads),
+                                                     true});
   }
 }
 

@@ -188,6 +188,10 @@ class NotifyOATMsg : public BaseReplicationMessage {
 /**
  * RecordsBatchMsg is sent from primary -> replica, containing a batch of log records to be applied.
  * Note that the log records in the same batch are not necessarily from the same transaction.
+ *
+ * The actual batch of log records does not get serialized and sent over the network as part of the RecordsBatchMsg.
+ * Instead we send the batch of log records as a separate message as part of a multi-part message. This is to avoid
+ * excess copying of the batch of log records.
  */
 class RecordsBatchMsg : public BaseReplicationMessage {
  public:
@@ -196,9 +200,8 @@ class RecordsBatchMsg : public BaseReplicationMessage {
    *
    * @param metadata            The metadata of the message.
    * @param batch_id            The ID for this batch of log records.
-   * @param buffer              The contents of this batch of log records.
    */
-  RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id, storage::BufferedLogWriter *buffer);
+  RecordsBatchMsg(ReplicationMessageMetadata metadata, record_batch_id_t batch_id);
   /** Constructor (to receive). */
   explicit RecordsBatchMsg(const MessageWrapper &message);
   /** Destructor. */
@@ -211,6 +214,9 @@ class RecordsBatchMsg : public BaseReplicationMessage {
 
   /** @return The contents of this batch of log records. */
   std::string GetContents() const { return contents_; }
+
+  /** Set the contents of the message */
+  void SetContents(std::string contents) { contents_ = std::move(contents); }
 
   /** @return The batch ID that should appear after the given batch ID. */
   static record_batch_id_t NextBatchId(record_batch_id_t batch_id) {
@@ -225,10 +231,9 @@ class RecordsBatchMsg : public BaseReplicationMessage {
 
  private:
   static const char *key_batch_id;  ///< JSON key for the batch ID.
-  static const char *key_contents;  ///< JSON key for the contents.
 
   record_batch_id_t batch_id_;  ///< The batch ID identifies the order of records sent by the remote origin.
-  std::string contents_;        ///< The actual contents of the buffer.
+  std::string contents_;        ///< The actual contents of the buffer. This IS NOT serialized.
 };
 
 /** TxnAppliedMsg is sent from replica -> primary, indicating that a given transaction has been successfully applied. */
