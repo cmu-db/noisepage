@@ -45,6 +45,7 @@ class CreateIndexAction;
 struct MemoryInfo;
 class ActionState;
 class AbstractAction;
+class PlanningContext;
 }  // namespace pilot
 
 /**
@@ -54,7 +55,7 @@ class PilotUtil {
  public:
   /**
    * Executing forecasted queries and collect pipeline features for cost estimation to be used in action selection
-   * @param pilot pointer to the pilot to access settings, metrics, and transaction managers, and catalog
+   * @param planning_context pilot planning context
    * @param forecast pointer to object storing result of workload forecast
    * @param start_segment_index start index of segments of interest (inclusive)
    * @param end_segment_index end index of segments of interest (inclusive)
@@ -64,7 +65,7 @@ class PilotUtil {
    * @returns unique pointer to the collected pipeline data
    */
   static std::unique_ptr<metrics::PipelineMetricRawData> CollectPipelineFeatures(
-      common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+      const pilot::PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
       uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids,
       bool execute_query);
 
@@ -108,39 +109,74 @@ class PilotUtil {
 
   /**
    * Apply an action supplied through its query string to the database specified
-   * @param pilot pointer to the pilot
+   * @param planning_context pilot planning context
    * @param sql_query query of the action to be executed
    * @param db_oid oid of the database where this action should be applied
    * @param what_if whether this is a "what-if" API call (e.g., only create the index entry in the catalog without
    * populating it)
    */
-  static void ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid,
-                          bool what_if);
+  static void ApplyAction(const pilot::PlanningContext &planning_context, const std::string &sql_query,
+                          catalog::db_oid_t db_oid, bool what_if);
 
   /**
    * Retrieve all query plans associated with queries in the interval of forecasted segments
-   * @param pilot pointer to the pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to the forecast segments
    * @param end_segment_index end index (inclusive)
    * @param txn the transaction context that would be used for action generation as well
    * @param plan_vecs the vector that would store the generated abstract plans of forecasted queries before the end
    * index
    */
-  static void GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                            uint64_t end_segment_index, transaction::TransactionContext *txn,
+  static void GetQueryPlans(const pilot::PlanningContext &planning_context,
+                            common::ManagedPointer<WorkloadForecast> forecast, uint64_t end_segment_index,
+                            transaction::TransactionContext *txn,
                             std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs);
 
   /**
    * Compute cost of executed queries in the segments between start and end index (both inclusive)
-   * @param pilot pointer to the pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to the forecast segments
    * @param start_segment_index start index (inclusive)
    * @param end_segment_index end index (inclusive)
    * @return total latency of queries calculated based on their num of exec
    */
-  static double ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                            uint64_t start_segment_index, uint64_t end_segment_index);
+  static double ComputeCost(const pilot::PlanningContext &planning_context,
+                            common::ManagedPointer<WorkloadForecast> forecast, uint64_t start_segment_index,
+                            uint64_t end_segment_index);
 
+  /**
+   * Predict the runtime metrics of a create index action
+   * @param action Pointer to the CreateIndexAction
+   * @param query_util Query execution utility
+   * @param ou_model_save_path Path of the OU model
+   * @param model_server_manager Model server manager
+   */
+  static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
+                                        const std::string &ou_model_save_path,
+                                        common::ManagedPointer<modelserver::ModelServerManager> model_server_manager);
+
+  /**
+   * Calculate the memory consumption given a specific forecasted workload segment with a specific action state
+   * @param memory_info Pre-calculated memory information
+   * @param action_state The state of the actions
+   * @param segment_index Which forecasted interval to compute memory consumption for
+   * @param action_map Reference of the map from action id to action pointers
+   * @return The memory consumption estimation
+   */
+  static size_t CalculateMemoryConsumption(
+      const pilot::MemoryInfo &memory_info, const pilot::ActionState &action_state, uint64_t segment_index,
+      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map);
+
+  /**
+   * Construct the MemoryInfo object with information to ensure the memory constraint
+   * @param planning_context pilot planning context
+   * @param forecast pointer to the forecast segments
+   * @return MemoryInfo object
+   */
+  static pilot::MemoryInfo ComputeMemoryInfo(const pilot::PlanningContext &planning_context,
+                                             const WorkloadForecast *forecast);
+
+ private:
   /**
    * Get the ratios between estimated future table sizes (given the forecasted workload) and current table sizes
    * @param forecast Workload forecast information
@@ -166,29 +202,23 @@ class PilotUtil {
                                      common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
 
   /**
-   * Predict the runtime metrics of a create index action
-   * @param action Pointer to the CreateIndexAction
-   * @param query_util Query execution utility
-   * @param ou_model_save_path Path of the OU model
-   * @param model_server_manager Model server manager
+   * Execute, collect pipeline metrics, and get ou prediction for each pipeline under different query parameters for
+   * queries between start and end segment indices (both inclusive) in workload forecast.
+   * @param planning_context pilot planning context
+   * @param forecast workload forecast information
+   * @param start_segment_index start segment index in forecast to be considered
+   * @param end_segment_index end segment index in forecast to be considered
+   * @param query_info <query id, <num_param of this query executed, total number of collected ous for this query>>
+   * @param segment_to_offset start index of ou records belonging to a segment in input to the interference model
+   * @param interference_result_matrix stores the final results of the interference model
    */
-  static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
-                                        const std::string &ou_model_save_path,
-                                        common::ManagedPointer<modelserver::ModelServerManager> model_server_manager);
+  static void ExecuteForecast(const pilot::PlanningContext &planning_context,
+                              common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                              uint64_t start_segment_index, uint64_t end_segment_index,
+                              std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+                              std::map<uint32_t, uint64_t> *segment_to_offset,
+                              std::vector<std::vector<double>> *interference_result_matrix);
 
-  /**
-   * Calculate the memory consumption given a specific forecasted workload segment with a specific action state
-   * @param memory_info Pre-calculated memory information
-   * @param action_state The state of the actions
-   * @param segment_index Which forecasted interval to compute memory consumption for
-   * @param action_map Reference of the map from action id to action pointers
-   * @return The memory consumption estimation
-   */
-  static size_t CalculateMemoryConsumption(
-      const pilot::MemoryInfo &memory_info, const pilot::ActionState &action_state, uint64_t segment_index,
-      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map);
-
- private:
   /**
    * Add features to existing features
    * @param feature The original feature to add in-place

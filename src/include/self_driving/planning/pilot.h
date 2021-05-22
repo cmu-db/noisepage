@@ -19,6 +19,7 @@
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/action_defs.h"
 #include "self_driving/planning/memory_info.h"
+#include "self_driving/planning/planning_context.h"
 
 namespace noisepage {
 namespace messenger {
@@ -112,21 +113,6 @@ class Pilot {
         uint64_t workload_forecast_interval, uint64_t sequence_length, uint64_t horizon_length);
 
   /**
-   * Get model save path
-   * @return save path of the mini model
-   */
-  const std::string &GetOUModelSavePath() { return ou_model_save_path_; }
-
-  /**
-   * Get pointer to model server manager
-   * @return pointer to model server manager
-   */
-  common::ManagedPointer<modelserver::ModelServerManager> GetModelServerManager() { return model_server_manager_; }
-
-  /** @return memory information of the forecasted workload */
-  const pilot::MemoryInfo &GetMemoryInfo() { return memory_info_; }
-
-  /**
    * Performs Pilot Logic, load and execute the predicted queries while extracting pipeline features
    */
   void PerformPlanning();
@@ -153,37 +139,11 @@ class Pilot {
    */
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
-  /**
-   * Execute, collect pipeline metrics, and get ou prediction for each pipeline under different query parameters for
-   * queries between start and end segment indices (both inclusive) in workload forecast.
-   * @param start_segment_index start segment index in forecast to be considered
-   * @param end_segment_index end segment index in forecast to be considered
-   * @param query_info <query id, <num_param of this query executed, total number of collected ous for this query>>
-   * @param segment_to_offset start index of ou records belonging to a segment in input to the interference model
-   * @param interference_result_matrix stores the final results of the interference model
-   */
-  void ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
-                       std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
-                       std::map<uint32_t, uint64_t> *segment_to_offset,
-                       std::vector<std::vector<double>> *interference_result_matrix);
+  pilot::PlanningContext planning_context_;
 
-  std::string ou_model_save_path_;
-  std::string interference_model_save_path_;
-  common::ManagedPointer<catalog::Catalog> catalog_;
-  common::ManagedPointer<metrics::MetricsThread> metrics_thread_;
-  common::ManagedPointer<modelserver::ModelServerManager> model_server_manager_;
-  common::ManagedPointer<settings::SettingsManager> settings_manager_;
-  common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
-  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  std::unique_ptr<util::QueryExecUtil> query_exec_util_;
-  common::ManagedPointer<task::TaskManager> task_manager_;
   Forecaster forecaster_;
-  pilot::MemoryInfo memory_info_;
   uint64_t action_planning_horizon_{15};
   uint64_t simulation_number_{20};
-
-  friend class noisepage::selfdriving::PilotUtil;
-  friend class noisepage::selfdriving::pilot::MonteCarloTreeSearch;
 };
 
 }  // namespace noisepage::selfdriving

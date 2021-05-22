@@ -20,6 +20,8 @@ class WorkloadForecast;
 
 namespace pilot {
 
+class PlanningContext;
+
 STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);
 
 constexpr tree_node_id_t INVALID_TREE_NODE_ID = tree_node_id_t(0);
@@ -61,20 +63,20 @@ class TreeNode {
   /**
    * Recursively sample the vertex whose children will be assigned values through rollout.
    * @param root pointer to root of the search tree
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions that can be applied at curent node
    * @param end_segment_index last segment index to be considered in forecast (needed so that when sampled leaf is
    * beyond this index, we repeat the selection process)
    */
   static common::ManagedPointer<TreeNode> Selection(
-      common::ManagedPointer<TreeNode> root, common::ManagedPointer<Pilot> pilot,
+      common::ManagedPointer<TreeNode> root, const PlanningContext &planning_context,
       const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
       std::unordered_set<action_id_t> *candidate_actions, uint64_t end_segment_index);
 
   /**
    * Expand each child of current node and update its cost and num of visits accordingly
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to forecasted workload
    * @param action_horizon number of next levels only influenced by the action selected at current node
    * @param tree_end_segment_index end_segment_index of the search tree
@@ -82,7 +84,7 @@ class TreeNode {
    * @param candidate_actions candidate actions of the search tree
    * @param memory_constraint maximum allowed memory in bytes
    */
-  void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+  void ChildrenRollout(const PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
                        uint64_t action_horizon, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint);
@@ -90,11 +92,11 @@ class TreeNode {
   /**
    * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
    * also apply reverse actions
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param action_map action map of the search tree
    * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
-  void BackPropogate(common::ManagedPointer<Pilot> pilot,
+  void BackPropogate(const PlanningContext &planning_context,
                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map, bool use_min_cost);
 
   /**

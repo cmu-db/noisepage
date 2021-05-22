@@ -28,6 +28,7 @@
 #include "self_driving/planning/action/create_index_action.h"
 #include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/pilot.h"
+#include "self_driving/planning/planning_context.h"
 #include "settings/settings_manager.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -38,14 +39,15 @@
 
 namespace noisepage::selfdriving {
 
-void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::string &sql_query, catalog::db_oid_t db_oid,
-                            bool what_if) {
+void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, const std::string &sql_query,
+                            catalog::db_oid_t db_oid, bool what_if) {
   SELFDRIVING_LOG_INFO("Applying action: {}", sql_query);
 
-  auto txn_manager = pilot->txn_manager_;
-  auto catalog = pilot->catalog_;
-  util::QueryExecUtil util(txn_manager, catalog, pilot->settings_manager_, pilot->stats_storage_,
-                           pilot->settings_manager_->GetInt(settings::Param::task_execution_timeout));
+  auto txn_manager = planning_context.GetTxnManager();
+  auto catalog = planning_context.GetCatalog();
+  util::QueryExecUtil util(txn_manager, catalog, planning_context.GetSettingsManager(),
+                           planning_context.GetStatsStorage(),
+                           planning_context.GetSettingsManager()->GetInt(settings::Param::task_execution_timeout));
   util.BeginTransaction(db_oid);
 
   bool is_query_ddl = false;
@@ -74,8 +76,9 @@ void PilotUtil::ApplyAction(common::ManagedPointer<Pilot> pilot, const std::stri
   util.EndTransaction(true);
 }
 
-void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                              uint64_t end_segment_index, transaction::TransactionContext *txn,
+void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
+                              common::ManagedPointer<WorkloadForecast> forecast, uint64_t end_segment_index,
+                              transaction::TransactionContext *txn,
                               std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs) {
   std::unordered_set<execution::query_id_t> qids;
   for (uint64_t idx = 0; idx <= end_segment_index; idx++) {
@@ -86,7 +89,8 @@ void PilotUtil::GetQueryPlans(common::ManagedPointer<Pilot> pilot, common::Manag
 
   // Use QueryExecUtil since we want the abstract plan nodes.
   // We don't care about compilation right now.
-  auto query_exec_util = util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(pilot->query_exec_util_));
+  auto query_exec_util =
+      util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(planning_context.GetQueryExecUtil()));
   for (auto qid : qids) {
     auto query_text = forecast->GetQuerytextByQid(qid);
     auto db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
@@ -123,8 +127,9 @@ std::vector<double> PilotUtil::GetInterferenceFeature(const std::vector<double> 
   return interference_feat;
 }
 
-double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
-                              uint64_t start_segment_index, uint64_t end_segment_index) {
+double PilotUtil::ComputeCost(const pilot::PlanningContext &planning_context,
+                              common::ManagedPointer<WorkloadForecast> forecast, uint64_t start_segment_index,
+                              uint64_t end_segment_index) {
   // Compute cost as total latency of queries based on their num of exec
   // query id, <num_param of this query executed, total number of collected ous for this query>
   std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> query_info;
@@ -132,8 +137,8 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
   std::map<uint32_t, uint64_t> segment_to_offset;
   std::vector<std::vector<double>> interference_result_matrix;
 
-  pilot->ExecuteForecast(start_segment_index, end_segment_index, &query_info, &segment_to_offset,
-                         &interference_result_matrix);
+  PilotUtil::ExecuteForecast(planning_context, forecast, start_segment_index, end_segment_index, &query_info,
+                             &segment_to_offset, &interference_result_matrix);
 
   double total_cost = 0.0;
 
@@ -160,7 +165,7 @@ double PilotUtil::ComputeCost(common::ManagedPointer<Pilot> pilot, common::Manag
 }
 
 std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatures(
-    common::ManagedPointer<selfdriving::Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+    const pilot::PlanningContext &planning_context, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
     uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids,
     const bool execute_query) {
   std::unordered_set<execution::query_id_t> qids;
@@ -170,7 +175,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     }
   }
 
-  auto metrics_manager = pilot->metrics_thread_->GetMetricsManager();
+  auto metrics_manager = planning_context.GetMetricsThread()->GetMetricsManager();
   std::unique_ptr<metrics::PipelineMetricRawData> aggregated_data = nullptr;
   bool old_metrics_enable = false;
   uint8_t old_sample_rate = 0;
@@ -178,8 +183,9 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     aggregated_data = std::make_unique<metrics::PipelineMetricRawData>();
   } else {
     // record previous parameters to be restored at the end of this function
-    old_metrics_enable = pilot->settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
-    old_sample_rate = pilot->settings_manager_->GetInt64(settings::Param::pipeline_metrics_sample_rate);
+    auto settings_manager = planning_context.GetSettingsManager();
+    old_metrics_enable = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
+    old_sample_rate = settings_manager->GetInt64(settings::Param::pipeline_metrics_sample_rate);
     if (!old_metrics_enable) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, 100);
   }
@@ -201,7 +207,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
       // Forcefully reoptimize all the queries and set the query identifier to use
       // If copying params and param_types gets expensive, we might have to tweak the Task::TaskDML
       // constructor to allow specifying pointer params or a custom planning task.
-      pilot->task_manager_->AddTask(std::make_unique<task::TaskDML>(
+      planning_context.GetTaskManager()->AddTask(std::make_unique<task::TaskDML>(
           db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
           std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<type::TypeId>(*param_types),
           nullptr, metrics_manager, settings, true, true, std::make_optional<execution::query_id_t>(qid),
@@ -212,7 +218,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
       }
     } else {
       // Just compile the queries (generate the bytecodes) to get features with statistics
-      auto &query_util = pilot->query_exec_util_;
+      auto &query_util = planning_context.GetQueryExecUtil();
       query_util->BeginTransaction(db_oid);
       // TODO(lin): Do we need to pass in any settings?
       execution::exec::ExecutionSettings settings{};
@@ -423,6 +429,15 @@ void PilotUtil::GroupFeaturesByOU(
     pipeline_to_ou_position->emplace_back(pipeline_qids.at(pipeline_idx), data_it.pipeline_id_,
                                           std::move(ou_positions));
   }
+}
+
+pilot::MemoryInfo PilotUtil::ComputeMemoryInfo(const pilot::PlanningContext &planning_context,
+                                               const WorkloadForecast *forecast) {
+  pilot::MemoryInfo memory_info;
+  PilotUtil::ComputeTableSizeRatios(forecast, planning_context.GetTaskManager(), planning_context.GetTxnManager(),
+                                    planning_context.GetCatalog(), &memory_info);
+  PilotUtil::ComputeTableIndexSizes(planning_context.GetTxnManager(), planning_context.GetCatalog(), &memory_info);
+  return memory_info;
 }
 
 void PilotUtil::ComputeTableSizeRatios(const WorkloadForecast *forecast,
@@ -653,6 +668,39 @@ size_t PilotUtil::CalculateMemoryConsumption(
   }
 
   return total_memory;
+}
+
+void PilotUtil::ExecuteForecast(const pilot::PlanningContext &planning_context,
+                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                                uint64_t start_segment_index, uint64_t end_segment_index,
+                                std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
+                                std::map<uint32_t, uint64_t> *segment_to_offset,
+                                std::vector<std::vector<double>> *interference_result_matrix) {
+  NOISEPAGE_ASSERT(forecast != nullptr, "Need forecast_ initialized.");
+  // first we make sure the pipeline metrics flag as well as the counters is enabled. Also set the sample rate to be 0
+  // so that every query execution is being recorded
+
+  std::vector<execution::query_id_t> pipeline_qids;
+  // Collect pipeline metrics of forecasted queries within the interval of segments
+  auto pipeline_data =
+      PilotUtil::CollectPipelineFeatures(planning_context, common::ManagedPointer(forecast), start_segment_index,
+                                         end_segment_index, &pipeline_qids, !Pilot::WHAT_IF);
+
+  // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
+  // (where each entry corresponds to a different query param)
+  // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
+  // parameters
+  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
+      pipeline_to_prediction;
+
+  // Then we perform inference through model server to get ou prediction results for all pipelines
+  PilotUtil::OUModelInference(planning_context.GetInterferenceModelSavePath(), planning_context.GetModelServerManager(),
+                              pipeline_qids, pipeline_data->pipeline_data_, &pipeline_to_prediction);
+
+  PilotUtil::InterferenceModelInference(planning_context.GetInterferenceModelSavePath(),
+                                        planning_context.GetModelServerManager(), pipeline_to_prediction,
+                                        common::ManagedPointer(forecast), start_segment_index, end_segment_index,
+                                        query_info, segment_to_offset, interference_result_matrix);
 }
 
 }  // namespace noisepage::selfdriving
