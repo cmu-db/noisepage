@@ -188,7 +188,7 @@ class Pilot {
   common::ManagedPointer<task::TaskManager> task_manager_;
   Forecaster forecaster_;
   pilot::MemoryInfo memory_info_;
-  uint64_t action_planning_horizon_{5};
+  uint64_t action_planning_horizon_{15};
   uint64_t simulation_number_{20};
 
   friend class noisepage::selfdriving::PilotUtil;

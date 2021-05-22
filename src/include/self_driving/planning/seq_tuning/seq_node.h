@@ -11,8 +11,6 @@
 #include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/pilot_util.h"
 
-#define INIT_DIST INT64_MAX
-
 namespace noisepage::selfdriving {
 class Pilot;
 class WorkloadForecast;
@@ -23,12 +21,16 @@ namespace pilot {
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
 class SeqNode {
+ protected:
+  static constexpr double INIT_DIST = static_cast<double>(INT64_MAX);
+
  public:
   /**
    * Constructing a sequence node representing a set of statements (segment) with a configuration (set of structures).
    * @param configuration set of create index action id
    * @param node_cost cost of executing the statements under the config
    * @param memory number of bytes consumed by the config
+   * @param action_state
    * @param if_source if the node is a source node (default to have distance 0)
    */
   explicit SeqNode(std::set<action_id_t> configuration, double node_cost, uint64_t memory, ActionState action_state,

@@ -25,12 +25,12 @@ class AbstractAction;
 class GraphSolver {
  public:
   /**
-   *
-   * @param pilot
-   * @param forecast
-   * @param end_segment_index
-   * @param structure_map
-   * @param default_segment_cost
+   * Constructor for GraphSolver. Initialize the DAG while finding the shortest via dynamic programming simultaneously.
+   * @param pilot pointer to pilot
+   * @param forecast pointer to workload forecast
+   * @param end_segment_index the last segment index to be considered among the forecasted workloads
+   * @param structure_map map from each action id to a structure/create index action
+   * @param default_segment_cost cost of each segment when no structure is present
    * @param candidate_configurations_by_segment
    * @param memory_constraint
    */
@@ -45,8 +45,6 @@ class GraphSolver {
    * @param pilot
    * @param structure_map
    * @param config_set
-   * @param actions_applied
-   * @param memory_constraint
    * @return
    */
   bool IsValidConfig(common::ManagedPointer<Pilot> pilot,

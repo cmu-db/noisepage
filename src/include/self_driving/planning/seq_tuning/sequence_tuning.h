@@ -17,6 +17,7 @@ namespace noisepage::selfdriving {
 class Pilot;
 
 namespace pilot {
+struct PathSolution;
 
 /**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
@@ -35,11 +36,11 @@ class SequenceTuning {
   /**
    * Returns sequence of actions that lead to the best sequence of configurations,
    * computed using sequence tuning with cost-based pruning & greedy merge
-   * @param best_actions_seq storing output: query string of the best actions as well as the associated database oid
    * @param memory_constraint maximum allowed memory in bytes
+   * @param best_actions_seq storing output: query string of the best actions as well as the associated database oid
    */
-  void BestAction(std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq,
-                  uint64_t memory_constraint);
+  void BestAction(uint64_t memory_constraint,
+                  std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq);
 
  private:
   /**
@@ -47,14 +48,14 @@ class SequenceTuning {
    * from two solutions using different structures
    * @param seq_one first solution sequence
    * @param seq_two second solution sequence
+   * @param memory_constraint maximum allowed memory in bytes
    * @param merged_solution merged solution sequence of configuration
    * @param merged_config_set set of unique configurations in merged solution
-   * @param memory_constraint maximum allowed memory in bytes
-   * @return
+   * @return cost of best path in merged graph
    */
   double UnionPair(const std::vector<std::set<action_id_t>> &seq_one, const std::vector<std::set<action_id_t>> &seq_two,
-                   std::vector<std::set<action_id_t>> *merged_solution,
-                   std::set<std::set<action_id_t>> *merged_config_set, uint64_t memory_constraint);
+                   uint64_t memory_constraint, std::vector<std::set<action_id_t>> *merged_solution,
+                   std::set<std::set<action_id_t>> *merged_config_set);
 
   /**
    * Computes the global best sequence of configuration.
@@ -62,13 +63,11 @@ class SequenceTuning {
    * https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/SequenceTuning_Sig06.pdf.
    * @param best_path_for_structure the path of configs, shortest distance (best cost) and set of configs
    * computed for each structure using cost-based pruning
-   * @param best_actions_seq best sequence of actions to apply (a set of actions for each segment)
    * @param memory_constraint maximum allowed memory in bytes
+   * @param best_actions_seq best sequence of actions to apply (a set of actions for each segment)
    */
-  void GreedySeq(const std::map<action_id_t,
-                                std::tuple<std::vector<std::set<action_id_t>>, std::set<std::set<action_id_t>>, double>>
-                     &best_path_for_structure,
-                 std::vector<std::set<action_id_t>> *best_final_config_path, uint64_t memory_constraint);
+  void GreedySeq(const std::map<action_id_t, PathSolution> &best_path_for_structure, uint64_t memory_constraint,
+                 std::vector<std::set<action_id_t>> *best_final_config_path);
 
   /**
    * Extract the best sequence of actions to apply from the optimal sequence of configuration.
@@ -88,10 +87,8 @@ class SequenceTuning {
    * @param global_config_set set of configs selected by step 3 of the GREEDY-SEQ algo to be used in the final graph
    * @param memory_constraint maximum allowed memory in bytes
    */
-  void MergeConfigs(
-      std::set<std::pair<double, uint64_t>> *global_path_set,
-      std::vector<std::tuple<std::vector<std::set<action_id_t>>, std::set<std::set<action_id_t>>, double>> *all_paths,
-      std::set<std::set<action_id_t>> *global_config_set, uint64_t memory_constraint);
+  void MergeConfigs(std::set<std::pair<double, uint64_t>> *global_path_set, std::vector<PathSolution> *all_paths,
+                    std::set<std::set<action_id_t>> *global_config_set, uint64_t memory_constraint);
 
   const common::ManagedPointer<Pilot> pilot_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
