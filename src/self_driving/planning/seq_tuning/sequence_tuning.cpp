@@ -114,26 +114,23 @@ double SequenceTuning::UnionPair(const PathSolution &path_one, const PathSolutio
 void SequenceTuning::GreedySeq(const std::map<action_id_t, PathSolution> &best_path_for_structure,
                                uint64_t memory_constraint, PathSolution *best_final_path) {
   std::set<std::set<action_id_t>> global_config_set;
-  // set of solutions P along with their cost, used to find the candidate configurations in GREEDY-SEQ
+  // set of solutions P, used to find the candidate configurations in GREEDY-SEQ
   std::multiset<PathSolution> global_path_set;
 
-  // initialize global_config_set to contain empty or singleton configs for each potential structure
   // initialize global_path_set as the set of all paths found in cost-based pruning
-  uint64_t path_index = 0;
+  // initialize global_config_set to contain empty or singleton configs for each potential structure
   for (auto const &path_it : best_path_for_structure) {
     auto const &config_set = path_it.second.unique_config_on_path;
     global_config_set.insert(config_set.begin(), config_set.end());
     global_path_set.emplace(path_it.second);
-    path_index++;
   }
 
-  // execute the while loop in step 3 of the paper
+  // execute the while loop in step 3 of the paper to find the set of configurations in final graph
   MergeConfigs(&global_path_set, &global_config_set, memory_constraint);
-
-  // construct the sequence of set of candidate structures to be used in the final graph search
   std::set<std::set<action_id_t>> candidate_structures;
   candidate_structures.insert(global_config_set.begin(), global_config_set.end());
 
+  // construct the sequence of set of candidate structures to be used in the final graph search
   std::vector<std::set<std::set<action_id_t>>> candidate_structures_by_segment(end_segment_index_ + 1,
                                                                                candidate_structures);
 
@@ -169,15 +166,19 @@ void SequenceTuning::ExtractActionsFromConfigPath(
 void SequenceTuning::MergeConfigs(std::multiset<PathSolution> *global_path_set,
                                   std::set<std::set<action_id_t>> *global_config_set, uint64_t memory_constraint) {
   while (!global_path_set->empty()) {
-    const PathSolution &least_cost_path = *(global_path_set->begin());
+    // find the least cost path and add its configurations to the global set of configurations
+    auto least_cost_path = *(global_path_set->begin());
+    // remove the least-cost path
+    global_path_set->erase(global_path_set->begin());
+
     auto best_couple_pair = *(global_path_set->begin());
     double best_union_cost = least_cost_path.path_length;
 
     auto config_set = least_cost_path.unique_config_on_path;
     global_config_set->insert(config_set.begin(), config_set.end());
 
+    // go through each solution in P to see if there's another path where their unioned solution is better
     PathSolution best_merged_solution;
-
     for (auto const &path_it : *global_path_set) {
       PathSolution merged_solution;
       double union_cost = UnionPair(least_cost_path, path_it, memory_constraint, &merged_solution);
@@ -189,11 +190,10 @@ void SequenceTuning::MergeConfigs(std::multiset<PathSolution> *global_path_set,
       }
     }
 
-    global_path_set->erase(global_path_set->begin());
-
+    // if there's a pair whose unioned solution is better than the least-cost solution alone, remove the other path and
+    // add the combined solution to P
     if (best_union_cost < least_cost_path.path_length) {
       global_path_set->erase(best_couple_pair);
-      //      all_paths->emplace_back(best_merged_solution, best_merged_config_set, best_union_cost);
       SELFDRIVING_LOG_DEBUG("[GreedySeq] new path added to global_path_set with distance {} number of config {}",
                             best_union_cost, best_merged_solution.unique_config_on_path.size());
       global_path_set->emplace(std::move(best_merged_solution));
