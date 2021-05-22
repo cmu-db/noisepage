@@ -19,11 +19,7 @@ struct PathSolution {
   /** Distance from source to distance following this path */
   double path_length;
 
-  PathSolution(std::vector<std::set<action_id_t>> config_on_path, std::set<std::set<action_id_t>> unique_config_on_path,
-               double path_length)
-      : config_on_path(std::move(config_on_path)),
-        unique_config_on_path(std::move(unique_config_on_path)),
-        path_length(path_length) {}
+  bool operator<(const PathSolution &other_path) const { return path_length < other_path.path_length; }
 };
 
 }  // namespace noisepage::selfdriving::pilot

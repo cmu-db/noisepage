@@ -9,6 +9,7 @@
 #include "self_driving/planning/memory_info.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
+#include "self_driving/planning/seq_tuning/path_solution.h"
 
 namespace noisepage::selfdriving::pilot {
 
@@ -40,7 +41,7 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
 
     nodes_by_segment_index_.at(segment_index).back()->RelaxNode(structure_map, parent_level);
 
-    SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set empty, node_cost {}, best_dist {}", segment_index,
+    SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set {{}}, node_cost {}, best_dist {}", segment_index,
                           default_segment_cost.at(segment_index),
                           nodes_by_segment_index_.at(segment_index).back()->GetBestDist());
 
@@ -119,13 +120,13 @@ bool GraphSolver::IsValidConfig(common::ManagedPointer<Pilot> pilot,
   return true;
 }
 
-double GraphSolver::RecoverShortestPath(std::vector<std::set<action_id_t>> *best_config_path,
-                                        std::set<std::set<action_id_t>> *best_config_set) {
+double GraphSolver::RecoverShortestPath(PathSolution *merged_solution) {
   auto curr_node = dest_node_->GetBestParent();
-
   // get all configs on best path
-
   SELFDRIVING_LOG_DEBUG("PRINTING Shortest Config Path");
+
+  auto best_config_path = &(merged_solution->config_on_path);
+  auto best_config_set = &(merged_solution->unique_config_on_path);
 
   while (curr_node != nullptr) {
     best_config_path->push_back(curr_node->GetConfig());

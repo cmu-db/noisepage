@@ -18,6 +18,7 @@ class WorkloadForecast;
 
 namespace pilot {
 class AbstractAction;
+struct PathSolution;
 
 /**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
@@ -31,8 +32,8 @@ class GraphSolver {
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    * @param structure_map map from each action id to a structure/create index action
    * @param default_segment_cost cost of each segment when no structure is present
-   * @param candidate_configurations_by_segment
-   * @param memory_constraint
+   * @param candidate_configurations_by_segment set of candidate configurations per segment
+   * @param memory_constraint maximum allowed memory in bytes
    */
   GraphSolver(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
               uint64_t end_segment_index, const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
@@ -41,42 +42,41 @@ class GraphSolver {
               uint64_t memory_constraint);
 
   /**
-   *
-   * @param pilot
-   * @param structure_map
-   * @param config_set
-   * @return
+   * Find a shortest path in the current graph to populate the best config sequence.
+   * Also collect the set of unique configurations on the best config sequence.
+   * Breaking tie arbitrarily.
+   * @param best_config_path to be populated with a sequence of configurations on shortest path
+   * @param best_config_set to be populated with the unique configurations on shortest path
+   * @return length of shortest path in the DAG
+   */
+  double RecoverShortestPath(PathSolution *merged_solution);
+
+ private:
+  /**
+   * Is a config valid by having all structures in it valid.
+   * @param pilot pointer to pilot
+   * @param structure_map map from each action id to a structure/create index action
+   * @param config_set set of structures constituting the current config
+   * @return if all structure in the config are valid
    */
   bool IsValidConfig(common::ManagedPointer<Pilot> pilot,
                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                      const std::set<action_id_t> &config_set);
 
   /**
-   *
-   * @param pilot
-   * @param forecast
-   * @param structure_map
-   * @param config_set
-   * @param segment_index
-   * @return
+   * Computes the cost of a segment with a certain configuration.
+   * @param pilot pointer to pilot
+   * @param forecast pointer to workload forecast
+   * @param structure_map map from each action id to a structure/create index action
+   * @param config_set set of structures constituting the current config
+   * @param segment_index index of current segment
+   * @return cost of executing queries in current segment with the set of structures in current config
    */
   double ComputeConfigCost(common::ManagedPointer<Pilot> pilot,
                            common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                            const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                            const std::set<action_id_t> &config_set, uint64_t segment_index);
 
-  /**
-   * Find a shortest path in the current graph to populate the best config sequence.
-   * Also collect the set of unique configurations on the best config sequence.
-   * Breaking tie arbitrarily.
-   * @param best_config_path
-   * @param best_config_set
-   * @return
-   */
-  double RecoverShortestPath(std::vector<std::set<action_id_t>> *best_config_path,
-                             std::set<std::set<action_id_t>> *best_config_set);
-
- private:
   static constexpr double MEMORY_CONSUMPTION_VIOLATION_COST = 1e10;
 
   std::vector<std::vector<std::unique_ptr<SeqNode>>> nodes_by_segment_index_;

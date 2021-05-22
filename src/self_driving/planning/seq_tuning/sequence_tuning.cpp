@@ -61,36 +61,35 @@ void SequenceTuning::BestAction(
   std::map<action_id_t, PathSolution> best_path_for_structure;
 
   for (auto structure_id : candidate_structures_) {
-    std::vector<std::set<action_id_t>> best_path_for_curr_structure;
-    std::set<std::set<action_id_t>> best_config_set_for_curr_action;
+    PathSolution best_solution;
 
     std::set<std::set<action_id_t>> singleton_action = {{structure_id}};
     std::vector<std::set<std::set<action_id_t>>> singleton_action_repeated(end_segment_index_ + 1, singleton_action);
 
     double best_path_cost = GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
                                         singleton_action_repeated, memory_constraint)
-                                .RecoverShortestPath(&best_path_for_curr_structure, &best_config_set_for_curr_action);
+                                .RecoverShortestPath(&best_solution);
 
     SELFDRIVING_LOG_INFO("[cost-based pruning] for structure \"{}\" finds best path distance {} with {} configs",
                          structure_map_.at(structure_id)->GetSQLCommand(), best_path_cost,
-                         best_config_set_for_curr_action.size());
+                         best_solution.unique_config_on_path.size());
 
-    best_path_for_structure.emplace(
-        structure_id, PathSolution{best_path_for_curr_structure, best_config_set_for_curr_action, best_path_cost});
+    best_path_for_structure.emplace(structure_id, std::move(best_solution));
   }
 
   // since we only have one sequence (no split step), directly apply greedy-sequence algo to merge individual paths to
   // get the final solution, (no merge step at the end)
-  std::vector<std::set<action_id_t>> best_final_config_path;
-  GreedySeq(best_path_for_structure, memory_constraint, &best_final_config_path);
-  ExtractActionsFromConfigPath(best_final_config_path, best_actions_seq);
+  PathSolution best_final_path;
+  GreedySeq(best_path_for_structure, memory_constraint, &best_final_path);
+  ExtractActionsFromConfigPath(best_final_path.config_on_path, best_actions_seq);
 }
 
-double SequenceTuning::UnionPair(const std::vector<std::set<action_id_t>> &seq_one,
-                                 const std::vector<std::set<action_id_t>> &seq_two, uint64_t memory_constraint,
-                                 std::vector<std::set<action_id_t>> *merged_solution,
-                                 std::set<std::set<action_id_t>> *merged_config_set) {
+double SequenceTuning::UnionPair(const PathSolution &path_one, const PathSolution &path_two, uint64_t memory_constraint,
+                                 PathSolution *merged_solution) {
   std::vector<std::set<std::set<action_id_t>>> candidate_structures_by_segment;
+
+  auto const &seq_one = path_one.config_on_path;
+  auto const &seq_two = path_two.config_on_path;
 
   NOISEPAGE_ASSERT(seq_one.size() == seq_two.size(), "UnionPair requires two sequences of same length");
 
@@ -108,39 +107,41 @@ double SequenceTuning::UnionPair(const std::vector<std::set<action_id_t>> &seq_o
 
   double best_unioned_dist = GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
                                          candidate_structures_by_segment, memory_constraint)
-                                 .RecoverShortestPath(merged_solution, merged_config_set);
+                                 .RecoverShortestPath(merged_solution);
   return best_unioned_dist;
 }
 
 void SequenceTuning::GreedySeq(const std::map<action_id_t, PathSolution> &best_path_for_structure,
-                               uint64_t memory_constraint, std::vector<std::set<action_id_t>> *best_final_config_path) {
-  // initialize C to contain all (binary) configs for each potential structure
+                               uint64_t memory_constraint, PathSolution *best_final_path) {
   std::set<std::set<action_id_t>> global_config_set;
-  // initialize global_path_set as paths found in cost-based pruning
-  std::set<std::pair<double, uint64_t>> global_path_set;
-  std::vector<PathSolution> all_paths;
+  // set of solutions P along with their cost, used to find the candidate configurations in GREEDY-SEQ
+  std::multiset<PathSolution> global_path_set;
 
-  uint64_t ct = 0;
+  // initialize global_config_set to contain empty or singleton configs for each potential structure
+  // initialize global_path_set as the set of all paths found in cost-based pruning
+  uint64_t path_index = 0;
   for (auto const &path_it : best_path_for_structure) {
     auto const &config_set = path_it.second.unique_config_on_path;
     global_config_set.insert(config_set.begin(), config_set.end());
-    all_paths.push_back(path_it.second);
-    global_path_set.emplace(path_it.second.path_length, ct);
-    ct++;
+    global_path_set.emplace(path_it.second);
+    path_index++;
   }
 
-  MergeConfigs(&global_path_set, &all_paths, &global_config_set, memory_constraint);
+  // execute the while loop in step 3 of the paper
+  MergeConfigs(&global_path_set, &global_config_set, memory_constraint);
 
+  // construct the sequence of set of candidate structures to be used in the final graph search
   std::set<std::set<action_id_t>> candidate_structures;
   candidate_structures.insert(global_config_set.begin(), global_config_set.end());
 
   std::vector<std::set<std::set<action_id_t>>> candidate_structures_by_segment(end_segment_index_ + 1,
                                                                                candidate_structures);
 
+  // find best solution in the final graph
   double final_soln_cost UNUSED_ATTRIBUTE =
       GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
                   candidate_structures_by_segment, memory_constraint)
-          .RecoverShortestPath(best_final_config_path, nullptr);
+          .RecoverShortestPath(best_final_path);
   SELFDRIVING_LOG_DEBUG("[GREEDY-SEQ] final solution cost {}", final_soln_cost);
 }
 
@@ -165,46 +166,38 @@ void SequenceTuning::ExtractActionsFromConfigPath(
   }
 }
 
-void SequenceTuning::MergeConfigs(std::set<std::pair<double, uint64_t>> *global_path_set,
-                                  std::vector<PathSolution> *all_paths,
+void SequenceTuning::MergeConfigs(std::multiset<PathSolution> *global_path_set,
                                   std::set<std::set<action_id_t>> *global_config_set, uint64_t memory_constraint) {
   while (!global_path_set->empty()) {
-    uint64_t least_cost_index = global_path_set->begin()->second;
-    double least_cost = global_path_set->begin()->first;
+    const PathSolution &least_cost_path = *(global_path_set->begin());
     auto best_couple_pair = *(global_path_set->begin());
-    double best_union_cost = least_cost;
+    double best_union_cost = least_cost_path.path_length;
 
-    global_path_set->erase(global_path_set->begin());
-
-    auto config_set = all_paths->at(least_cost_index).unique_config_on_path;
+    auto config_set = least_cost_path.unique_config_on_path;
     global_config_set->insert(config_set.begin(), config_set.end());
 
-    std::vector<std::set<action_id_t>> best_merged_solution;
-    std::set<std::set<action_id_t>> best_merged_config_set;
+    PathSolution best_merged_solution;
 
-    for (auto path_it : *global_path_set) {
-      std::vector<std::set<action_id_t>> merged_solution;
-      std::set<std::set<action_id_t>> merged_config_set;
-      uint64_t second_index = path_it.second;
-      double union_cost =
-          UnionPair(all_paths->at(least_cost_index).config_on_path, all_paths->at(second_index).config_on_path,
-                    memory_constraint, &merged_solution, &merged_config_set);
+    for (auto const &path_it : *global_path_set) {
+      PathSolution merged_solution;
+      double union_cost = UnionPair(least_cost_path, path_it, memory_constraint, &merged_solution);
 
       if (union_cost < best_union_cost) {
         best_couple_pair = path_it;
         best_union_cost = union_cost;
-        best_merged_solution = merged_solution;
-        best_merged_config_set = merged_config_set;
+        best_merged_solution = std::move(merged_solution);
       }
     }
 
-    if (best_union_cost < least_cost) {
-      global_path_set->erase(best_couple_pair);
-      all_paths->emplace_back(best_merged_solution, best_merged_config_set, best_union_cost);
-      global_path_set->emplace(best_union_cost, all_paths->size() - 1);
+    global_path_set->erase(global_path_set->begin());
 
+    if (best_union_cost < least_cost_path.path_length) {
+      global_path_set->erase(best_couple_pair);
+      //      all_paths->emplace_back(best_merged_solution, best_merged_config_set, best_union_cost);
       SELFDRIVING_LOG_DEBUG("[GreedySeq] new path added to global_path_set with distance {} number of config {}",
-                            best_union_cost, best_merged_config_set.size());
+                            best_union_cost, best_merged_solution.unique_config_on_path.size());
+      global_path_set->emplace(std::move(best_merged_solution));
+
     } else {
       // if there's no combination that's better than the least cost path alone, break out of step 3
       break;

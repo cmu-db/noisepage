@@ -46,16 +46,14 @@ class SequenceTuning {
   /**
    * Computes the merged solution in graph formed by the configs and the union of configs
    * from two solutions using different structures
-   * @param seq_one first solution sequence
-   * @param seq_two second solution sequence
+   * @param path_one first path
+   * @param path_two second path
    * @param memory_constraint maximum allowed memory in bytes
-   * @param merged_solution merged solution sequence of configuration
-   * @param merged_config_set set of unique configurations in merged solution
+   * @param merged_solution merged solution
    * @return cost of best path in merged graph
    */
-  double UnionPair(const std::vector<std::set<action_id_t>> &seq_one, const std::vector<std::set<action_id_t>> &seq_two,
-                   uint64_t memory_constraint, std::vector<std::set<action_id_t>> *merged_solution,
-                   std::set<std::set<action_id_t>> *merged_config_set);
+  double UnionPair(const PathSolution &path_one, const PathSolution &path_two, uint64_t memory_constraint,
+                   PathSolution *merged_solution);
 
   /**
    * Computes the global best sequence of configuration.
@@ -64,10 +62,10 @@ class SequenceTuning {
    * @param best_path_for_structure the path of configs, shortest distance (best cost) and set of configs
    * computed for each structure using cost-based pruning
    * @param memory_constraint maximum allowed memory in bytes
-   * @param best_actions_seq best sequence of actions to apply (a set of actions for each segment)
+   * @param best_final_path best solution in final graph
    */
   void GreedySeq(const std::map<action_id_t, PathSolution> &best_path_for_structure, uint64_t memory_constraint,
-                 std::vector<std::set<action_id_t>> *best_final_config_path);
+                 PathSolution *best_final_path);
 
   /**
    * Extract the best sequence of actions to apply from the optimal sequence of configuration.
@@ -83,12 +81,11 @@ class SequenceTuning {
    * selects the best pair of sequence to merge.
    * Implements step 3 of the GREEDY-SEQ algo in the paper linked above.
    * @param global_path_set set of candidate paths
-   * @param all_paths vector of all paths to keep track of unique paths in the
    * @param global_config_set set of configs selected by step 3 of the GREEDY-SEQ algo to be used in the final graph
    * @param memory_constraint maximum allowed memory in bytes
    */
-  void MergeConfigs(std::set<std::pair<double, uint64_t>> *global_path_set, std::vector<PathSolution> *all_paths,
-                    std::set<std::set<action_id_t>> *global_config_set, uint64_t memory_constraint);
+  void MergeConfigs(std::multiset<PathSolution> *global_path_set, std::set<std::set<action_id_t>> *global_config_set,
+                    uint64_t memory_constraint);
 
   const common::ManagedPointer<Pilot> pilot_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
