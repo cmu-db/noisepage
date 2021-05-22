@@ -19,6 +19,10 @@ class WorkloadForecast;
 namespace pilot {
 class AbstractAction;
 
+STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);
+
+constexpr tree_node_id_t INVALID_TREE_NODE_ID = tree_node_id_t(0);
+
 /**
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
@@ -41,6 +45,11 @@ class TreeNode {
    * @return action id at node with least cost
    */
   common::ManagedPointer<TreeNode> BestSubtree();
+
+  /**
+   * @return nodes ordered from optimal to least optimal
+   */
+  std::vector<common::ManagedPointer<TreeNode>> BestSubtreeOrdering();
 
   /**
    * @return depth of the treenode in the search tree
@@ -98,6 +107,27 @@ class TreeNode {
    */
   action_id_t GetCurrentAction() { return current_action_; }
 
+  /**
+   * Get estimated cost of applying the action
+   * @return estimated cost
+   */
+  double GetCost() { return cost_; }
+
+  /**
+   * @return tree node id
+   */
+  tree_node_id_t GetTreeNodeId() { return tree_node_id_; }
+
+  /**
+   * @return action start segment index
+   */
+  uint64_t GetActionStartSegmentIndex() { return action_start_segment_index_; }
+
+  /**
+   * @return action plan end index
+   */
+  uint64_t GetActionPlanEndIndex() { return action_plan_end_index_; }
+
  private:
   /**
    * Sample child based on cost and number of visits
@@ -141,9 +171,11 @@ class TreeNode {
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
+  tree_node_id_t tree_node_id_;
   bool is_leaf_;
   const uint64_t depth_;                       // number of edges in path from root
   const uint64_t action_start_segment_index_;  // start of segment index that this node will influence
+  uint64_t action_plan_end_index_;             // end of segment index for planning
   const action_id_t current_action_;
   const double ancestor_cost_;  // cost of executing segments with actions applied on path from root to current node
   const common::ManagedPointer<TreeNode> parent_;
@@ -152,6 +184,8 @@ class TreeNode {
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
   uint64_t memory_;
+
+  static tree_node_id_t tree_node_identifier;
 };
 }  // namespace pilot
 

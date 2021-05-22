@@ -15,3 +15,11 @@ CREATE TABLE noisepage_forecast_frequencies(ts BIGINT, query_id INT, seen REAL);
 -- entire noisepage_forecast_texts during forecasting.
 CREATE TABLE noisepage_forecast_texts(db_id INT, query_id INT, query_text VARCHAR, types VARCHAR);
 CREATE TABLE noisepage_forecast_parameters(ts BIGINT, query_id INT, parameters VARCHAR);
+
+-- There is a planning horizon where we plan 1 action per interval. noisepage_applied_actions
+-- records the action that is selected to be applied for the coming interval.
+CREATE TABLE noisepage_applied_actions(ts BIGINT, action_id INT, cost REAL, db_id INT, action_text VARCHAR);
+
+-- Following the "best" sequence of actions to apply in the horizon, noisepage_best_actions
+-- records that sequence of actions along with at each level, k-1 other high ranking actions.
+CREATE TABLE noisepage_best_actions(ts BIGINT, depth INT, node_id INT, parent_node_id INT, start_segment_index INT, end_segment_index INT, action_id INT, cost REAL, db_id INT, action_text VARCHAR);
