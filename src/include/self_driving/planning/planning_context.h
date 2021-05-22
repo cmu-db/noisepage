@@ -1,13 +1,13 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
+
 namespace noisepage {
 
 namespace catalog {
 class Catalog;
-}
-
-namespace messenger {
-class Messenger;
 }
 
 namespace metrics {
@@ -20,10 +20,6 @@ class ModelServerManager;
 
 namespace optimizer {
 class StatsStorage;
-}
-
-namespace planner {
-class AbstractPlanNode;
 }
 
 namespace settings {
@@ -45,10 +41,6 @@ class TaskManager;
 }  // namespace noisepage
 
 namespace noisepage::selfdriving::pilot {
-class AbstractAction;
-class MonteCarloTreeSearch;
-class TreeNode;
-class ActionTreeNode;
 
 /**
  * Planning context carries the necessary information and dependencies used in planning
