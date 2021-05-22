@@ -60,7 +60,7 @@ Async
 - Postgres ships WAL records after txn commit.
 - Postgres hot standbys are eventually consistent.
 
-[Cybertec](https://www.cybertec-postgresql.com/en/the-synchronous_commit-parameter/) has published some pgbench numbers.
+[Cybertec](https://www.cybertec-postgresql.com/en/the-synchronous_commit-parameter/) has published some pgbench numbers (tps).
 - Async `off`: 6211
 - Async `on`: 4256
 - Sync `remote_write`: 3720
