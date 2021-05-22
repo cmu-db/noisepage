@@ -849,13 +849,13 @@ bool LogicalCreateFunction::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateIndex::Copy() const { return new LogicalCreateIndex(*this); }
 
-Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::db_oid_t database_oid,
+Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                                   catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
                                   std::string index_name,
                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
   auto *op = new LogicalCreateIndex();
-  op->namespace_oid_ = namespace_oid;
   op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->index_type_ = index_type;
   op->unique_index_ = unique;

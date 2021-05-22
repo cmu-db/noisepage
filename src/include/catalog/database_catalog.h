@@ -111,7 +111,7 @@ class DatabaseCatalog {
                                                          index_oid_t index);
 
   /** @brief Get the name of the specified index */
-  std::string GetIndexName(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
+  std::string_view GetIndexName(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
 
   /** @brief Get the schema for the specified table. */
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);

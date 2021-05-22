@@ -252,15 +252,14 @@ class PgCoreImpl {
                                                             uint32_t oid);
 
   /**
-   * @brief Get the name string from pg_class. This makes a copy of the stored class name.
+   * @brief Get the name string from pg_class.
    *
    * @param txn     The transaction to query in.
-   * @param oid     The OID of the object.
+   * @param oid     The OID of the object. Must be valid
    * @return        The name and the RelKind of the object requested.
-   *                The name string will be empty if no entry was found for the given oid.
    */
-  std::pair<std::string, PgClass::RelKind> GetClassNameKind(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                            uint32_t oid);
+  std::pair<std::string_view, PgClass::RelKind> GetClassNameKind(
+      common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
 
   /**
    * @brief Get the OID and kind from pg_class.

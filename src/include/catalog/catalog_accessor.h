@@ -284,10 +284,10 @@ class EXPORT CatalogAccessor {
 
   /**
    * Obtain the name of the index
-   * @param index to which we want the name
-   * @return name of the index. Invalid oid returns empty string.
+   * @param index to which we want the name. The oid must be valid, otherwise triggers assertion
+   * @return name of the index.
    */
-  std::string GetIndexName(index_oid_t index) const;
+  std::string_view GetIndexName(index_oid_t index) const;
 
   /**
    * Adds a language to the catalog (with default parameters for now) if

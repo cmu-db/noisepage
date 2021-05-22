@@ -1295,7 +1295,7 @@ std::pair<uint32_t, PgClass::RelKind> PgCoreImpl::GetClassOidKind(
   return std::make_pair(oid, kind);
 }
 
-std::pair<std::string, PgClass::RelKind> PgCoreImpl::GetClassNameKind(
+std::pair<std::string_view, PgClass::RelKind> PgCoreImpl::GetClassNameKind(
     common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid) {
   // Buffer is large enough to hold all PRs.
   byte *const buffer = common::AllocationUtil::AllocateAligned(get_class_name_kind_pri_.ProjectedRowSize());
@@ -1310,15 +1310,7 @@ std::pair<std::string, PgClass::RelKind> PgCoreImpl::GetClassNameKind(
     classes_oid_index_->ScanKey(*txn, *pr, &index_results);
   }
 
-  // If the OID is invalid, we don't care about the class kind and return a random one.
-  {
-    if (index_results.empty()) {
-      delete[] buffer;
-      return std::make_pair(std::string(), PgClass::RelKind::REGULAR_TABLE);
-    }
-  }
-
-  NOISEPAGE_ASSERT(index_results.size() == 1, "Name not unique in pg_class_name_index.");
+  NOISEPAGE_ASSERT(index_results.size() == 1, "Oid not found in pg_class_oid_index.");
   NOISEPAGE_ASSERT(get_class_name_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                    "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
 
@@ -1338,8 +1330,7 @@ std::pair<std::string, PgClass::RelKind> PgCoreImpl::GetClassNameKind(
   }
 
   delete[] buffer;
-  // TODO(lin): Do we want to directly return the VarlenEntry? In that case, how do we handle non-existent oid?
-  return std::make_pair(std::string(name_varlen.StringView()), kind);
+  return std::make_pair(name_varlen.StringView(), kind);
 }
 
 template <typename Column, typename ClassOid, typename ColOid>

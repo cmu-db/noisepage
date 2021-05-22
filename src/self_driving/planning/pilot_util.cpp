@@ -545,13 +545,14 @@ void PilotUtil::ComputeTableIndexSizes(common::ManagedPointer<transaction::Trans
       auto index_oids = accessor->GetIndexOids(table_oid);
       for (auto index_oid : index_oids) {
         auto index = accessor->GetIndex(index_oid);
-        auto index_name = accessor->GetIndexName(index_oid);
+        std::string index_name(accessor->GetIndexName(index_oid));
         size_t index_memory = index->EstimateHeapUsage();
         memory_info->table_index_memory_bytes_[table_oid][index_name] = index_memory;
         memory_info->initial_memory_bytes_ += index_memory;
       }
     }
   }
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 void PilotUtil::EstimateCreateIndexAction(
