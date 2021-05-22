@@ -37,7 +37,7 @@ class GraphSolver {
   GraphSolver(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
               uint64_t end_segment_index, const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
               const std::vector<double> &default_segment_cost,
-              const std::vector<std::vector<std::set<action_id_t>>> &candidate_configurations_by_segment,
+              const std::vector<std::set<std::set<action_id_t>>> &candidate_configurations_by_segment,
               uint64_t memory_constraint);
 
   /**

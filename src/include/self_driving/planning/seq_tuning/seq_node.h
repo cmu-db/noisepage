@@ -22,6 +22,7 @@ namespace pilot {
  */
 class SeqNode {
  protected:
+  /* Initial distance assigned to nodes that are not the source */
   static constexpr double INIT_DIST = static_cast<double>(INT64_MAX);
 
  public:

@@ -16,7 +16,7 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
                          common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
                          const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                          const std::vector<double> &default_segment_cost,
-                         const std::vector<std::vector<std::set<action_id_t>>> &candidate_configurations_by_segment,
+                         const std::vector<std::set<std::set<action_id_t>>> &candidate_configurations_by_segment,
                          uint64_t memory_constraint) {
   // build the graph and compute shortest path simultaneously
 
@@ -37,7 +37,12 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
 
     const std::vector<std::unique_ptr<SeqNode>> &parent_level =
         segment_index == 0 ? source_level_ : nodes_by_segment_index_.at(segment_index - 1);
+
     nodes_by_segment_index_.at(segment_index).back()->RelaxNode(structure_map, parent_level);
+
+    SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set empty, node_cost {}, best_dist {}", segment_index,
+                          default_segment_cost.at(segment_index),
+                          nodes_by_segment_index_.at(segment_index).back()->GetBestDist());
 
     // initialize nodes with each of the config
     for (auto const &config_set : candidate_configurations_by_segment.at(segment_index)) {
@@ -45,10 +50,8 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
 
       new_action_state.SetIntervals(segment_index + 1, end_segment_index);
 
-      for (auto const action : config_set) {
-        auto const &action_ptr = structure_map.at(action);
-        action_ptr->ModifyActionState(&new_action_state);
-      }
+      for (auto const action : config_set)
+        structure_map.at(action)->ModifyActionState(&new_action_state);
 
       // Compute memory consumption
       bool satisfy_memory_constraint = true;
@@ -66,6 +69,10 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
       nodes_by_segment_index_.at(segment_index)
           .push_back(std::make_unique<SeqNode>(config_set, node_cost, memory, new_action_state));
       nodes_by_segment_index_.at(segment_index).back()->RelaxNode(structure_map, parent_level);
+
+      SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set {}, node_cost {}, best_dist {}", segment_index,
+                            PilotUtil::ConfigToString(config_set), node_cost,
+                            nodes_by_segment_index_.at(segment_index).back()->GetBestDist());
 
       for (auto const action : config_set) {
         // clean up by applying one reverse action to undo the above
@@ -91,10 +98,6 @@ double GraphSolver::ComputeConfigCost(common::ManagedPointer<Pilot> pilot,
 
   // if configuration is valid, include it as a node in the graph
   auto node_cost = PilotUtil::ComputeCost(pilot, forecast, segment_index, segment_index);
-
-  SELFDRIVING_LOG_DEBUG("[InitGraph] level {}, config_set {}, node_cost {}, best_dist {}", segment_index,
-                        PilotUtil::ConfigToString(config_set), node_cost,
-                        nodes_by_segment_index_.at(segment_index).back()->GetBestDist());
 
   for (auto const action : config_set) {
     // clean up by applying one reverse action to undo the above

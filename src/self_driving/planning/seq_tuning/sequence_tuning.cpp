@@ -64,8 +64,8 @@ void SequenceTuning::BestAction(
     std::vector<std::set<action_id_t>> best_path_for_curr_structure;
     std::set<std::set<action_id_t>> best_config_set_for_curr_action;
 
-    std::vector<std::set<action_id_t>> singleton_action = {{structure_id}};
-    std::vector<std::vector<std::set<action_id_t>>> singleton_action_repeated(end_segment_index_ + 1, singleton_action);
+    std::set<std::set<action_id_t>> singleton_action = {{structure_id}};
+    std::vector<std::set<std::set<action_id_t>>> singleton_action_repeated(end_segment_index_ + 1, singleton_action);
 
     double best_path_cost = GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
                                         singleton_action_repeated, memory_constraint)
@@ -90,19 +90,19 @@ double SequenceTuning::UnionPair(const std::vector<std::set<action_id_t>> &seq_o
                                  const std::vector<std::set<action_id_t>> &seq_two, uint64_t memory_constraint,
                                  std::vector<std::set<action_id_t>> *merged_solution,
                                  std::set<std::set<action_id_t>> *merged_config_set) {
-  std::vector<std::vector<std::set<action_id_t>>> candidate_structures_by_segment;
+  std::vector<std::set<std::set<action_id_t>>> candidate_structures_by_segment;
 
   NOISEPAGE_ASSERT(seq_one.size() == seq_two.size(), "UnionPair requires two sequences of same length");
 
   for (uint64_t structure_idx = 0; structure_idx < seq_one.size(); structure_idx++) {
-    std::vector<std::set<action_id_t>> curr_level;
-    curr_level.push_back(seq_one.at(structure_idx));
-    curr_level.push_back(seq_two.at(structure_idx));
+    std::set<std::set<action_id_t>> curr_level;
+    curr_level.insert(seq_one.at(structure_idx));
+    curr_level.insert(seq_two.at(structure_idx));
 
     std::set<action_id_t> unioned_config;
     unioned_config.insert(seq_one.at(structure_idx).begin(), seq_one.at(structure_idx).end());
     unioned_config.insert(seq_two.at(structure_idx).begin(), seq_two.at(structure_idx).end());
-    curr_level.push_back(unioned_config);
+    curr_level.insert(unioned_config);
     candidate_structures_by_segment.push_back(std::move(curr_level));
   }
 
@@ -131,11 +131,11 @@ void SequenceTuning::GreedySeq(const std::map<action_id_t, PathSolution> &best_p
 
   MergeConfigs(&global_path_set, &all_paths, &global_config_set, memory_constraint);
 
-  std::vector<std::set<action_id_t>> candidate_structures;
-  candidate_structures.insert(candidate_structures.begin(), global_config_set.begin(), global_config_set.end());
+  std::set<std::set<action_id_t>> candidate_structures;
+  candidate_structures.insert(global_config_set.begin(), global_config_set.end());
 
-  std::vector<std::vector<std::set<action_id_t>>> candidate_structures_by_segment(end_segment_index_ + 1,
-                                                                                  candidate_structures);
+  std::vector<std::set<std::set<action_id_t>>> candidate_structures_by_segment(end_segment_index_ + 1,
+                                                                               candidate_structures);
 
   double final_soln_cost UNUSED_ATTRIBUTE =
       GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
