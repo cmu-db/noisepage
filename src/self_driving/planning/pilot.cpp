@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 
-#include "common/action_context.h"
 #include "common/error/error_code.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/exec/execution_context.h"
@@ -13,7 +12,6 @@
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "network/postgres/statement.h"
-#include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/model_server/model_server_manager.h"

@@ -694,7 +694,7 @@ void PilotUtil::ExecuteForecast(const pilot::PlanningContext &planning_context,
       pipeline_to_prediction;
 
   // Then we perform inference through model server to get ou prediction results for all pipelines
-  PilotUtil::OUModelInference(planning_context.GetInterferenceModelSavePath(), planning_context.GetModelServerManager(),
+  PilotUtil::OUModelInference(planning_context.GetOuModelSavePath(), planning_context.GetModelServerManager(),
                               pipeline_qids, pipeline_data->pipeline_data_, &pipeline_to_prediction);
 
   PilotUtil::InterferenceModelInference(planning_context.GetInterferenceModelSavePath(),
