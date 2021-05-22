@@ -50,8 +50,7 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
 
       new_action_state.SetIntervals(segment_index + 1, end_segment_index);
 
-      for (auto const action : config_set)
-        structure_map.at(action)->ModifyActionState(&new_action_state);
+      for (auto const action : config_set) structure_map.at(action)->ModifyActionState(&new_action_state);
 
       // Compute memory consumption
       bool satisfy_memory_constraint = true;
