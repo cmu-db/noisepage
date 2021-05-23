@@ -359,6 +359,7 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
 
   // TODO(WAN): Integrate with Matt's PR.
 #if 0
+  {
     // Codegen must happen for certain types of EXPLAIN metadata to be collected, e.g., collection of TPL.
     auto codegen = CodegenPhysicalPlan(connection_ctx, out, portal);
     if (codegen.type_ != ResultType::COMPLETE) {
