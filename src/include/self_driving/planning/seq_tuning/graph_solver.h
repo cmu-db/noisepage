@@ -42,14 +42,12 @@ class GraphSolver {
               uint64_t memory_constraint);
 
   /**
-   * Find a shortest path in the current graph to populate the best config sequence.
-   * Also collect the set of unique configurations on the best config sequence.
+   * Find a shortest path in the current graph.
    * Breaking tie arbitrarily.
-   * @param best_config_path to be populated with a sequence of configurations on shortest path
-   * @param best_config_set to be populated with the unique configurations on shortest path
+   * @param shortest_path a struct to be populated with information about the shortest path in DAG
    * @return length of shortest path in the DAG
    */
-  double RecoverShortestPath(PathSolution *merged_solution);
+  double RecoverShortestPath(PathSolution *shortest_path);
 
  private:
   /**

@@ -64,8 +64,8 @@ void Pilot::PerformPlanning() {
   bool metrics_in_db =
       metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
   forecast_ = forecaster_.LoadWorkloadForecast(
-        metrics_in_db ? Forecaster::WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
-                      : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE);
+      metrics_in_db ? Forecaster::WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
+                    : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE);
   if (forecast_ == nullptr) {
     SELFDRIVING_LOG_ERROR("Unable to initialize the WorkloadForecast information");
     metrics_thread_->ResumeMetrics();
@@ -124,11 +124,11 @@ void Pilot::ActionSearchBaseline(
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
-  auto seqtunining =
+  auto seq_tunining =
       pilot::SequenceTuning(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
 
   std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
-  seqtunining.BestAction(settings_manager_->GetInt64(settings::Param::pilot_memory_constraint), &best_action_set_seq);
+  seq_tunining.BestAction(settings_manager_->GetInt64(settings::Param::pilot_memory_constraint), &best_action_set_seq);
 
   for (uint64_t action_set_idx = 0; action_set_idx < best_action_set_seq.size(); action_set_idx++) {
     auto action_set = best_action_set_seq.at(action_set_idx);

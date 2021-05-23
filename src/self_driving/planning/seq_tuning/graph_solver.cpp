@@ -120,13 +120,13 @@ bool GraphSolver::IsValidConfig(common::ManagedPointer<Pilot> pilot,
   return true;
 }
 
-double GraphSolver::RecoverShortestPath(PathSolution *merged_solution) {
+double GraphSolver::RecoverShortestPath(PathSolution *shortest_path) {
   auto curr_node = dest_node_->GetBestParent();
   // get all configs on best path
   SELFDRIVING_LOG_DEBUG("PRINTING Shortest Config Path");
 
-  auto best_config_path = &(merged_solution->config_on_path);
-  auto best_config_set = &(merged_solution->unique_config_on_path);
+  auto best_config_path = &(shortest_path->config_on_path_);
+  auto best_config_set = &(shortest_path->unique_config_on_path_);
 
   while (curr_node != nullptr) {
     best_config_path->push_back(curr_node->GetConfig());
