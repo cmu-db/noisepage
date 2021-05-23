@@ -4,6 +4,7 @@
 #include "execution/sql/value.h"
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace noisepage::network {
 
@@ -378,7 +379,7 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
       }
       case type::TypeId::REAL: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
-        string_value = std::to_string(real_val->val_);
+        string_value = fmt::to_string(real_val->val_);
         break;
       }
       case type::TypeId::DATE: {
