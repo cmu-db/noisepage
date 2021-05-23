@@ -21,7 +21,6 @@ namespace pilot {
  * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
 class SeqNode {
- protected:
   /* Initial distance assigned to nodes that are not the source */
   static constexpr double INIT_DIST = static_cast<double>(INT64_MAX);
 
@@ -85,7 +84,7 @@ class SeqNode {
  private:
   std::set<action_id_t> configuration_;
   double node_cost_;
-  double best_source_dist_{static_cast<double>(INIT_DIST)};
+  double best_source_dist_{INIT_DIST};
   common::ManagedPointer<SeqNode> best_parent_{nullptr};
   uint64_t memory_;
   ActionState best_action_state_;
