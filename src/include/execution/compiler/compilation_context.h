@@ -10,6 +10,10 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/pipeline.h"
 
+namespace noisepage::execution::compiler {
+class CompilerSettings;
+}  // namespace noisepage::execution::compiler
+
 namespace noisepage::parser {
 class AbstractExpression;
 }  // namespace noisepage::parser
@@ -135,8 +139,8 @@ class CompilationContext {
                               CompilationMode mode, const exec::ExecutionSettings &exec_settings);
 
   // Given a plan node, compile it into a compiled query object.
-  void GeneratePlan(const planner::AbstractPlanNode &plan,
-                    common::ManagedPointer<planner::PlanMetaData> plan_meta_data);
+  void GeneratePlan(const planner::AbstractPlanNode &plan, common::ManagedPointer<planner::PlanMetaData> plan_meta_data,
+                    const execution::compiler::CompilerSettings &settings);
 
   // Generate the query initialization function.
   ast::FunctionDecl *GenerateInitFunction();

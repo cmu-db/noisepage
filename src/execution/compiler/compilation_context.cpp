@@ -121,7 +121,8 @@ ast::FunctionDecl *CompilationContext::GenerateTearDownFunction() {
 }
 
 void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
-                                      common::ManagedPointer<planner::PlanMetaData> plan_meta_data) {
+                                      common::ManagedPointer<planner::PlanMetaData> plan_meta_data,
+                                      const execution::compiler::CompilerSettings &settings) {
   exec_ctx_ =
       query_state_.DeclareStateEntry(GetCodeGen(), "execCtx", codegen_.PointerType(ast::BuiltinType::ExecutionContext));
 
@@ -186,7 +187,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
   main_builder.AddTeardownFn(teardown);
 
   // Compile and finish.
-  fragments.emplace_back(main_builder.Compile());
+  fragments.emplace_back(main_builder.Compile(settings));
   query_->Setup(std::move(fragments), query_state_.GetSize(), codegen_.ReleasePipelineOperatingUnits());
 }
 
@@ -203,7 +204,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
 
   // Generate the plan for the query
   CompilationContext ctx(query.get(), query->GetQueryId(), accessor, mode, exec_settings);
-  ctx.GeneratePlan(plan, plan_meta_data);
+  ctx.GeneratePlan(plan, plan_meta_data, exec_settings.GetCompilerSettings());
 
   // Done
   return query;

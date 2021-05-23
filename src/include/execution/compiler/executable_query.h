@@ -33,6 +33,7 @@ class Region;
 
 namespace vm {
 class Module;
+class ModuleMetadata;
 }  // namespace vm
 }  // namespace execution
 
@@ -88,6 +89,9 @@ class ExecutableQuery {
      * @return True if this fragment is compiled and executable.
      */
     bool IsCompiled() const { return module_ != nullptr; }
+
+    /** @return The metadata of this module. */
+    const vm::ModuleMetadata &GetModuleMetadata() const;
 
    private:
     // The functions that must be run (in the provided order) to execute this
@@ -156,6 +160,9 @@ class ExecutableQuery {
 
   /** @return The Query Identifier */
   query_id_t GetQueryId() { return query_id_; }
+
+  /** @return The query fragments in this module. */
+  const std::vector<std::unique_ptr<Fragment>> &GetFragments() const { return fragments_; }
 
  private:
   // The plan.

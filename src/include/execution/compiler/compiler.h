@@ -31,6 +31,8 @@ class Module;
 
 namespace compiler {
 
+class CompilerSettings;
+
 /**
  * Primary interface to drive compilation of TPL programs into TPL modules. TPL modules support
  * hybrid interpreted and JIT execution modes.
@@ -62,8 +64,9 @@ class Compiler {
      * @param name The name to assign the input.
      * @param context The TPL context to use.
      * @param source The TPL source code.
+     * @param settings The settings to use when compiling the TPL.
      */
-    Input(std::string name, ast::Context *context, const std::string *source);
+    Input(std::string name, ast::Context *context, const std::string *source, const CompilerSettings &settings);
 
     /**
      * Construct input from a pre-generated TPL AST. The region that created the AST must also be
@@ -71,8 +74,9 @@ class Compiler {
      * @param name The name to assign the input.
      * @param context The TPL context the AST belongs to.
      * @param root The root of the AST.
+     * @param settings The settings to use when compiling the TPL.
      */
-    Input(std::string name, ast::Context *context, ast::AstNode *root);
+    Input(std::string name, ast::Context *context, ast::AstNode *root, const CompilerSettings &settings);
 
     /**
      * @return The name of the input.
@@ -94,6 +98,9 @@ class Compiler {
      */
     ast::Context *GetContext() const noexcept { return context_; }
 
+    /** @return The settings to be used when compiling the input. */
+    const CompilerSettings &GetSettings() const noexcept { return settings_; }
+
    private:
     // The name to assign the input
     const std::string name_;
@@ -103,6 +110,7 @@ class Compiler {
     ast::AstNode *root_;
     // The TPL source, if any
     const std::string *source_;
+    const CompilerSettings &settings_;  ///< The settings to be used when compiling the TPL input.
   };
 
   /**

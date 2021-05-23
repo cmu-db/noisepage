@@ -55,6 +55,8 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
   }
 }
 
+const vm::ModuleMetadata &ExecutableQuery::Fragment::GetModuleMetadata() const { return module_->GetMetadata(); }
+
 //===----------------------------------------------------------------------===//
 //
 // Executable Query
@@ -113,7 +115,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
     source = contents;
   }
 
-  auto input = Compiler::Input("tpl_source", ast_context_.get(), &source);
+  auto input = Compiler::Input("tpl_source", ast_context_.get(), &source, exec_settings.GetCompilerSettings());
   auto module = compiler::Compiler::RunCompilationSimple(input);
 
   std::vector<std::string> functions{"main"};
