@@ -66,9 +66,10 @@ void SequenceTuning::BestAction(
     std::set<std::set<action_id_t>> singleton_action = {{structure_id}};
     std::vector<std::set<std::set<action_id_t>>> singleton_action_repeated(end_segment_index_ + 1, singleton_action);
 
-    double best_path_cost = GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
-                                        singleton_action_repeated, memory_constraint)
-                                .RecoverShortestPath(&best_solution);
+    double best_path_cost UNUSED_ATTRIBUTE =
+        GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
+                    singleton_action_repeated, memory_constraint)
+            .RecoverShortestPath(&best_solution);
 
     SELFDRIVING_LOG_INFO("[cost-based pruning] for structure \"{}\" finds best path distance {} with {} configs",
                          structure_map_.at(structure_id)->GetSQLCommand(), best_path_cost,
