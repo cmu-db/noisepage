@@ -8,6 +8,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "self_driving/planning/memory_info.h"
+#include "util/query_exec_util.h"
 
 namespace noisepage {
 
@@ -36,10 +37,6 @@ namespace transaction {
 class TransactionManager;
 class TransactionContext;
 }  // namespace transaction
-
-namespace util {
-class QueryExecUtil;
-}  // namespace util
 
 namespace task {
 class TaskManager;
