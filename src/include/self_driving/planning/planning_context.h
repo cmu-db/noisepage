@@ -2,13 +2,19 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
+
+#include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
+#include "self_driving/planning/memory_info.h"
 
 namespace noisepage {
 
 namespace catalog {
 class Catalog;
-}
+class CatalogAccessor;
+}  // namespace catalog
 
 namespace metrics {
 class MetricsThread;
@@ -119,6 +125,18 @@ class PlanningContext {
   /** @brief Setter for memory_info_ */
   void SetMemoryInfo(MemoryInfo &&memory_info) { memory_info_ = std::move(memory_info); }
 
+  /**
+   * Add a database to the PlanningContext and create the associated transaction context and catalog accessor
+   * @param db_oid Database oid
+   */
+  void AddDatabase(catalog::db_oid_t db_oid);
+
+  /**
+   * Clear the information for all databases. Abort all transactions, and destroy all transaction contexts and
+   * catalog accessors
+   */
+  void ClearDatabases();
+
  private:
   const std::string ou_model_save_path_;
   const std::string interference_model_save_path_;
@@ -132,6 +150,7 @@ class PlanningContext {
   const common::ManagedPointer<task::TaskManager> task_manager_;
   pilot::MemoryInfo memory_info_;
   std::unordered_map<catalog::db_oid_t, std::unique_ptr<transaction::TransactionContext>> db_oid_to_txn_;
+  std::unordered_map<catalog::db_oid_t, std::unique_ptr<catalog::CatalogAccessor>> db_oid_to_accessor_;
 };
 
 }  // namespace noisepage::selfdriving::pilot

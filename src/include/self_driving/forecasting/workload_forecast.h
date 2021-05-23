@@ -2,11 +2,11 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <set>
 
 #include "catalog/catalog_defs.h"
 #include "parser/expression/constant_value_expression.h"

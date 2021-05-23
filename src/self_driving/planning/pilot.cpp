@@ -63,8 +63,9 @@ void Pilot::PerformPlanning() {
     return;
   }
 
-  // Create transaction context and catalog accessor for each database
+  // Put every database into planning_context to create transaction context and catalog accessor
   std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
+  for (auto db_oid : db_oids) planning_context_.AddDatabase(db_oid);
 
   auto memory_info = PilotUtil::ComputeMemoryInfo(planning_context_, forecast_.get());
   planning_context_.SetMemoryInfo(std::move(memory_info));
@@ -72,6 +73,10 @@ void Pilot::PerformPlanning() {
   // Perform planning
   std::vector<pilot::ActionTreeNode> best_action_seq;
   Pilot::ActionSearch(&best_action_seq);
+
+  // Invalidate database and memory information
+  planning_context_.ClearDatabases();
+  planning_context_.SetMemoryInfo(pilot::MemoryInfo());
 
   metrics_thread->ResumeMetrics();
 }
