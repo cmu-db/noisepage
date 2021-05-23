@@ -28,7 +28,8 @@ class SettingsManager;
 
 namespace transaction {
 class TransactionManager;
-}
+class TransactionContext;
+}  // namespace transaction
 
 namespace util {
 class QueryExecUtil;
@@ -130,6 +131,7 @@ class PlanningContext {
   const std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   const common::ManagedPointer<task::TaskManager> task_manager_;
   pilot::MemoryInfo memory_info_;
+  std::unordered_map<catalog::db_oid_t, std::unique_ptr<transaction::TransactionContext>> db_oid_to_txn_;
 };
 
 }  // namespace noisepage::selfdriving::pilot

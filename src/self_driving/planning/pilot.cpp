@@ -63,6 +63,9 @@ void Pilot::PerformPlanning() {
     return;
   }
 
+  // Create transaction context and catalog accessor for each database
+  std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
+
   auto memory_info = PilotUtil::ComputeMemoryInfo(planning_context_, forecast_.get());
   planning_context_.SetMemoryInfo(std::move(memory_info));
 

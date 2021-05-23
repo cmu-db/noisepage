@@ -93,7 +93,7 @@ void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
       util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(planning_context.GetQueryExecUtil()));
   for (auto qid : qids) {
     auto query_text = forecast->GetQuerytextByQid(qid);
-    auto db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
+    auto db_oid = forecast->GetDboidByQid(qid);
     query_exec_util->UseTransaction(db_oid, common::ManagedPointer(txn));
 
     auto params = common::ManagedPointer(&(forecast->GetQueryparamsByQid(qid)->at(0)));
@@ -191,7 +191,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
   }
 
   for (const auto &qid : qids) {
-    catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(forecast->GetDboidByQid(qid));
+    catalog::db_oid_t db_oid = forecast->GetDboidByQid(qid);
     auto query_text = forecast->GetQuerytextByQid(qid);
 
     std::vector<type::TypeId> *param_types = forecast->GetParamtypesByQid(qid);
@@ -358,7 +358,7 @@ void PilotUtil::InterferenceModelInference(
         // account for number of exec of this query
         // and normalize the ou_sum in an interval by the length of this interval
         SumFeatureInPlace(&normalized_feat_sum, id_to_query_sum.second,
-                          forecast->forecast_interval_ / id_to_num_exec[id_to_query_sum.first]);
+                          forecast->GetForecastInterval() / id_to_num_exec[id_to_query_sum.first]);
       }
     }
     // curr_feat_sum now holds the sum of ous for queries contained in this segment (averaged over diff set of param)
@@ -490,8 +490,7 @@ void PilotUtil::ComputeTableSizeRatios(const WorkloadForecast *forecast,
     // Identify the table and the number of inserts/deletes
     int64_t num_row_delta = 0;
     catalog::table_oid_t table_oid;
-    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn),
-                                         catalog::db_oid_t(forecast->GetDboidByQid(query_id)), DISABLED);
+    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), forecast->GetDboidByQid(query_id), DISABLED);
     if (statement->GetType() == parser::StatementType::INSERT) {
       auto insert_statement = reinterpret_cast<parser::InsertStatement *>(statement.Get());
       table_oid = accessor->GetTableOid(insert_statement->GetInsertionTable()->GetTableName());
