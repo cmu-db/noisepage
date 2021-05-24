@@ -148,8 +148,8 @@ class PilotUtil {
   /**
    * Predict the runtime metrics of a create index action
    * @param planning_context pilot planning context
-   * @param action Pointer to the CreateIndexAction
-   * @param action Pointer to the DropIndexAction (reverse action)
+   * @param create_action Pointer to the CreateIndexAction
+   * @param drop_action Pointer to the DropIndexAction (reverse action)
    */
   static void EstimateCreateIndexAction(const pilot::PlanningContext &planning_context,
                                         pilot::CreateIndexAction *create_action, pilot::DropIndexAction *drop_action);
