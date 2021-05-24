@@ -366,7 +366,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   }
 
   execution::ast::LambdaExpr *lambda_expr{};
-  FunctionBuilder fn(codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil));
+  FunctionBuilder fn{codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
   {
     std::size_t j{1};
     for (auto var : var_idents) {
@@ -392,11 +392,12 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
 
   // We want to pass something down that will materialize the lambda
   // function into lambda_expr and will also feed in a lambda_expr to the compiler
+  // TODO(Kyle): Using a NULL plan metatdata here...
   execution::exec::ExecutionSettings exec_settings{};
   const std::string dummy_query = "";
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
-      common::ManagedPointer<const std::string>(&dummy_query), lambda_expr, codegen_->GetAstContext());
+      common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>{&dummy_query}, lambda_expr, codegen_->GetAstContext());
 
   auto decls = exec_query->GetDecls();
   aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
@@ -553,6 +554,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   const std::string dummy_query = "";
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
+      common::ManagedPointer<planner::PlanMetaData>{},
       common::ManagedPointer<const std::string>(&dummy_query), lambda_expr, codegen_->GetAstContext());
 
   auto decls = exec_query->GetDecls();
