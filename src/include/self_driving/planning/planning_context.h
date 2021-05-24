@@ -133,8 +133,7 @@ class PlanningContext {
   void AddDatabase(catalog::db_oid_t db_oid);
 
   /**
-   * Clear the information for all databases. Abort all transactions, and destroy all transaction contexts and
-   * catalog accessors
+   * Clear the information for all databases. Abort all transactions, and destroy all catalog accessors
    */
   void ClearDatabases();
 
@@ -145,7 +144,7 @@ class PlanningContext {
    */
   common::ManagedPointer<transaction::TransactionContext> GetTxnContext(catalog::db_oid_t db_oid) const {
     NOISEPAGE_ASSERT(db_oid_to_txn_.find(db_oid) != db_oid_to_txn_.end(), "Cannot find TransactionContext");
-    return common::ManagedPointer(db_oid_to_txn_.at(db_oid));
+    return db_oid_to_txn_.at(db_oid);
   }
 
   /**
@@ -171,7 +170,7 @@ class PlanningContext {
   const common::ManagedPointer<task::TaskManager> task_manager_;
   pilot::MemoryInfo memory_info_;
   std::set<catalog::db_oid_t> db_oids_;
-  std::unordered_map<catalog::db_oid_t, std::unique_ptr<transaction::TransactionContext>> db_oid_to_txn_;
+  std::unordered_map<catalog::db_oid_t, common::ManagedPointer<transaction::TransactionContext>> db_oid_to_txn_;
   std::unordered_map<catalog::db_oid_t, std::unique_ptr<catalog::CatalogAccessor>> db_oid_to_accessor_;
 };
 

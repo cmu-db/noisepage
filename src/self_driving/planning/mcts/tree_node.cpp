@@ -8,7 +8,6 @@
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/abstract_action.h"
 #include "self_driving/planning/action/create_index_action.h"
-#include "self_driving/planning/memory_info.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
 #include "self_driving/planning/planning_context.h"

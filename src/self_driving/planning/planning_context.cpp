@@ -16,7 +16,7 @@ void PlanningContext::AddDatabase(catalog::db_oid_t db_oid) {
 
 void PlanningContext::ClearDatabases() {
   // Abort transactions since we don't want to commit the changes during the planning
-  for (auto &[db_oid, txn] : db_oid_to_txn_) txn_manager_->Abort(txn.get());
+  for (auto &[db_oid, txn] : db_oid_to_txn_) txn_manager_->Abort(txn.Get());
 
   db_oids_.clear();
   db_oid_to_txn_.clear();
