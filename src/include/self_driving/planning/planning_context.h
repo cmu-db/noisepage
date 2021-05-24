@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -119,6 +120,9 @@ class PlanningContext {
   /** @brief Getter for memory_info_ */
   const MemoryInfo &GetMemoryInfo() const { return memory_info_; }
 
+  /** @brief Getter for db_oids_ */
+  const std::set<catalog::db_oid_t> &GetDBOids() const { return db_oids_; }
+
   /** @brief Setter for memory_info_ */
   void SetMemoryInfo(MemoryInfo &&memory_info) { memory_info_ = std::move(memory_info); }
 
@@ -134,6 +138,26 @@ class PlanningContext {
    */
   void ClearDatabases();
 
+  /**
+   * Get the TransactionContext associated with a database
+   * @param db_oid Database oid
+   * @return TransactionContext for that database
+   */
+  common::ManagedPointer<transaction::TransactionContext> GetTxnContext(catalog::db_oid_t db_oid) const {
+    NOISEPAGE_ASSERT(db_oid_to_txn_.find(db_oid) != db_oid_to_txn_.end(), "Cannot find TransactionContext");
+    return common::ManagedPointer(db_oid_to_txn_.at(db_oid));
+  }
+
+  /**
+   * Get the CatalogAccessor associated with a database
+   * @param db_oid Database oid
+   * @return CatalogAccessor for that database
+   */
+  common::ManagedPointer<catalog::CatalogAccessor> GetCatalogAccessor(catalog::db_oid_t db_oid) const {
+    NOISEPAGE_ASSERT(db_oid_to_accessor_.find(db_oid) != db_oid_to_accessor_.end(), "Cannot find CatalogAccessor");
+    return common::ManagedPointer(db_oid_to_accessor_.at(db_oid));
+  }
+
  private:
   const std::string ou_model_save_path_;
   const std::string interference_model_save_path_;
@@ -146,6 +170,7 @@ class PlanningContext {
   const std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   const common::ManagedPointer<task::TaskManager> task_manager_;
   pilot::MemoryInfo memory_info_;
+  std::set<catalog::db_oid_t> db_oids_;
   std::unordered_map<catalog::db_oid_t, std::unique_ptr<transaction::TransactionContext>> db_oid_to_txn_;
   std::unordered_map<catalog::db_oid_t, std::unique_ptr<catalog::CatalogAccessor>> db_oid_to_accessor_;
 };

@@ -114,6 +114,10 @@ class Pilot {
 
   /**
    * Performs Pilot Logic, load and execute the predicted queries while extracting pipeline features
+   * NOTE: Currently we assume that the planning performs on a snapshot of a database (i.e., a "special replica") that
+   * only does the planning and does not execute client queries. That assumption may be relaxed since we create
+   * transaction contexts for all databases at the beginning of the planning and abort them when planning finishes.
+   * But we still need to isolate the knob (setting) changes if we want to relax the assumption.
    */
   void PerformPlanning();
 

@@ -146,14 +146,11 @@ class PilotUtil {
 
   /**
    * Predict the runtime metrics of a create index action
+   * @param planning_context pilot planning context
    * @param action Pointer to the CreateIndexAction
-   * @param query_util Query execution utility
-   * @param ou_model_save_path Path of the OU model
-   * @param model_server_manager Model server manager
    */
-  static void EstimateCreateIndexAction(pilot::CreateIndexAction *action, util::QueryExecUtil *query_util,
-                                        const std::string &ou_model_save_path,
-                                        common::ManagedPointer<modelserver::ModelServerManager> model_server_manager);
+  static void EstimateCreateIndexAction(const pilot::PlanningContext &planning_context,
+                                        pilot::CreateIndexAction *action);
 
   /**
    * Calculate the memory consumption given a specific forecasted workload segment with a specific action state
@@ -179,27 +176,22 @@ class PilotUtil {
  private:
   /**
    * Get the ratios between estimated future table sizes (given the forecasted workload) and current table sizes
+   * @param planning_context pilot planning context
    * @param forecast Workload forecast information
    * @param task_manager Task manager pointer
-   * @param txn_manager Transaction manager pointer
-   * @param catalog Catalog pointer
    * @param memory_info Object that stores the returned table size info
    */
-  static void ComputeTableSizeRatios(const WorkloadForecast *forecast,
-                                     common::ManagedPointer<task::TaskManager> task_manager,
-                                     common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
+  static void ComputeTableSizeRatios(const pilot::PlanningContext &planning_context, const WorkloadForecast *forecast,
+                                     pilot::MemoryInfo *memory_info);
 
   /**
    * Get the current table and index heap memory usage
    * TODO(lin): we should get this information from the stats if the pilot is not running on the primary. But since
    *   we don't have this in stats yet we're directly getting the information from c++ objects.
-   * @param txn_manager Transaction manager pointer
-   * @param catalog Catalog pointer
+   * @param planning_context pilot planning context
    * @param memory_info Object that stores the returned memory info
    */
-  static void ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
+  static void ComputeTableIndexSizes(const pilot::PlanningContext &planning_context, pilot::MemoryInfo *memory_info);
 
   /**
    * Execute, collect pipeline metrics, and get ou prediction for each pipeline under different query parameters for
