@@ -89,6 +89,7 @@ std::optional<spdlog::level::level_enum> LoggersUtil::GetLevel(const std::string
 
 common::SanctionedSharedPtr<spdlog::logger>::Ptr LoggersUtil::GetLogger(const std::string_view &name) {
   common::SanctionedSharedPtr<spdlog::logger>::Ptr logger = nullptr;
+#ifdef NOISEPAGE_USE_LOGGING
   if (name == "binder") {
     logger = binder::binder_logger;
   } else if (name == "catalog") {
@@ -122,6 +123,7 @@ common::SanctionedSharedPtr<spdlog::logger>::Ptr LoggersUtil::GetLogger(const st
   } else if (name == "transaction") {
     logger = transaction::transaction_logger;
   }
+#endif
   return logger;
 }
 
