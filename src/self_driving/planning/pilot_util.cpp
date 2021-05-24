@@ -75,9 +75,10 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
   }
 
   query_exec_util->ClearPlan(sql_query);
-  query_exec_util->UseTransaction(db_oid, nullptr);
-
-  if (!what_if) query_exec_util->EndTransaction(true);
+  if (what_if)
+    query_exec_util->UseTransaction(db_oid, nullptr);
+  else
+    query_exec_util->EndTransaction(true);
 }
 
 void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
