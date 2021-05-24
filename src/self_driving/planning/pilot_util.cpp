@@ -486,7 +486,7 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
 
     // Identify the table and the number of inserts/deletes
     int64_t num_row_delta = 0;
-    catalog::table_oid_t table_oid;
+    catalog::table_oid_t table_oid = catalog::INVALID_TABLE_OID;
     catalog::db_oid_t db_oid = metadata.query_id_to_dboid_.at(query_id);
     auto accessor = planning_context.GetCatalogAccessor(db_oid);
     if (statement->GetType() == parser::StatementType::INSERT) {
