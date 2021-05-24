@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>  // NOLINT
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -130,7 +131,10 @@ class Pilot {
   /**
    * Performs training of the forecasting model
    */
-  void PerformForecasterTrain() { forecaster_.PerformTraining(); }
+  void PerformForecasterTrain() {
+    std::unique_lock<std::mutex> lock(forecaster_train_mutex_);
+    forecaster_.PerformTraining();
+  }
 
  private:
   /**
@@ -148,6 +152,8 @@ class Pilot {
   Forecaster forecaster_;
   uint64_t action_planning_horizon_{15};
   uint64_t simulation_number_{20};
+
+  std::mutex forecaster_train_mutex_;
 };
 
 }  // namespace noisepage::selfdriving
