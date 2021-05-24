@@ -26,6 +26,7 @@
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/planning/action/create_index_action.h"
+#include "self_driving/planning/action/drop_index_action.h"
 #include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/planning_context.h"
@@ -42,6 +43,10 @@ namespace noisepage::selfdriving {
 void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, const std::string &sql_query,
                             catalog::db_oid_t db_oid, bool what_if) {
   SELFDRIVING_LOG_INFO("Applying action: {}", sql_query);
+
+  // Certain actions (currently ChangeKnobAction) is not associated with a particular database. For those actions we
+  // just pick a random database in PlanningContext
+  if (db_oid == catalog::INVALID_DATABASE_OID) db_oid = *planning_context.GetDBOids().begin();
 
   auto &query_exec_util = planning_context.GetQueryExecUtil();
   query_exec_util->UseTransaction(db_oid, planning_context.GetTxnContext(db_oid));
@@ -564,12 +569,13 @@ void PilotUtil::ComputeTableIndexSizes(const pilot::PlanningContext &planning_co
 }
 
 void PilotUtil::EstimateCreateIndexAction(const pilot::PlanningContext &planning_context,
-                                          pilot::CreateIndexAction *action) {
+                                          pilot::CreateIndexAction *create_action,
+                                          pilot::DropIndexAction *drop_action) {
   // Just compile the queries (generate the bytecodes) to get features with statistics
-  std::string query_text = action->GetSQLCommand();
+  std::string query_text = create_action->GetSQLCommand();
 
   auto &query_util = planning_context.GetQueryExecUtil();
-  auto db_oid = action->GetDatabaseOid();
+  auto db_oid = create_action->GetDatabaseOid();
   query_util->UseTransaction(db_oid, planning_context.GetTxnContext(db_oid));
 
   // First need to insert the index entry into the catalog so that we can correclty generate the query plan
@@ -592,6 +598,12 @@ void PilotUtil::EstimateCreateIndexAction(const pilot::PlanningContext &planning
                                         resource_metrics);
   }
   query_util->ClearPlan(query_text);
+
+  // Execute drop index to reverse catalog changes
+  query_text = drop_action->GetSQLCommand();
+  query_util->ExecuteDDL(query_text, true);
+  query_util->ClearPlan(query_text);
+
   query_util->UseTransaction(db_oid, nullptr);
 
   // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
@@ -618,7 +630,7 @@ void PilotUtil::EstimateCreateIndexAction(const pilot::PlanningContext &planning
     }
   }
 
-  action->SetEstimatedMetrics(std::move(pipeline_sum));
+  create_action->SetEstimatedMetrics(std::move(pipeline_sum));
 }
 
 size_t PilotUtil::CalculateMemoryConsumption(

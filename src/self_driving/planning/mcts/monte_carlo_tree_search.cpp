@@ -41,7 +41,9 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(const PlanningContext &planning_conte
   // Estimate the create index action costs
   for (auto &[action_id, action] : action_map_) {
     if (action->GetActionType() == ActionType::CREATE_INDEX) {
-      PilotUtil::EstimateCreateIndexAction(planning_context_, reinterpret_cast<CreateIndexAction *>(action.get()));
+      auto create_action = reinterpret_cast<CreateIndexAction *>(action.get());
+      auto drop_action = reinterpret_cast<DropIndexAction *>(action_map_.at(action->GetReverseActions().at(0)).get());
+      PilotUtil::EstimateCreateIndexAction(planning_context_, create_action, drop_action);
     }
   }
 

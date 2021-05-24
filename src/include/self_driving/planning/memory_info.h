@@ -9,7 +9,10 @@
 
 namespace noisepage::selfdriving::pilot {
 using db_table_oid_pair = std::pair<catalog::db_oid_t, catalog::table_oid_t>;
+
+/** Hasher for db_table_oid_pair used in STL containers */
 struct DBTableOidPairHasher {
+  /** @brief Hash operator */
   size_t operator()(db_table_oid_pair const &v) const {
     return common::HashUtil::CombineHashes(common::HashUtil::Hash(v.first), common::HashUtil::Hash(v.second));
   }

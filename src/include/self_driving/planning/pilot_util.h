@@ -42,6 +42,7 @@ class Pilot;
 
 namespace pilot {
 class CreateIndexAction;
+class DropIndexAction;
 struct MemoryInfo;
 class ActionState;
 class AbstractAction;
@@ -148,9 +149,10 @@ class PilotUtil {
    * Predict the runtime metrics of a create index action
    * @param planning_context pilot planning context
    * @param action Pointer to the CreateIndexAction
+   * @param action Pointer to the DropIndexAction (reverse action)
    */
   static void EstimateCreateIndexAction(const pilot::PlanningContext &planning_context,
-                                        pilot::CreateIndexAction *action);
+                                        pilot::CreateIndexAction *create_action, pilot::DropIndexAction *drop_action);
 
   /**
    * Calculate the memory consumption given a specific forecasted workload segment with a specific action state
