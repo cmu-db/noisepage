@@ -152,6 +152,9 @@ class SettingsManager {
   /** @return The ParamInfo corresponding to the given parameter; throws exception if doesn't exist. */
   const ParamInfo &GetParamInfo(const settings::Param &param) const;
 
+  /** @return The Param corresponding to the given name; throws exception if doesn't exist. */
+  Param GetParam(const std::string &name) const;
+
  private:
   common::ManagedPointer<DBMain> db_main_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
@@ -161,9 +164,6 @@ class SettingsManager {
 
   void ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
                        const parser::ConstantValueExpression &max_value);
-
-  /** @return The Param corresponding to the given name; throws exception if doesn't exist. */
-  Param GetParam(const std::string &name) const;
 
   parser::ConstantValueExpression &GetValue(Param param);
   bool SetValue(Param param, parser::ConstantValueExpression value);

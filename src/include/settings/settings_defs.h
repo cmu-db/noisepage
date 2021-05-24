@@ -560,4 +560,34 @@ SETTING_string(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+// The default log level is unspecified because people may have inserted calls
+// to set_level directly in the codebase, which would make a default inaccurate.
+#define SETTINGS_LOG_LEVEL(component)                      \
+SETTING_string(                                            \
+    log_level_##component,                                 \
+    "Set the log level for the component.",                \
+    "(unspecified)",                                       \
+    true,                                                  \
+    noisepage::settings::Callbacks::LogLevelSet##component \
+)
+
+SETTINGS_LOG_LEVEL(binder)
+SETTINGS_LOG_LEVEL(catalog)
+SETTINGS_LOG_LEVEL(common)
+SETTINGS_LOG_LEVEL(execution)
+SETTINGS_LOG_LEVEL(index)
+SETTINGS_LOG_LEVEL(messenger)
+SETTINGS_LOG_LEVEL(metrics)
+SETTINGS_LOG_LEVEL(modelserver)
+SETTINGS_LOG_LEVEL(network)
+SETTINGS_LOG_LEVEL(optimizer)
+SETTINGS_LOG_LEVEL(parser)
+SETTINGS_LOG_LEVEL(replication)
+SETTINGS_LOG_LEVEL(selfdriving)
+SETTINGS_LOG_LEVEL(settings)
+SETTINGS_LOG_LEVEL(storage)
+SETTINGS_LOG_LEVEL(transaction)
+
+#undef SETTINGS_LOG_LEVEL
     // clang-format on
