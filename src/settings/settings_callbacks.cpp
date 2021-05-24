@@ -230,21 +230,7 @@ void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value
     action_context->SetState(common::ActionState::SUCCESS);                                              \
   }
 
-void Callbacks::LogLevelSetbinder(void *old_value, void *new_value, DBMain *db_main,
-                                  common::ManagedPointer<common::ActionContext> action_context) {
-  action_context->SetState(common::ActionState::IN_PROGRESS);
-  auto level = *static_cast<std::string_view *>(new_value);
-  std::cout << level << '\n';
-  auto level_val = LoggersUtil::GetLevel(level);
-  auto logger = LoggersUtil::GetLogger("binder");
-  if (!level_val.has_value() || logger == nullptr) {
-    action_context->SetState(common::ActionState::FAILURE);
-    return;
-  }
-  logger->set_level(*level_val);
-  action_context->SetState(common::ActionState::SUCCESS);
-}
-// SETTINGS_GENERATE_LOGGER_CALLBACK(binder)
+SETTINGS_GENERATE_LOGGER_CALLBACK(binder)
 SETTINGS_GENERATE_LOGGER_CALLBACK(catalog)
 SETTINGS_GENERATE_LOGGER_CALLBACK(common)
 SETTINGS_GENERATE_LOGGER_CALLBACK(execution)
