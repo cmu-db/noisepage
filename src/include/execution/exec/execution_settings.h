@@ -55,7 +55,7 @@ class EXPORT ExecutionSettings {
 
   /** Update the settings used in compilation of TPL. */
   void SetCompilerSettings(execution::compiler::CompilerSettings compiler_settings) {
-    compiler_settings_ = std::move(compiler_settings);
+    compiler_settings_ = compiler_settings;
   }
 
   /** @return The current settings used for compilation of TPL. */

@@ -480,7 +480,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     // if (portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>().GetFormat()...)
     settings.SetShouldCaptureTPL(true);
     settings.SetShouldCaptureTBC(true);
-    exec_settings.SetCompilerSettings(std::move(settings));
+    exec_settings.SetCompilerSettings(settings);
   }
 
   auto exec_query = execution::compiler::CompilationContext::Compile(
