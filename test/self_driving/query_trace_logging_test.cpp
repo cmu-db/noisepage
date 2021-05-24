@@ -165,14 +165,14 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     std::vector<std::vector<parser::ConstantValueExpression>> params;
     std::vector<type::TypeId> param_types;
 
-    common::Future<bool> sync;
+    common::Future<task::DummyResult> sync;
     task_manager->AddTask(std::make_unique<task::TaskDML>(
         catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
         std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
         false, true, std::nullopt, common::ManagedPointer(&sync)));
 
     auto sync_result = sync.DangerousWait();
-    bool result = sync_result.first;
+    bool result = sync_result.second;
     EXPECT_TRUE(result && "SELECT frequencies should have succeeded");
     EXPECT_TRUE(seen == combined && "Incorrect number recorded");
     EXPECT_TRUE(qid_map.size() == qids.size() && "Incorrect number qids recorded");
