@@ -28,13 +28,19 @@ TableVectorIterator::~TableVectorIterator() = default;
 bool TableVectorIterator::Init() { return Init(0, storage::DataTable::GetMaxBlocks()); }
 
 bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
+  auto table = exec_ctx_->GetAccessor()->GetTable(table_oid_);
+  return Init(table, block_start, block_end);
+}
+
+bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, uint32_t block_start,
+                               uint32_t block_end) {
   // No-op if already initialized
   if (IsInitialized()) {
     return true;
   }
 
   // Set up the table and the iterator.
-  table_ = exec_ctx_->GetAccessor()->GetTable(table_oid_);
+  table_ = table;
   NOISEPAGE_ASSERT(table_ != nullptr, "Table must exist!!");
   if (block_start == 0 && block_end == storage::DataTable::GetMaxBlocks()) {
     iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
@@ -63,6 +69,10 @@ bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
   // All good.
   initialized_ = true;
   return true;
+}
+
+bool TableVectorIterator::InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table) {
+  return Init(cte_table, 0, storage::DataTable::GetMaxBlocks());
 }
 
 bool TableVectorIterator::Advance() {
