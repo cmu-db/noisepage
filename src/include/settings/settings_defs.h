@@ -563,7 +563,7 @@ SETTING_string(
 
 SETTING_bool(
     train_forecast_model,
-    "Train the forecast model (the value is not relevant).",
+    "Train the forecast model (the value is not relevant and has no effect during startup).",
     false,
     true,
     noisepage::settings::Callbacks::TrainForecastModel
@@ -571,7 +571,7 @@ SETTING_bool(
 
 SETTING_bool(
     train_interference_model,
-    "Train the interference model (the value is not relevant).",
+    "Train the interference model (the value is not relevant and has no effect during startup).",
     false,
     true,
     noisepage::settings::Callbacks::TrainInterferenceModel
@@ -615,7 +615,7 @@ SETTING_int(
 
 SETTING_bool(
     train_ou_model,
-    "Train the OU model (the value is not relevant).",
+    "Train the OU model (the value is not relevant and has no effect during startup).",
     false,
     true,
     noisepage::settings::Callbacks::TrainOUModel
