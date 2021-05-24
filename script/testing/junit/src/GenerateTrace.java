@@ -51,7 +51,7 @@ public class GenerateTrace {
                 label = Constants.STATEMENT_ERROR;
             }
 
-            if(line.startsWith("SELECT")){
+            if(line.startsWith("SELECT") || line.toLowerCase().startsWith("with")){
                 // SELECT statement, query from database to construct trace format
                 ResultSet rs = statement.getResultSet();
                 ResultSetMetaData rsmd = rs.getMetaData();

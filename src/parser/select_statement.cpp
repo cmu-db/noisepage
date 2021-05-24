@@ -178,15 +178,24 @@ std::vector<std::unique_ptr<AbstractExpression>> SelectStatement::FromJson(const
 DEFINE_JSON_BODY_DECLARATIONS(SelectStatement);
 
 std::unique_ptr<SelectStatement> SelectStatement::Copy() {
+  std::vector<std::unique_ptr<TableRef>> new_with_tables;
+  for (auto &ref : with_table_) {
+    new_with_tables.push_back(ref->Copy());
+  }
   auto select = std::make_unique<SelectStatement>(
       select_, select_distinct_, from_->Copy(), where_, group_by_ == nullptr ? nullptr : group_by_->Copy(),
-      order_by_ == nullptr ? nullptr : order_by_->Copy(), limit_ == nullptr ? nullptr : limit_->Copy());
+      order_by_ == nullptr ? nullptr : order_by_->Copy(), limit_ == nullptr ? nullptr : limit_->Copy(),
+      std::move(new_with_tables));
   if (union_select_ != nullptr) {
+    std::vector<std::unique_ptr<TableRef>> union_new_with_tables;
+    for (auto &ref : union_select_->with_table_) {
+      union_new_with_tables.push_back(ref->Copy());
+    }
     auto union_copy = std::make_unique<SelectStatement>(
         union_select_->select_, union_select_->select_distinct_, union_select_->from_->Copy(), union_select_->where_,
         union_select_->group_by_ == nullptr ? nullptr : union_select_->group_by_->Copy(),
         union_select_->order_by_ == nullptr ? nullptr : union_select_->order_by_->Copy(),
-        union_select_->limit_ == nullptr ? nullptr : union_select_->limit_->Copy());
+        union_select_->limit_ == nullptr ? nullptr : union_select_->limit_->Copy(), std::move(union_new_with_tables));
     select->SetUnionSelect(std::move(union_copy));
   }
   return select;

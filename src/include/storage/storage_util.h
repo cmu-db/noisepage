@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "storage/storage_defs.h"
@@ -248,5 +249,14 @@ class StorageUtil {
     delete[] contents;
     return ret;
   }
+
+  /**
+   * Build map from Schema columns to underlying columns
+   * @param col_map map to build up
+   * @param columns Schema columns to build from
+   * @param offsets storage offsets for attributes
+   */
+  static void PopulateColumnMap(ColumnMap *col_map, const std::vector<catalog::Schema::Column> &columns,
+                                std::vector<uint16_t> *offsets);
 };
 }  // namespace noisepage::storage

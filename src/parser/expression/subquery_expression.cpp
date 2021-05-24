@@ -13,10 +13,19 @@ std::unique_ptr<AbstractExpression> SubqueryExpression::Copy() const {
   auto group_by = subselect_->GetSelectGroupBy() == nullptr ? nullptr : subselect_->GetSelectGroupBy()->Copy();
   auto order_by = subselect_->GetSelectOrderBy() == nullptr ? nullptr : subselect_->GetSelectOrderBy()->Copy();
   auto limit = subselect_->GetSelectLimit() == nullptr ? nullptr : subselect_->GetSelectLimit()->Copy();
+  auto with = subselect_->GetSelectWith();
 
-  auto parser_select = std::make_unique<SelectStatement>(
-      std::move(select_columns), subselect_->IsSelectDistinct(), subselect_->GetSelectTable()->Copy(),
-      subselect_->GetSelectCondition(), std::move(group_by), std::move(order_by), std::move(limit));
+  // make a copy of with tables
+  std::vector<std::unique_ptr<TableRef>> with_copy;
+  with_copy.reserve(with.size());
+  for (auto w : with) {
+    with_copy.push_back(w->Copy());
+  }
+
+  auto parser_select = std::make_unique<SelectStatement>(std::move(select_columns), subselect_->IsSelectDistinct(),
+                                                         subselect_->GetSelectTable()->Copy(),
+                                                         subselect_->GetSelectCondition(), std::move(group_by),
+                                                         std::move(order_by), std::move(limit), std::move(with_copy));
   auto expr = std::make_unique<SubqueryExpression>(std::move(parser_select));
   expr->SetMutableStateForCopy(*this);
   return expr;
