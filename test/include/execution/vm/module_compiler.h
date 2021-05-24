@@ -33,7 +33,7 @@ class ModuleCompiler {
   std::unique_ptr<Module> CompileToModule(const std::string &source) {
     auto *ast = CompileToAst(source);
     if (HasErrors()) return nullptr;
-    return std::make_unique<Module>(vm::BytecodeGenerator::Compile(ast, "test"));
+    return std::make_unique<Module>(vm::BytecodeGenerator::Compile(ast, "test"), ModuleMetadata{});
   }
 
   // Does the error reporter have any errors?

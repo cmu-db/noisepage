@@ -22,10 +22,10 @@ namespace noisepage::execution::compiler {
 //===----------------------------------------------------------------------===//
 
 Compiler::Input::Input(std::string name, ast::Context *context, const std::string *source,
-                       const CompilerSettings &settings)
+                       const CompilerSettings settings)
     : name_(std::move(name)), context_(context), root_(nullptr), source_(source), settings_(settings) {}
 
-Compiler::Input::Input(std::string name, ast::Context *context, ast::AstNode *root, const CompilerSettings &settings)
+Compiler::Input::Input(std::string name, ast::Context *context, ast::AstNode *root, const CompilerSettings settings)
     : name_(std::move(name)), context_(context), root_(root), source_(nullptr), settings_(settings) {}
 
 //===----------------------------------------------------------------------===//

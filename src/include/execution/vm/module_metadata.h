@@ -27,6 +27,9 @@ class CompileTimeModuleMetadata {
 /** Non-essential metadata associated with a module. */
 class ModuleMetadata {
  public:
+  /** Constructor for no-information case. */
+  ModuleMetadata() = default;
+
   /** Constructor. */
   explicit ModuleMetadata(CompileTimeModuleMetadata &&compile_time_metadata)
       : compile_time_metadata_(compile_time_metadata) {}

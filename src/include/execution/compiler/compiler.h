@@ -7,6 +7,7 @@
 
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "execution/compiler/compiler_settings.h"
 #include "execution/util/timer.h"
 
 namespace noisepage::execution {
@@ -66,7 +67,7 @@ class Compiler {
      * @param source The TPL source code.
      * @param settings The settings to use when compiling the TPL.
      */
-    Input(std::string name, ast::Context *context, const std::string *source, const CompilerSettings &settings);
+    Input(std::string name, ast::Context *context, const std::string *source, CompilerSettings settings);
 
     /**
      * Construct input from a pre-generated TPL AST. The region that created the AST must also be
@@ -76,7 +77,7 @@ class Compiler {
      * @param root The root of the AST.
      * @param settings The settings to use when compiling the TPL.
      */
-    Input(std::string name, ast::Context *context, ast::AstNode *root, const CompilerSettings &settings);
+    Input(std::string name, ast::Context *context, ast::AstNode *root, CompilerSettings settings);
 
     /**
      * @return The name of the input.
@@ -110,7 +111,7 @@ class Compiler {
     ast::AstNode *root_;
     // The TPL source, if any
     const std::string *source_;
-    const CompilerSettings &settings_;  ///< The settings to be used when compiling the TPL input.
+    const CompilerSettings settings_;  ///< The settings to be used when compiling the TPL input.
   };
 
   /**

@@ -35,7 +35,7 @@ class Module {
    * @param bytecode_module The bytecode module implementation.
    * @param metadata Additional non-essential metadata about the TPL module.
    */
-  explicit Module(std::unique_ptr<BytecodeModule> bytecode_module, ModuleMetadata &&metadata);
+  Module(std::unique_ptr<BytecodeModule> bytecode_module, ModuleMetadata &&metadata);
 
   /**
    * Construct a TPL module with the given bytecode and LLVM implementations.
