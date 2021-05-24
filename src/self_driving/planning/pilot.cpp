@@ -63,6 +63,14 @@ void Pilot::PerformPlanning() {
     return;
   }
 
+  // Perform planning
+  std::vector<pilot::ActionTreeNode> best_action_seq;
+  Pilot::ActionSearch(&best_action_seq);
+
+  metrics_thread->ResumeMetrics();
+}
+
+void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   // Put every database into planning_context to create transaction context and catalog accessor
   std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
   for (auto db_oid : db_oids) planning_context_.AddDatabase(db_oid);
@@ -70,21 +78,8 @@ void Pilot::PerformPlanning() {
   auto memory_info = PilotUtil::ComputeMemoryInfo(planning_context_, forecast_.get());
   planning_context_.SetMemoryInfo(std::move(memory_info));
 
-  // Perform planning
-  std::vector<pilot::ActionTreeNode> best_action_seq;
-  Pilot::ActionSearch(&best_action_seq);
-
-  // Invalidate database and memory information
-  planning_context_.ClearDatabases();
-  planning_context_.SetMemoryInfo(pilot::MemoryInfo());
-
-  metrics_thread->ResumeMetrics();
-}
-
-void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
-
   auto mcst = pilot::MonteCarloTreeSearch(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
   mcst.RunSimulation(simulation_number_,
                      planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint));
@@ -109,6 +104,11 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   util::SelfDrivingRecordingUtil::RecordAppliedAction(timestamp, best_action.GetActionId(), best_action.GetCost(),
                                                       best_action.GetDbOid(), best_action.GetActionText(),
                                                       planning_context_.GetTaskManager());
+
+  // Invalidate database and memory information
+  planning_context_.ClearDatabases();
+  planning_context_.SetMemoryInfo(pilot::MemoryInfo());
+
   PilotUtil::ApplyAction(planning_context_, best_action.GetActionText(), best_action.GetDbOid(), false);
 }
 

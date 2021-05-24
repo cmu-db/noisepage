@@ -49,7 +49,10 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
   if (db_oid == catalog::INVALID_DATABASE_OID) db_oid = *planning_context.GetDBOids().begin();
 
   auto &query_exec_util = planning_context.GetQueryExecUtil();
-  query_exec_util->UseTransaction(db_oid, planning_context.GetTxnContext(db_oid));
+  if (what_if)
+    query_exec_util->UseTransaction(db_oid, planning_context.GetTxnContext(db_oid));
+  else
+    query_exec_util->BeginTransaction(db_oid);
 
   bool is_query_ddl;
   {
@@ -73,6 +76,8 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
 
   query_exec_util->ClearPlan(sql_query);
   query_exec_util->UseTransaction(db_oid, nullptr);
+
+  if (!what_if) query_exec_util->EndTransaction(true);
 }
 
 void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
