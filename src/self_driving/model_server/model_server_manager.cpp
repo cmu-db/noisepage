@@ -30,7 +30,7 @@ static constexpr const char *COVERAGE_RUNM = "-m";
 // used to generate a unique coverage file name and then potentially combine multiple coverage files together
 static constexpr const char *COVERAGE_PARALLEL = "-p";
 static constexpr const char *COVERAGE_INCLUDE = "--include";
-static constexpr const char *COVERAGE_INCLUDE_PATH = "*/script/self_driving/*";
+static constexpr const char *COVERAGE_INCLUDE_PATH = "\"*/script/self_driving/*\"";
 
 /**
  * Use 128 as convention to indicate failure in a subprocess:
@@ -163,10 +163,10 @@ void ModelServerManager::StartModelServer(bool enable_python_coverage) {
     std::string module = MODULE_NAME;
     char *coverage_args[] = {coverage_command.data(),
                              coverage_run.data(),
-                             coverage_runm.data(),
                              coverage_parallel.data(),
                              coverage_include.data(),
                              coverage_include_path.data(),
+                             coverage_runm.data(),
                              module.data(),
                              ipc_path.data(),
                              nullptr};
