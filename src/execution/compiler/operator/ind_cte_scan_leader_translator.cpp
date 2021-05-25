@@ -19,7 +19,7 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
       base_pipeline_(this, Pipeline::Parallelism::Serial),
       build_pipeline_(this, Pipeline::Parallelism::Serial) {
   auto iter_cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IndCteScanIterator);
-  auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
+  auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IndCteScanIterator);
   cte_scan_val_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
       GetCodeGen(), plan.GetCTETableName() + "val", iter_cte_type);
   cte_scan_ptr_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
