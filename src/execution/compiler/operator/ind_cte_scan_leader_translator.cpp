@@ -18,12 +18,22 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
       base_pipeline_(this, Pipeline::Parallelism::Serial),
       build_pipeline_(this, Pipeline::Parallelism::Serial) {
+  // Internally, an inductive CTE is composed of two distinct "vanilla"
+  // CTEs; a "read" CTE and a "write" CTE (along with a third "implementation
+  // detail" CTE that is used only as an intermediary). Here, we create entries
+  // for both the inductive CTE scan iterator that manages this logic at the
+  // top level, as well as a non-owning pointer to one of these internal CTEs.
+
+  // The entry for the inductive CTE iterator
   auto iter_cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IndCteScanIterator);
-  auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IndCteScanIterator);
   cte_scan_val_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
       GetCodeGen(), plan.GetCTETableName() + "val", iter_cte_type);
+
+  // The entry for (a pointer to) the internal CTE iterator for reads and writes
+  auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
   cte_scan_ptr_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
       GetCodeGen(), plan.GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
+
   pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   compilation_context->Prepare(*(plan.GetChild(1)), &base_pipeline_);
   compilation_context->Prepare(*(plan.GetChild(0)), &build_pipeline_);
@@ -35,13 +45,13 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
 
 void IndCteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {
   ast::Expr *cte_free_call =
-      GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanFree, {cte_scan_ptr_entry_.Get(GetCodeGen())});
+      GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanFree, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
   function->Append(GetCodeGen()->MakeStmt(cte_free_call));
 }
 
 void IndCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   if (&context->GetPipeline() == &base_pipeline_) {
-    // we are in the base case
+    // We are in the base case
     DeclareInsertPR(function);
     GetInsertPR(function);
     FillPRFromChild(context, function, 1);
@@ -51,15 +61,15 @@ void IndCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, Funct
   }
 
   if (&context->GetPipeline() != &build_pipeline_) {
-    // in the consumer pipeline, run the inductive loop
+    // In the consumer pipeline, run the inductive loop
     GenInductiveLoop(context, function);
     context->Push(function);
     return;
   }
 
-  // we are in the inductive case here
+  // We are in the inductive case here
 
-  // Declare & Get table PR
+  // Declare and get table PR
   DeclareInsertPR(function);
   GetInsertPR(function);
 
@@ -76,6 +86,7 @@ void IndCteScanLeaderTranslator::DeclareIndCteScanIterator(FunctionBuilder *buil
   SetColumnTypes(builder);
   SetColumnOids(builder);
   auto &plan = GetPlanAs<planner::CteScanPlanNode>();
+  
   // Call @cteScanIteratorInit
   ast::Expr *cte_scan_iterator_setup = codegen->IndCteScanIteratorInit(
       cte_scan_val_entry_.GetPtr(codegen), plan.GetTableOid(), col_oids_var_, col_types_, plan.GetIsRecursive(),
