@@ -163,6 +163,8 @@ common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oi
   return dbc_->GetIndex(txn_, index);
 }
 
+std::string_view CatalogAccessor::GetIndexName(index_oid_t index) const { return dbc_->GetIndexName(txn_, index); }
+
 language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
   return dbc_->CreateLanguage(txn_, lanname);
 }
