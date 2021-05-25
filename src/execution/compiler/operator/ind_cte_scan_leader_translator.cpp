@@ -175,9 +175,9 @@ void IndCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionB
 }
 
 void IndCteScanLeaderTranslator::FinalizeReadCteScanIterator(FunctionBuilder *builder) const {
-  ast::Expr *cte_scan_iterator_setup =
+  ast::Expr *cte_scan_iterator_get_result =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanGetResult, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
-  ast::Stmt *assign = GetCodeGen()->Assign(cte_scan_ptr_entry_.Get(GetCodeGen()), cte_scan_iterator_setup);
+  ast::Stmt *assign = GetCodeGen()->Assign(cte_scan_ptr_entry_.Get(GetCodeGen()), cte_scan_iterator_get_result);
   builder->Append(assign);
 }
 
@@ -196,9 +196,9 @@ void IndCteScanLeaderTranslator::GenInductiveLoop(WorkContext *context, Function
 }
 
 void IndCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *builder) const {
-  ast::Expr *cte_scan_iterator_setup =
+  ast::Expr *cte_scan_iterator_read =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanGetReadCte, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
-  ast::Stmt *assign = GetCodeGen()->Assign(cte_scan_ptr_entry_.Get(GetCodeGen()), cte_scan_iterator_setup);
+  ast::Stmt *assign = GetCodeGen()->Assign(cte_scan_ptr_entry_.Get(GetCodeGen()), cte_scan_iterator_read);
   builder->Append(assign);
 }
 
