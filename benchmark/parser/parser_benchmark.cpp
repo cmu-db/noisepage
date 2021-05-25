@@ -5,7 +5,10 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "parser/delete_statement.h"
+#include "parser/insert_statement.h"
 #include "parser/postgresparser.h"
+#include "parser/update_statement.h"
 
 namespace noisepage {
 
