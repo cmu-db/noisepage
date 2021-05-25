@@ -91,7 +91,7 @@ class StatsCalculator : public OperatorVisitor {
    * @param op Operator being visited
    */
   void Visit(const LogicalUnion *op) override;
-
+  
   /**
    * Visit a LogicalCreateIndex
    * @param op Operator being visited
