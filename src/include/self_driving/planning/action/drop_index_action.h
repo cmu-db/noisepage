@@ -9,6 +9,8 @@
 
 namespace noisepage::selfdriving::pilot {
 
+class ActionState;
+
 /**
  * Represent a drop index self-driving action
  */
@@ -34,6 +36,8 @@ class DropIndexAction : public AbstractAction {
    * @return Name of the index
    */
   const std::string &GetIndexName() const { return index_name_; }
+
+  void ModifyActionState(ActionState *action_state) override;
 
  private:
   std::string index_name_;
