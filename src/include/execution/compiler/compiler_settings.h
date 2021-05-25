@@ -11,9 +11,9 @@ class CompilerSettings {
   void SetShouldCaptureTBC(bool should_capture_tbc) { should_capture_tbc_ = should_capture_tbc; }
 
   /** @return True if TPL should be captured. */
-  bool ShouldCaptureTPL() const noexcept { return should_capture_tpl_; }
+  [[nodiscard]] bool ShouldCaptureTPL() const noexcept { return should_capture_tpl_; }
   /** @return True if TBC should be captured. */
-  bool ShouldCaptureTBC() const noexcept { return should_capture_tbc_; }
+  [[nodiscard]] bool ShouldCaptureTBC() const noexcept { return should_capture_tbc_; }
 
  private:
   bool should_capture_tpl_{false};
