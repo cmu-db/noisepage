@@ -209,4 +209,92 @@ void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::TrainForecastModel(void *old_value, void *new_value, DBMain *db_main,
+                                   common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  db_main->GetPilot()->PerformForecasterTrain();
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
+void Callbacks::TrainInterferenceModel(void *old_value, void *new_value, DBMain *db_main,
+                                       common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+
+  auto settings = db_main->GetSettingsManager();
+  auto ms_manager = db_main->GetModelServerManager();
+
+  auto ou_model_save = std::string(settings->GetValue(settings::Param::ou_model_save_path).Peek<std::string_view>());
+  auto interference_model_save =
+      std::string(settings->GetValue(settings::Param::interference_model_save_path).Peek<std::string_view>());
+  auto input_path =
+      std::string(settings->GetValue(settings::Param::interference_model_input_path).Peek<std::string_view>());
+  auto sample_rate = settings->GetValue(settings::Param::interference_model_pipeline_sample_rate).Peek<int>();
+
+  std::vector<std::string> methods;
+  {
+    auto method_str =
+        std::string(settings->GetValue(settings::Param::interference_model_train_methods).Peek<std::string_view>());
+    std::stringstream ss(method_str);
+    while (ss.good()) {
+      std::string token;
+      std::getline(ss, token, ',');
+      methods.emplace_back(token);
+    }
+  }
+
+  modelserver::ModelServerFuture<std::string> future;
+  ms_manager->TrainInterferenceModel(methods, input_path, interference_model_save, ou_model_save, sample_rate,
+                                     common::ManagedPointer<modelserver::ModelServerFuture<std::string>>(&future));
+
+  auto timeout = settings->GetValue(settings::Param::interference_model_train_timeout).Peek<int>();
+  auto result = future.WaitFor(std::chrono::milliseconds(timeout));
+  if (!result.has_value()) {
+    SETTINGS_LOG_ERROR("Callbacks::TrainInterferenceModel timed out {} milliseconds", timeout);
+    action_context->SetState(common::ActionState::FAILURE);
+  } else if (!result.value().second) {
+    SETTINGS_LOG_ERROR("Callbacks::TrainInterferenceModel failed with error {}", future.FailMessage());
+    action_context->SetState(common::ActionState::FAILURE);
+  } else {
+    action_context->SetState(common::ActionState::SUCCESS);
+  }
+}
+
+void Callbacks::TrainOUModel(void *old_value, void *new_value, DBMain *db_main,
+                             common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+
+  auto settings = db_main->GetSettingsManager();
+  auto ms_manager = db_main->GetModelServerManager();
+
+  auto ou_model_save = std::string(settings->GetValue(settings::Param::ou_model_save_path).Peek<std::string_view>());
+  auto input_path = std::string(settings->GetValue(settings::Param::ou_model_input_path).Peek<std::string_view>());
+
+  std::vector<std::string> methods;
+  {
+    auto method_str = std::string(settings->GetValue(settings::Param::ou_model_train_methods).Peek<std::string_view>());
+    std::stringstream ss(method_str);
+    while (ss.good()) {
+      std::string token;
+      std::getline(ss, token, ',');
+      methods.emplace_back(token);
+    }
+  }
+
+  modelserver::ModelServerFuture<std::string> future;
+  ms_manager->TrainModel(modelserver::ModelType::Type::OperatingUnit, methods, &input_path, ou_model_save, nullptr,
+                         common::ManagedPointer<modelserver::ModelServerFuture<std::string>>(&future));
+
+  auto timeout = settings->GetValue(settings::Param::ou_model_train_timeout).Peek<int>();
+  auto result = future.WaitFor(std::chrono::milliseconds(timeout));
+  if (!result.has_value()) {
+    SETTINGS_LOG_ERROR("Callbacks::TrainOUModel timed out {} milliseconds", timeout);
+    action_context->SetState(common::ActionState::FAILURE);
+  } else if (!result.value().second) {
+    SETTINGS_LOG_ERROR("Callbacks::TrainOUModel failed with error {}", future.FailMessage());
+    action_context->SetState(common::ActionState::FAILURE);
+  } else {
+    action_context->SetState(common::ActionState::SUCCESS);
+  }
+}
+
 }  // namespace noisepage::settings

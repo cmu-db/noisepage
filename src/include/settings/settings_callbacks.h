@@ -227,5 +227,35 @@ class Callbacks {
    */
   static void PilotEnablePlanning(void *old_value, void *new_value, DBMain *db_main,
                                   common::ManagedPointer<common::ActionContext> action_context);
+
+  /**
+   * Train the forecast model
+   * @param old_value old settings value (not relevant)
+   * @param new_value new settings value (not relevant)
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void TrainForecastModel(void *old_value, void *new_value, DBMain *db_main,
+                                 common::ManagedPointer<common::ActionContext> action_context);
+
+  /**
+   * Train the interference model
+   * @param old_value old settings value (not relevant)
+   * @param new_value new settings value (not relevant)
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void TrainInterferenceModel(void *old_value, void *new_value, DBMain *db_main,
+                                     common::ManagedPointer<common::ActionContext> action_context);
+
+  /**
+   * Train the OU model
+   * @param old_value old settings value (not relevant)
+   * @param new_value new settings value (not relevant)
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void TrainOUModel(void *old_value, void *new_value, DBMain *db_main,
+                           common::ManagedPointer<common::ActionContext> action_context);
 };
 }  // namespace noisepage::settings
