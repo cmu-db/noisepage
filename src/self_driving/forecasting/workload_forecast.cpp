@@ -153,7 +153,7 @@ void WorkloadForecast::LoadQueryText() {
       type_string.erase(0, pos + 1);
     }
 
-    workload_metadata_.query_id_to_dboid_[query_id] = db_oid;
+    workload_metadata_.query_id_to_dboid_[query_id] = catalog::db_oid_t(db_oid);
     workload_metadata_.query_id_to_param_types_[query_id] = std::move(param_types);
   }
   // Close file

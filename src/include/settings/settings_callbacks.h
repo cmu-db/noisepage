@@ -108,6 +108,18 @@ class Callbacks {
   static void PilotEnablePlanning(void *old_value, void *new_value, DBMain *db_main,
                                   common::ManagedPointer<common::ActionContext> action_context);
 
+  /** Train the forecast model. */
+  static void TrainForecastModel(void *old_value, void *new_value, DBMain *db_main,
+                                 common::ManagedPointer<common::ActionContext> action_context);
+
+  /** Train the interference model. */
+  static void TrainInterferenceModel(void *old_value, void *new_value, DBMain *db_main,
+                                     common::ManagedPointer<common::ActionContext> action_context);
+
+  /** Train the OU model. */
+  static void TrainOUModel(void *old_value, void *new_value, DBMain *db_main,
+                           common::ManagedPointer<common::ActionContext> action_context);
+
 #define SETTINGS_GENERATE_LOGGER_CALLBACK(component)                                    \
   /** Set the log level for the component. */                                           \
   static void LogLevelSet##component(void *old_value, void *new_value, DBMain *db_main, \
