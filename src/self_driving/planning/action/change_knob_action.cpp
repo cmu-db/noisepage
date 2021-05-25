@@ -1,6 +1,7 @@
 #include "self_driving/planning/action/change_knob_action.h"
 
 #include "common/error/error_code.h"
+#include "self_driving/planning/mcts/action_state.h"
 #include "settings/settings_manager.h"
 
 namespace noisepage::selfdriving::pilot {
@@ -40,6 +41,27 @@ const std::string &ChangeKnobAction<T>::GetSQLCommand() {
                           common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
   return sql_command_;
+}
+
+template <class T>
+void ChangeKnobAction<T>::ModifyActionState(ActionState *action_state) {
+  // Set the new value accordingly based on the param type
+  T new_value;
+  if constexpr (std::is_same<T, bool>::value) {  // NOLINT
+    T original_value = settings_manager_->GetBool(param_);
+    new_value = original_value ^ change_value_;
+  } else if constexpr (std::is_same<T, int32_t>::value) {  // NOLINT
+    T original_value = settings_manager_->GetInt(param_);
+    new_value = original_value + change_value_;
+  } else if constexpr (std::is_same<T, int64_t>::value) {  // NOLINT
+    T original_value = settings_manager_->GetInt64(param_);
+    new_value = original_value + change_value_;
+  } else {
+    throw PILOT_EXCEPTION(fmt::format("Unexpected knob parameter type \"{}\"", param_name_),
+                          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  // TODO(lin): we implicitly cast everything to in64_t for now. Need to extend to other types, e.g., string
+  action_state->UpdateKnobValue(param_name_, new_value);
 }
 
 template <class T>

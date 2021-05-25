@@ -108,7 +108,8 @@ void SelfDrivingRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_reco
 
       // DB OID
       clusters_params[3] = parser::ConstantValueExpression(
-          type::TypeId::INTEGER, execution::sql::Integer(metadata.query_id_to_dboid_.find(qid)->second));
+          type::TypeId::INTEGER,
+          execution::sql::Integer(metadata.query_id_to_dboid_.find(qid)->second.UnderlyingValue()));
       clusters_params_vec.emplace_back(std::move(clusters_params));
     }
   }

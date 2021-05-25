@@ -86,7 +86,7 @@ void IndCteScanLeaderTranslator::DeclareIndCteScanIterator(FunctionBuilder *buil
   SetColumnTypes(builder);
   SetColumnOids(builder);
   auto &plan = GetPlanAs<planner::CteScanPlanNode>();
-  
+
   // Call @cteScanIteratorInit
   ast::Expr *cte_scan_iterator_setup = codegen->IndCteScanIteratorInit(
       cte_scan_val_entry_.GetPtr(codegen), plan.GetTableOid(), col_oids_var_, col_types_, plan.GetIsRecursive(),

@@ -91,7 +91,7 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
   };
 
   for (auto &info : out_metadata) {
-    metadata.query_id_to_dboid_[info.first] = info.second.db_oid_.UnderlyingValue();
+    metadata.query_id_to_dboid_[info.first] = info.second.db_oid_;
     metadata.query_id_to_text_[info.first] = info.second.text_.substr(1, info.second.text_.size() - 2);
     metadata.query_id_to_param_types_[info.first] = types_conv(info.second.param_type_);
   }
@@ -113,7 +113,7 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
 
       // Only insert new if not convered already
       if (metadata.query_id_to_dboid_.find(qid) == metadata.query_id_to_dboid_.end()) {
-        metadata.query_id_to_dboid_[qid] = db_oid;
+        metadata.query_id_to_dboid_[qid] = catalog::db_oid_t(db_oid);
 
         auto *text_val = static_cast<execution::sql::StringVal *>(values[2]);
         // We do this since the string has been quoted by the metric

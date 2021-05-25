@@ -325,8 +325,8 @@ TEST_F(CatalogTests, UserIndexTest) {
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
   auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
-  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
-                                       "test_table_index_mabobberwithareallylongnamethatstillneedsmore", index_schema);
+  std::string index_name = "test_table_index_mabobberwithareallylongnamethatstillneedsmore";
+  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, index_name, index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
 
@@ -336,6 +336,7 @@ TEST_F(CatalogTests, UserIndexTest) {
 
   EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
   EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
+  EXPECT_EQ(index_name, accessor->GetIndexName(idx_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Get an accessor into the database and validate the catalog tables exist

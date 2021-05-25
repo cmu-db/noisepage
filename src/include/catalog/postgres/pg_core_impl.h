@@ -250,6 +250,17 @@ class PgCoreImpl {
    */
   std::pair<void *, PgClass::RelKind> GetClassSchemaPtrKind(common::ManagedPointer<transaction::TransactionContext> txn,
                                                             uint32_t oid);
+
+  /**
+   * @brief Get the name string from pg_class.
+   *
+   * @param txn     The transaction to query in.
+   * @param oid     The OID of the object. Must be valid
+   * @return        The name and the RelKind of the object requested.
+   */
+  std::pair<std::string_view, PgClass::RelKind> GetClassNameKind(
+      common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
+
   /**
    * @brief Get the OID and kind from pg_class.
    *
@@ -354,6 +365,7 @@ class PgCoreImpl {
   storage::ProjectionMap pg_class_all_cols_prm_;
   storage::ProjectedRowInitializer get_class_oid_kind_pri_;
   storage::ProjectedRowInitializer set_class_pointer_pri_;
+  storage::ProjectedRowInitializer get_class_name_kind_pri_;
   storage::ProjectedRowInitializer set_class_schema_pri_;
   storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
   storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
