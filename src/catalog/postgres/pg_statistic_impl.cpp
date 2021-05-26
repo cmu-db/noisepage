@@ -49,15 +49,15 @@ void PgStatisticImpl::CreateColumnStatistic(const common::ManagedPointer<transac
   }
   const auto tuple_slot = statistics_->Insert(txn, redo);
 
-  const auto &oid_pri = statistic_oid_index_->GetProjectedRowInitializer();
-  const auto &oid_prm = statistic_oid_index_->GetKeyOidToOffsetMap();
+  const auto oid_pri = statistic_oid_index_->GetProjectedRowInitializer();
+  auto oid_prm = statistic_oid_index_->GetKeyOidToOffsetMap();
   byte *const buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
 
   // Insert into pg_statistic_index.
   {
     auto *pr = oid_pri.InitializeRow(buffer);
-    pr->Set<table_oid_t, false>(oid_prm.at(indexkeycol_oid_t(1)), table_oid, false);
-    pr->Set<col_oid_t, false>(oid_prm.at(indexkeycol_oid_t(2)), col_oid, false);
+    pr->Set<table_oid_t, false>(oid_prm[indexkeycol_oid_t(1)], table_oid, false);
+    pr->Set<col_oid_t, false>(oid_prm[indexkeycol_oid_t(2)], col_oid, false);
 
     bool UNUSED_ATTRIBUTE result = statistic_oid_index_->InsertUnique(txn, *pr, tuple_slot);
     NOISEPAGE_ASSERT(result, "Assigned pg_statistic OIDs failed to be unique.");

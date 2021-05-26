@@ -1,6 +1,5 @@
 #pragma once
 
-#include <limits>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -27,9 +26,6 @@ class GroupExpression;
  */
 class Group {
  public:
-  /** Value for uninitialized stats (cardinality and number of rows in table) */
-  static constexpr size_t UNINITIALIZED_NUM_ROWS = std::numeric_limits<size_t>::max();
-
   /**
    * Constructor for a group
    * @param id ID of the Group
@@ -125,45 +121,13 @@ class Group {
    * Sets Number of rows
    * @param num_rows Number of rows
    */
-  void SetNumRows(size_t num_rows) { num_rows_ = num_rows; }
+  void SetNumRows(int num_rows) { num_rows_ = num_rows; }
 
   /**
    * Gets the estimated cardinality in # rows
    * @returns # rows estimated
    */
-  size_t GetNumRows() const { return num_rows_; }
-
-  /**
-   * Set the number of rows in the base table to scan
-   * @param table_num_rows Number of rows
-   */
-  void SetTableNumRows(size_t table_num_rows) { table_num_rows_ = table_num_rows; }
-
-  /**
-   * Gets the number of rows in the base table to scan
-   * @returns number of rows in table
-   */
-  size_t GetTableNumRows() const { return table_num_rows_; }
-
-  /**
-   * Add the selectivity of a filter column (multiply selectivities for the same column, assuming conjunction AND)
-   * @param column_id column ID
-   * @param selectivity estimated selectivity
-   */
-  void AddFilterColumnSelectivity(catalog::col_oid_t column_id, double selectivity) {
-    if (filter_column_selectivities_.find(column_id) == filter_column_selectivities_.end())
-      filter_column_selectivities_[column_id] = selectivity;
-    else
-      filter_column_selectivities_[column_id] *= selectivity;
-  }
-
-  /**
-   * Get the selectivities for filter columns  (selectivities multiplied for the same column, assuming conjunction AND)
-   * @returns estimated selectivities
-   */
-  const std::unordered_map<catalog::col_oid_t, double> &GetFilterColumnSelectivities() const {
-    return filter_column_selectivities_;
-  }
+  int GetNumRows() { return num_rows_; }
 
   /**
    * Checks if num rows is initialized
@@ -230,25 +194,17 @@ class Group {
    */
   std::vector<GroupExpression *> enforced_exprs_;
 
+  static constexpr int UNINITIALIZED_NUM_ROWS = -1;
+
   /**
    * Number of rows
    */
-  size_t num_rows_ = UNINITIALIZED_NUM_ROWS;
-
-  /**
-   * Number of rows in the base table (for LogicalGet)
-   */
-  size_t table_num_rows_ = UNINITIALIZED_NUM_ROWS;
+  int num_rows_ = UNINITIALIZED_NUM_ROWS;
 
   /**
    * Cost Lower Bound
    */
   double cost_lower_bound_ = -1;
-
-  /**
-   * Map from a column ID in the filter to the selectivity on that column
-   */
-  std::unordered_map<catalog::col_oid_t, double> filter_column_selectivities_;
 };
 
 }  // namespace noisepage::optimizer

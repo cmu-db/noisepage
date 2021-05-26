@@ -17,6 +17,8 @@ class WorkloadForecast;
 
 namespace pilot {
 
+class PlanningContext;
+
 /**
  * Used to represent information that encapsulates a given tree
  * node's information and information about the action to be applied.
@@ -88,12 +90,12 @@ class MonteCarloTreeSearch {
  public:
   /**
    * Constructor for the monte carlo search tree
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
-  MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
+  MonteCarloTreeSearch(const PlanningContext &planning_context,
                        common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
                        bool use_min_cost = true);
 
@@ -115,7 +117,7 @@ class MonteCarloTreeSearch {
   void BestAction(std::vector<std::vector<ActionTreeNode>> *best_action_seq, size_t topk);
 
  private:
-  const common::ManagedPointer<Pilot> pilot_;
+  const PlanningContext &planning_context_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
   const uint64_t end_segment_index_;
   std::unique_ptr<TreeNode> root_;

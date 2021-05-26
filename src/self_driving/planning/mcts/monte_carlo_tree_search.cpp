@@ -8,7 +8,6 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/planning/action/generators/change_knob_action_generator.h"
 #include "self_driving/planning/action/generators/index_action_generator.h"
-#include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
 #include "transaction/transaction_manager.h"
 
@@ -31,75 +30,34 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
   for (const auto &it UNUSED_ATTRIBUTE : action_map_) {
     SELFDRIVING_LOG_INFO("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
   }
-  pilot->txn_manager_->Abort(txn);
 
-  // Estimate the create index action costs
-  for (auto &[action_id, action] : action_map_) {
-    if (action->GetActionType() == ActionType::CREATE_INDEX) {
-      PilotUtil::EstimateCreateIndexAction(reinterpret_cast<CreateIndexAction *>(action.get()),
-                                           pilot->query_exec_util_.get(), pilot->ou_model_save_path_,
-                                           pilot->model_server_manager_);
-    }
-  }
+  pilot->txn_manager_->Abort(txn);
 
   // create root_
   auto later_cost = PilotUtil::ComputeCost(pilot, forecast, 0, end_segment_index);
-  ActionState action_state;
-  action_state.SetIntervals(0, end_segment_index);
   // root correspond to no action applied to any segment
-  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, 0, later_cost,
-                                     pilot_->GetMemoryInfo().initial_memory_bytes_, action_state);
-  // TODO(lin): actually using the cost map during the search to reduce computation
-  action_state_cost_map_.emplace(std::make_pair(std::move(action_state), later_cost));
+  root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, later_cost);
 }
 
-void MonteCarloTreeSearch::RunSimulation(uint64_t simulation_number, uint64_t memory_constraint) {
+void MonteCarloTreeSearch::BestAction(uint64_t simulation_number,
+                                      std::vector<std::pair<const std::string, catalog::db_oid_t>> *best_action_seq) {
   for (uint64_t i = 0; i < simulation_number; i++) {
     std::unordered_set<action_id_t> candidate_actions;
     for (auto action_id : candidate_actions_) candidate_actions.insert(action_id);
     auto vertex =
         TreeNode::Selection(common::ManagedPointer(root_), pilot_, action_map_, &candidate_actions, end_segment_index_);
 
-    vertex->ChildrenRollout(pilot_, forecast_, levels_to_plan_.at(vertex->GetDepth()), end_segment_index_, action_map_,
-                            candidate_actions, memory_constraint);
+    vertex->ChildrenRollout(pilot_, forecast_, 0, end_segment_index_, action_map_, candidate_actions);
     vertex->BackPropogate(pilot_, action_map_, use_min_cost_);
   }
-}
-
-void MonteCarloTreeSearch::BestAction(std::vector<std::vector<pilot::ActionTreeNode>> *best_action_seq, size_t topk) {
+  // return the best action at root
   auto curr_node = common::ManagedPointer(root_);
-  std::vector<action_id_t> reversals;
   while (!curr_node->IsLeaf()) {
-    std::vector<ActionTreeNode> top;
-    std::vector<common::ManagedPointer<TreeNode>> order = curr_node->BestSubtreeOrdering();
-    NOISEPAGE_ASSERT(!order.empty(), "TreeNode should have some children");
-
-    for (size_t i = 0; i < order.size() && i < topk; i++) {
-      auto child = order[i];
-      auto action = child->GetCurrentAction();
-      auto &action_info = action_map_.at(action);
-      top.emplace_back(curr_node->GetTreeNodeId(), child->GetTreeNodeId(), action, child->GetCost(),
-                       action_info->GetDatabaseOid(), action_info->GetSQLCommand(), child->GetActionStartSegmentIndex(),
-                       child->GetActionPlanEndIndex());
-    }
-
-    best_action_seq->emplace_back(std::move(top));
-    curr_node = order[0];
-
-    // Apply the root action. This is because some actions (i.e., ChangeKnobActions) are deltas
-    // rather than absolute values. Actions are applied as "what-if" since they will be reversed
-    // afterwards once the traversal ends.
-    auto action = curr_node->GetCurrentAction();
-    auto &action_info = action_map_.at(action);
-    PilotUtil::ApplyAction(pilot_, action_info->GetSQLCommand(), action_info->GetDatabaseOid(), true);
-    NOISEPAGE_ASSERT(!action_info->GetReverseActions().empty(), "Action should have reverse");
-    reversals.push_back(action_info->GetReverseActions()[0]);
-  }
-
-  for (auto it = reversals.rbegin(); it != reversals.rend(); it++) {
-    auto action = *it;
-    auto &action_info = action_map_.at(action);
-    PilotUtil::ApplyAction(pilot_, action_info->GetSQLCommand(), action_info->GetDatabaseOid(), true);
+    auto best_child = curr_node->BestSubtree();
+    best_action_seq->emplace_back(action_map_.at(best_child->GetCurrentAction())->GetSQLCommand(),
+                                  action_map_.at(best_child->GetCurrentAction())->GetDatabaseOid());
+    SELFDRIVING_LOG_DEBUG(action_map_.at(best_child->GetCurrentAction())->GetSQLCommand());
+    curr_node = best_child;
   }
 }
 

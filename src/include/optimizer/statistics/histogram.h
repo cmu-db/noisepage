@@ -33,7 +33,7 @@ namespace noisepage::optimizer {
  */
 template <typename KeyType>
 class Histogram {
-  static constexpr uint8_t DEFAULT_MAX_BINS = 255;
+  static constexpr uint8_t DEFAULT_MAX_BINS = 64;
 
  public:
   /**

@@ -35,7 +35,7 @@ class TopKElements {
    */
   using KeyCountPair = std::pair<KeyType, uint32_t>;
   static constexpr size_t DEFAULT_K = 16;
-  static constexpr uint64_t DEFAULT_WIDTH = 1024;
+  static constexpr uint64_t DEFAULT_WIDTH = 64;
 
  public:
   /**

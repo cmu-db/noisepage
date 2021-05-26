@@ -57,7 +57,7 @@ std::function<void(void)> PgProcImpl::GetTearDownFn(common::ManagedPointer<trans
   while (table_iter != procs_->end()) {
     procs_->Scan(txn, &table_iter, pc);
 
-    for (uint32_t i = 0; i < pc->NumTuples(); i++) {
+    for (uint i = 0; i < pc->NumTuples(); i++) {
       if (ctxs[i] == nullptr) {
         continue;
       }
@@ -132,8 +132,8 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
 
   const auto tuple_slot = procs_->Insert(txn, redo);
 
-  const auto &oid_pri = procs_oid_index_->GetProjectedRowInitializer();
-  const auto &name_pri = procs_name_index_->GetProjectedRowInitializer();
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+  auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
 
   // Insert into pg_proc_name_index.
@@ -164,8 +164,8 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
 bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc) {
   NOISEPAGE_ASSERT(proc != INVALID_PROC_OID, "Invalid oid passed");
 
-  const auto &name_pri = procs_name_index_->GetProjectedRowInitializer();
-  const auto &oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+  auto name_pri = procs_name_index_->GetProjectedRowInitializer();
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
   auto oid_pr = oid_pri.InitializeRow(buffer);
@@ -230,7 +230,7 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
 
 bool PgProcImpl::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, const proc_oid_t proc_oid,
                                const execution::functions::FunctionContext *func_context) {
-  const auto &oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
   auto *const index_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
 
   // Look for the procedure in pg_proc_oid_index.
@@ -257,7 +257,7 @@ bool PgProcImpl::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionCo
 
 common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetProcCtxPtr(
     common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
-  const auto &oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_ptr_pri_.ProjectedRowSize());
 
   // Look for the procedure in pg_proc_oid_index.
@@ -289,7 +289,7 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
 proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const common::ManagedPointer<DatabaseCatalog> dbc, const namespace_oid_t procns,
                                   const std::string &procname, const std::vector<type_oid_t> &arg_types) {
-  const auto &name_pri = procs_name_index_->GetProjectedRowInitializer();
+  auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
   // Look for the procedure in pg_proc_name_index.

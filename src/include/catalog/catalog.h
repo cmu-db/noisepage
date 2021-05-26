@@ -21,10 +21,6 @@ class GarbageCollector;
 class RecoveryManager;
 }  // namespace noisepage::storage
 
-namespace noisepage::selfdriving {
-class PilotUtil;
-}  // namespace noisepage::selfdriving
-
 namespace noisepage::catalog {
 
 class CatalogCache;
@@ -141,7 +137,6 @@ class Catalog {
  private:
   DISALLOW_COPY_AND_MOVE(Catalog);
   friend class storage::RecoveryManager;
-  friend class selfdriving::PilotUtil;
   const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   const common::ManagedPointer<storage::BlockStore> catalog_block_store_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
@@ -156,9 +151,6 @@ class Catalog {
   storage::ProjectionMap pg_database_all_cols_prm_;
   storage::ProjectedRowInitializer delete_database_entry_pri_;
   storage::ProjectionMap delete_database_entry_prm_;
-
-  /** @return The next oid counter value */
-  db_oid_t GetNextOid() const { return next_oid_.load(); }
 
   /**
    * Atomically updates the next oid counter to the max of the current count and the provided next oid
