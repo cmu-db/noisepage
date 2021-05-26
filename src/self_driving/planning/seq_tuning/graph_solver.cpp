@@ -77,8 +77,8 @@ GraphSolver::GraphSolver(const PlanningContext &planning_context,
 
       for (auto const action : config_set) {
         // clean up by applying one reverse action to undo the above
-        auto rev_actions = structure_map.at(action)->GetReverseActions();
-        structure_map.at(rev_actions[0])->ModifyActionState(&new_action_state);
+        auto rev_action = structure_map.at(action)->GetReverseActions().at(0);
+        structure_map.at(rev_action)->ModifyActionState(&new_action_state);
       }
     }
   }
@@ -102,9 +102,9 @@ double GraphSolver::ComputeConfigCost(const PlanningContext &planning_context,
 
   for (auto const action : config_set) {
     // clean up by applying one reverse action to undo the above
-    auto rev_actions = structure_map.at(action)->GetReverseActions();
-    PilotUtil::ApplyAction(planning_context, structure_map.at(rev_actions[0])->GetSQLCommand(),
-                           structure_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
+    auto rev_action = structure_map.at(action)->GetReverseActions().at(0);
+    PilotUtil::ApplyAction(planning_context, structure_map.at(rev_action)->GetSQLCommand(),
+                           structure_map.at(rev_action)->GetDatabaseOid(), Pilot::WHAT_IF);
   }
 
   return node_cost;

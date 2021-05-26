@@ -30,8 +30,8 @@ class SequenceTuning {
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    */
-  SequenceTuning(const PlanningContext &planning_context, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                 uint64_t end_segment_index);
+  SequenceTuning(const PlanningContext &planning_context,
+                 common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index);
 
   /**
    * Returns sequence of actions that lead to the best sequence of configurations,

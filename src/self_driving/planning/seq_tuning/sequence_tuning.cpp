@@ -28,14 +28,16 @@ SequenceTuning::SequenceTuning(const PlanningContext &planning_context,
 
   std::vector<action_id_t> candidate_actions;
   // populate structure_map_, candidate_structures_
-  IndexActionGenerator().GenerateActions(plans, planning_context_.GetSettingsManager(), &structure_map_, &candidate_actions);
+  IndexActionGenerator().GenerateActions(plans, planning_context_.GetSettingsManager(), &structure_map_,
+                                         &candidate_actions);
 
   for (auto &action : candidate_actions)
     if (structure_map_.at(action)->GetActionType() == ActionType::CREATE_INDEX) {
       candidate_structures_.emplace_back(action);
 
       auto create_action = reinterpret_cast<CreateIndexAction *>(structure_map_.at(action).get());
-      auto drop_action = reinterpret_cast<DropIndexAction *>(structure_map_.at(structure_map_.at(action)->GetReverseActions().at(0)).get());
+      auto drop_action = reinterpret_cast<DropIndexAction *>(
+          structure_map_.at(structure_map_.at(action)->GetReverseActions().at(0)).get());
       PilotUtil::EstimateCreateIndexAction(planning_context_, create_action, drop_action);
 
       SELFDRIVING_LOG_DEBUG("Candidate structure: ID {} Command {}", action,
@@ -51,7 +53,8 @@ SequenceTuning::SequenceTuning(const PlanningContext &planning_context,
   std::vector<double> default_segment_cost;
   // first compute the cost of each segment when no action is applied
   for (uint64_t segment_index = 0; segment_index <= end_segment_index_; segment_index++) {
-    default_segment_cost.emplace_back(PilotUtil::ComputeCost(planning_context_, forecast_, segment_index, segment_index));
+    default_segment_cost.emplace_back(
+        PilotUtil::ComputeCost(planning_context_, forecast_, segment_index, segment_index));
   }
   default_segment_cost_ = default_segment_cost;
 }
@@ -109,8 +112,8 @@ double SequenceTuning::UnionPair(const PathSolution &path_one, const PathSolutio
     candidate_structures_by_segment.push_back(std::move(curr_level));
   }
 
-  double best_unioned_dist = GraphSolver(planning_context_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
-                                         candidate_structures_by_segment, memory_constraint)
+  double best_unioned_dist = GraphSolver(planning_context_, forecast_, end_segment_index_, structure_map_,
+                                         default_segment_cost_, candidate_structures_by_segment, memory_constraint)
                                  .RecoverShortestPath(merged_solution);
   return best_unioned_dist;
 }
