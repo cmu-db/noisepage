@@ -187,6 +187,13 @@ class PilotUtil {
       const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
       const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config);
 
+  /**
+   * Utility function for printing a configuration (set of structures)
+   * @param config_set configuration
+   * @return string representation
+   */
+  static std::string ConfigToString(const std::set<pilot::action_id_t> &config_set);
+
  private:
   /**
    * Get the ratios between estimated future table sizes (given the forecasted workload) and current table sizes

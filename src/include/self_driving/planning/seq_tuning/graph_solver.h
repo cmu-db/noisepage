@@ -35,8 +35,9 @@ class GraphSolver {
    * @param candidate_configurations_by_segment set of candidate configurations per segment
    * @param memory_constraint maximum allowed memory in bytes
    */
-  GraphSolver(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-              uint64_t end_segment_index, const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
+  GraphSolver(const PlanningContext &planning_context,
+              const common::ManagedPointer<selfdriving::WorkloadForecast> forecast, const uint64_t end_segment_index,
+              const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
               const std::vector<double> &default_segment_cost,
               const std::vector<std::set<std::set<action_id_t>>> &candidate_configurations_by_segment,
               uint64_t memory_constraint);
@@ -57,7 +58,7 @@ class GraphSolver {
    * @param config_set set of structures constituting the current config
    * @return if all structure in the config are valid
    */
-  bool IsValidConfig(common::ManagedPointer<Pilot> pilot,
+  bool IsValidConfig(const PlanningContext &planning_context,
                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                      const std::set<action_id_t> &config_set);
 
@@ -70,8 +71,8 @@ class GraphSolver {
    * @param segment_index index of current segment
    * @return cost of executing queries in current segment with the set of structures in current config
    */
-  double ComputeConfigCost(common::ManagedPointer<Pilot> pilot,
-                           common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+  double ComputeConfigCost(const PlanningContext &planning_context,
+                           const common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                            const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                            const std::set<action_id_t> &config_set, uint64_t segment_index);
 

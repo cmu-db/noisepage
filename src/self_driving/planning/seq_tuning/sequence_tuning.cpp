@@ -16,26 +16,28 @@
 
 namespace noisepage::selfdriving::pilot {
 
-SequenceTuning::SequenceTuning(common::ManagedPointer<Pilot> pilot,
+SequenceTuning::SequenceTuning(const PlanningContext &planning_context,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                uint64_t end_segment_index)
-    : pilot_(pilot), forecast_(forecast), end_segment_index_(end_segment_index) {
-  transaction::TransactionContext *txn = pilot->txn_manager_->BeginTransaction();
+    : planning_context_(planning_context), forecast_(forecast), end_segment_index_(end_segment_index) {
+  transaction::TransactionContext *txn = planning_context_.GetTxnManager()->BeginTransaction();
 
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
   // vector of query plans that the search tree is responsible for
-  PilotUtil::GetQueryPlans(pilot, common::ManagedPointer(forecast_), end_segment_index, txn, &plans);
+  PilotUtil::GetQueryPlans(planning_context_, common::ManagedPointer(forecast_), end_segment_index, txn, &plans);
 
   std::vector<action_id_t> candidate_actions;
   // populate structure_map_, candidate_structures_
-  IndexActionGenerator().GenerateActions(plans, pilot->settings_manager_, &structure_map_, &candidate_actions);
+  IndexActionGenerator().GenerateActions(plans, planning_context_.GetSettingsManager(), &structure_map_, &candidate_actions);
 
   for (auto &action : candidate_actions)
     if (structure_map_.at(action)->GetActionType() == ActionType::CREATE_INDEX) {
       candidate_structures_.emplace_back(action);
-      PilotUtil::EstimateCreateIndexAction(reinterpret_cast<CreateIndexAction *>(structure_map_.at(action).get()),
-                                           pilot->query_exec_util_.get(), pilot->ou_model_save_path_,
-                                           pilot->model_server_manager_);
+
+      auto create_action = reinterpret_cast<CreateIndexAction *>(structure_map_.at(action).get());
+      auto drop_action = reinterpret_cast<DropIndexAction *>(structure_map_.at(structure_map_.at(action)->GetReverseActions().at(0)).get());
+      PilotUtil::EstimateCreateIndexAction(planning_context_, create_action, drop_action);
+
       SELFDRIVING_LOG_DEBUG("Candidate structure: ID {} Command {}", action,
                             structure_map_.at(action)->GetSQLCommand());
     }
@@ -44,12 +46,12 @@ SequenceTuning::SequenceTuning(common::ManagedPointer<Pilot> pilot,
     SELFDRIVING_LOG_DEBUG("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
   }
 
-  pilot->txn_manager_->Abort(txn);
+  planning_context_.GetTxnManager()->Abort(txn);
 
   std::vector<double> default_segment_cost;
   // first compute the cost of each segment when no action is applied
   for (uint64_t segment_index = 0; segment_index <= end_segment_index_; segment_index++) {
-    default_segment_cost.emplace_back(PilotUtil::ComputeCost(pilot_, forecast_, segment_index, segment_index));
+    default_segment_cost.emplace_back(PilotUtil::ComputeCost(planning_context_, forecast_, segment_index, segment_index));
   }
   default_segment_cost_ = default_segment_cost;
 }
@@ -67,7 +69,7 @@ void SequenceTuning::BestAction(
     std::vector<std::set<std::set<action_id_t>>> singleton_action_repeated(end_segment_index_ + 1, singleton_action);
 
     double best_path_cost UNUSED_ATTRIBUTE =
-        GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
+        GraphSolver(planning_context_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
                     singleton_action_repeated, memory_constraint)
             .RecoverShortestPath(&best_solution);
 
@@ -106,7 +108,7 @@ double SequenceTuning::UnionPair(const PathSolution &path_one, const PathSolutio
     candidate_structures_by_segment.push_back(std::move(curr_level));
   }
 
-  double best_unioned_dist = GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
+  double best_unioned_dist = GraphSolver(planning_context_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
                                          candidate_structures_by_segment, memory_constraint)
                                  .RecoverShortestPath(merged_solution);
   return best_unioned_dist;
@@ -137,7 +139,7 @@ void SequenceTuning::GreedySeq(const std::map<action_id_t, PathSolution> &best_p
 
   // find best solution in the final graph
   double final_soln_cost UNUSED_ATTRIBUTE =
-      GraphSolver(pilot_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
+      GraphSolver(planning_context_, forecast_, end_segment_index_, structure_map_, default_segment_cost_,
                   candidate_structures_by_segment, memory_constraint)
           .RecoverShortestPath(best_final_path);
   SELFDRIVING_LOG_DEBUG("[GREEDY-SEQ] final solution cost {}", final_soln_cost);

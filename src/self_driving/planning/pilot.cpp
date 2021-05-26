@@ -125,7 +125,7 @@ void Pilot::ActionSearchBaseline(
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
   auto seq_tunining =
-      pilot::SequenceTuning(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
+      pilot::SequenceTuning(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
 
   std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
   seq_tunining.BestAction(planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint),

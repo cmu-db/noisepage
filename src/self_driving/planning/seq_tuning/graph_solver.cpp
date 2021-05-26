@@ -13,8 +13,9 @@
 
 namespace noisepage::selfdriving::pilot {
 
-GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
-                         common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
+GraphSolver::GraphSolver(const PlanningContext &planning_context,
+                         const common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                         const uint64_t end_segment_index,
                          const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                          const std::vector<double> &default_segment_cost,
                          const std::vector<std::set<std::set<action_id_t>>> &candidate_configurations_by_segment,
@@ -47,7 +48,7 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
 
     // initialize nodes with each of the config
     for (auto const &config_set : candidate_configurations_by_segment.at(segment_index)) {
-      if (config_set.empty() || !IsValidConfig(pilot, structure_map, config_set)) continue;
+      if (config_set.empty() || !IsValidConfig(planning_context, structure_map, config_set)) continue;
 
       new_action_state.SetIntervals(segment_index + 1, end_segment_index);
 
@@ -56,14 +57,14 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
       // Compute memory consumption
       bool satisfy_memory_constraint = true;
       // We may apply actions to reduce memory consumption in future, so we only need to evaluate the memory constraint
-      size_t memory =
-          PilotUtil::CalculateMemoryConsumption(pilot->GetMemoryInfo(), new_action_state, segment_index, structure_map);
+      size_t memory = PilotUtil::CalculateMemoryConsumption(planning_context.GetMemoryInfo(), new_action_state,
+                                                            segment_index, structure_map);
       if (memory > memory_constraint) satisfy_memory_constraint = false;
 
       double node_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
 
       if (satisfy_memory_constraint) {
-        node_cost = ComputeConfigCost(pilot, forecast, structure_map, config_set, segment_index);
+        node_cost = ComputeConfigCost(planning_context, forecast, structure_map, config_set, segment_index);
       }
 
       nodes_by_segment_index_.at(segment_index)
@@ -87,29 +88,29 @@ GraphSolver::GraphSolver(common::ManagedPointer<Pilot> pilot,
   dest_node_->RelaxNode(structure_map, nodes_by_segment_index_.back());
 }
 
-double GraphSolver::ComputeConfigCost(common::ManagedPointer<Pilot> pilot,
-                                      common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+double GraphSolver::ComputeConfigCost(const PlanningContext &planning_context,
+                                      const common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                       const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                                       const std::set<action_id_t> &config_set, uint64_t segment_index) {
   for (auto const action : config_set) {
-    PilotUtil::ApplyAction(pilot, structure_map.at(action)->GetSQLCommand(), structure_map.at(action)->GetDatabaseOid(),
-                           Pilot::WHAT_IF);
+    PilotUtil::ApplyAction(planning_context, structure_map.at(action)->GetSQLCommand(),
+                           structure_map.at(action)->GetDatabaseOid(), Pilot::WHAT_IF);
   }
 
   // if configuration is valid, include it as a node in the graph
-  auto node_cost = PilotUtil::ComputeCost(pilot, forecast, segment_index, segment_index);
+  auto node_cost = PilotUtil::ComputeCost(planning_context, forecast, segment_index, segment_index);
 
   for (auto const action : config_set) {
     // clean up by applying one reverse action to undo the above
     auto rev_actions = structure_map.at(action)->GetReverseActions();
-    PilotUtil::ApplyAction(pilot, structure_map.at(rev_actions[0])->GetSQLCommand(),
+    PilotUtil::ApplyAction(planning_context, structure_map.at(rev_actions[0])->GetSQLCommand(),
                            structure_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
   }
 
   return node_cost;
 }
 
-bool GraphSolver::IsValidConfig(common::ManagedPointer<Pilot> pilot,
+bool GraphSolver::IsValidConfig(const PlanningContext &planning_context,
                                 const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                                 const std::set<action_id_t> &config_set) {
   for (auto candidate_action : config_set) {

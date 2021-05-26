@@ -687,6 +687,15 @@ double PilotUtil::ConfigTransitionCost(
   return 0.0;  // TODO(Katrina): compute transition cost
 }
 
+std::string PilotUtil::ConfigToString(const std::set<pilot::action_id_t> &config_set) {
+  std::string set_string = "{";
+  for (auto action : config_set) {
+    set_string += fmt::format(" action_id {} ", action);
+  }
+  set_string += "}";
+  return set_string;
+}
+
 void PilotUtil::ExecuteForecast(const pilot::PlanningContext &planning_context,
                                 common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                 uint64_t start_segment_index, uint64_t end_segment_index,
