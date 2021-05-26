@@ -1,32 +1,49 @@
-
 #include "self_driving/planning/mcts/tree_node.h"
 
 #include <cmath>
 #include <random>
 
+#include "common/strong_typedef_body.h"
 #include "loggers/selfdriving_logger.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/abstract_action.h"
+#include "self_driving/planning/action/create_index_action.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
+#include "self_driving/planning/planning_context.h"
 
 #define EPSILON 1e-3
 
 namespace noisepage::selfdriving::pilot {
 
-TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, double current_segment_cost,
-                   double later_segments_cost)
-    : is_leaf_{true},
+STRONG_TYPEDEF_BODY(tree_node_id_t, uint64_t);
+
+tree_node_id_t TreeNode::tree_node_identifier = tree_node_id_t(1);
+
+TreeNode::TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action,
+                   uint64_t action_start_segment_index, double current_segment_cost, double later_segments_cost,
+                   uint64_t memory, ActionState action_state)
+    : tree_node_id_(TreeNode::tree_node_identifier++),
+      is_leaf_{true},
       depth_(parent == nullptr ? 0 : parent->depth_ + 1),
+      action_start_segment_index_(action_start_segment_index),
+      action_plan_end_index_(action_start_segment_index_),
       current_action_(current_action),
       ancestor_cost_(current_segment_cost + (parent == nullptr ? 0 : parent->ancestor_cost_)),
       parent_(parent),
-      number_of_visits_{1} {
+      number_of_visits_{1},
+      memory_(memory),
+      action_state_(std::move(action_state)) {
   if (parent != nullptr) parent->is_leaf_ = false;
   cost_ = ancestor_cost_ + later_segments_cost;
   SELFDRIVING_LOG_INFO(
-      "Creating Tree Node: Depth {} Action {} Cost {} Current_Segment_Cost {} Later_Segment_Cost {} Ancestor_Cost {}",
-      depth_, current_action_, cost_, current_segment_cost, later_segments_cost, ancestor_cost_);
+      "Creating Tree Node: Depth {} Action Start Segment Index {} Action {} Cost {} Current_Segment_Cost {} "
+      "Later_Segment_Cost {} Ancestor_Cost {}",
+      depth_, action_start_segment_index_, current_action_, cost_, current_segment_cost, later_segments_cost,
+      ancestor_cost_);
+
+  // TODO(lin): Add the memory information to the action recording table
+  (void)memory_;
 }
 
 common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
@@ -40,6 +57,26 @@ common::ManagedPointer<TreeNode> TreeNode::BestSubtree() {
                          child->GetCurrentAction(), child->cost_);
   }
   return best_child;
+}
+
+std::vector<common::ManagedPointer<TreeNode>> TreeNode::BestSubtreeOrdering() {
+  NOISEPAGE_ASSERT(!is_leaf_, "Trying to return best action on a leaf node");
+  // Get child of least cost
+  NOISEPAGE_ASSERT(!children_.empty(), "Trying to return best action for unexpanded nodes");
+
+  std::vector<common::ManagedPointer<TreeNode>> results;
+  results.reserve(children_.size());
+  for (auto &child : children_) {
+    results.emplace_back(child);
+  }
+
+  struct {
+    bool operator()(common::ManagedPointer<TreeNode> a, common::ManagedPointer<TreeNode> b) {
+      return a->cost_ < b->cost_;
+    }
+  } cmp;
+  std::sort(results.begin(), results.end(), cmp);
+  return results;
 }
 
 void TreeNode::UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost) {
@@ -79,7 +116,7 @@ common::ManagedPointer<TreeNode> TreeNode::SampleChild() {
 }
 
 common::ManagedPointer<TreeNode> TreeNode::Selection(
-    common::ManagedPointer<TreeNode> root, common::ManagedPointer<Pilot> pilot,
+    common::ManagedPointer<TreeNode> root, const PlanningContext &planning_context,
     const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
     std::unordered_set<action_id_t> *candidate_actions, uint64_t end_segment_index) {
   common::ManagedPointer<TreeNode> curr;
@@ -91,7 +128,7 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
       curr = curr->SampleChild();
       actions_on_path.push_back(curr->current_action_);
     }
-  } while (curr->depth_ > end_segment_index);
+  } while (curr->action_start_segment_index_ > end_segment_index);
 
   for (auto action : actions_on_path) {
     for (auto invalid_action : action_map.at(action)->GetInvalidatedActions()) {
@@ -100,45 +137,80 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
     for (auto enabled_action : action_map.at(action)->GetEnabledActions()) {
       candidate_actions->insert(enabled_action);
     }
-    PilotUtil::ApplyAction(pilot, action_map.at(action)->GetSQLCommand(), action_map.at(action)->GetDatabaseOid());
+    PilotUtil::ApplyAction(planning_context, action_map.at(action)->GetSQLCommand(),
+                           action_map.at(action)->GetDatabaseOid(), Pilot::WHAT_IF);
   }
   return curr;
 }
 
-void TreeNode::ChildrenRollout(common::ManagedPointer<Pilot> pilot,
-                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                               uint64_t tree_start_segment_index, uint64_t tree_end_segment_index,
+void TreeNode::ChildrenRollout(const PlanningContext &planning_context,
+                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t action_horizon,
+                               uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-                               const std::unordered_set<action_id_t> &candidate_actions) {
-  auto start_segment_index = tree_start_segment_index + depth_;
-  auto end_segment_index = tree_end_segment_index;
-  NOISEPAGE_ASSERT(start_segment_index <= end_segment_index,
-                   "start segment index should be no greater than the end segment index");
+                               const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint) {
+  action_plan_end_index_ = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
+
+  SELFDRIVING_LOG_DEBUG("action_start_segment_index: {} action_plan_end_index: {} tree_end_segment_index: {}",
+                        action_start_segment_index_, action_plan_end_index_, tree_end_segment_index);
+  NOISEPAGE_ASSERT(action_start_segment_index_ <= tree_end_segment_index,
+                   "action plan end segment index should be no greater than tree end segment index");
+
+  auto new_action_state = action_state_;
 
   for (const auto &action_id : candidate_actions) {
     // expand each action not yet applied
-    if (!action_map.at(action_id)->IsValid() ||
-        action_map.at(action_id)->GetSQLCommand() == "set compiled_query_execution = 'true';")
-      continue;
-    PilotUtil::ApplyAction(pilot, action_map.at(action_id)->GetSQLCommand(),
-                           action_map.at(action_id)->GetDatabaseOid());
+    auto const &action_ptr = action_map.at(action_id);
+    if (!action_ptr->IsValid() || action_ptr->GetSQLCommand() == "set compiled_query_execution = 'true';") continue;
 
-    double child_segment_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index, start_segment_index);
-    double later_segments_cost = 0;
-    if (start_segment_index != end_segment_index)
-      later_segments_cost = PilotUtil::ComputeCost(pilot, forecast, start_segment_index + 1, end_segment_index);
+    // Update the action state assuming this action is applied
+    action_ptr->ModifyActionState(&new_action_state);
 
-    children_.push_back(
-        std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, child_segment_cost, later_segments_cost));
+    // Compute memory consumption
+    bool satisfy_memory_constraint = true;
+    // We may apply actions to reduce memory consumption in future, so we only need to evaluate the memory constraint
+    // up to action_plan_end_index_
+    for (auto segment_index = action_start_segment_index_; segment_index <= action_plan_end_index_; segment_index++) {
+      size_t memory = PilotUtil::CalculateMemoryConsumption(planning_context.GetMemoryInfo(), new_action_state,
+                                                            segment_index, action_map);
+      if (memory > memory_constraint) satisfy_memory_constraint = false;
+    }
+    // For bookkeeping purpose
+    size_t plan_end_memory_consumption = PilotUtil::CalculateMemoryConsumption(
+        planning_context.GetMemoryInfo(), new_action_state, action_plan_end_index_, action_map);
 
-    // apply one reverse action to undo the above
-    auto rev_actions = action_map.at(action_id)->GetReverseActions();
-    PilotUtil::ApplyAction(pilot, action_map.at(rev_actions[0])->GetSQLCommand(),
-                           action_map.at(rev_actions[0])->GetDatabaseOid());
+    // Initialize to large enough value when the memory constraint is not satisfied
+    double child_segment_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
+    double later_segments_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
+    if (satisfy_memory_constraint) {
+      PilotUtil::ApplyAction(planning_context, action_ptr->GetSQLCommand(), action_ptr->GetDatabaseOid(),
+                             Pilot::WHAT_IF);
+
+      child_segment_cost =
+          PilotUtil::ComputeCost(planning_context, forecast, action_start_segment_index_, action_plan_end_index_);
+      if (action_plan_end_index_ == tree_end_segment_index)
+        later_segments_cost = 0;
+      else
+        later_segments_cost =
+            PilotUtil::ComputeCost(planning_context, forecast, action_plan_end_index_ + 1, tree_end_segment_index);
+
+      // apply one reverse action to undo the above
+      auto rev_actions = action_ptr->GetReverseActions();
+      PilotUtil::ApplyAction(planning_context, action_map.at(rev_actions[0])->GetSQLCommand(),
+                             action_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
+    }
+
+    // Add new child with proper action state
+    new_action_state.SetIntervals(action_plan_end_index_ + 1, tree_end_segment_index);
+    children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, action_plan_end_index_ + 1,
+                                                   child_segment_cost, later_segments_cost, plan_end_memory_consumption,
+                                                   new_action_state));
+
+    // Reverse the action state
+    action_map.at(action_ptr->GetReverseActions()[0])->ModifyActionState(&new_action_state);
   }
 }
 
-void TreeNode::BackPropogate(common::ManagedPointer<Pilot> pilot,
+void TreeNode::BackPropogate(const PlanningContext &planning_context,
                              const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                              bool use_min_cost) {
   auto curr = common::ManagedPointer(this);
@@ -148,8 +220,8 @@ void TreeNode::BackPropogate(common::ManagedPointer<Pilot> pilot,
   auto num_expansion = children_.size();
   while (curr != nullptr && curr->parent_ != nullptr) {
     auto rev_action = action_map.at(curr->current_action_)->GetReverseActions()[0];
-    PilotUtil::ApplyAction(pilot, action_map.at(rev_action)->GetSQLCommand(),
-                           action_map.at(rev_action)->GetDatabaseOid());
+    PilotUtil::ApplyAction(planning_context, action_map.at(rev_action)->GetSQLCommand(),
+                           action_map.at(rev_action)->GetDatabaseOid(), Pilot::WHAT_IF);
     if (use_min_cost) {
       curr->cost_ = std::min(curr->cost_, expanded_cost);
     } else {

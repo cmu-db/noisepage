@@ -65,7 +65,6 @@ namespace noisepage::selfdriving {
 namespace pilot {
 class AbstractAction;
 class MonteCarloTreeSearch;
-class SequenceTuning;
 class TreeNode;
 class ActionTreeNode;
 }  // namespace pilot
@@ -130,13 +129,6 @@ class Pilot {
   void ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq);
 
   /**
-   * Search for and apply the best set of actions for the current timestamp using the Sequence Tuning baseline
-   * @param best_actions_seq pointer to the vector to be filled with the sequence of set of best actions to take at
-   * current time
-   */
-  void ActionSearchBaseline(std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq);
-
-  /**
    * Performs training of the forecasting model
    */
   void PerformForecasterTrain() {
@@ -158,7 +150,6 @@ class Pilot {
   pilot::PlanningContext planning_context_;
 
   Forecaster forecaster_;
-  pilot::MemoryInfo memory_info_;
   uint64_t action_planning_horizon_{15};
   uint64_t simulation_number_{20};
 
