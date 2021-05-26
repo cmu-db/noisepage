@@ -1,13 +1,17 @@
 #include "execution/compiler/compiler.h"
 
+#include <sstream>
+
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
+#include "execution/compiler/compiler_settings.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/module.h"
+#include "execution/vm/module_metadata.h"
 
 namespace noisepage::execution::compiler {
 
@@ -17,11 +21,12 @@ namespace noisepage::execution::compiler {
 //
 //===----------------------------------------------------------------------===//
 
-Compiler::Input::Input(std::string name, ast::Context *context, const std::string *source)
-    : name_(std::move(name)), context_(context), root_(nullptr), source_(source) {}
+Compiler::Input::Input(std::string name, ast::Context *context, const std::string *source,
+                       const CompilerSettings settings)
+    : name_(std::move(name)), context_(context), root_(nullptr), source_(source), settings_(settings) {}
 
-Compiler::Input::Input(std::string name, ast::Context *context, ast::AstNode *root)
-    : name_(std::move(name)), context_(context), root_(root), source_(nullptr) {}
+Compiler::Input::Input(std::string name, ast::Context *context, ast::AstNode *root, const CompilerSettings settings)
+    : name_(std::move(name)), context_(context), root_(root), source_(nullptr), settings_(settings) {}
 
 //===----------------------------------------------------------------------===//
 //
@@ -106,7 +111,24 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
     return;
   }
 
-  auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
+  // Record any metadata necessary before the relevant data-structures are destroyed.
+  const auto &settings = input_.GetSettings();
+  vm::CompileTimeModuleMetadata metadata;
+  {
+    if (settings.ShouldCaptureTPL()) {
+      std::ostringstream stream;
+      ast::AstPrettyPrint::Dump(stream, root_);
+      metadata.SetTPL(stream.str());
+    }
+    if (settings.ShouldCaptureTBC()) {
+      std::ostringstream stream;
+      bytecode_module->Dump(stream);
+      metadata.SetTBC(stream.str());
+    }
+  }
+  vm::ModuleMetadata module_metadata(std::move(metadata));
+
+  auto module = std::make_unique<vm::Module>(std::move(bytecode_module), std::move(module_metadata));
 
   // Errors?
   if (GetErrorReporter()->HasErrors()) {

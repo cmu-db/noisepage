@@ -186,7 +186,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
   main_builder.AddTeardownFn(teardown);
 
   // Compile and finish.
-  fragments.emplace_back(main_builder.Compile());
+  fragments.emplace_back(main_builder.Compile(query_->GetExecutionSettings().GetCompilerSettings()));
   query_->Setup(std::move(fragments), query_state_.GetSize(), codegen_.ReleasePipelineOperatingUnits());
 }
 
