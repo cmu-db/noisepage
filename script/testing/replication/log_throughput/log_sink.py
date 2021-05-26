@@ -1,10 +1,10 @@
 import os
 from threading import Thread
-from typing import BinaryIO
+from typing import BinaryIO, Tuple, Union
 
 import zmq
 
-from .constants import ENDIAN, SIZE_LENGTH
+from .constants import ENDIAN, SIZE_LENGTH, UTF_8, RECORDS_BATCH
 from .node_server import ImposterNode
 from ...util.constants import LOG
 
@@ -86,14 +86,18 @@ class LogSink(ImposterNode):
         f
             file to save message to
         """
-        log_record_msg = self.recv_log_record()
-        size: int = len(log_record_msg)
-        f.write(size.to_bytes(SIZE_LENGTH, ENDIAN))
-        f.write(log_record_msg)
-        msg_id = self.extract_msg_id(log_record_msg)
+        first_msg, second_msg = self.recv_log_record()
+        first_size: int = len(first_msg)
+        f.write(first_size.to_bytes(SIZE_LENGTH, ENDIAN))
+        f.write(first_msg)
+        msg_id = self.extract_msg_id(first_msg)
+        if second_msg:
+            second_size: int = len(second_msg)
+            f.write(second_size.to_bytes(SIZE_LENGTH, ENDIAN))
+            f.write(second_msg)
         self.send_ack_msg(msg_id, self.router_socket)
 
-    def recv_log_record(self) -> bytes:
+    def recv_log_record(self) -> Tuple[bytes, Union[bytes, None]]:
         """
         Receive a log record message from the primary node (can also be a Notify OAT message)
 
@@ -104,7 +108,12 @@ class LogSink(ImposterNode):
         """
         identity = self.recv_msg(self.router_socket)
         empty_msg = self.recv_msg(self.router_socket)
-        return self.recv_msg(self.router_socket)
+        first_msg = self.recv_msg(self.router_socket)
+        second_msg = None
+        # Records batch is broken into two messages
+        if RECORDS_BATCH in first_msg:
+            second_msg = self.recv_msg(self.router_socket)
+        return first_msg, second_msg
 
     def run(self):
         pass

@@ -124,6 +124,8 @@ METRICS_ELAPSED_TIME_COL = "elapsed_us"
 ENDIAN = "big"
 # Length in bytes of the size of the next message
 SIZE_LENGTH = sys.getsizeof(int)
+# Records batch message type
+RECORDS_BATCH = b"RECORDS_BATCH"
 
 # Misc
 UTF_8 = "utf-8"

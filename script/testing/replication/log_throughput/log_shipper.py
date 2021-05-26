@@ -1,11 +1,11 @@
 from threading import Thread
 from time import sleep
-from typing import BinaryIO
+from typing import BinaryIO, Union, Tuple
 
 import zmq
 from zmq import Socket
 
-from .constants import SIZE_LENGTH, ENDIAN
+from .constants import SIZE_LENGTH, ENDIAN, RECORDS_BATCH
 from .node_server import ImposterNode
 from ...util.constants import LOG
 
@@ -92,7 +92,7 @@ class LogShipper(ImposterNode):
 
         LOG.info("Log shipping has completed")
 
-    def read_messages(self):
+    def read_messages(self) -> Tuple[bytes, Union[None, bytes]]:
         """
         Reads in messages from log file
         """
@@ -100,7 +100,13 @@ class LogShipper(ImposterNode):
             size_bytes = f.read(SIZE_LENGTH)
             while size_bytes:
                 size = int.from_bytes(size_bytes, ENDIAN)
-                yield f.read(size)
+                first_msg = f.read(size)
+                second_msg = None
+                if RECORDS_BATCH in first_msg:
+                    size_bytes = f.read(SIZE_LENGTH)
+                    size = int.from_bytes(size_bytes, ENDIAN)
+                    second_msg = f.read(size)
+                yield first_msg, second_msg
                 size_bytes = f.read(SIZE_LENGTH)
 
     def retry_pending_msgs(self):
@@ -110,21 +116,28 @@ class LogShipper(ImposterNode):
         # Drain ACKs
         while self.has_pending_messages(self.replica_dealer_socket, 0):
             self.recv_log_record_ack()
-        for pending_message in self.pending_log_msgs.values():
-            self.send_msg([b"", pending_message], self.replica_dealer_socket)
+        for first_msg, second_msg in self.pending_log_msgs.values():
+            if second_msg:
+                self.send_msg([b"", first_msg, second_msg], self.replica_dealer_socket)
+            else:
+                self.send_msg([b"", first_msg], self.replica_dealer_socket)
 
-    def send_log_record(self, log_record_message: bytes):
+    def send_log_record(self, message: Tuple[bytes, Union[bytes, None]]):
         """
         Send log record message to replica
 
         Parameters
         ----------
-        log_record_message
-            Log record to send (can also be a Notify OAT message)
+        message
+            Log records to send (can also be a Notify OAT message)
         """
-        self.send_msg([b"", log_record_message], self.replica_dealer_socket)
-        msg_id = self.extract_msg_id(log_record_message)
-        self.pending_log_msgs[msg_id] = log_record_message
+        first_msg, second_msg = message
+        if second_msg:
+            self.send_msg([b"", first_msg, second_msg], self.replica_dealer_socket)
+        else:
+            self.send_msg([b"", first_msg], self.replica_dealer_socket)
+        msg_id = self.extract_msg_id(first_msg)
+        self.pending_log_msgs[msg_id] = (first_msg, second_msg)
 
     def recv_thread_action(self):
         """
