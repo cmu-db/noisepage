@@ -110,6 +110,9 @@ class DatabaseCatalog {
   common::ManagedPointer<storage::index::Index> GetIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                                                          index_oid_t index);
 
+  /** @brief Get the name of the specified index */
+  std::string_view GetIndexName(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
+
   /** @brief Get the schema for the specified table. */
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
   /** @brief Get the index schema for the specified index. */
@@ -287,6 +290,13 @@ class DatabaseCatalog {
   bool CreateIndexEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
                         table_oid_t table_oid, index_oid_t index_oid, const std::string &name,
                         const IndexSchema &schema);
+
+  /**
+   * @brief Creates table statistics in pg_statistic. Should only be called on valid tables, currently only called by
+   * CreateTableEntry after known to succeed.
+   */
+  void CreateTableStatisticEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                                 const Schema &schema);
   /**
    * @brief Delete all of the indexes for a given table.
    *

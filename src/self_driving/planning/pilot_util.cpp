@@ -266,11 +266,11 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     metrics_manager->SetMetricSampleRate(metrics::MetricsComponent::EXECUTION_PIPELINE, old_sample_rate);
     if (!old_metrics_enable) metrics_manager->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
   }
-  //  SELFDRIVING_LOG_DEBUG("Printing qid and pipeline id to sanity check pipeline metrics recorded");
-  //  for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
-  //    SELFDRIVING_LOG_DEBUG(fmt::format("qid: {}; pipeline_id: {}", static_cast<uint>(it->query_id_),
-  //                                      static_cast<uint32_t>(it->pipeline_id_)));
-  //  }
+  SELFDRIVING_LOG_DEBUG("Printing qid and pipeline id to sanity check pipeline metrics recorded");
+  for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
+    SELFDRIVING_LOG_DEBUG(fmt::format("qid: {}; pipeline_id: {}", static_cast<uint>(it->query_id_),
+                                      static_cast<uint32_t>(it->pipeline_id_)));
+  }
 
   return aggregated_data;
 }

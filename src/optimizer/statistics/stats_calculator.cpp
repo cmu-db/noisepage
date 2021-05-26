@@ -1,20 +1,14 @@
 #include "optimizer/statistics/stats_calculator.h"
 
-#include <algorithm>
-#include <cmath>
 #include <memory>
-#include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog_accessor.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/statistics/selectivity_util.h"
-#include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
 #include "parser/expression/column_value_expression.h"
@@ -38,16 +32,18 @@ void StatsCalculator::Visit(const LogicalGet *op) {
   auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
 
   // Compute selectivity at the first time
-  if (root_group->GetNumRows() == -1) {
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
     const auto latched_table_stats_reference = context_->GetStatsStorage()->GetTableStats(
         op->GetDatabaseOid(), op->GetTableOid(), context_->GetCatalogAccessor());
 
     NOISEPAGE_ASSERT(latched_table_stats_reference.table_stats_.GetColumnCount() != 0,
                      "Should have table stats for all tables");
     // Use predicates to estimate cardinality.
-    auto est = EstimateCardinalityForFilter(latched_table_stats_reference.table_stats_.GetNumRows(),
-                                            latched_table_stats_reference.table_stats_, op->GetPredicates());
-    root_group->SetNumRows(static_cast<int>(est));
+    size_t table_num_rows = latched_table_stats_reference.table_stats_.GetNumRows();
+    root_group->SetTableNumRows(table_num_rows);
+    auto est = EstimateCardinalityForFilter(root_group, table_num_rows, latched_table_stats_reference.table_stats_,
+                                            op->GetPredicates());
+    root_group->SetNumRows(static_cast<size_t>(est));
   }
 }
 
@@ -65,7 +61,7 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
 
   // Calculate output num rows first
-  if (root_group->GetNumRows() == -1) {
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
     size_t curr_rows = left_child_group->GetNumRows() * right_child_group->GetNumRows();
     for (const auto &annotated_expr : op->GetJoinPredicates()) {
       // See if there are join conditions
@@ -79,10 +75,10 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
          *  i.e. if predicate 1 matches two rows and predicate 2 matches the same two rows, then predicate 2 will have
          *  no affect on the total row count but we will unnecessary lower the total row count.
          */
-        curr_rows /= std::max(std::max(left_child_group->GetNumRows(), right_child_group->GetNumRows()), 1);
+        curr_rows /= std::max(std::max(left_child_group->GetNumRows(), right_child_group->GetNumRows()), 1UL);
       }
     }
-    root_group->SetNumRows(static_cast<int>(curr_rows));
+    root_group->SetNumRows(static_cast<size_t>(curr_rows));
   }
 
   // TODO(boweic): calculate stats based on predicates other than join conditions
@@ -96,7 +92,7 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
   auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
 
   // Calculate output num rows first
-  if (root_group->GetNumRows() == -1) {
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
     size_t curr_rows = left_child_group->GetNumRows() * right_child_group->GetNumRows();
     for (const auto &annotated_expr : op->GetJoinPredicates()) {
       // See if there are join conditions
@@ -110,10 +106,10 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
          *  i.e. if predicate 1 matches two rows and predicate 2 matches the same two rows, then predicate 2 will have
          *  no affect on the total row count but we will unnecessary lower the total row count.
          */
-        curr_rows /= std::max(std::max(left_child_group->GetNumRows(), right_child_group->GetNumRows()), 1);
+        curr_rows /= std::max(std::max(left_child_group->GetNumRows(), right_child_group->GetNumRows()), 1UL);
       }
     }
-    root_group->SetNumRows(static_cast<int>(curr_rows));
+    root_group->SetNumRows(static_cast<size_t>(curr_rows));
   }
 }
 
@@ -131,15 +127,61 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Limit must have 1 child");
   auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   auto *group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
-  group->SetNumRows(std::min(static_cast<int>(op->GetLimit()), child_group->GetNumRows()));
+  group->SetNumRows(std::min(static_cast<size_t>(op->GetLimit()), child_group->GetNumRows()));
 }
 
-size_t StatsCalculator::EstimateCardinalityForFilter(size_t num_rows, const TableStats &predicate_stats,
+void StatsCalculator::Visit(const LogicalInsert *op) {
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 0, "Insert should not have children");
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Get the number of rows to insert from the operator
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    root_group->SetNumRows(op->GetValues()->size());
+  }
+}
+
+void StatsCalculator::Visit(const LogicalUpdate *op) {
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Update must have one child");
+  auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Pass in num rows from the child
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    root_group->SetNumRows(child_group->GetNumRows());
+  }
+}
+
+void StatsCalculator::Visit(const LogicalDelete *op) {
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Delete must have one children");
+  auto *child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Pass in num rows from the child
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    root_group->SetNumRows(child_group->GetNumRows());
+  }
+}
+
+void StatsCalculator::Visit(const LogicalCreateIndex *op) {
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Compute selectivity at the first time
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    const auto latched_table_stats_reference = context_->GetStatsStorage()->GetTableStats(
+        op->GetDatabaseOid(), op->GetTableOid(), context_->GetCatalogAccessor());
+
+    size_t table_num_rows = latched_table_stats_reference.table_stats_.GetNumRows();
+    root_group->SetTableNumRows(table_num_rows);
+    root_group->SetNumRows(table_num_rows);
+  }
+}
+
+size_t StatsCalculator::EstimateCardinalityForFilter(Group *group, size_t num_rows, const TableStats &predicate_stats,
                                                      const std::vector<AnnotatedExpression> &predicates) {
   double selectivity = 1.F;
   for (const auto &annotated_expr : predicates) {
     // Loop over conjunction exprs
-    selectivity *= CalculateSelectivityForPredicate(predicate_stats, annotated_expr.GetExpr());
+    selectivity *= CalculateSelectivityForPredicate(group, predicate_stats, annotated_expr.GetExpr());
   }
 
   // Update selectivity
@@ -148,7 +190,7 @@ size_t StatsCalculator::EstimateCardinalityForFilter(size_t num_rows, const Tabl
 
 // Calculate the selectivity given the predicate and the stats of columns in the
 // predicate
-double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predicate_table_stats,
+double StatsCalculator::CalculateSelectivityForPredicate(Group *group, const TableStats &predicate_table_stats,
                                                          common::ManagedPointer<parser::AbstractExpression> expr) {
   double selectivity = 1.F;
   if (predicate_table_stats.GetColumnCount() == 0) {
@@ -156,7 +198,19 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
   }
 
   if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_NOT) {
-    selectivity = 1 - CalculateSelectivityForPredicate(predicate_table_stats, expr->GetChild(0));
+    selectivity = 1 - CalculateSelectivityForPredicate(group, predicate_table_stats, expr->GetChild(0));
+  } else if (expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+    NOISEPAGE_ASSERT(expr->GetChildrenSize() == 0, "CVE should have no child.");
+    auto cve = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
+    NOISEPAGE_ASSERT(
+        cve->GetReturnValueType() == type::TypeId::BOOLEAN,
+        "Single child ConstantValueExpression should be a boolean since WHERE clauses must resolve to boolean.");
+    if (cve->IsNull() || !cve->GetBoolVal().val_) {
+      selectivity = 0;
+    }
+  } else if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST) {
+    NOISEPAGE_ASSERT(expr->GetChildrenSize() == 1, "Cast should have a single child.");
+    selectivity = CalculateSelectivityForPredicate(group, predicate_table_stats, expr->GetChild(0));
   } else if (expr->GetChildrenSize() == 1 &&
              expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
     auto child_expr = expr->GetChild(0);
@@ -165,6 +219,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
     auto expr_type = expr->GetExpressionType();
     ValueCondition condition(col_oid, col_name, expr_type, nullptr);
     selectivity = SelectivityUtil::ComputeSelectivity(predicate_table_stats, condition);
+    group->AddFilterColumnSelectivity(col_oid, selectivity);
   } else if ((expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
               (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT ||
                expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_PARAMETER)) ||
@@ -203,10 +258,11 @@ double StatsCalculator::CalculateSelectivityForPredicate(const TableStats &predi
 
     ValueCondition condition(col_oid, col_name, expr_type, std::move(value));
     selectivity = SelectivityUtil::ComputeSelectivity(predicate_table_stats, condition);
+    group->AddFilterColumnSelectivity(col_oid, selectivity);
   } else if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND ||
              expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {
-    double left_selectivity = CalculateSelectivityForPredicate(predicate_table_stats, expr->GetChild(0));
-    double right_selectivity = CalculateSelectivityForPredicate(predicate_table_stats, expr->GetChild(1));
+    double left_selectivity = CalculateSelectivityForPredicate(group, predicate_table_stats, expr->GetChild(0));
+    double right_selectivity = CalculateSelectivityForPredicate(group, predicate_table_stats, expr->GetChild(1));
     if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
       selectivity = left_selectivity * right_selectivity;
     } else {
