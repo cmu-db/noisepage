@@ -162,6 +162,20 @@ void StatsCalculator::Visit(const LogicalDelete *op) {
   }
 }
 
+void StatsCalculator::Visit(const LogicalCreateIndex *op) {
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Compute selectivity at the first time
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    const auto latched_table_stats_reference = context_->GetStatsStorage()->GetTableStats(
+        op->GetDatabaseOid(), op->GetTableOid(), context_->GetCatalogAccessor());
+
+    size_t table_num_rows = latched_table_stats_reference.table_stats_.GetNumRows();
+    root_group->SetTableNumRows(table_num_rows);
+    root_group->SetNumRows(table_num_rows);
+  }
+}
+
 size_t StatsCalculator::EstimateCardinalityForFilter(Group *group, size_t num_rows, const TableStats &predicate_stats,
                                                      const std::vector<AnnotatedExpression> &predicates) {
   double selectivity = 1.F;
