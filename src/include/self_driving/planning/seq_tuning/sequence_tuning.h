@@ -26,7 +26,7 @@ class SequenceTuning {
  public:
   /**
    * Constructor for SequenceTuning, same as that of Monte Carlo Search Tree
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    */

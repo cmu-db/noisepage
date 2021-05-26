@@ -27,7 +27,7 @@ class GraphSolver {
  public:
   /**
    * Constructor for GraphSolver. Initialize the DAG while finding the shortest via dynamic programming simultaneously.
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    * @param structure_map map from each action id to a structure/create index action
@@ -53,7 +53,7 @@ class GraphSolver {
  private:
   /**
    * Is a config valid by having all structures in it valid.
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param structure_map map from each action id to a structure/create index action
    * @param config_set set of structures constituting the current config
    * @return if all structure in the config are valid
@@ -64,7 +64,7 @@ class GraphSolver {
 
   /**
    * Computes the cost of a segment with a certain configuration.
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to workload forecast
    * @param structure_map map from each action id to a structure/create index action
    * @param config_set set of structures constituting the current config

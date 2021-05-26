@@ -97,7 +97,8 @@ double SequenceTuning::UnionPair(const PathSolution &path_one, const PathSolutio
   auto const &seq_one = path_one.config_on_path_;
   auto const &seq_two = path_two.config_on_path_;
 
-  NOISEPAGE_ASSERT(seq_one.size() == seq_two.size(), "UnionPair requires two sequences of same length");
+  NOISEPAGE_ASSERT(seq_one.size() == seq_two.size() && seq_one.size() == end_segment_index_ + 2,
+                   "UnionPair requires two sequences both of length end_segment_index_ + 2");
 
   // merge the configurations for each segment, here we skip index 0 that corresponds to the dummy source
   for (uint64_t structure_idx = 1; structure_idx < seq_one.size(); structure_idx++) {
