@@ -96,7 +96,8 @@ double SequenceTuning::UnionPair(const PathSolution &path_one, const PathSolutio
 
   NOISEPAGE_ASSERT(seq_one.size() == seq_two.size(), "UnionPair requires two sequences of same length");
 
-  for (uint64_t structure_idx = 0; structure_idx < seq_one.size(); structure_idx++) {
+  // merge the configurations for each segment, here we skip index 0 that corresponds to the dummy source
+  for (uint64_t structure_idx = 1; structure_idx < seq_one.size(); structure_idx++) {
     std::set<std::set<action_id_t>> curr_level;
     curr_level.insert(seq_one.at(structure_idx));
     curr_level.insert(seq_two.at(structure_idx));
@@ -174,7 +175,7 @@ void SequenceTuning::MergeConfigs(std::multiset<PathSolution> *global_path_set,
     // remove the least-cost path
     global_path_set->erase(global_path_set->begin());
 
-    auto best_couple_pair = *(global_path_set->begin());
+    auto best_couple_pair_it = global_path_set->begin();
     double best_union_cost = least_cost_path.path_length_;
 
     auto config_set = least_cost_path.unique_config_on_path_;
@@ -182,12 +183,12 @@ void SequenceTuning::MergeConfigs(std::multiset<PathSolution> *global_path_set,
 
     // go through each solution in P to see if there's another path where their unioned solution is better
     PathSolution best_merged_solution;
-    for (auto const &path_it : *global_path_set) {
+    for (auto path_it = global_path_set->begin(); path_it != global_path_set->end(); ++path_it) {
       PathSolution merged_solution;
-      double union_cost = UnionPair(least_cost_path, path_it, memory_constraint, &merged_solution);
+      double union_cost = UnionPair(least_cost_path, *path_it, memory_constraint, &merged_solution);
 
       if (union_cost < best_union_cost) {
-        best_couple_pair = path_it;
+        best_couple_pair_it = path_it;
         best_union_cost = union_cost;
         best_merged_solution = std::move(merged_solution);
       }
@@ -196,7 +197,7 @@ void SequenceTuning::MergeConfigs(std::multiset<PathSolution> *global_path_set,
     // if there's a pair whose unioned solution is better than the least-cost solution alone, remove the other path and
     // add the combined solution to P
     if (best_union_cost < least_cost_path.path_length_) {
-      global_path_set->erase(best_couple_pair);
+      global_path_set->erase(best_couple_pair_it);
       SELFDRIVING_LOG_DEBUG("[GreedySeq] new path added to global_path_set with distance {} number of config {}",
                             best_union_cost, best_merged_solution.unique_config_on_path_.size());
       global_path_set->emplace(std::move(best_merged_solution));

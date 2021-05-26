@@ -141,6 +141,7 @@ double GraphSolver::RecoverShortestPath(PathSolution *shortest_path) {
   }
 
   std::reverse(best_config_path->begin(), best_config_path->end());
+  shortest_path->path_length_ = dest_node_->GetBestDist();
 
   return dest_node_->GetBestDist();
 }

@@ -121,6 +121,12 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
 
 void Pilot::ActionSearchBaseline(
     std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq) {
+  std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
+  for (auto db_oid : db_oids) planning_context_.AddDatabase(db_oid);
+
+  auto memory_info = PilotUtil::ComputeMemoryInfo(planning_context_, forecast_.get());
+  planning_context_.SetMemoryInfo(std::move(memory_info));
+
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
@@ -139,6 +145,10 @@ void Pilot::ActionSearchBaseline(
     }
     best_actions_seq->emplace_back(action_set);
   }
+
+  // Invalidate database and memory information
+  planning_context_.ClearDatabases();
+  planning_context_.SetMemoryInfo(pilot::MemoryInfo());
 
   for (auto const &action : *best_actions_seq->begin())
     PilotUtil::ApplyAction(planning_context_, action.first, action.second, false);
