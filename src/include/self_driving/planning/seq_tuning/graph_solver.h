@@ -35,9 +35,8 @@ class GraphSolver {
    * @param candidate_configurations_by_segment set of candidate configurations per segment
    * @param memory_constraint maximum allowed memory in bytes
    */
-  GraphSolver(const PlanningContext &planning_context,
-              common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
-              const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
+  GraphSolver(const PlanningContext &planning_context, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+              uint64_t end_segment_index, const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
               const std::vector<double> &default_segment_cost,
               const std::vector<std::set<std::set<action_id_t>>> &candidate_configurations_by_segment,
               uint64_t memory_constraint);
