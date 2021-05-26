@@ -114,6 +114,8 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   // Invalidate database and memory information
   planning_context_.ClearDatabases();
   planning_context_.SetMemoryInfo(pilot::MemoryInfo());
+
+  // Apply the best action WITHOUT "what-if"
   PilotUtil::ApplyAction(planning_context_, best_action.GetActionText(), best_action.GetDbOid(), false);
 }
 

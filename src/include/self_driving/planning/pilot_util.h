@@ -177,29 +177,6 @@ class PilotUtil {
                                              const WorkloadForecast *forecast);
 
   /**
-   * Get the ratios between estimated future table sizes (given the forecasted workload) and current table sizes
-   * @param forecast Workload forecast information
-   * @param task_manager Task manager pointer
-   * @param txn_manager Transaction manager pointer
-   * @param catalog Catalog pointer
-   * @param memory_info Object that stores the returned table size info
-   */
-  static void ComputeTableSizeRatios(const WorkloadForecast *forecast,
-                                     common::ManagedPointer<task::TaskManager> task_manager,
-                                     common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
-
-  /**
-   * Get the current table and index heap memory usage
-   * TODO(lin): we should get this information from the stats if the pilot is not running on the primary. But since
-   *   we don't have this in stats yet we're directly getting the information from c++ objects.
-   * @param txn_manager Transaction manager pointer
-   * @param catalog Catalog pointer
-   * @param memory_info Object that stores the returned memory info
-   */
-  static void ComputeTableIndexSizes(common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                                     common::ManagedPointer<catalog::Catalog> catalog, pilot::MemoryInfo *memory_info);
-  /**
    * Computing the transition cost from one configuration to another.
    * @param structure_map action map containing information about the indexes/structures
    * @param start_config initial config
@@ -209,13 +186,6 @@ class PilotUtil {
   static double ConfigTransitionCost(
       const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
       const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config);
-
-  /**
-   * Utility function for printing a configuration (set of structures)
-   * @param config_set configuration
-   * @return string representation
-   */
-  static std::string ConfigToString(const std::set<pilot::action_id_t> &config_set);
 
  private:
   /**
