@@ -63,7 +63,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     }
     result = t_cop->ExecuteDropStatement(connection_ctx, physical_plan, query_type);
   } else if (query_type == network::QueryType::QUERY_EXPLAIN) {
-    result = t_cop->ExecuteExplainStatement(connection_ctx, out, portal->GetStatement(), physical_plan);
+    result = t_cop->ExecuteExplainStatement(connection_ctx, out, portal);
   }
 
   if (result.type_ == trafficcop::ResultType::COMPLETE) {

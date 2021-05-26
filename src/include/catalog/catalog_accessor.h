@@ -283,6 +283,13 @@ class EXPORT CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
   /**
+   * Obtain the name of the index
+   * @param index to which we want the name. The oid must be valid, otherwise triggers assertion
+   * @return name of the index.
+   */
+  std::string_view GetIndexName(index_oid_t index) const;
+
+  /**
    * Adds a language to the catalog (with default parameters for now) if
    * it doesn't exist in pg_language already
    * @param lanname name of language

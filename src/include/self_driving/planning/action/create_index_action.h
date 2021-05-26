@@ -15,6 +15,8 @@ class CreateIndexPlanNode;
 
 namespace selfdriving::pilot {
 
+class ActionState;
+
 /**
  * Represent a create index self-driving action
  */
@@ -25,13 +27,15 @@ class CreateIndexAction : public AbstractAction {
    * @param db_oid Database id of the index
    * @param index_name Name of the index
    * @param table_name The table to create index on
+   * @param table_oid The oid of the table to create index on
    * @param columns The columns to build index on
    */
   CreateIndexAction(catalog::db_oid_t db_oid, std::string index_name, std::string table_name,
-                    std::vector<IndexColumn> columns)
+                    catalog::table_oid_t table_oid, std::vector<IndexColumn> columns)
       : AbstractAction(ActionType::CREATE_INDEX, db_oid),
         index_name_(std::move(index_name)),
         table_name_(std::move(table_name)),
+        table_oid_(table_oid),
         columns_(std::move(columns)) {
     NOISEPAGE_ASSERT(!columns_.empty(), "Should not create index without any columns!");
 
@@ -47,9 +51,17 @@ class CreateIndexAction : public AbstractAction {
    */
   const std::string &GetIndexName() const { return index_name_; }
 
+  /**
+   * @return Table oid of this index
+   */
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  void ModifyActionState(ActionState *action_state) override;
+
  private:
   std::string index_name_;
   std::string table_name_;
+  catalog::table_oid_t table_oid_;
   std::vector<IndexColumn> columns_;
 
   // TODO(Lin): Add other create index specific options, e.g., the # threads

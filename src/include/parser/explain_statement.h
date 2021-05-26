@@ -7,7 +7,8 @@
 
 namespace noisepage::parser {
 
-enum class ExplainStatementFormat : uint8_t { JSON, TPL };
+/** The format of the explain statement's output. */
+enum class ExplainStatementFormat : uint8_t { JSON, TPL, TBC };
 
 /**
  * Represents the SQL "EXPLAIN ..."

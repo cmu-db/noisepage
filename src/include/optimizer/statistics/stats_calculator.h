@@ -80,6 +80,12 @@ class StatsCalculator : public OperatorVisitor {
    */
   void Visit(const LogicalDelete *op) override;
 
+  /**
+   * Visit a LogicalCreateIndex
+   * @param op Operator being visited
+   */
+  void Visit(const LogicalCreateIndex *op) override;
+
  private:
   /**
    * Return estimated cardinality for a filter

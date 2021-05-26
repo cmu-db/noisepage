@@ -1889,6 +1889,8 @@ std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *
         // lowercase
         if (strncmp(format_cstr, "tpl", 3) == 0) {
           result->SetFormat(ExplainStatementFormat::TPL);
+        } else if (strncmp(format_cstr, "tbc", 3) == 0) {
+          result->SetFormat(ExplainStatementFormat::TBC);
         } else if (strncmp(format_cstr, "json", 4) == 0) {
           // this is the default format for us anyway so it's a noop
           NOISEPAGE_ASSERT(result->GetFormat() == ExplainStatementFormat::JSON,
