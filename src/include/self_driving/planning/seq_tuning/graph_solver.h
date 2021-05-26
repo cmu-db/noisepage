@@ -36,7 +36,7 @@ class GraphSolver {
    * @param memory_constraint maximum allowed memory in bytes
    */
   GraphSolver(const PlanningContext &planning_context,
-              const common::ManagedPointer<selfdriving::WorkloadForecast> forecast, const uint64_t end_segment_index,
+              common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
               const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
               const std::vector<double> &default_segment_cost,
               const std::vector<std::set<std::set<action_id_t>>> &candidate_configurations_by_segment,
@@ -58,9 +58,9 @@ class GraphSolver {
    * @param config_set set of structures constituting the current config
    * @return if all structure in the config are valid
    */
-  bool IsValidConfig(const PlanningContext &planning_context,
-                     const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
-                     const std::set<action_id_t> &config_set);
+  static bool IsValidConfig(const PlanningContext &planning_context,
+                            const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
+                            const std::set<action_id_t> &config_set);
 
   /**
    * Computes the cost of a segment with a certain configuration.
@@ -71,10 +71,10 @@ class GraphSolver {
    * @param segment_index index of current segment
    * @return cost of executing queries in current segment with the set of structures in current config
    */
-  double ComputeConfigCost(const PlanningContext &planning_context,
-                           const common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                           const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
-                           const std::set<action_id_t> &config_set, uint64_t segment_index);
+  static double ComputeConfigCost(const PlanningContext &planning_context,
+                                  common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                                  const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
+                                  const std::set<action_id_t> &config_set, uint64_t segment_index);
 
   static constexpr double MEMORY_CONSUMPTION_VIOLATION_COST = 1e10;
 

@@ -1,12 +1,10 @@
 #include "self_driving/planning/seq_tuning/graph_solver.h"
 
 #include <cmath>
-#include <random>
 
 #include "loggers/selfdriving_logger.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/planning/action/abstract_action.h"
-#include "self_driving/planning/memory_info.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
 #include "self_driving/planning/seq_tuning/path_solution.h"
@@ -14,8 +12,7 @@
 namespace noisepage::selfdriving::pilot {
 
 GraphSolver::GraphSolver(const PlanningContext &planning_context,
-                         const common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
-                         const uint64_t end_segment_index,
+                         common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
                          const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                          const std::vector<double> &default_segment_cost,
                          const std::vector<std::set<std::set<action_id_t>>> &candidate_configurations_by_segment,
@@ -89,7 +86,7 @@ GraphSolver::GraphSolver(const PlanningContext &planning_context,
 }
 
 double GraphSolver::ComputeConfigCost(const PlanningContext &planning_context,
-                                      const common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                                      common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                       const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                                       const std::set<action_id_t> &config_set, uint64_t segment_index) {
   for (auto const action : config_set) {
