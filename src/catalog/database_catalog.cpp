@@ -219,14 +219,6 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
   return common::ManagedPointer(reinterpret_cast<storage::index::Index *>(ptr_pair.first));
 }
 
-std::string_view DatabaseCatalog::GetIndexName(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                               index_oid_t index) {
-  const auto name_pair = pg_core_.GetClassNameKind(txn, index.UnderlyingValue());
-  NOISEPAGE_ASSERT(name_pair.second == postgres::PgClass::RelKind::INDEX,
-                   "Called GetIndexName with an OID for an object that doesn't have type INDEX");
-  return name_pair.first;
-}
-
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const table_oid_t table) {
   const auto ptr_pair = pg_core_.GetClassSchemaPtrKind(txn, table.UnderlyingValue());
@@ -342,19 +334,14 @@ void DatabaseCatalog::BootstrapIndex(const common::ManagedPointer<transaction::T
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
-  if (pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema)) {
-    CreateTableStatisticEntry(txn, table_oid, GetSchema(txn, table_oid));
-    return true;
-  }
-  return false;
-}
-
-void DatabaseCatalog::CreateTableStatisticEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                                const table_oid_t table_oid, const Schema &schema) {
   // Create associated entries in pg_statistic.
-  for (const auto &col : schema.GetColumns()) {
-    pg_stat_.CreateColumnStatistic(txn, table_oid, col.Oid(), col);
+  {
+    col_oid_t col_oid(1);
+    for (auto &col : schema.GetColumns()) {
+      pg_stat_.CreateColumnStatistic(txn, table_oid, col_oid++, col);
+    }
   }
+  return pg_core_.CreateTableEntry(txn, table_oid, ns_oid, name, schema);
 }
 
 bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
