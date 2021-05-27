@@ -112,7 +112,9 @@ class PlanningContext {
   common::ManagedPointer<transaction::TransactionManager> GetTxnManager() const { return txn_manager_; }
 
   /** @brief Getter for query_exec_util_ */
-  const std::unique_ptr<util::QueryExecUtil> &GetQueryExecUtil() const { return query_exec_util_; }
+  common::ManagedPointer<util::QueryExecUtil> GetQueryExecUtil() const {
+    return common::ManagedPointer(query_exec_util_);
+  }
 
   /** @brief Getter for task_manager_ */
   common::ManagedPointer<task::TaskManager> GetTaskManager() const { return task_manager_; }

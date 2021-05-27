@@ -38,12 +38,15 @@ void SelfDrivingRecordingUtil::RecordQueryMetadata(
 
   if (!params_vec.empty()) {
     std::string query = SelfDrivingRecordingUtil::QUERY_TEXT_INSERT_STMT;
-    task_manager->AddTask(task::TaskDML::Builder()
-                              .SetDatabaseOid(task_manager->GetDatabaseOid())
-                              .SetQueryText(std::move(query))
-                              .SetParameters(std::move(params_vec))
-                              .SetParameterTypes(std::move(param_types))
-                              .Build());
+    task_manager->AddTask(
+        task::TaskDML::Builder()
+            .SetDatabaseOid(task_manager->GetDatabaseOid())
+            .SetQueryText(std::move(query))
+            // TODO(WAN): #1595
+            .SetTransactionPolicy({transaction::DurabilityPolicy::SYNC, transaction::ReplicationPolicy::DISABLE})
+            .SetParameters(std::move(params_vec))
+            .SetParameterTypes(std::move(param_types))
+            .Build());
   }
 }
 
@@ -77,12 +80,15 @@ void SelfDrivingRecordingUtil::RecordQueryParameters(
 
   if (!params_vec.empty()) {
     std::string query_text = SelfDrivingRecordingUtil::QUERY_PARAMETERS_INSERT_STMT;
-    task_manager->AddTask(task::TaskDML::Builder()
-                              .SetDatabaseOid(task_manager->GetDatabaseOid())
-                              .SetQueryText(std::move(query_text))
-                              .SetParameters(std::move(params_vec))
-                              .SetParameterTypes(std::move(param_types))
-                              .Build());
+    task_manager->AddTask(
+        task::TaskDML::Builder()
+            .SetDatabaseOid(task_manager->GetDatabaseOid())
+            .SetQueryText(std::move(query_text))
+            // TODO(WAN): #1595
+            .SetTransactionPolicy({transaction::DurabilityPolicy::SYNC, transaction::ReplicationPolicy::DISABLE})
+            .SetParameters(std::move(params_vec))
+            .SetParameterTypes(std::move(param_types))
+            .Build());
   }
 }
 
@@ -131,6 +137,8 @@ void SelfDrivingRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_reco
         task::TaskDML::Builder()
             .SetDatabaseOid(task_manager->GetDatabaseOid())
             .SetQueryText(std::move(query_text))
+            // TODO(WAN): #1595
+            .SetTransactionPolicy({transaction::DurabilityPolicy::SYNC, transaction::ReplicationPolicy::DISABLE})
             .SetParameters(std::move(clusters_params_vec))
             .SetParameterTypes(std::move(param_types))
             .Build());
@@ -177,12 +185,15 @@ void SelfDrivingRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp
     std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                              type::TypeId::REAL};
     std::string query_text = SelfDrivingRecordingUtil::FORECAST_FORECASTS_INSERT_STMT;
-    task_manager->AddTask(task::TaskDML::Builder()
-                              .SetDatabaseOid(task_manager->GetDatabaseOid())
-                              .SetQueryText(std::move(query_text))
-                              .SetParameters(std::move(forecast_params_vec))
-                              .SetParameterTypes(std::move(param_types))
-                              .Build());
+    task_manager->AddTask(
+        task::TaskDML::Builder()
+            .SetDatabaseOid(task_manager->GetDatabaseOid())
+            .SetQueryText(std::move(query_text))
+            // TODO(WAN): #1595
+            .SetTransactionPolicy({transaction::DurabilityPolicy::SYNC, transaction::ReplicationPolicy::DISABLE})
+            .SetParameters(std::move(forecast_params_vec))
+            .SetParameterTypes(std::move(param_types))
+            .Build());
   }
 }
 
@@ -208,12 +219,15 @@ void SelfDrivingRecordingUtil::RecordAppliedAction(uint64_t timestamp_to_record,
   std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::REAL,
                                            type::TypeId::INTEGER, type::TypeId::VARCHAR};
   std::string query_text = SelfDrivingRecordingUtil::APPLIED_ACTIONS_INSERT_STMT;
-  task_manager->AddTask(task::TaskDML::Builder()
-                            .SetDatabaseOid(task_manager->GetDatabaseOid())
-                            .SetQueryText(std::move(query_text))
-                            .SetParameters(std::move(params_vec))
-                            .SetParameterTypes(std::move(param_types))
-                            .Build());
+  task_manager->AddTask(
+      task::TaskDML::Builder()
+          .SetDatabaseOid(task_manager->GetDatabaseOid())
+          .SetQueryText(std::move(query_text))
+          // TODO(WAN): #1595
+          .SetTransactionPolicy({transaction::DurabilityPolicy::SYNC, transaction::ReplicationPolicy::DISABLE})
+          .SetParameters(std::move(params_vec))
+          .SetParameterTypes(std::move(param_types))
+          .Build());
 }
 
 void SelfDrivingRecordingUtil::RecordBestActions(
@@ -252,12 +266,15 @@ void SelfDrivingRecordingUtil::RecordBestActions(
                                            type::TypeId::INTEGER, type::TypeId::REAL,    type::TypeId::INTEGER,
                                            type::TypeId::VARCHAR};
   std::string query_text = SelfDrivingRecordingUtil::BEST_ACTIONS_INSERT_STMT;
-  task_manager->AddTask(task::TaskDML::Builder()
-                            .SetDatabaseOid(task_manager->GetDatabaseOid())
-                            .SetQueryText(std::move(query_text))
-                            .SetParameters(std::move(params_vec))
-                            .SetParameterTypes(std::move(param_types))
-                            .Build());
+  task_manager->AddTask(
+      task::TaskDML::Builder()
+          .SetDatabaseOid(task_manager->GetDatabaseOid())
+          .SetQueryText(std::move(query_text))
+          // TODO(WAN): #1595
+          .SetTransactionPolicy({transaction::DurabilityPolicy::SYNC, transaction::ReplicationPolicy::DISABLE})
+          .SetParameters(std::move(params_vec))
+          .SetParameterTypes(std::move(param_types))
+          .Build());
 }
 
 }  // namespace noisepage::util

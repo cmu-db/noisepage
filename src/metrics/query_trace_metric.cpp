@@ -44,12 +44,15 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
 
   // Submit the insert request if not empty
   std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::REAL};
-  task_manager->AddTask(task::TaskDML::Builder()
-                            .SetDatabaseOid(task_manager->GetDatabaseOid())
-                            .SetQueryText(std::move(query))
-                            .SetParameters(std::move(params_vec))
-                            .SetParameterTypes(std::move(param_types))
-                            .Build());
+  task_manager->AddTask(
+      task::TaskDML::Builder()
+          .SetDatabaseOid(task_manager->GetDatabaseOid())
+          .SetQueryText(std::move(query))
+          // TODO(WAN): #1595
+          .SetTransactionPolicy({transaction::DurabilityPolicy::SYNC, transaction::ReplicationPolicy::DISABLE})
+          .SetParameters(std::move(params_vec))
+          .SetParameterTypes(std::move(param_types))
+          .Build());
 }
 
 void QueryTraceMetricRawData::ToDB(common::ManagedPointer<task::TaskManager> task_manager) {

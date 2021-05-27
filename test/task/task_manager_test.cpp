@@ -38,6 +38,7 @@ class TaskManagerTests : public TerrierTest {
     task_manager_->AddTask(task::TaskDDL::Builder()
                                .SetDatabaseOid(task_manager_->GetDatabaseOid())
                                .SetQueryText("CREATE TABLE t (a int)")
+                               .SetTransactionPolicy(GetDefaultTransactionPolicy())
                                .Build());
     task_manager_->WaitForFlush();
   }
@@ -53,6 +54,7 @@ class TaskManagerTests : public TerrierTest {
       task_manager_->AddTask(task::TaskDML::Builder()
                                  .SetDatabaseOid(task_manager_->GetDatabaseOid())
                                  .SetQueryText("INSERT INTO t VALUES ($1)")
+                                 .SetTransactionPolicy(GetDefaultTransactionPolicy())
                                  .SetParameters(std::move(params_vec))
                                  .SetParameterTypes(std::move(types))
                                  .Build());
@@ -69,6 +71,7 @@ class TaskManagerTests : public TerrierTest {
     task_manager_->AddTask(task::TaskDML::Builder()
                                .SetDatabaseOid(task_manager_->GetDatabaseOid())
                                .SetQueryText("SELECT * FROM t")
+                               .SetTransactionPolicy(GetDefaultTransactionPolicy())
                                .SetFuture(common::ManagedPointer(&sync))
                                .SetTupleFn(std::move(to_row_fn))
                                .Build());
@@ -82,6 +85,10 @@ class TaskManagerTests : public TerrierTest {
 
   catalog::db_oid_t GetDefaultDatabaseOid() const {
     return db_main_->GetCatalogLayer()->GetCatalog()->GetDefaultDatabaseOid();
+  }
+
+  const transaction::TransactionPolicy &GetDefaultTransactionPolicy() const {
+    return db_main_->GetTransactionLayer()->GetTransactionManager()->GetDefaultTransactionPolicy();
   }
 
  protected:
@@ -134,6 +141,7 @@ TEST_F(TaskManagerTests, BulkInsert) {
   task_manager_->AddTask(task::TaskDML::Builder()
                              .SetDatabaseOid(task_manager_->GetDatabaseOid())
                              .SetQueryText("INSERT INTO t VALUES ($1)")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .SetParameters(std::move(params_vec))
                              .SetParameterTypes(std::move(types))
                              .Build());
@@ -146,11 +154,12 @@ TEST_F(TaskManagerTests, Index) {
   task_manager_->AddTask(task::TaskDDL::Builder()
                              .SetDatabaseOid(task_manager_->GetDatabaseOid())
                              .SetQueryText("CREATE INDEX idx ON t (a)")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .Build());
   task_manager_->WaitForFlush();
 
   auto query_exec_util = db_main_->GetQueryExecUtil();
-  query_exec_util->BeginTransaction(GetDefaultDatabaseOid());
+  query_exec_util->BeginTransaction(GetDefaultDatabaseOid(), GetDefaultTransactionPolicy());
 
   std::string query = "SELECT * FROM t WHERE a = 1";
   auto result =
@@ -167,21 +176,25 @@ TEST_F(TaskManagerTests, InvalidStatements) {
   task_manager_->AddTask(task::TaskDDL::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("CREATE INDEX")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .SetFuture(common::ManagedPointer(&sync))
                              .Build());
   task_manager_->AddTask(task::TaskDML::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("INSERT INTO t VALUES (#1)")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .Build());
 
   // Binding error
   task_manager_->AddTask(task::TaskDDL::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("CREATE INDEX idxx on tt (a)")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .Build());
   task_manager_->AddTask(task::TaskDML::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("INSERT INTO tt VALUES (1)")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .Build());
   task_manager_->WaitForFlush();
 
@@ -195,14 +208,17 @@ TEST_F(TaskManagerTests, AbortingTest) {
   task_manager_->AddTask(task::TaskDDL::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("CREATE TABLE ttt (a INT, PRIMARY KEY (a))")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .Build());
   task_manager_->AddTask(task::TaskDML::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("INSERT INTO ttt VALUES (1)")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .Build());
   task_manager_->AddTask(task::TaskDML::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("INSERT INTO ttt VALUES (1)")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .Build());
   task_manager_->WaitForFlush();
 
@@ -215,6 +231,7 @@ TEST_F(TaskManagerTests, AbortingTest) {
   task_manager_->AddTask(task::TaskDML::Builder()
                              .SetDatabaseOid(GetDefaultDatabaseOid())
                              .SetQueryText("SELECT * FROM ttt")
+                             .SetTransactionPolicy(GetDefaultTransactionPolicy())
                              .SetFuture(common::ManagedPointer(&sync))
                              .SetTupleFn(std::move(to_row_fn))
                              .Build());

@@ -48,11 +48,15 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
   // just pick a random database in PlanningContext
   if (db_oid == catalog::INVALID_DATABASE_OID) db_oid = *planning_context.GetDBOids().begin();
 
-  auto &query_exec_util = planning_context.GetQueryExecUtil();
-  if (what_if)
+  auto policy = planning_context.GetTxnManager()->GetDefaultTransactionPolicy();
+  policy.replication_ = transaction::ReplicationPolicy::DISABLE;
+
+  auto query_exec_util = planning_context.GetQueryExecUtil();
+  if (what_if) {
     query_exec_util->UseTransaction(db_oid, planning_context.GetTxnContext(db_oid));
-  else
-    query_exec_util->BeginTransaction(db_oid);
+  } else {
+    query_exec_util->BeginTransaction(db_oid, policy);
+  }
 
   bool is_query_ddl;
   {
@@ -75,10 +79,11 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
   }
 
   query_exec_util->ClearPlan(sql_query);
-  if (what_if)
+  if (what_if) {
     query_exec_util->UseTransaction(db_oid, nullptr);
-  else
+  } else {
     query_exec_util->EndTransaction(true);
+  }
 }
 
 void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
@@ -94,7 +99,7 @@ void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
 
   // Use QueryExecUtil since we want the abstract plan nodes.
   // We don't care about compilation right now.
-  auto &query_exec_util = planning_context.GetQueryExecUtil();
+  auto query_exec_util = planning_context.GetQueryExecUtil();
   for (auto qid : qids) {
     auto query_text = forecast->GetQuerytextByQid(qid);
     auto db_oid = forecast->GetDboidByQid(qid);
@@ -237,7 +242,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
       }
     } else {
       // Just compile the queries (generate the bytecodes) to get features with statistics
-      auto &query_util = planning_context.GetQueryExecUtil();
+      auto query_util = planning_context.GetQueryExecUtil();
       query_util->UseTransaction(db_oid, planning_context.GetTxnContext(db_oid));
       // TODO(lin): Do we need to pass in any settings?
       execution::exec::ExecutionSettings settings{};
@@ -593,7 +598,7 @@ void PilotUtil::EstimateCreateIndexAction(const pilot::PlanningContext &planning
   // Just compile the queries (generate the bytecodes) to get features with statistics
   std::string query_text = create_action->GetSQLCommand();
 
-  auto &query_util = planning_context.GetQueryExecUtil();
+  auto query_util = planning_context.GetQueryExecUtil();
   auto db_oid = create_action->GetDatabaseOid();
   query_util->UseTransaction(db_oid, planning_context.GetTxnContext(db_oid));
 

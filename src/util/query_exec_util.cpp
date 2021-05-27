@@ -70,20 +70,23 @@ void QueryExecUtil::UseTransaction(catalog::db_oid_t db_oid,
   own_txn_ = false;
 }
 
-void QueryExecUtil::BeginTransaction(catalog::db_oid_t db_oid) {
+void QueryExecUtil::BeginTransaction(const catalog::db_oid_t db_oid, const transaction::TransactionPolicy &policy) {
   NOISEPAGE_ASSERT(txn_ == nullptr, "Nesting transactions not supported");
   SetDatabase(db_oid);
   txn_ = txn_manager_->BeginTransaction();
+  txn_->SetDurabilityPolicy(policy.durability_);
+  txn_->SetReplicationPolicy(policy.replication_);
   own_txn_ = true;
 }
 
 void QueryExecUtil::EndTransaction(bool commit) {
   NOISEPAGE_ASSERT(txn_ != nullptr, "Transaction has not started");
   NOISEPAGE_ASSERT(own_txn_, "EndTransaction can only be called on an owned transaction");
-  if (commit)
+  if (commit) {
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-  else
+  } else {
     txn_manager_->Abort(txn_);
+  }
   txn_ = nullptr;
   own_txn_ = false;
 }

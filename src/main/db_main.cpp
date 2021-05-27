@@ -49,9 +49,9 @@ void DBMain::TryLoadStartupDDL() {
     common::FutureDummy sync;
     task_manager_->AddTask(task::TaskDDL::Builder()
                                .SetDatabaseOid(default_db_oid)
-                               .SetFuture(common::ManagedPointer(&sync))
                                .SetQueryText(std::move(ddl))
                                .SetTransactionPolicy(policy)
+                               .SetFuture(common::ManagedPointer(&sync))
                                .Build());
     auto future_result = sync.DangerousWait();
     if (!future_result.second) {

@@ -17,7 +17,8 @@ std::unique_ptr<TaskDDL> TaskDDL::Builder::Build() {
   NOISEPAGE_ASSERT(db_oid_.has_value(), "Database OID must be specified.");
   NOISEPAGE_ASSERT(*db_oid_ != catalog::INVALID_DATABASE_OID, "You're doing something hacky. Get a real database OID.");
   NOISEPAGE_ASSERT(query_text_.has_value(), "Query text must be specified.");
-  return std::unique_ptr<TaskDDL>(new TaskDDL(*db_oid_, std::move(*query_text_), policy_, sync_));
+  NOISEPAGE_ASSERT(policy_.has_value(), "Transaction policy must be specified.");
+  return std::unique_ptr<TaskDDL>(new TaskDDL(*db_oid_, std::move(*query_text_), *policy_, sync_));
 }
 
 std::unique_ptr<TaskDML> TaskDML::Builder::Build() {
@@ -25,6 +26,7 @@ std::unique_ptr<TaskDML> TaskDML::Builder::Build() {
   NOISEPAGE_ASSERT(db_oid_.has_value(), "Database OID must be specified.");
   NOISEPAGE_ASSERT(*db_oid_ != catalog::INVALID_DATABASE_OID, "You're doing something hacky. Get a real database OID.");
   NOISEPAGE_ASSERT(query_text_.has_value(), "Query text must be specified.");
+  NOISEPAGE_ASSERT(policy_.has_value(), "Transaction policy must be specified.");
   NOISEPAGE_ASSERT(!override_qid_.has_value() || should_skip_query_cache_,
                    "Cannot override query ID without skipping the query cache.");
   NOISEPAGE_ASSERT(params_.empty() || (params_.at(0).size() == param_types_.size()),
@@ -32,7 +34,7 @@ std::unique_ptr<TaskDML> TaskDML::Builder::Build() {
   // Set defaults.
   cost_model_ = cost_model_ != nullptr ? std::move(cost_model_) : std::make_unique<optimizer::TrivialCostModel>();
 
-  return std::unique_ptr<TaskDML>(new TaskDML(*db_oid_, std::move(*query_text_), policy_, sync_, std::move(cost_model_),
+  return std::unique_ptr<TaskDML>(new TaskDML(*db_oid_, std::move(*query_text_), *policy_, sync_, std::move(cost_model_),
                                               std::move(params_), std::move(param_types_), settings_, override_qid_,
                                               metrics_manager_, should_force_abort_, should_skip_query_cache_,
                                               std::move(tuple_fn_)));
@@ -96,7 +98,7 @@ TaskDML::TaskDML(catalog::db_oid_t db_oid, std::string &&query_text, transaction
 
 void TaskDDL::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                       common::ManagedPointer<task::TaskManager> task_manager) {
-  query_exec_util->BeginTransaction(db_oid_);
+  query_exec_util->BeginTransaction(db_oid_, policy_);
   bool ddl_ok = query_exec_util->ExecuteDDL(query_text_, false);
   query_exec_util->EndTransaction(ddl_ok);
 
@@ -112,7 +114,7 @@ void TaskDDL::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_uti
 void TaskDML::Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                       common::ManagedPointer<task::TaskManager> task_manager) {
   bool dml_ok = true;  // Track whether the DML was executed successfully.
-  query_exec_util->BeginTransaction(db_oid_);
+  query_exec_util->BeginTransaction(db_oid_, policy_);
 
   if (should_skip_query_cache_) {
     // Skipping the query cache is implemented by invalidating the plan

@@ -52,6 +52,10 @@ class QueryTraceLogging : public TerrierTest {
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
  protected:
+  const transaction::TransactionPolicy &GetDefaultTransactionPolicy() const {
+    return db_main_->GetTransactionLayer()->GetTransactionManager()->GetDefaultTransactionPolicy();
+  }
+
   std::unique_ptr<DBMain> db_main_;
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
@@ -123,9 +127,10 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   raw->WriteToDB(task_manager_, false, 29, nullptr, nullptr);
   task_manager_->WaitForFlush();
 
+  transaction::TransactionPolicy txn_policy = GetDefaultTransactionPolicy();
   auto task_manager = task_manager_;
-  auto select_count = [task_manager, util](const std::string &query, size_t target) {
-    util->BeginTransaction(task_manager->GetDatabaseOid());
+  auto select_count = [task_manager, util, txn_policy](const std::string &query, size_t target) {
+    util->BeginTransaction(task_manager->GetDatabaseOid(), txn_policy);
     uint64_t row_count = 0;
     auto to_row_fn = [&row_count](const std::vector<execution::sql::Val *> &values) { row_count++; };
 
@@ -141,7 +146,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   select_count("SELECT * FROM noisepage_forecast_texts", 0);
   select_count("SELECT * FROM noisepage_forecast_parameters", 0);
 
-  auto check_freqs = [task_manager, &qids, &totals, &timestamps](size_t num_interval) {
+  auto check_freqs = [task_manager, txn_policy, &qids, &totals, &timestamps](size_t num_interval) {
     size_t seen = 0;
     std::unordered_map<size_t, std::unordered_map<size_t, size_t>> qid_map;
     auto freq_check = [&seen, &qid_map](const std::vector<execution::sql::Val *> &values) {
@@ -170,6 +175,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     task_manager->AddTask(task::TaskDML::Builder()
                               .SetDatabaseOid(task_manager->GetDatabaseOid())
                               .SetQueryText("SELECT * FROM noisepage_forecast_frequencies")
+                              .SetTransactionPolicy(txn_policy)
                               .SetFuture(common::ManagedPointer(&sync))
                               .SetParameters(std::move(params))
                               .SetParameterTypes(std::move(param_types))
@@ -201,7 +207,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   task_manager_->WaitForFlush();
 
   {
-    util->BeginTransaction(task_manager_->GetDatabaseOid());
+    util->BeginTransaction(task_manager_->GetDatabaseOid(), GetDefaultTransactionPolicy());
     std::unordered_set<int64_t> val;
     auto func = [&val, qids, texts, db_oids, &parameters](const std::vector<execution::sql::Val *> &values) {
       int64_t qid = reinterpret_cast<execution::sql::Integer *>(values[1])->val_;
@@ -236,7 +242,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   }
 
   {
-    util->BeginTransaction(task_manager_->GetDatabaseOid());
+    util->BeginTransaction(task_manager_->GetDatabaseOid(), GetDefaultTransactionPolicy());
     size_t row_count = 0;
     std::unordered_set<int64_t> seen;
     auto func = [&row_count, qids, &seen](const std::vector<execution::sql::Val *> &values) {

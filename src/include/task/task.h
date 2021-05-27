@@ -57,7 +57,7 @@ class Task {
       query_text_ = std::move(query_text);
       return *dynamic_cast<ConcreteType *>(this);
     }
-    /** (Optional) Set the policy for the transaction that this Task will be executed in. */
+    /** Set the policy for the transaction that this Task will be executed in. */
     ConcreteType &SetTransactionPolicy(const transaction::TransactionPolicy policy) {
       policy_ = policy;
       return *dynamic_cast<ConcreteType *>(this);
@@ -70,10 +70,9 @@ class Task {
 
    protected:
     std::optional<catalog::db_oid_t> db_oid_{std::nullopt};  ///< The database to execute the task in.
-    std::optional<std::string> query_text_{
-        std::nullopt};                       ///< The query text to be executed. Must be a DDL statement or SET command.
-    transaction::TransactionPolicy policy_;  ///< The policy for the transaction that this Task is executed in.
-    common::ManagedPointer<common::FutureDummy> sync_;  ///< Future* that the caller may block on.
+    std::optional<std::string> query_text_{std::nullopt};    ///< The query text to be executed.
+    std::optional<transaction::TransactionPolicy> policy_;   ///< The policy for this Task's transaction.
+    common::ManagedPointer<common::FutureDummy> sync_;       ///< Future* that the caller may block on.
   };
 
   /** Destructor. */
