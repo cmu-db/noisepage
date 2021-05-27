@@ -3,7 +3,7 @@
 #include <vector>
 
 namespace noisepage::execution::sql {
-class Val;
+struct Val;
 }  // namespace noisepage::execution::sql
 
 namespace noisepage::util {
