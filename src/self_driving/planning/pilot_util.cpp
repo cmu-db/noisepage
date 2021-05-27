@@ -471,11 +471,6 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
   // Maps from db-table oid to the number of rows (acquired from pg_statistic)
   std::unordered_map<pilot::db_table_oid_pair, uint64_t, pilot::DBTableOidPairHasher> table_sizes;
 
-  // Get <table_id, num_rows> pairs with num_rows > 0
-  std::string query = fmt::format(
-      "select starelid, max(stanumrows) as num_rows from pg_statistic group by starelid "
-      "having max(stanumrows) > 0;");
-
   // Get stats from all databases in the forecasted workload
   for (auto db_oid : planning_context.GetDBOids()) {
     auto to_row_fn = [&table_sizes, db_oid, memory_info](const std::vector<execution::sql::Val *> &values) {
@@ -490,7 +485,9 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
     common::FutureDummy sync;
     task_manager->AddTask(task::TaskDML::Builder()
                               .SetDatabaseOid(db_oid)
-                              .SetQueryText(std::move(query))
+                              // Get <table_id, num_rows> pairs with num_rows > 0
+                              .SetQueryText("select starelid, max(stanumrows) as num_rows from pg_statistic group by "
+                                            "starelid having max(stanumrows) > 0;")
                               .SetFuture(common::ManagedPointer(&sync))
                               .SetTupleFn(to_row_fn)
                               .Build());
