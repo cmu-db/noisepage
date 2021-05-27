@@ -171,6 +171,12 @@ The `run_junit.py` Python script is provided as a "frontend" for the integration
 PYTHONPATH=.. python -m script.testing.junit
 ```
 
+It is also possible to run individual tracefile tests, as specified by the test name:
+
+```bash
+PYTHONPATH=.. python -m script.testing.junit --tracefile-test select.test
+```
+
 Modifying the `PYTHONPATH` environment variable before invoking the script is necessary because we assume the command is being run from the `build/` directory. Depending on the particulars of the environment in which you intend to execute the script this may or may not be necessary.
 
 The script takes care of all of the necessary setup, including compiling the tests, starting the DBMS server, and executing the tests themselves. However, **it is assumed that the NoisePage binary already exists prior to executing the script**.
@@ -279,4 +285,4 @@ Now the parameters we specify for `GenerateTrace.java` or `FilterTrace.java` are
 - JDBC URL: `jdbc:postgresql://localhost/test`
 
 
-ant generate-trace -Dpath=sql/cte.sql -Ddb-url=jdbc:postgresql://localhost/test -Ddb-user=admin -Ddb-password=password -Doutput-name=cte.test
+ant generate-trace -Dpath=sql/tmp.sql -Ddb-url=jdbc:postgresql://localhost/test -Ddb-user=admin -Ddb-password=password -Doutput-name=tmp.test

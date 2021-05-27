@@ -17,3 +17,4 @@ REPO_TRACE_DIR = os.path.join("junit", "traces")
 TESTFILES_SUFFIX = ".test"
 
 DEFAULT_PREPARE_THRESHOLD = 5
+DEFAULT_QUERY_MODE = "simple"
