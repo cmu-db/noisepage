@@ -353,7 +353,7 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
   std::vector<execution::translator_id_t> translator_ids;
   common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
   translator_ids.emplace_back(translator->GetTranslatorId());
-  while (translator->IsCountersPassThrough()) {
+  while (translator->GetParentTranslator() != nullptr && translator->IsCountersPassThrough()) {
     translator = translator->GetParentTranslator();
     translator_ids.emplace_back(translator->GetTranslatorId());
   }
