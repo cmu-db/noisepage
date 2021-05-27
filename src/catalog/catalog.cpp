@@ -112,6 +112,9 @@ db_oid_t Catalog::CreateDatabase(const common::ManagedPointer<transaction::Trans
   const db_oid_t db_oid = next_oid_++;
   const auto success = Catalog::CreateDatabase(common::ManagedPointer(txn), name, bootstrap, db_oid);
   if (!success) return INVALID_DATABASE_OID;
+  if (name == DEFAULT_DATABASE) {
+    default_db_oid_ = db_oid;
+  }
   return db_oid;
 }
 

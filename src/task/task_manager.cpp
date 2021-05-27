@@ -32,6 +32,8 @@ void TaskManager::AddTask(std::unique_ptr<Task> task) {
   queue_cv_.notify_one();
 }
 
+catalog::db_oid_t TaskManager::GetDatabaseOid() const { return master_util_->GetDatabaseOid(); }
+
 void TaskManager::WaitForFlush() {
   std::unique_lock<std::mutex> lock(queue_mutex_);
   if (queue_.empty() && busy_workers_ == 0) {

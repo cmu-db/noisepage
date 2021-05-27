@@ -6,183 +6,200 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "common/future.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
-#include "optimizer/cost_model/abstract_cost_model.h"
-#include "parser/expression/constant_value_expression.h"
-#include "util/query_exec_util.h"
+#include "transaction/transaction_defs.h"
+#include "type/type_id.h"
+#include "util/util_defs.h"
+
+namespace noisepage::metrics {
+class MetricsManager;
+}  // namespace noisepage::metrics
+
+namespace noisepage::optimizer {
+class AbstractCostModel;
+}  // namespace noisepage::optimizer
+
+namespace noisepage::parser {
+class ConstantValueExpression;
+}  // namespace noisepage::parser
+
+namespace noisepage::util {
+class QueryExecUtil;
+}  // namespace noisepage::util
 
 namespace noisepage::task {
 
 class TaskManager;
 
-/** Enum class used to describe the types of tasks available */
+/** The types of tasks available. */
 enum class TaskType : uint8_t { DDL_TASK, DML_TASK };
 
-/**
- * Type meant to represent a dummy result value.
- * A Future<> cannot be specified with (void), hence why
- * this dummy result type is used.
- */
-struct DummyResult {};
-
-/**
- * Abstract class for defining a task
- */
+/** An abstract representation of a Task to be executed. */
 class Task {
  public:
+  /** Base builder class for tasks. */
+  template <class ConcreteType>
+  class Builder {
+   public:
+    Builder() = default;
+    virtual ~Builder() = default;
+
+    /** Set the database to execute the task in. */
+    ConcreteType &SetDatabaseOid(const catalog::db_oid_t db_oid) {
+      db_oid_ = db_oid;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+    /** Set the query text to be executed. */
+    ConcreteType &SetQueryText(std::string &&query_text) {
+      query_text_ = std::move(query_text);
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+    /** (Optional) Set the policy for the transaction that this Task will be executed in. */
+    ConcreteType &SetTransactionPolicy(const transaction::TransactionPolicy policy) {
+      policy_ = policy;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+    /** (Optional) Set the pointer to the Future that the caller is potentially blocking on. */
+    ConcreteType &SetFuture(const common::ManagedPointer<common::FutureDummy> sync) {
+      sync_ = sync;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+   protected:
+    std::optional<catalog::db_oid_t> db_oid_{std::nullopt};  ///< The database to execute the task in.
+    std::optional<std::string> query_text_{
+        std::nullopt};                       ///< The query text to be executed. Must be a DDL statement or SET command.
+    transaction::TransactionPolicy policy_;  ///< The policy for the transaction that this Task is executed in.
+    common::ManagedPointer<common::FutureDummy> sync_;  ///< Future* that the caller may block on.
+  };
+
+  /** Destructor. */
+  virtual ~Task() = default;
+
+  /** @return The type of this task. */
+  virtual TaskType GetTaskType() = 0;
+
   /**
-   * Executes the task
-   * @param query_exec_util Query execution utility
-   * @param task_manager TaskManager that the task was submitted to (i.e., TaskManager running the current task)
+   * Execute the specified task.
+   * @param query_exec_util Query execution utility.
+   * @param task_manager    TaskManager that the task was submitted to (i.e., TaskManager running the current task).
    */
   virtual void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                        common::ManagedPointer<task::TaskManager> task_manager) = 0;
 
-  /**
-   * @return task type
-   */
-  virtual TaskType GetTaskType() = 0;
+ protected:
+  const catalog::db_oid_t db_oid_;               ///< The database to execute the task in.
+  const std::string query_text_;                 ///< The query text to be executed.
+  const transaction::TransactionPolicy policy_;  ///< The policy for the transaction that this Task is executed in.
+  const common::ManagedPointer<common::FutureDummy> sync_;  ///< Future* that the caller may block on.
 
-  /**
-   * Default (virtual) destructor
-   */
-  virtual ~Task() = default;
+  /** Constructor. */
+  Task(catalog::db_oid_t db_oid, std::string &&query_text, transaction::TransactionPolicy policy,
+       common::ManagedPointer<common::FutureDummy> sync);
 };
 
-/**
- * Task executes a DDL or SET task.
- */
+/** Task representing a DDL command or a SET statement. */
 class TaskDDL : public Task {
  public:
-  /**
-   * TaskDDL constructor
-   * @param db_oid Database to execute task within
-   * @param query_text Query text of DDL/SET
-   * @param sync Future for the caller to block on
-   */
-  TaskDDL(catalog::db_oid_t db_oid, std::string query_text, common::ManagedPointer<common::Future<DummyResult>> sync)
-      : db_oid_(db_oid), query_text_(std::move(query_text)), sync_(sync) {}
-
-  void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
-               common::ManagedPointer<task::TaskManager> task_manager) override;
-  TaskType GetTaskType() override { return TaskType::DDL_TASK; }
+  /** Builder for a TaskDDL. */
+  class Builder : public Task::Builder<Builder> {
+   public:
+    /** Constructor. */
+    Builder() = default;
+    /** No copying or moving allowed. */
+    DISALLOW_COPY_AND_MOVE(Builder);
+    /** @return The TaskDDL. */
+    std::unique_ptr<TaskDDL> Build();
+  };
 
   ~TaskDDL() override = default;
-
- private:
-  catalog::db_oid_t db_oid_;
-  std::string query_text_;
-  common::ManagedPointer<common::Future<DummyResult>> sync_;
-};
-
-/**
- * Task executes a DML
- */
-class TaskDML : public Task {
- public:
-  /**
-   * TaskDML constructor
-   * @param db_oid Database to execute task within
-   * @param query_text DML query to execute
-   * @param cost_model Cost model to use for optimizing query
-   * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
-   * @param params Relevant query parameters
-   * @param param_types Types of the query parameters if any
-   */
-  TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
-          bool skip_query_cache, std::vector<std::vector<parser::ConstantValueExpression>> &&params,
-          std::vector<type::TypeId> &&param_types)
-      : db_oid_(db_oid),
-        query_text_(std::move(query_text)),
-        cost_model_(std::move(cost_model)),
-        params_(params),
-        param_types_(param_types),
-        tuple_fn_(nullptr),
-        metrics_manager_(nullptr),
-        force_abort_(false),
-        skip_query_cache_(skip_query_cache),
-        override_qid_(std::nullopt),
-        sync_(nullptr) {}
-
-  /**
-   * TaskDML constructor
-   * @param db_oid Database to execute task within
-   * @param query_text DML query to execute
-   * @param cost_model Cost model to use for optimizing query
-   * @param params Relevant query parameters
-   * @param param_types Types of the query parameters if any
-   * @param tuple_fn Function for processing rows
-   * @param metrics_manager Metrics Manager to be used
-   * @param settings ExecutionSettings of this query (note: clang-tidy complains that ExecutionSettings is
-   * trivially-copyable so we can't use std::move())
-   * @param force_abort Whether to forcefully abort the transaction
-   * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
-   * @param override_qid Describes whether to override the qid with a value
-   * @param sync Future for the caller to block on
-   */
-  TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
-          std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<type::TypeId> &&param_types,
-          util::TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-          execution::exec::ExecutionSettings settings, bool force_abort, bool skip_query_cache,
-          std::optional<execution::query_id_t> override_qid, common::ManagedPointer<common::Future<DummyResult>> sync)
-      : db_oid_(db_oid),
-        query_text_(std::move(query_text)),
-        cost_model_(std::move(cost_model)),
-        params_(params),
-        param_types_(param_types),
-        tuple_fn_(std::move(tuple_fn)),
-        metrics_manager_(metrics_manager),
-        settings_(settings),
-        force_abort_(force_abort),
-        skip_query_cache_(skip_query_cache),
-        override_qid_(override_qid),
-        sync_(sync) {
-    NOISEPAGE_ASSERT(!override_qid.has_value() || skip_query_cache, "override_qid requires skip_query_cache");
-  }
-
-  /**
-   * TaskDML constructor
-   * @param db_oid Database to execute task within
-   * @param query_text DML query to execute
-   * @param cost_model Cost model to use for optimizing query
-   * @param skip_query_cache Whether to skip retrieving pre-optimized and saving optimized plans
-   * @param tuple_fn Function for processing rows
-   * @param sync Future for the caller to block on
-   */
-  TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
-          bool skip_query_cache, util::TupleFunction tuple_fn, common::ManagedPointer<common::Future<DummyResult>> sync)
-      : db_oid_(db_oid),
-        query_text_(std::move(query_text)),
-        cost_model_(std::move(cost_model)),
-        params_({}),
-        param_types_({}),
-        tuple_fn_(std::move(tuple_fn)),
-        metrics_manager_(nullptr),
-        force_abort_(false),
-        skip_query_cache_(skip_query_cache),
-        override_qid_(std::nullopt),
-        sync_(sync) {}
+  TaskType GetTaskType() override { return TaskType::DDL_TASK; }
 
   void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
                common::ManagedPointer<task::TaskManager> task_manager) override;
-  TaskType GetTaskType() override { return TaskType::DML_TASK; }
-
-  ~TaskDML() override = default;
 
  private:
-  catalog::db_oid_t db_oid_;
-  std::string query_text_;
-  std::unique_ptr<optimizer::AbstractCostModel> cost_model_;
-  std::vector<std::vector<parser::ConstantValueExpression>> params_;
-  std::vector<type::TypeId> param_types_;
-  util::TupleFunction tuple_fn_;
-  common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
-  execution::exec::ExecutionSettings settings_;
-  bool force_abort_;
-  bool skip_query_cache_;
-  std::optional<execution::query_id_t> override_qid_;
-  common::ManagedPointer<common::Future<DummyResult>> sync_;
+  /** Constructor. */
+  TaskDDL(catalog::db_oid_t db_oid, std::string &&query_text, transaction::TransactionPolicy policy,
+          common::ManagedPointer<common::FutureDummy> sync)
+      : Task(db_oid, std::move(query_text), policy, sync) {}
+};
+
+/** Task representing a DML command. */
+class TaskDML : public Task {
+ public:
+  /** Builder for a TaskDML. */
+  class Builder : public Task::Builder<Builder> {
+   public:
+    /** Constructor. */
+    Builder() = default;
+    /** No copying or moving allowed. */
+    DISALLOW_COPY_AND_MOVE(Builder);
+    /** @return The TaskDML. */
+    std::unique_ptr<TaskDML> Build();
+
+    /** (Optional, default: TrivialCostModel) Set the cost model to use for optimizing the query. */
+    Builder &SetCostModel(std::unique_ptr<optimizer::AbstractCostModel> cost_model);
+    /** (Optional, default: empty) Set the query parameters. */
+    Builder &SetParameters(std::vector<std::vector<parser::ConstantValueExpression>> params);
+    /** (Optional, default: empty) Set the types for the query parameters. */
+    Builder &SetParameterTypes(std::vector<type::TypeId> param_types);
+    /** (Optional, default: nullptr) Set the metrics manager to be used. */
+    Builder &SetMetricsManager(common::ManagedPointer<metrics::MetricsManager> metrics_manager);
+    /** (Optional, default: default-constructed) Set the execution settings for this query. */
+    Builder &SetExecutionSettings(execution::exec::ExecutionSettings settings);
+    /** (Optional, default: false) Set whether to forcefully abort this transaction. */
+    Builder &SetShouldForceAbort(bool should_force_abort);
+    /** (Optional, default: false) Set whether to skip the query cache. */
+    Builder &SetShouldSkipQueryCache(bool should_skip_query_cache);
+    /** (Optional, default: will not override query ID) Set the query ID to use. */
+    Builder &SetOverrideQueryId(execution::query_id_t query_id);
+    /** (Optional, default: nullptr) Set the function to invoke on each output tuple. */
+    Builder &SetTupleFn(util::TupleFunction tuple_fn);
+
+   private:
+    std::unique_ptr<optimizer::AbstractCostModel> cost_model_{nullptr};   ///< The cost model to use.
+    std::vector<std::vector<parser::ConstantValueExpression>> params_{};  ///< Query parameters.
+    std::vector<type::TypeId> param_types_{};                             ///< Types for query parameters.
+    execution::exec::ExecutionSettings settings_;                         ///< Settings to execute the query with.
+    std::optional<execution::query_id_t> override_qid_{std::nullopt};     ///< Query ID to use.
+
+    common::ManagedPointer<metrics::MetricsManager> metrics_manager_{nullptr};  ///< Metrics manager to be used.
+    bool should_force_abort_{false};  ///< True if the txn should be forcefully aborted.
+    bool should_skip_query_cache_;    ///< True if the txn should skip the query cache.
+    util::TupleFunction tuple_fn_;    ///< Function to be called on each output tuple.
+  };
+
+  ~TaskDML() override = default;
+  TaskType GetTaskType() override { return TaskType::DML_TASK; }
+
+  void Execute(common::ManagedPointer<util::QueryExecUtil> query_exec_util,
+               common::ManagedPointer<task::TaskManager> task_manager) override;
+
+ private:
+  /** Constructor. */
+  explicit TaskDML(catalog::db_oid_t db_oid, std::string &&query_text, transaction::TransactionPolicy policy,
+                   common::ManagedPointer<common::FutureDummy> sync,
+                   std::unique_ptr<optimizer::AbstractCostModel> cost_model,
+                   std::vector<std::vector<parser::ConstantValueExpression>> &&params,
+                   std::vector<type::TypeId> &&param_types, execution::exec::ExecutionSettings settings,
+                   std::optional<execution::query_id_t> override_qid,
+                   common::ManagedPointer<metrics::MetricsManager> metrics_manager, bool should_force_abort,
+                   bool should_skip_query_cache, util::TupleFunction &&tuple_fn);
+
+  std::unique_ptr<optimizer::AbstractCostModel> cost_model_{nullptr};      ///< The cost model to use.
+  std::vector<std::vector<parser::ConstantValueExpression>> params_{};     ///< Query parameters.
+  std::vector<type::TypeId> param_types_{};                                ///< Types for query parameters.
+  const execution::exec::ExecutionSettings settings_;                      ///< Settings to execute the query with.
+  const std::optional<execution::query_id_t> override_qid_{std::nullopt};  ///< Query ID to use.
+
+  const common::ManagedPointer<metrics::MetricsManager> metrics_manager_{nullptr};  ///< Metrics manager to be used.
+  const bool should_force_abort_{false};  ///< True if the txn should be forcefully aborted.
+  const bool should_skip_query_cache_;    ///< True if the txn should skip the query cache.
+  const util::TupleFunction tuple_fn_;    ///< Function to be called on each output tuple.
 };
 
 }  // namespace noisepage::task

@@ -113,6 +113,9 @@ class Catalog {
    */
   db_oid_t GetDatabaseOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
 
+  /** @return The OID of the default database as named by catalog::DEFAULT_DATABASE. */
+  db_oid_t GetDefaultDatabaseOid() const { return default_db_oid_; }
+
   /**
    * Gets the database-specific catalog object.
    * @param txn for the catalog query
@@ -146,6 +149,7 @@ class Catalog {
   const common::ManagedPointer<storage::BlockStore> catalog_block_store_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
   std::atomic<db_oid_t> next_oid_;
+  db_oid_t default_db_oid_;  ///< The OID of the default database as named by catalog::DEFAULT_DATABASE.
 
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;

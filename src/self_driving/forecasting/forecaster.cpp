@@ -104,7 +104,7 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
 
   bool result = true;
   {
-    common::Future<task::DummyResult> sync;
+    common::FutureDummy sync;
 
     // Metadata query
     auto to_row_fn = [&metadata, types_conv](const std::vector<execution::sql::Val *> &values) {
@@ -129,9 +129,12 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
     // do on-demand fetching or windowed fetching at a futrure time. We do this because a interval
     // can execute a prepared query without a corresponding text recording (if the query was
     // already prepared during a prior interval).
-    task_manager_->AddTask(std::make_unique<task::TaskDML>(
-        catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_texts",
-        std::make_unique<optimizer::TrivialCostModel>(), false, to_row_fn, common::ManagedPointer(&sync)));
+    task_manager_->AddTask(task::TaskDML::Builder()
+                               .SetDatabaseOid(task_manager_->GetDatabaseOid())
+                               .SetQueryText("SELECT * FROM noisepage_forecast_texts")
+                               .SetFuture(common::ManagedPointer(&sync))
+                               .SetTupleFn(std::move(to_row_fn))
+                               .Build());
 
     auto future_result = sync.WaitFor(INTERNAL_QUERY_FUTURE_TIMEOUT);
     if (!future_result.has_value()) {
@@ -141,7 +144,7 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
   }
 
   {
-    common::Future<task::DummyResult> sync;
+    common::FutureDummy sync;
     auto to_row_fn = [&metadata, cves_conv](const std::vector<execution::sql::Val *> &values) {
       auto qid = execution::query_id_t(static_cast<execution::sql::Integer *>(values[1])->val_);
       auto *param_val = static_cast<execution::sql::StringVal *>(values[2]);
@@ -155,9 +158,12 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
 
     auto query = fmt::format("SELECT * FROM noisepage_forecast_parameters WHERE ts >= {} AND ts <= {}", bounds.first,
                              bounds.second);
-    task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                           std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                           to_row_fn, common::ManagedPointer(&sync)));
+    task_manager_->AddTask(task::TaskDML::Builder()
+                               .SetDatabaseOid(task_manager_->GetDatabaseOid())
+                               .SetQueryText(std::move(query))
+                               .SetFuture(common::ManagedPointer(&sync))
+                               .SetTupleFn(std::move(to_row_fn))
+                               .Build());
 
     auto future_result = sync.WaitFor(INTERNAL_QUERY_FUTURE_TIMEOUT);
     if (!future_result.has_value()) {
@@ -197,10 +203,13 @@ std::unordered_map<int64_t, std::vector<double>> Forecaster::GetSegmentInformati
   auto query = fmt::format("SELECT * FROM noisepage_forecast_frequencies WHERE ts >= {} AND ts <= {} ORDER BY ts",
                            bounds.first, bounds.second);
 
-  common::Future<task::DummyResult> sync;
-  task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                         to_row_fn, common::ManagedPointer(&sync)));
+  common::FutureDummy sync;
+  task_manager_->AddTask(task::TaskDML::Builder()
+                             .SetDatabaseOid(task_manager_->GetDatabaseOid())
+                             .SetQueryText(std::move(query))
+                             .SetFuture(common::ManagedPointer(&sync))
+                             .SetTupleFn(std::move(to_row_fn))
+                             .Build());
 
   auto future_result = sync.WaitFor(INTERNAL_QUERY_FUTURE_TIMEOUT);
   if (!future_result.has_value()) {

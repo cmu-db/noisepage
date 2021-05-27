@@ -141,4 +141,10 @@ class Future {
   std::mutex mtx_;
 };
 
+/** Type meant to represent a dummy result value, because a Future<void> doesn't work. */
+struct FutureDummyResult {};
+
+/** A future dummy is used when the caller doesn't care about the result's value. */
+using FutureDummy = Future<FutureDummyResult>;
+
 }  // namespace noisepage::common

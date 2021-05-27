@@ -123,8 +123,9 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   raw->WriteToDB(task_manager_, false, 29, nullptr, nullptr);
   task_manager_->WaitForFlush();
 
-  auto select_count = [util](const std::string &query, size_t target) {
-    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
+  auto task_manager = task_manager_;
+  auto select_count = [task_manager, util](const std::string &query, size_t target) {
+    util->BeginTransaction(task_manager->GetDatabaseOid());
     uint64_t row_count = 0;
     auto to_row_fn = [&row_count](const std::vector<execution::sql::Val *> &values) { row_count++; };
 
@@ -140,7 +141,6 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   select_count("SELECT * FROM noisepage_forecast_texts", 0);
   select_count("SELECT * FROM noisepage_forecast_parameters", 0);
 
-  auto task_manager = task_manager_;
   auto check_freqs = [task_manager, &qids, &totals, &timestamps](size_t num_interval) {
     size_t seen = 0;
     std::unordered_map<size_t, std::unordered_map<size_t, size_t>> qid_map;
@@ -165,12 +165,18 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     std::vector<std::vector<parser::ConstantValueExpression>> params;
     std::vector<type::TypeId> param_types;
 
-    common::Future<task::DummyResult> sync;
+    common::FutureDummy sync;
     execution::exec::ExecutionSettings settings{};
-    task_manager->AddTask(std::make_unique<task::TaskDML>(
-        catalog::INVALID_DATABASE_OID, "SELECT * FROM noisepage_forecast_frequencies",
-        std::make_unique<optimizer::TrivialCostModel>(), std::move(params), std::move(param_types), freq_check, nullptr,
-        settings, false, true, std::nullopt, common::ManagedPointer(&sync)));
+    task_manager->AddTask(task::TaskDML::Builder()
+                              .SetDatabaseOid(task_manager->GetDatabaseOid())
+                              .SetQueryText("SELECT * FROM noisepage_forecast_frequencies")
+                              .SetFuture(common::ManagedPointer(&sync))
+                              .SetParameters(std::move(params))
+                              .SetParameterTypes(std::move(param_types))
+                              .SetTupleFn(std::move(freq_check))
+                              .SetShouldSkipQueryCache(true)
+                              .SetExecutionSettings(settings)
+                              .Build());
 
     auto sync_result = sync.DangerousWait();
     bool result = sync_result.second;
@@ -195,7 +201,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   task_manager_->WaitForFlush();
 
   {
-    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
+    util->BeginTransaction(task_manager_->GetDatabaseOid());
     std::unordered_set<int64_t> val;
     auto func = [&val, qids, texts, db_oids, &parameters](const std::vector<execution::sql::Val *> &values) {
       int64_t qid = reinterpret_cast<execution::sql::Integer *>(values[1])->val_;
@@ -230,7 +236,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   }
 
   {
-    util->BeginTransaction(catalog::INVALID_DATABASE_OID);
+    util->BeginTransaction(task_manager_->GetDatabaseOid());
     size_t row_count = 0;
     std::unordered_set<int64_t> seen;
     auto func = [&row_count, qids, &seen](const std::vector<execution::sql::Val *> &values) {

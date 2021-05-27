@@ -13,6 +13,7 @@
 #include "execution/exec_defs.h"
 #include "planner/plannodes/output_schema.h"
 #include "type/type_id.h"
+#include "util/util_defs.h"
 
 namespace noisepage::transaction {
 class TransactionContext;
@@ -56,13 +57,6 @@ class Statement;
 namespace noisepage::util {
 
 /**
- * Signature of a function that is capable of processing rows retrieved
- * from ExecuteDML or ExecuteQuery. This function is invoked once per
- * row, with the argument being a row's attributes.
- */
-using TupleFunction = std::function<void(const std::vector<execution::sql::Val *> &)>;
-
-/**
  * Utility class for query execution. This class is not thread-safe.
  *
  * A QueryExecUtil only supports running 1 transaction at a time. If multiple
@@ -104,7 +98,7 @@ class QueryExecUtil {
    * @note It is the caller's responsibility to invoke UseTransaction(nullptr)
    * once the transaction no longer requires this utility.
    *
-   * @param db_oid Database OID to use (INVALID_DATABASE_OID for default)
+   * @param db_oid Database OID to use
    * @param txn Transaction to use
    */
   void UseTransaction(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn);
@@ -216,6 +210,9 @@ class QueryExecUtil {
    */
   std::string GetError() { return error_msg_; }
 
+  /** @return The database being accessed. */
+  catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
+
  private:
   void ResetError();
   void SetDatabase(catalog::db_oid_t db_oid);
@@ -227,7 +224,7 @@ class QueryExecUtil {
   uint64_t optimizer_timeout_;
 
   /** Database being accessed */
-  catalog::db_oid_t db_oid_{catalog::INVALID_DATABASE_OID};
+  catalog::db_oid_t db_oid_;
   bool own_txn_ = false;
   transaction::TransactionContext *txn_ = nullptr;
 

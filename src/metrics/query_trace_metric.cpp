@@ -1,4 +1,5 @@
 #include "metrics/query_trace_metric.h"
+
 #include "common/json.h"
 #include "execution/sql/value_util.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -29,27 +30,26 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
   std::string query = QueryTraceMetricRawData::QUERY_OBSERVED_INSERT_STMT;
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (auto &info : freqs) {
-    std::vector<parser::ConstantValueExpression> param_vec(3);
-
-    // Since the frequency information is per segment interval,
-    // we record the timestamp (i.e., low_timestamp_) corresponding to it.
-    param_vec[0] = parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp));
-
-    // Record the query identifier.
-    param_vec[1] =
-        parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(info.first.UnderlyingValue()));
-
-    // Record how many queries seen
-    param_vec[2] =
-        parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(info.second)));
+    std::vector<parser::ConstantValueExpression> param_vec = {
+        // Since the frequency information is per segment interval,
+        // we record the timestamp (i.e., low_timestamp_) corresponding to it.
+        parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp)),
+        // Record the query identifier.
+        parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(info.first.UnderlyingValue())),
+        // Record how many queries seen
+        parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(static_cast<double>(info.second))),
+    };
     params_vec.emplace_back(std::move(param_vec));
   }
 
   // Submit the insert request if not empty
   std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::REAL};
-  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                        std::move(params_vec), std::move(param_types)));
+  task_manager->AddTask(task::TaskDML::Builder()
+                            .SetDatabaseOid(task_manager->GetDatabaseOid())
+                            .SetQueryText(std::move(query))
+                            .SetParameters(std::move(params_vec))
+                            .SetParameterTypes(std::move(param_types))
+                            .Build());
 }
 
 void QueryTraceMetricRawData::ToDB(common::ManagedPointer<task::TaskManager> task_manager) {

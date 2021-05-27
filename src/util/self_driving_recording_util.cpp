@@ -1,4 +1,5 @@
 #include "util/self_driving_recording_util.h"
+
 #include "catalog/catalog_defs.h"
 #include "execution/sql/value_util.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -37,9 +38,12 @@ void SelfDrivingRecordingUtil::RecordQueryMetadata(
 
   if (!params_vec.empty()) {
     std::string query = SelfDrivingRecordingUtil::QUERY_TEXT_INSERT_STMT;
-    task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
-                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                          std::move(params_vec), std::move(param_types)));
+    task_manager->AddTask(task::TaskDML::Builder()
+                              .SetDatabaseOid(task_manager->GetDatabaseOid())
+                              .SetQueryText(std::move(query))
+                              .SetParameters(std::move(params_vec))
+                              .SetParameterTypes(std::move(param_types))
+                              .Build());
   }
 }
 
@@ -73,9 +77,12 @@ void SelfDrivingRecordingUtil::RecordQueryParameters(
 
   if (!params_vec.empty()) {
     std::string query_text = SelfDrivingRecordingUtil::QUERY_PARAMETERS_INSERT_STMT;
-    task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                          std::move(params_vec), std::move(param_types)));
+    task_manager->AddTask(task::TaskDML::Builder()
+                              .SetDatabaseOid(task_manager->GetDatabaseOid())
+                              .SetQueryText(std::move(query_text))
+                              .SetParameters(std::move(params_vec))
+                              .SetParameterTypes(std::move(param_types))
+                              .Build());
   }
 }
 
@@ -119,9 +126,14 @@ void SelfDrivingRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_reco
     std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                              type::TypeId::INTEGER};
     std::string query_text = SelfDrivingRecordingUtil::FORECAST_CLUSTERS_INSERT_STMT;
-    task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                          std::move(clusters_params_vec), std::move(param_types)));
+    task_manager->AddTask(
+
+        task::TaskDML::Builder()
+            .SetDatabaseOid(task_manager->GetDatabaseOid())
+            .SetQueryText(std::move(query_text))
+            .SetParameters(std::move(clusters_params_vec))
+            .SetParameterTypes(std::move(param_types))
+            .Build());
   }
 }
 
@@ -165,9 +177,12 @@ void SelfDrivingRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp
     std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::INTEGER,
                                              type::TypeId::REAL};
     std::string query_text = SelfDrivingRecordingUtil::FORECAST_FORECASTS_INSERT_STMT;
-    task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                          std::move(forecast_params_vec), std::move(param_types)));
+    task_manager->AddTask(task::TaskDML::Builder()
+                              .SetDatabaseOid(task_manager->GetDatabaseOid())
+                              .SetQueryText(std::move(query_text))
+                              .SetParameters(std::move(forecast_params_vec))
+                              .SetParameterTypes(std::move(param_types))
+                              .Build());
   }
 }
 
@@ -193,9 +208,12 @@ void SelfDrivingRecordingUtil::RecordAppliedAction(uint64_t timestamp_to_record,
   std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::REAL,
                                            type::TypeId::INTEGER, type::TypeId::VARCHAR};
   std::string query_text = SelfDrivingRecordingUtil::APPLIED_ACTIONS_INSERT_STMT;
-  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                        std::move(params_vec), std::move(param_types)));
+  task_manager->AddTask(task::TaskDML::Builder()
+                            .SetDatabaseOid(task_manager->GetDatabaseOid())
+                            .SetQueryText(std::move(query_text))
+                            .SetParameters(std::move(params_vec))
+                            .SetParameterTypes(std::move(param_types))
+                            .Build());
 }
 
 void SelfDrivingRecordingUtil::RecordBestActions(
@@ -234,9 +252,12 @@ void SelfDrivingRecordingUtil::RecordBestActions(
                                            type::TypeId::INTEGER, type::TypeId::REAL,    type::TypeId::INTEGER,
                                            type::TypeId::VARCHAR};
   std::string query_text = SelfDrivingRecordingUtil::BEST_ACTIONS_INSERT_STMT;
-  task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
-                                                        std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                        std::move(params_vec), std::move(param_types)));
+  task_manager->AddTask(task::TaskDML::Builder()
+                            .SetDatabaseOid(task_manager->GetDatabaseOid())
+                            .SetQueryText(std::move(query_text))
+                            .SetParameters(std::move(params_vec))
+                            .SetParameterTypes(std::move(param_types))
+                            .Build());
 }
 
 }  // namespace noisepage::util

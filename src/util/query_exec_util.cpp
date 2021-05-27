@@ -42,7 +42,8 @@ QueryExecUtil::QueryExecUtil(common::ManagedPointer<transaction::TransactionMana
       catalog_(catalog),
       settings_(settings),
       stats_(stats),
-      optimizer_timeout_(optimizer_timeout) {}
+      optimizer_timeout_(optimizer_timeout),
+      db_oid_(catalog->GetDefaultDatabaseOid()) {}
 
 void QueryExecUtil::ClearPlans() {
   schemas_.clear();
@@ -57,13 +58,8 @@ void QueryExecUtil::ClearPlan(const std::string &query) {
 void QueryExecUtil::ResetError() { error_msg_ = ""; }
 
 void QueryExecUtil::SetDatabase(catalog::db_oid_t db_oid) {
-  if (db_oid != catalog::INVALID_DATABASE_OID) {
-    db_oid_ = db_oid;
-  } else {
-    auto *txn = txn_manager_->BeginTransaction();
-    db_oid_ = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  }
+  NOISEPAGE_ASSERT(db_oid != catalog::INVALID_DATABASE_OID, "Get a real database OID.");
+  db_oid_ = db_oid;
 }
 
 void QueryExecUtil::UseTransaction(catalog::db_oid_t db_oid,
@@ -106,12 +102,8 @@ std::unique_ptr<network::Statement> QueryExecUtil::PlanStatement(
     auto parse_tree = parser::PostgresParser::BuildParseTree(query_tmp);
     statement = std::make_unique<network::Statement>(std::move(query_tmp), std::move(parse_tree));
   } catch (std::exception &e) {
-    std::ostringstream ss;
-    ss << "QueryExecUtil::PlanStatement caught error ";
-    ss << e.what() << " when parsing " << query << "\n";
-    error_msg_ = ss.str();
-
-    // Catched a parsing error
+    error_msg_ = fmt::format(R"(QueryExecUtil::PlanStatement encountered error "{}" while parsing query "{}".)",
+                             e.what(), query);
     COMMON_LOG_ERROR(error_msg_);
     return nullptr;
   }

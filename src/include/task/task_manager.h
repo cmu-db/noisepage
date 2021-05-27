@@ -63,6 +63,9 @@ class TaskManager : public common::DedicatedThreadOwner {
   bool OnThreadOffered() override { return false; }
   bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
 
+  /** @return The database being accessed by this task manager. */
+  catalog::db_oid_t GetDatabaseOid() const;
+
  private:
   friend class TaskRunner;
 

@@ -205,7 +205,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
 
     if (execute_query) {
       // Execute the queries to get features with counters
-      common::Future<task::DummyResult> sync;
+      common::FutureDummy sync;
       execution::exec::ExecutionSettings settings{};
       settings.is_counters_enabled_ = true;
       settings.is_pipeline_metrics_enabled_ = true;
@@ -216,11 +216,21 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
       //  PlanningContext to get the latest modifications (e.g. index changes). We punt on this since we focus on
       //  using the stats to get the features instead of executing queries. We might eventually delete this code path
       //  as well.
-      planning_context.GetTaskManager()->AddTask(std::make_unique<task::TaskDML>(
-          db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
-          std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<type::TypeId>(*param_types),
-          nullptr, metrics_manager, settings, true, true, std::make_optional<execution::query_id_t>(qid),
-          common::ManagedPointer(&sync)));
+      planning_context.GetTaskManager()->AddTask(
+          task::TaskDML::Builder()
+              .SetDatabaseOid(db_oid)
+              .SetQueryText(std::move(query_text))
+              .SetFuture(common::ManagedPointer(&sync))
+              // TODO(WAN): Copying of params and param_types, is that intentional?
+              .SetParameters(*params)
+              .SetParameterTypes(*param_types)
+              .SetMetricsManager(metrics_manager)
+              .SetShouldSkipQueryCache(true)
+              .SetShouldForceAbort(true)
+              .SetOverrideQueryId(qid)
+              .SetExecutionSettings(settings)
+              .Build());
+
       auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
       if (!future_result.has_value()) {
         throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);
@@ -472,10 +482,13 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
       memory_info->table_oids_.emplace_back(std::make_pair(db_oid, table_oid));
     };
 
-    common::Future<task::DummyResult> sync;
-    task_manager->AddTask(std::make_unique<task::TaskDML>(db_oid, query,
-                                                          std::make_unique<optimizer::TrivialCostModel>(), false,
-                                                          to_row_fn, common::ManagedPointer(&sync)));
+    common::FutureDummy sync;
+    task_manager->AddTask(task::TaskDML::Builder()
+                              .SetDatabaseOid(db_oid)
+                              .SetQueryText(std::move(query))
+                              .SetFuture(common::ManagedPointer(&sync))
+                              .SetTupleFn(to_row_fn)
+                              .Build());
 
     auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
     if (!future_result.has_value()) {
