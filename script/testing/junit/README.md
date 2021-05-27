@@ -45,11 +45,10 @@ The following section describes usage of the `FilterTrace.java` program.
 
 The procedure for running the `FilterTrace.java` program is as follows:
 
-1. Establish a local Postgres database
-2. Start the database server: `pg_ctl -D /usr/local/var/postgres start`
-3. Prepare your input trace file
-4. Compile the test infrastructure: `ant compile`
-5. Run the filter trace program: `ant filter-trace`. The program expects 6 arguments:
+1. Establish a local Postgres database and start the database server. The procedure to accomplish this depends on the particulars of your development environment. If you are using a CMU DB development machine, see the _PostgreSQL on CMU DB Development Machines_ section below.
+2. Prepare your input trace file
+3. Compile the test infrastructure: `ant compile`
+4. Run the filter trace program: `ant filter-trace`. The program expects 6 arguments:
   - `path`: The path to the input file
   - `db-url`: The JDBC URL for the DBMS server
   - `db-user`: The database username
@@ -94,11 +93,10 @@ The following section describes usage of the `GenerateTrace.java` program.
 
 The procedure for running the `GenerateTrace.java` program is as follows:
 
-1. Establish a local Postgres database
-2. Start the database server: `pg_ctl -D /usr/local/var/postgres start`
-3. Write your own SQL input file. The format of this file consists of SQL statements, one per line. Comments (denoted by `#`)) are permitted. 
-4. Compile the test infrastructure: `ant compile`
-5. Run the filter trace program: `ant filter-trace`. The program expects 6 arguments:
+1. Establish a local Postgres database and start the database server. The procedure to accomplish this depends on the particulars of your development environment. If you are using a CMU DB development machine, see the _PostgreSQL on CMU DB Development Machines_ section below.
+2. Write your own SQL input file. The format of this file consists of SQL statements, one per line. Comments (denoted by `#`)) are permitted. 
+3. Compile the test infrastructure: `ant compile`
+4. Run the filter trace program: `ant filter-trace`. The program expects 6 arguments:
   - `path`: The path to the input file
   - `db-url`: The JDBC URL for the DBMS server
   - `db-user`: The database username
@@ -217,3 +215,65 @@ Ant compiles all Java files present in the `src/` directory. The test runners au
 - See `TrafficCopTest.java` for an example of a non-tracefile integration test. Each test requires a `Connection` variable and SQL statements to setup the tables.
 - JUnit invokes the `Setup()` method prior to each test and then calls `Teardown()` after it completes. If you need different granularity, see the JUnit5 documentation. For instance, class level setup and teardown is possible.
 - Functions annotated with `@Test` denote the actual tests.
+
+### PostgreSQL on CMU DB Development Machines
+
+You can use the procedure below to install and setup PostgreSQL for use with integration tests on a CMU DB development machine.
+
+Install PostgreSQL with `apt`:
+
+```bash
+sudo apt-get update && sudo apt-get install postgresql
+```
+
+Check the status of running PostgreSQL instances:
+
+```bash
+pg_lsclusters
+...
+12  main    5432 online postgres /var/lib/postgresql/12/main /var/log/postgresql/postgresql-12-main.log
+```
+
+On Ubuntu 20.04 at the time of this writing, PostgreSQL 12 is the version installed by `apt`. The above output indicates that the DBMS is running. If this is not the case, we can start it with:
+
+```bash
+pg_ctlcluster 12 main start
+```
+
+Once the DBMS server is running, we just need to create a database that we can use to generate trace files. For instance, we can create the `test` database as follows:
+
+```bash
+$ sudo -u postgres psql
+postgres=# CREATE DATABASE test;
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges   
+-----------+----------+----------+-------------+-------------+-----------------------
+ postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+ template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ test      | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |
+postgres=# CREATE USER admin WITH ENCRYPTED PASSWORD 'password';
+postgres=# GRANT ALL PRIVILEGES ON DATABASE test TO admin;
+postgres=# exit
+```
+
+We can test this setup with `psql`:
+
+```bash
+$ psql -h localhost -U admin -d test
+Password for user admin: 
+psql (12.5 (Ubuntu 12.5-0ubuntu0.20.04.1), server 12.6 (Ubuntu 12.6-0ubuntu0.20.04.1))
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits: 256, compression: off)
+Type "help" for help.
+
+test=> 
+```
+
+Now the parameters we specify for `GenerateTrace.java` or `FilterTrace.java` are:
+
+- Database User: `admin`
+- Database Password: `password`
+- JDBC URL: `jdbc:postgresql://localhost/test`
