@@ -40,13 +40,16 @@ class Module::AsyncCompileTask : public tbb::task {
 // Module
 // ---------------------------------------------------------
 
-Module::Module(std::unique_ptr<BytecodeModule> bytecode_module) : Module(std::move(bytecode_module), nullptr) {}
+Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, ModuleMetadata &&metadata)
+    : Module(std::move(bytecode_module), nullptr, std::move(metadata)) {}
 
-Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module)
+Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module,
+               ModuleMetadata &&metadata)
     : bytecode_module_(std::move(bytecode_module)),
       jit_module_(std::move(llvm_module)),
       functions_(std::make_unique<std::atomic<void *>[]>(bytecode_module_->GetFunctionCount())),
-      bytecode_trampolines_(std::make_unique<Trampoline[]>(bytecode_module_->GetFunctionCount())) {
+      bytecode_trampolines_(std::make_unique<Trampoline[]>(bytecode_module_->GetFunctionCount())),
+      metadata_(std::move(metadata)) {
   // Create the trampolines for all bytecode functions
   for (const auto &func : bytecode_module_->GetFunctionsInfo()) {
     CreateFunctionTrampoline(func.GetId());

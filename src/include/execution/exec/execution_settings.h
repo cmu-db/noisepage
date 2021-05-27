@@ -1,7 +1,10 @@
 #pragma once
 
+#include <utility>
+
 #include "common/constants.h"
 #include "common/managed_pointer.h"
+#include "execution/compiler/compiler_settings.h"
 #include "execution/util/execution_common.h"
 
 namespace noisepage::settings {
@@ -50,6 +53,14 @@ class EXPORT ExecutionSettings {
    */
   void UpdateFromSettingsManager(common::ManagedPointer<settings::SettingsManager> settings);
 
+  /** Update the settings used in compilation of TPL. */
+  void SetCompilerSettings(execution::compiler::CompilerSettings compiler_settings) {
+    compiler_settings_ = compiler_settings;
+  }
+
+  /** @return The current settings used for compilation of TPL. */
+  const execution::compiler::CompilerSettings &GetCompilerSettings() const { return compiler_settings_; }
+
   /** @return The vector active element threshold past which full auto-vectorization is done on vectors. */
   constexpr double GetSelectOptThreshold() const { return select_opt_threshold_; }
 
@@ -91,6 +102,7 @@ class EXPORT ExecutionSettings {
   bool is_pipeline_metrics_enabled_{common::Constants::IS_PIPELINE_METRICS_ENABLED};
   int number_of_parallel_execution_threads_{common::Constants::NUM_PARALLEL_EXECUTION_THREADS};
   bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
+  compiler::CompilerSettings compiler_settings_{};  ///< The settings for compiling the TPL input.
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;
