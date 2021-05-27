@@ -66,6 +66,7 @@ struct CommitCallbackArg {
     const transaction::DurabilityPolicy &dur = policy.durability_;
     const transaction::ReplicationPolicy &rep = policy.replication_;
 
+    // Commit callback is always invoked at least once.
     persist_countdown_ += 1;
     if (rep != transaction::ReplicationPolicy::DISABLE) {
       if (dur == transaction::DurabilityPolicy::ASYNC && rep == transaction::ReplicationPolicy::ASYNC) {
