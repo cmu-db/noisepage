@@ -472,7 +472,7 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
   std::unordered_map<pilot::db_table_oid_pair, uint64_t, pilot::DBTableOidPairHasher> table_sizes;
 
   // Get <table_id, num_rows> pairs with num_rows > 0
-  auto query = fmt::format(
+  std::string query = fmt::format(
       "select starelid, max(stanumrows) as num_rows from pg_statistic group by starelid "
       "having max(stanumrows) > 0;");
 
