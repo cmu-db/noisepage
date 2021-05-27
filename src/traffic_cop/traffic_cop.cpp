@@ -53,6 +53,7 @@ struct CommitCallbackArg {
     persist_countdown_ = 0;
 
     // Cases: Durability, Replication
+    // - DISABLE, DISABLE => 1. The callback is invoked on LogCommit in TransactionManager.
     // - ASYNC, SYNC => This is too weird. Not supporting this.
     // - ASYNC, ASYNC => 1. The callback is invoked immediately in TransactionManager.
     // - SYNC, ASYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
@@ -65,9 +66,7 @@ struct CommitCallbackArg {
     const transaction::DurabilityPolicy &dur = policy.durability_;
     const transaction::ReplicationPolicy &rep = policy.replication_;
 
-    if (dur != transaction::DurabilityPolicy::DISABLE) {
-      persist_countdown_ += 1;
-    }
+    persist_countdown_ += 1;
     if (rep != transaction::ReplicationPolicy::DISABLE) {
       if (dur == transaction::DurabilityPolicy::ASYNC && rep == transaction::ReplicationPolicy::ASYNC) {
         // Callback will get invoked by TransactionManager, fake EmptyCallback is passed down.
@@ -114,12 +113,8 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
     auto future = cb_arg.ready_to_commit_.get_future();
     NOISEPAGE_ASSERT(future.valid(), "future must be valid for synchronization to work.");
     txn_manager_->Commit(txn.Get(), CommitCallback, &cb_arg);
-    if (txn->GetDurabilityPolicy() != transaction::DurabilityPolicy::DISABLE) {
-      // If there is nothing to be made durable, then there is nothing that will invoke the callback, and there is
-      // therefore nothing to wait for.
-      future.wait();
-      NOISEPAGE_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
-    }
+    future.wait();
+    NOISEPAGE_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
   } else {
     NOISEPAGE_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::IDLE,
                      "Invalid ConnectionContext state, not in a transaction that can be aborted.");
