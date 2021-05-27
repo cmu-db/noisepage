@@ -61,6 +61,7 @@ struct CommitCallbackArg {
     persist_countdown_ = 0;
 
     // Cases: Durability, Replication
+    // - DISABLE, DISABLE => 1. The callback is invoked on LogCommit in TransactionManager.
     // - ASYNC, SYNC => This is too weird. Not supporting this.
     // - ASYNC, ASYNC => 1. The callback is invoked immediately in TransactionManager.
     // - SYNC, ASYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
@@ -73,9 +74,8 @@ struct CommitCallbackArg {
     const transaction::DurabilityPolicy &dur = policy.durability_;
     const transaction::ReplicationPolicy &rep = policy.replication_;
 
-    if (dur != transaction::DurabilityPolicy::DISABLE) {
-      persist_countdown_ += 1;
-    }
+    // Commit callback is always invoked at least once.
+    persist_countdown_ += 1;
     if (rep != transaction::ReplicationPolicy::DISABLE) {
       if (dur == transaction::DurabilityPolicy::ASYNC && rep == transaction::ReplicationPolicy::ASYNC) {
         // Callback will get invoked by TransactionManager, fake EmptyCallback is passed down.
