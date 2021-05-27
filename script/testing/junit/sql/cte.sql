@@ -1,4 +1,4 @@
-# All tests here were written by us, tested against postgres
+# Input queries for vanilla (simple) CTE integration tests.
 
 WITH cte(x) AS (SELECT 1) SELECT x FROM cte;
 WITH cte AS (SELECT 1) SELECT * FROM cte;
@@ -7,10 +7,6 @@ WITH cte(y) AS (SELECT 1 AS "x") SELECT y FROM cte;
 WITH cte(x) AS (WITH cte2(y) AS (SELECT 1) SELECT y FROM cte2) SELECT x FROM cte;
 WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT * FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;
 WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT cte.x, cte2.y FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;
-
-CREATE TABLE tree (node INTEGER, parent INTEGER);
-INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 11), (111, 11);
-WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
 
 WITH cte(x,x) AS (SELECT 1, 2) SELECT * FROM cte;
 WITH cte AS (SELECT 4, 3) SELECT * FROM cte;

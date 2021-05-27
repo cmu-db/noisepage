@@ -1,0 +1,18 @@
+# Baseline recursive CTE
+statement ok
+CREATE TABLE tree (node INTEGER, parent INTEGER);
+
+statement ok
+INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 11), (111, 11);
+
+query I rowsort
+WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
+----
+1
+10
+100
+101
+11
+110
+111
+

@@ -124,7 +124,7 @@ Suppose we want to run `GenerateTrace.java` with the following configuration:
 The corresponding command would be:
 
 ```bash
-ant generate-trace -Dpath=traces/select.sql -Ddb-url=jdbc:postgresql://localhost/mydb -Ddb-user=admin -Ddb-password="" -Doutput-name=select_new.test
+ant generate-trace -Dpath=sql/select.sql -Ddb-url=jdbc:postgresql://localhost/mydb -Ddb-user=admin -Ddb-password="" -Doutput-name=select.test
 ```
 
 **Additional Details**
@@ -277,3 +277,6 @@ Now the parameters we specify for `GenerateTrace.java` or `FilterTrace.java` are
 - Database User: `admin`
 - Database Password: `password`
 - JDBC URL: `jdbc:postgresql://localhost/test`
+
+
+ant generate-trace -Dpath=sql/cte.sql -Ddb-url=jdbc:postgresql://localhost/test -Ddb-user=admin -Ddb-password=password -Doutput-name=cte.test
