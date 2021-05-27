@@ -72,6 +72,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
       commit_callback(commit_callback_arg);
     } else {
       NOISEPAGE_ASSERT(txn->GetDurabilityPolicy() == DurabilityPolicy::DISABLE, "Durability should be disabled.");
+      timestamp_manager_->RemoveTransaction(txn->StartTime());
     }
   } else {
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the

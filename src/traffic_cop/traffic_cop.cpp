@@ -114,8 +114,12 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
     auto future = cb_arg.ready_to_commit_.get_future();
     NOISEPAGE_ASSERT(future.valid(), "future must be valid for synchronization to work.");
     txn_manager_->Commit(txn.Get(), CommitCallback, &cb_arg);
-    future.wait();
-    NOISEPAGE_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
+    if (txn->GetDurabilityPolicy() != transaction::DurabilityPolicy::DISABLE) {
+      // If there is nothing to be made durable, then there is nothing that will invoke the callback, and there is
+      // therefore nothing to wait for.
+      future.wait();
+      NOISEPAGE_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
+    }
   } else {
     NOISEPAGE_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::IDLE,
                      "Invalid ConnectionContext state, not in a transaction that can be aborted.");
