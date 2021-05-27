@@ -365,9 +365,15 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   std::vector<planner::OutputSchema::Column> output_columns;
   output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
 
-  // TODO(WAN): Integrate with Matt's PR.
-#if 0
-  {
+  const auto format =
+      portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>()->GetFormat();
+  std::string plan_string;
+  if (format == parser::ExplainStatementFormat::JSON) {
+    plan_string = portal->OptimizeResult()->GetPlanNode()->ToJson().dump(4);
+  } else {
+    NOISEPAGE_ASSERT(format == parser::ExplainStatementFormat::TPL || format == parser::ExplainStatementFormat::TBC,
+                     "We only support JSON, TPL, and TBC formats.");
+
     // Codegen must happen for certain types of EXPLAIN metadata to be collected, e.g., collection of TPL.
     auto codegen = CodegenPhysicalPlan(connection_ctx, out, portal);
     if (codegen.type_ != ResultType::COMPLETE) {
@@ -378,15 +384,15 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
     const auto &fragments = portal->GetStatement()->GetExecutableQuery()->GetFragments();
     NOISEPAGE_ASSERT(fragments.size() == 1, "We currently always compile with just one query fragment.");
     const auto &metadata = fragments.at(0)->GetModuleMetadata().GetCompileTimeMetadata();
-    std::string output = metadata.GetTPL() + "\n\n" + metadata.GetTBC();
-    const execution::sql::StringVal plan_string_val = execution::sql::StringVal(output.c_str(), output.length());
-  }
-#endif
 
-  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
-  const std::string plan_string = physical_plan->ToJson().dump(4);
-  const execution::sql::StringVal plan_string_val =
-      execution::sql::StringVal(plan_string.c_str(), plan_string.length());
+    if (format == parser::ExplainStatementFormat::TPL) {
+      plan_string = metadata.GetTPL();
+    } else {
+      NOISEPAGE_ASSERT(format == parser::ExplainStatementFormat::TBC, "Did you add a new case?");
+      plan_string = metadata.GetTBC();
+    }
+  }
+  const auto plan_string_val = execution::sql::StringVal(plan_string.c_str(), plan_string.length());
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 
@@ -481,13 +487,15 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.UpdateFromSettingsManager(settings_manager_);
 
-  // TODO(WAN): Integrate with Matt's PR.
   // Set any compilation settings based on the original query type.
   if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_EXPLAIN) {
     execution::compiler::CompilerSettings settings;
-    // if (portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>().GetFormat()...)
-    settings.SetShouldCaptureTPL(true);
-    settings.SetShouldCaptureTBC(true);
+    auto stmt = portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>();
+    if (stmt->GetFormat() == parser::ExplainStatementFormat::TPL) {
+      settings.SetShouldCaptureTPL(true);
+    } else if (stmt->GetFormat() == parser::ExplainStatementFormat::TBC) {
+      settings.SetShouldCaptureTBC(true);
+    }
     exec_settings.SetCompilerSettings(settings);
   }
 
