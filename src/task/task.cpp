@@ -34,10 +34,10 @@ std::unique_ptr<TaskDML> TaskDML::Builder::Build() {
   // Set defaults.
   cost_model_ = cost_model_ != nullptr ? std::move(cost_model_) : std::make_unique<optimizer::TrivialCostModel>();
 
-  return std::unique_ptr<TaskDML>(new TaskDML(*db_oid_, std::move(*query_text_), *policy_, sync_, std::move(cost_model_),
-                                              std::move(params_), std::move(param_types_), settings_, override_qid_,
-                                              metrics_manager_, should_force_abort_, should_skip_query_cache_,
-                                              std::move(tuple_fn_)));
+  return std::unique_ptr<TaskDML>(new TaskDML(*db_oid_, std::move(*query_text_), *policy_, sync_,
+                                              std::move(cost_model_), std::move(params_), std::move(param_types_),
+                                              settings_, override_qid_, metrics_manager_, should_force_abort_,
+                                              should_skip_query_cache_, std::move(tuple_fn_)));
 }
 
 TaskDML::Builder &TaskDML::Builder::SetCostModel(std::unique_ptr<optimizer::AbstractCostModel> cost_model) {
