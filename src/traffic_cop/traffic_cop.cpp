@@ -25,7 +25,6 @@
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
-#include "nlohmann/json.hpp"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
@@ -35,6 +34,14 @@
 #include "parser/variable_show_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
+#include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
+#include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_table_plan_node.h"
+#include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_index_plan_node.h"
+#include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_table_plan_node.h"
 #include "settings/settings_manager.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
@@ -54,6 +61,7 @@ struct CommitCallbackArg {
     persist_countdown_ = 0;
 
     // Cases: Durability, Replication
+    // - DISABLE, DISABLE => 1. The callback is invoked on LogCommit in TransactionManager.
     // - ASYNC, SYNC => This is too weird. Not supporting this.
     // - ASYNC, ASYNC => 1. The callback is invoked immediately in TransactionManager.
     // - SYNC, ASYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
@@ -66,9 +74,8 @@ struct CommitCallbackArg {
     const transaction::DurabilityPolicy &dur = policy.durability_;
     const transaction::ReplicationPolicy &rep = policy.replication_;
 
-    if (dur != transaction::DurabilityPolicy::DISABLE) {
-      persist_countdown_ += 1;
-    }
+    // Commit callback is always invoked at least once.
+    persist_countdown_ += 1;
     if (rep != transaction::ReplicationPolicy::DISABLE) {
       if (dur == transaction::DurabilityPolicy::ASYNC && rep == transaction::ReplicationPolicy::ASYNC) {
         // Callback will get invoked by TransactionManager, fake EmptyCallback is passed down.
@@ -349,7 +356,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
 TrafficCopResult TrafficCop::ExecuteExplainStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::PostgresPacketWriter> out,
-    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const {
+    const common::ManagedPointer<network::Portal> portal) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
 
@@ -358,9 +365,34 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   std::vector<planner::OutputSchema::Column> output_columns;
   output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
 
-  const std::string plan_string = physical_plan->ToJson().dump(4);
-  const execution::sql::StringVal plan_string_val =
-      execution::sql::StringVal(plan_string.c_str(), plan_string.length());
+  const auto format =
+      portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>()->GetFormat();
+  std::string plan_string;
+  if (format == parser::ExplainStatementFormat::JSON) {
+    plan_string = portal->OptimizeResult()->GetPlanNode()->ToJson().dump(4);
+  } else {
+    NOISEPAGE_ASSERT(format == parser::ExplainStatementFormat::TPL || format == parser::ExplainStatementFormat::TBC,
+                     "We only support JSON, TPL, and TBC formats.");
+
+    // Codegen must happen for certain types of EXPLAIN metadata to be collected, e.g., collection of TPL.
+    auto codegen = CodegenPhysicalPlan(connection_ctx, out, portal);
+    if (codegen.type_ != ResultType::COMPLETE) {
+      return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "Failed to execute codegen.",
+                                                   common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
+    }
+
+    const auto &fragments = portal->GetStatement()->GetExecutableQuery()->GetFragments();
+    NOISEPAGE_ASSERT(fragments.size() == 1, "We currently always compile with just one query fragment.");
+    const auto &metadata = fragments.at(0)->GetModuleMetadata().GetCompileTimeMetadata();
+
+    if (format == parser::ExplainStatementFormat::TPL) {
+      plan_string = metadata.GetTPL();
+    } else {
+      NOISEPAGE_ASSERT(format == parser::ExplainStatementFormat::TBC, "Did you add a new case?");
+      plan_string = metadata.GetTBC();
+    }
+  }
+  const auto plan_string_val = execution::sql::StringVal(plan_string.c_str(), plan_string.length());
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 
@@ -430,13 +462,21 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     const common::ManagedPointer<network::Portal> portal) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
-  const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
+  // For an EXPLAIN statement, the query type is the type of the wrapped SQL statement.
+  const auto query_type UNUSED_ATTRIBUTE =
+      portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_EXPLAIN
+          ? trafficcop::TrafficCopUtil::QueryTypeForStatement(portal->GetStatement()
+                                                                  ->RootStatement()
+                                                                  .CastManagedPointerTo<parser::ExplainStatement>()
+                                                                  ->GetSQLStatement())
+          : portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
+
   NOISEPAGE_ASSERT(
       query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
           query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
-      "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+      "CodegenPhysicalPlan called with invalid QueryType.");
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
@@ -446,6 +486,18 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.UpdateFromSettingsManager(settings_manager_);
+
+  // Set any compilation settings based on the original query type.
+  if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_EXPLAIN) {
+    execution::compiler::CompilerSettings settings;
+    auto stmt = portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>();
+    if (stmt->GetFormat() == parser::ExplainStatementFormat::TPL) {
+      settings.SetShouldCaptureTPL(true);
+    } else if (stmt->GetFormat() == parser::ExplainStatementFormat::TBC) {
+      settings.SetShouldCaptureTBC(true);
+    }
+    exec_settings.SetCompilerSettings(settings);
+  }
 
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *physical_plan, exec_settings, connection_ctx->Accessor().Get(),

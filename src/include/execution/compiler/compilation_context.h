@@ -10,6 +10,10 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/pipeline.h"
 
+namespace noisepage::execution::compiler {
+class CompilerSettings;
+}  // namespace noisepage::execution::compiler
+
 namespace noisepage::parser {
 class AbstractExpression;
 }  // namespace noisepage::parser
