@@ -1,3 +1,7 @@
+# Input queries for recursive CTE integration tests.
+statement ok
+
+
 # Baseline recursive CTE
 statement ok
 CREATE TABLE tree (node INTEGER, parent INTEGER);

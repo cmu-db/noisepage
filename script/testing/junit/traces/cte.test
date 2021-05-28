@@ -1,4 +1,4 @@
-# All tests here were written by us, tested against postgres
+# Input queries for vanilla (simple) CTE integration tests.
 statement ok
 
 
@@ -46,13 +46,13 @@ query II rowsort
 WITH cte(x,x) AS (SELECT 1, 2) SELECT * FROM cte;
 ----
 1
-2
+1
 
 query II rowsort
 WITH cte AS (SELECT 4, 3) SELECT * FROM cte;
 ----
 4
-3
+4
 
 query I rowsort
 WITH cte(y,y,x) AS (SELECT 5,4,3) SELECT x FROM cte;
@@ -102,21 +102,21 @@ WITH employee AS (SELECT SUM(age) AS sumage FROM company) SELECT * FROM employee
 query TI rowsort
 WITH employee AS (SELECT C1.name AS name, C2.age AS age FROM company AS C1, company AS C2) SELECT * FROM employee;
 ----
-George
 21
 George
-32
-Paul
 21
 Paul
 32
+George
+32
+Paul
 
 # Aggregate with alias inside cte query
 query TI rowsort
 WITH employee AS (SELECT MAX(age) AS mxage FROM company) SELECT E2.name, E2.age FROM employee AS E1, company AS E2 WHERE E1.mxage = E2.age;
 ----
-Paul
 32
+Paul
 
 statement ok
 

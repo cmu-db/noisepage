@@ -1,1 +1,0 @@
-WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT * FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;

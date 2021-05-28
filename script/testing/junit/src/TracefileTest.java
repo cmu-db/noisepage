@@ -186,7 +186,7 @@ public class TracefileTest {
             Statement statement = conn.createStatement();
             statement.execute(queryString);
             
-           // Process the result set from the query
+            // Process the result set from the query
             final List<String> results = mog.processResults(statement.getResultSet());
             
             // Create an executable for the query
@@ -361,7 +361,7 @@ public class TracefileTest {
      * @param results The queried result set
      * @throws RuntimeException
      */
-    public static void checkResultHashes(final String expectedHash, final String actualHash, final String message,
+    private static void checkResultHashes(final String expectedHash, final String actualHash, final String message,
                              final boolean resultCountsMatch, final List<String> results) throws RuntimeException {
         // If length doesn't match, throw
         if (!resultCountsMatch){
@@ -415,7 +415,7 @@ public class TracefileTest {
      * @param message The error message
      * @throws RuntimeException
      */
-    public static void checkAlwaysFail(final String message) throws RuntimeException {
+    private static void checkAlwaysFail(final String message) throws RuntimeException {
         throw new RuntimeException(message);
     }
 
@@ -431,7 +431,7 @@ public class TracefileTest {
      */
     private static List<Integer> getQueryLineNumbers(File input) throws IOException {
         try (BufferedReader bf = new BufferedReader(new FileReader(input))) {
-            List<Integer> res = new ArrayList<>();
+            List<Integer> lineNumbers = new ArrayList<>();
             String line;
             int counter = 0;
             while (null != (line = bf.readLine())){
@@ -439,10 +439,10 @@ public class TracefileTest {
                 if (line.startsWith(Constants.QUERY)
                 || line.startsWith(Constants.STATEMENT_ERROR)
                 || line.startsWith(Constants.STATEMENT_OK)) {
-                    res.add(counter);
+                    lineNumbers.add(counter);
                 }
             }
-            return res;
+            return lineNumbers;
         }
     }
 

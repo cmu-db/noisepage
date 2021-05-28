@@ -74,6 +74,7 @@ public class GenerateTrace {
                 if (line.contains("ORDER BY")) {
                     // These rows are already sorted by the SQL and need to match exactly
                     sortOption = "nosort";
+                    mog.sortMode = "nosort";
                 } else {
                     // Need to create a canonical ordering...
                     sortOption = "rowsort";

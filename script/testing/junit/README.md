@@ -284,6 +284,3 @@ Now the parameters we specify for `GenerateTrace.java` or `FilterTrace.java` are
 - Database User: `admin`
 - Database Password: `password`
 - JDBC URL: `jdbc:postgresql://localhost/test`
-
-
-ant generate-trace -Dpath=sql/tmp.sql -Ddb-url=jdbc:postgresql://localhost/test -Ddb-user=admin -Ddb-password=password -Doutput-name=tmp.test

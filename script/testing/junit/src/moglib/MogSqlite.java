@@ -180,18 +180,34 @@ public class MogSqlite {
     }
 
     public List<String> processResults(ResultSet rs) throws SQLException {
-        int numCols = rs.getMetaData().getColumnCount();
-        ArrayList<ArrayList<String>> resultRows = new ArrayList<>();
+        final int numCols = rs.getMetaData().getColumnCount();
+
+        // Grab the column names for the table
+        List<String> columnLabels = new ArrayList<>();
+        for (int i = 1; i <= numCols; ++i) {
+            columnLabels.add(rs.getMetaData().getColumnLabel(i));
+        }
+        // Establish a canonical order for column names
+        columnLabels.sort(String::compareTo);
+
+        List<ArrayList<String>> resultRows = new ArrayList<>();
         while (rs.next()) {
             ArrayList<String> resultRow = new ArrayList<>();
-            for (int i = 1; i <= numCols; ++i) {
-                // TODO(WAN): expose NULL behavior as knob
-                if (null == rs.getString(i)) {
-                    resultRow.add("");
-                } else {
-                    resultRow.add(rs.getString(i));
+            if (this.sortMode.equals("rowsort")) {
+                // Here we construct each row in the result set
+                // in the order specified by the sorted column labels
+                for (final String label : columnLabels) {
+                    final String attr = (rs.getString(label) == null) ? "" : rs.getString(label);
+                    resultRow.add(attr);
+                }
+            } else {
+                // In the default case we do not order values by column label
+                for (int i = 1; i <= numCols; ++i) {
+                    final String attr = (rs.getString(i) == null) ? "" : rs.getString(i);
+                    resultRow.add(attr);
                 }
             }
+
             resultRows.add(resultRow);
         }
 
@@ -202,11 +218,11 @@ public class MogSqlite {
          * 3. Now, valuesort if necessary.
          * 4. nosort is the default.
          *
-         * This logic handles the nosort, rowsort, and valuesort cases properly with minimal branching.
-         * But adding new sorting cases may require a rewrite.
+         * This logic handles the nosort, rowsort, and valuesort cases properly with 
+         * minimal branching. But adding new sorting cases may require a rewrite.
          */
         if (this.sortMode.equals("rowsort")) {
-            /* Sort each row individually. */
+            // Sort each row individually
             resultRows.sort(new Comparator<ArrayList<String>>() {
                 @Override
                 public int compare(ArrayList<String> o1, ArrayList<String> o2) {
@@ -218,6 +234,7 @@ public class MogSqlite {
                 }
             });
         }
+
         return resultRows.stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
 
