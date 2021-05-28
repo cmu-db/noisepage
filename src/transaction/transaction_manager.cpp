@@ -38,7 +38,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
-  if (log_manager_ != DISABLED) {
+  if (log_manager_ != DISABLED && txn->GetDurabilityPolicy() != DurabilityPolicy::DISABLE) {
     if (txn->GetDurabilityPolicy() == DurabilityPolicy::SYNC) {
       // At this point the commit has already happened for the rest of the system.
       // Here we will manually add a commit record and flush the buffer to ensure the logger sees this record.
@@ -70,8 +70,6 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
                                           nullptr, oldest_active_txn, txn->IsReadOnly(), txn, timestamp_manager_.Get());
       }
       commit_callback(commit_callback_arg);
-    } else {
-      NOISEPAGE_ASSERT(txn->GetDurabilityPolicy() == DurabilityPolicy::DISABLE, "Durability should be disabled.");
     }
   } else {
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
