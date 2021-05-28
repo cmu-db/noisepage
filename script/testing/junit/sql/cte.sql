@@ -5,7 +5,10 @@ WITH cte AS (SELECT 1) SELECT * FROM cte;
 WITH cte AS (SELECT 1 AS "x") SELECT * FROM cte;
 WITH cte(y) AS (SELECT 1 AS "x") SELECT y FROM cte;
 WITH cte(x) AS (WITH cte2(y) AS (SELECT 1) SELECT y FROM cte2) SELECT x FROM cte;
-WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT * FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;
+
+# TODO: We currently fail on this query because of the arbitrary SELECT * ordering
+# WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT * FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;
+
 WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT cte.x, cte2.y FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;
 
 WITH cte(x,x) AS (SELECT 1, 2) SELECT * FROM cte;

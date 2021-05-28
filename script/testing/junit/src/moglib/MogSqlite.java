@@ -181,33 +181,13 @@ public class MogSqlite {
 
     public List<String> processResults(ResultSet rs) throws SQLException {
         final int numCols = rs.getMetaData().getColumnCount();
-
-        // Grab the column names for the table
-        List<String> columnLabels = new ArrayList<>();
-        for (int i = 1; i <= numCols; ++i) {
-            columnLabels.add(rs.getMetaData().getColumnLabel(i));
-        }
-        // Establish a canonical order for column names
-        columnLabels.sort(String::compareTo);
-
         List<ArrayList<String>> resultRows = new ArrayList<>();
         while (rs.next()) {
             ArrayList<String> resultRow = new ArrayList<>();
-            if (this.sortMode.equals("rowsort")) {
-                // Here we construct each row in the result set
-                // in the order specified by the sorted column labels
-                for (final String label : columnLabels) {
-                    final String attr = (rs.getString(label) == null) ? "" : rs.getString(label);
-                    resultRow.add(attr);
-                }
-            } else {
-                // In the default case we do not order values by column label
-                for (int i = 1; i <= numCols; ++i) {
-                    final String attr = (rs.getString(i) == null) ? "" : rs.getString(i);
-                    resultRow.add(attr);
-                }
+            for (int i = 1; i <= numCols; ++i) {
+                final String attr = (rs.getString(i) == null) ? "" : rs.getString(i);
+                resultRow.add(attr);
             }
-
             resultRows.add(resultRow);
         }
 
