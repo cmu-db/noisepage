@@ -42,6 +42,14 @@ INSERT INTO tmp VALUES (1), (2);
 WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, tmp C ORDER BY A.x, B.x, C.x;
 WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, cte C ORDER BY A.x, B.x, C.x;
 
+-- Infinite loop, but outer query limits the number of rows
+-- TODO: We loop on this
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
+-- Infinite loop, but outer query limits the number of rows
+-- TODO: We loop on this
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION ALL SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
 -----------------------------------------------------------
 -- Adapted from Postgres Regression Test (`with.sql`)
 -- https://github.com/postgres/postgres/blob/master/src/test/regress/sql/with.sql

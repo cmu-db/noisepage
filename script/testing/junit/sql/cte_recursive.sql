@@ -16,8 +16,15 @@ WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JO
 -- TODO: Fails in parser (TargetTransform root==null)
 -- WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n+1 FROM t WHERE n < 100) SELECT sum(n) FROM t;
 
+-- variant of above without VALUES()
+WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n < 100) SELECT sum(n) FROM t;
+
 -- TODO: Fails in parser (TargetTransform root==null)
 -- WITH RECURSIVE t(n) AS (SELECT (VALUES(1)) UNION ALL SELECT n+1 FROM t WHERE n < 5) SELECT * FROM t;
+
+-- variant of above without VALUES()
+-- TODO: Fails in binder ("CTE column type not resolved")
+-- WITH RECURSIVE t(n) AS (SELECT (SELECT 1) UNION ALL SELECT n+1 FROM t WHERE n < 5) SELECT * FROM t;
 
 -- This is an infinite loop with UNION ALL, but not with UNION
 -- TODO: We loop infinitely on this
@@ -27,15 +34,23 @@ WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JO
 -- TODO: Fails in parser (TargetTransform root==null)
 -- WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
 
+-- variant of above without VALUES()
+-- TODO: We loop on this
+-- WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
+
 -- TODO: Fails in parser
 -- WITH RECURSIVE y (id) AS (VALUES (1)), x (id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
 
--- TODO: Fails in parser
--- WITH RECURSIVE x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5), y(id) AS (values (1)) SELECT * FROM x;
+-- variant of above without VALUES()
+-- TODO: Crashes the DBMS
+-- WITH RECURSIVE y (id) AS (SELECT 1), x (id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
 
--- subquery
--- TODO: Fails in parser
--- WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM x WHERE n IN (SELECT * FROM x)) SELECT * FROM x;
+-- TODO: Fails in parser (relation 'y' does not exist)
+-- WITH RECURSIVE x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5), y(id) AS (SELECT 1) SELECT * FROM x;
+
+-- variant of the above with order of CTEs swapped
+-- TODO: Crashes the DBMS
+-- WITH RECURSIVE y(id) AS (SELECT 1), x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
 
 CREATE TABLE department (id INTEGER PRIMARY KEY, parent_department INTEGER, name TEXT);
 

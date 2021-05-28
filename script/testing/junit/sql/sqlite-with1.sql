@@ -72,10 +72,10 @@ INSERT INTO edge VALUES(8, 9, 90);
 -- WITH RECURSIVE ancest(id, mtime) AS (VALUES(0, 0) UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
 
 -- This fails in the parser (TargetTransform: root==null)
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 -- This fails in the parser (TargetTransform: root==null)
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 -----------------------------------------------------------
 -- with1.test, section 6

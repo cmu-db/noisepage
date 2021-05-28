@@ -231,7 +231,7 @@ statement ok
 -- This fails in the parser (TargetTransform: root==null)
 
 statement ok
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 statement ok
 
@@ -240,7 +240,7 @@ statement ok
 -- This fails in the parser (TargetTransform: root==null)
 
 statement ok
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 statement ok
 

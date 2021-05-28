@@ -61,6 +61,26 @@ statement ok
 
 
 statement ok
+-- A slight modification of the above query that replaces VALUES(4)
+
+statement ok
+-- with SELECT 4; this succeeds in our current implementation
+
+query I rowsort
+WITH RECURSIVE t4(x) AS (SELECT 4 UNION ALL SELECT x+1 FROM t4 WHERE x < 10) SELECT * FROM t4;
+----
+10
+4
+5
+6
+7
+8
+9
+
+statement ok
+
+
+statement ok
 -- terminator; the testing infrastructure chokes on trailing comments
 
 query I rowsort

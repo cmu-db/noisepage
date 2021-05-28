@@ -224,10 +224,37 @@ statement ok
 
 
 statement ok
+-- Infinite loop, but outer query limits the number of rows
+
+statement ok
+-- TODO: We loop on this
+
+statement ok
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
+statement ok
+
+
+statement ok
+-- Infinite loop, but outer query limits the number of rows
+
+statement ok
+-- TODO: We loop on this
+
+statement ok
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION ALL SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
+statement ok
+
+
+statement ok
 -----------------------------------------------------------
 
 statement ok
 -- Adapted from Postgres Regression Test (`with.sql`)
+
+statement ok
+-- https://github.com/postgres/postgres/blob/master/src/test/regress/sql/with.sql
 
 statement ok
 
