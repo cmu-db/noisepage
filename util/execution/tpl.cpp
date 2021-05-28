@@ -31,6 +31,7 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
+#include "execution/vm/module_metadata.h"
 #include "execution/vm/vm.h"
 #include "loggers/execution_logger.h"
 #include "main/db_main.h"
@@ -183,7 +184,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     bytecode_module->Dump(std::cout);  // NOLINT
   }
 
-  auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
+  vm::CompileTimeModuleMetadata compile_metadata{};
+  vm::ModuleMetadata module_metadata{std::move(compile_metadata)};
+  auto module = std::make_unique<vm::Module>(std::move(bytecode_module), std::move(module_metadata));
 
   //
   // Interpret
