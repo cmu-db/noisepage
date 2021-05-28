@@ -1,9 +1,15 @@
-# CTE-related integration tests from SQLite trace file `with1.test`
+statement ok
+-- CTE-related integration tests from SQLite trace file `with1.test`
+
 statement ok
 
 
-# ---------------------------------------------------------
-# with1.test, section 1
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 1
+
 statement ok
 
 
@@ -21,8 +27,12 @@ WITH x(a) AS (SELECT * FROM t1) SELECT 10;
 statement ok
 
 
-# Postgres does not support this syntax
-# SELECT * FROM ( WITH x AS ( SELECT * FROM t1) SELECT 10);
+statement ok
+-- Postgres does not support this syntax
+
+statement ok
+-- SELECT * FROM ( WITH x AS ( SELECT * FROM t1) SELECT 10);
+
 statement ok
 
 
@@ -38,8 +48,12 @@ WITH x(a) AS (SELECT * FROM t1) UPDATE t1 SET x = y;
 statement ok
 
 
-# ---------------------------------------------------------
-# with1.test, section 2
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 2
+
 statement ok
 
 
@@ -73,23 +87,39 @@ WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp;
 statement ok
 
 
-# Postgres does not support this syntax
-# SELECT * FROM (WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp);
+statement ok
+-- Postgres does not support this syntax
+
+statement ok
+-- SELECT * FROM (WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp);
+
 statement ok
 
 
-# Postgres does not support this syntax
-# WITH tmp1(a) AS (SELECT * FROM t1), tmp2(x) AS (SELECT * FROM tmp1) SELECT * FROM tmp2;
+statement ok
+-- Postgres does not support this syntax
+
+statement ok
+-- WITH tmp1(a) AS (SELECT * FROM t1), tmp2(x) AS (SELECT * FROM tmp1) SELECT * FROM tmp2;
+
 statement ok
 
 
-# Postgres does not support this syntax
-# WITH tmp2(x) AS (SELECT * FROM tmp1), tmp1(a) AS (SELECT * FROM t1) SELECT * FROM tmp2;
+statement ok
+-- Postgres does not support this syntax
+
+statement ok
+-- WITH tmp2(x) AS (SELECT * FROM tmp1), tmp1(a) AS (SELECT * FROM t1) SELECT * FROM tmp2;
+
 statement ok
 
 
-# ---------------------------------------------------------
-# with1.test, section 3
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 3
+
 statement ok
 
 
@@ -119,18 +149,30 @@ T4
 statement ok
 
 
-# We crash on this query, Postgres returns `T4`
-# WITH tmp AS (SELECT * FROM t3), tmp2 AS (WITH tmp AS (SELECT * FROM t4) SELECT * FROM tmp) SELECT * FROM tmp2;
+statement ok
+-- TODO: We crash on this query, Postgres returns `T4`
+
+statement ok
+-- WITH tmp AS (SELECT * FROM t3), tmp2 AS (WITH tmp AS (SELECT * FROM t4) SELECT * FROM tmp) SELECT * FROM tmp2;
+
 statement ok
 
 
-# We crash on this query; Postgres returns `T3`
-# WITH tmp AS (SELECT * FROM t3), tmp2 AS (WITH xxxx AS (SELECT * FROM t4) SELECT * FROM tmp) SELECT * FROM tmp2;
+statement ok
+-- TODO: We crash on this query; Postgres returns `T3`
+
+statement ok
+-- WITH tmp AS (SELECT * FROM t3), tmp2 AS (WITH xxxx AS (SELECT * FROM t4) SELECT * FROM tmp) SELECT * FROM tmp2;
+
 statement ok
 
 
-# ---------------------------------------------------------
-# with1.test, section 5
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 5
+
 statement ok
 
 
@@ -176,23 +218,39 @@ INSERT INTO edge VALUES(8, 9, 90);
 statement ok
 
 
-# This fails in the parser (TargetTransform: root==null)
-# WITH RECURSIVE ancest(id, mtime) AS (VALUES(0, 0) UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
+statement ok
+-- This fails in the parser (TargetTransform: root==null)
+
+statement ok
+-- WITH RECURSIVE ancest(id, mtime) AS (VALUES(0, 0) UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
+
 statement ok
 
 
-# This fails in the parser (TargetTransform: root==null)
-# WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+statement ok
+-- This fails in the parser (TargetTransform: root==null)
+
+statement ok
+-- WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
 statement ok
 
 
-# This fails in the parser (TargetTransform: root==null)
-# WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+statement ok
+-- This fails in the parser (TargetTransform: root==null)
+
+statement ok
+-- WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
 statement ok
 
 
-# ---------------------------------------------------------
-# with1.test, section 6
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 6
+
 statement ok
 
 
@@ -204,7 +262,9 @@ WITH RECURSIVE x(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM x WHERE i<10) SELECT 
 statement ok
 
 
-# terminator; the testing infrastructure chokes on trailing comments
+statement ok
+-- terminator; the testing infrastructure chokes on trailing comments
+
 query I rowsort
 SELECT 1;
 ----

@@ -1,9 +1,15 @@
-# CTE-related integration tests from SQLite trace file `with2.test`
+statement ok
+-- CTE-related integration tests from SQLite trace file `with2.test`
+
 statement ok
 
 
-# ---------------------------------------------------------
-# with2.test, section 1
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with2.test, section 1
+
 statement ok
 
 
@@ -27,22 +33,36 @@ WITH x1 AS (SELECT * FROM t1) SELECT sum(a) FROM x1;
 statement ok
 
 
-# We crash on this query; Postgres succeeds
-# WITH x1 AS (SELECT * FROM t1) SELECT (SELECT sum(a) FROM x1);
+statement ok
+-- We crash on this query; Postgres succeeds
+
+statement ok
+-- WITH x1 AS (SELECT * FROM t1) SELECT (SELECT sum(a) FROM x1);
+
 statement ok
 
 
-# We crash on this query; Postgres succeeds
-# WITH x1 AS (SELECT * FROM t1) SELECT (SELECT sum(a) FROM x1), (SELECT max(a) FROM x1);
+statement ok
+-- We crash on this query; Postgres succeeds
+
+statement ok
+-- WITH x1 AS (SELECT * FROM t1) SELECT (SELECT sum(a) FROM x1), (SELECT max(a) FROM x1);
+
 statement ok
 
 
-# This fails in the parser (TargetTransform==null)
-# WITH RECURSIVE t4(x) AS (VALUES(4) UNION ALL SELECT x+1 FROM t4 WHERE x<10) SELECT * FROM t4;
+statement ok
+-- This fails in the parser (TargetTransform==null)
+
+statement ok
+-- WITH RECURSIVE t4(x) AS (VALUES(4) UNION ALL SELECT x+1 FROM t4 WHERE x<10) SELECT * FROM t4;
+
 statement ok
 
 
-# terminator; the testing infrastructure chokes on trailing comments
+statement ok
+-- terminator; the testing infrastructure chokes on trailing comments
+
 query I rowsort
 SELECT 1;
 ----
