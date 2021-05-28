@@ -3,25 +3,23 @@
 #include <map>
 #include <memory>
 #include <set>
-#include <string>
 #include <utility>
 #include <vector>
 
-#include "self_driving/planning/action/abstract_action.h"
 #include "self_driving/planning/action/action_defs.h"
-#include "self_driving/planning/pilot.h"
 #include "self_driving/planning/seq_tuning/seq_node.h"
 
 namespace noisepage::selfdriving {
-class Pilot;
 class WorkloadForecast;
 
 namespace pilot {
 class AbstractAction;
+class PlanningContext;
 struct PathSolution;
 
 /**
- * The pilot processes the query trace predictions by executing them and extracting pipeline features
+ * The GaphSolver class constructs a DAG in which a path from the source to destination represents a sequence of
+ * configurations, one for each segment, and finds the least cost path using dynamic programming.
  */
 class GraphSolver {
  public:

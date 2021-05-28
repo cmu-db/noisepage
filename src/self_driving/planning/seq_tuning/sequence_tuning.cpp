@@ -1,18 +1,15 @@
 #include "self_driving/planning/seq_tuning/sequence_tuning.h"
 
-#include <map>
-#include <vector>
-
 #include "common/managed_pointer.h"
 #include "loggers/selfdriving_logger.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/planning/action/create_index_action.h"
 #include "self_driving/planning/action/generators/change_knob_action_generator.h"
 #include "self_driving/planning/action/generators/index_action_generator.h"
+#include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
 #include "self_driving/planning/seq_tuning/graph_solver.h"
 #include "self_driving/planning/seq_tuning/path_solution.h"
-#include "transaction/transaction_manager.h"
 
 namespace noisepage::selfdriving::pilot {
 
@@ -20,11 +17,9 @@ SequenceTuning::SequenceTuning(const PlanningContext &planning_context,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                uint64_t end_segment_index)
     : planning_context_(planning_context), forecast_(forecast), end_segment_index_(end_segment_index) {
-  transaction::TransactionContext *txn = planning_context_.GetTxnManager()->BeginTransaction();
-
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
   // vector of query plans that the search tree is responsible for
-  PilotUtil::GetQueryPlans(planning_context_, common::ManagedPointer(forecast_), end_segment_index, txn, &plans);
+  PilotUtil::GetQueryPlans(planning_context_, common::ManagedPointer(forecast_), end_segment_index, &plans);
 
   std::vector<action_id_t> candidate_actions;
   // populate structure_map_, candidate_structures_
@@ -47,8 +42,6 @@ SequenceTuning::SequenceTuning(const PlanningContext &planning_context,
   for (const auto &it UNUSED_ATTRIBUTE : structure_map_) {
     SELFDRIVING_LOG_DEBUG("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
   }
-
-  planning_context_.GetTxnManager()->Abort(txn);
 
   std::vector<double> default_segment_cost;
   // first compute the cost of each segment when no action is applied
@@ -150,25 +143,47 @@ void SequenceTuning::GreedySeq(const std::map<action_id_t, PathSolution> &best_p
   SELFDRIVING_LOG_DEBUG("[GREEDY-SEQ] final solution cost {}", final_soln_cost);
 }
 
+std::set<action_id_t> SequenceTuning::ExtractActionsFromConfigTransition(
+    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
+    const std::set<action_id_t> &start_config, const std::set<action_id_t> &end_config) {
+  std::set<action_id_t> actions;
+  // include actions that added structures
+  for (auto structure_id : end_config)
+    if (start_config.find(structure_id) == start_config.end())
+      actions.emplace(structure_id);
+
+  // include reverse actions for dropped structures
+  for (auto structure_id : start_config)
+    if (end_config.find(structure_id) == end_config.end()) {
+      auto drop_action = structure_map.at(structure_id)->GetReverseActions().at(0);
+      actions.emplace(drop_action);
+    }
+
+  return actions;
+}
+
 void SequenceTuning::ExtractActionsFromConfigPath(
     const std::vector<std::set<action_id_t>> &best_final_config_path,
     std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq) {
   for (uint64_t config_idx = 1; config_idx < best_final_config_path.size(); config_idx++) {
     std::set<std::pair<const std::string, catalog::db_oid_t>> action_set;
-    for (auto structure_id : best_final_config_path.at(config_idx))
-      if (best_final_config_path.at(config_idx - 1).find(structure_id) ==
-          best_final_config_path.at(config_idx - 1).end())
-        action_set.emplace(structure_map_.at(structure_id)->GetSQLCommand(),
-                           structure_map_.at(structure_id)->GetDatabaseOid());
+    auto action_id_set = ExtractActionsFromConfigTransition(structure_map_, best_final_config_path.at(config_idx - 1),
+                                                            best_final_config_path.at(config_idx));
 
-    for (auto structure_id : best_final_config_path.at(config_idx - 1))
-      if (best_final_config_path.at(config_idx).find(structure_id) == best_final_config_path.at(config_idx).end()) {
-        auto drop_action = structure_map_.at(structure_id)->GetReverseActions().at(0);
-        action_set.emplace(structure_map_.at(drop_action)->GetSQLCommand(),
-                           structure_map_.at(drop_action)->GetDatabaseOid());
-      }
+    for (auto action_id : action_id_set)
+      action_set.emplace(structure_map_.at(action_id)->GetSQLCommand(),structure_map_.at(action_id)->GetDatabaseOid());
+
     best_actions_seq->push_back(std::move(action_set));
   }
+}
+
+double SequenceTuning::ConfigTransitionCost(
+    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
+    const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config) {
+  auto action_id_set = ExtractActionsFromConfigTransition(structure_map, start_config, end_config);
+  double total_cost = 0.0;
+  for (auto action_id : action_id_set) total_cost += structure_map.at(action_id)->GetEstimatedElapsedUs();
+  return total_cost;
 }
 
 void SequenceTuning::MergeConfigs(std::multiset<PathSolution> *global_path_set,

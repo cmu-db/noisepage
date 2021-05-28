@@ -24,10 +24,6 @@ namespace modelserver {
 class ModelServerManager;
 }
 
-namespace transaction {
-class TransactionManager;
-}
-
 namespace optimizer {
 class StatsStorage;
 }
@@ -125,13 +121,11 @@ class PilotUtil {
    * @param planning_context pilot planning context
    * @param forecast pointer to the forecast segments
    * @param end_segment_index end index (inclusive)
-   * @param txn the transaction context that would be used for action generation as well
    * @param plan_vecs the vector that would store the generated abstract plans of forecasted queries before the end
    * index
    */
   static void GetQueryPlans(const pilot::PlanningContext &planning_context,
                             common::ManagedPointer<WorkloadForecast> forecast, uint64_t end_segment_index,
-                            transaction::TransactionContext *txn,
                             std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs);
 
   /**
@@ -175,17 +169,6 @@ class PilotUtil {
    */
   static pilot::MemoryInfo ComputeMemoryInfo(const pilot::PlanningContext &planning_context,
                                              const WorkloadForecast *forecast);
-
-  /**
-   * Computing the transition cost from one configuration to another.
-   * @param structure_map action map containing information about the indexes/structures
-   * @param start_config initial config
-   * @param end_config target config
-   * @return cost of the transition/index creation
-   */
-  static double ConfigTransitionCost(
-      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
-      const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config);
 
   /**
    * Utility function for printing a configuration (set of structures)

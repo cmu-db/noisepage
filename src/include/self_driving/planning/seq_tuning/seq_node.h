@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <map>
 #include <memory>
 #include <set>
@@ -8,17 +7,16 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/pilot_util.h"
+#include "self_driving/planning/seq_tuning/sequence_tuning.h"
 
 namespace noisepage::selfdriving {
-class Pilot;
-class WorkloadForecast;
 
 namespace pilot {
 
 /**
- * The pilot processes the query trace predictions by executing them and extracting pipeline features
+ * The SeqNode class represents a configuration (set of structures/indices) associated with a forecasted segment.
+ * It also stores the cost of queries in the segment under the configuration.
  */
 class SeqNode {
   /* Initial distance assigned to nodes that are not the source */
@@ -29,17 +27,11 @@ class SeqNode {
    * Constructing a sequence node representing a set of statements (segment) with a configuration (set of structures).
    * @param configuration set of create index action id
    * @param node_cost cost of executing the statements under the config
-   * @param memory number of bytes consumed by the config
-   * @param action_state
    * @param if_source if the node is a source node (default to have distance 0)
    */
-  explicit SeqNode(std::set<action_id_t> configuration, double node_cost, uint64_t memory, ActionState action_state,
-                   bool if_source = false)
+  explicit SeqNode(std::set<action_id_t> configuration, double node_cost, bool if_source = false)
       : configuration_(std::move(configuration)),
-        node_cost_(node_cost),
-        memory_(memory),
-        best_action_state_(std::move(action_state)) {
-    (void)memory_;  // TODO(Katrina): Add the memory information to the action recording table
+        node_cost_(node_cost) {
     if (if_source) best_source_dist_ = 0.0;
   }
 
@@ -73,7 +65,7 @@ class SeqNode {
                  const std::vector<std::unique_ptr<SeqNode>> &parents) {
     NOISEPAGE_ASSERT(!parents.empty(), "cannot relax with zero parents");
     for (auto &parent : parents) {
-      double transit_cost = PilotUtil::ConfigTransitionCost(structure_map, parent->configuration_, configuration_);
+      double transit_cost = SequenceTuning::ConfigTransitionCost(structure_map, parent->configuration_, configuration_);
       if (best_parent_ == nullptr || parent->best_source_dist_ + transit_cost + node_cost_ < best_source_dist_) {
         best_parent_ = common::ManagedPointer(parent);
         best_source_dist_ = parent->best_source_dist_ + transit_cost + node_cost_;
@@ -86,8 +78,6 @@ class SeqNode {
   double node_cost_;
   double best_source_dist_{INIT_DIST};
   common::ManagedPointer<SeqNode> best_parent_{nullptr};
-  uint64_t memory_;
-  ActionState best_action_state_;
 };
 }  // namespace pilot
 

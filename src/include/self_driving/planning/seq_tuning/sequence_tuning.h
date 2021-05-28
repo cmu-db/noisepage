@@ -4,23 +4,24 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
-#include "self_driving/planning/action/abstract_action.h"
+#include "catalog/catalog_defs.h"
 #include "self_driving/planning/action/action_defs.h"
-#include "self_driving/planning/mcts/tree_node.h"
-#include "self_driving/planning/pilot.h"
 
 namespace noisepage::selfdriving {
-class Pilot;
+class WorkloadForecast;
 
 namespace pilot {
+class AbstractAction;
+class PlanningContext;
 struct PathSolution;
 
 /**
- * The pilot processes the query trace predictions by executing them and extracting pipeline features
+ * The SequenceTuning class implements the structure searching algorithm as a baseline for comparison with
+ * MonteCarloTreeSearch. The algo varies from the original paper linked below by considering a set of structures at each
+ * timestamp: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/SequenceTuning_Sig06.pdf.
  */
 class SequenceTuning {
  public:
@@ -41,6 +42,17 @@ class SequenceTuning {
    */
   void BestAction(uint64_t memory_constraint,
                   std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq);
+
+  /**
+   * Computing the transition cost from one configuration to another.
+   * @param structure_map action map containing information about the indexes/structures
+   * @param start_config initial config
+   * @param end_config target config
+   * @return cost of the transition/index creation
+   */
+  static double ConfigTransitionCost(
+      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
+      const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config);
 
  private:
   /**
@@ -66,6 +78,16 @@ class SequenceTuning {
    */
   void GreedySeq(const std::map<action_id_t, PathSolution> &best_path_for_structure, uint64_t memory_constraint,
                  PathSolution *best_final_path);
+
+  /**
+   *
+   * @param start_config
+   * @param end_config
+   * @return actions that moves from start config to end config
+   */
+  static std::set<action_id_t> ExtractActionsFromConfigTransition(
+      const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
+      const std::set<action_id_t> &start_config, const std::set<action_id_t> &end_config);
 
   /**
    * Extract the best sequence of actions to apply from the optimal sequence of configuration.

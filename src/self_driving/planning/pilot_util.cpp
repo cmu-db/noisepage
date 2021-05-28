@@ -35,7 +35,6 @@
 #include "storage/sql_table.h"
 #include "task/task.h"
 #include "task/task_manager.h"
-#include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
 
 namespace noisepage::selfdriving {
@@ -83,7 +82,6 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
 
 void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
                               common::ManagedPointer<WorkloadForecast> forecast, uint64_t end_segment_index,
-                              transaction::TransactionContext *txn,
                               std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs) {
   std::unordered_set<execution::query_id_t> qids;
   for (uint64_t idx = 0; idx <= end_segment_index; idx++) {
@@ -679,12 +677,6 @@ size_t PilotUtil::CalculateMemoryConsumption(
   }
 
   return total_memory;
-}
-
-double PilotUtil::ConfigTransitionCost(
-    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &structure_map,
-    const std::set<pilot::action_id_t> &start_config, const std::set<pilot::action_id_t> &end_config) {
-  return 0.0;  // TODO(Katrina): compute transition cost
 }
 
 std::string PilotUtil::ConfigToString(const std::set<pilot::action_id_t> &config_set) {
