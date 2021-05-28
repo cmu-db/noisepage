@@ -202,9 +202,10 @@ optional arguments:
                         Query protocol mode.
   --prepare-threshold PREPARE_THRESHOLD
                         Threshold under the 'extended' query mode.
+  --tracefile-test TRACEFILE_TEST
+                        The name of a particular tracefile test to run.
   -a SERVER_ARG, --server-arg SERVER_ARG
                         Server commandline arguments.
-
 ```
 
 ### Adding New Tests

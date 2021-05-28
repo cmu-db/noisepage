@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.function.Executable;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -52,6 +53,15 @@ final class Logger {
  *  - Report errors when necessary
  */
 public class TracefileTest {
+    // ------------------------------------------------------------------------
+    // Constants
+    // ------------------------------------------------------------------------
+
+    /**
+     * The required precision for floating point results.
+     */
+    private static final double PRECISION = 0.00001;
+
     // ------------------------------------------------------------------------
     // Static Members
     // ------------------------------------------------------------------------
@@ -162,6 +172,13 @@ public class TracefileTest {
         final int expectedResultCount = getParsedResultCount();
         final boolean checkExpectedLength = getCheckExpectedLength();
 
+        StringBuilder nameBuilder = new StringBuilder();
+        nameBuilder.append("Line: ");
+        nameBuilder.append(lineNumber);
+        nameBuilder.append(" | Hash:");
+        nameBuilder.append(expectedHash);
+        final String testName = nameBuilder.toString();
+
         // execute sql query to get result from database
         Executable exec;
         try {
@@ -174,8 +191,8 @@ public class TracefileTest {
             
             // Create an executable for the query
             if (onlyResult) {
-                List<String> temp = new ArrayList<>(mog.queryResults);
-                exec = () -> checkEquals(results, temp);
+                final List<String> expectedResults = new ArrayList<>(mog.queryResults);
+                exec = () -> checkResultSets(results, expectedResults);
             } else {
                 final String resultHash = TestUtility.getHashFromDb(results);
 
@@ -194,16 +211,21 @@ public class TracefileTest {
                 builder.append(mog.queryResults);
 
                 final String message = builder.toString();
-
-                final boolean lengthsMatch = getCheckLength(checkExpectedLength, expectedResultCount, results.size());
-                exec = () -> checkResultMatch(expectedHash, resultHash, message, lengthsMatch, results);
+                final boolean resultCountsMatch = checkResultCount(checkExpectedLength, expectedResultCount, results.size());
+                exec = () -> checkResultHashes(expectedHash, resultHash, message, resultCountsMatch, results);
             }
         } catch (Throwable e) {
-            final String message = buildTestFailureString(lineNumber, queryString, e.getMessage());
-            exec = () -> checkAlwaysFail(message);
+            StringBuilder builder = new StringBuilder();
+            builder.append("Failure at line ");
+            builder.append(lineNumber);
+            builder.append(": ");
+            builder.append(e.getMessage());
+            builder.append('\n');
+            builder.append(queryString);
+            exec = () -> checkAlwaysFail(builder.toString());
         }
 
-        return DynamicTest.dynamicTest(buildTestNameString(lineNumber, queryString, expectedHash), exec);
+        return DynamicTest.dynamicTest(testName, exec);
     }
 
     /**
@@ -270,105 +292,122 @@ public class TracefileTest {
     // ------------------------------------------------------------------------
 
     /**
-     * 
-     * @param res
-     * @param queryResult
-     * @throws Exception
+     * Determine if the results of the query match the expected results.
+     * @param results The results from the query executed against NoisePage
+     * @param expectedResults The expected results from the tracefile
+     * @throws RuntimeException
      */
-    private static void checkEquals(List<String> res, List<String> queryResult) throws Exception {
-        if(res.size()!=queryResult.size()){
-            throw new Exception("Query got wrong number of results");
+    private static void checkResultSets(final List<String> results, final List<String> expectedResults) throws RuntimeException {
+        if (results.size() != expectedResults.size()) {
+            throw new RuntimeException("Unexpected number of results for query");
         }
-        double precision = 0.00001;
-        for(int i=0;i<res.size();i++){
-            if(res.get(i)==null){
-                if(queryResult.get(i)!=null){
-                    throw new Exception("Value null Mismatch");
-                }
-            }else if(res.get(i).equals("")){
-                if(!queryResult.get(i).equals("")){
-                    throw new Exception("Value '' Mismatch");
-                }
-            }else{
-                try{
-                    double one = Double.parseDouble(res.get(i));
-                    double two = Double.parseDouble(queryResult.get(i));
-                    if(Math.abs(one-two)>precision){
-                        throw new Exception("Expected " + queryResult + " but have " + res);
-                    }
-                }catch(Exception e){
-                    if(!res.get(i).equals(queryResult.get(i))){
-                        throw new Exception("Expected " + queryResult + " but have " + res);
-                    }
-                }
-            }
-        }
-    }
 
-    /**
-     * check if length of queried result equals length of expected result
-     * @param check_expected flag: whether to check length or not
-     * @param parsed_num_result parsed result length
-     * @param actual_result actual length
-     * @return true if length match or aren't required to be checked
-     */
-    public static boolean getCheckLength(boolean check_expected, int parsed_num_result, int actual_result){
-        boolean len_match;
-        if (check_expected) {
-            if (parsed_num_result == actual_result) {
-                len_match = true;
+        for (int i = 0; i < results.size(); ++i) {
+            if (results.get(i) == null) {
+                if (expectedResults.get(i) != null) {
+                    throw new RuntimeException("Value null Mismatch");
+                }
+            } else if (results.get(i).isEmpty()) {
+                if (!expectedResults.get(i).isEmpty()) {
+                    throw new RuntimeException("Value '' Mismatch");
+                }
             } else {
-                len_match = false;
+                try {
+                    final double one = Double.parseDouble(results.get(i));
+                    final double two = Double.parseDouble(expectedResults.get(i));
+                    if (Math.abs(one - two) > PRECISION) {
+                        StringBuilder builder = new StringBuilder();
+                        builder.append("Expected ");
+                        builder.append(expectedResults);
+                        builder.append(" but have ");
+                        builder.append(results);
+                        throw new RuntimeException(builder.toString());
+                    }
+                } catch (Exception e) {
+                    if (!results.get(i).equals(expectedResults.get(i))) {
+                        StringBuilder builder = new StringBuilder();
+                        builder.append("Expected ");
+                        builder.append(expectedResults);
+                        builder.append(" but have ");
+                        builder.append(results);
+                        throw new RuntimeException(builder.toString());
+                    }
+                }
             }
-        } else {
-            len_match = true;
         }
-        return len_match;
+
+        // Reaching this point indicates that all checks passed!
     }
 
     /**
-     * compare hash, print line number and error if hash don't match
-     * @param hash1 hash
-     * @param hash2 hash
-     * @param message error message
-     * @param len_match boolean that indicate if the number of value queried is correct
-     * @throws Exception
+     * Determine if the length of queried result equals length of expected result.
+     * @param checkExpectedLength A boolean flag indicating whether the check is actually performed
+     * @param expectedCount parsed result length
+     * @param actualCount actual length
+     * @return `true` if result counts match or the check is elided, `false` otherwise
      */
-    public static void checkResultMatch(String hash1, String hash2, String message,
-                             boolean len_match, List<String> res) throws Exception {
-        // if length doesn't match, throw exception
-        if(!len_match){
-            throw new Exception("Query got wrong number of values");
+    private static boolean checkResultCount(final boolean checkExpectedLength, final int expectedCount, final int actualCount) {
+        // If checkExpectedLength is `false` we elide the check entirely
+        // TODO(Kyle): This logic is insane, why do we do this at all?
+        return checkExpectedLength ? (expectedCount == actualCount) : true;
+    }
+
+    /**
+     * Determine if the hashes for the actual and expected query result sets match.
+     * @param expectedHash The expected hash from the tracefile
+     * @param actualHash The hash computed at test time
+     * @param message The error message
+     * @param resultCountsMatch Indicates whether the result count check passed
+     * @param results The queried result set
+     * @throws RuntimeException
+     */
+    public static void checkResultHashes(final String expectedHash, final String actualHash, final String message,
+                             final boolean resultCountsMatch, final List<String> results) throws RuntimeException {
+        // If length doesn't match, throw
+        if (!resultCountsMatch){
+            throw new RuntimeException("Query got wrong number of values");
         }
+
         // try comparing the hash
-        try {
-            assertEquals(hash1, hash2);
-        }
-        catch (AssertionError e) {
+        if (!actualHash.equals(expectedHash)) {
             // if hash doesn't match
-            if(len_match){
-                // if length still match, cast the double to int to compare again (dealing with float
-                // precision errors
-                List<String> new_res = new ArrayList<>();
-                for(String i:res){
-                    try{
-                        int cur = (int)Math.round(Double.parseDouble(i));
-                        new_res.add(cur+"");
-                    }catch(Exception e1){
-                        new_res.add(i);
+            if (resultCountsMatch) {
+                // If result counts match, we cast the double to int to
+                // compare again (hack for float precision errors)
+                List<String> updatedResults = new ArrayList<>();
+                for (final String i : results) {
+                    try {
+                        final Integer value = Integer.valueOf((int) Math.round(Double.parseDouble(i)));
+                        updatedResults.add(value.toString());
+                    } catch (Exception ex) {
+                        updatedResults.add(i);
                     }
                 }
-                String new_hash = TestUtility.getHashFromDb(new_res);
-                try{
-                    assertEquals(hash1, new_hash);
-                }catch (AssertionError e1){
-                    throw new Exception(message+"\n"+e.getMessage()+res);
+                final String updatedHash = TestUtility.getHashFromDb(updatedResults);
+                if (!updatedHash.equals(expectedHash)) {
+                    StringBuilder builder = new StringBuilder();
+                    builder.append(message);
+                    builder.append("\nExpected: ");
+                    builder.append(expectedHash);
+                    builder.append("\nActual: ");
+                    builder.append(updatedHash);
+                    builder.append('\n');
+                    builder.append(results);
+                    throw new RuntimeException(builder.toString());
                 }
-            }else{
-                // if length doesn't match, throw exception
-                throw new Exception(message + "\n" + e.getMessage());
+            } else {
+                // Hashes and result counts disagree; throw
+                StringBuilder builder = new StringBuilder();
+                builder.append(message);
+                builder.append("\nExpected: ");
+                builder.append(expectedHash);
+                builder.append("\nActual: ");
+                builder.append(actualHash);
+                throw new RuntimeException(builder.toString());
             }
         }
+
+        // If we reach this point, the checks have passed!
     }
 
     /**
@@ -380,13 +419,17 @@ public class TracefileTest {
         throw new RuntimeException(message);
     }
 
+    // ------------------------------------------------------------------------
+    // Misc. Utilities
+    // ------------------------------------------------------------------------
+
     /**
      * Get all sql query statement start line numbers.
      * @param input The input tracefile
      * @return A list of integers that contains start line numbers
      * @throws IOException
      */
-    public static List<Integer> getQueryLineNumbers(File input) throws IOException {
+    private static List<Integer> getQueryLineNumbers(File input) throws IOException {
         try (BufferedReader bf = new BufferedReader(new FileReader(input))) {
             List<Integer> res = new ArrayList<>();
             String line;
@@ -403,17 +446,17 @@ public class TracefileTest {
         }
     }
 
-    // ------------------------------------------------------------------------
-    // Misc. Utilities
-    // ------------------------------------------------------------------------
-
     /**
      * Determine if we should only check the expected length of the result sets.
      * @return `true` if the length of the result set should be checked, `false` otherwise
      */
     private static boolean getCheckExpectedLength() {
         // TODO(Kyle): I just ripped this logic out of the above
-        // function, but this really does not make much sense to me
+        // function, but this could still really use a deeper refactor
+        if (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
+            return false;
+        }
+
         final String[] sentence = mog.queryResults.get(0).split(" ");
         try {
             Integer.parseInt(sentence[0]);
@@ -436,7 +479,7 @@ public class TracefileTest {
      * @return The parsed hash
      */
     private static String getParsedHash() {
-        if (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES)))) {
+        if (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
             return TestUtility.getHashFromDb(mog.queryResults);
         } else {
             final String[] sentence = mog.queryResults.get(0).split(" ");
@@ -458,39 +501,5 @@ public class TracefileTest {
         } catch (Exception e) {
             return Integer.parseInt(sentence[1]);
         }
-    }
-
-    /**
-     * Construct the test name string.
-     * @param lineNumber The line number at which the query begins
-     * @param queryString The query string
-     * @param parsedHash The hash parsed from the trace file
-     * @return The test name string
-     */
-    private static String buildTestNameString(final int lineNumber, final String queryString, final String parsedHash) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Line: ");
-        builder.append(lineNumber);
-        builder.append(" | Hash:");
-        builder.append(parsedHash);
-        return builder.toString();
-    }
-
-    /**
-     * 
-     * @param lineNumber
-     * @param queryString
-     * @param errorMessage
-     * @return
-     */
-    private static String buildTestFailureString(final int lineNumber, final String queryString, final String errorMessage) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Failure at line ");
-        builder.append(lineNumber);
-        builder.append(": ");
-        builder.append(errorMessage);
-        builder.append('\n');
-        builder.append(queryString);
-        return builder.toString();        
     }
 }
