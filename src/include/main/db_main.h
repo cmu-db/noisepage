@@ -570,9 +570,9 @@ class DBMain {
       }
       {
         UNUSED_ATTRIBUTE auto &default_txn_policy = txn_layer->GetTransactionManager()->GetDefaultTransactionPolicy();
-        STORAGE_LOG_INFO(fmt::format("Default transaction policy: DURABILITY {} REPLICATION {}",
-                                     transaction::DurabilityPolicyToString(default_txn_policy.durability_),
-                                     transaction::ReplicationPolicyToString(default_txn_policy.replication_)));
+        STORAGE_LOG_DEBUG(fmt::format("Default transaction policy: DURABILITY {} REPLICATION {}",
+                                      transaction::DurabilityPolicyToString(default_txn_policy.durability_),
+                                      transaction::ReplicationPolicyToString(default_txn_policy.replication_)));
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
