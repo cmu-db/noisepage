@@ -149,8 +149,7 @@ std::set<action_id_t> SequenceTuning::ExtractActionsFromConfigTransition(
   std::set<action_id_t> actions;
   // include actions that added structures
   for (auto structure_id : end_config)
-    if (start_config.find(structure_id) == start_config.end())
-      actions.emplace(structure_id);
+    if (start_config.find(structure_id) == start_config.end()) actions.emplace(structure_id);
 
   // include reverse actions for dropped structures
   for (auto structure_id : start_config)
@@ -171,7 +170,7 @@ void SequenceTuning::ExtractActionsFromConfigPath(
                                                             best_final_config_path.at(config_idx));
 
     for (auto action_id : action_id_set)
-      action_set.emplace(structure_map_.at(action_id)->GetSQLCommand(),structure_map_.at(action_id)->GetDatabaseOid());
+      action_set.emplace(structure_map_.at(action_id)->GetSQLCommand(), structure_map_.at(action_id)->GetDatabaseOid());
 
     best_actions_seq->push_back(std::move(action_set));
   }

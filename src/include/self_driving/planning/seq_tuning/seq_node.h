@@ -30,8 +30,7 @@ class SeqNode {
    * @param if_source if the node is a source node (default to have distance 0)
    */
   explicit SeqNode(std::set<action_id_t> configuration, double node_cost, bool if_source = false)
-      : configuration_(std::move(configuration)),
-        node_cost_(node_cost) {
+      : configuration_(std::move(configuration)), node_cost_(node_cost) {
     if (if_source) best_source_dist_ = 0.0;
   }
 

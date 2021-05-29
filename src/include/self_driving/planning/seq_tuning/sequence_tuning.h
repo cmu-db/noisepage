@@ -44,7 +44,7 @@ class SequenceTuning {
                   std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq);
 
   /**
-   * Computing the transition cost from one configuration to another.
+   * Computing the transition cost (measured as cumulative elapsed time of actions) from one configuration to another.
    * @param structure_map action map containing information about the indexes/structures
    * @param start_config initial config
    * @param end_config target config
@@ -80,9 +80,9 @@ class SequenceTuning {
                  PathSolution *best_final_path);
 
   /**
-   *
-   * @param start_config
-   * @param end_config
+   * Extracts a set of actions that on application would move from start configuration to end configuration.
+   * @param start_config initial configuration
+   * @param end_config target configuration
    * @return actions that moves from start config to end config
    */
   static std::set<action_id_t> ExtractActionsFromConfigTransition(
