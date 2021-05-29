@@ -21,18 +21,10 @@ DROP TABLE IF EXISTS t1;
 CREATE TABLE t1(x INTEGER);
 INSERT INTO t1 VALUES(1);
 INSERT INTO t1 VALUES(2);
+
 WITH tmp AS (SELECT * FROM t1) SELECT x FROM tmp;
 
 WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp;
-
--- Postgres does not support this syntax
--- SELECT * FROM (WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp);
-
--- Postgres does not support this syntax
--- WITH tmp1(a) AS (SELECT * FROM t1), tmp2(x) AS (SELECT * FROM tmp1) SELECT * FROM tmp2;
-
--- Postgres does not support this syntax
--- WITH tmp2(x) AS (SELECT * FROM tmp1), tmp1(a) AS (SELECT * FROM t1) SELECT * FROM tmp2;
 
 -----------------------------------------------------------
 -- with1.test, section 3
@@ -68,14 +60,14 @@ INSERT INTO edge VALUES(4, 8, 80);
 INSERT INTO edge VALUES(7, 8, 80);
 INSERT INTO edge VALUES(8, 9, 90);
   
--- This fails in the parser (TargetTransform: root==null)
--- WITH RECURSIVE ancest(id, mtime) AS (VALUES(0, 0) UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
+-- TODO: We return an unexpected number of results for this query
+-- WITH RECURSIVE ancest(id, mtime) AS (SELECT 0, 0 UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
 
 -- This fails in the parser (TargetTransform: root==null)
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 -- This fails in the parser (TargetTransform: root==null)
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 -----------------------------------------------------------
 -- with1.test, section 6

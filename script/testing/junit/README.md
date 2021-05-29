@@ -72,14 +72,14 @@ Suppose we want to run `FilterTrace.java` with the following configuration:
 - SQL Input File: `select.test` (located in the `traces/` directory)
 - JDBC URL: `jdbc:postgresql://localhost/mydb`
 - Database Username: `admin`
-- Database Password: ``
+- Database Password: `password`
 - Skip List: [CASE,BETWEEN,WHERE,abs(,WHEN]
 - Output Name: `select_new.test`
 
 The corresponding command would be:
 
 ```bash
-ant filter-trace -Dpath=traces/select.test -Ddb-url=jdbc:postgresql://localhost/mydb -Ddb-user=admin -Dpassword="" -Dskip-list="CASE,BETWEEN,WHERE,abs(,WHEN" -Doutput-name=select_new.test
+ant filter-trace -Dpath=traces/select.test -Ddb-url=jdbc:postgresql://localhost/mydb -Ddb-user=admin -Dpassword=password -Dskip-list="CASE,BETWEEN,WHERE,abs(,WHEN" -Doutput-name=select_new.test
 ```
 
 The output file contains all traces as before, except that for any query that contains any keyword within the `skip-list`, a "skip" tag is added above the query so that when
@@ -118,13 +118,13 @@ Suppose we want to run `GenerateTrace.java` with the following configuration:
 - SQL Input File: `select.test` (located in the `traces/` directory)
 - JDBC URL: `jdbc:postgresql://localhost/mydb`
 - Database Username: `admin`
-- Database Password: ``
+- Database Password: `password`
 - Output Name: `select_new.test`
 
 The corresponding command would be:
 
 ```bash
-ant generate-trace -Dpath=sql/select.sql -Ddb-url=jdbc:postgresql://localhost/mydb -Ddb-user=admin -Ddb-password="" -Doutput-name=select.test
+ant generate-trace -Dpath=sql/select.sql -Ddb-url=jdbc:postgresql://localhost/mydb -Ddb-user=admin -Ddb-password=password -Doutput-name=select.test
 ```
 
 **Additional Details**

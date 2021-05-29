@@ -13,35 +13,20 @@ WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JO
 -- https://github.com/postgres/postgres/blob/master/src/test/regress/sql/with.sql
 
 -- sum of 1..100
--- TODO: Fails in parser (TargetTransform root==null)
--- WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n+1 FROM t WHERE n < 100) SELECT sum(n) FROM t;
-
 -- variant of above without VALUES()
 WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n < 100) SELECT sum(n) FROM t;
 
--- TODO: Fails in parser (TargetTransform root==null)
--- WITH RECURSIVE t(n) AS (SELECT (VALUES(1)) UNION ALL SELECT n+1 FROM t WHERE n < 5) SELECT * FROM t;
-
--- variant of above without VALUES()
 -- TODO: Fails in binder ("CTE column type not resolved")
 -- WITH RECURSIVE t(n) AS (SELECT (SELECT 1) UNION ALL SELECT n+1 FROM t WHERE n < 5) SELECT * FROM t;
 
 -- This is an infinite loop with UNION ALL, but not with UNION
--- TODO: We loop infinitely on this
+-- TODO: We loop on this
 -- WITH RECURSIVE t(n) AS (SELECT 1 UNION SELECT 10-n FROM t) SELECT * FROM t;
 
 -- This'd be an infinite loop, but outside query reads only as much as needed
--- TODO: Fails in parser (TargetTransform root==null)
--- WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
-
--- variant of above without VALUES()
 -- TODO: We loop on this
 -- WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
 
--- TODO: Fails in parser
--- WITH RECURSIVE y (id) AS (VALUES (1)), x (id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
-
--- variant of above without VALUES()
 -- TODO: Crashes the DBMS
 -- WITH RECURSIVE y (id) AS (SELECT 1), x (id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
 

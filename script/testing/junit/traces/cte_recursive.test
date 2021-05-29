@@ -52,15 +52,6 @@ statement ok
 -- sum of 1..100
 
 statement ok
--- TODO: Fails in parser (TargetTransform root==null)
-
-statement ok
--- WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n+1 FROM t WHERE n < 100) SELECT sum(n) FROM t;
-
-statement ok
-
-
-statement ok
 -- variant of above without VALUES()
 
 query I rowsort
@@ -70,18 +61,6 @@ WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n < 100) SELE
 
 statement ok
 
-
-statement ok
--- TODO: Fails in parser (TargetTransform root==null)
-
-statement ok
--- WITH RECURSIVE t(n) AS (SELECT (VALUES(1)) UNION ALL SELECT n+1 FROM t WHERE n < 5) SELECT * FROM t;
-
-statement ok
-
-
-statement ok
--- variant of above without VALUES()
 
 statement ok
 -- TODO: Fails in binder ("CTE column type not resolved")
@@ -96,7 +75,7 @@ statement ok
 -- This is an infinite loop with UNION ALL, but not with UNION
 
 statement ok
--- TODO: We loop infinitely on this
+-- TODO: We loop on this
 
 statement ok
 -- WITH RECURSIVE t(n) AS (SELECT 1 UNION SELECT 10-n FROM t) SELECT * FROM t;
@@ -108,18 +87,6 @@ statement ok
 -- This'd be an infinite loop, but outside query reads only as much as needed
 
 statement ok
--- TODO: Fails in parser (TargetTransform root==null)
-
-statement ok
--- WITH RECURSIVE t(n) AS (VALUES (1) UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
-
-statement ok
-
-
-statement ok
--- variant of above without VALUES()
-
-statement ok
 -- TODO: We loop on this
 
 statement ok
@@ -127,18 +94,6 @@ statement ok
 
 statement ok
 
-
-statement ok
--- TODO: Fails in parser
-
-statement ok
--- WITH RECURSIVE y (id) AS (VALUES (1)), x (id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
-
-statement ok
-
-
-statement ok
--- variant of above without VALUES()
 
 statement ok
 -- TODO: Crashes the DBMS

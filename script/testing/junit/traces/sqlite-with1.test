@@ -69,6 +69,9 @@ INSERT INTO t1 VALUES(1);
 statement ok
 INSERT INTO t1 VALUES(2);
 
+statement ok
+
+
 query I rowsort
 WITH tmp AS (SELECT * FROM t1) SELECT x FROM tmp;
 ----
@@ -83,33 +86,6 @@ WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp;
 ----
 1
 2
-
-statement ok
-
-
-statement ok
--- Postgres does not support this syntax
-
-statement ok
--- SELECT * FROM (WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp);
-
-statement ok
-
-
-statement ok
--- Postgres does not support this syntax
-
-statement ok
--- WITH tmp1(a) AS (SELECT * FROM t1), tmp2(x) AS (SELECT * FROM tmp1) SELECT * FROM tmp2;
-
-statement ok
-
-
-statement ok
--- Postgres does not support this syntax
-
-statement ok
--- WITH tmp2(x) AS (SELECT * FROM tmp1), tmp1(a) AS (SELECT * FROM t1) SELECT * FROM tmp2;
 
 statement ok
 
@@ -219,19 +195,10 @@ statement ok
 
 
 statement ok
--- This fails in the parser (TargetTransform: root==null)
+-- TODO: We return an unexpected number of results for this query
 
 statement ok
--- WITH RECURSIVE ancest(id, mtime) AS (VALUES(0, 0) UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
-
-statement ok
-
-
-statement ok
--- This fails in the parser (TargetTransform: root==null)
-
-statement ok
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE ancest(id, mtime) AS (SELECT 0, 0 UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
 
 statement ok
 
@@ -240,7 +207,16 @@ statement ok
 -- This fails in the parser (TargetTransform: root==null)
 
 statement ok
--- WITH RECURSIVE i(x) AS (VALUES(1) UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
+
+statement ok
+
+
+statement ok
+-- This fails in the parser (TargetTransform: root==null)
+
+statement ok
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 statement ok
 
