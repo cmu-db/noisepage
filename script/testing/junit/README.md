@@ -161,7 +161,7 @@ Running the integration tests requires the following depenenencies:
 
 The necessary Java libraries supporting these tests are included in the `lib/` directory.
 
-### Running the tests
+### Running the Tests
 
 The primary use of the automated tests in this directory is for use in the continuous integration pipeline. However, they may also be run manually to, for instance, verify the correct behavior of new top-level functionality.
 
@@ -222,6 +222,16 @@ Ant compiles all Java files present in the `src/` directory. The test runners au
 - See `TrafficCopTest.java` for an example of a non-tracefile integration test. Each test requires a `Connection` variable and SQL statements to setup the tables.
 - JUnit invokes the `Setup()` method prior to each test and then calls `Teardown()` after it completes. If you need different granularity, see the JUnit5 documentation. For instance, class level setup and teardown is possible.
 - Functions annotated with `@Test` denote the actual tests.
+
+### Code Style
+
+You can check code style for Java source with:
+
+```bash
+ant checkstyle
+```
+
+This is not integrated into the CI pipeline or as a pre-commit/pre-push hook in any way, but it is nice to know that one can easily verfiy a baseline, uniform style across the Java source for the integration tests in this directory.
 
 ### PostgreSQL on CMU DB Development Machines
 

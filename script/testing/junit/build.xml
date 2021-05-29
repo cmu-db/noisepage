@@ -1,7 +1,24 @@
-<project name="test" basedir=".">
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="test" xmlns:ivy="antlib:org.apache.ivy.ant" basedir=".">
+
+<!-- ##########################################################################
+Build
+########################################################################### -->
+
 <property name="src.dir" value="./src" />
 <property name="lib.dir" value="./lib" />
 <property name="out.dir" value="./out" />
+
+<path id="lib.classpath">
+  <fileset dir="${lib.dir}">
+    <include name="**/*.jar"/>
+  </fileset>
+</path>
+
+<path id="test.classpath">
+  <path refid="lib.classpath"/>
+  <pathelement location="${out.dir}" />
+</path>
 
 <target name="compile">
   <mkdir dir="${out.dir}"/>
@@ -21,21 +38,14 @@
   </delete>
 </target>
 
-<path id="lib.classpath">
-  <fileset dir="${lib.dir}">
-    <include name="**/*.jar"/>
-  </fileset>
-</path>
-
-<path id="test.classpath">
-  <path refid="lib.classpath"/>
-  <pathelement location="${out.dir}" />
-</path>
-
 <target name="test-all">
   <antcall target="test-unit"/>
   <antcall target="test-trace"/>
 </target>
+
+<!-- ##########################################################################
+Tools
+########################################################################### -->
 
 <target name="generate-trace" depends="compile">
   <java classname="GenerateTrace" fork="yes">
@@ -97,5 +107,60 @@
   </java>
 </target>
 
-</project>
+<!-- ##########################################################################
+Checkstyle
+########################################################################### -->
 
+<target name="checkstyle"
+        description="Generates a report of code convention violations."
+	depends="init-checkstyle">
+  <checkstyle config="sun_checks.xml"
+              failureProperty="checkstyle.failure"
+              failOnViolation="false">
+    <!-- TODO(Kyle): Currently we only check a select subset of files
+    in the src/ directory because I don't want to spend an entire day
+    refactoring and reformatting files to make the checks happy, but
+    EVENTUALLY our goal should be to check the entire directory. -->
+    <!-- <fileset dir="src" includes="**/*.java"/> -->
+    <fileset dir="src" includes="TracefileTest.java"/>
+  </checkstyle>
+</target>
+
+<target name="init-checkstyle" depends="resolve">
+	<path id="checkstyle.lib.path">
+            <fileset dir="lib" includes="*.jar"/>
+	</path>
+	<taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties"
+           classpathref="checkstyle.lib.path"/>
+</target>
+
+
+<!-- ##########################################################################
+Dependency Management with Ivy
+########################################################################### -->
+
+<property name="ivy.install.version" value="2.5.0" />
+<property name="ivy.jar.dir" value="lib" />
+<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+
+<target name="resolve" description="Retrieve dependencies with ivy" depends="init-ivy">
+    <ivy:retrieve />
+</target>
+
+<target name="init-ivy" depends="download-ivy">
+  <path id="ivy.lib.path">
+      <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+  </path>
+  <taskdef resource="org/apache/ivy/ant/antlib.xml"
+            uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+</target>
+
+<target name="download-ivy" unless="offline">
+  <mkdir dir="${ivy.jar.dir}"/>
+  <!-- download Ivy from web site
+        so that it can be used even without any special installation -->
+  <get src="https://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
+        dest="${ivy.jar.file}" usetimestamp="true"/>
+</target>
+
+</project>

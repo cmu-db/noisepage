@@ -1,19 +1,23 @@
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.BufferedReader;
+
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.function.Executable;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import moglib.*;
+import moglib.Constants;
+import moglib.MogSqlite;
 
 /**
  * The Logger class implements a dummy logger that,
@@ -23,7 +27,7 @@ final class Logger {
     /**
      * Construct a new Logger instance.
      */
-    public Logger() {
+    Logger() {
 
     }
 
@@ -84,7 +88,7 @@ public class TracefileTest {
     /**
      * The logger instance.
      */
-    private static final Logger logger = new Logger();
+    private static final Logger LOGGER = new Logger();
 
     // ------------------------------------------------------------------------
     // Test Setup
@@ -96,15 +100,16 @@ public class TracefileTest {
      */
     @BeforeEach
     public void setUp() throws Throwable {
-        logger.log("Working Directory = " + System.getProperty("user.dir"));
-        
+        LOGGER.log("Working Directory = " + System.getProperty("user.dir"));
+
         conn = TestUtility.makeDefaultConnection();
         final String path = System.getenv("NOISEPAGE_TRACE_FILE");
         if (path == null || path.isEmpty()) {
-            throw new RuntimeException("No 'trace-path' environment variable was specified");
+            throw new RuntimeException(
+                "No 'trace-path' environment variable specified");
         }
-        
-        logger.log("File Name: " + path);
+
+        LOGGER.log("File Name: " + path);
 
         file = new File(path);
         mog = new MogSqlite(file);
@@ -124,7 +129,7 @@ public class TracefileTest {
         // We populate this collection with a DynamicTest instance
         // for each query we encounter in the current tracefile
         List<DynamicTest> dynamicTests = new ArrayList<>();
-        
+
         // Get all query start numbers
         final List<Integer> queryLineNumbers = getQueryLineNumbers(file);
 
@@ -145,7 +150,8 @@ public class TracefileTest {
             }
             mog.queryResults.clear();
             if (conn.isClosed()) {
-                logger.error("Connection closed unexpectedly, skipping remaining tests.");
+                LOGGER.error(
+                    "Connection closed, skipping remaining tests.");
                 break;
             }
 
@@ -165,7 +171,9 @@ public class TracefileTest {
      * @param queryString The raw query string
      * @return A DynamicTest instance that represents the test case
      */
-    private static DynamicTest executeSelectQuery(final int lineNumber, final String queryString) {        
+    private static DynamicTest executeSelectQuery(
+        final int lineNumber,
+        final String queryString) {
         // Extract the configuration for the current query
         final String expectedHash = getParsedHash();
         final boolean onlyResult = getCheckOnlyResult();
@@ -185,13 +193,15 @@ public class TracefileTest {
             // Execute the query
             Statement statement = conn.createStatement();
             statement.execute(queryString);
-            
+
             // Process the result set from the query
-            final List<String> results = mog.processResults(statement.getResultSet());
-            
+            final List<String> results
+                = mog.processResults(statement.getResultSet());
+
             // Create an executable for the query
             if (onlyResult) {
-                final List<String> expectedResults = new ArrayList<>(mog.queryResults);
+                final List<String> expectedResults
+                    = new ArrayList<>(mog.queryResults);
                 exec = () -> checkResultSets(results, expectedResults);
             } else {
                 final String resultHash = TestUtility.getHashFromDb(results);
@@ -211,8 +221,17 @@ public class TracefileTest {
                 builder.append(mog.queryResults);
 
                 final String message = builder.toString();
-                final boolean resultCountsMatch = checkResultCount(checkExpectedLength, expectedResultCount, results.size());
-                exec = () -> checkResultHashes(expectedHash, resultHash, message, resultCountsMatch, results);
+                final boolean resultCountsMatch
+                    = checkResultCount(
+                        checkExpectedLength,
+                        expectedResultCount,
+                        results.size());
+                exec = () -> checkResultHashes(
+                    expectedHash,
+                    resultHash,
+                    message,
+                    resultCountsMatch,
+                    results);
             }
         } catch (Throwable e) {
             StringBuilder builder = new StringBuilder();
@@ -234,7 +253,9 @@ public class TracefileTest {
      * @param queryString The raw query string
      * @return A DynamicTest instance that represents the test case
      */
-    private static DynamicTest executeNonSelectQuery(final int lineNumber, final String queryString) {
+    private static DynamicTest executeNonSelectQuery(
+        final int lineNumber,
+        final String queryString) {
         StringBuilder nameBuilder = new StringBuilder();
         nameBuilder.append("Line: ");
         nameBuilder.append(lineNumber);
@@ -273,7 +294,8 @@ public class TracefileTest {
                 final String[] arr = mog.queryFirstLine.split(" ");
                 try {
                     // TODO(Kyle): Is this array access always in bounds?
-                    final int expectedCode = Integer.parseInt(arr[arr.length - 1]);
+                    final int expectedCode
+                        = Integer.parseInt(arr[arr.length - 1]);
                     if (Integer.parseInt(resultCode) != expectedCode) {
                         exec = () -> checkAlwaysFail("Error code mismatch");
                     } else {
@@ -297,9 +319,12 @@ public class TracefileTest {
      * @param expectedResults The expected results from the tracefile
      * @throws RuntimeException
      */
-    private static void checkResultSets(final List<String> results, final List<String> expectedResults) throws RuntimeException {
+    private static void checkResultSets(
+        final List<String> results,
+        final List<String> expectedResults) throws RuntimeException {
         if (results.size() != expectedResults.size()) {
-            throw new RuntimeException("Unexpected number of results for query");
+            throw new RuntimeException(
+                "Unexpected number of results for query");
         }
 
         for (int i = 0; i < results.size(); ++i) {
@@ -313,8 +338,10 @@ public class TracefileTest {
                 }
             } else {
                 try {
-                    final double one = Double.parseDouble(results.get(i));
-                    final double two = Double.parseDouble(expectedResults.get(i));
+                    final double one
+                        = Double.parseDouble(results.get(i));
+                    final double two
+                        = Double.parseDouble(expectedResults.get(i));
                     if (Math.abs(one - two) > PRECISION) {
                         StringBuilder builder = new StringBuilder();
                         builder.append("Expected ");
@@ -340,20 +367,27 @@ public class TracefileTest {
     }
 
     /**
-     * Determine if the length of queried result equals length of expected result.
-     * @param checkExpectedLength A boolean flag indicating whether the check is actually performed
+     * Determine if the length of queried result equals
+     * the length of expected result.
+     * @param checkExpectedLength A boolean flag indicating
+     * whether the check is actually performed
      * @param expectedCount parsed result length
      * @param actualCount actual length
-     * @return `true` if result counts match or the check is elided, `false` otherwise
+     * @return `true` if result counts match or the check
+     * is elided, `false` otherwise
      */
-    private static boolean checkResultCount(final boolean checkExpectedLength, final int expectedCount, final int actualCount) {
+    private static boolean checkResultCount(
+        final boolean checkExpectedLength,
+        final int expectedCount,
+        final int actualCount) {
         // If checkExpectedLength is `false` we elide the check entirely
         // TODO(Kyle): This logic is insane, why do we do this at all?
         return checkExpectedLength ? (expectedCount == actualCount) : true;
     }
 
     /**
-     * Determine if the hashes for the actual and expected query result sets match.
+     * Determine if the hashes for the actual and
+     * the expected query result sets match.
      * @param expectedHash The expected hash from the tracefile
      * @param actualHash The hash computed at test time
      * @param message The error message
@@ -361,10 +395,14 @@ public class TracefileTest {
      * @param results The queried result set
      * @throws RuntimeException
      */
-    private static void checkResultHashes(final String expectedHash, final String actualHash, final String message,
-                             final boolean resultCountsMatch, final List<String> results) throws RuntimeException {
+    private static void checkResultHashes(
+        final String expectedHash,
+        final String actualHash,
+        final String message,
+        final boolean resultCountsMatch,
+        final List<String> results) throws RuntimeException {
         // If length doesn't match, throw
-        if (!resultCountsMatch){
+        if (!resultCountsMatch) {
             throw new RuntimeException("Query got wrong number of values");
         }
 
@@ -377,13 +415,16 @@ public class TracefileTest {
                 List<String> updatedResults = new ArrayList<>();
                 for (final String i : results) {
                     try {
-                        final Integer value = Integer.valueOf((int) Math.round(Double.parseDouble(i)));
+                        final Integer value
+                            = Integer.valueOf(
+                                (int) Math.round(Double.parseDouble(i)));
                         updatedResults.add(value.toString());
                     } catch (Exception ex) {
                         updatedResults.add(i);
                     }
                 }
-                final String updatedHash = TestUtility.getHashFromDb(updatedResults);
+                final String updatedHash
+                    = TestUtility.getHashFromDb(updatedResults);
                 if (!updatedHash.equals(expectedHash)) {
                     StringBuilder builder = new StringBuilder();
                     builder.append(message);
@@ -415,7 +456,8 @@ public class TracefileTest {
      * @param message The error message
      * @throws RuntimeException
      */
-    private static void checkAlwaysFail(final String message) throws RuntimeException {
+    private static void checkAlwaysFail(final String message)
+        throws RuntimeException {
         throw new RuntimeException(message);
     }
 
@@ -429,12 +471,13 @@ public class TracefileTest {
      * @return A list of integers that contains start line numbers
      * @throws IOException
      */
-    private static List<Integer> getQueryLineNumbers(File input) throws IOException {
+    private static List<Integer> getQueryLineNumbers(final File input)
+        throws IOException {
         try (BufferedReader bf = new BufferedReader(new FileReader(input))) {
             List<Integer> lineNumbers = new ArrayList<>();
             String line;
             int counter = 0;
-            while (null != (line = bf.readLine())){
+            while (null != (line = bf.readLine())) {
                 counter++;
                 if (line.startsWith(Constants.QUERY)
                 || line.startsWith(Constants.STATEMENT_ERROR)
@@ -447,13 +490,16 @@ public class TracefileTest {
     }
 
     /**
-     * Determine if we should only check the expected length of the result sets.
-     * @return `true` if the length of the result set should be checked, `false` otherwise
+     * Determine if we should only check the expected
+     * length of the result sets.
+     * @return `true` if the length of the result set
+     * should be checked, `false` otherwise
      */
     private static boolean getCheckExpectedLength() {
         // TODO(Kyle): I just ripped this logic out of the above
         // function, but this could still really use a deeper refactor
-        if (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
+        if (mog.queryResults.size() == 0
+        || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
             return false;
         }
 
@@ -467,11 +513,13 @@ public class TracefileTest {
     }
 
     /**
-     * Determine if we should check the result of the query, rather than the hash.
+     * Determine if we should check the result of the query,
+     * rather than the hash.
      * @return `true` if we check the result, `false` otherwise
      */
     private static boolean getCheckOnlyResult() {
-        return (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES)));
+        return (mog.queryResults.size() == 0
+            || (!mog.queryResults.get(0).contains(Constants.VALUES)));
     }
 
     /**
@@ -479,7 +527,8 @@ public class TracefileTest {
      * @return The parsed hash
      */
     private static String getParsedHash() {
-        if (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
+        if (mog.queryResults.size() == 0
+        || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
             return TestUtility.getHashFromDb(mog.queryResults);
         } else {
             final String[] sentence = mog.queryResults.get(0).split(" ");
@@ -492,9 +541,10 @@ public class TracefileTest {
      * @return The parsed result count
      */
     private static int getParsedResultCount() {
-        if (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
+        if (mog.queryResults.size() == 0
+        || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
             return 0;
-        } 
+        }
         final String[] sentence = mog.queryResults.get(0).split(" ");
         try {
             return Integer.parseInt(sentence[0]);

@@ -6,15 +6,30 @@ import argparse
 import traceback
 from typing import Dict, List
 
-from . import constants
-
 from ..util.test_case import TestCase
 from ..util.test_server import TestServer
-from ..util.constants import LOG, ErrorCode
+from ..util.constants import LOG, DIR_TESTING, ErrorCode
 
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
+
+# Settings of TestJUnit
+JUNIT_TEST_DIR = os.path.join(DIR_TESTING, "junit")
+JUNIT_OUTPUT_FILE = "/tmp/noisepage-junit_log.txt"
+
+JUNIT_TEST_CMD_ALL = "ant test-all"
+JUNIT_TEST_CMD_JUNIT = "ant test-unit"
+JUNIT_TEST_CMD_TRACE = "ant test-trace"
+
+JUNIT_OPTION_DIR = os.path.join(JUNIT_TEST_DIR, "out")
+JUNIT_OPTION_XML = os.path.join(JUNIT_OPTION_DIR, "options.xml")
+
+REPO_TRACE_DIR = os.path.join("junit", "traces")
+TESTFILES_SUFFIX = ".test"
+
+DEFAULT_PREPARE_THRESHOLD = 5
+DEFAULT_QUERY_MODE = "simple"
 
 # Reserved environment variables used by the testing infrastructure
 RESERVED_VARS = ["NOISEPAGE_QUERY_MODE", "NOISEPAGE_PREPARE_THRESHOLD"]
@@ -37,12 +52,12 @@ class TestCaseJUnit(TestCase):
     Class to run JUnit tests.
     """
 
-    def __init__(self, args, test_command=constants.JUNIT_TEST_CMD_ALL):
+    def __init__(self, args, test_command=JUNIT_TEST_CMD_ALL):
         TestCase.__init__(self, args)
         self.test_command = test_command
-        self.test_command_cwd = constants.JUNIT_TEST_DIR
+        self.test_command_cwd = JUNIT_TEST_DIR
         self.test_output_file = self.args.get(
-            "test_output_file", constants.JUNIT_OUTPUT_FILE
+            "test_output_file", JUNIT_OUTPUT_FILE
         )
 
 
@@ -181,7 +196,7 @@ def run_junit_tests(test_server, args: Dict) -> List:
     :return A list of tuples of the test results
     """
     LOG.info(section_header("TEST JUNIT"))
-    return [("junit", run_test(test_server, constants.JUNIT_TEST_CMD_JUNIT, args))]
+    return [("junit", run_test(test_server, JUNIT_TEST_CMD_JUNIT, args))]
 
 
 # -----------------------------------------------------------------------------
@@ -209,7 +224,7 @@ def run_tracefile_test(path: str, test_server, args: Dict) -> int:
     LOG.info(section_header("TEST TRACEFILE: " + os.environ["NOISEPAGE_TRACE_FILE"]))
 
     try:
-        errcode = run_test(test_server, constants.JUNIT_TEST_CMD_TRACE, args)
+        errcode = run_test(test_server, JUNIT_TEST_CMD_TRACE, args)
     finally:
         if old_env_var is None:
             del os.environ["NOISEPAGE_TRACE_FILE"]
@@ -230,13 +245,13 @@ def run_tracefile_tests(test_server, args: Dict) -> List:
     """
 
     base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    trace_dir = os.path.join(base_path, constants.REPO_TRACE_DIR)
+    trace_dir = os.path.join(base_path, REPO_TRACE_DIR)
 
     # Locate all trace files in the trace directory; remove those without expected extension
     filenames = [
         name
         for name in os.listdir(trace_dir)
-        if name.endswith(constants.TESTFILES_SUFFIX)
+        if name.endswith(TESTFILES_SUFFIX)
     ]
     # Construct the complete relative path to each trace file
     paths = sorted([os.path.join(trace_dir, filename) for filename in filenames])
@@ -258,9 +273,9 @@ def set_env_vars(args: Dict):
     :param args The script arguments
     """
     new_values = {
-        "NOISEPAGE_QUERY_MODE": args.get("query_mode", constants.DEFAULT_QUERY_MODE),
+        "NOISEPAGE_QUERY_MODE": args.get("query_mode", DEFAULT_QUERY_MODE),
         "NOISEPAGE_PREPARE_THRESHOLD": str(
-            args.get("prepare_threshold", constants.DEFAULT_PREPARE_THRESHOLD)
+            args.get("prepare_threshold", DEFAULT_PREPARE_THRESHOLD)
         ),
     }
     for var in RESERVED_VARS:
@@ -298,13 +313,13 @@ def run_specified_test(test_name: str, args: Dict) -> List:
     # individual JUnit test
 
     base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    trace_dir = os.path.join(base_path, constants.REPO_TRACE_DIR)
+    trace_dir = os.path.join(base_path, REPO_TRACE_DIR)
 
     # Locate all trace files in the trace directory; remove those without expected extension
     filenames = [
         name
         for name in os.listdir(trace_dir)
-        if name.endswith(constants.TESTFILES_SUFFIX)
+        if name.endswith(TESTFILES_SUFFIX)
     ]
 
     if test_name not in filenames:
