@@ -63,10 +63,10 @@ INSERT INTO edge VALUES(8, 9, 90);
 -- TODO: We return an unexpected number of results for this query
 -- WITH RECURSIVE ancest(id, mtime) AS (SELECT 0, 0 UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
 
--- This fails in the parser (TargetTransform: root==null)
+-- TODO: We loop on this
 -- WITH RECURSIVE i(x) AS (SELECT 1 UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
--- This fails in the parser (TargetTransform: root==null)
+-- TODO: We loop on this
 -- WITH RECURSIVE i(x) AS (SELECT 1 UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
 
 -----------------------------------------------------------

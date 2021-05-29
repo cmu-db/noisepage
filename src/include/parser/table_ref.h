@@ -143,7 +143,7 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for the columns
-   * @param cte_type The type of cte this table is referencing (iterative, recursive, simple)
+   * @param cte_type The type of CTE this table is referencing (iterative, recursive, simple)
    */
   TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
            parser::CTEType cte_type)
@@ -187,7 +187,7 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for column names
-   * @param cte_type the type of cte (simple/recursive/iterative)
+   * @param cte_type the type of CTE (simple/recursive/iterative)
    * @return unique pointer to the created (CTE) table ref
    */
   static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,
@@ -243,6 +243,9 @@ class TableRef {
 
   /** @return select statement */
   common::ManagedPointer<SelectStatement> GetSelect() { return common::ManagedPointer(select_); }
+
+  /** @return `true` if this table reference has an associated SELECT, `false` otherwise */
+  bool HasSelect() const { return static_cast<bool>(select_); }
 
   /** @return list of table references */
   std::vector<common::ManagedPointer<TableRef>> GetList() {

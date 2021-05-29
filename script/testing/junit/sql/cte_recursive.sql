@@ -8,6 +8,13 @@ CREATE TABLE tree (node INTEGER, parent INTEGER);
 INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 11), (111, 11);
 WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
 
+-- A vanilla CTE (related to CTE below)
+WITH cte(x) AS (SELECT 1) SELECT * FROM cte;
+
+-- A CTE declared as recursive but without recursive structure
+-- TODO: We fail during code generation
+-- WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
+
 -----------------------------------------------------------
 -- Adapted from Postgres Regression Test (`with.sql`)
 -- https://github.com/postgres/postgres/blob/master/src/test/regress/sql/with.sql
@@ -27,14 +34,11 @@ WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n < 100) SELE
 -- TODO: We loop on this
 -- WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
 
--- TODO: Crashes the DBMS
--- WITH RECURSIVE y (id) AS (SELECT 1), x (id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
-
 -- TODO: Fails in parser (relation 'y' does not exist)
 -- WITH RECURSIVE x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5), y(id) AS (SELECT 1) SELECT * FROM x;
 
 -- variant of the above with order of CTEs swapped
--- TODO: Crashes the DBMS
+-- TODO: Fails in binder (x has 0 columns available but 1 specified)
 -- WITH RECURSIVE y(id) AS (SELECT 1), x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
 
 CREATE TABLE department (id INTEGER PRIMARY KEY, parent_department INTEGER, name TEXT);

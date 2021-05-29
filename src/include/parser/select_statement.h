@@ -387,7 +387,7 @@ class SelectStatement : public SQLStatement {
   int GetDepth() { return depth_; }
 
   /**
-   * Adds a select statement child as a union target.
+   * Adds a select statement child as a UNION target.
    * @param select_stmt select statement to union with
    */
   void SetUnionSelect(std::unique_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }

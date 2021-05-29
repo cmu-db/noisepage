@@ -430,24 +430,27 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     // Store CTE table name
     sherpa_->AddCTETableName(ref->GetAlias());
 
-    if (ref->GetSelect() == nullptr) {
+    if (!ref->HasSelect()) {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     } else {
-      // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table.
-      bool inductive =
+      // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table
+      const auto inductive =
           (ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE);
-      // get schema
+      // Get the schema for non-inductive CTEs
       if (!inductive) {
         ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
       }
-      std::vector<common::ManagedPointer<parser::AbstractExpression>> sel_cols;
-      // In the case of inductive CTEs, we need to visit the SELECT statement in the base case so we have access to the
-      // columns
-      if (inductive) {
-        auto base_case = ref->GetSelect()->GetUnionSelect();
-        if (base_case != nullptr) {
-          base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-        }
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> sel_cols{};
+      // In the case of inductive CTEs, we need to visit the SELECT
+      // statement in the base case so we have access to the columns
+      auto base_case = ref->GetSelect()->GetUnionSelect();
+      if (inductive && base_case) {
+        // Here, we must be careful to check both the specified "type"
+        // of the CTE in question, as well as whether the parsed CTE
+        // actually adheres to the inductive form (base + inductive);
+        // it is possible to declare a RECURSIVE CTE that does not
+        // actually contain both a base case and a recursive case
+        base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
         sel_cols = base_case->GetSelectColumns();
       } else {
         sel_cols = ref->GetSelect()->GetSelectColumns();
@@ -456,8 +459,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       auto column_aliases = ref->GetCteColumnAliases();  // Get aliases from TableRef
       auto columns = sel_cols;                           // AbstractExpressions in select
 
-      auto num_aliases = column_aliases.size();
-      auto num_columns = columns.size();
+      const auto num_aliases = column_aliases.size();
+      const auto num_columns = columns.size();
 
       if (num_aliases > num_columns) {
         throw BINDER_EXCEPTION(("WITH query " + ref->GetAlias() + " has " + std::to_string(num_columns) +
@@ -467,17 +470,17 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       }
 
       // Go through the SELECT statements inside the CTEs and set the alias for each column to the desired column name
-      // Eg:  `WITH cte(x) AS (SELECT 1)`      transforms to `WITH cte AS (SELECT 1 as x)`
-      // Eg2: `WITH cte AS (SELECT 1 as x, 2)` transforms to `WITH cte AS (SELECT 1 as x, 2 as ?column?)`
-      std::vector<parser::AliasType> aliases;
+      // Eg: `WITH cte(x) AS (SELECT 1)`      transforms to `WITH cte AS (SELECT 1 as x)`
+      // Eg: `WITH cte AS (SELECT 1 as x, 2)` transforms to `WITH cte AS (SELECT 1 as x, 2 as ?column?)`
+      std::vector<parser::AliasType> aliases{};
       for (size_t i = 0; i < num_aliases; i++) {
-        auto serial_no = catalog_accessor_->GetNewTempOid();
+        const auto serial_no = catalog_accessor_->GetNewTempOid();
         columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), serial_no));
         aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), serial_no));
         ref->cte_col_aliases_[i] = parser::AliasType(column_aliases[i].GetName(), serial_no);
       }
-      for (size_t i = num_aliases; i < num_columns; i++) {
-        auto serial_no = catalog_accessor_->GetNewTempOid();
+      for (std::size_t i = num_aliases; i < num_columns; ++i) {
+        const auto serial_no = catalog_accessor_->GetNewTempOid();
         auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), serial_no);
         if (new_alias.Empty()) {
           new_alias = parser::AliasType("?column?", serial_no);
@@ -488,10 +491,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       }
 
       if (inductive) {
-        size_t i = 0;
+        std::size_t i = 0;
         for (auto &alias : ref->GetCteColumnAliases()) {
           ref->GetSelect()->GetSelectColumns()[i]->SetAlias(alias);
-          i++;
+          ++i;
         }
       }
 
