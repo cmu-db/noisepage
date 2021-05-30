@@ -81,12 +81,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       auto oid = catalog::MakeTempOid<catalog::table_oid_t>(accessor_->GetNewTempOid());
       cte_oids_.push_back(oid);
 
-      std::vector<type::TypeId> col_types;
+      std::vector<type::TypeId> col_types{};
       for (uint32_t i = 0; i < with->GetCteColumnAliases().size(); i++) {
         col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
       }
       std::vector<catalog::Schema::Column> columns1;
-      size_t i = 0;
+      std::size_t i = 0;
       for (auto &alias : with->GetCteColumnAliases()) {
         columns1.emplace_back(alias.GetName(), col_types[i], false, parser::ConstantValueExpression(col_types[i]),
                               catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo()));
@@ -97,7 +97,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> master_expressions;
       std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
 
-      auto index = 0;
+      std::size_t index = 0;
       for (auto &elem : with->GetCteColumnAliases()) {
         NOISEPAGE_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
         auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
@@ -249,7 +249,6 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     for (auto with : op->GetSelectWith()) {
       // Get the logical tree for the query which is used to compute the CTE table
       with->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-
       // Add CTE table query to first LogicalCteScan found in tree
       // TODO(tanujnay112) think about this more, there might be a better way
       FindFirstCTEScanNode(common::ManagedPointer(child_expr).CastManagedPointerTo<AbstractOptimizerNode>(),
@@ -264,7 +263,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     auto left_expr = std::move(output_expr_);
     op->GetUnionSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     auto right_expr = std::move(output_expr_);
-    // TODO(tanujnay112): unhardcode the is_all flag when we get parser to take in that info for union
+    // TODO(Kyle): below we just hard-code the is_all flag, we need to fix this
+    // by getting the parser to represent whether it is UNION or UNION ALL
     output_expr_ = std::make_unique<OperatorNode>(
         LogicalUnion::Make(true, op, op->GetUnionSelect()).RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
@@ -390,9 +390,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     auto it = std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName());
     if (it != cte_table_name_.end()) {
       // CTE table referred
-      auto index = std::distance(cte_table_name_.begin(), it);
-      std::vector<type::TypeId> col_types;
-
+      const auto index = std::distance(cte_table_name_.begin(), it);
+      std::vector<type::TypeId> col_types{};
       auto cte_scan_expr = std::make_unique<OperatorNode>(
           LogicalCteScan::Make(node->GetAlias(), node->GetTableName(), cte_oids_[index], cte_schemas_[index],
                                cte_expressions_[index], cte_type_[index], {})
@@ -996,8 +995,8 @@ void QueryToOperatorTransformer::SplitPredicates(
 std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
 QueryToOperatorTransformer::ConstructSelectElementMap(
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
-  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> res;
-  for (auto &expr : select_list) {
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> res{};
+  for (const auto &expr : select_list) {
     parser::AliasType alias;
     if (!expr->GetAlias().Empty()) {
       alias = expr->GetAlias();
@@ -1007,7 +1006,6 @@ QueryToOperatorTransformer::ConstructSelectElementMap(
     } else {
       continue;
     }
-    //    std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
     res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr);
   }
   return res;

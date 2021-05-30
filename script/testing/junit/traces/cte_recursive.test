@@ -53,8 +53,10 @@ statement ok
 statement ok
 -- TODO: We fail during code generation
 
-statement ok
--- WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
+query I rowsort
+WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
+----
+1
 
 statement ok
 

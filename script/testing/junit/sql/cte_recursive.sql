@@ -13,7 +13,7 @@ WITH cte(x) AS (SELECT 1) SELECT * FROM cte;
 
 -- A CTE declared as recursive but without recursive structure
 -- TODO: We fail during code generation
--- WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
+WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
 
 -----------------------------------------------------------
 -- Adapted from Postgres Regression Test (`with.sql`)

@@ -178,7 +178,7 @@ bool TableRef::operator==(const TableRef &rhs) const {
   return true;
 }
 
-std::unique_ptr<TableRef> TableRef::Copy() {
+std::unique_ptr<TableRef> TableRef::Copy() const {
   auto table_ref = std::make_unique<TableRef>();
 
   table_ref->type_ = type_;

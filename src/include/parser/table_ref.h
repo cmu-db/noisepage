@@ -123,7 +123,7 @@ class TableRef {
   /**
    * @return a copy of the table reference
    */
-  std::unique_ptr<TableRef> Copy();
+  std::unique_ptr<TableRef> Copy() const;
 
   /**
    * @param alias alias for table ref
@@ -229,7 +229,7 @@ class TableRef {
   /** @return column alias names */
   std::vector<AliasType> GetCteColumnAliases() { return cte_col_aliases_; }
 
-  /** @return cte recursive flag */
+  /** @return The type of the CTE (CTEType;:INVALID if TableRef does not correspond to CTE) */
   parser::CTEType GetCteType() { return cte_type_; }
 
   /** @return table name */
@@ -301,7 +301,10 @@ class TableRef {
   std::unique_ptr<TableInfo> table_info_;
   std::unique_ptr<SelectStatement> select_;
 
+  // The column aliases provided by this CTE
   std::vector<AliasType> cte_col_aliases_;
+
+  // The CTE type represented by this table reference
   parser::CTEType cte_type_{CTEType::INVALID};
 
   std::vector<std::unique_ptr<TableRef>> list_;

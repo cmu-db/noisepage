@@ -781,7 +781,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
 }
 
 std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *parse_result, SelectStmt *root) {
-  std::unique_ptr<SelectStatement> result;
+  std::unique_ptr<SelectStatement> result{};
 
   switch (root->op_) {
     case SETOP_NONE: {
@@ -2101,17 +2101,17 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
 // Postgres.SelectStmt.withClause -> noisepage.TableRef
 std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
   // Postgres parses 'SELECT;' to nullptr
-  std::vector<std::unique_ptr<TableRef>> ctes;
+  std::vector<std::unique_ptr<TableRef>> ctes{};
   if (root == nullptr) {
     return ctes;
   }
 
-  std::unique_ptr<TableRef> result = nullptr;
+  std::unique_ptr<TableRef> result{};
   ListCell *current = root->ctes_->head;
   while (current != nullptr) {
-    auto node = reinterpret_cast<Node *>(current->data.ptr_value);
-    auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
-    auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
+    const auto node = reinterpret_cast<Node *>(current->data.ptr_value);
+    const auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
+    const auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
     switch (cte_query->type) {
       case T_SelectStmt: {
         auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
@@ -2119,9 +2119,7 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
           // Make left argument the recursive case and right argument the base case,
           // so it is possible to visit the base case without visiting the recursive case
           // (which would otherwise be visited recursively by the visitor in the binder)
-          auto tmp = cte_select_query->larg_;
-          cte_select_query->larg_ = cte_select_query->rarg_;
-          cte_select_query->rarg_ = tmp;
+          std::swap(cte_select_query->larg_, cte_select_query->rarg_);
         }
         auto select = SelectTransform(parse_result, cte_select_query);
         if (select == nullptr) {
@@ -2130,21 +2128,33 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
         }
         auto alias = common_table_expr->ctename_;
 
-        std::vector<parser::AliasType> colnames;
+        std::vector<parser::AliasType> colnames{};
         auto col_names_root = common_table_expr->aliascolnames_;
         if (col_names_root != nullptr) {
-          size_t i = 0;
+          std::size_t i = 0;
           for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
-            auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
-            auto column = target->val_.str_;
+            const auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
+            const auto column = target->val_.str_;
             colnames.emplace_back(parser::AliasType(column, i));
-            i++;
+            ++i;
           }
         }
+
+        // Determine if the SELECT that defines the CTE has inductive structure
+        const auto has_inductive_form = select->HasUnionSelect();
+
+        // Determine the CTE type based on the parse result
+        // as well as the actual structure of the statement
+        // that defines the CTE; if a CTE is declared as
+        // inductive yet does not actually have an inductive
+        // structure (i.e. no UNION / UNION ALL) we simply
+        // ignore the inductive declaration of the CTE and
+        // process it as if it were a simple one
+
         CTEType cte_type = CTEType::SIMPLE;
-        if (root->recursive_) {
+        if (root->recursive_ && has_inductive_form) {
           cte_type = CTEType::RECURSIVE;
-        } else if (root->iterative_) {
+        } else if (root->iterative_ && has_inductive_form) {
           cte_type = CTEType::ITERATIVE;
         }
         result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
