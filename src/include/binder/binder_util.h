@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "common/error/exception.h"
@@ -10,7 +11,13 @@
 namespace noisepage::parser {
 class ConstantValueExpression;
 class AbstractExpression;
+class SelectStatement;
+class TableRef;
 }  // namespace noisepage::parser
+
+namespace noisepage::catalog {
+class CatalogAccessor;
+}  // namespace noisepage::catalog
 
 namespace noisepage::binder {
 
@@ -46,6 +53,34 @@ class BinderUtil {
    * @param value expression that serves as the condition in a WHERE clause (SELECT, UPDATE, INSERT)
    */
   static void ValidateWhereClause(common::ManagedPointer<parser::AbstractExpression> value);
+
+  /**
+   * Compute a topological ordering for table references in SELECT WITH.
+   * @param table_refs The input collection of table references
+   * @param catalog The catalog accessor
+   * @return An ordered collection of table references
+   */
+  static std::vector<common::ManagedPointer<parser::TableRef>> GetSelectWithOrder(
+      const std::vector<common::ManagedPointer<parser::TableRef>> &table_refs,
+      common::ManagedPointer<catalog::CatalogAccessor> catalog);
+
+  /**
+   * Compute the set of dependencies for the given table reference.
+   * @param table_ref The table reference for which dependencies should be computed
+   * @param dependencies The collection of dependencies to populate
+   */
+  static void PopulateTableReferenceDependencies(
+      common::ManagedPointer<parser::TableRef> table_ref,
+      std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies);
+
+  /**
+   * Compute the complete set of dependencies for the given SELECT statement.
+   * @param select The SelectStatement for which dependencies should be computed
+   * @param dependencies The collection of dependencies to populate
+   */
+  static void PopulateTableReferenceDependencies(
+      common::ManagedPointer<parser::SelectStatement> select,
+      std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies);
 
   /**
    * @return True if the value of @p int_val fits in the Output type, false otherwise.

@@ -363,6 +363,9 @@ class SelectStatement : public SQLStatement {
   /** @return The table over which SELECT is performed */
   common::ManagedPointer<TableRef> GetSelectTable() { return common::ManagedPointer(from_); }
 
+  /** @return `true` if the SELECT statement has a target table, `false` otherwise */
+  bool HasSelectTable() const { return static_cast<bool>(from_); }
+
   /** @return The predicate associated with SELECT */
   common::ManagedPointer<AbstractExpression> GetSelectCondition() { return where_; }
 

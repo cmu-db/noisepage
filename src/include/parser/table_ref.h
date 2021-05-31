@@ -44,9 +44,8 @@ class JoinDefinition {
    */
   std::unique_ptr<JoinDefinition> Copy();
 
-  // TODO(WAN): not a SQLStatement?
   /**
-   * @param v Visitor pattern for the statement
+   * @param v Visitor pattern for the JOIN definition
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
@@ -126,6 +125,7 @@ class TableRef {
   std::unique_ptr<TableRef> Copy() const;
 
   /**
+   * Construct a table reference.
    * @param alias alias for table ref
    * @param table_info table information to use in creation
    */
@@ -133,6 +133,7 @@ class TableRef {
       : type_(TableReferenceType::NAME), alias_(std::move(alias)), table_info_(std::move(table_info)) {}
 
   /**
+   * Construct a table reference.
    * @param alias alias for table ref
    * @param select select statement to use in creation
    */
@@ -140,6 +141,7 @@ class TableRef {
       : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)) {}
 
   /**
+   * Construct a table reference.
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for the columns
@@ -154,12 +156,14 @@ class TableRef {
         cte_type_(cte_type) {}
 
   /**
+   * Construct a table reference.
    * @param list table refs to use in creation
    */
   explicit TableRef(std::vector<std::unique_ptr<TableRef>> list)
       : type_(TableReferenceType::CROSS_PRODUCT), alias_(""), list_(std::move(list)) {}
 
   /**
+   * Construct a table reference.
    * @param join join definition to use in creation
    */
   explicit TableRef(std::unique_ptr<JoinDefinition> join)
@@ -213,7 +217,7 @@ class TableRef {
   }
 
   /**
-   * @param v Visitor pattern for the statement
+   * @param v Visitor pattern for the table reference
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
@@ -222,11 +226,13 @@ class TableRef {
 
   /** @return alias */
   std::string GetAlias() {
-    if (alias_.empty()) alias_ = table_info_->GetTableName();
+    if (alias_.empty()) {
+      alias_ = table_info_->GetTableName();
+    }
     return alias_;
   }
 
-  /** @return column alias names */
+  /** @return The column alias names */
   std::vector<AliasType> GetCteColumnAliases() { return cte_col_aliases_; }
 
   /** @return The type of the CTE (CTEType;:INVALID if TableRef does not correspond to CTE) */
@@ -238,16 +244,16 @@ class TableRef {
   /** @return `true` if this table reference represents an inductive CTE, `false` otherwise */
   bool IsInductiveCte() const { return (cte_type_ == CTEType::RECURSIVE) || (cte_type_ == CTEType::ITERATIVE); }
 
-  /** @return table name */
+  /** @return The table name */
   const std::string &GetTableName() { return table_info_->GetTableName(); }
 
-  /** @return namespace name */
+  /** @return The namespace name */
   const std::string &GetNamespaceName() { return table_info_->GetNamespaceName(); }
 
-  /** @return database name */
+  /** @return The database name */
   const std::string &GetDatabaseName() { return table_info_->GetDatabaseName(); }
 
-  /** @return select statement */
+  /** @return The SELECT statement */
   common::ManagedPointer<SelectStatement> GetSelect() { return common::ManagedPointer(select_); }
 
   /** @return `true` if this table reference has an associated SELECT, `false` otherwise */
@@ -287,7 +293,7 @@ class TableRef {
 
   /**
    * Inserts all the table aliases forming a table ref into the input set.
-   * (i.e., all the aliases used in the from clause, including all aliases in all JOINs)
+   * (i.e., all the aliases used in the FROM clause, including all aliases in all JOINs)
    * @param aliases set to insert aliases into
    */
   void GetConstituentTableAliases(std::vector<std::string> *aliases);
@@ -301,10 +307,22 @@ class TableRef {
  private:
   friend class binder::BindNodeVisitor;
 
+  // TODO(Kyle): It seems that this implementation of TableRef
+  // is trying to be "too general" - maybe we should look into
+  // breaking up the implementation between e.g. table references
+  // that are defined SELECT statements vs those that are defined
+  // by JOINs, etc. as it might simplify the logic considerably
+
+  // The type of the table reference
   TableReferenceType type_;
+
+  // The alias for the table reference
   std::string alias_;
 
+  // Associated information for the referenced table (if applicable)
   std::unique_ptr<TableInfo> table_info_;
+
+  // The SELECT statement associated with the table reference (if applicable)
   std::unique_ptr<SelectStatement> select_;
 
   // The column aliases provided by this CTE
@@ -313,7 +331,10 @@ class TableRef {
   // The CTE type represented by this table reference
   parser::CTEType cte_type_{CTEType::INVALID};
 
+  // List of constitutent table references (if applicable)
   std::vector<std::unique_ptr<TableRef>> list_;
+
+  // The JOIN definition (if applicable)
   std::unique_ptr<JoinDefinition> join_;
 };
 

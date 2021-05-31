@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <limits>
 
+#include "catalog/catalog_accessor.h"
 #include "common/error/error_code.h"
 #include "network/postgres/postgres_defs.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/table_ref.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace noisepage::binder {
@@ -19,7 +21,7 @@ void BinderUtil::ValidateWhereClause(const common::ManagedPointer<parser::Abstra
 }
 
 void BinderUtil::PromoteParameters(
-    const common::ManagedPointer<std::vector<parser::ConstantValueExpression> > parameters,
+    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
     const std::vector<type::TypeId> &desired_parameter_types) {
   NOISEPAGE_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
   for (uint32_t parameter_index = 0; parameter_index < desired_parameter_types.size(); parameter_index++) {
@@ -226,6 +228,60 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
       }
     }
+  }
+}
+
+std::vector<common::ManagedPointer<parser::TableRef>> BinderUtil::GetSelectWithOrder(
+    const std::vector<common::ManagedPointer<parser::TableRef>> &table_refs,
+    const common::ManagedPointer<catalog::CatalogAccessor> catalog) {
+  using GraphKey = common::ManagedPointer<parser::TableRef>;
+  using GraphValue = std::unordered_set<common::ManagedPointer<parser::TableRef>>;
+
+  if (table_refs.size() == 0UL) {
+    return {};
+  }
+
+  // Compute the dependencies for each table reference
+  std::unordered_map<GraphKey, GraphValue> graph{};
+  for (const auto &ref : table_refs) {
+    graph[ref] = GraphValue{};
+    PopulateTableReferenceDependencies(ref, &graph[ref]);
+  }
+
+  // Filter out the dependencies on existing (non-temporary) tables
+
+  return {};
+}
+
+void BinderUtil::PopulateTableReferenceDependencies(
+    const common::ManagedPointer<parser::TableRef> table_ref,
+    std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies) {
+  NOISEPAGE_ASSERT(table_ref->HasSelect(),
+                   "Attempt to compute table reference dependencies for non-CTE table reference");
+  // Populate dependencies for the "default" SELECT
+  PopulateTableReferenceDependencies(table_ref->GetSelect(), dependencies);
+  if (table_ref->GetSelect()->HasUnionSelect()) {
+    // Populate dependencies for UNION SELECT, if present (e.g. recursive CTEs)
+    PopulateTableReferenceDependencies(table_ref->GetSelect()->GetUnionSelect(), dependencies);
+  }
+}
+
+void BinderUtil::PopulateTableReferenceDependencies(
+    const common::ManagedPointer<parser::SelectStatement> select,
+    std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies) {
+  // Recursively consider all nested table references
+  for (const auto &nested_ref : select->GetSelectWith()) {
+    PopulateTableReferenceDependencies(nested_ref, dependencies);
+  }
+
+  // Populate the dependencies for the SELECT at this level;
+  // here, we always add the SELECT table to the collection of
+  // dependencies for this particular table reference, regardless
+  // of the "type" of table reference that it is, because at this
+  // point in processing some table references produced by CTEs
+  // may not be bound as CTEs yet, so we can't discriminate by type
+  if (select->HasSelectTable()) {
+    dependencies->insert(select->GetSelectTable());
   }
 }
 
