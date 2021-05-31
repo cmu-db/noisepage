@@ -423,6 +423,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BINDER_LOG_TRACE("Visiting SelectStatement ...");
   SqlNodeVisitor::Visit(node);
 
+  // Construct a new BinderContext from the current context;
+  // SELECT is the only place we "descend" in this way
   BinderContext context(context_);
   context_ = common::ManagedPointer(&context);
 
@@ -434,8 +436,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     } else {
       // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table
-      const auto inductive =
-          (ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE);
+      const auto inductive = ref->IsInductiveCte();
       // Get the schema for non-inductive CTEs
       if (!inductive) {
         ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -473,12 +474,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       // Eg: `WITH cte(x) AS (SELECT 1)`      transforms to `WITH cte AS (SELECT 1 as x)`
       // Eg: `WITH cte AS (SELECT 1 as x, 2)` transforms to `WITH cte AS (SELECT 1 as x, 2 as ?column?)`
       std::vector<parser::AliasType> aliases{};
-      for (size_t i = 0; i < num_aliases; i++) {
+      for (std::size_t i = 0; i < num_aliases; i++) {
         const auto serial_no = catalog_accessor_->GetNewTempOid();
         columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), serial_no));
         aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), serial_no));
         ref->cte_col_aliases_[i] = parser::AliasType(column_aliases[i].GetName(), serial_no);
       }
+
       for (std::size_t i = num_aliases; i < num_columns; ++i) {
         const auto serial_no = catalog_accessor_->GetNewTempOid();
         auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), serial_no);
@@ -506,9 +508,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     }
   }
 
-  if (node->GetSelectTable() != nullptr)
+  if (node->GetSelectTable() != nullptr) {
     node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
 
+  // WHERE
   if (node->GetSelectCondition() != nullptr) {
     node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     BinderUtil::ValidateWhereClause(node->GetSelectCondition());
@@ -516,13 +520,17 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     node->GetSelectCondition()->DeriveSubqueryFlag();
   }
 
-  if (node->GetSelectLimit() != nullptr)
+  // LIMIT
+  if (node->GetSelectLimit() != nullptr) {
     node->GetSelectLimit()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
 
-  if (node->GetSelectGroupBy() != nullptr)
+  // GROUP BY
+  if (node->GetSelectGroupBy() != nullptr) {
     node->GetSelectGroupBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list{};
 
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
@@ -558,6 +566,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
     new_select_list.push_back(select_element);
   }
+
   node->SetSelectColumns(new_select_list);
 
   if (node->GetUnionSelect() != nullptr) {
@@ -856,18 +865,19 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
   ValidateDatabaseName(node->GetDatabaseName());
 
   if (node->GetSelect() != nullptr) {
-    if (node->GetAlias().empty())
+    if (node->GetAlias().empty()) {
       throw BINDER_EXCEPTION("Alias not found for query derived table", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+    }
 
     // Save the previous context
     auto pre_context = context_;
     node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
-    // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
+    // Restore the previous level context
+    // TODO(WAN): who exactly should save and restore contexts?
     context_ = pre_context;
 
-    // TableRef is not a CTE
-    if (node->GetCteType() == parser::CTEType::INVALID) {
+    if (!node->IsCte()) {
       context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), {});
     }
   } else if (node->GetJoin() != nullptr) {
@@ -875,17 +885,18 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     node->GetJoin()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else if (!node->GetList().empty()) {
     // Multiple table
-    for (auto &table : node->GetList())
+    for (auto &table : node->GetList()) {
       table->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    }
   } else {
     // Single table
-    if (sherpa_->GetCTETableNames().count(node->GetTableName()) > 0) {
-      // copy cte table's schema for this alias
+    if (sherpa_->HasCTETableName(node->GetTableName())) {
+      // Copy CTE table's schema for this alias
       context_->AddCTETableAlias(node->GetTableName(), node->GetAlias());
     } else {
-      // not a CTE, check whether it is a regular table
+      // Not a CTE, check whether it is a regular table
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
-        throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()),
+        throw BINDER_EXCEPTION(fmt::format("Relation \"{}\" does not exist", node->GetTableName()),
                                common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
       }
       context_->AddRegularTable(catalog_accessor_, node, db_oid_);
@@ -939,7 +950,9 @@ void BindNodeVisitor::UnifyOrderByExpression(
 }
 
 void BindNodeVisitor::InitTableRef(const common::ManagedPointer<parser::TableRef> node) {
-  if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
+  if (node->table_info_ == nullptr) {
+    node->table_info_ = std::make_unique<parser::TableInfo>();
+  }
 }
 
 void BindNodeVisitor::ValidateDatabaseName(const std::string &db_name) {

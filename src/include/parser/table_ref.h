@@ -232,6 +232,12 @@ class TableRef {
   /** @return The type of the CTE (CTEType;:INVALID if TableRef does not correspond to CTE) */
   parser::CTEType GetCteType() { return cte_type_; }
 
+  /** @return `true` if this table reference represents a CTE temporary table, `false` otherwise */
+  bool IsCte() const { return (cte_type_ != CTEType::INVALID); }
+
+  /** @return `true` if this table reference represents an inductive CTE, `false` otherwise */
+  bool IsInductiveCte() const { return (cte_type_ == CTEType::RECURSIVE) || (cte_type_ == CTEType::ITERATIVE); }
+
   /** @return table name */
   const std::string &GetTableName() { return table_info_->GetTableName(); }
 

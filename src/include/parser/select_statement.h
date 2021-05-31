@@ -351,31 +351,31 @@ class SelectStatement : public SQLStatement {
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
-  /** @return a copy of the select statement */
+  /** @return A copy of the SELECT statement */
   std::unique_ptr<SelectStatement> Copy();
 
-  /** @return select columns */
+  /** @return The columns targeted by SELECT */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() { return select_; }
 
-  /** @return true if "SELECT DISTINCT", false otherwise */
+  /** @return `true` if "SELECT DISTINCT", `false` otherwise */
   bool IsSelectDistinct() const { return select_distinct_; }
 
-  /** @return table over which SELECT is performed */
+  /** @return The table over which SELECT is performed */
   common::ManagedPointer<TableRef> GetSelectTable() { return common::ManagedPointer(from_); }
 
-  /** @return the predicate associated with SELECT */
+  /** @return The predicate associated with SELECT */
   common::ManagedPointer<AbstractExpression> GetSelectCondition() { return where_; }
 
-  /** @return the GROUP BY associated with SELECT */
+  /** @return The GROUP BY associated with SELECT */
   common::ManagedPointer<GroupByDescription> GetSelectGroupBy() { return common::ManagedPointer(group_by_); }
 
-  /** @return the ORDER BY associated with SELECT */
+  /** @return The ORDER BY associated with SELECT */
   common::ManagedPointer<OrderByDescription> GetSelectOrderBy() { return common::ManagedPointer(order_by_); }
 
-  /** @return the LIMIT associated with SELECT */
+  /** @return The LIMIT associated with SELECT */
   common::ManagedPointer<LimitDescription> GetSelectLimit() { return common::ManagedPointer(limit_); }
 
-  /** @return the WITH clause(s) associated with SELECT */
+  /** @return The WITH clause(s) associated with SELECT */
   std::vector<common::ManagedPointer<TableRef>> GetSelectWith() {
     std::vector<common::ManagedPointer<TableRef>> table_refs{};
     table_refs.reserve(with_table_.size());
@@ -384,7 +384,7 @@ class SelectStatement : public SQLStatement {
     return table_refs;
   }
 
-  /** @return the depth of the select statement */
+  /** @return The depth of the SELECT statement */
   int GetDepth() const { return depth_; }
 
   /**
@@ -462,10 +462,10 @@ class SelectStatement : public SQLStatement {
   // A colletion of the temporary tables (CTEs) available to this SELECT
   std::vector<std::unique_ptr<TableRef>> with_table_;
 
-  /** @param select List of select columns */
+  /** @param select List of SELECT columns */
   void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }
 
-  /** @param depth Depth of the select statement */
+  /** @param depth Depth of the SELECT statement */
   void SetDepth(int depth) { depth_ = depth; }
 };
 

@@ -829,7 +829,7 @@ std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::TargetTr
     throw PARSER_EXCEPTION("TargetTransform: root==null.");
   }
 
-  std::vector<common::ManagedPointer<AbstractExpression>> result;
+  std::vector<common::ManagedPointer<AbstractExpression>> result{};
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     auto expr = ExprTransform(parse_result, target->val_, target->name_);
@@ -853,7 +853,7 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
 
   // TODO(WAN): this codepath came from the old system. Can simplify?
   if (root->length > 1) {
-    std::vector<std::unique_ptr<TableRef>> refs;
+    std::vector<std::unique_ptr<TableRef>> refs{};
     for (auto cell = root->head; cell != nullptr; cell = cell->next) {
       auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
       switch (node->type) {

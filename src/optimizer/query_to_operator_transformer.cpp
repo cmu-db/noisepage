@@ -82,7 +82,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       cte_oids_.push_back(oid);
 
       std::vector<type::TypeId> col_types{};
-      for (uint32_t i = 0; i < with->GetCteColumnAliases().size(); i++) {
+      col_types.reserve(with->GetCteColumnAliases().size());
+      for (auto i = 0UL; i < with->GetCteColumnAliases().size(); ++i) {
         col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
       }
       std::vector<catalog::Schema::Column> columns1;
