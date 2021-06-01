@@ -17,6 +17,8 @@ class Module;
 
 namespace noisepage::execution::compiler {
 
+class CompilerSettings;
+
 /**
  * A container for code in a single TPL file.
  */
@@ -76,9 +78,10 @@ class ExecutableQueryFragmentBuilder {
 
   /**
    * Compile the code in the container.
+   * @param settings The settings to use to compile the code.
    * @return True if the compilation was successful; false otherwise.
    */
-  std::unique_ptr<ExecutableQuery::Fragment> Compile();
+  std::unique_ptr<ExecutableQuery::Fragment> Compile(const execution::compiler::CompilerSettings &settings);
 
   /**
    * Add the teardown function to the query.

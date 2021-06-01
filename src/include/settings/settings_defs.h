@@ -308,6 +308,14 @@ SETTING_int(
 )
 
 SETTING_bool(
+    enable_seq_tuning,
+    "Use sequence tuning instead of monte carlo tree search for pilot planning (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     logging_metrics_enable,
     "Metrics collection for the Logging component (default: false).",
     false,
