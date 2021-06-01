@@ -106,7 +106,7 @@ class BinderSherpa {
 
   /**
    * Determine if the given CTE table name is known to the binder sherpa.
-   * @param cte_name The name of the CTE tabke
+   * @param cte_table_name The name of the CTE tabke
    * @return `true` if the CTE identified by `cte_name` is present, `false` otherwise
    */
   bool HasCTETableName(const std::string &cte_table_name) const { return cte_table_names_.count(cte_table_name) > 0; }

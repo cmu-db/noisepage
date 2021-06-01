@@ -234,55 +234,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
 std::vector<common::ManagedPointer<parser::TableRef>> BinderUtil::GetSelectWithOrder(
     const std::vector<common::ManagedPointer<parser::TableRef>> &table_refs,
     const common::ManagedPointer<catalog::CatalogAccessor> catalog) {
-  using GraphKey = common::ManagedPointer<parser::TableRef>;
-  using GraphValue = std::unordered_set<common::ManagedPointer<parser::TableRef>>;
-
-  if (table_refs.size() == 0UL) {
+  if (table_refs.empty()) {
     return {};
   }
-
-  // Compute the dependencies for each table reference
-  std::unordered_map<GraphKey, GraphValue> graph{};
-  for (const auto &ref : table_refs) {
-    graph[ref] = GraphValue{};
-    PopulateTableReferenceDependencies(ref, &graph[ref]);
-  }
-
-  // Filter out the dependencies on existing (non-temporary) tables
-
   return {};
-}
-
-void BinderUtil::PopulateTableReferenceDependencies(
-    const common::ManagedPointer<parser::TableRef> table_ref,
-    std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies) {
-  NOISEPAGE_ASSERT(table_ref->HasSelect(),
-                   "Attempt to compute table reference dependencies for non-CTE table reference");
-  // Populate dependencies for the "default" SELECT
-  PopulateTableReferenceDependencies(table_ref->GetSelect(), dependencies);
-  if (table_ref->GetSelect()->HasUnionSelect()) {
-    // Populate dependencies for UNION SELECT, if present (e.g. recursive CTEs)
-    PopulateTableReferenceDependencies(table_ref->GetSelect()->GetUnionSelect(), dependencies);
-  }
-}
-
-void BinderUtil::PopulateTableReferenceDependencies(
-    const common::ManagedPointer<parser::SelectStatement> select,
-    std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies) {
-  // Recursively consider all nested table references
-  for (const auto &nested_ref : select->GetSelectWith()) {
-    PopulateTableReferenceDependencies(nested_ref, dependencies);
-  }
-
-  // Populate the dependencies for the SELECT at this level;
-  // here, we always add the SELECT table to the collection of
-  // dependencies for this particular table reference, regardless
-  // of the "type" of table reference that it is, because at this
-  // point in processing some table references produced by CTEs
-  // may not be bound as CTEs yet, so we can't discriminate by type
-  if (select->HasSelectTable()) {
-    dependencies->insert(select->GetSelectTable());
-  }
 }
 
 template <typename Output, typename Input>

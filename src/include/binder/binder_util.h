@@ -65,24 +65,6 @@ class BinderUtil {
       common::ManagedPointer<catalog::CatalogAccessor> catalog);
 
   /**
-   * Compute the set of dependencies for the given table reference.
-   * @param table_ref The table reference for which dependencies should be computed
-   * @param dependencies The collection of dependencies to populate
-   */
-  static void PopulateTableReferenceDependencies(
-      common::ManagedPointer<parser::TableRef> table_ref,
-      std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies);
-
-  /**
-   * Compute the complete set of dependencies for the given SELECT statement.
-   * @param select The SelectStatement for which dependencies should be computed
-   * @param dependencies The collection of dependencies to populate
-   */
-  static void PopulateTableReferenceDependencies(
-      common::ManagedPointer<parser::SelectStatement> select,
-      std::unordered_set<common::ManagedPointer<parser::TableRef>> *dependencies);
-
-  /**
    * @return True if the value of @p int_val fits in the Output type, false otherwise.
    */
   template <typename Output, typename Input>
