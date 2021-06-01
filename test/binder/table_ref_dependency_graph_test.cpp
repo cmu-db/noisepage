@@ -90,54 +90,10 @@ class TableRefDependencyGraphTest : public TerrierTest {
 };
 
 // ----------------------------------------------------------------------------
-// Basic Tests for AliasAdjacencyList Equality
+// Basic Tests for Graph Construction from Dependency Graph
 // ----------------------------------------------------------------------------
 
-TEST_F(TableRefDependencyGraphTest, AdjacencyListEquality0) {
-  binder::AliasAdjacencyList a{};
-  binder::AliasAdjacencyList b{};
-
-  a.AddEdge("a", "b");
-  b.AddEdge("a", "b");
-
-  EXPECT_TRUE(binder::AliasAdjacencyList::Equals(a, b));
-}
-
-TEST_F(TableRefDependencyGraphTest, AdjacencyListEquality1) {
-  binder::AliasAdjacencyList a{};
-  binder::AliasAdjacencyList b{};
-
-  a.AddEdge("a", "b");
-  a.AddEdge("b", "a");
-  b.AddEdge("a", "b");
-  b.AddEdge("b", "a");
-
-  EXPECT_TRUE(binder::AliasAdjacencyList::Equals(a, b));
-}
-
-TEST_F(TableRefDependencyGraphTest, AdjacencyListEquality2) {
-  binder::AliasAdjacencyList a{};
-  binder::AliasAdjacencyList b{};
-
-  // Distinct adjacencies for `a`
-  a.AddEdge("a", "b");
-  a.AddEdge("a", "c");
-  b.AddEdge("a", "b");
-
-  EXPECT_FALSE(binder::AliasAdjacencyList::Equals(a, b));
-}
-
-TEST_F(TableRefDependencyGraphTest, AdjacencyListEquality3) {
-  binder::AliasAdjacencyList a{};
-  binder::AliasAdjacencyList b{};
-
-  // Distinct vertex sets
-  a.AddEdge("a", "b");
-  a.AddEdge("c", "b");
-  b.AddEdge("a", "b");
-
-  EXPECT_FALSE(binder::AliasAdjacencyList::Equals(a, b));
-}
+// TODO(Kyle)
 
 // ----------------------------------------------------------------------------
 // Constructing Dependency Graph from Input Query

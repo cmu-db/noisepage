@@ -68,7 +68,7 @@ TableRefDependencyGraph::TableRefDependencyGraph(
   }
 
   // Filter out the dependencies on existing (non-temporary) tables
-  (void) catalog_accessor_;
+  (void)catalog_accessor_;
 }
 
 AliasAdjacencyList TableRefDependencyGraph::AdjacencyList() const {
