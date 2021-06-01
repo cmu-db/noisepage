@@ -51,17 +51,18 @@ void Pilot::PerformPlanning() {
   metrics_thread->PauseMetrics();
 
   // Populate the workload forecast. Initialization mode is controlled by the settings manager.
-  auto mode = static_cast<WorkloadForecastInitMode>(
-      settings_manager_->GetInt(settings::Param::pilot_workload_forecast_init_mode));
+  auto settings_manager = planning_context_.GetSettingsManager();
+  auto mode = static_cast<Forecaster::WorkloadForecastInitMode>(
+      settings_manager->GetInt(settings::Param::pilot_workload_forecast_init_mode));
 
   auto UNUSED_ATTRIBUTE metrics_output =
-      metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
+      metrics_thread->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
   bool UNUSED_ATTRIBUTE metrics_in_db =
       metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
 
-  NOISEPAGE_ASSERT((mode == WorkloadForecastInitMode::DISK_ONLY) ||
-                       (mode == (metrics_in_db ? WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
-                                               : WorkloadForecastInitMode::DISK_WITH_INFERENCE)),
+  NOISEPAGE_ASSERT((mode == Forecaster::WorkloadForecastInitMode::DISK_ONLY) ||
+                       (mode == (metrics_in_db ? Forecaster::WorkloadForecastInitMode::INTERNAL_TABLES_WITH_INFERENCE
+                                               : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE)),
                    "The mode should either be DISK_ONLY, or it should match whatever the metric output type is.");
 
   forecast_ = forecaster_.LoadWorkloadForecast(mode);
@@ -78,7 +79,8 @@ void Pilot::PerformPlanning() {
   } catch (PilotException &e) {
     // If we're shutting down, exceptions will happen all over the place. Ignore them here and just quit.
     // Otherwise, rethrow the exception.
-    if (model_server_manager_->ModelServerRunning()) {
+    auto model_server_manager = planning_context_.GetModelServerManager();
+    if (model_server_manager->ModelServerRunning()) {
       throw e;
     }
   }
